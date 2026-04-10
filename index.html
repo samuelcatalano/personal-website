@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Samuel Catalano – Senior Software Engineer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0a0c10;
+      --bg2:      #0f1117;
+      --bg3:      #161b25;
+      --border:   #1e2535;
+      --green:    #00ffa3;
+      --cyan:     #00d4ff;
+      --purple:   #a855f7;
+      --text:     #e2e8f0;
+      --muted:    #64748b;
+      --card:     rgba(15,17,23,0.85);
+      --radius:   12px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2rem;
+      height: 60px;
+      background: rgba(10,12,16,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      font-size: .95rem;
+      color: var(--green);
+      letter-spacing: -0.5px;
+    }
+    .nav-logo span { color: var(--cyan); }
+    .nav-links { display: flex; gap: 2rem; list-style: none; }
+    .nav-links a {
+      font-size: .85rem;
+      color: var(--muted);
+      text-decoration: none;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: .5px;
+      transition: color .2s;
+    }
+    .nav-links a:hover { color: var(--green); }
+    @media(max-width:600px){ .nav-links { display:none; } }
+
+    /* ── HERO ── */
+    #hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+      padding-top: 60px;
+    }
+    #binaryCanvas {
+      position: absolute; inset: 0;
+      opacity: 0.18;
+      pointer-events: none;
+    }
+    .hero-content {
+      position: relative;
+      text-align: center;
+      padding: 2rem;
+      animation: fadeUp .9s ease both;
+    }
+    .avatar-wrap {
+      width: 140px; height: 140px;
+      margin: 0 auto 1.5rem;
+      border-radius: 50%;
+      border: 3px solid var(--green);
+      box-shadow: 0 0 30px rgba(0,255,163,.25), 0 0 60px rgba(0,255,163,.1);
+      overflow: hidden;
+      background: var(--bg3);
+      animation: pulseGlow 3s ease-in-out infinite;
+    }
+    .avatar-wrap img { width:100%; height:100%; object-fit:cover; }
+    @keyframes pulseGlow {
+      0%,100% { box-shadow: 0 0 30px rgba(0,255,163,.25), 0 0 60px rgba(0,255,163,.1); }
+      50%      { box-shadow: 0 0 45px rgba(0,255,163,.45), 0 0 90px rgba(0,255,163,.2); }
+    }
+    .hero-tag {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .75rem;
+      color: var(--green);
+      border: 1px solid var(--green);
+      border-radius: 999px;
+      padding: .25rem .9rem;
+      margin-bottom: 1rem;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+    h1 {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: clamp(2.2rem, 6vw, 4rem);
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      line-height: 1.1;
+      margin-bottom: .75rem;
+    }
+    h1 .accent { color: var(--green); }
+    .hero-subtitle {
+      font-size: clamp(.9rem, 2vw, 1.1rem);
+      color: var(--muted);
+      max-width: 480px;
+      margin: 0 auto 2rem;
+      font-weight: 300;
+    }
+    .hero-subtitle em {
+      font-style: normal;
+      color: var(--cyan);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .9em;
+    }
+    .hero-cta { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: .5rem;
+      padding: .65rem 1.5rem;
+      border-radius: 8px;
+      font-size: .9rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all .2s;
+      cursor: pointer;
+      border: none;
+    }
+    .btn-primary {
+      background: var(--green);
+      color: #000;
+      font-weight: 600;
+    }
+    .btn-primary:hover { background: #00e090; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,255,163,.3); }
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-outline:hover { border-color: var(--cyan); color: var(--cyan); transform: translateY(-2px); }
+
+    /* ── SECTIONS ── */
+    section { padding: 5rem 1.5rem; }
+    .container { max-width: 900px; margin: 0 auto; }
+    .section-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .75rem;
+      color: var(--green);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: .5rem;
+    }
+    h2 {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: clamp(1.5rem, 3vw, 2rem);
+      font-weight: 700;
+      margin-bottom: 2.5rem;
+      letter-spacing: -0.5px;
+    }
+    h2 .line {
+      display: inline-block;
+      width: 40px; height: 3px;
+      background: var(--green);
+      vertical-align: middle;
+      margin-right: .75rem;
+      border-radius: 2px;
+    }
+
+    /* ── ABOUT ── */
+    #about { background: var(--bg2); }
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+      align-items: start;
+    }
+    @media(max-width:680px){ .about-grid { grid-template-columns:1fr; } }
+    .about-text p { color: var(--muted); margin-bottom: 1rem; }
+    .about-text p strong { color: var(--text); }
+    .about-meta { display: flex; flex-direction: column; gap: .75rem; }
+    .meta-item {
+      display: flex; align-items: center; gap: .75rem;
+      padding: .75rem 1rem;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: .875rem;
+    }
+    .meta-item .icon { font-size: 1.1rem; }
+    .meta-item a { color: var(--cyan); text-decoration: none; }
+    .meta-item a:hover { text-decoration: underline; }
+
+    /* ── SKILLS ── */
+    #skills { background: var(--bg); }
+    .skills-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+    .skill-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      transition: border-color .2s, transform .2s;
+    }
+    .skill-card:hover { border-color: var(--green); transform: translateY(-3px); }
+    .skill-card-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .7rem;
+      color: var(--green);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: .5rem;
+    }
+    .skill-tags { display: flex; flex-wrap: wrap; gap: .4rem; }
+    .tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .7rem;
+      padding: .2rem .55rem;
+      border-radius: 5px;
+      background: rgba(0,255,163,.08);
+      color: var(--green);
+      border: 1px solid rgba(0,255,163,.2);
+    }
+    .tag.cyan {
+      background: rgba(0,212,255,.08);
+      color: var(--cyan);
+      border-color: rgba(0,212,255,.2);
+    }
+    .tag.purple {
+      background: rgba(168,85,247,.08);
+      color: var(--purple);
+      border-color: rgba(168,85,247,.2);
+    }
+
+    /* ── EXPERIENCE ── */
+    #experience { background: var(--bg2); }
+    .timeline { position: relative; padding-left: 2rem; }
+    .timeline::before {
+      content: '';
+      position: absolute; left: 0; top: 8px; bottom: 0;
+      width: 2px;
+      background: linear-gradient(to bottom, var(--green), transparent);
+    }
+    .tl-item {
+      position: relative;
+      margin-bottom: 3rem;
+      padding-left: 1.5rem;
+      animation: fadeUp .6s ease both;
+    }
+    .tl-item::before {
+      content: '';
+      position: absolute; left: -2.1rem; top: 8px;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--green);
+      border: 2px solid var(--bg2);
+      box-shadow: 0 0 8px rgba(0,255,163,.5);
+    }
+    .tl-header { display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem 1rem; margin-bottom: .5rem; }
+    .tl-title { font-weight: 600; font-size: 1.05rem; }
+    .tl-company { color: var(--cyan); font-size: .9rem; font-weight: 500; }
+    .tl-date {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .75rem;
+      color: var(--muted);
+      margin-left: auto;
+    }
+    .tl-location { font-size: .8rem; color: var(--muted); margin-bottom: .75rem; }
+    .tl-desc { font-size: .9rem; color: var(--muted); margin-bottom: .75rem; }
+    .tl-stack { display: flex; flex-wrap: wrap; gap: .35rem; }
+
+    /* ── EDUCATION ── */
+    #education { background: var(--bg); }
+    .edu-card {
+      display: flex; gap: 1.5rem; align-items: flex-start;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      transition: border-color .2s;
+    }
+    .edu-card:hover { border-color: var(--purple); }
+    .edu-icon { font-size: 2rem; flex-shrink: 0; }
+    .edu-degree { font-weight: 600; font-size: 1rem; margin-bottom: .25rem; }
+    .edu-school { color: var(--cyan); font-size: .9rem; margin-bottom: .25rem; }
+    .edu-years { font-family: 'JetBrains Mono', monospace; font-size: .75rem; color: var(--muted); }
+
+    /* ── RECOMMENDATIONS ── */
+    #recommendations { background: var(--bg2); }
+    .rec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media(max-width:600px){ .rec-grid { grid-template-columns:1fr; } }
+    .rec-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+      transition: border-color .2s;
+    }
+    .rec-card:hover { border-color: var(--green); }
+    .rec-card::before {
+      content: '"';
+      position: absolute; top: -10px; right: 1rem;
+      font-size: 6rem;
+      font-family: Georgia, serif;
+      color: rgba(0,255,163,.07);
+      line-height: 1;
+    }
+    .rec-text { font-size: .9rem; color: var(--muted); font-style: italic; margin-bottom: 1rem; }
+    .rec-author { font-weight: 600; font-size: .875rem; }
+    .rec-role { font-size: .8rem; color: var(--muted); }
+
+    /* ── CONTACT ── */
+    #contact { background: var(--bg); text-align: center; }
+    .contact-box {
+      max-width: 500px;
+      margin: 0 auto;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 3rem 2rem;
+    }
+    .contact-box p { color: var(--muted); margin-bottom: 2rem; font-size: .95rem; }
+    .contact-links { display: flex; justify-content: center; flex-wrap: wrap; gap: 1rem; }
+    .contact-link {
+      display: flex; align-items: center; gap: .5rem;
+      padding: .65rem 1.25rem;
+      border-radius: 8px;
+      font-size: .875rem;
+      text-decoration: none;
+      color: var(--text);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      transition: all .2s;
+    }
+    .contact-link:hover { border-color: var(--green); color: var(--green); }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 2rem;
+      border-top: 1px solid var(--border);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .75rem;
+      color: var(--muted);
+    }
+    footer span { color: var(--green); }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { opacity: 0; transform: translateY(24px); transition: opacity .6s ease, transform .6s ease; }
+    .fade-in.visible { opacity: 1; transform: translateY(0); }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--green); }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">samuel<span>.</span>catalano</div>
+  <ul class="nav-links">
+    <li><a href="#about">about</a></li>
+    <li><a href="#skills">skills</a></li>
+    <li><a href="#experience">experience</a></li>
+    <li><a href="#education">education</a></li>
+    <li><a href="#contact">contact</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <canvas id="binaryCanvas"></canvas>
+  <div class="hero-content">
+    <div class="avatar-wrap">
+      <img src="Sammy.png" alt="Samuel Catalano avatar" />
+    </div>
+    <div class="hero-tag">Available for hire</div>
+    <h1>Samuel <span class="accent">Catalano</span></h1>
+    <p class="hero-subtitle">
+      Senior Software Engineer with <em>17+ years</em> of experience.<br/>
+      Ranked #1 by my parents. 🏆
+    </p>
+    <div class="hero-cta">
+      <a href="mailto:samuel.catalano@gmail.com" class="btn btn-primary">✉ Get in touch</a>
+      <a href="#experience" class="btn btn-outline">View Experience</a>
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section id="about">
+  <div class="container">
+    <div class="section-label">// about me</div>
+    <h2><span class="line"></span>Who I Am</h2>
+    <div class="about-grid fade-in">
+      <div class="about-text">
+        <p>Highly skilled <strong>Software Engineer</strong> with over 17 years of experience in the IT field. Proven expertise in software development, systems administration, and requirements analysis.</p>
+        <p>I bring <strong>demonstrated leadership skills</strong> and a genuine passion for technology and innovation. Currently working in London, I'm committed to delivering high-quality results and tackling new challenges head-on.</p>
+        <p>From <strong>São Paulo 🇧🇷 to London 🇬🇧</strong> — building robust, scalable backend systems that make a difference.</p>
+      </div>
+      <div class="about-meta">
+        <div class="meta-item">
+          <span class="icon">📍</span>
+          <span>Wembley, London, UK</span>
+        </div>
+        <div class="meta-item">
+          <span class="icon">✉</span>
+          <a href="mailto:samuel.catalano@gmail.com">samuel.catalano@gmail.com</a>
+        </div>
+        <div class="meta-item">
+          <span class="icon">📱</span>
+          <span>+44 7508 886878</span>
+        </div>
+        <div class="meta-item">
+          <span class="icon">🎓</span>
+          <span>BSc Computer Science – PUC-SP</span>
+        </div>
+        <div class="meta-item">
+          <span class="icon">💼</span>
+          <span>17+ years of experience</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SKILLS -->
+<section id="skills">
+  <div class="container">
+    <div class="section-label">// technical skills</div>
+    <h2><span class="line"></span>What I Work With</h2>
+    <div class="skills-grid fade-in">
+      <div class="skill-card">
+        <div class="skill-card-label">Languages</div>
+        <div class="skill-tags">
+          <span class="tag">Java 8–17</span>
+          <span class="tag">Python</span>
+          <span class="tag">Ruby</span>
+          <span class="tag">JavaScript</span>
+        </div>
+      </div>
+      <div class="skill-card">
+        <div class="skill-card-label">Frameworks</div>
+        <div class="skill-tags">
+          <span class="tag">Spring Boot</span>
+          <span class="tag">Quarkus</span>
+          <span class="tag">Hibernate</span>
+          <span class="tag">Spring MVC</span>
+        </div>
+      </div>
+      <div class="skill-card">
+        <div class="skill-card-label">Databases</div>
+        <div class="skill-tags">
+          <span class="tag cyan">PostgreSQL</span>
+          <span class="tag cyan">MySQL</span>
+          <span class="tag cyan">MongoDB</span>
+          <span class="tag cyan">Cassandra</span>
+          <span class="tag cyan">MSSQL</span>
+          <span class="tag cyan">SQLite</span>
+        </div>
+      </div>
+      <div class="skill-card">
+        <div class="skill-card-label">Cloud & DevOps</div>
+        <div class="skill-tags">
+          <span class="tag purple">AWS Lambda</span>
+          <span class="tag purple">Docker</span>
+          <span class="tag purple">Kubernetes</span>
+          <span class="tag purple">GCP</span>
+          <span class="tag purple">Terraform</span>
+          <span class="tag purple">Heroku</span>
+        </div>
+      </div>
+      <div class="skill-card">
+        <div class="skill-card-label">Messaging & Streaming</div>
+        <div class="skill-tags">
+          <span class="tag">Kafka</span>
+          <span class="tag">ActiveMQ</span>
+          <span class="tag">Debezium</span>
+          <span class="tag">AWS SNS/SQS</span>
+        </div>
+      </div>
+      <div class="skill-card">
+        <div class="skill-card-label">Testing & Others</div>
+        <div class="skill-tags">
+          <span class="tag cyan">JUnit</span>
+          <span class="tag cyan">Mockito</span>
+          <span class="tag cyan">REST</span>
+          <span class="tag cyan">Microservices</span>
+          <span class="tag cyan">sFTP</span>
+          <span class="tag cyan">KeyCloak</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EXPERIENCE -->
+<section id="experience">
+  <div class="container">
+    <div class="section-label">// work experience</div>
+    <h2><span class="line"></span>Career Timeline</h2>
+    <div class="timeline">
+
+      <div class="tl-item fade-in">
+        <div class="tl-header">
+          <span class="tl-title">Senior Software Developer</span>
+          <span class="tl-company">Tribal Worldwide London</span>
+          <span class="tl-date">Jun 2024 → Present</span>
+        </div>
+        <div class="tl-location">📍 London, England, UK · Full-time</div>
+        <div class="tl-desc">
+          Stock Archiver Force — archives vehicle stock data and product/configuration/image data for VW, exposing APIs for stock queries and archived stock information.
+        </div>
+        <div class="tl-stack">
+          <span class="tag">Java 17</span><span class="tag">Spring Boot</span><span class="tag">Microservices</span>
+          <span class="tag">MySQL</span><span class="tag">PostgreSQL</span><span class="tag">MongoDB</span>
+          <span class="tag">ActiveMQ</span><span class="tag cyan">AWS Lambda</span><span class="tag cyan">Docker</span>
+          <span class="tag cyan">Kubernetes</span><span class="tag">Apache POI</span>
+        </div>
+      </div>
+
+      <div class="tl-item fade-in">
+        <div class="tl-header">
+          <span class="tl-title">Software Developer III</span>
+          <span class="tl-company">OLM Systems</span>
+          <span class="tl-date">Jul 2021 → Feb 2024</span>
+        </div>
+        <div class="tl-location">📍 London / Glasgow, UK · Full-time</div>
+        <div class="tl-desc">
+          CP-IS (Child Protection – Information Sharing) — a critical NHS project helping health and social care staff securely share information to protect vulnerable children.
+        </div>
+        <div class="tl-stack">
+          <span class="tag">Java 11–17</span><span class="tag">Quarkus</span><span class="tag">Microservices</span>
+          <span class="tag">Kafka</span><span class="tag">Debezium</span>
+          <span class="tag cyan">PostgreSQL</span><span class="tag cyan">MySQL</span>
+          <span class="tag cyan">AWS Lambda</span><span class="tag cyan">Docker</span><span class="tag cyan">Kubernetes</span>
+        </div>
+      </div>
+
+      <div class="tl-item fade-in">
+        <div class="tl-header">
+          <span class="tl-title">Senior Java Software Engineer</span>
+          <span class="tl-company">xDesign</span>
+          <span class="tl-date">Nov 2020 → May 2021</span>
+        </div>
+        <div class="tl-location">📍 London, England, UK · Full-time</div>
+        <div class="tl-desc">
+          Space Jam – Integrated with On-Fido for document upload and identity verification in FanDuel's USA onboarding application.
+        </div>
+        <div class="tl-stack">
+          <span class="tag">Java 14</span><span class="tag">Spring Boot</span><span class="tag">Microservices</span>
+          <span class="tag cyan">AWS Lambda</span><span class="tag cyan">AWS SNS/SQS</span>
+          <span class="tag">MySQL</span><span class="tag">Terraform</span><span class="tag">Python</span>
+        </div>
+      </div>
+
+      <div class="tl-item fade-in">
+        <div class="tl-header">
+          <span class="tl-title">Sr. Java Engineer</span>
+          <span class="tl-company">Millimetric.ai</span>
+          <span class="tl-date">Apr 2020 → Nov 2020</span>
+        </div>
+        <div class="tl-location">📍 London, England, UK · Full-time</div>
+        <div class="tl-desc">
+          Anomaly detection platform — real-time analysis of metrics to identify when, where and why unusual activity occurs in your data.
+        </div>
+        <div class="tl-stack">
+          <span class="tag">Java 11</span><span class="tag">Spring Boot</span><span class="tag">Spring Data</span>
+          <span class="tag cyan">Cassandra</span><span class="tag cyan">MSSQL</span>
+          <span class="tag cyan">AWS</span><span class="tag">RESTful</span>
+        </div>
+      </div>
+
+      <div class="tl-item fade-in">
+        <div class="tl-header">
+          <span class="tl-title">Software Engineer</span>
+          <span class="tl-company">Reclame AQUI</span>
+          <span class="tl-date">Dec 2017 → Apr 2020</span>
+        </div>
+        <div class="tl-location">📍 São Paulo, Brazil · Part-time</div>
+        <div class="tl-desc">
+          Brazil's largest consumer complaint platform — automated company rankings and resolution tracking with privacy-first architecture.
+        </div>
+        <div class="tl-stack">
+          <span class="tag">Java 11</span><span class="tag">Spring Boot</span><span class="tag">Hibernate</span>
+          <span class="tag cyan">PostgreSQL</span><span class="tag cyan">AWS</span><span class="tag cyan">GCP</span>
+          <span class="tag">KeyCloak</span>
+        </div>
+      </div>
+
+      <div class="tl-item fade-in">
+        <div class="tl-header">
+          <span class="tl-title">Software Engineer</span>
+          <span class="tl-company">Mira Educação</span>
+          <span class="tl-date">Jan 2017 → Aug 2017</span>
+        </div>
+        <div class="tl-location">📍 São Paulo, Brazil · Full-time</div>
+        <div class="tl-desc">
+          EdTech startup focused on improving basic education learning dynamics — building REST APIs consumed by iOS and Android mobile teams.
+        </div>
+        <div class="tl-stack">
+          <span class="tag">Java 8</span><span class="tag">Spring Boot</span><span class="tag">Hibernate</span>
+          <span class="tag cyan">MySQL</span><span class="tag">iOS</span><span class="tag">Android</span><span class="tag">Shell Script</span>
+        </div>
+      </div>
+
+      <div class="tl-item fade-in">
+        <div class="tl-header">
+          <span class="tl-title">Mobile Software Engineer</span>
+          <span class="tl-company">Taqtile</span>
+          <span class="tl-date">Jan 2014 → Feb 2016</span>
+        </div>
+        <div class="tl-location">📍 São Paulo, Brazil · Full-time</div>
+        <div class="tl-desc">
+          Responsible for USA client projects — delivering improvements and new features across iOS and Android mobile applications.
+        </div>
+        <div class="tl-stack">
+          <span class="tag">iOS</span><span class="tag">Android</span><span class="tag">Ruby</span>
+          <span class="tag cyan">Heroku</span><span class="tag">JavaScript</span><span class="tag">CoffeeScript</span>
+        </div>
+      </div>
+
+      <div class="tl-item fade-in">
+        <div class="tl-header">
+          <span class="tl-title">Mobile Application Developer</span>
+          <span class="tl-company">Insane Games</span>
+          <span class="tl-date">Mar 2012 → Oct 2013</span>
+        </div>
+        <div class="tl-location">📍 São Paulo, Brazil · Full-time</div>
+        <div class="tl-desc">
+          iOS and Android game development using Appcelerator Titanium — including store submission and lifecycle management.
+        </div>
+        <div class="tl-stack">
+          <span class="tag">iOS</span><span class="tag">Android</span>
+          <span class="tag">Appcelerator Titanium</span><span class="tag cyan">SQLite</span>
+        </div>
+      </div>
+
+      <div class="tl-item fade-in">
+        <div class="tl-header">
+          <span class="tl-title">Java Web Developer</span>
+          <span class="tl-company">Arizona Premedia</span>
+          <span class="tl-date">May 2011 → Feb 2012</span>
+        </div>
+        <div class="tl-location">📍 São Paulo, Brazil · Full-time</div>
+        <div class="tl-desc">
+          Arizona.Retail — platform for creating, conferencing, and diagramming tabloids for large retail customers, from design to print.
+        </div>
+        <div class="tl-stack">
+          <span class="tag">J2EE</span><span class="tag">Spring MVC</span><span class="tag">Hibernate</span>
+          <span class="tag cyan">MySQL</span><span class="tag">Struts 2</span><span class="tag">Freemarker</span><span class="tag">jQuery</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- EDUCATION -->
+<section id="education">
+  <div class="container">
+    <div class="section-label">// education</div>
+    <h2><span class="line"></span>Academic Background</h2>
+    <div class="edu-card fade-in">
+      <div class="edu-icon">🎓</div>
+      <div>
+        <div class="edu-degree">Bachelor of Computer Science</div>
+        <div class="edu-school">Pontifícia Universidade Católica de São Paulo (PUC-SP)</div>
+        <div class="edu-years">Specialisation in Software Development · 2003 – 2008</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RECOMMENDATIONS -->
+<section id="recommendations">
+  <div class="container">
+    <div class="section-label">// recommendations</div>
+    <h2><span class="line"></span>What People Say</h2>
+    <div class="rec-grid">
+      <div class="rec-card fade-in">
+        <p class="rec-text">Samuel is a committed, serious and extremely responsible professional. Always strives for excellence, improving the project with technical talent and colleagues with friendliness and ease of relationship.</p>
+        <div class="rec-author">Romeu Ivolela Neto</div>
+        <div class="rec-role">Product Manager at UOL · São Paulo, Brazil</div>
+      </div>
+      <div class="rec-card fade-in">
+        <p class="rec-text">Samuel is the kind of professional whose knowledge and performance result in extreme quality. Reliable and very serious.</p>
+        <div class="rec-author">Decio di Napoli</div>
+        <div class="rec-role">Architect at Estudio Arquitetural · São Paulo, Brazil</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact">
+  <div class="container">
+    <div class="section-label">// contact</div>
+    <h2><span class="line"></span>Get In Touch</h2>
+    <div class="contact-box fade-in">
+      <p>Currently based in London. Open to new opportunities and interesting projects. Let's build something great together.</p>
+      <div class="contact-links">
+        <a href="mailto:samuel.catalano@gmail.com" class="contact-link">✉ Email</a>
+        <a href="tel:+447508886878" class="contact-link">📱 Phone</a>
+        <a href="https://www.linkedin.com/in/samuelcatalano" target="_blank" rel="noopener" class="contact-link">💼 LinkedIn</a>
+        <a href="https://github.com/samuelcatalano" target="_blank" rel="noopener" class="contact-link">⌨ GitHub</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p>Built with ☕ &amp; 💻 by <span>Samuel Catalano</span> · London, UK</p>
+</footer>
+
+<script>
+  /* ── BINARY CANVAS RAIN ── */
+  const canvas = document.getElementById('binaryCanvas');
+  const ctx = canvas.getContext('2d');
+  let cols, drops;
+
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const fontSize = 13;
+    cols = Math.floor(canvas.width / fontSize);
+    drops = Array(cols).fill(1);
+  }
+
+  function draw() {
+    ctx.fillStyle = 'rgba(10,12,16,0.06)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#00ffa3';
+    ctx.font = '13px JetBrains Mono, monospace';
+    for (let i = 0; i < drops.length; i++) {
+      const char = Math.random() > .5 ? '1' : '0';
+      ctx.fillText(char, i * 13, drops[i] * 13);
+      if (drops[i] * 13 > canvas.height && Math.random() > 0.975) drops[i] = 0;
+      drops[i]++;
+    }
+  }
+
+  resize();
+  window.addEventListener('resize', resize);
+  setInterval(draw, 55);
+
+  /* ── SCROLL FADE-IN ── */
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
+  }, { threshold: 0.12 });
+
+  document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
