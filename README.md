@@ -44,14 +44,37 @@ Your site will be live at: `https://YOUR_USERNAME.github.io/personal-website`
 
 ```
 personal-website/
-├── index.html    ← The full website (single file)
-├── Sammy.png     ← Your avatar emoji image
+├── index.html           ← Landing page + metadata + analytics loader
+├── social-preview.html  ← Editable social preview source
+├── social-preview.png   ← Open Graph / Twitter preview image
+├── robots.txt
+├── sitemap.xml
+├── site.webmanifest
+├── Sammy.png            ← Avatar image
 └── README.md
 ```
 
 ## 🛠 Tech
 
 - Pure HTML/CSS/JS — no build step, no dependencies
-- Fonts loaded from Google Fonts (JetBrains Mono + Outfit)
-- Binary rain animation via Canvas API
+- Fonts loaded from Google Fonts
 - Fully responsive
+- SEO/social metadata baked into `index.html`
+- Static `robots.txt`, `sitemap.xml`, and `site.webmanifest`
+
+## 📈 Analytics
+
+Google Analytics 4 support is scaffolded in `index.html`.
+
+To enable it:
+
+1. Open `index.html`
+2. Find `<meta name="google-analytics-id" content="" />`
+3. Set the value to your GA4 measurement ID, for example `G-XXXXXXXXXX`
+
+Analytics stay disabled automatically when the ID is empty and on local `file://` previews.
+
+## 🖼 Social Preview
+
+- `social-preview.html` is the editable source layout for link previews
+- `social-preview.png` is the asset referenced by Open Graph and Twitter metadata

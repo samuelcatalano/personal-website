@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Samuel Catalano Social Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f6f0e4;
+      --panel: rgba(255, 251, 244, 0.84);
+      --line: rgba(29, 37, 48, 0.08);
+      --text: #1d2530;
+      --muted: #596572;
+      --emerald: #198d67;
+      --sky: #2f7db4;
+      --gold: #ba943c;
+      --shadow: 0 24px 60px rgba(111, 86, 29, 0.12);
+    }
+
+    body {
+      width: 1200px;
+      height: 630px;
+      overflow: hidden;
+      font-family: 'IBM Plex Sans', sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 14% 10%, rgba(25, 141, 103, 0.1), transparent 24%),
+        radial-gradient(circle at 84% 14%, rgba(186, 148, 60, 0.12), transparent 28%),
+        linear-gradient(90deg, transparent 0, transparent calc(100% - 1px), rgba(29,37,48,0.05) calc(100% - 1px)),
+        linear-gradient(transparent 0, transparent calc(100% - 1px), rgba(29,37,48,0.05) calc(100% - 1px)),
+        #f6f0e4;
+      background-size: auto, auto, 64px 64px, 64px 64px, auto;
+      padding: 42px;
+    }
+
+    .frame {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-columns: 1.08fr .92fr;
+      gap: 28px;
+    }
+
+    .left {
+      display: grid;
+      align-content: space-between;
+      padding: 10px 0;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 16px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 2px solid rgba(186, 148, 60, 0.45);
+      box-shadow: 0 18px 30px rgba(111, 86, 29, 0.12);
+      background: #fffdf8;
+    }
+
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin: 18px 0 22px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(186, 148, 60, 0.28);
+      background: rgba(186, 148, 60, 0.08);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    h1 {
+      max-width: 9ch;
+      font-family: 'Fraunces', serif;
+      font-weight: 700;
+      font-size: 76px;
+      line-height: .94;
+      letter-spacing: -.05em;
+      margin-bottom: 24px;
+    }
+
+    .summary {
+      max-width: 42ch;
+      font-size: 24px;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+
+    .summary strong { color: var(--text); }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      max-width: 600px;
+      margin-top: 30px;
+    }
+
+    .stat {
+      padding: 16px 18px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255, 251, 244, 0.82);
+      box-shadow: 0 14px 28px rgba(111, 86, 29, 0.08);
+    }
+
+    .stat span {
+      display: block;
+      margin-bottom: 8px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--emerald);
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 18px;
+      line-height: 1.35;
+    }
+
+    .card {
+      position: relative;
+      padding: 28px;
+      border-radius: 30px;
+      border: 1px solid rgba(29, 37, 48, 0.08);
+      background: linear-gradient(180deg, rgba(255, 252, 246, 0.94), rgba(255, 248, 238, 0.9));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(140deg, rgba(25, 141, 103, 0.06), transparent 42%, rgba(47, 125, 180, 0.06));
+      pointer-events: none;
+    }
+
+    .card-label,
+    .row strong {
+      font-family: 'IBM Plex Mono', monospace;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .card-label {
+      position: relative;
+      z-index: 1;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 18px;
+    }
+
+    .card h2 {
+      position: relative;
+      z-index: 1;
+      max-width: 11ch;
+      font-family: 'Fraunces', serif;
+      font-size: 50px;
+      line-height: 1;
+      letter-spacing: -.05em;
+      margin-bottom: 20px;
+    }
+
+    .card p {
+      position: relative;
+      z-index: 1;
+      color: var(--muted);
+      font-size: 20px;
+      line-height: 1.45;
+      margin-bottom: 16px;
+    }
+
+    .rows {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 118px 1fr;
+      gap: 16px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(29, 37, 48, 0.08);
+    }
+
+    .row strong {
+      font-size: 12px;
+      color: var(--gold);
+    }
+
+    .row span {
+      font-size: 18px;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+
+    .footer-note {
+      position: relative;
+      z-index: 1;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 20px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(25, 141, 103, 0.22);
+      background: rgba(25, 141, 103, 0.08);
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--emerald);
+    }
+  </style>
+</head>
+<body>
+  <main class="frame">
+    <section class="left">
+      <div>
+        <div class="brand">
+          <div class="avatar">
+            <img src="Sammy.png" alt="Samuel Catalano avatar" />
+          </div>
+          samuel.catalano
+        </div>
+        <div class="kicker">Senior backend engineer / London based / editorial portfolio</div>
+        <h1>Backend systems that stay calm when the product gets noisy.</h1>
+        <p class="summary">
+          I build <strong>Java, Spring, cloud, and distributed systems</strong> for teams that need clean APIs,
+          dependable integrations, and software that still makes sense under pressure.
+        </p>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <span>Experience</span>
+          <strong>17+ years across backend, integrations, and platform delivery.</strong>
+        </div>
+        <div class="stat">
+          <span>Trusted by</span>
+          <strong>NHS, VW, FanDuel, and teams in the UK and Brazil.</strong>
+        </div>
+      </div>
+    </section>
+
+    <aside class="card">
+      <div class="card-label">Current dossier</div>
+      <h2>Trusted with regulated flows, platform integrations, and delivery under pressure.</h2>
+      <p>
+        Senior backend engineer focused on readable APIs, service boundaries, integration pipelines,
+        messaging, and maintainable backend systems.
+      </p>
+
+      <div class="rows">
+        <div class="row">
+          <strong>Recent work</strong>
+          <span>VW stock archiving, NHS child protection data sharing, and identity verification for FanDuel.</span>
+        </div>
+        <div class="row">
+          <strong>Core stack</strong>
+          <span>Java, Spring Boot, Quarkus, Kafka, PostgreSQL, AWS, Docker, and Kubernetes.</span>
+        </div>
+        <div class="row">
+          <strong>Looking for</strong>
+          <span>Senior backend or platform roles with real technical depth and long-lived systems.</span>
+        </div>
+      </div>
+
+      <div class="footer-note">
+        <span class="dot"></span>
+        Currently at Tribal Worldwide London
+      </div>
+    </aside>
+  </main>
+</body>
+</html>

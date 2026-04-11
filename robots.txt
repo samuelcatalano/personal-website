@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://samuelcatalano.github.io/personal-website/sitemap.xml
