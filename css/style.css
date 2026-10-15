@@ -7,7 +7,7 @@ body.theme-night { --sky: #0d1b3a; --sky2: #1b2c55; --ink: #f2f2f2; --muted: #aa
 * { box-sizing: border-box; }
 html { scroll-behavior: auto; }
 body { margin: 0; font: 15px/1.5 var(--sans); color: var(--ink); background: linear-gradient(var(--sky), var(--sky2)); min-height: 100vh; }
-#world { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+#world { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; image-rendering: pixelated; }
 #track { width: 1px; }
 .skip { position: absolute; left: -999px; } .skip:focus { left: 16px; top: 16px; z-index: 10; background: var(--card); padding: 8px; }
 

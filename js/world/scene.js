@@ -1,28 +1,31 @@
 import * as THREE from 'three';
-import { routeT } from '../scroll.js';
+import { routeT, nearestStop } from '../scroll.js';
 import { routePoints } from './layout.js';
 import { createBoxes, buildMeshes } from './voxel.js';
 import { buildCity } from './city.js';
 import { buildLandmarks } from './landmarks.js';
 import { buildBus } from './bus.js';
+import { SECTION_SHOT, shotFor, blendShots, spring } from './camera.js';
 
 const THEMES = {
   day: { sky: 0xa9d8f5, fog: 0xcfe8f7, sun: 1.6, hemi: 1.1, glow: 0x000000 },
   night: { sky: 0x0d1b3a, fog: 0x14244a, sun: 0.25, hemi: 0.35, glow: 0xffc85a },
 };
-const CAM_OFFSET = new THREE.Vector3(14, 14, 46);
-const LOOK_OFFSET = new THREE.Vector3(0, 7, -12);
-const CAM_OFFSET_MOBILE = CAM_OFFSET.clone().multiplyScalar(1.8);
+const PIXEL_DESKTOP = 3, PIXEL_MOBILE = 2; // drawing buffer = viewport / k, upscaled with image-rendering: pixelated
+const SCROLL_SMOOTH = 0.32;                // seconds
+const ARC = 18;                            // camera lift when blending between different shot kinds
 
 export async function createWorld(canvas, stops, { reducedMotion = false } = {}) {
-  const mobile = matchMedia('(max-width: 767px)').matches;
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: !mobile });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, mobile ? 1.5 : 2));
-  renderer.shadowMap.enabled = !mobile;
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
+  renderer.setPixelRatio(1);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.shadowMap.enabled = !matchMedia('(max-width: 767px)').matches;
 
   const scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(0xcfe8f7, 80, 260);
-  const camera = new THREE.PerspectiveCamera(40, 1, 1, 600);
+  scene.background = new THREE.Color(THEMES.day.sky);
+  scene.fog = new THREE.Fog(THEMES.day.fog, 90, 340);
+  const camera = new THREE.PerspectiveCamera(40, 1, 1, 900);
   const hemi = new THREE.HemisphereLight(0xffffff, 0x5a7a4a, 1.1);
   const sun = new THREE.DirectionalLight(0xffffff, 1.6);
   sun.castShadow = true;
@@ -30,76 +33,90 @@ export async function createWorld(canvas, stops, { reducedMotion = false } = {})
   Object.assign(sun.shadow.camera, { left: -80, right: 80, top: 80, bottom: -80, far: 300 });
   scene.add(hemi, sun, sun.target);
 
-  const pts = routePoints(stops.length);
+  const n = stops.length;
+  const pts = routePoints(n);
   const curve = new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(p.x, 0, p.z)));
   const { add, list } = createBoxes();
   buildCity(add, stops, pts, curve);
   const { eye, plane, planeAt } = buildLandmarks(add, stops, pts);
-  const world = buildMeshes(list, { glow: ['#ffd86b', '#fff7c2'] });
   const bus = buildBus();
-  scene.add(world, eye, plane, bus);
+  scene.add(buildMeshes(list, { glow: ['#ffd86b', '#fff7c2'] }), eye, plane, bus);
+  const extent = { minX: pts[0].x, maxX: pts[n - 1].x };
 
-  const sign = document.getElementById('year-sign');
-  const camPos = new THREE.Vector3(), look = new THREE.Vector3(), tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3();
-  let camOffset = CAM_OFFSET, target = 0, current = 0, raf = 0;
+  // Per-frame units register here as { update(frame) }; frame = { time, dt, progress, active, bus }.
+  const units = [];
 
+  let mobile = false;
   const resize = () => {
-    renderer.setSize(innerWidth, innerHeight, false);
+    mobile = innerWidth < 768;
+    const k = mobile ? PIXEL_MOBILE : PIXEL_DESKTOP;
+    renderer.setSize(Math.ceil(innerWidth / k), Math.ceil(innerHeight / k), false);
     camera.aspect = innerWidth / innerHeight;
-    camOffset = innerWidth >= 768 ? CAM_OFFSET : CAM_OFFSET_MOBILE;
     // bus right of the 400px panel on desktop, above the bottom sheet on mobile
-    if (innerWidth >= 768) camera.setViewOffset(innerWidth, innerHeight, -innerWidth * 0.12, 0, innerWidth, innerHeight);
+    if (!mobile) camera.setViewOffset(innerWidth, innerHeight, -innerWidth * 0.12, 0, innerWidth, innerHeight);
     else camera.setViewOffset(innerWidth, innerHeight, 0, innerHeight * 0.18, innerWidth, innerHeight);
     camera.updateProjectionMatrix();
   };
   addEventListener('resize', resize);
   resize();
 
-  const place = (t, snap) => {
-    const p = curve.getPointAt(t), tan = curve.getTangentAt(t);
-    bus.position.copy(p);
-    bus.rotation.y = Math.atan2(-tan.z, tan.x);
-    const wantLook = tmp2.copy(p).add(LOOK_OFFSET);
-    const wantCam = tmp.copy(p).add(camOffset);
-    if (snap) { camPos.copy(wantCam); look.copy(wantLook); } else { camPos.lerp(wantCam, 0.12); look.lerp(wantLook, 0.12); }
-    camera.position.copy(camPos);
-    camera.lookAt(look);
-    sun.position.set(p.x + 40, 80, p.z + 30);
-    sun.target.position.copy(p);
-  };
-
+  const sign = document.getElementById('year-sign');
+  const busPos = { x: 0, y: 0, z: 0 };
+  const tmp = new THREE.Vector3();
   const updateSign = () => {
-    tmp.copy(bus.position).setY(11).project(camera);
+    if (!sign) return;
+    tmp.set(busPos.x, 11, busPos.z).project(camera);
     sign.style.transform = `translate(${(tmp.x * 0.5 + 0.5) * innerWidth}px, ${(-tmp.y * 0.5 + 0.5) * innerHeight}px) translate(-50%, -100%)`;
   };
-
   const updatePlane = (p) => {
-    const d = (p - planeAt) * (stops.length - 1); // -1..1 around the 2020 stop
+    const d = (p - planeAt) * (n - 1); // -1..1 around the 2020 stop
     plane.visible = planeAt >= 0 && Math.abs(d) < 1;
-    if (plane.visible) plane.position.set(bus.position.x + d * 60, 22 - Math.max(0, d) * 14, bus.position.z - 6);
+    if (plane.visible) plane.position.set(busPos.x + d * 60, 22 - Math.max(0, d) * 14, busPos.z - 6);
   };
 
-  const loop = (time) => {
-    current = reducedMotion ? target : current + (target - current) * 0.1;
-    place(routeT(current, stops.length), reducedMotion);
-    if (!reducedMotion) eye.rotation.z = time * 0.0001;
-    updatePlane(current);
+  let scroll = { value: 0, velocity: 0 }, target = 0, clock = 0, last = 0, raf = 0;
+  const frame = (now) => {
+    raf = requestAnimationFrame(frame);
+    const dt = last ? Math.min(0.1, (now - last) / 1000) : 0; // first frame dt=0 → spring snaps
+    last = now;
+    if (document.hidden) return;
+    scroll = reducedMotion ? { value: target, velocity: 0 } : spring(scroll, target, dt, SCROLL_SMOOTH);
+    if (!reducedMotion) clock += dt;
+
+    const p = scroll.value, t = routeT(p, n);
+    const bp = curve.getPointAt(t), tan = curve.getTangentAt(t);
+    bus.position.copy(bp);
+    bus.rotation.y = Math.atan2(-tan.z, tan.x);
+    Object.assign(busPos, { x: bp.x, y: bp.y, z: bp.z });
+
+    const s = t * (n - 1), i = Math.min(Math.floor(s), n - 2);
+    const ka = SECTION_SHOT[stops[i].section], kb = SECTION_SHOT[stops[i + 1].section];
+    const view = { extent, mobile };
+    const shot = blendShots(shotFor(ka, busPos, view), shotFor(kb, busPos, view), s - i, ka === kb ? 0 : ARC);
+    camera.position.fromArray(shot.position);
+    camera.lookAt(shot.target[0], shot.target[1], shot.target[2]);
+    sun.position.set(bp.x + 40, 80, bp.z + 30);
+    sun.target.position.copy(bp);
+
+    eye.rotation.z = clock * 0.1;
+    updatePlane(p);
+    const f = { time: clock, dt, progress: p, active: nearestStop(p, n), bus: busPos };
+    for (const u of units) u.update(f);
     renderer.render(scene, camera);
     updateSign();
-    raf = requestAnimationFrame(loop);
   };
 
   return {
     setProgress(p) { target = p; },
     setTheme(name) {
-      const t = THEMES[name] ?? THEMES.day;
-      scene.background = new THREE.Color(t.sky);
-      scene.fog.color.set(t.fog);
-      sun.intensity = t.sun;
-      hemi.intensity = t.hemi;
-      scene.traverse((o) => { if (o.material?.userData?.glow) o.material.emissive.set(t.glow); });
-      if (!raf) { current = target; place(routeT(target, stops.length), true); raf = requestAnimationFrame(loop); }
+      const th = THEMES[name] ?? THEMES.day;
+      scene.background.set(th.sky);
+      scene.fog.color.set(th.fog);
+      sun.intensity = th.sun;
+      hemi.intensity = th.hemi;
+      scene.traverse((o) => { if (o.material?.userData?.glow) o.material.emissive.set(th.glow); });
+      if (!raf) raf = requestAnimationFrame(frame);
     },
-    dispose() { cancelAnimationFrame(raf); removeEventListener('resize', resize); renderer.dispose(); },
+    dispose() { cancelAnimationFrame(raf); raf = 0; removeEventListener('resize', resize); renderer.dispose(); },
   };
 }
