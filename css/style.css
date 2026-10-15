@@ -22,7 +22,7 @@ body { margin: 0; font: 15px/1.5 var(--sans); color: var(--ink); background: lin
 
 .panel { position: fixed; top: 80px; left: 16px; width: min(400px, calc(100vw - 32px)); max-height: calc(100vh - 110px); overflow: auto;
   background: var(--card); border: 2px solid var(--line); box-shadow: 4px 4px 0 var(--line); padding: 20px; z-index: 4; }
-.panel h1 { font: 34px/1.1 var(--pixel); margin: 8px 0; }
+.panel h1 { font: clamp(34px, 4.4vw, 52px)/1.05 var(--pixel); margin: 8px 0; letter-spacing: 1px; }
 .panel h2 { font: 24px var(--pixel); margin: 0 0 8px; }
 .panel .role { font-weight: 600; margin: 0; } .panel .meta, .panel small { color: var(--muted); }
 .panel .tagline { font-style: italic; } .panel .hint { font: 11px var(--pixel); }
@@ -50,5 +50,8 @@ body.no-webgl #world { display: none; }
   .panel { top: auto; bottom: 12px; left: 12px; width: calc(100vw - 24px); max-height: 45vh; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+.mono { display: inline-grid; place-items: center; min-width: 26px; height: 22px; padding: 0 3px; vertical-align: middle;
+  font: 9px var(--pixel); color: #fff; background: var(--c); border: 2px solid #111; box-shadow: 2px 2px 0 #111; }
 
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

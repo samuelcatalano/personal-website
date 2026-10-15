@@ -27,7 +27,7 @@ function sectionHTML(section, t, active) {
         if (st.section !== 'journey') return '';
         const c = t.stops[st.id], on = i === active;
         return `<li class="${on ? 'on' : ''}"><button data-goto="${i}" aria-expanded="${on}">
-          <span class="yr">${st.year}</span> <span aria-hidden="true">${flag(st.country)}</span> ${c.title}</button>
+          <span class="yr">${st.year}</span> <span class="mono" style="--c:${st.brand.color}" aria-hidden="true">${st.brand.initials}</span> <span aria-hidden="true">${flag(st.country)}</span> ${c.title}</button>
           ${on ? `<div class="detail"><strong>${c.role}</strong><small>${c.dates} · ${c.place}</small><p>${c.body}</p></div>` : ''}</li>`;
       }).join('')}</ol>`;
     case 'stack': return `<h2>${s.title}</h2><p>${s.intro}</p><ul class="chips">${stack.map(x => `<li>${x}</li>`).join('')}</ul>`;
