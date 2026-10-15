@@ -7,6 +7,7 @@ import { buildLandmarks } from './landmarks.js';
 import { buildBus } from './bus.js';
 import { createSky } from './sky.js';
 import { createWater } from './water.js';
+import { createAmbient } from './ambient.js';
 import { SECTION_SHOT, shotFor, blendShots, spring, approach } from './camera.js';
 
 const PIXEL_DESKTOP = 3, PIXEL_MOBILE = 2; // drawing buffer = viewport / k, upscaled with image-rendering: pixelated
@@ -45,6 +46,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false } = {})
   const units = [];
   const water = createWater({ span: pts.length * 30 + 120, z: RIVER_Z, width: 22 });
   scene.add(water.mesh);
+  units.push(createAmbient(scene, { curve, pts, stops }));
   // ── later tasks add more units ABOVE this line; sky must stay last (it collects glow materials) ──
   const sky = createSky(scene, { hemi, sun });
   let night = 0, nightTarget = 0;
