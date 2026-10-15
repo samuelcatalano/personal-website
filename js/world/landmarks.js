@@ -7,13 +7,13 @@ const at = (stops, pts, key) => pts[stopIndex(stops, LANDMARKS[key])];
 
 function bigBen(add, { x }) {
   const z = RIVER_Z - 16;
-  add(x, 0, z, 5, 26, 5, STONE);
-  add(x, 26, z, 6, 6, 6, STONE);                 // clock section
-  for (const [dx, dz] of [[3.02, 0], [-3.02, 0], [0, 3.02], [0, -3.02]]) add(x + dx, 27, z + dz, dx ? 0.05 : 4, 4, dz ? 0.05 : 4, WHITE);
-  add(x, 32, z, 5, 2, 5, SLATE);
-  add(x, 34, z, 3.5, 2, 3.5, SLATE);
-  add(x, 36, z, 2, 3, 2, SLATE);
-  add(x, 39, z, 0.5, 3, 0.5, GOLD);
+  add(x, 0, z, 5, 18, 5, STONE);
+  add(x, 18, z, 6, 6, 6, STONE);                 // clock section
+  for (const [dx, dz] of [[3.02, 0], [-3.02, 0], [0, 3.02], [0, -3.02]]) add(x + dx, 19, z + dz, dx ? 0.05 : 4, 4, dz ? 0.05 : 4, WHITE);
+  add(x, 24, z, 5, 2, 5, SLATE);
+  add(x, 26, z, 3.5, 2, 3.5, SLATE);
+  add(x, 28, z, 2, 3, 2, SLATE);
+  add(x, 31, z, 0.5, 3, 0.5, GOLD);
   add(x + 14, 0, z, 22, 10, 8, STONE);           // Parliament block
 }
 
