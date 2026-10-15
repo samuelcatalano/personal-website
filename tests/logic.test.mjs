@@ -33,3 +33,15 @@ test('scrollYForStop is the inverse of nearestStop', () => {
   const n = 16, H = 16000, V = 1000;
   for (let i = 0; i < n; i++) assert.equal(nearestStop(progressFromScroll(scrollYForStop(i, n, H, V), H, V), n), i);
 });
+
+import { loadPrefs, savePref } from '../js/ui.js';
+
+test('prefs default and survive throwing storage', () => {
+  const throwing = { getItem() { throw new Error('denied'); }, setItem() { throw new Error('denied'); } };
+  assert.deepEqual(loadPrefs(throwing), { lang: 'en', theme: 'day' });
+  assert.deepEqual(loadPrefs(undefined), { lang: 'en', theme: 'day' });
+  assert.doesNotThrow(() => savePref(throwing, 'lang', 'pt'));
+  const mem = new Map([['lang', 'pt'], ['theme', 'night']]);
+  assert.deepEqual(loadPrefs({ getItem: k => mem.get(k) ?? null }), { lang: 'pt', theme: 'night' });
+  assert.deepEqual(loadPrefs({ getItem: () => 'garbage' }), { lang: 'en', theme: 'day' });
+});
