@@ -1,5 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 import { stops, SECTIONS, i18n, sectionStart } from '../js/content.js';
 
 const keys = (o, p = '') => Object.entries(o).flatMap(([k, v]) =>
@@ -36,7 +40,10 @@ test('sections appear in SECTIONS order', () => {
   assert.deepEqual(starts, [...starts].sort((a, b) => a - b));
 });
 
-test('no private data', () => {
-  const all = JSON.stringify(i18n);
-  for (const bad of ['7508', 'Station Grove', 'Flat 73', 'The Assembly']) assert.ok(!all.includes(bad), bad);
+test('no private data in served files', () => {
+  const walk = (d) => readdirSync(d, { withFileTypes: true }).flatMap(e =>
+    e.isDirectory() ? walk(join(d, e.name)) : [join(d, e.name)]);
+  const files = ['index.html', 'css/style.css', 'README.md', ...walk('js')].map(f => join(root, f));
+  const bad = [/\+?44[\s\d]{9,}/, /tel:/i, /\bFlat\s*\d/i, /\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b/];
+  for (const f of files) for (const re of bad) assert.ok(!re.test(readFileSync(f, 'utf8')), `${f} matches ${re}`);
 });

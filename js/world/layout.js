@@ -12,7 +12,7 @@ export const LANDMARKS = {
   bigben: 'xdesign',
   eye: 'olm',
   towerbridge: 'tribal',
-  wembley: 'contact',      // Samuel lives in Wembley: last stop
+  wembley: 'contact',      // last stop
 };
 
 export const stopIndex = (stops, id) => stops.findIndex((s) => s.id === id);

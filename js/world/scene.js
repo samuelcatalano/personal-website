@@ -26,7 +26,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false } = {})
   const hemi = new THREE.HemisphereLight(0xffffff, 0x5a7a4a, 1.1);
   const sun = new THREE.DirectionalLight(0xffffff, 1.6);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.mapSize.set(1024, 1024);
   Object.assign(sun.shadow.camera, { left: -80, right: 80, top: 80, bottom: -80, far: 300 });
   scene.add(hemi, sun, sun.target);
 

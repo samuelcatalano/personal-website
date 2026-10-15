@@ -5,7 +5,7 @@ bridglabs.com: Vite + React 19 shell; lazy `World-*.js` chunk (~560 KB) with Thr
 
 ## Stack
 - Static HTML/CSS + native ES modules. No bundler, no npm.
-- `three@0.169.0` from `https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js` via importmap.
+- `three@0.169.0` from `https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.min.js` via importmap.
 - Fonts: Google Fonts "Silkscreen" (pixel signs) + "Inter" (body).
 - Hosting: GitHub Pages, `main` / root. All URLs relative.
 

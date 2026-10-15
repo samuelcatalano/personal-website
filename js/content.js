@@ -76,8 +76,8 @@ export const i18n = {
       tribal: { title: 'Tribal Worldwide London', role: 'Senior Software Developer', dates: 'Jun 2024 – Present', place: 'London', body: "Stock archiving, import, export and API services for Volkswagen's vehicle stock data. Spring Boot, MongoDB, ActiveMQ." },
     },
     recs: [
-      { name: 'Romeu Ivolela Neto', role: 'Product Manager at UOL', quote: 'Samuel is a committed, serious and extremely responsible professional, always striving for excellence.' },
-      { name: 'Decio di Napoli', role: 'Architect at Estudio Arquitetural', quote: 'The kind of professional whose knowledge and performance result in extreme quality. Reliable and very serious.' },
+      { name: 'Romeu Ivolela Neto', role: 'Product Manager at UOL', quote: 'Samuel is a committed, serious and extremely responsible professional. Always strive for excellence in your work, improving the project with your technical talent and colleagues with your friendliness and ease of relationship.' },
+      { name: 'Decio di Napoli', role: 'Architect at Estudio Arquitetural', quote: 'Samuel is the kind of professional whose knowledge and performance result in extreme quality. Reliable and very serious.' },
     ],
   },
   pt: {
@@ -108,8 +108,8 @@ export const i18n = {
       tribal: { title: 'Tribal Worldwide London', role: 'Desenvolvedor de Software Sênior', dates: 'jun 2024 – atual', place: 'Londres', body: 'Serviços de arquivamento, importação, exportação e API para o estoque de veículos da Volkswagen. Spring Boot, MongoDB, ActiveMQ.' },
     },
     recs: [
-      { name: 'Romeu Ivolela Neto', role: 'Product Manager na UOL', quote: 'Samuel é um profissional comprometido, sério e extremamente responsável, sempre buscando a excelência.' },
-      { name: 'Decio di Napoli', role: 'Arquiteto no Estudio Arquitetural', quote: 'O tipo de profissional cujo conhecimento e desempenho resultam em qualidade extrema. Confiável e muito sério.' },
+      { name: 'Romeu Ivolela Neto', role: 'Product Manager na UOL', quote: 'Samuel é um profissional comprometido, sério e extremamente responsável. Sempre busca a excelência em seu trabalho, melhorando o projeto com seu talento técnico e os colegas com sua simpatia e facilidade de relacionamento.' },
+      { name: 'Decio di Napoli', role: 'Arquiteto no Estudio Arquitetural', quote: 'Samuel é o tipo de profissional cujo conhecimento e desempenho resultam em qualidade extrema. Confiável e muito sério.' },
     ],
   },
 };

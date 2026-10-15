@@ -30,7 +30,7 @@ const hasWebGL = () => { try { const gl = document.createElement('canvas').getCo
 if (hasWebGL()) {
   import('./world/scene.js')
     .then((m) => m.createWorld(document.getElementById('world'), stops, { reducedMotion }))
-    .then((w) => { world = w; w.setTheme(ui.theme); w.setProgress(progress); document.body.classList.add('world-ready'); })
+    .then((w) => { world = w; w.setProgress(progress); w.setTheme(ui.theme); document.body.classList.add('world-ready'); })
     .catch((err) => { console.warn('3D world unavailable:', err); document.body.classList.add('no-webgl'); });
 } else {
   document.body.classList.add('no-webgl');

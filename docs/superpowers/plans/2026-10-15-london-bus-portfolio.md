@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - No build step, no npm, no `package.json`. Push to `main` = deploy.
-- `three` pinned exactly: `https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js`.
+- `three` pinned exactly: `https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.min.js`.
 - Every user-facing string lives in `js/content.js` with both `en` and `pt`. EN is the default.
 - All URLs relative (site is served under `/personal-website/`).
 - Never publish home address or phone. Contact = `samuel.catalano@gmail.com`, `https://www.linkedin.com/in/samuelcatalano`, `https://github.com/samuelcatalano`.
@@ -75,6 +75,10 @@ mkdir -p assets && cp "/private/tmp/claude-503/-Users-samuel-catalano-Projects-s
 ```js
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 import { stops, SECTIONS, i18n, sectionStart } from '../js/content.js';
 
 const keys = (o, p = '') => Object.entries(o).flatMap(([k, v]) =>
@@ -111,9 +115,12 @@ test('sections appear in SECTIONS order', () => {
   assert.deepEqual(starts, [...starts].sort((a, b) => a - b));
 });
 
-test('no private data', () => {
-  const all = JSON.stringify(i18n);
-  for (const bad of ['7508', 'Station Grove', 'Flat 73', 'The Assembly']) assert.ok(!all.includes(bad), bad);
+test('no private data in served files', () => {
+  const walk = (d) => readdirSync(d, { withFileTypes: true }).flatMap(e =>
+    e.isDirectory() ? walk(join(d, e.name)) : [join(d, e.name)]);
+  const files = ['index.html', 'css/style.css', 'README.md', ...walk('js')].map(f => join(root, f));
+  const bad = [/\+?44[\s\d]{9,}/, /tel:/i, /\bFlat\s*\d/i, /\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b/];
+  for (const f of files) for (const re of bad) assert.ok(!re.test(readFileSync(f, 'utf8')), `${f} matches ${re}`);
 });
 ```
 
@@ -546,7 +553,7 @@ Keep the existing `<head>` meta/OG/favicon tags from the old file (title, descri
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Silkscreen&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
-  <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js" } }</script>
+  <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.min.js" } }</script>
   <script type="module" src="js/main.js"></script>
 </head>
 <body>

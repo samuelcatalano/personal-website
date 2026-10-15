@@ -29,7 +29,7 @@ function towerBridge(add, { x }) {
 }
 
 function wembley(add, { x, z }) {
-  const cz = z - 32;
+  const cz = RIVER_Z - 26; // far bank: bowl z -82..-60, clear of river band -57..-33
   for (let a = 0; a < 360; a += 15) {            // stadium bowl
     const r = (a * Math.PI) / 180;
     add(x + Math.cos(r) * 16, 0, cz + Math.sin(r) * 11, 5, 9, 5, '#c7c9cc');
@@ -44,7 +44,7 @@ function wembley(add, { x, z }) {
 function heathrow(add, { x, z }) {
   const rz = z + 34;
   add(x, -0.15, rz, 70, 0.2, 8, '#2e3238');
-  for (let i = -30; i <= 30; i += 6) add(x + i, -0.05, rz, 3, 0.06, 0.5, WHITE);
+  for (let i = -30; i <= 30; i += 6) add(x + i, 0.05, rz, 3, 0.06, 0.5, WHITE);
   add(x - 8, 0, rz - 12, 20, 6, 8, '#8fb8d8');   // terminal glass
   add(x - 22, 0, rz - 12, 2, 14, 2, '#d9d9d9');  // control tower
   add(x - 22, 14, rz - 12, 4, 2.5, 4, '#8fb8d8');

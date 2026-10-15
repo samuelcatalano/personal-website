@@ -62,9 +62,6 @@ export function initUI({ onGoto, onTheme }) {
     document.querySelector('[data-lang]').setAttribute('aria-label', t.ui.lang);
     document.querySelector('[data-theme]').setAttribute('aria-label', t.ui.theme);
     document.querySelector('.skip').textContent = t.ui.skip;
-    const themeBtn = document.querySelector('[data-theme]');
-    themeBtn.textContent = prefs.theme === 'night' ? '☾' : '☀︎';
-    themeBtn.setAttribute('aria-pressed', String(prefs.theme === 'night'));
     const st = stops[Math.max(active, 0)];
     const prev = document.activeElement;
     const key = ['data-goto', 'data-nav'].find(a => prev?.hasAttribute?.(a));
