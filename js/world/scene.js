@@ -11,6 +11,7 @@ const THEMES = {
   night: { sky: 0x0d1b3a, fog: 0x14244a, sun: 0.25, hemi: 0.35, glow: 0xffc85a },
 };
 const CAM_OFFSET = new THREE.Vector3(14, 24, 48);
+const CAM_OFFSET_MOBILE = CAM_OFFSET.clone().multiplyScalar(1.8);
 
 export async function createWorld(canvas, stops, { reducedMotion = false } = {}) {
   const mobile = matchMedia('(max-width: 767px)').matches;
@@ -39,11 +40,12 @@ export async function createWorld(canvas, stops, { reducedMotion = false } = {})
 
   const sign = document.getElementById('year-sign');
   const camPos = new THREE.Vector3(), look = new THREE.Vector3(), tmp = new THREE.Vector3();
-  let target = 0, current = 0, raf = 0;
+  let camOffset = CAM_OFFSET, target = 0, current = 0, raf = 0;
 
   const resize = () => {
     renderer.setSize(innerWidth, innerHeight, false);
     camera.aspect = innerWidth / innerHeight;
+    camOffset = innerWidth >= 768 ? CAM_OFFSET : CAM_OFFSET_MOBILE;
     // bus right of the 400px panel on desktop, above the bottom sheet on mobile
     if (innerWidth >= 768) camera.setViewOffset(innerWidth, innerHeight, -innerWidth * 0.12, 0, innerWidth, innerHeight);
     else camera.setViewOffset(innerWidth, innerHeight, 0, innerHeight * 0.18, innerWidth, innerHeight);
@@ -56,7 +58,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false } = {})
     const p = curve.getPointAt(t), tan = curve.getTangentAt(t);
     bus.position.copy(p);
     bus.rotation.y = Math.atan2(-tan.z, tan.x);
-    const wantCam = tmp.copy(p).add(CAM_OFFSET);
+    const wantCam = tmp.copy(p).add(camOffset);
     if (snap) { camPos.copy(wantCam); look.copy(p); } else { camPos.lerp(wantCam, 0.12); look.lerp(p, 0.12); }
     camera.position.copy(camPos);
     camera.lookAt(look);
