@@ -45,3 +45,21 @@ test('prefs default and survive throwing storage', () => {
   assert.deepEqual(loadPrefs({ getItem: k => mem.get(k) ?? null }), { lang: 'pt', theme: 'night' });
   assert.deepEqual(loadPrefs({ getItem: () => 'garbage' }), { lang: 'en', theme: 'day' });
 });
+
+import { routePoints, LANDMARKS, stopIndex, rng, STOP_SPACING } from '../js/world/layout.js';
+import { stops } from '../js/content.js';
+
+test('route has one point per stop, increasing x', () => {
+  const pts = routePoints(stops.length);
+  assert.equal(pts.length, stops.length);
+  pts.slice(1).forEach((p, i) => assert.equal(p.x - pts[i].x, STOP_SPACING));
+});
+
+test('every landmark is anchored to an existing stop', () => {
+  for (const id of Object.values(LANDMARKS)) assert.ok(stopIndex(stops, id) >= 0, id);
+});
+
+test('rng is deterministic', () => {
+  const a = rng(42), b = rng(42);
+  for (let i = 0; i < 5; i++) assert.equal(a(), b());
+});
