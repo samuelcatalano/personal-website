@@ -1,16 +1,14 @@
 import * as THREE from 'three';
 import { routeT, nearestStop } from '../scroll.js';
-import { routePoints } from './layout.js';
+import { routePoints, RIVER_Z } from './layout.js';
 import { createBoxes, buildMeshes } from './voxel.js';
 import { buildCity } from './city.js';
 import { buildLandmarks } from './landmarks.js';
 import { buildBus } from './bus.js';
-import { SECTION_SHOT, shotFor, blendShots, spring } from './camera.js';
+import { createSky } from './sky.js';
+import { createWater } from './water.js';
+import { SECTION_SHOT, shotFor, blendShots, spring, approach } from './camera.js';
 
-const THEMES = {
-  day: { sky: 0xa9d8f5, fog: 0xcfe8f7, sun: 1.6, hemi: 1.1, glow: 0x000000 },
-  night: { sky: 0x0d1b3a, fog: 0x14244a, sun: 0.25, hemi: 0.35, glow: 0xffc85a },
-};
 const PIXEL_DESKTOP = 3, PIXEL_MOBILE = 2; // drawing buffer = viewport / k, upscaled with image-rendering: pixelated
 const SCROLL_SMOOTH = 0.32;                // seconds
 const ARC = 18;                            // camera lift when blending between different shot kinds
@@ -23,8 +21,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false } = {})
   renderer.shadowMap.enabled = !matchMedia('(max-width: 767px)').matches;
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(THEMES.day.sky);
-  scene.fog = new THREE.Fog(THEMES.day.fog, 90, 340);
+  scene.background = new THREE.Color(0xa9d8f5);
+  scene.fog = new THREE.Fog(0xcfe8f7, 90, 340);
   const camera = new THREE.PerspectiveCamera(40, 1, 1, 900);
   const hemi = new THREE.HemisphereLight(0xffffff, 0x5a7a4a, 1.1);
   const sun = new THREE.DirectionalLight(0xffffff, 1.6);
@@ -45,6 +43,11 @@ export async function createWorld(canvas, stops, { reducedMotion = false } = {})
 
   // Per-frame units register here as { update(frame) }; frame = { time, dt, progress, active, bus }.
   const units = [];
+  const water = createWater({ span: pts.length * 30 + 120, z: RIVER_Z, width: 22 });
+  scene.add(water.mesh);
+  // ── later tasks add more units ABOVE this line; sky must stay last (it collects glow materials) ──
+  const sky = createSky(scene, { hemi, sun });
+  let night = 0, nightTarget = 0;
 
   let mobile = false;
   const resize = () => {
@@ -102,6 +105,9 @@ export async function createWorld(canvas, stops, { reducedMotion = false } = {})
     updatePlane(p);
     const f = { time: clock, dt, progress: p, active: nearestStop(p, n), bus: busPos };
     for (const u of units) u.update(f);
+    night = reducedMotion ? nightTarget : approach(night, nightTarget, dt, 1.4);
+    sky.update(night);
+    water.update(clock, night);
     renderer.render(scene, camera);
     updateSign();
   };
@@ -109,13 +115,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false } = {})
   return {
     setProgress(p) { target = p; },
     setTheme(name) {
-      const th = THEMES[name] ?? THEMES.day;
-      scene.background.set(th.sky);
-      scene.fog.color.set(th.fog);
-      sun.intensity = th.sun;
-      hemi.intensity = th.hemi;
-      scene.traverse((o) => { if (o.material?.userData?.glow) o.material.emissive.set(th.glow); });
-      if (!raf) raf = requestAnimationFrame(frame);
+      nightTarget = name === 'night' ? 1 : 0;
+      if (!raf) { night = nightTarget; raf = requestAnimationFrame(frame); }
     },
     dispose() { cancelAnimationFrame(raf); raf = 0; removeEventListener('resize', resize); renderer.dispose(); },
   };

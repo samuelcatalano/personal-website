@@ -1,6 +1,6 @@
 import { RIVER_Z, LANDMARKS, rng } from './layout.js';
 
-const GRASS = '#7cb66b', ROAD = '#3b3f46', LINE = '#f4f4f4', WATER = '#4f86b8', BANK = '#b9a98a';
+const GRASS = '#7cb66b', ROAD = '#3b3f46', LINE = '#f4f4f4', BANK = '#b9a98a';
 const UK_WALLS = ['#c9b79c', '#b8a48a', '#d9cdb8', '#9c7b65', '#e2d6c2', '#8d8f94'];
 const BR_WALLS = ['#f4d35e', '#ee964b', '#4ecdc4', '#f95738', '#90be6d', '#f7f7f2'];
 const ROOF = '#5b4b49', WINDOW = '#ffd86b', TRUNK = '#7a5230', LEAF = '#3f8f3f', PALM = '#2f9e44';
@@ -11,7 +11,6 @@ export function buildCity(add, stops, pts, curve) {
   const span = pts.length * 30 + 120;
 
   add(0, -1, 0, span, 1, 200, GRASS);                       // ground
-  add(0, -0.9, RIVER_Z, span, 1, 22, WATER);                // Thames
   add(0, -0.95, RIVER_Z + 12, span, 1, 2, BANK);
   add(0, -0.95, RIVER_Z - 12, span, 1, 2, BANK);
 
