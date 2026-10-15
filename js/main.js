@@ -1,5 +1,5 @@
 import { stops, SECTIONS, sectionStart } from './content.js';
-import { watchScroll, nearestStop, scrollYForStop } from './scroll.js';
+import { watchScroll, nearestStop, scrollYForStop, progressFromScroll } from './scroll.js';
 import { initUI } from './ui.js';
 
 const n = stops.length;
@@ -17,7 +17,10 @@ const ui = initUI({ onGoto: goto, onTheme: (t) => world?.setTheme(t) });
 const hash = location.hash.slice(1);
 // Wait for load so the browser's initial anchor/restore pass is done; skip if it restored a position.
 if (SECTIONS.includes(hash)) addEventListener('load', () => requestAnimationFrame(() => {
-  if (scrollY === 0) scrollTo({ top: scrollYForStop(sectionStart(hash), n, document.documentElement.scrollHeight, innerHeight), behavior: 'auto' });
+  if (scrollY === 0) {
+    scrollTo({ top: scrollYForStop(sectionStart(hash), n, document.documentElement.scrollHeight, innerHeight), behavior: 'auto' });
+    world?.jump(progressFromScroll(scrollY, document.documentElement.scrollHeight, innerHeight));
+  }
 }), { once: true });
 
 watchScroll((p) => {

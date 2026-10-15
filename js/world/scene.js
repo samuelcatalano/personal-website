@@ -53,7 +53,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false } = {})
   const figure = buildFigure();
   const end = curve.getPointAt(1), endTan = curve.getTangentAt(1);
   const near = new THREE.Vector3(-endTan.z, 0, endTan.x).normalize(); // camera side
-  figure.position.set(end.x + near.x * 6.5 - endTan.x * 5, 0, end.z + near.z * 6.5 - endTan.z * 5); // off the road, framed by the closing shot
+  figure.position.set(end.x + endTan.x * 9 + near.x * 2, 0, end.z + endTan.z * 9 + near.z * 2); // off the road, framed by the closing shot
   scene.add(figure);
   // ── later tasks add more units ABOVE this line; sky must stay last (it collects glow materials) ──
   const sky = createSky(scene, { hemi, sun });
@@ -116,6 +116,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false } = {})
 
   return {
     setProgress(p) { target = p; },
+    jump(p) { target = p; scroll = { value: p, velocity: 0 }; },
     setTheme(name) {
       nightTarget = name === 'night' ? 1 : 0;
       if (!raf) { night = nightTarget; raf = requestAnimationFrame(frame); }
