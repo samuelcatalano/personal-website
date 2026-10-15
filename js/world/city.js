@@ -18,8 +18,8 @@ export function buildCity(add, stops, pts, curve) {
   const N = pts.length * 20;
   for (let i = 0; i <= N; i++) {
     const p = curve.getPointAt(i / N);
-    add(p.x, -0.2, p.z, 7, 0.2, 7, ROAD);
-    if (i % 3 === 0) add(p.x, -0.05, p.z, 1.2, 0.06, 0.3, LINE);
+    add(p.x, -0.2, p.z, 7, 0.25, 7, ROAD);
+    if (i % 3 === 0) add(p.x, 0.04, p.z, 1.2, 0.03, 0.3, LINE);
   }
 
   // Buildings beside each stop. Brazil stops are low and colourful with palms; London is taller and stone-coloured.
@@ -31,7 +31,7 @@ export function buildCity(add, stops, pts, curve) {
       const z = p.z + side * (12 + r() * 10);
       if (Math.abs(z - RIVER_Z) < 16) continue;
       const w = 4 + Math.floor(r() * 3), d = 4 + Math.floor(r() * 3);
-      const h = br ? 3 + Math.floor(r() * 4) : 6 + Math.floor(r() * 12);
+      const h = br ? 3 + Math.floor(r() * 4) : side === 1 ? 2 + Math.floor(r() * 3) : 6 + Math.floor(r() * 12);
       const walls = br ? BR_WALLS : UK_WALLS;
       add(x, 0, z, w, h, d, walls[Math.floor(r() * walls.length)]);
       add(x, h, z, w + 0.4, 0.6, d + 0.4, ROOF);
