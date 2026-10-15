@@ -6,7 +6,7 @@ const STONE = '#d8c08a', SLATE = '#2f3b45', WHITE = '#f4f4f4', GOLD = '#e0b84a',
 const at = (stops, pts, key) => pts[stopIndex(stops, LANDMARKS[key])];
 
 function bigBen(add, { x }) {
-  const z = RIVER_Z + 20;
+  const z = RIVER_Z - 16;
   add(x, 0, z, 5, 26, 5, STONE);
   add(x, 26, z, 6, 6, 6, STONE);                 // clock section
   for (const [dx, dz] of [[3.02, 0], [-3.02, 0], [0, 3.02], [0, -3.02]]) add(x + dx, 27, z + dz, dx ? 0.05 : 4, 4, dz ? 0.05 : 4, WHITE);
