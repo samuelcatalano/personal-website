@@ -49,10 +49,11 @@ export async function createWorld(canvas, stops, { reducedMotion = false } = {})
   const water = createWater({ span: pts.length * 30 + 120, z: RIVER_Z, width: 22 });
   scene.add(water.mesh);
   units.push(createAmbient(scene, { curve, pts, stops }));
-  units.push(await createSigns(scene, { stops, pts }));
+  units.push(await createSigns(scene, { stops, curve }));
   const figure = buildFigure();
-  const end = curve.getPointAt(1);
-  figure.position.set(end.x - 7, 0, end.z + 2); // beside the parked bus, framed by the closing shot
+  const end = curve.getPointAt(1), endTan = curve.getTangentAt(1);
+  const near = new THREE.Vector3(-endTan.z, 0, endTan.x).normalize(); // camera side
+  figure.position.set(end.x + near.x * 6.5 - endTan.x * 5, 0, end.z + near.z * 6.5 - endTan.z * 5); // off the road, framed by the closing shot
   scene.add(figure);
   // ── later tasks add more units ABOVE this line; sky must stay last (it collects glow materials) ──
   const sky = createSky(scene, { hemi, sun });

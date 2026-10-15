@@ -19,10 +19,10 @@ export function paintSign(text, { bg = '#d6211f', fg = '#ffffff', w = 256, h = 9
 
 const yearStyle = (s) => (s.country === 'BR' ? { bg: '#009c3b', fg: '#ffdf00' } : { bg: '#d6211f', fg: '#ffffff' });
 
-export async function createSigns(scene, { stops, pts }) {
-  await document.fonts?.load('48px Silkscreen').catch(() => {}); // fallback font if it never loads
+export async function createSigns(scene, { stops, curve }) {
+  await Promise.race([document.fonts?.load('48px Silkscreen'), new Promise((r) => setTimeout(r, 1500))]).catch(() => {}); // fallback font if it never loads
 
-  const yearMat = new THREE.SpriteMaterial({ map: paintSign(stops[0].year, yearStyle(stops[0])) });
+  const yearMat = new THREE.SpriteMaterial({ map: paintSign(stops[0].year, yearStyle(stops[0])), toneMapped: false });
   const year = new THREE.Sprite(yearMat);
   year.scale.set(8, 3, 1);
   scene.add(year);
@@ -30,17 +30,20 @@ export async function createSigns(scene, { stops, pts }) {
   const company = [];
   stops.forEach((s, i) => {
     if (!s.brand) return;
-    const p = pts[i];
-    const pole = new THREE.Mesh(new THREE.BoxGeometry(0.3, 6, 0.3), new THREE.MeshLambertMaterial({ color: 0x2b2b2b }));
-    pole.position.set(p.x - 7, 3, p.z + 5);
-    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: paintSign(s.brand.initials, { bg: s.brand.color, w: 128, h: 128 }) }));
-    sprite.position.set(p.x - 7, 7.5, p.z + 5);
+    const t = i / (stops.length - 1);
+    const p = curve.getPointAt(t), tan = curve.getTangentAt(t);
+    const far = new THREE.Vector3(tan.z, 0, -tan.x).normalize(); // far side, away from the camera
+    const x = p.x + far.x * 6.5 - tan.x * 7, z = p.z + far.z * 6.5 - tan.z * 7;
+    const pole = new THREE.Mesh(new THREE.BoxGeometry(0.3, 9, 0.3), new THREE.MeshLambertMaterial({ color: 0x2b2b2b }));
+    pole.position.set(x, 4.5, z);
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: paintSign(s.brand.initials, { bg: s.brand.color, w: 128, h: 128 }), toneMapped: false }));
+    sprite.position.set(x, 10, z);
     sprite.scale.set(3.2, 3.2, 1);
     scene.add(pole, sprite);
     company.push({ i, sprite });
   });
 
-  let shown = 0;
+  let shown = -1;
   return {
     update({ active, bus }) {
       year.position.set(bus.x, bus.y + 11, bus.z);
