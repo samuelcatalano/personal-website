@@ -10,7 +10,7 @@ const THEMES = {
   day: { sky: 0xa9d8f5, fog: 0xcfe8f7, sun: 1.6, hemi: 1.1, glow: 0x000000 },
   night: { sky: 0x0d1b3a, fog: 0x14244a, sun: 0.25, hemi: 0.35, glow: 0xffc85a },
 };
-const CAM_OFFSET = new THREE.Vector3(-22, 20, 30);
+const CAM_OFFSET = new THREE.Vector3(14, 24, 48);
 
 export async function createWorld(canvas, stops, { reducedMotion = false } = {}) {
   const mobile = matchMedia('(max-width: 767px)').matches;
@@ -44,6 +44,9 @@ export async function createWorld(canvas, stops, { reducedMotion = false } = {})
   const resize = () => {
     renderer.setSize(innerWidth, innerHeight, false);
     camera.aspect = innerWidth / innerHeight;
+    // bus right of the 400px panel on desktop, above the bottom sheet on mobile
+    if (innerWidth >= 768) camera.setViewOffset(innerWidth, innerHeight, -innerWidth * 0.12, 0, innerWidth, innerHeight);
+    else camera.setViewOffset(innerWidth, innerHeight, 0, innerHeight * 0.18, innerWidth, innerHeight);
     camera.updateProjectionMatrix();
   };
   addEventListener('resize', resize);

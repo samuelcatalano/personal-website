@@ -25,8 +25,8 @@ export function buildBus() {
   const tex = new THREE.TextureLoader().load('assets/avatar.png');
   tex.colorSpace = THREE.SRGBColorSpace;
   const avatar = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex }));
-  avatar.scale.set(1.8, 1.8, 1);
-  avatar.position.set(4.6, 5.7, 0);
+  avatar.scale.set(1.6, 1.6, 1);
+  avatar.position.set(5.62, 5.7, 0);
   bus.add(avatar);
   return bus;
 }
