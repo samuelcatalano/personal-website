@@ -70,7 +70,7 @@ export function createAmbient(scene, { curve, pts, stops }) {
         if (v.lane < 0) t = 1 - t;
         const p = curve.getPointAt(t), tan = curve.getTangentAt(t);
         nrm.set(tan.z, 0, -tan.x).normalize();
-        v.mesh.position.copy(p).addScaledVector(nrm, 2.9 * v.lane); // hero bus half-width 1.8; vehicles <=1.0 half-width; road half-width 4.25
+        v.mesh.position.copy(p).addScaledVector(nrm, 3.0 * v.lane); // hero bus reaches 2.0 at its wheels; vehicles <=1.0 half-width; road half-width 4.25
         v.mesh.rotation.y = Math.atan2(-tan.z, tan.x) + (v.lane < 0 ? Math.PI : 0);
       }
       boats.forEach((b, i) => {
