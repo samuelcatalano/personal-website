@@ -17,11 +17,11 @@ function cab() {
 
 function miniBus() {
   const { add, list } = createBoxes();
-  add(0, 0.6, 0, 7, 4.4, 2.4, '#d6211f');
-  for (const y of [1.6, 3.6]) { add(0, y, 1.21, 6, 0.9, 0.05, '#bfe3ff'); add(0, y, -1.21, 6, 0.9, 0.05, '#bfe3ff'); }
-  add(3.52, 0.9, 0.8, 0.05, 0.35, 0.35, LIGHT);
-  add(3.52, 0.9, -0.8, 0.05, 0.35, 0.35, LIGHT);
-  for (const x of [-2.3, 2.3]) for (const z of [1.1, -1.1]) add(x, 0, z, 1, 1, 0.3, '#0b0b0b');
+  add(0, 0.6, 0, 7, 4.4, 1.9, '#d6211f');
+  for (const y of [1.6, 3.6]) { add(0, y, 0.96, 6, 0.9, 0.05, '#bfe3ff'); add(0, y, -0.96, 6, 0.9, 0.05, '#bfe3ff'); }
+  add(3.52, 0.9, 0.6, 0.05, 0.35, 0.35, LIGHT);
+  add(3.52, 0.9, -0.6, 0.05, 0.35, 0.35, LIGHT);
+  for (const x of [-2.3, 2.3]) for (const z of [0.85, -0.85]) add(x, 0, z, 1, 1, 0.3, '#0b0b0b');
   return buildMeshes(list, { glow: [LIGHT] });
 }
 
@@ -55,7 +55,7 @@ export function createAmbient(scene, { curve, pts, stops }) {
     birds.add(b);
   }
   const bb = pts[stopIndex(stops, LANDMARKS.bigben)];
-  birds.position.set(bb.x + 10, 0, RIVER_Z - 10);
+  birds.position.set(bb.x, 0, RIVER_Z - 16);
   scene.add(birds);
 
   const blink = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), new THREE.MeshBasicMaterial({ color: 0xff2a2a }));
@@ -70,7 +70,7 @@ export function createAmbient(scene, { curve, pts, stops }) {
         if (v.lane < 0) t = 1 - t;
         const p = curve.getPointAt(t), tan = curve.getTangentAt(t);
         nrm.set(tan.z, 0, -tan.x).normalize();
-        v.mesh.position.copy(p).addScaledVector(nrm, 2.6 * v.lane); // lanes clear of the 3.6-wide hero bus
+        v.mesh.position.copy(p).addScaledVector(nrm, 2.9 * v.lane); // hero bus half-width 1.8; vehicles <=1.0 half-width; road half-width 4.25
         v.mesh.rotation.y = Math.atan2(-tan.z, tan.x) + (v.lane < 0 ? Math.PI : 0);
       }
       boats.forEach((b, i) => {

@@ -18,7 +18,7 @@ export function buildCity(add, stops, pts, curve) {
   const N = pts.length * 20;
   for (let i = 0; i <= N; i++) {
     const p = curve.getPointAt(i / N);
-    add(p.x, -0.2, p.z, 7, 0.25, 7, ROAD);
+    add(p.x, -0.2, p.z, 8.5, 0.25, 8.5, ROAD);
     if (i % 3 === 0) add(p.x, 0.04, p.z, 1.2, 0.03, 0.3, LINE);
   }
 
