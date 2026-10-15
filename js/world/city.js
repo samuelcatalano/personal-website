@@ -1,4 +1,4 @@
-import { RIVER_Z, rng } from './layout.js';
+import { RIVER_Z, LANDMARKS, rng } from './layout.js';
 
 const GRASS = '#7cb66b', ROAD = '#3b3f46', LINE = '#f4f4f4', WATER = '#4f86b8', BANK = '#b9a98a';
 const UK_WALLS = ['#c9b79c', '#b8a48a', '#d9cdb8', '#9c7b65', '#e2d6c2', '#8d8f94'];
@@ -7,6 +7,7 @@ const ROOF = '#5b4b49', WINDOW = '#ffd86b', TRUNK = '#7a5230', LEAF = '#3f8f3f',
 
 export function buildCity(add, stops, pts, curve) {
   const r = rng(2026);
+  const LM = new Set(Object.values(LANDMARKS));
   const span = pts.length * 30 + 120;
 
   add(0, -1, 0, span, 1, 200, GRASS);                       // ground
@@ -30,6 +31,7 @@ export function buildCity(add, stops, pts, curve) {
       const x = p.x - 12 + k * 5 + r() * 2;
       const z = p.z + side * (12 + r() * 10);
       if (Math.abs(z - RIVER_Z) < 16) continue;
+      if (side === -1 && LM.has(stops[i].id)) continue; // keep landmarks visible
       const w = 4 + Math.floor(r() * 3), d = 4 + Math.floor(r() * 3);
       const h = br ? 3 + Math.floor(r() * 4) : side === 1 ? 2 + Math.floor(r() * 3) : 6 + Math.floor(r() * 12);
       const walls = br ? BR_WALLS : UK_WALLS;

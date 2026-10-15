@@ -46,8 +46,8 @@ function heathrow(add, { x, z }) {
   add(x, -0.15, rz, 70, 0.2, 8, '#2e3238');
   for (let i = -30; i <= 30; i += 6) add(x + i, -0.05, rz, 3, 0.06, 0.5, WHITE);
   add(x - 8, 0, rz - 12, 20, 6, 8, '#8fb8d8');   // terminal glass
-  add(x - 18, 0, rz - 12, 2, 14, 2, '#d9d9d9');  // control tower
-  add(x - 18, 14, rz - 12, 4, 2.5, 4, '#8fb8d8');
+  add(x - 22, 0, rz - 12, 2, 14, 2, '#d9d9d9');  // control tower
+  add(x - 22, 14, rz - 12, 4, 2.5, 4, '#8fb8d8');
 }
 
 function londonEye(x) {

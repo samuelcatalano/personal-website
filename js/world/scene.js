@@ -10,7 +10,8 @@ const THEMES = {
   day: { sky: 0xa9d8f5, fog: 0xcfe8f7, sun: 1.6, hemi: 1.1, glow: 0x000000 },
   night: { sky: 0x0d1b3a, fog: 0x14244a, sun: 0.25, hemi: 0.35, glow: 0xffc85a },
 };
-const CAM_OFFSET = new THREE.Vector3(14, 24, 48);
+const CAM_OFFSET = new THREE.Vector3(14, 14, 46);
+const LOOK_OFFSET = new THREE.Vector3(0, 7, -12);
 const CAM_OFFSET_MOBILE = CAM_OFFSET.clone().multiplyScalar(1.8);
 
 export async function createWorld(canvas, stops, { reducedMotion = false } = {}) {
@@ -39,7 +40,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false } = {})
   scene.add(world, eye, plane, bus);
 
   const sign = document.getElementById('year-sign');
-  const camPos = new THREE.Vector3(), look = new THREE.Vector3(), tmp = new THREE.Vector3();
+  const camPos = new THREE.Vector3(), look = new THREE.Vector3(), tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3();
   let camOffset = CAM_OFFSET, target = 0, current = 0, raf = 0;
 
   const resize = () => {
@@ -58,8 +59,9 @@ export async function createWorld(canvas, stops, { reducedMotion = false } = {})
     const p = curve.getPointAt(t), tan = curve.getTangentAt(t);
     bus.position.copy(p);
     bus.rotation.y = Math.atan2(-tan.z, tan.x);
+    const wantLook = tmp2.copy(p).add(LOOK_OFFSET);
     const wantCam = tmp.copy(p).add(camOffset);
-    if (snap) { camPos.copy(wantCam); look.copy(p); } else { camPos.lerp(wantCam, 0.12); look.lerp(p, 0.12); }
+    if (snap) { camPos.copy(wantCam); look.copy(wantLook); } else { camPos.lerp(wantCam, 0.12); look.lerp(wantLook, 0.12); }
     camera.position.copy(camPos);
     camera.lookAt(look);
     sun.position.set(p.x + 40, 80, p.z + 30);
@@ -74,7 +76,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false } = {})
   const updatePlane = (p) => {
     const d = (p - planeAt) * (stops.length - 1); // -1..1 around the 2020 stop
     plane.visible = planeAt >= 0 && Math.abs(d) < 1;
-    if (plane.visible) plane.position.set(bus.position.x + d * 60, 30 - Math.max(0, d) * 18, -20);
+    if (plane.visible) plane.position.set(bus.position.x + d * 60, 22 - Math.max(0, d) * 14, bus.position.z - 6);
   };
 
   const loop = (time) => {
