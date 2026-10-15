@@ -15,7 +15,10 @@ const goto = (i) => scrollTo({
 const ui = initUI({ onGoto: goto, onTheme: (t) => world?.setTheme(t) });
 
 const hash = location.hash.slice(1);
-if (SECTIONS.includes(hash)) goto(sectionStart(hash));
+// Wait for load so the browser's initial anchor/restore pass is done; skip if it restored a position.
+if (SECTIONS.includes(hash)) addEventListener('load', () => requestAnimationFrame(() => {
+  if (scrollY === 0) scrollTo({ top: scrollYForStop(sectionStart(hash), n, document.documentElement.scrollHeight, innerHeight), behavior: 'auto' });
+}), { once: true });
 
 watchScroll((p) => {
   progress = p;
@@ -23,7 +26,7 @@ watchScroll((p) => {
   world?.setProgress(p);
 });
 
-const hasWebGL = () => { try { return !!document.createElement('canvas').getContext('webgl2'); } catch { return false; } };
+const hasWebGL = () => { try { const gl = document.createElement('canvas').getContext('webgl2'); gl?.getExtension('WEBGL_lose_context')?.loseContext(); return !!gl; } catch { return false; } };
 if (hasWebGL()) {
   import('./world/scene.js')
     .then((m) => m.createWorld(document.getElementById('world'), stops, { reducedMotion }))

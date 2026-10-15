@@ -44,10 +44,14 @@ export function initUI({ onGoto, onTheme }) {
   const prefs = loadPrefs(store());
   const panel = document.getElementById('panel');
   const sign = document.getElementById('year-sign');
+  const announce = document.getElementById('announce');
   let active = -1;
 
   const applyTheme = () => {
     document.body.classList.toggle('theme-night', prefs.theme === 'night');
+    const b = document.querySelector('[data-theme]');
+    b.textContent = prefs.theme === 'night' ? '☾' : '☀︎';
+    b.setAttribute('aria-pressed', String(prefs.theme === 'night'));
     onTheme(prefs.theme);
   };
   const render = () => {
@@ -57,9 +61,21 @@ export function initUI({ onGoto, onTheme }) {
     document.querySelector('[data-lang]').textContent = prefs.lang === 'en' ? 'PT' : 'EN';
     document.querySelector('[data-lang]').setAttribute('aria-label', t.ui.lang);
     document.querySelector('[data-theme]').setAttribute('aria-label', t.ui.theme);
+    document.querySelector('.skip').textContent = t.ui.skip;
+    const themeBtn = document.querySelector('[data-theme]');
+    themeBtn.textContent = prefs.theme === 'night' ? '☾' : '☀︎';
+    themeBtn.setAttribute('aria-pressed', String(prefs.theme === 'night'));
     const st = stops[Math.max(active, 0)];
+    const prev = document.activeElement;
+    const key = ['data-goto', 'data-nav'].find(a => prev?.hasAttribute?.(a));
+    const keep = key && [key, prev.getAttribute(key)];
+    const top = panel.dataset.section === st.section ? panel.scrollTop : 0;
     panel.innerHTML = sectionHTML(st.section, t, active);
+    panel.scrollTop = top;
     panel.dataset.section = st.section;
+    if (keep) document.querySelector(`[${keep[0]}="${keep[1]}"]`)?.focus({ preventScroll: true });
+    const c = t.stops[st.id];
+    announce.textContent = c ? `${st.year} ${c.title}` : t.sections[st.section].title;
     sign.textContent = st.year;
     sign.dataset.country = st.country;
   };
