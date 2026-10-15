@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { stops, SECTIONS, i18n, sectionStart } from '../js/content.js';
 
 const keys = (o, p = '') => Object.entries(o).flatMap(([k, v]) =>
-  v && typeof v === 'object' && !Array.isArray(v) ? keys(v, `${p}${k}.`) : [`${p}${k}`]).sort();
+  v && typeof v === 'object' ? keys(v, `${p}${k}.`) : [`${p}${k}`]).sort();
 
 test('en and pt have identical keys', () => {
   assert.deepEqual(keys(i18n.pt), keys(i18n.en));
