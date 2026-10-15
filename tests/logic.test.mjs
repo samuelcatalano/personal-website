@@ -63,3 +63,48 @@ test('rng is deterministic', () => {
   const a = rng(42), b = rng(42);
   for (let i = 0; i < 5; i++) assert.equal(a(), b());
 });
+
+import { SECTION_SHOT, shotFor, blendShots, spring, approach } from '../js/world/camera.js';
+import { SECTIONS as ALL_SECTIONS } from '../js/content.js';
+
+const close = (a, b, eps = 1e-6) => a.forEach((v, i) => assert.ok(Math.abs(v - b[i]) < eps, `${a} vs ${b}`));
+
+test('every section has a shot kind', () => {
+  for (const s of ALL_SECTIONS) assert.ok(['hero', 'follow', 'high', 'closing'].includes(SECTION_SHOT[s]), s);
+});
+
+test('shotFor returns finite vectors for every kind', () => {
+  for (const k of ['hero', 'follow', 'high', 'closing']) for (const mobile of [false, true]) {
+    const s = shotFor(k, { x: 10, y: 0, z: -3 }, { extent: { minX: -225, maxX: 225 }, mobile });
+    [...s.position, ...s.target].forEach(v => assert.ok(Number.isFinite(v), k));
+  }
+});
+
+test('blendShots hits endpoints and arcs at the middle', () => {
+  const a = { position: [0, 10, 40], target: [0, 0, 0] };
+  const b = { position: [50, 30, 60], target: [60, 5, -20] };
+  close(blendShots(a, b, 0).position, a.position); close(blendShots(a, b, 0).target, a.target, 1e-4);
+  close(blendShots(a, b, 1).position, b.position); close(blendShots(a, b, 1).target, b.target, 1e-4);
+  assert.ok(Math.abs(blendShots(a, b, 0.5, 18).position[1] - (20 + 18)) < 1e-9);
+});
+
+test('blendShots turns the short way round', () => {
+  const a = { position: [0, 0, 0], target: [-10, 0, 1] };   // yaw ≈ +174°
+  const b = { position: [0, 0, 0], target: [-10, 0, -1] };  // yaw ≈ -174°
+  const mid = blendShots(a, b, 0.5).target;
+  assert.ok(mid[0] < -9.9 && Math.abs(mid[2]) < 1e-6);       // still looking to -x, not swung round to +x
+});
+
+test('spring snaps on dt <= 0 and converges without overshoot', () => {
+  assert.deepEqual(spring({ value: 0, velocity: 3 }, 1, 0, 0.32), { value: 1, velocity: 0 });
+  let s = { value: 0, velocity: 0 };
+  for (let i = 0; i < 240; i++) { s = spring(s, 1, 1 / 60, 0.32); assert.ok(s.value <= 1 + 1e-12); }
+  assert.ok(Math.abs(s.value - 1) < 1e-3);
+});
+
+test('approach moves at most rate*dt and reverses smoothly', () => {
+  const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-12, `${a} vs ${b}`);
+  near(approach(0, 1, 0.1, 1.4), 0.14);
+  near(approach(0.9, 1, 0.5, 1.4), 1);
+  near(approach(0.5, 0, 0.1, 1.4), 0.36);
+});
