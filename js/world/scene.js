@@ -8,6 +8,8 @@ import { buildBus } from './bus.js';
 import { createSky } from './sky.js';
 import { createWater } from './water.js';
 import { createAmbient } from './ambient.js';
+import { createSigns } from './signs.js';
+import { buildFigure } from './figure.js';
 import { SECTION_SHOT, shotFor, blendShots, spring, approach } from './camera.js';
 
 const PIXEL_DESKTOP = 3, PIXEL_MOBILE = 2; // drawing buffer = viewport / k, upscaled with image-rendering: pixelated
@@ -47,6 +49,11 @@ export async function createWorld(canvas, stops, { reducedMotion = false } = {})
   const water = createWater({ span: pts.length * 30 + 120, z: RIVER_Z, width: 22 });
   scene.add(water.mesh);
   units.push(createAmbient(scene, { curve, pts, stops }));
+  units.push(await createSigns(scene, { stops, pts }));
+  const figure = buildFigure();
+  const end = curve.getPointAt(1);
+  figure.position.set(end.x - 7, 0, end.z + 2); // beside the parked bus, framed by the closing shot
+  scene.add(figure);
   // ── later tasks add more units ABOVE this line; sky must stay last (it collects glow materials) ──
   const sky = createSky(scene, { hemi, sun });
   let night = 0, nightTarget = 0;
@@ -65,14 +72,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false } = {})
   addEventListener('resize', resize);
   resize();
 
-  const sign = document.getElementById('year-sign');
   const busPos = { x: 0, y: 0, z: 0 };
-  const tmp = new THREE.Vector3();
-  const updateSign = () => {
-    if (!sign) return;
-    tmp.set(busPos.x, 11, busPos.z).project(camera);
-    sign.style.transform = `translate(${(tmp.x * 0.5 + 0.5) * innerWidth}px, ${(-tmp.y * 0.5 + 0.5) * innerHeight}px) translate(-50%, -100%)`;
-  };
   const updatePlane = (p) => {
     const d = (p - planeAt) * (n - 1); // -1..1 around the 2020 stop
     plane.visible = planeAt >= 0 && Math.abs(d) < 1;
@@ -111,7 +111,6 @@ export async function createWorld(canvas, stops, { reducedMotion = false } = {})
     sky.update(night);
     water.update(clock, night);
     renderer.render(scene, camera);
-    updateSign();
   };
 
   return {

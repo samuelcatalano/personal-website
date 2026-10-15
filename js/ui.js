@@ -43,7 +43,6 @@ function sectionHTML(section, t, active) {
 export function initUI({ onGoto, onTheme }) {
   const prefs = loadPrefs(store());
   const panel = document.getElementById('panel');
-  const sign = document.getElementById('year-sign');
   const announce = document.getElementById('announce');
   let active = -1;
 
@@ -73,8 +72,6 @@ export function initUI({ onGoto, onTheme }) {
     if (keep) document.querySelector(`[${keep[0]}="${keep[1]}"]`)?.focus({ preventScroll: true });
     const c = t.stops[st.id];
     announce.textContent = c ? `${st.year} ${c.title}` : t.sections[st.section].title;
-    sign.textContent = st.year;
-    sign.dataset.country = st.country;
   };
 
   document.addEventListener('click', (e) => {
