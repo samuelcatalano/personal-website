@@ -32,7 +32,7 @@ export function createPost(renderer, scene, camera, { tier = 'high', sun } = {})
     const ao = new GTAOPass(scene, camera, size.x, size.y);
     // GTAO's normal pass renders sprites and the Memoji cut-out black; hide them from it.
     const hide = ao.overrideVisibility;
-    ao.overrideVisibility = function () { hide.call(this); this.scene.traverse((o) => { if (o.isSprite || o.name === 'memoji') o.visible = false; }); };
+    ao.overrideVisibility = function () { hide.call(this); this.scene.traverse((o) => { if (o.isSprite || o.material?.transparent || o.name === 'memoji') o.visible = false; }); };
     rays = new ShaderPass(SunRays);
     heavy.push(ao, rays);
     heavy.forEach((p) => composer.addPass(p));
@@ -51,7 +51,7 @@ export function createPost(renderer, scene, camera, { tier = 'high', sun } = {})
       if (rays && post.tier === 'high' && sun) {
         v.copy(sun.position).sub(sun.target.position).normalize().multiplyScalar(500).add(camera.position).project(camera);
         rays.uniforms.uSun.value.set(v.x / 2 + 0.5, v.y / 2 + 0.5);
-        rays.uniforms.uStrength.value = v.z < 1 ? 0.5 : 0;
+        rays.uniforms.uStrength.value = v.z < 1 ? 0.5 * Math.min(1, sun.intensity / 2.4) : 0;
       }
       composer.render(dt);
     },

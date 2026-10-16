@@ -33,13 +33,13 @@ function se(add, { x }) {
 }
 function estaiada(add, { x }) {
   const z = RIVER_Z;
-  add(x, 3.6, z, 8, 1.2, 76, P.concrete);
+  add(x, 3.6, z, 8, 1.2, 56, P.concrete); // clears road
   for (let y = 0; y < 46; y += 2) {
     const o = Math.abs(y - 20) * 0.27;
     for (const s of [-1, 1]) add(x + s * o, y, z, 2.2, 2, 2.2, P.concrete);
   }
   for (const side of [-1, 1]) for (let k = 0; k < 5; k++) {
-    const top = 44 - k * 3, run = 8 + k * 7;
+    const top = 44 - k * 3, run = 6 + k * 5;
     for (let i = 0; i <= 6; i++) {
       const t = i / 6;
       for (const dx of [-1.8, 1.8]) add(x + dx, 4.8 + (top - 4.8) * (1 - t), z + side * run * t, 0.22, 0.22, 0.22, P.steel);
