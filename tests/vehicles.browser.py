@@ -1,6 +1,6 @@
 # With the local preview open in browser-harness:
 # browser-harness < tests/vehicles.browser.py
-assert page_info()['url'].startswith('http://localhost:'), 'Open the local preview first'
+assert page_info()['url'].startswith(('http://localhost:', 'http://127.0.0.1:')), 'Open the local preview first'
 print(js(r'''(async () => {
   const THREE = await import('three');
   const { buildBus } = await import('./js/world/bus.js');
@@ -13,7 +13,15 @@ print(js(r'''(async () => {
 
   const bus = buildBus({ avatar: false }), busBox = bounds(bus), busSize = busBox.getSize(new THREE.Vector3());
   check(Math.abs(busBox.min.y) < 1e-6, 'bus wheels must rest on the road');
+  check(Math.abs(busSize.x - 11) < 0.15 && Math.abs(busSize.y - 4.6) < 0.15 && Math.abs(busSize.z - 2.5) < 0.15, 'bus must retain its shared 11 × 4.6 × 2.5m envelope');
   check(busSize.x / busSize.y > 2.3 && busSize.x / busSize.y < 2.6, 'double-decker proportions must stay near 2.4:1');
+  const wheels = bus.children.find(o => o.isInstancedMesh && o.geometry?.parameters?.radiusTop === 0.55);
+  wheels?.geometry.computeBoundingBox();
+  const wheelShape = wheels?.geometry.boundingBox.getSize(new THREE.Vector3());
+  check(wheels?.count === 4 && wheelShape.x > wheelShape.z && wheelShape.y > wheelShape.z, 'four instanced wheels must have their cylinder axis on Z');
+  const glass = [];
+  bus.traverse(o => { if (o.isInstancedMesh && o.material?.color?.getHexString() === 'a9c5d3') glass.push(o); });
+  check(glass.reduce((total, mesh) => total + mesh.count, 0) >= 4, 'bus must retain visible glass on multiple faces');
 
   const pts = routePoints(stops.length);
   const curve = new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(p.x, 0, p.z)));
