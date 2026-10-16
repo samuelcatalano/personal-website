@@ -8,16 +8,37 @@ const addWheels = (group, geometry, color, positions) => {
   mesh.castShadow = mesh.receiveShadow = true;
   group.add(mesh);
 };
-export function buildMini() {
-  const mini = new THREE.Group(), { add, list } = createBoxes();
-  add(0, 0.28, 0, 3.9, 0.9, 1.68, '#f4f1ea');
-  add(-0.25, 1.1, 0, 2.1, 0.4, 1.5, '#1d2630');
-  add(-0.25, 1.5, 0, 2.2, 0.1, 1.58, RED);
-  mini.add(buildMeshes(list));
-  addWheels(mini, new THREE.CylinderGeometry(0.3, 0.3, 0.2, 16).rotateX(Math.PI / 2), TYRE, [1.2, -1.2].flatMap((x) => [[x, 0.3, 0.76], [x, 0.3, -0.76]]));
-  addWheels(mini, new THREE.CylinderGeometry(0.15, 0.15, 0.06, 14).rotateZ(Math.PI / 2), GLOW, [[1.96, 0.62, 0.55], [1.96, 0.62, -0.55]]);
-  return mini;
+// One data-driven voxel car. x = forward, y = up from the road, 1 unit = 1 m.
+const DARK = '#1b1d21', BUMP = '#4a4d52', ARCH = '#08090a', TAIL = '#c4151c', INDI = '#e8892b';
+export function car({ L, W, c, roof = c, hl, bl, ch, taxi, ring }) {
+  const { add, list } = createBoxes(), e = L / 2, bx = e - 0.1, sx = [1, -1], sz = [1, -1];
+  const xf = bx - hl, xr = -bx + bl, cl = xf - xr, cx = (xf + xr) / 2, top = 0.9 + ch;
+  add(0, 0.2, 0, L - 0.2, 0.2, W - 0.2, DARK);                       // chassis skirt
+  add(0, 0.4, 0, L - 0.2, 0.5, W, c);                                // lower body
+  add((xf + bx) / 2, 0.9, 0, hl, 0.1, W - 0.1, c);                   // hood, below the cabin
+  add((xr - bx) / 2, 0.9, 0, bl, 0.1, W - 0.1, c);                   // boot
+  add(cx, 0.9, 0, cl - 0.1, ch, W - 0.24, '#1d2630');                // glass, inset 0.06
+  for (const x of [cx - cl / 2 + 0.07, cx + cl / 2 - 0.07, cx + cl * 0.05]) add(x, 0.9, 0, 0.14, ch, W - 0.12, c); // A/B/C pillars
+  add(cx, top, 0, cl + 0.05, 0.1, W - 0.14, roof);                   // roof, narrower than the body
+  if (taxi) add(cx + 0.4, top + 0.1, 0, 0.35, 0.14, 0.7, '#ffd36b'); // TAXI roof sign
+  for (const s of sx) add(s * bx, 0.28, 0, 0.2, 0.28, W - 0.06, BUMP); // bumpers
+  add(e - 0.07, 0.6, 0, 0.08, 0.2, W - 0.9, DARK);                   // grille
+  for (const z of sz) {
+    const lz = z * (W / 2 - 0.3);
+    if (ring) add(e - 0.08, 0.57, lz, 0.08, 0.3, 0.3, '#c9c9c9');    // chrome ring (Mini)
+    add(e - 0.05, 0.62, lz, 0.1, ring ? 0.2 : 0.18, ring ? 0.2 : 0.3, GLOW);   // headlight
+    add(-e + 0.07, 0.62, lz, 0.1, 0.2, 0.3, TAIL);                   // tail-light
+    add(-e + 0.07, 0.82, lz, 0.1, 0.08, 0.3, INDI);                  // indicator
+    add(cx + cl / 2, 1, z * (W / 2 + 0.04), 0.12, 0.1, 0.12, c);      // mirror
+    for (const x of [L * 0.3, -L * 0.3]) {
+      add(x, 0.05, z * (W / 2 - 0.03), 0.84, 0.72, 0.1, ARCH);       // wheel arch
+      add(x, 0, z * (W / 2 - 0.1), 0.6, 0.6, 0.24, TYRE);            // wheel, tucked in
+      add(x, 0.2, z * (W / 2 + 0.02), 0.2, 0.2, 0.04, HUB);
+    }
+  }
+  return buildMeshes(list, { glow: [GLOW] });
 }
+export const buildMini = () => car({ L: 3.9, W: 1.68, c: '#f4f1ea', roof: RED, hl: 0.6, bl: 0.35, ch: 0.55, ring: 1 });
 export function buildBus() {
   const bus = new THREE.Group();
   const bodyMaterial = new THREE.MeshLambertMaterial({ color: RED });

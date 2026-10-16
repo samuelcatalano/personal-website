@@ -1,17 +1,10 @@
 import * as THREE from 'three';
 import { createBoxes, buildMeshes } from './voxel.js';
-import { buildBus } from './bus.js';
+import { buildBus, car } from './bus.js';
 import { RIVER_Z, LANDMARKS, stopIndex, swapAt, riverEnd, riverStart } from './layout.js';
 import { routeT } from '../scroll.js';
-const LIGHT = '#fff7c2';
-function cab(c = '#16181c', sx = 1) {
-  const { add, list } = createBoxes();
-  add(0, 0.3, 0, 4.3, 1, 1.8, c);
-  add(-0.1, 1.15, 0, 2.2, 0.55, 1.55, c);
-  add(0.5, 1.2, 0, 0.7, 0.4, 1.57, '#9fc6e6');
-  for (const z of [0.5, -0.5]) add(2.15, 0.6, z, 0.05, 0.25, 0.3, LIGHT);
-  for (const x of [-1.3, 1.3]) for (const z of [0.75, -0.75]) add(x, 0, z, 0.65, 0.55, 0.2, '#0b0b0b');
-  const m = buildMeshes(list, { glow: [LIGHT] });
+function cab(c, sx = 1) {
+  const m = c ? car({ L: 4.4, W: 1.8, c, hl: 1, bl: 0.8, ch: 0.62 }) : car({ L: 4.4, W: 1.8, c: '#16181c', hl: 0.8, bl: 0.5, ch: 0.85, taxi: 1 }); // no colour = black cab
   m.scale.x = sx;
   return m;
 }
