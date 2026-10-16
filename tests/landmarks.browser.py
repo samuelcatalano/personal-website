@@ -54,7 +54,7 @@ print(js(r'''(async () => {
   check(boxes.some(b => b.x === bigBen.x && b.z === RIVER_Z - 16 && b.w === 5 && b.h === 18 && b.d === 5),
     'Tower Bridge changes must leave Big Ben in its existing position');
   // Heathrow stays on the far side, clear of the street band and the Thames bank.
-  const hIdx = stops.findIndex(stop => stop.id === 'millimetric'), hx = pts[hIdx].x, hz = pts[hIdx].z;
+  const hIdx = stops.findIndex(stop => stop.id === 'move'), hx = pts[hIdx].x, hz = pts[hIdx].z;
   const heathrow = boxes.filter(b => Math.abs(b.x - hx) <= 13 && b.z < hz - 5 && b.z > RIVER_Z + 10);
   check(heathrow.length >= 8, `Heathrow vignette missing near x=${hx}`);
   check(heathrow.every(b => b.z + b.d / 2 <= hz - 8.75 && b.z - b.d / 2 >= RIVER_Z + 13.1),
