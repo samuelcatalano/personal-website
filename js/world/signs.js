@@ -54,9 +54,9 @@ export async function createSigns(scene, { stops, curve }) {
     update({ progress, active, bus }) {
       const tangent = curve.getTangentAt(progress);
       near.set(-tangent.z, 0, tangent.x).normalize();
-      const finalSegment = Math.max(0, Math.min(1, (progress * (stops.length - 1) - (stops.length - 2))));
-      const lift = finalSegment * finalSegment * (3 - 2 * finalSegment) * 4;
-      year.position.set(bus.x + near.x * 14, bus.y + 8.5 + lift, bus.z + near.z * 14);
+      const f = Math.max(0, Math.min(1, (progress * (stops.length - 1) - (stops.length - 2)))), e = f * f * (3 - 2 * f), k = 1 - e * .45;
+      year.scale.set(4.2 * k, 3.36 * k, 1);
+      year.position.set(bus.x + near.x * 14, bus.y + 8.5 + e * 4, bus.z + near.z * 14);
       if (active === shown) return;
       const s = stops[active];
       yearMat.map.dispose();
