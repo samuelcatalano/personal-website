@@ -21,3 +21,8 @@ test('landmarks and city only use palette or approved colours', () => {
     for (const c of used) assert.ok(allowed.has(c.toLowerCase()), `${f} uses off-palette ${c}`);
   }
 });
+
+test('palette has the Minecraft block tones', () => {
+  const want = { grass: '#5d8c3a', dirt: '#86603e', stone: '#8f8f8f', oak: '#a27b4c', brick: '#9a4b3a', sandstone: '#d9c995', concrete: '#bdbdbd', glass: '#a8c8d8', leaf: '#4f7a2e' };
+  for (const [k, v] of Object.entries(want)) assert.equal(PALETTE[k], v, k);
+});
