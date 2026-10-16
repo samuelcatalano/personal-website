@@ -38,15 +38,11 @@ print(js("""(async () => {
   const curve = new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(p.x, 0, p.z)));
   const scene = new THREE.Scene();
   const signs = await createSigns(scene, { stops, curve });
-  const year = scene.children.find(o => o.isSprite);
-  const boundary = (stops.length - 1.5) / (stops.length - 1), epsilon = 1e-6, bus = { x: 0, y: 0, z: 0 };
-  const at = (progress, active) => {
-    signs.update({ progress, active, bus });
-    return year.position.toArray();
-  };
-  const before = at(boundary - epsilon, stops.length - 2), after = at(boundary + epsilon, stops.length - 1);
-  const distance = Math.hypot(...before.map((v, i) => v - after[i]));
-  if (!Number.isFinite(distance) || distance > 0.01) throw Error(`Year sign jumps ${distance} at the active-stop boundary`);
+  const before = scene.children.filter(o => o.isSprite).map(o => o.position.toArray().join());
+  signs.update({ progress: 0.5, active: 3, bus: { x: 99, y: 0, z: 99 } });
+  const moved = scene.children.filter(o => o.isSprite).some((o, i) => o.position.toArray().join() !== before[i]);
+  const distance = moved ? 1 : 0;
+  if (moved) throw Error('Year signs must stay planted');
   scene.traverse(o => {
     o.geometry?.dispose();
     for (const material of (Array.isArray(o.material) ? o.material : [o.material])) {

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { createBoxes, buildMeshes } from './voxel.js';
 import { buildBus } from './bus.js';
-import { RIVER_Z, LANDMARKS, stopIndex, swapAt, riverEnd } from './layout.js';
+import { RIVER_Z, LANDMARKS, stopIndex, swapAt, riverEnd, riverStart } from './layout.js';
 import { routeT } from '../scroll.js';
 const LIGHT = '#fff7c2';
 function cab() {
@@ -31,7 +31,7 @@ export function createAmbient(scene, { curve, pts, stops }) {
   traffic.forEach((v) => scene.add(v.mesh));
   const boats = [-0.3, 0.05, 0.35].map((f, i) => {
     const mesh = boat();
-    mesh.position.set(pts[0].x + (riverEnd(stops, pts) - pts[0].x) * (f + 0.3), 0.1, RIVER_Z + (i - 1) * 5);
+    mesh.position.set(riverStart(stops, pts) + (riverEnd(stops, pts) - riverStart(stops, pts)) * (f + 0.3), 0.1, RIVER_Z + (i - 1) * 5);
     scene.add(mesh);
     return mesh;
   });

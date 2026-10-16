@@ -1,4 +1,4 @@
-import { RIVER_Z, LANDMARKS, rng, riverEnd } from './layout.js';
+import { RIVER_Z, LANDMARKS, rng, riverEnd, riverStart } from './layout.js';
 import { PALETTE as P } from './palette.js';
 const GRASS = P.grass, PATCH = P.patch, ROAD = P.road, LINE = P.cream;
 const BANK = P.taupe, PATH = P.stone, CREAM = P.cream;
@@ -62,7 +62,7 @@ export function buildCity(add, stops, pts, curve) {
   const r = rng(2026), LM = new Set(Object.values(LANDMARKS));
   const span = pts.length * 30 + 120, N = pts.length * 20;
   add(0, -1, 0, span, 1, 200, GRASS);
-  const x0 = -span / 2, rEnd = riverEnd(stops, pts), mid = (x0 + rEnd) / 2, len = rEnd - x0;
+  const x0 = riverStart(stops, pts), rEnd = riverEnd(stops, pts), mid = (x0 + rEnd) / 2, len = rEnd - x0;
   for (const side of [-1, 1]) {
     const edge = RIVER_Z + side * 12;
     add(mid, -0.08, edge, len, 0.18, 2.2, BANK);

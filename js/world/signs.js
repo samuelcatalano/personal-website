@@ -29,10 +29,6 @@ export function paintPlaque(text, color, size = 128) {
 }
 export async function createSigns(scene, { stops, curve }) {
   await Promise.race([document.fonts?.load('600 48px Inter'), new Promise((r) => setTimeout(r, 1500))]).catch(() => {});
-  const yearMat = new THREE.SpriteMaterial({ map: paintSign(stops[0].year), toneMapped: false });
-  const year = new THREE.Sprite(yearMat);
-  year.scale.set(4.2, 3.36, 1);
-  scene.add(year);
   const company = [];
   stops.forEach((s, i) => {
     if (!s.brand) return;
@@ -48,20 +44,20 @@ export async function createSigns(scene, { stops, curve }) {
     scene.add(pole, sprite);
     company.push({ i, sprite });
   });
+  const sign = (i, s) => {
+    const t = i / (stops.length - 1), p = curve.getPointAt(t), tan = curve.getTangentAt(t);
+    const last = i === stops.length - 1, k = last ? 11 : 7.1, a = last ? 4 : -5;
+    // sidewalk centre (near side) for stops; Wembley garden for NOW
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: paintSign(s.year), toneMapped: false }));
+    sp.scale.set(4.2, 3.36, 1);
+    sp.position.set(p.x - tan.z * k + tan.x * a, 1.68, p.z + tan.x * k + tan.z * a);
+    scene.add(sp);
+  };
+  stops.forEach((s, i) => sign(i, s));
   let shown = -1;
-  const near = new THREE.Vector3();
   return {
-    update({ progress, active, bus }) {
-      const tangent = curve.getTangentAt(progress);
-      near.set(-tangent.z, 0, tangent.x).normalize();
-      const f = Math.max(0, Math.min(1, (progress * (stops.length - 1) - (stops.length - 2)))), e = f * f * (3 - 2 * f), k = 1 - e * .45;
-      year.scale.set(4.2 * k, 3.36 * k, 1);
-      year.position.set(bus.x + near.x * 14, bus.y + 8.5 + e * 4, bus.z + near.z * 14);
+    update({ active }) {
       if (active === shown) return;
-      const s = stops[active];
-      yearMat.map.dispose();
-      yearMat.map = paintSign(s.year);
-      yearMat.needsUpdate = true;
       for (const c of company) c.sprite.scale.setScalar(c.i === active ? 2 : 1.6);
       shown = active;
     },

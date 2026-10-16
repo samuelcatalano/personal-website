@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { routeT, nearestStop } from '../scroll.js';
-import { routePoints, RIVER_Z, riverEnd, FRAME_LIFT, swapAt } from './layout.js';
+import { routePoints, RIVER_Z, riverEnd, riverStart, FRAME_LIFT, swapAt } from './layout.js';
 import { createBoxes, buildMeshes } from './voxel.js';
 import { buildCity } from './city.js';
 import { buildLandmarks } from './landmarks.js';
@@ -42,7 +42,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const routemaster = buildBus(), mini = buildMini(), bus = new THREE.Group().add(mini, routemaster), swap = swapAt(stops);
   scene.add(buildMeshes(list, { glow: ['#e8d7b3', '#ffd86b', '#fff7c2'] }), eye, details, plane, bus);
   const units = [];
-  const water = createWater({ x0: -(pts.length * 30 + 120) / 2, x1: riverEnd(stops, pts), z: RIVER_Z, width: 22 });
+  const water = createWater({ x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z: RIVER_Z, width: 22 });
   scene.add(water.mesh);
   units.push(createAmbient(scene, { curve, pts, stops }));
   units.push(await createSigns(scene, { stops, curve }));
