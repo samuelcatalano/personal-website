@@ -51,7 +51,9 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   scene.add(water.mesh);
   units.push(createAmbient(scene, { curve, pts, stops }));
   units.push(await createSigns(scene, { stops, curve }));
-  const figure = buildFigure();
+  let disposed = false, raf = 0;
+  const wake = () => { if (!disposed && !raf && !document.hidden) raf = requestAnimationFrame(frame); };
+  const figure = buildFigure(wake);
   const end = curve.getPointAt(1), endTan = curve.getTangentAt(1);
   const near = new THREE.Vector3(-endTan.z, 0, endTan.x).normalize(); // camera side
   figure.position.set(end.x + endTan.x * 9 + near.x * 2, 0, end.z + endTan.z * 9 + near.z * 2); // off the road, framed by the closing shot
@@ -101,10 +103,9 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     if (plane.visible) plane.position.set(busPos.x + d * 60, 22 - Math.max(0, d) * 14, busPos.z - 6);
   };
 
-  let scroll = { value: 0, velocity: 0 }, target = 0, clock = 0, last = 0, raf = 0;
+  let scroll = { value: 0, velocity: 0 }, target = 0, clock = 0, last = 0;
   const lateral = new THREE.Vector3();
-  const wake = () => { if (!raf && !document.hidden) raf = requestAnimationFrame(frame); };
-  const frame = (now) => {
+  function frame(now) {
     raf = 0;
     if (document.hidden) { last = 0; return; }
     const dt = last ? Math.min(0.1, (now - last) / 1000) : 0; // first frame dt=0 → spring snaps
@@ -138,7 +139,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     water.update(clock, night);
     renderer.render(scene, camera);
     if (!reducedMotion) wake();
-  };
+  }
   const visibility = () => { last = 0; wake(); };
   addEventListener('resize', resize);
   document.addEventListener('visibilitychange', visibility);
@@ -152,6 +153,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       wake();
     },
     dispose() {
+      disposed = true;
       cancelAnimationFrame(raf); raf = 0;
       removeEventListener('resize', resize);
       document.removeEventListener('visibilitychange', visibility);

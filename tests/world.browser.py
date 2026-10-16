@@ -2,29 +2,33 @@
 # browser-harness < tests/world.browser.py
 # Exercises the real Three.js scene; no test dependencies or product hooks.
 assert page_info()['url'].startswith('http://localhost:'), 'Open the local preview first'
-cdp('Emulation.setDeviceMetricsOverride', width=1440, height=900, deviceScaleFactor=2, mobile=False)
-print(js("""(async () => {
+try:
+    cdp('Emulation.setDeviceMetricsOverride', width=1440, height=900, deviceScaleFactor=2, mobile=False)
+    print(js("""(async () => {
   const { createWorld } = await import('./js/world/scene.js');
   const { stops } = await import('./js/content.js');
   window.__renderCanvas = document.createElement('canvas');
   window.__renderWorld = await createWorld(window.__renderCanvas, stops, { reducedMotion: true });
-  if (__renderCanvas.width !== 2160 || __renderCanvas.height !== 1350) throw Error('Desktop DPR cap failed');
-  return { desktopBuffer: [__renderCanvas.width, __renderCanvas.height] };
+  const waitForBuffer = async (width, height, bufferWidth, bufferHeight) => {
+    const deadline = performance.now() + 2500;
+    let state;
+    do {
+      state = { viewport: [innerWidth, innerHeight], dpr: devicePixelRatio, buffer: [__renderCanvas.width, __renderCanvas.height], expected: [bufferWidth, bufferHeight], hidden: document.hidden };
+      if (state.viewport[0] === width && state.viewport[1] === height && state.buffer[0] === bufferWidth && state.buffer[1] === bufferHeight) return state.buffer;
+      await new Promise(resolve => setTimeout(resolve, 25));
+    } while (performance.now() < deadline);
+    throw Error(`Resize did not settle: ${JSON.stringify(state)}`);
+  };
+  window.__waitForBuffer = waitForBuffer;
+  return { desktopBuffer: await waitForBuffer(1440, 900, 2160, 1350) };
 })()"""))
-cdp('Emulation.setDeviceMetricsOverride', width=375, height=812, deviceScaleFactor=3, mobile=True)
-print(js("""(async () => {
-  await new Promise(resolve => setTimeout(resolve, 120));
-  if (__renderCanvas.width !== 375 || __renderCanvas.height !== 812) throw Error('Mobile DPR cap failed');
-  return { mobileBuffer: [__renderCanvas.width, __renderCanvas.height] };
-})()"""))
-cdp('Emulation.setDeviceMetricsOverride', width=1440, height=900, deviceScaleFactor=2, mobile=False)
-print(js("""(async () => {
-  await new Promise(resolve => setTimeout(resolve, 120));
-  if (__renderCanvas.width !== 2160 || __renderCanvas.height !== 1350) throw Error('Desktop resize did not restore capped buffer');
-  __renderWorld.dispose(); delete window.__renderWorld; delete window.__renderCanvas;
-  return { restoredDesktopBuffer: [2160, 1350] };
-})()"""))
-cdp('Emulation.clearDeviceMetricsOverride')
+    cdp('Emulation.setDeviceMetricsOverride', width=375, height=812, deviceScaleFactor=3, mobile=True)
+    print(js("""(async () => ({ mobileBuffer: await __waitForBuffer(375, 812, 375, 812) }))()"""))
+    cdp('Emulation.setDeviceMetricsOverride', width=1440, height=900, deviceScaleFactor=2, mobile=False)
+    print(js("""(async () => ({ restoredDesktopBuffer: await __waitForBuffer(1440, 900, 2160, 1350) }))()"""))
+finally:
+    js("window.__renderWorld?.dispose(); delete window.__renderWorld; delete window.__renderCanvas; delete window.__waitForBuffer")
+    cdp('Emulation.clearDeviceMetricsOverride')
 print(js("""(async () => {
   const THREE = await import('three');
   const { createSigns } = await import('./js/world/signs.js');
@@ -79,6 +83,16 @@ print(js("""(async () => {
     new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))),
     new Promise((_, reject) => setTimeout(() => reject(Error('Timed out waiting for animation frame')), 2000)),
   ]);
+  const waitForIdle = async progress => {
+    let previous = progress.length, stable = 0;
+    for (let i = 0; i < 40; i++) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+      stable = progress.length === previous ? stable + 1 : 0;
+      if (stable === 10) return;
+      previous = progress.length;
+    }
+    throw Error('Reduced-motion scene did not settle after async assets loaded');
+  };
   const check = (ok, message) => { if (!ok) throw Error(message); };
   const progress = [];
   const canvas = document.createElement('canvas');
@@ -86,7 +100,7 @@ print(js("""(async () => {
   const world = await createWorld(canvas, stops, { reducedMotion: true, onProgress: p => progress.push(p) });
   try {
     await nextFrame();
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await waitForIdle(progress);
     progress.length = 0;
     world.setProgress(.6);
     world.setTheme('day');
