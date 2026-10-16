@@ -20,7 +20,7 @@ function townhouse(add, x, z, side, br, r, maquette = false) {
   if (!br && r() < 0.5) add(x + (r() < 0.5 ? -2.4 : 2.4), h + 0.7, z, 0.65, 1.1, 0.7, ROOF);
   if (maquette && side === 1) {
     // The follow camera looks down on near-side roofs: paired stacks and a parapet keep them from reading as plain slabs.
-    for (const dx of [-w / 2 + 1.2, w / 2 - 1.2]) {
+    for (const dx of [-(w * 0.37 - 0.5), w * 0.37 - 0.5]) {
       add(x + dx, h + 0.74, z, 0.9, 1.1, 0.7, BANK);
       add(x + dx, h + 1.84, z, 0.3, 0.35, 0.3, ROOF);
     }
