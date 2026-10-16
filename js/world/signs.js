@@ -46,7 +46,7 @@ export async function createSigns(scene, { stops, curve }) {
   });
   const sign = (i, s) => {
     const t = i / (stops.length - 1), p = curve.getPointAt(t), tan = curve.getTangentAt(t);
-    const last = i === stops.length - 1, k = last ? 11 : 7.1, a = last ? 4 : -5;
+    const last = i === stops.length - 1, k = last ? 9 : 7.1, a = last ? 2 : -5;
     // sidewalk centre (near side) for stops; Wembley garden for NOW
     const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: paintSign(s.year), toneMapped: false }));
     sp.scale.set(4.2, 3.36, 1);
