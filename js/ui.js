@@ -1,4 +1,3 @@
-import { creditsFor } from './world/models.js';
 import { stops, i18n, links, articles, repos, stack, sectionStart } from './content.js';
 
 export function loadPrefs(storage) {
@@ -41,8 +40,6 @@ function sectionHTML(section, t, active) {
     case 'recs': return `<h2>${s.title}</h2><p>${s.intro}</p>${t.recs.map(r => `<blockquote><p>“${r.quote}”</p><footer>${r.name} · ${r.role}</footer></blockquote>`).join('')}`;
     case 'contact': return `<h2>${s.title}</h2><p>${s.intro}</p><ul class="list contact">
       <li><a href="${links.email}">${s.email}</a></li><li>${ext(links.linkedin, s.linkedin)}</li><li>${ext(links.github, s.github)}</li></ul>
-      <details class="credits"><summary>${s.credits}</summary><ul class="list">${creditsFor().map((c) =>
-        `<li>${ext(c.url, c.title)} — ${c.author} · ${c.license}</li>`).join('')}</ul></details>
       <p class="footer">${t.ui.footer}</p>`;
   }
 }
