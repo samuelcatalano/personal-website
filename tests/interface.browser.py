@@ -52,6 +52,10 @@ try:
     const description = i18n[lang].ui.lang;
     check(button.getAttribute('aria-label').includes(button.textContent) && button.getAttribute('aria-label').includes(description), `${lang} language button label must include its visible target and localized description`);
   };
+  const checkThemeLabel = lang => {
+    const button = document.querySelector('[data-theme]');
+    check(button.querySelector('[aria-hidden="true"]') && button.getAttribute('aria-label') === i18n[lang].ui.theme, `${lang} theme button must hide its glyph and retain its localized label`);
+  };
   document.querySelector('[data-nav=journey]').click(); await wait();
   const rows = document.querySelectorAll('[data-goto]');
   check(rows.length === 10, `Expected 10 journey buttons, found ${rows.length}`);
@@ -59,9 +63,15 @@ try:
   check(document.querySelectorAll('.detail').length === 1, 'Journey must show exactly one open detail');
   const prevY = scrollY;
   checkLanguageLabel('en');
+  checkThemeLabel('en');
   document.querySelector('[data-lang]').focus(); document.querySelector('[data-lang]').click(); await wait();
   check(document.documentElement.lang === 'pt-BR', 'Portuguese language did not apply');
   checkLanguageLabel('pt');
+  checkThemeLabel('pt');
+  document.querySelector('[data-theme]').click(); await wait();
+  checkThemeLabel('pt');
+  document.querySelector('[data-theme]').click(); await wait();
+  checkThemeLabel('pt');
   check(document.activeElement.matches('[data-lang]'), 'Language control lost focus after rendering');
   check(scrollY === prevY, 'Language rendering changed page scroll');
   document.querySelector('[data-lang]').click(); await wait();

@@ -53,7 +53,10 @@ export function initUI({ onGoto, onTheme }) {
   const applyTheme = () => {
     document.body.classList.toggle('theme-night', prefs.theme === 'night');
     const b = document.querySelector('[data-theme]');
-    b.textContent = prefs.theme === 'night' ? '☾' : '☀︎';
+    const glyph = document.createElement('span');
+    glyph.setAttribute('aria-hidden', 'true');
+    glyph.textContent = prefs.theme === 'night' ? '☾' : '☀︎';
+    b.replaceChildren(glyph);
     b.setAttribute('aria-pressed', String(prefs.theme === 'night'));
     onTheme(prefs.theme);
   };
