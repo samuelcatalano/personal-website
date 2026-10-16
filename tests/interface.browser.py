@@ -54,7 +54,8 @@ try:
   };
   const checkThemeLabel = lang => {
     const button = document.querySelector('[data-theme]');
-    check(button.querySelector('[aria-hidden="true"]') && button.getAttribute('aria-label') === i18n[lang].ui.theme, `${lang} theme button must hide its glyph and retain its localized label`);
+    const icon = button.querySelector('svg[aria-hidden="true"][focusable="false"]');
+    check(button.textContent.trim() === '' && icon && icon.getAttribute('viewBox') === '0 0 24 24' && button.getAttribute('aria-label') === i18n[lang].ui.theme, `${lang} theme button must use a decorative SVG and retain its localized label`);
   };
   document.querySelector('[data-nav=journey]').click(); await wait();
   const rows = document.querySelectorAll('[data-goto]');
