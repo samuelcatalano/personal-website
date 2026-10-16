@@ -6,67 +6,67 @@ const CREDITS = {
     "title": "Catedral da Sé de São Paulo",
     "author": "JackeHelen",
     "license": "CC Attribution",
-    "url": "https://sketchfab.com/3d-models/model-a2e7c359bdbf4a4682dd165a2397fb36"
+    "url": "https://sketchfab.com/3d-models/catedral-da-se-de-sao-paulo-a2e7c359bdbf4a4682dd165a2397fb36"
   },
   "7eb9d1c77f9b43b088128fc5baa249bb": {
     "title": "MASP - Museu de Arte de São Paulo (simplificado)",
     "author": "ximboleta",
     "license": "CC Attribution",
-    "url": "https://sketchfab.com/3d-models/model-7eb9d1c77f9b43b088128fc5baa249bb"
+    "url": "https://sketchfab.com/3d-models/masp-museu-de-arte-de-sao-paulo-simplificado-7eb9d1c77f9b43b088128fc5baa249bb"
   },
   "be0e5bf3b1c34e4da38d4b1a9a47d3f9": {
     "title": "Ponte Octavio Frias de Oliveira - Estaiada",
     "author": "Isaque Sprogis",
     "license": "CC Attribution",
-    "url": "https://sketchfab.com/3d-models/model-be0e5bf3b1c34e4da38d4b1a9a47d3f9"
+    "url": "https://sketchfab.com/3d-models/ponte-octavio-frias-de-oliveira-estaiada-be0e5bf3b1c34e4da38d4b1a9a47d3f9"
   },
   "65cc7c4349174f7bbb20ed70206377b5": {
     "title": "Low-poly Airplane",
     "author": "MaX3Dd",
     "license": "CC Attribution",
-    "url": "https://sketchfab.com/3d-models/model-65cc7c4349174f7bbb20ed70206377b5"
+    "url": "https://sketchfab.com/3d-models/low-poly-airplane-65cc7c4349174f7bbb20ed70206377b5"
   },
   "1fed3793e2f94d6c9b22805b568119d1": {
     "title": "London heathrow [LHR] 3D Model",
     "author": "R A Y Y A N",
     "license": "CC Attribution",
-    "url": "https://sketchfab.com/3d-models/model-1fed3793e2f94d6c9b22805b568119d1"
+    "url": "https://sketchfab.com/3d-models/london-heathrow-lhr-3d-model-1fed3793e2f94d6c9b22805b568119d1"
   },
   "b5f82ba2e3614be2a69755a2a613579a": {
     "title": "Big Ben",
     "author": "Julian Toquica",
     "license": "CC Attribution",
-    "url": "https://sketchfab.com/3d-models/model-b5f82ba2e3614be2a69755a2a613579a"
+    "url": "https://sketchfab.com/3d-models/big-ben-b5f82ba2e3614be2a69755a2a613579a"
   },
   "74eaf18882314264b474861d564fca36": {
     "title": "London eye",
     "author": "mohamedhussien",
     "license": "CC Attribution",
-    "url": "https://sketchfab.com/3d-models/model-74eaf18882314264b474861d564fca36"
+    "url": "https://sketchfab.com/3d-models/london-eye-74eaf18882314264b474861d564fca36"
   },
   "0021ac55a9d54c13b655a2ed430d01f6": {
     "title": "London Tower Bridge",
     "author": "purpleguy<3",
     "license": "CC Attribution",
-    "url": "https://sketchfab.com/3d-models/model-0021ac55a9d54c13b655a2ed430d01f6"
+    "url": "https://sketchfab.com/3d-models/london-tower-bridge-0021ac55a9d54c13b655a2ed430d01f6"
   },
   "fd20346281d04e0c8b62b8d2354b936e": {
     "title": "WEMBLEY_MKIV",
     "author": "giuseppe302",
     "license": "CC Attribution",
-    "url": "https://sketchfab.com/3d-models/model-fd20346281d04e0c8b62b8d2354b936e"
+    "url": "https://sketchfab.com/3d-models/wembley-mkiv-fd20346281d04e0c8b62b8d2354b936e"
   },
   "b809e5698e3444a3b62bb58654caac75": {
     "title": "Low Detail London Bus",
     "author": "JohnnySix",
     "license": "CC Attribution",
-    "url": "https://sketchfab.com/3d-models/model-b809e5698e3444a3b62bb58654caac75"
+    "url": "https://sketchfab.com/3d-models/low-detail-london-bus-b809e5698e3444a3b62bb58654caac75"
   },
   "815ca9e4e85844d6b702cb65ebc7dac8": {
     "title": "london_mobile_game_assets_(CC0)",
     "author": "britdawgmasterfunk",
     "license": "CC0 (author declared)",
-    "url": "https://sketchfab.com/3d-models/model-815ca9e4e85844d6b702cb65ebc7dac8"
+    "url": "https://sketchfab.com/3d-models/london-mobile-game-assets-cc0-815ca9e4e85844d6b702cb65ebc7dac8"
   }
 };
 
