@@ -28,6 +28,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   Object.assign(sun.shadow, { bias: -0.0002, normalBias: 0.05 });
   sun.shadow.mapSize.set(1024, 1024);
   Object.assign(sun.shadow.camera, { left: -80, right: 80, top: 80, bottom: -80, far: 300 });
+  const SUN = new THREE.Vector3(40, 80, 30), LD = SUN.clone().normalize(), TEXEL = 160 / 1024;
+  const LU = new THREE.Vector3(0, 1, 0).cross(LD).normalize(), LV = LD.clone().cross(LU);
   scene.add(hemi, sun, sun.target);
   const n = stops.length, pts = routePoints(n);
   const curve = new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(p.x, 0, p.z)));
@@ -110,8 +112,10 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const shot = blendShots(shotFor(ka, busPos, { mobile, lift }), shotFor(kb, busPos, { mobile, lift }), s - i, ka === kb ? 0 : ARC);
     camera.position.fromArray(shot.position);
     camera.lookAt(shot.target[0], shot.target[1], shot.target[2]);
-    sun.position.set(bp.x + 40, 80, bp.z + 30);
-    sun.target.position.copy(bp);
+    // snap the shadow centre to whole shadow texels in light space, so shadow edges don't shimmer while moving
+    const a = Math.round(bp.dot(LU) / TEXEL) * TEXEL, b = Math.round(bp.dot(LV) / TEXEL) * TEXEL;
+    sun.target.position.copy(LU).multiplyScalar(a).addScaledVector(LV, b).addScaledVector(LD, bp.dot(LD));
+    sun.position.copy(sun.target.position).add(SUN);
     eye.rotation.z = clock * 0.1;
     updatePlane(p);
     const f = { time: clock, dt, progress: p, active: nearestStop(p, n), bus: busPos };

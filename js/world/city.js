@@ -87,7 +87,7 @@ export function buildCity(add, stops, pts, curve) {
     const p = curve.getPointAt(i / (N * 2)), t = curve.getTangentAt(i / (N * 2));
     const nx = -t.z, nz = t.x;
     for (const side of [-1, 1]) {
-      add(p.x + nx * side * 4.55, -0.01, p.z + nz * side * 4.55, 1.5, 0.18, 1.5, BANK);
+      add(p.x + nx * side * 4.55, 0.07, p.z + nz * side * 4.55, 1.5, 0.1, 1.5, BANK);
       add(p.x + nx * side * 7.1, -0.02, p.z + nz * side * 7.1, 3.3, 0.12, 3.3, PATH);
     }
   }
