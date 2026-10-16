@@ -69,8 +69,7 @@ test('prefs default and survive throwing storage', () => {
   assert.deepEqual(loadPrefs({ getItem: () => 'garbage' }), { lang: 'en', theme: 'day' });
 });
 
-import { routePoints, STOP_SPACING, CHAPTERS, chapterOf } from '../js/world/layout.js';
-import { MODELS } from '../js/world/models.js';
+import { routePoints, LANDMARKS, stopIndex, rng, STOP_SPACING } from '../js/world/layout.js';
 import { stops } from '../js/content.js';
 
 test('route has one point per stop, increasing x', () => {
@@ -79,21 +78,13 @@ test('route has one point per stop, increasing x', () => {
   pts.slice(1).forEach((p, i) => assert.equal(p.x - pts[i].x, STOP_SPACING));
 });
 
-test('chapters cover every stop once, in route order', () => {
-  assert.deepEqual(CHAPTERS.flatMap((c) => c.stops), stops.map((s) => s.id));
-  for (const s of stops) assert.ok(chapterOf(s.id), s.id);
+test('every landmark is anchored to an existing stop', () => {
+  for (const id of Object.values(LANDMARKS)) assert.ok(stopIndex(stops, id) >= 0, id);
 });
 
-test('chapter models exist and anchor to their own stops', () => {
-  for (const c of CHAPTERS) for (const m of c.models) {
-    assert.ok(MODELS.some((x) => x.id === m.id), m.id);
-    assert.ok(c.stops.includes(m.at), `${m.id} at ${m.at}`);
-  }
-});
-
-test('the Thames runs only through Westminster and Tower Bridge', () => {
-  assert.deepEqual(CHAPTERS.filter((c) => c.river).map((c) => c.id), ['westminster', 'towerbridge']);
-  assert.equal(CHAPTERS.find((c) => c.id === 'wembley').river, false);
+test('rng is deterministic', () => {
+  const a = rng(42), b = rng(42);
+  for (let i = 0; i < 5; i++) assert.equal(a(), b());
 });
 
 import { SECTION_SHOT, shotFor, blendShots, spring, approach } from '../js/world/camera.js';

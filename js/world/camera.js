@@ -15,8 +15,8 @@ export function shotFor(kind, bus, { mobile = false, lift = 0 }) {
     case 'follow': {
       const L = lift; // 0 keeps the approved street framing exactly
       return {
-        position: [x + (20 + 10 * L) * k, y + (29 + 26 * L) * k, z + (50 + 40 * L) * k],
-        target: [x + 2, y + 5 + 22 * L, z + 2 - 18 * L],
+        position: [x + (20 + 6 * L) * k, y + (29 + 10 * L) * k, z + (50 + 14 * L) * k],
+        target: [x + 2, y + 5 + 9 * L, z + 2 - 10 * L],
       };
     }
     case 'high': return { position: [x + 30 * k, y + 34 * k, z + 60 * k], target: [x - 6, y + 6, z - 20] };
