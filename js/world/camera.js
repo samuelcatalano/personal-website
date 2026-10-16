@@ -14,7 +14,7 @@ export function shotFor(kind, bus, { mobile = false }) {
     }
     case 'follow': return { position: [x + 20 * k, y + 29 * k, z + 50 * k], target: [x + 2, y + 5, z + 2] };
     case 'high': return { position: [x + 30 * k, y + 34 * k, z + 60 * k], target: [x - 6, y + 6, z - 20] };
-    case 'closing': return { position: [x - 8 * k, y + 24 * k, z + 55 * k], target: [x, y + 4, z - 35] };
+    case 'closing': return { position: [x - 7 * k, y + 13 * k, z + 32 * k], target: [x + 1, y + 2.5, z] };
     default: throw new Error(`unknown shot ${kind}`);
   }
 }

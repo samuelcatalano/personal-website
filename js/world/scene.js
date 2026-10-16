@@ -41,9 +41,9 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const curve = new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(p.x, 0, p.z)));
   const { add, list } = createBoxes();
   buildCity(add, stops, pts, curve);
-  const { eye, plane, planeAt } = buildLandmarks(add, stops, pts);
+  const { eye, details, plane, planeAt } = buildLandmarks(add, stops, pts);
   const bus = buildBus();
-  scene.add(buildMeshes(list, { glow: ['#e8d7b3', '#ffd86b', '#fff7c2'] }), eye, plane, bus);
+  scene.add(buildMeshes(list, { glow: ['#e8d7b3', '#ffd86b', '#fff7c2'] }), eye, details, plane, bus);
 
   // Per-frame units register here as { update(frame) }; frame = { time, dt, progress, active, bus }.
   const units = [];
