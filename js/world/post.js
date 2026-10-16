@@ -36,7 +36,7 @@ export function createPost(renderer, scene, camera, { tier = 'high', sun } = {})
     heavy.push(ao, rays);
     heavy.forEach((p) => composer.addPass(p));
   }
-  composer.addPass(new UnrealBloomPass(size, 0.35, 0.6, 0.85));
+  composer.addPass(new UnrealBloomPass(size, 0.15, 0.2, 0.95));
   composer.addPass(new OutputPass());
   const v = new THREE.Vector3();
   const post = {
