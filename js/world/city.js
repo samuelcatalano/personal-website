@@ -1,14 +1,14 @@
 import { RIVER_Z, LANDMARKS, rng } from './layout.js';
 
-const GRASS = '#7b9470', PATCH = '#738968', ROAD = '#3b3f46', LINE = '#f4f4f4';
-const BANK = '#b9a98a', PATH = '#d6c8aa', STONE = '#c9b79c', CREAM = '#f3ead2';
-const UK_WALLS = [STONE, '#d9cdb8', '#9c7b65'];
-const BR_WALLS = ['#f4d35e', '#ee964b', '#4ecdc4'];
-const ROOF = '#5b4b49', GLASS = '#bfe3ff', WINDOW_LIT = '#ffd86b';
-const TRUNK = '#7a5230', LEAF = '#3f8f3f', LEAF_SHADE = '#4b9d49', PHONE = '#d6211f';
+const GRASS = '#899282', PATCH = '#7b8676', ROAD = '#45484b', LINE = '#e8e0d2';
+const BANK = '#8e8375', PATH = '#c9bdaa', STONE = '#c9bdaa', CREAM = '#e8e0d2';
+const UK_WALLS = [CREAM, '#d8d0c2', '#c9bdaa'];
+const BR_WALLS = ['#c9bdaa', '#d8d0c2', '#bdb3a4'];
+const ROOF = '#6b655e', GLASS = '#a9bec3', WINDOW_LIT = '#e8d7b3';
+const TRUNK = '#786b5d', LEAF = '#788572', LEAF_SHADE = '#899282', PHONE = '#c9252b';
 
-function townhouse(add, x, z, side, br, r) {
-  const w = 7.5, d = 7, floors = side === 1 ? 2 : br ? 2 + (r() < 0.25) : 2 + (r() < 0.6 ? 1 : 0);
+function townhouse(add, x, z, side, br, r, maquette = false) {
+  const w = maquette ? 9 : 7.5, d = 7, floors = side === 1 ? 2 : br ? 2 + (r() < 0.25) : 2 + (r() < 0.6 ? 1 : 0);
   const h = floors * 2.8, wall = (br ? BR_WALLS : UK_WALLS)[Math.floor(r() * (br ? BR_WALLS.length : UK_WALLS.length))];
   const face = z - side * (d / 2 + 0.08);
   add(x, 0, z, w, h, d, wall);
@@ -18,26 +18,41 @@ function townhouse(add, x, z, side, br, r) {
   add(x, h + 0.42, z, w * 0.74, 0.32, d * 0.72, wall);
   if (!br && r() < 0.5) add(x + (r() < 0.5 ? -2.4 : 2.4), h + 0.7, z, 0.65, 1.1, 0.7, ROOF);
 
+  if (maquette) {
+    // A shallow belt and end piers make neighboring houses read as one terrace.
+    for (const dx of [-w / 2 + 0.18, w / 2 - 0.18]) add(x + dx, 0.42, face, 0.22, h - 0.72, 0.18, BANK);
+    for (let floor = 0; floor < floors; floor++) add(x, 0.42 + floor * 2.8, face, w, 0.12, 0.22, BANK);
+  }
+
   // Two aligned bays on each floor; a few warm panes give the street life after dark.
   for (let floor = 0; floor < floors; floor++) {
-    for (const dx of [-1.9, 1.9]) {
+    for (const dx of [-2.15, 2.15]) {
       const y = 0.65 + floor * 2.8, lit = r() < 0.08;
       add(x + dx, y, face, 1.5, 1.9, 0.16, CREAM);          // inset surround and sill
       add(x + dx, y + 0.18, face - side * 0.1, 1.12, 1.48, 0.08, lit ? WINDOW_LIT : GLASS);
+      if (maquette) {
+        add(x + dx, y + 0.18, face - side * 0.15, 0.12, 1.52, 0.12, BANK); // sash
+        add(x + dx, y + 0.86, face - side * 0.15, 1.16, 0.12, 0.12, BANK);
+        add(x + dx, y + 0.08, face - side * 0.2, 1.7, 0.18, 0.42, BANK); // projecting sill
+      }
       if (br && floor > 0) add(x + dx, y - 0.18, face - side * 0.24, 1.65, 0.16, 0.5, PATH); // balcony
     }
   }
   add(x, 0.12, face, 1.55, 2.38, 0.2, CREAM);
   add(x, 0.25, face - side * 0.14, 1.12, 2.02, 0.1, ROOF);
   add(x, 1.7, face - side * 0.21, 0.18, 0.18, 0.08, WINDOW_LIT); // door glass
+  if (maquette) {
+    add(x, 2.48, face - side * 0.12, 1.7, 0.2, 0.34, BANK); // door lintel
+    add(x, 0.2, face - side * 0.12, 1.72, 0.18, 0.34, BANK); // doorstep
+  }
 }
 
 function broadleaf(add, x, z, r) {
-  const h = 3.4 + r() * 1.3, crown = 2.8 + r() * 1.2;
-  add(x, 0, z, 0.45, h, 0.45, TRUNK);
-  add(x, h - 0.6, z, crown, 1.8, crown, LEAF);
-  add(x - crown * 0.28, h + 0.35, z + crown * 0.2, crown * 0.62, 1.6, crown * 0.62, LEAF_SHADE);
-  add(x + crown * 0.25, h + 0.15, z - crown * 0.24, crown * 0.58, 1.4, crown * 0.58, LEAF);
+  const h = 2.6 + r() * 0.6, crown = 1.8 + r() * 0.5;
+  add(x, 0, z, 0.32, h, 0.32, TRUNK);
+  add(x, h - 0.4, z, crown, 1.1, crown, LEAF);
+  add(x - crown * 0.22, h + 0.2, z + crown * 0.16, crown * 0.52, 1, crown * 0.52, LEAF_SHADE);
+  add(x + crown * 0.2, h + 0.15, z - crown * 0.2, crown * 0.48, 0.9, crown * 0.48, LEAF);
 }
 
 function palm(add, x, z) {
@@ -82,15 +97,15 @@ export function buildCity(add, stops, pts, curve) {
     }
   }
 
-  // Small planted courts sit between the sidewalk and the grouped street fronts.
+  // The hero's Brazilian career history keeps its data, while its street reads as London.
   pts.forEach((p, i) => {
-    const br = stops[i].country === 'BR';
+    const maquette = i < 2, br = stops[i].country === 'BR' && !maquette;
     for (const side of [-1, 1]) {
-      add(p.x, 0, p.z + side * 10.5, 25, 0.035, 3.2, i % 2 ? GRASS : PATCH);
+      add(p.x, 0, p.z + side * 10.5, 25, 0.035, 3.2, maquette ? PATCH : i % 2 ? GRASS : PATCH);
       if (side === -1 && LM.has(stops[i].id)) continue; // keep the landmark-side view clear
       for (const dx of [-9, 0, 9]) {
         if (side === 1 && stops[i].id === 'contact' && dx === 0) continue; // keep the closing bus view clear
-        townhouse(add, p.x + dx, p.z + side * (side === 1 ? 21 : 17), side, br, r);
+        townhouse(add, p.x + dx, p.z + side * (side === 1 ? 21 : 17), side, br, r, maquette);
       }
       for (const dx of [-8, 8]) {
         const x = p.x + dx + (r() - 0.5) * 2, z = p.z + side * 10.2;
