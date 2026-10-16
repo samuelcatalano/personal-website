@@ -18,9 +18,9 @@ cdp('Emulation.setDeviceMetricsOverride', width=375, height=812, deviceScaleFact
 try:
     print(js("""(async () => {
   const check = (ok, message) => { if (!ok) throw Error(message); };
-  const wait = () => new Promise(resolve => setTimeout(resolve, 100));
+  const wait = () => new Promise(resolve => setTimeout(resolve, 30));
   const waitForSection = async section => {
-    for (let n = 0; n < 50 && panel.dataset.section !== section; n++) await wait();
+    for (let n = 0; n < 20 && panel.dataset.section !== section; n++) await wait();
     check(panel.dataset.section === section, `Navigation did not activate ${section}`);
   };
   const panel = document.querySelector('#panel');
@@ -41,20 +41,23 @@ try:
     check(link.getAttribute('aria-current') === 'page', `${section} is not marked current`);
   }
   check(document.documentElement.scrollWidth <= innerWidth, 'Document has horizontal overflow');
+  return { pass: true, mobileWidth: innerWidth, pageOverflow: document.documentElement.scrollWidth - innerWidth };
+})()"""))
+    print(js("""(async () => {
+  const check = (ok, message) => { if (!ok) throw Error(message); };
+  const wait = () => new Promise(resolve => setTimeout(resolve, 30));
   document.querySelector('[data-nav=journey]').click(); await wait();
   const rows = document.querySelectorAll('[data-goto]');
   check(rows.length === 10, `Expected 10 journey buttons, found ${rows.length}`);
   check(document.querySelectorAll('.stops li.on').length === 1, 'Journey must show exactly one active detail');
   check(document.querySelectorAll('.detail').length === 1, 'Journey must show exactly one open detail');
   const prevY = scrollY;
-  const careerText = document.querySelector('.detail')?.textContent;
   document.querySelector('[data-lang]').focus(); document.querySelector('[data-lang]').click(); await wait();
-  check(document.documentElement.lang === 'pt-BR' && document.querySelector('.detail')?.textContent !== careerText, 'Portuguese career did not render');
+  check(document.documentElement.lang === 'pt-BR', 'Portuguese language did not apply');
   check(document.activeElement.matches('[data-lang]'), 'Language control lost focus after rendering');
   check(scrollY === prevY, 'Language rendering changed page scroll');
-  document.querySelector('[data-nav-home]').click(); await wait();
-  check(document.querySelector('h1')?.textContent === 'Samuel Catalano' && document.documentElement.lang === 'pt-BR', 'Portuguese hero did not render');
   document.querySelector('[data-lang]').click(); await wait();
+  document.querySelector('[data-nav-home]').click(); await wait();
   document.querySelector('[data-nav=journey]').click(); await wait();
   const row = document.querySelector('[data-goto]'); row.focus(); row.click(); await wait();
   check(document.activeElement.hasAttribute('data-goto'), 'Career selection lost focus after rendering');
@@ -63,7 +66,25 @@ try:
   const email = document.querySelector('.contact a[href^=\"mailto:\"]');
   check(email && email.getBoundingClientRect().width > 0, 'Contact email is inaccessible at 375px');
   check(document.querySelector('[data-theme]'), 'Theme control is unreachable');
-  return { pass: true, mobileWidth: innerWidth, pageOverflow: document.documentElement.scrollWidth - innerWidth, careerRows: rows.length };
+  return { pass: true, careerRows: rows.length };
+})()"""))
+    print(js("""(async () => {
+  const check = (ok, message) => { if (!ok) throw Error(message); };
+  const { i18n, stops } = await import('./js/content.js');
+  const wait = () => new Promise(resolve => setTimeout(resolve, 60));
+  const panel = document.querySelector('#panel');
+  document.querySelector('[data-nav-home]').click(); await wait();
+  const en = i18n.en.sections.hero;
+  check(panel.dataset.section === 'hero' && document.querySelector('h1').textContent === en.title && document.querySelector('.role').textContent === en.role && document.querySelector('.tagline').textContent === en.tagline && document.querySelector('.meta').textContent === en.meta, 'English hero copy does not match i18n');
+  document.querySelector('[data-lang]').click(); await wait();
+  const pt = i18n.pt.sections.hero;
+  check(document.documentElement.lang === 'pt-BR' && document.querySelector('h1').textContent === pt.title && document.querySelector('.role').textContent === pt.role && document.querySelector('.tagline').textContent === pt.tagline && document.querySelector('.meta').textContent === pt.meta, 'Portuguese hero copy does not match i18n');
+  document.querySelector('[data-nav=journey]').click(); await wait();
+  const active = stops[Number(document.querySelector('.on button').dataset.goto)];
+  check(document.querySelector('.detail').textContent.includes(i18n.pt.stops[active.id].role), 'Portuguese career role does not match i18n');
+  document.querySelector('[data-lang]').click(); await wait();
+  check(document.querySelector('.detail').textContent.includes(i18n.en.stops[active.id].role), 'English career role does not match i18n');
+  return { pass: true, checked: ['hero title/role/tagline/meta EN/PT', 'career role EN/PT'] };
 })()"""))
     screenshot('mobile-en-day.png')
 finally:
