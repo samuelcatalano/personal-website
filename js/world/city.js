@@ -6,7 +6,7 @@ const UK_WALLS = [CREAM, '#d8d0c2', P.stone];
 const BR_WALLS = [P.stone, '#d8d0c2', '#bdb3a4'];
 const ROOF = P.roof, ROOFS = [P.brick, P.roof, P.oak, P.steel], // ponytail: tint by position keeps r() sequence
    GLASS = P.glass, WINDOW_LIT = P.lit;
-export const CLEAR = 3;
+export const CLEAR = 4.5;
 const TRUNK = P.trunk, LEAF = P.leaf, LEAF_SHADE = P.grass, PHONE = P.red;
 function townhouse(add, x, z, side, br, r, roofStacks) {
   const w = 9, d = 7, floors = side === 1 ? 2 : br ? 2 + (r() < 0.25) : 2 + (r() < 0.6 ? 1 : 0);
