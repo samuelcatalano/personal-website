@@ -2,7 +2,9 @@ import * as THREE from 'three';
 import { createBoxes, buildMeshes } from './voxel.js';
 import { LANDMARKS, stopIndex, RIVER_Z } from './layout.js';
 
-const STONE = '#d8c08a', SLATE = '#2f3b45', WHITE = '#f4f4f4', GOLD = '#e0b84a', STEEL = '#6b8fb5';
+import { PALETTE as P } from './palette.js';
+
+const STONE = P.stone, SLATE = P.roof, WHITE = P.white, GOLD = P.gilt, STEEL = P.steel;
 
 const at = (stops, pts, key) => pts[stopIndex(stops, LANDMARKS[key])];
 
@@ -120,22 +122,26 @@ function wembley(add, { x, z }) {
   const cz = RIVER_Z - 26; // far bank: bowl z -82..-60, clear of river band -57..-33
   for (let a = 0; a < 360; a += 15) {            // stadium bowl
     const r = (a * Math.PI) / 180;
-    add(x + Math.cos(r) * 16, 0, cz + Math.sin(r) * 11, 5, 9, 5, '#c7c9cc');
+    add(x + Math.cos(r) * 16, 0, cz + Math.sin(r) * 11, 5, 9, 5, P.cream);
   }
-  add(x, 0, cz, 22, 0.5, 14, '#4c9a4c');         // pitch
+  add(x, 0, cz, 22, 0.5, 14, P.patch);         // pitch
   for (let a = 0; a <= 180; a += 6) {            // the arch
     const r = (a * Math.PI) / 180;
     add(x + Math.cos(r) * 20, Math.sin(r) * 34, cz, 1.4, 1.4, 1.4, WHITE);
   }
 }
 
-function heathrow(add, { x, z }) {
-  const rz = z + 34;
-  add(x, -0.15, rz, 70, 0.2, 8, '#2e3238');
-  for (let i = -30; i <= 30; i += 6) add(x + i, 0.05, rz, 3, 0.06, 0.5, WHITE);
-  add(x - 8, 0, rz - 12, 20, 6, 8, '#8fb8d8');   // terminal glass
-  add(x - 22, 0, rz - 12, 2, 14, 2, '#d9d9d9');  // control tower
-  add(x - 22, 14, rz - 12, 4, 2.5, 4, '#8fb8d8');
+function heathrow(add, { x }) {
+  // Far-side arrival vignette between the street (z ≥ RIVER_Z + 24) and the Thames bank (z ≤ RIVER_Z + 13).
+  const rz = RIVER_Z + 20.5, tz = RIVER_Z + 15.5;
+  add(x, -0.15, rz, 24, 0.2, 6, P.road);                                         // runway
+  for (let i = -10; i <= 10; i += 4) add(x + i, 0.05, rz, 2, 0.06, 0.4, P.cream);  // centreline
+  add(x - 4, 0, tz, 14, 4, 4, P.stone);                                           // terminal
+  add(x - 4, 1, tz + 2.05, 13, 2.4, 0.1, P.glass);                                // glazed front
+  add(x - 4, 4, tz, 14.6, 0.35, 4.6, P.roof);                                     // roof slab
+  add(x + 9, 0, tz, 1.6, 9, 1.6, P.stone);                                        // control tower
+  add(x + 9, 9, tz, 3.2, 1.8, 3.2, P.glass);
+  add(x + 9, 10.8, tz, 3.6, 0.3, 3.6, P.roof);
 }
 
 function londonEye(x) {
@@ -157,9 +163,9 @@ function londonEye(x) {
 function plane() {
   const { add, list } = createBoxes();
   add(0, 0, 0, 12, 2, 2, WHITE);                 // fuselage
-  add(1, 0.6, 0, 3, 0.4, 14, '#d0d4da');         // wings
-  add(-5.5, 1, 0, 1.5, 3, 0.4, '#1e3a8a');       // tail
-  add(-5.5, 1.5, 0, 1.5, 0.3, 5, '#d0d4da');
+  add(1, 0.6, 0, 3, 0.4, 14, P.stone);         // wings
+  add(-5.5, 1, 0, 1.5, 3, 0.4, P.ink);       // tail
+  add(-5.5, 1.5, 0, 1.5, 0.3, 5, P.stone);
   return buildMeshes(list);
 }
 

@@ -1,11 +1,12 @@
 import { RIVER_Z, LANDMARKS, rng } from './layout.js';
+import { PALETTE as P } from './palette.js';
 
-const GRASS = '#899282', PATCH = '#7b8676', ROAD = '#45484b', LINE = '#e8e0d2';
-const BANK = '#8e8375', PATH = '#c9bdaa', STONE = '#c9bdaa', CREAM = '#e8e0d2';
-const UK_WALLS = [CREAM, '#d8d0c2', '#c9bdaa'];
-const BR_WALLS = ['#c9bdaa', '#d8d0c2', '#bdb3a4'];
-const ROOF = '#6b655e', GLASS = '#a9bec3', WINDOW_LIT = '#e8d7b3';
-const TRUNK = '#786b5d', LEAF = '#788572', LEAF_SHADE = '#899282', PHONE = '#c9252b';
+const GRASS = P.grass, PATCH = P.patch, ROAD = P.road, LINE = P.cream;
+const BANK = P.taupe, PATH = P.stone, STONE = P.stone, CREAM = P.cream;
+const UK_WALLS = [CREAM, '#d8d0c2', P.stone];
+const BR_WALLS = [P.stone, '#d8d0c2', '#bdb3a4'];
+const ROOF = P.roof, GLASS = P.glass, WINDOW_LIT = P.lit;
+const TRUNK = P.trunk, LEAF = P.leaf, LEAF_SHADE = P.grass, PHONE = P.red;
 
 function townhouse(add, x, z, side, br, r, maquette = false) {
   const w = maquette ? 9 : 7.5, d = 7, floors = side === 1 ? 2 : br ? 2 + (r() < 0.25) : 2 + (r() < 0.6 ? 1 : 0);

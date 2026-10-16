@@ -27,7 +27,7 @@ print(js(r'''(async () => {
   const roadDeck = deck.find(b => b.w === 6);
   check(roadDeck && roadDeck.z - roadDeck.d / 2 < RIVER_Z - 11 && roadDeck.z + roadDeck.d / 2 > RIVER_Z + 11,
     'Road deck must continuously span the river and reach both banks');
-  const abutments = nearBridge.filter(b => b.y === 0 && b.h === 4 && b.color === '#d8c08a' && Math.abs(b.x - bridgeX) < 1);
+  const abutments = nearBridge.filter(b => b.y === 0 && b.h === 4 && b.color === '#c9bdaa' && Math.abs(b.x - bridgeX) < 1);
   check(abutments.some(b => b.z < RIVER_Z - 11) && abutments.some(b => b.z > RIVER_Z + 11),
     'Bridge must have grounded abutments on both banks');
   check(abutments.every(b => b.y + b.h === roadDeck.y && Math.abs(b.x - roadDeck.x) < (b.w + roadDeck.w) / 2),
@@ -35,12 +35,12 @@ print(js(r'''(async () => {
   const boatBounds = boats.map(boat => new Box3().setFromObject(boat));
   check(boatBounds.every(b => b.min.z >= opening[0] && b.max.z <= opening[1]), 'All ambient boat hulls must fit between the towers');
   check(boatBounds.every(b => b.max.y < roadDeck.y), 'All ambient boats must clear the road deck vertically');
-  const walkways = nearBridge.filter(b => b.y === 19 && b.color === '#6b8fb5' && b.h === 1.5 && b.d === 13);
+  const walkways = nearBridge.filter(b => b.y === 19 && b.color === '#7f8b91' && b.h === 1.5 && b.d === 13);
   check(walkways.length === 2 && walkways.every(b => Math.abs(b.z - RIVER_Z) <= 0.01), 'Both upper pedestrian decks must span only the 13m space between the towers');
-  check(nearBridge.filter(b => b.y === 5.2 && b.h === 0.28 && b.d === 34 && b.color === '#6b8fb5').length === 2, 'Bridge must have blue outer road railings on both sides');
-  const pinnacles = nearBridge.filter(b => b.y === 26 && b.h === 3.2 && b.color === '#6b8fb5');
+  check(nearBridge.filter(b => b.y === 5.2 && b.h === 0.28 && b.d === 34 && b.color === '#7f8b91').length === 2, 'Bridge must have steel outer road railings on both sides');
+  const pinnacles = nearBridge.filter(b => b.y === 26 && b.h === 3.2 && b.color === '#7f8b91');
   check(pinnacles.length === 8, `Each tower must have four blue corner pinnacles; found ${pinnacles.length}`);
-  const windows = nearBridge.filter(b => b.h === 1.8 && b.color === '#2f3b45' && (Math.abs(Math.abs(b.x - bridgeX) - 3.12) < 0.01 || Math.abs(Math.abs(b.z - RIVER_Z) - 6.38) < 0.01 || Math.abs(Math.abs(b.z - RIVER_Z) - 12.62) < 0.01));
+  const windows = nearBridge.filter(b => b.h === 1.8 && b.color === '#6b655e' && (Math.abs(Math.abs(b.x - bridgeX) - 3.12) < 0.01 || Math.abs(Math.abs(b.z - RIVER_Z) - 6.38) < 0.01 || Math.abs(Math.abs(b.z - RIVER_Z) - 12.62) < 0.01));
   check(windows.length === 32, `Tower window recesses must sit on all four outer faces; found ${windows.length}`);
   const cables = landmarkParts.details.getObjectByName('towerbridge-approach-cables');
   check(cables?.isInstancedMesh && cables.count === 4, 'Four continuous blue cable braces must connect both towers to their bank approaches');
@@ -53,5 +53,11 @@ print(js(r'''(async () => {
   const bigBen = pts[stops.findIndex(s => s.id === 'xdesign')];
   check(boxes.some(b => b.x === bigBen.x && b.z === RIVER_Z - 16 && b.w === 5 && b.h === 18 && b.d === 5),
     'Tower Bridge changes must leave Big Ben in its existing position');
+  // Heathrow stays on the far side, clear of the street band and the Thames bank.
+  const hIdx = stops.findIndex(stop => stop.id === 'millimetric'), hx = pts[hIdx].x, hz = pts[hIdx].z;
+  const heathrow = boxes.filter(b => Math.abs(b.x - hx) <= 13 && b.z < hz - 5 && b.z > RIVER_Z + 10);
+  check(heathrow.length >= 8, `Heathrow vignette missing near x=${hx}`);
+  check(heathrow.every(b => b.z + b.d / 2 <= hz - 8.75 && b.z - b.d / 2 >= RIVER_Z + 13.1),
+    'Heathrow must sit between the far sidewalk and the Thames bank');
   return { pass: true, bridgeX, riverZ: RIVER_Z, towerZ, boatOpening: opening, boatBounds: boatBounds.map(b => ({ minZ: b.min.z, maxZ: b.max.z, maxY: b.max.y })), deck: deck.map(({ z, d }) => ({ z, d })), abutmentZ: abutments.map(b => b.z), walkwayCount: walkways.length, clockFaces: clock.count, bigBenX: bigBen.x };
 })()'''))
