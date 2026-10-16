@@ -1,6 +1,6 @@
 # Portfólio London Bus — Direção de maquete arquitetônica
 
-**Estado: proposta para revisão de design.** Este documento define a próxima direção visual; não é um plano de implementação nem registra uma aprovação final.
+**Estado: especificação aprovada pelo usuário no chat em 2026-10-16.** Este documento define a próxima direção visual. A implementação depende da revisão do plano; a aceitação visual da primeira cena continua pendente.
 
 ## Objetivo e âmbito
 
