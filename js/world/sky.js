@@ -3,7 +3,7 @@ import { Sky } from 'three/addons/objects/Sky.js';
 const DAY = { fog: new THREE.Color(0xa8d0f2), sun: 2.4, hemi: 1.0 };
 const NIGHT = { fog: new THREE.Color(0x0e1424), sun: 0.34, hemi: 0.48 };
 const GLOW = new THREE.Color(0xffc85a);
-// Call after every glow material is in the scene: it collects them once.
+// call after all glow materials exist
 export function createSky(scene, { hemi, sun, reducedMotion = false }) {
   const dome = new Sky();
   dome.scale.setScalar(800);
@@ -49,6 +49,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
       if (cam) { dome.position.copy(cam); clouds.position.set(cam.x, 0, cam.z); }
       if (!reducedMotion) for (const c of clouds.children) { c.position.x += dt * 2; if (c.position.x > 450) c.position.x -= 900; }
       scene.fog.color.lerpColors(DAY.fog, NIGHT.fog, night);
+      scene.fog.near = 450 - 150 * night; scene.fog.far = 1300 - 420 * night;
       sun.intensity = DAY.sun + (NIGHT.sun - DAY.sun) * night;
       hemi.intensity = DAY.hemi + (NIGHT.hemi - DAY.hemi) * night;
       stars.material.opacity = night;

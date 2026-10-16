@@ -5,9 +5,7 @@ export function buildFigure(onReady = () => {}) {
   const material = new THREE.MeshLambertMaterial({ transparent: true, opacity: 0, alphaTest: 0.5, side: THREE.DoubleSide });
   const body = new THREE.Mesh(new THREE.PlaneGeometry(WIDTH, HEIGHT).translate(0, HEIGHT / 2, 0), material);
   body.name = 'memoji';
-  body.castShadow = false;
   const at = new THREE.Vector3();
-  // r169 runs onBeforeRender before modelViewMatrix, so the turn lands this frame.
   body.onBeforeRender = (renderer, scene, camera) => {
     figure.getWorldPosition(at);
     body.rotation.y = Math.atan2(camera.position.x - at.x, camera.position.z - at.z);

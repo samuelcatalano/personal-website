@@ -1,4 +1,4 @@
-// Pure camera math (no three import) so node tests can load it.
+// Pure math: node-testable
 export const SECTION_SHOT = {
   hero: 'hero', journey: 'follow', stack: 'high', articles: 'high', repos: 'high', recs: 'high', contact: 'closing',
 };
@@ -6,9 +6,7 @@ export function shotFor(kind, bus, { mobile = false, lift = 0 }) {
   const k = mobile ? 0.95 : 1;
   const { x, y, z } = bus;
   switch (kind) {
-    case 'hero': {
-      return { position: [x + 28 * k, y + 32 * k, z + 45 * k], target: [x + 2, y + 4, z + 4] };
-    }
+    case 'hero': return { position: [x + 28 * k, y + 32 * k, z + 45 * k], target: [x + 2, y + 4, z + 4] };
     case 'follow': {
       const L = lift;
       return {
@@ -41,7 +39,7 @@ export function blendShots(a, b, t, arc = 0) {
   ];
   return { position, target };
 }
-// Critically damped spring; dt <= 0 snaps.
+// dt <= 0 snaps
 export function spring(state, target, dt, smoothTime) {
   if (dt <= 0 || smoothTime <= 0) return { value: target, velocity: 0 };
   const omega = 2 / smoothTime, x = omega * dt;
@@ -54,6 +52,6 @@ export function spring(state, target, dt, smoothTime) {
 }
 export const approach = (current, target, dt, rate) =>
   current + Math.max(-rate * dt, Math.min(rate * dt, target - current));
-// high drops to medium below 40 FPS; never climbs back.
+// <40 FPS: high -> medium, never back
 export const nextTier = (tier, fpsSamples) =>
   tier === 'high' && fpsSamples.length && fpsSamples.reduce((a, b) => a + b, 0) / fpsSamples.length < 40 ? 'medium' : tier;

@@ -2,7 +2,23 @@ import * as THREE from 'three';
 import { createBoxes, buildMeshes } from './voxel.js';
 const RED = '#c9252b', GLASS = '#a9c5d3', FRAME = '#8f171d', TYRE = '#242629', HUB = '#a9a49a';
 const GLOW = '#fff0b5';
-export function buildBus({ avatar: withAvatar = true } = {}) {
+const addWheels = (group, geometry, color, positions) => {
+  const mesh = new THREE.InstancedMesh(geometry, new THREE.MeshLambertMaterial({ color }), positions.length);
+  positions.forEach(([x, y, z], i) => mesh.setMatrixAt(i, new THREE.Matrix4().makeTranslation(x, y, z)));
+  mesh.castShadow = mesh.receiveShadow = true;
+  group.add(mesh);
+};
+export function buildMini() {
+  const mini = new THREE.Group(), { add, list } = createBoxes();
+  add(0, 0.28, 0, 3.9, 0.9, 1.68, '#f4f1ea');
+  add(-0.25, 1.1, 0, 2.1, 0.4, 1.5, '#1d2630');
+  add(-0.25, 1.5, 0, 2.2, 0.1, 1.58, '#16181c');
+  mini.add(buildMeshes(list));
+  addWheels(mini, new THREE.CylinderGeometry(0.3, 0.3, 0.2, 16).rotateX(Math.PI / 2), TYRE, [1.2, -1.2].flatMap((x) => [[x, 0.3, 0.76], [x, 0.3, -0.76]]));
+  addWheels(mini, new THREE.CylinderGeometry(0.15, 0.15, 0.06, 14).rotateZ(Math.PI / 2), GLOW, [[1.96, 0.62, 0.55], [1.96, 0.62, -0.55]]);
+  return mini;
+}
+export function buildBus() {
   const bus = new THREE.Group();
   const bodyMaterial = new THREE.MeshLambertMaterial({ color: RED });
   const { add, list } = createBoxes();
@@ -46,15 +62,6 @@ export function buildBus({ avatar: withAvatar = true } = {}) {
   }
   const details = buildMeshes(list, { glow: [GLOW] });
   bus.add(details);
-  const addWheels = (geometry, color, positions) => {
-    const material = new THREE.MeshLambertMaterial({ color });
-    const mesh = new THREE.InstancedMesh(geometry, material, positions.length);
-    positions.forEach(([x, y, z], i) => mesh.setMatrixAt(i, new THREE.Matrix4().makeTranslation(x, y, z)));
-    mesh.instanceMatrix.needsUpdate = true;
-    mesh.castShadow = mesh.receiveShadow = true;
-    bus.add(mesh);
-    return mesh;
-  };
   const wheels = [], hubs = [];
   for (const x of [-3.75, 3.75]) for (const z of [-1.18, 1.18]) {
     wheels.push([x, 0.55, z]);
@@ -62,15 +69,7 @@ export function buildBus({ avatar: withAvatar = true } = {}) {
   }
   const wheelGeometry = new THREE.CylinderGeometry(0.55, 0.55, 0.22, 20).rotateX(Math.PI / 2);
   const hubGeometry = new THREE.CylinderGeometry(0.22, 0.22, 0.04, 16).rotateX(Math.PI / 2);
-  addWheels(wheelGeometry, TYRE, wheels);
-  addWheels(hubGeometry, HUB, hubs);
-  if (withAvatar) {
-    const tex = new THREE.TextureLoader().load('assets/avatar.png');
-    tex.colorSpace = THREE.SRGBColorSpace;
-    const avatar = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex }));
-    avatar.scale.set(0.5, 0.5, 1);
-    avatar.position.set(5.56, 3.5, -0.5);
-    bus.add(avatar);
-  }
+  addWheels(bus, wheelGeometry, TYRE, wheels);
+  addWheels(bus, hubGeometry, HUB, hubs);
   return bus;
 }

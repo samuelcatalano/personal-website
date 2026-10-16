@@ -21,13 +21,14 @@ function noiseTexture() {
   noise.colorSpace = THREE.SRGBColorSpace;
   return noise;
 }
-// Triplanar in world space (instanceMatrix included): 1 tile = 1 world unit whatever the box scale.
+// Triplanar, world space: 1 tile = 1 m
 export function blockMaterial(color, { glow = false } = {}) {
   const mat = new THREE.MeshStandardMaterial({ color, map: noiseTexture(), roughness: 0.9, metalness: 0 });
   mat.userData.glow = glow;
   mat.onBeforeCompile = (sh) => {
+    const common = '#include <common>\nvarying vec3 vWP; varying vec3 vWN;';
     sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vWP; varying vec3 vWN;')
+      .replace('#include <common>', common)
       .replace('#include <begin_vertex>', `#include <begin_vertex>
 mat4 bm = modelMatrix;
 #ifdef USE_INSTANCING
@@ -36,7 +37,7 @@ mat4 bm = modelMatrix;
 vWP = (bm * vec4(position, 1.0)).xyz;
 vWN = normalize(mat3(bm) * normal);`);
     sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vWP; varying vec3 vWN;')
+      .replace('#include <common>', common)
       .replace('#include <map_fragment>', `
 vec3 an = abs(vWN);
 vec2 tuv = an.x > an.y && an.x > an.z ? vWP.zy : (an.y > an.z ? vWP.xz : vWP.xy);

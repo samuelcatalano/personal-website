@@ -10,19 +10,18 @@ export function loadPrefs(storage) {
 export function savePref(storage, key, value) { try { storage?.setItem(key, value); } catch { /* storage blocked */ } }
 const store = () => { try { return localStorage; } catch { return undefined; } };
 const flag = (c) => (c === 'BR' ? '🇧🇷' : '🇬🇧');
-// ponytail: innerHTML from our own static content.js only; no user input reaches it.
+// ponytail: innerHTML from static content.js only
 function sectionHTML(section, t, active) {
   const s = t.sections[section];
   const ext = (href, text) => `<a href="${href}" target="_blank" rel="noopener">${text}</a>`;
+  const contact = (c) => `<li><a href="${links.email}">${c.email}</a></li><li>${ext(links.linkedin, c.linkedin)}</li><li>${ext(links.github, c.github)}</li>`;
+  const list = (items, f, url) => `<h2>${s.title}</h2><p>${s.intro}</p><ul class="list">${items.map(f).join('')}</ul><p>${ext(url, s.more + ' ↗')}</p>`;
   switch (section) {
     case 'hero': return `
       <img class="avatar" src="assets/avatar.png" alt="" width="96" height="96">
       <h1>${s.title}</h1><p class="role">${s.role}</p><p class="meta">${s.meta}</p>
       <p class="tagline">${s.tagline}</p><ul class="hero-links contact">
-        <li><a href="${links.email}">${t.sections.contact.email}</a></li>
-        <li>${ext(links.linkedin, t.sections.contact.linkedin)}</li>
-        <li>${ext(links.github, t.sections.contact.github)}</li>
-      </ul><p class="hint">${t.ui.scroll} ↓</p>`;
+        ${contact(t.sections.contact)}</ul><p class="hint">${t.ui.scroll} ↓</p>`;
     case 'journey': return `
       <h2>${s.title}</h2><p>${s.intro}</p><ol class="stops">${stops.map((st, i) => {
         if (st.section !== 'journey') return '';
@@ -32,11 +31,10 @@ function sectionHTML(section, t, active) {
           ${on ? `<div class="detail"><strong>${c.role}</strong><small>${c.dates} · ${c.place}</small><p>${c.body}</p></div>` : ''}</li>`;
       }).join('')}</ol>`;
     case 'stack': return `<h2>${s.title}</h2><p>${s.intro}</p><ul class="chips">${stack.map(x => `<li>${x}</li>`).join('')}</ul>`;
-    case 'articles': return `<h2>${s.title}</h2><p>${s.intro}</p><ul class="list">${articles.map(a => `<li>${ext(a.url, a.title)}</li>`).join('')}</ul><p>${ext(links.medium, s.more + ' ↗')}</p>`;
-    case 'repos': return `<h2>${s.title}</h2><p>${s.intro}</p><ul class="list">${repos.map(r => `<li>${ext(r.url, r.name)} <small>${r.lang}</small></li>`).join('')}</ul><p>${ext(links.github + '?tab=repositories', s.more + ' ↗')}</p>`;
+    case 'articles': return list(articles, a => `<li>${ext(a.url, a.title)}</li>`, links.medium);
+    case 'repos': return list(repos, r => `<li>${ext(r.url, r.name)} <small>${r.lang}</small></li>`, links.github + '?tab=repositories');
     case 'recs': return `<h2>${s.title}</h2><p>${s.intro}</p>${t.recs.map(r => `<blockquote><p>“${r.quote}”</p><footer>${r.name} · ${r.role}</footer></blockquote>`).join('')}`;
-    case 'contact': return `<h2>${s.title}</h2><p>${s.intro}</p><ul class="list contact">
-      <li><a href="${links.email}">${s.email}</a></li><li>${ext(links.linkedin, s.linkedin)}</li><li>${ext(links.github, s.github)}</li></ul>
+    case 'contact': return `<h2>${s.title}</h2><p>${s.intro}</p><ul class="list contact">${contact(s)}</ul>
       <p class="footer">${t.ui.footer}</p>`;
   }
 }
@@ -61,12 +59,11 @@ export function initUI({ onGoto, onTheme }) {
     document.documentElement.lang = prefs.lang === 'pt' ? 'pt-BR' : 'en';
     document.querySelector('.bar nav').setAttribute('aria-label', t.ui.navLabel);
     const home = document.querySelector('[data-nav-home]');
-    if (st.section === 'hero') home.setAttribute('aria-current', 'page');
-    else home.removeAttribute('aria-current');
+    const cur = (el, on) => (on ? el.setAttribute('aria-current', 'page') : el.removeAttribute('aria-current'));
+    cur(home, st.section === 'hero');
     document.querySelectorAll('[data-nav]').forEach(a => {
       a.textContent = t.ui.nav[a.dataset.nav];
-      if (a.dataset.nav === st.section) a.setAttribute('aria-current', 'page');
-      else a.removeAttribute('aria-current');
+      cur(a, a.dataset.nav === st.section);
     });
     const langButton = document.querySelector('[data-lang]');
     langButton.textContent = prefs.lang === 'en' ? 'PT' : 'EN';

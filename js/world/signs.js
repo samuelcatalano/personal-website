@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+const tex = (c) => Object.assign(new THREE.CanvasTexture(c), { minFilter: THREE.LinearMipmapLinearFilter, colorSpace: THREE.SRGBColorSpace });
 export function paintSign(text, { bg = '#d6211f', fg = '#ffffff', w = 256, h = 96 } = {}) {
   const c = document.createElement('canvas');
   c.width = w; c.height = h;
@@ -9,11 +10,7 @@ export function paintSign(text, { bg = '#d6211f', fg = '#ffffff', w = 256, h = 9
   g.font = `600 ${Math.round(h * 0.42)}px Inter, system-ui, sans-serif`;
   g.textAlign = 'center'; g.textBaseline = 'middle';
   g.fillText(text, w / 2, h / 2 + 2);
-  const tex = new THREE.CanvasTexture(c);
-  tex.magFilter = THREE.LinearFilter;
-  tex.minFilter = THREE.LinearMipmapLinearFilter;
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
+  return tex(c);
 }
 export function paintPlaque(text, color, size = 128) {
   const c = document.createElement('canvas');
@@ -25,10 +22,7 @@ export function paintPlaque(text, color, size = 128) {
   g.font = `600 ${Math.round(size * (text.length > 2 ? 0.3 : 0.38))}px Inter, system-ui, sans-serif`;
   g.textAlign = 'center'; g.textBaseline = 'middle';
   g.fillText(text, size / 2, size / 2 - 6);
-  const tex = new THREE.CanvasTexture(c);
-  tex.minFilter = THREE.LinearMipmapLinearFilter;
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
+  return tex(c);
 }
 const YEAR = { bg: '#e8e0d2', fg: '#302d29' };
 export async function createSigns(scene, { stops, curve }) {

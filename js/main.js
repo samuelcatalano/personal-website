@@ -4,18 +4,19 @@ import { initUI } from './ui.js';
 const n = stops.length;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 document.getElementById('track').style.height = `${n * 100}vh`;
+const H = () => document.documentElement.scrollHeight;
 let world = null;
 let progress = 0;
 const goto = (i) => scrollTo({
-  top: scrollYForStop(i, n, document.documentElement.scrollHeight, innerHeight),
+  top: scrollYForStop(i, n, H(), innerHeight),
   behavior: 'auto',
 });
 const ui = initUI({ onGoto: goto, onTheme: (t) => world?.setTheme(t) });
 const hash = location.hash.slice(1);
 if (SECTIONS.includes(hash)) addEventListener('load', () => requestAnimationFrame(() => {
   if (scrollY === 0) {
-    scrollTo({ top: scrollYForStop(sectionStart(hash), n, document.documentElement.scrollHeight, innerHeight), behavior: 'auto' });
-    world?.jump(progressFromScroll(scrollY, document.documentElement.scrollHeight, innerHeight));
+    goto(sectionStart(hash));
+    world?.jump(progressFromScroll(scrollY, H(), innerHeight));
   }
 }), { once: true });
 watchScroll((p) => {

@@ -1,10 +1,10 @@
 import { RIVER_Z, LANDMARKS, rng } from './layout.js';
 import { PALETTE as P } from './palette.js';
 const GRASS = P.grass, PATCH = P.patch, ROAD = P.road, LINE = P.cream;
-const BANK = P.taupe, PATH = P.stone, STONE = P.stone, CREAM = P.cream;
+const BANK = P.taupe, PATH = P.stone, CREAM = P.cream;
 const UK_WALLS = [CREAM, '#d8d0c2', P.stone];
 const BR_WALLS = [P.stone, '#d8d0c2', '#bdb3a4'];
-const ROOF = P.roof, ROOFS = [P.brick, P.roof, P.oak, P.steel], // ponytail: roof tint picked by position, keeps the r() sequence
+const ROOF = P.roof, ROOFS = [P.brick, P.roof, P.oak, P.steel], // ponytail: tint by position keeps r() sequence
    GLASS = P.glass, WINDOW_LIT = P.lit;
 const TRUNK = P.trunk, LEAF = P.leaf, LEAF_SHADE = P.grass, PHONE = P.red;
 function townhouse(add, x, z, side, br, r, roofStacks) {

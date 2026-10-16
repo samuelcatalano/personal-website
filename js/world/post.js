@@ -28,11 +28,10 @@ export function createPost(renderer, scene, camera, { tier = 'high', sun } = {})
   composer.addPass(new RenderPass(scene, camera));
   const heavy = [];
   let rays = null;
-  if (tier === 'high') { // ponytail: medium start never builds the heavy passes; no climbing back up
+  if (tier === 'high') { // ponytail: medium never builds heavy passes
     const ao = new GTAOPass(scene, camera, size.x, size.y);
-    // GTAO's normal pass renders sprites and the Memoji cut-out black; hide them from it.
     const hide = ao.overrideVisibility;
-    ao.overrideVisibility = function () { hide.call(this); this.scene.traverse((o) => { if (o.isSprite || o.material?.transparent || o.name === 'memoji') o.visible = false; }); };
+    ao.overrideVisibility = function () { hide.call(this); this.scene.traverse((o) => { if (o.isSprite || o.material?.transparent) o.visible = false; }); };
     rays = new ShaderPass(SunRays);
     heavy.push(ao, rays);
     heavy.forEach((p) => composer.addPass(p));

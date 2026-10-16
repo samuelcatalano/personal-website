@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { createBoxes, buildMeshes } from './voxel.js';
 import { buildBus } from './bus.js';
-import { RIVER_Z, LANDMARKS, stopIndex } from './layout.js';
+import { RIVER_Z, LANDMARKS, stopIndex, swapAt } from './layout.js';
 import { routeT } from '../scroll.js';
 const LIGHT = '#fff7c2';
 function cab() {
@@ -23,10 +23,11 @@ function boat() {
 }
 export function createAmbient(scene, { curve, pts, stops }) {
   const traffic = [
-    { mesh: buildBus({ avatar: false }), lane: 1.75, offset: -0.16, relative: true },
+    { mesh: buildBus(), lane: 1.75, offset: -0.16, relative: true, uk: true },
     { mesh: cab(), lane: 1.75, offset: 0.22, relative: true },
     { mesh: cab(), lane: -1.75, offset: 0.25, reverse: true },
     { mesh: cab(), lane: -1.75, offset: 0.75, reverse: true },
+    { mesh: cab(), lane: 1.75, offset: -0.16, relative: true, uk: false },
   ];
   traffic.forEach((v) => scene.add(v.mesh));
   const boats = [-0.3, 0.05, 0.35].map((f, i) => {
@@ -48,13 +49,13 @@ export function createAmbient(scene, { curve, pts, stops }) {
   const blink = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), new THREE.MeshBasicMaterial({ color: 0xff2a2a }));
   blink.position.set(bb.x, 34.4, RIVER_Z - 16); // top of Big Ben's spire
   scene.add(blink);
-  const nrm = new THREE.Vector3();
+  const nrm = new THREE.Vector3(), swap = swapAt(stops);
   return {
     update({ time, progress }) {
       const route = routeT(progress, stops.length);
       for (const v of traffic) {
         let t = v.relative ? route + v.offset : ((v.offset - time * 0.012) % 1 + 1) % 1;
-        v.mesh.visible = t >= 0 && t <= 1;
+        v.mesh.visible = t >= 0 && t <= 1 && (v.uk === undefined || (t >= swap) === v.uk);
         if (!v.mesh.visible) continue;
         const p = curve.getPointAt(t), tan = curve.getTangentAt(t);
         nrm.set(tan.z, 0, -tan.x).normalize();

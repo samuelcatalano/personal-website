@@ -28,7 +28,7 @@ print(js(r'''(async () => {
   const roadDeck = deck.find(b => b.w === 6);
   check(roadDeck && roadDeck.z - roadDeck.d / 2 < RIVER_Z - 11 && roadDeck.z + roadDeck.d / 2 > RIVER_Z + 11,
     'Road deck must continuously span the river and reach both banks');
-  const abutments = nearBridge.filter(b => b.y === 0 && b.h === 4 && b.color === PALETTE.stone && Math.abs(b.x - bridgeX) < 1);
+  const abutments = nearBridge.filter(b => b.y === 0 && b.h === 4 && b.color === PALETTE.sandd && Math.abs(b.x - bridgeX) < 1);
   check(abutments.some(b => b.z < RIVER_Z - 11) && abutments.some(b => b.z > RIVER_Z + 11),
     'Bridge must have grounded abutments on both banks');
   check(abutments.every(b => b.y + b.h === roadDeck.y && Math.abs(b.x - roadDeck.x) < (b.w + roadDeck.w) / 2),

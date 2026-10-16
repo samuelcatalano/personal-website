@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import { routeT, nearestStop } from '../scroll.js';
-import { routePoints, RIVER_Z, FRAME_LIFT } from './layout.js';
+import { routePoints, RIVER_Z, FRAME_LIFT, swapAt } from './layout.js';
 import { createBoxes, buildMeshes } from './voxel.js';
 import { buildCity } from './city.js';
 import { buildLandmarks } from './landmarks.js';
-import { buildBus } from './bus.js';
+import { buildBus, buildMini } from './bus.js';
 import { createSky } from './sky.js';
 import { createWater } from './water.js';
 import { createAmbient } from './ambient.js';
@@ -20,12 +20,11 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.1;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.shadowMap.enabled = !matchMedia('(max-width: 767px)').matches;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xa8d0f2);
-  scene.fog = new THREE.Fog(0xa8d0f2, 300, 880);
-  const camera = new THREE.PerspectiveCamera(40, 1, 1, 900);
+  scene.fog = new THREE.Fog(0xa8d0f2, 450, 1300);
+  const camera = new THREE.PerspectiveCamera(40, 1, 1, 1400);
   const hemi = new THREE.HemisphereLight(0xa8d4ff, 0x5fa032, 1.0);
   const sun = new THREE.DirectionalLight(0xfff0d0, 2.4);
   sun.castShadow = true;
@@ -40,7 +39,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const { add, list } = createBoxes();
   buildCity(add, stops, pts, curve);
   const { eye, details, plane, planeAt } = buildLandmarks(add, stops, pts);
-  const bus = buildBus();
+  const routemaster = buildBus(), mini = buildMini(), bus = new THREE.Group().add(mini, routemaster), swap = swapAt(stops);
   scene.add(buildMeshes(list, { glow: ['#e8d7b3', '#ffd86b', '#fff7c2'] }), eye, details, plane, bus);
   const units = [];
   const water = createWater({ span: pts.length * 30 + 120, z: RIVER_Z, width: 22 });
@@ -54,7 +53,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const near = new THREE.Vector3(-endTan.z, 0, endTan.x).normalize();
   figure.position.set(end.x + endTan.x * 9 + near.x * 2, 0, end.z + endTan.z * 9 + near.z * 2);
   scene.add(figure);
-  // new units go above; sky must stay last (collects glow materials)
+  // sky last: collects glow materials
   const sky = createSky(scene, { hemi, sun, reducedMotion });
   const post = createPost(renderer, scene, camera, { sun, tier: reducedMotion || matchMedia('(max-width: 767px)').matches ? 'medium' : 'high' });
   let fpsT = 0, fpsN = 0;
@@ -111,6 +110,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const p = scroll.value, t = routeT(p, n);
     const bp = curve.getPointAt(t), tan = curve.getTangentAt(t);
     lateral.set(tan.z, 0, -tan.x).normalize().multiplyScalar(BUS_LANE);
+    routemaster.visible = t >= swap;
+    mini.visible = !routemaster.visible;
     bus.position.copy(bp).add(lateral);
     bus.rotation.y = Math.atan2(-tan.z, tan.x);
     Object.assign(busPos, { x: bp.x + lateral.x, y: bp.y, z: bp.z + lateral.z });

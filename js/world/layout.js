@@ -1,4 +1,4 @@
-// Pure layout data: no three import, so node tests can load it.
+// Pure data: node-testable
 export const STOP_SPACING = 30;
 export const RIVER_Z = -45;
 export const routePoints = (n) => Array.from({ length: n }, (_, i) => ({
@@ -25,3 +25,5 @@ export function rng(seed) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
+// Mini->Routemaster swap: halfway before heathrow
+export const swapAt = (stops) => (stopIndex(stops, LANDMARKS.heathrow) - 0.5) / (stops.length - 1);

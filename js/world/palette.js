@@ -4,4 +4,5 @@ export const PALETTE = {
   leaf: '#3c8a22', trunk: '#6b4f33', red: '#d02028',
   dirt: '#86603e', oak: '#a27b4c', brick: '#a8442f', sandstone: '#e0c880', concrete: '#c4c4c2',
   gilt: '#b39a64', masp: '#c8102e', steel: '#6f8fa3', ink: '#46505b', white: '#f4f1ea',
+  sand: '#d4a548', sandd: '#b88a35', slate: '#3f5a8a', navy: '#0f1d4a', pearl: '#dfe3e9',
 };
