@@ -35,12 +35,12 @@ print(js("""(async () => {
   const scene = new THREE.Scene();
   const signs = await createSigns(scene, { stops, curve });
   const year = scene.children.find(o => o.isSprite);
-  const boundary = 7.5 / (stops.length - 1), epsilon = 1e-5, bus = { x: 0, y: 0, z: 0 };
-  const at = progress => {
-    signs.update({ progress, active: Math.round(progress * (stops.length - 1)), bus });
+  const boundary = (stops.length - 1.5) / (stops.length - 1), epsilon = 1e-6, bus = { x: 0, y: 0, z: 0 };
+  const at = (progress, active) => {
+    signs.update({ progress, active, bus });
     return year.position.toArray();
   };
-  const before = at(boundary - epsilon), after = at(boundary + epsilon);
+  const before = at(boundary - epsilon, stops.length - 2), after = at(boundary + epsilon, stops.length - 1);
   const distance = Math.hypot(...before.map((v, i) => v - after[i]));
   if (!Number.isFinite(distance) || distance > 0.01) throw Error(`Year sign jumps ${distance} at the active-stop boundary`);
   scene.traverse(o => {
