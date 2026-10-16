@@ -20,7 +20,7 @@
 - Cores de glow em `scene.js` (`'#e8d7b3', '#ffd86b', '#fff7c2'`) devem continuar iguais aos valores emissivos.
 - A London Eye está aprovada: não alterar `londonEye()`.
 - Preservar o painel HTML, as 7 seções, as 10 experiências, hashes, teclado, idioma/tema, fallback sem WebGL, `prefers-reduced-motion` sem frames ociosos, pausa com aba oculta e privacidade.
-- Metas: JS próprio < 60.000 bytes (**hoje 64.960, já acima**), < 150 draw calls, < 60 mil instâncias. Não relatar uma meta como resultado sem medir.
+- Metas: código JS próprio < 60.000 bytes, sem Three.js e sem o texto de `js/content.js` (decisão do usuário em 2026-10-16; medido 55.694), < 150 draw calls, < 60 mil instâncias. Não relatar uma meta como resultado sem medir.
 - Modelos: Opus 5.5 orquestra e revisa, Sonnet 5.5 implementa um módulo por tarefa, Haiku 5.5 faz tarefas mecânicas. Nunca dois agentes no mesmo arquivo.
 - Servidor de preview do controlador na porta 8000. Implementadores usam 8001 e nunca matam processos alheios.
 
