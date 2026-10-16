@@ -18,6 +18,14 @@ function townhouse(add, x, z, side, br, r, maquette = false) {
   add(x, h, z, w + 0.7, 0.42, d + 0.7, ROOF);             // stepped roof edge
   add(x, h + 0.42, z, w * 0.74, 0.32, d * 0.72, wall);
   if (!br && r() < 0.5) add(x + (r() < 0.5 ? -2.4 : 2.4), h + 0.7, z, 0.65, 1.1, 0.7, ROOF);
+  if (maquette && side === 1) {
+    // The follow camera looks down on near-side roofs: paired stacks and a parapet keep them from reading as plain slabs.
+    for (const dx of [-w / 2 + 1.2, w / 2 - 1.2]) {
+      add(x + dx, h + 0.74, z, 0.9, 1.1, 0.7, BANK);
+      add(x + dx, h + 1.84, z, 0.3, 0.35, 0.3, ROOF);
+    }
+    add(x, h + 0.74, z - side * (d * 0.36 - 0.12), w * 0.74, 0.28, 0.16, CREAM);
+  }
 
   if (maquette) {
     // A shallow belt and end piers make neighboring houses read as one terrace.
@@ -106,7 +114,8 @@ export function buildCity(add, stops, pts, curve) {
 
   // The hero's Brazilian career history keeps its data, while its street reads as London.
   pts.forEach((p, i) => {
-    const maquette = i < 2, br = stops[i].country === 'BR' && !maquette;
+    // Every stop gets the maquette finish; Brazilian stops after the hero keep palms and balconies.
+    const maquette = true, br = stops[i].country === 'BR' && i >= 2;
     for (const side of [-1, 1]) {
       add(p.x, 0, p.z + side * 10.5, 25, 0.035, 3.2, maquette ? PATCH : i % 2 ? GRASS : PATCH);
       if (side === -1 && LM.has(stops[i].id)) continue; // keep the landmark-side view clear
