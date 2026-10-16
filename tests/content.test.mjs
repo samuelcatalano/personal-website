@@ -5,6 +5,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 import { stops, SECTIONS, i18n, sectionStart } from '../js/content.js';
+import { LANDMARKS } from '../js/world/layout.js';
 
 const keys = (o, p = '') => Object.entries(o).flatMap(([k, v]) =>
   v && typeof v === 'object' ? keys(v, `${p}${k}.`) : [`${p}${k}`]).sort();
@@ -48,9 +49,28 @@ test('no private data in served files', () => {
   for (const f of files) for (const re of bad) assert.ok(!re.test(readFileSync(f, 'utf8')), `${f} matches ${re}`);
 });
 
-test('journey stops have a brand monogram', () => {
-  for (const s of stops.filter(s => s.section === 'journey')) {
+test('journey stops have a brand monogram, except the move stop', () => {
+  for (const s of stops.filter(s => s.section === 'journey' && s.id !== 'move')) {
     assert.match(s.brand?.initials ?? '', /^[A-Z]{1,3}$/, s.id);
     assert.match(s.brand?.color ?? '', /^#[0-9a-f]{6}$/, s.id);
   }
+});
+
+test('move stop sits between reclame and millimetric, UK 2019, no brand', () => {
+  const ids = stops.map(s => s.id), i = ids.indexOf('move');
+  assert.ok(i > 0, 'move stop missing');
+  assert.equal(ids[i - 1], 'reclame');
+  assert.equal(ids[i + 1], 'millimetric');
+  assert.equal(stops[i].year, '2019');
+  assert.equal(stops[i].country, 'UK');
+  assert.equal(stops[i].brand, undefined);
+});
+
+test('move stop has EN and PT journey copy', () => {
+  assert.equal(i18n.en.stops.move.title, 'Moved to London');
+  assert.equal(i18n.pt.stops.move.title, 'Mudança para Londres');
+});
+
+test('heathrow landmark is the move stop', () => {
+  assert.equal(LANDMARKS.heathrow, 'move');
 });

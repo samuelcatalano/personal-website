@@ -8,7 +8,7 @@ export const routePoints = (n) => Array.from({ length: n }, (_, i) => ({
 }));
 
 export const LANDMARKS = {
-  heathrow: 'millimetric', // landing in London, 2020
+  heathrow: 'move',        // the landing is the move, 2019
   bigben: 'xdesign',
   eye: 'olm',
   towerbridge: 'tribal',
