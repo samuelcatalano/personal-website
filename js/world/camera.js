@@ -4,7 +4,7 @@ export const SECTION_SHOT = {
 };
 
 // Shots are plain arrays: position and look-at target in world units.
-export function shotFor(kind, bus, { mobile = false }) {
+export function shotFor(kind, bus, { mobile = false, lift = 0 }) {
   const k = mobile ? 0.95 : 1;
   const { x, y, z } = bus;
   switch (kind) {
@@ -12,7 +12,13 @@ export function shotFor(kind, bus, { mobile = false }) {
       // Three-quarter street view keeps the bus foreground and the terrace legible.
       return { position: [x + 28 * k, y + 32 * k, z + 45 * k], target: [x + 2, y + 4, z + 4] };
     }
-    case 'follow': return { position: [x + 20 * k, y + 29 * k, z + 50 * k], target: [x + 2, y + 5, z + 2] };
+    case 'follow': {
+      const L = lift; // 0 keeps the approved street framing exactly
+      return {
+        position: [x + (20 + 6 * L) * k, y + (29 + 10 * L) * k, z + (50 + 14 * L) * k],
+        target: [x + 2, y + 5 + 9 * L, z + 2 - 10 * L],
+      };
+    }
     case 'high': return { position: [x + 30 * k, y + 34 * k, z + 60 * k], target: [x - 6, y + 6, z - 20] };
     case 'closing': return { position: [x - 7 * k, y + 13 * k, z + 32 * k], target: [x + 1, y + 2.5, z] };
     default: throw new Error(`unknown shot ${kind}`);

@@ -155,3 +155,18 @@ test('approach moves at most rate*dt and reverses smoothly', () => {
   near(approach(0.9, 1, 0.5, 1.4), 1);
   near(approach(0.5, 0, 0.1, 1.4), 0.36);
 });
+
+import { FRAME_LIFT } from '../js/world/layout.js';
+
+test('follow shot is unchanged without lift', () => {
+  const bus = { x: 5, y: 0, z: -3 };
+  assert.deepEqual(shotFor('follow', bus, { mobile: false, lift: 0 }), shotFor('follow', bus, { mobile: false }));
+});
+
+test('lift raises the aim and pulls the camera back for tall landmarks', () => {
+  const bus = { x: 0, y: 0, z: 0 };
+  const flat = shotFor('follow', bus, { mobile: false }), tall = shotFor('follow', bus, { mobile: false, lift: 1 });
+  assert.ok(tall.target[1] >= flat.target[1] + 8);
+  assert.ok(Math.hypot(...tall.position) > Math.hypot(...flat.position));
+  for (const v of Object.values(FRAME_LIFT)) assert.ok(v > 0 && v <= 1);
+});

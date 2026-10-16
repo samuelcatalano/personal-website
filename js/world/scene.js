@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { routeT, nearestStop } from '../scroll.js';
-import { routePoints, RIVER_Z } from './layout.js';
+import { routePoints, RIVER_Z, FRAME_LIFT } from './layout.js';
 import { createBoxes, buildMeshes } from './voxel.js';
 import { buildCity } from './city.js';
 import { buildLandmarks } from './landmarks.js';
@@ -122,8 +122,9 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
 
     const s = t * (n - 1), i = Math.min(Math.floor(s), n - 2);
     const ka = SECTION_SHOT[stops[i].section], kb = SECTION_SHOT[stops[i + 1].section];
-    const view = { mobile };
-    const shot = blendShots(shotFor(ka, busPos, view), shotFor(kb, busPos, view), s - i, ka === kb ? 0 : ARC);
+    const la = FRAME_LIFT[stops[i].id] ?? 0, lb = FRAME_LIFT[stops[i + 1].id] ?? 0;
+    const lift = la + (lb - la) * (s - i);
+    const shot = blendShots(shotFor(ka, busPos, { mobile, lift }), shotFor(kb, busPos, { mobile, lift }), s - i, ka === kb ? 0 : ARC);
     camera.position.fromArray(shot.position);
     camera.lookAt(shot.target[0], shot.target[1], shot.target[2]);
     sun.position.set(bp.x + 40, 80, bp.z + 30);

@@ -15,6 +15,9 @@ export const LANDMARKS = {
   wembley: 'contact',      // last stop
 };
 
+// How much the follow camera rises at stops whose landmark would otherwise be cropped (0 = street shot).
+export const FRAME_LIFT = { xdesign: 1, olm: 0.6, tribal: 1 };
+
 export const stopIndex = (stops, id) => stops.findIndex((s) => s.id === id);
 
 export function rng(seed) { // mulberry32
