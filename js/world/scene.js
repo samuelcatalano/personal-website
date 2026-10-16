@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { PALETTE as P } from './palette.js';
 import { routeT, nearestStop } from '../scroll.js';
 import { routePoints, RIVER_Z, riverEnd, riverStart, FRAME_LIFT, swapAt } from './layout.js';
 import { createBoxes, buildMeshes } from './voxel.js';
@@ -34,7 +35,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   buildCity(add, stops, pts, curve);
   const { eye, details, plane, planeAt } = buildLandmarks(add, stops, pts);
   const routemaster = buildBus(), mini = buildMini(), bus = new THREE.Group().add(mini, routemaster), swap = swapAt(stops);
-  scene.add(buildMeshes(list, { glow: ['#e8d7b3', '#ffd86b', '#fff7c2'] }), eye, details, plane, bus);
+  scene.add(buildMeshes(list, { glow: [P.lit, '#ffd86b', '#fff7c2', P.arch] }), eye, details, plane, bus);
   const units = [createAmbient(scene, { curve, pts, stops })];
   const water = createWater({ x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z: RIVER_Z, width: 22 });
   scene.add(water.mesh);

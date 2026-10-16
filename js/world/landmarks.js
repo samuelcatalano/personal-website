@@ -115,7 +115,7 @@ function wembley(add, { x }) {
   add(x, 0, cz, 22, 0.5, 14, P.patch);
   for (let a = 0; a <= 180; a += 6) {
     const r = (a * PI) / 180;
-    add(x + Math.cos(r) * 20, Math.sin(r) * 34, cz, 1.4, 1.4, 1.4, WHITE);
+    add(x + Math.cos(r) * 20, Math.sin(r) * 34, cz, 1.4, 1.4, 1.4, P.arch);
   }
 }
 function heathrow(add, { x }) {

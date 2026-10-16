@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import { Sky } from 'three/addons/objects/Sky.js';
 const DAY = { fog: new THREE.Color(0xa8d0f2), sun: 2.4, hemi: 1.0 };
 const NIGHT = { fog: new THREE.Color(0x0e1424), sun: 0.34, hemi: 0.48 };
-const GLOW = new THREE.Color(0xffc85a);
 export function createSky(scene, { hemi, sun, reducedMotion = false }) {
   const dome = new Sky();
   dome.scale.setScalar(800);
@@ -53,7 +52,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
       hemi.intensity = DAY.hemi + (NIGHT.hemi - DAY.hemi) * night;
       stars.material.opacity = night;
       stars.visible = night > 0.02;
-      for (const m of glow) m.emissive.copy(GLOW).multiplyScalar(night);
+      for (const m of glow) m.emissive.copy(m.color).multiplyScalar(night * 2.2); // each light glows in its own colour, bright enough to bloom
     },
   };
 }
