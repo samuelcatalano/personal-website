@@ -61,3 +61,18 @@ The first set for A was captured from cached JS modules and discarded. Every cap
   - `paintPlaque` has a redundant `fillStyle`;
   - the browser test messages still say "blue" for steel.
 - No testing on physical devices (touchscreen or trackpad). There is no Lighthouse Performance score.
+
+## Final review (Opus) and fixes — `410f6d6`
+
+The final review found two Important issues, both fixed:
+
+1. The legacy random chimney sat in the same plane as the new near-side roof stacks, which caused z-fighting. The legacy chimney is now skipped where the stacks are built. Both `r()` draws are kept, so the random sequence is unchanged.
+2. The new roof stacks also altered the hero the user had approved. The stacks now apply from stop 2 onwards (`roofStacks = i >= 2`). A script that generates the hero-area city boxes at `f741d65` and at HEAD confirmed **811 = 811 identical boxes**.
+
+The following minor fixes were also applied:
+- Heathrow comment corrected; geometry unchanged.
+- "blue" → "steel" in test messages.
+- Redundant `fillStyle` removed in `paintPlaque`.
+- A test now checks that the `FRAME_LIFT` keys are stop ids.
+
+After the fixes, `node --test` passed 28 tests and the city, landmarks and world browser suites all passed.
