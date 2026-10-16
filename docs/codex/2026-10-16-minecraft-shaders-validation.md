@@ -47,7 +47,7 @@ All tasks are implemented. The user approved the visual checkpoint after an art 
 
 ## Open items
 
-- Reclame Aqui runs Dec 2017 – Apr 2020 in the CV, which overlaps the 2019 move. Awaiting a decision from the user.
+- Reclame Aqui (Dec 2017 – Apr 2020) overlapping the 2019 move is correct: the user kept working remotely after moving.
 - Final review (Opus): nothing Critical. Fixed the Estaiada deck crossing the road, sun rays at night and transparent meshes in GTAO. Deferred minors: sprites tone-mapped by OutputPass, composer not disposed (dispose has no caller).
 - No Lighthouse run and no tests on physical devices.
 - The `world` test failure described above.
