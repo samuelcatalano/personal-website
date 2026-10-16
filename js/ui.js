@@ -13,9 +13,13 @@ const flag = (c) => (c === 'BR' ? '🇧🇷' : '🇬🇧');
 // ponytail: innerHTML from static content.js only
 function sectionHTML(section, t, active) {
   const s = t.sections[section];
-  const ext = (href, text) => `<a href="${href}" target="_blank" rel="noopener">${text}</a>`;
-  const contact = (c) => `<li><a href="${links.email}">${c.email}</a></li><li>${ext(links.linkedin, c.linkedin)}</li><li>${ext(links.github, c.github)}</li>`;
-  const list = (items, f, url) => `<h2>${s.title}</h2><p>${s.intro}</p><ul class="list">${items.map(f).join('')}</ul><p>${ext(url, s.more + ' ↗')}</p>`;
+  const ext = (href, text, cls = '') => `<a${cls ? ` class="${cls}"` : ''} href="${href}" target="_blank" rel="noopener">${text}</a>`;
+  const ic = (d) => `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true" focusable="false"><path d="${d}"/></svg>`;
+  const mail = ic('M3 5h18v14H3zm2 2v.5l7 5 7-5V7zm14 3-7 5-7-5V17h14z');
+  const inn = ic('M3 3h18v18H3zm3 6v9h3V9zm1.5-3a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4zM11 9v9h3v-5c0-1.5 2-1.600 2 0v5h3v-6c0-3-3.300-3.200-5-1.600V9z');
+  const gh = ic('M12 2a10 10 0 0 0-3.200 19.500c.5.100.7-.2.700-.5v-1.800c-2.800.6-3.400-1.200-3.400-1.200-.5-1.200-1.100-1.500-1.100-1.500-.9-.6.1-.6.1-.6 1 .1 1.500 1 1.500 1 .9 1.500 2.300 1.100 2.900.8.1-.7.4-1.100.6-1.300-2.200-.3-4.600-1.100-4.600-5 0-1.100.4-2 1-2.700-.1-.3-.4-1.300.1-2.700 0 0 .8-.3 2.700 1a9.400 9.400 0 0 1 5 0c1.900-1.300 2.700-1 2.700-1 .5 1.400.2 2.400.1 2.700.6.700 1 1.600 1 2.700 0 3.900-2.400 4.700-4.600 5 .4.300.7.900.7 1.800v2.700c0 .3.2.600.7.500A10 10 0 0 0 12 2z');
+  const contact = (c) => `<li><a class="btn solid" href="${links.email}">${mail}${c.email}</a></li><li>${ext(links.linkedin, inn + c.linkedin, 'btn')}</li><li>${ext(links.github, gh + c.github, 'btn')}</li>`;
+  const list = (items, f, url) => `<h2>${s.title}</h2><p>${s.intro}</p><ul class="rows">${items.map(f).join('')}</ul><p>${ext(url, s.more + ' ↗', 'btn more')}</p>`;
   switch (section) {
     case 'hero': return `
       <img class="avatar" src="assets/avatar.png" alt="" width="96" height="96">
@@ -31,10 +35,10 @@ function sectionHTML(section, t, active) {
           ${on ? `<div class="detail"><strong>${c.role}</strong><small>${c.dates} · ${c.place}</small><p>${c.body}</p></div>` : ''}</li>`;
       }).join('')}</ol>`;
     case 'stack': return `<h2>${s.title}</h2><p>${s.intro}</p><ul class="chips">${stack.map(x => `<li>${x}</li>`).join('')}</ul>`;
-    case 'articles': return list(articles, a => `<li>${ext(a.url, a.title)}</li>`, links.medium);
-    case 'repos': return list(repos, r => `<li>${ext(r.url, r.name)} <small>${r.lang}</small></li>`, links.github + '?tab=repositories');
+    case 'articles': return list(articles, a => `<li>${ext(a.url, `<b>${a.title}</b><small>${s.src} ↗</small>`, 'row')}</li>`, links.medium);
+    case 'repos': return list(repos, r => `<li>${ext(r.url, `<code>${r.name}</code><span class="tags">${r.lang.split(' · ').map(x => `<i>${x}</i>`).join('')}</span><em aria-hidden="true">↗</em>`, 'row repo')}</li>`, links.github + '?tab=repositories');
     case 'recs': return `<h2>${s.title}</h2><p>${s.intro}</p>${t.recs.map(r => `<blockquote><p>“${r.quote}”</p><footer>${r.name} · ${r.role}</footer></blockquote>`).join('')}`;
-    case 'contact': return `<h2>${s.title}</h2><p>${s.intro}</p><ul class="list contact">${contact(s)}</ul>
+    case 'contact': return `<h2>${s.title}</h2><p>${s.intro}</p><ul class="contact">${contact(s)}</ul>
       <p class="footer">${t.ui.footer}</p>`;
   }
 }
