@@ -18,14 +18,18 @@ function bigBen(add, { x }) {
 }
 
 function towerBridge(add, { x }) {
-  for (const dx of [-9, 9]) {
-    add(x + dx, -1, RIVER_Z, 6, 24, 6, STONE);
-    add(x + dx, 23, RIVER_Z, 6.6, 3, 6.6, SLATE);
-    for (const c of [-2.5, 2.5]) add(x + dx + c, 26, RIVER_Z + c, 1, 3, 1, SLATE);
+  const box = (along, y, across, length, height, width, color) =>
+    add(x + across, y, RIVER_Z + along, width, height, length, color);
+  for (const along of [-9.5, 9.5]) {
+    box(along, -1, 0, 6, 24, 6.2, STONE);
+    box(along, 23, 0, 6.6, 3, 6.6, SLATE);
+    for (const c of [-2.5, 2.5]) box(along + c, 26, c, 1, 3, 1, SLATE);
   }
-  add(x, 4, RIVER_Z, 12, 1.2, 6, STEEL);         // road deck
-  add(x, 19, RIVER_Z - 1.5, 12, 1.5, 1.2, STEEL); // high walkways
-  add(x, 19, RIVER_Z + 1.5, 12, 1.5, 1.2, STEEL);
+  box(-16, 0, 0, 3, 4, 6, STONE);                 // grounded bank abutments
+  box(16, 0, 0, 3, 4, 6, STONE);
+  box(0, 4, 0, 34, 1.2, 6, STEEL);              // road deck and short approaches
+  box(0, 19, -1.5, 13, 1.5, 1.2, STEEL);        // high walkways between the towers
+  box(0, 19, 1.5, 13, 1.5, 1.2, STEEL);
 }
 
 function wembley(add, { x, z }) {
