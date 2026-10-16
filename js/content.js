@@ -61,7 +61,7 @@ export const i18n = {
       articles: { title: 'Writing', intro: 'Practical engineering notes on Medium.', more: 'All articles' },
       repos: { title: 'Code', intro: 'A few public repositories worth a look.', more: 'All repositories' },
       recs: { title: 'Kind words', intro: 'What people I worked with say.' },
-      contact: { title: 'Last stop: Wembley', intro: 'Always glad to talk about backend and platform work.', email: 'Email', linkedin: 'LinkedIn', github: 'GitHub' },
+      contact: { title: 'Last stop: Wembley', intro: 'Always glad to talk about backend and platform work.', email: 'Email', linkedin: 'LinkedIn', github: 'GitHub', credits: '3D models' },
     },
     stops: {
       puc: { title: 'PUC-SP', role: 'BSc Computer Science', dates: '2003 – 2008', place: 'São Paulo', body: 'Computer Science degree with a specialisation in software development.' },
@@ -93,7 +93,7 @@ export const i18n = {
       articles: { title: 'Artigos', intro: 'Notas práticas de engenharia no Medium.', more: 'Todos os artigos' },
       repos: { title: 'Código', intro: 'Alguns repositórios públicos que valem a visita.', more: 'Todos os repositórios' },
       recs: { title: 'Recomendações', intro: 'O que dizem pessoas que trabalharam comigo.' },
-      contact: { title: 'Última parada: Wembley', intro: 'Sempre feliz em conversar sobre backend e plataforma.', email: 'E-mail', linkedin: 'LinkedIn', github: 'GitHub' },
+      contact: { title: 'Última parada: Wembley', intro: 'Sempre feliz em conversar sobre backend e plataforma.', email: 'E-mail', linkedin: 'LinkedIn', github: 'GitHub', credits: 'Modelos 3D' },
     },
     stops: {
       puc: { title: 'PUC-SP', role: 'Bacharelado em Ciência da Computação', dates: '2003 – 2008', place: 'São Paulo', body: 'Ciência da Computação com especialização em desenvolvimento de software.' },
