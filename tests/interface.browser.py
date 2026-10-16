@@ -46,7 +46,7 @@ try:
     print(js("""(async () => {
   const check = (ok, message) => { if (!ok) throw Error(message); };
   const wait = () => new Promise(resolve => setTimeout(resolve, 30));
-  const { i18n } = await import('./js/content.js');
+  const { i18n, stops } = await import('./js/content.js');
   const checkLanguageLabel = lang => {
     const button = document.querySelector('[data-lang]');
     const description = i18n[lang].ui.lang;
@@ -59,7 +59,8 @@ try:
   };
   document.querySelector('[data-nav=journey]').click(); await wait();
   const rows = document.querySelectorAll('[data-goto]');
-  check(rows.length === 10, `Expected 10 journey buttons, found ${rows.length}`);
+  const journeyStops = stops.filter(s => s.section === 'journey').length;
+  check(rows.length === journeyStops, `Expected ${journeyStops} journey buttons, found ${rows.length}`);
   check(document.querySelectorAll('.stops li.on').length === 1, 'Journey must show exactly one active detail');
   check(document.querySelectorAll('.detail').length === 1, 'Journey must show exactly one open detail');
   const prevY = scrollY;
