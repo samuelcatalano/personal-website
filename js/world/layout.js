@@ -12,6 +12,9 @@ export const LANDMARKS = {
   bigben: 'xdesign',
   eye: 'olm',
   towerbridge: 'tribal',
+  masp: 'taqtile',
+  se: 'puc',
+  estaiada: 'reclame',
   wembley: 'contact',      // last stop
 };
 

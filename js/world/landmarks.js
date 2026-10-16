@@ -3,6 +3,7 @@ import { createBoxes, buildMeshes } from './voxel.js';
 import { LANDMARKS, stopIndex, RIVER_Z } from './layout.js';
 
 import { PALETTE as P } from './palette.js';
+import { buildSaoPaulo } from './saopaulo.js';
 
 const STONE = P.stone, SLATE = P.roof, WHITE = P.white, GOLD = P.gilt, STEEL = P.steel;
 
@@ -175,6 +176,7 @@ export function buildLandmarks(add, stops, pts) {
   details.add(bigBen(add, at(stops, pts, 'bigben')));
   details.add(towerBridge(add, at(stops, pts, 'towerbridge')));
   wembley(add, at(stops, pts, 'wembley'));
+  buildSaoPaulo(add, stops, pts);
   const i = stopIndex(stops, LANDMARKS.heathrow);
   return {
     eye: londonEye(at(stops, pts, 'eye').x),
