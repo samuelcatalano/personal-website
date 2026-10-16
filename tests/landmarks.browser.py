@@ -39,11 +39,11 @@ print(js(r'''(async () => {
   check(walkways.length === 2 && walkways.every(b => Math.abs(b.z - RIVER_Z) <= 0.01), 'Both upper pedestrian decks must span only the 13m space between the towers');
   check(nearBridge.filter(b => b.y === 5.2 && b.h === 0.28 && b.d === 34 && b.color === '#7f8b91').length === 2, 'Bridge must have steel outer road railings on both sides');
   const pinnacles = nearBridge.filter(b => b.y === 26 && b.h === 3.2 && b.color === '#7f8b91');
-  check(pinnacles.length === 8, `Each tower must have four blue corner pinnacles; found ${pinnacles.length}`);
+  check(pinnacles.length === 8, `Each tower must have four steel corner pinnacles; found ${pinnacles.length}`);
   const windows = nearBridge.filter(b => b.h === 1.8 && b.color === '#6b655e' && (Math.abs(Math.abs(b.x - bridgeX) - 3.12) < 0.01 || Math.abs(Math.abs(b.z - RIVER_Z) - 6.38) < 0.01 || Math.abs(Math.abs(b.z - RIVER_Z) - 12.62) < 0.01));
   check(windows.length === 32, `Tower window recesses must sit on all four outer faces; found ${windows.length}`);
   const cables = landmarkParts.details.getObjectByName('towerbridge-approach-cables');
-  check(cables?.isInstancedMesh && cables.count === 4, 'Four continuous blue cable braces must connect both towers to their bank approaches');
+  check(cables?.isInstancedMesh && cables.count === 4, 'Four continuous steel cable braces must connect both towers to their bank approaches');
   const clock = landmarkParts.details.getObjectByName('bigben-four-clock-faces');
   check(clock?.isInstancedMesh && clock.count === 4, 'Big Ben must build four clock faces through the real landmark builder');
   const face = clock.material.map.image, pixels = face.getContext('2d').getImageData(0, 0, 256, 256).data;

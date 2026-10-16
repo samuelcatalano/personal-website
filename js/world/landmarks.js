@@ -132,7 +132,7 @@ function wembley(add, { x, z }) {
 }
 
 function heathrow(add, { x }) {
-  // Far-side arrival vignette between the street (z ≥ RIVER_Z + 24) and the Thames bank (z ≤ RIVER_Z + 13).
+  // Far-side arrival vignette between the street (z ≥ RIVER_Z + 24) and the river; the terminal stands on the riverside path strip.
   const rz = RIVER_Z + 20.5, tz = RIVER_Z + 15.5;
   add(x, -0.15, rz, 24, 0.2, 6, P.road);                                         // runway
   for (let i = -10; i <= 10; i += 4) add(x + i, 0.05, rz, 2, 0.06, 0.4, P.cream);  // centreline

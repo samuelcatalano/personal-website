@@ -8,7 +8,7 @@ const BR_WALLS = [P.stone, '#d8d0c2', '#bdb3a4'];
 const ROOF = P.roof, GLASS = P.glass, WINDOW_LIT = P.lit;
 const TRUNK = P.trunk, LEAF = P.leaf, LEAF_SHADE = P.grass, PHONE = P.red;
 
-function townhouse(add, x, z, side, br, r, maquette = false) {
+function townhouse(add, x, z, side, br, r, maquette = false, roofStacks = false) {
   const w = maquette ? 9 : 7.5, d = 7, floors = side === 1 ? 2 : br ? 2 + (r() < 0.25) : 2 + (r() < 0.6 ? 1 : 0);
   const h = floors * 2.8, wall = (br ? BR_WALLS : UK_WALLS)[Math.floor(r() * (br ? BR_WALLS.length : UK_WALLS.length))];
   const face = z - side * (d / 2 + 0.08);
@@ -17,8 +17,10 @@ function townhouse(add, x, z, side, br, r, maquette = false) {
   add(x, h - 0.25, z, w + 0.45, 0.3, d + 0.45, CREAM);    // cornice
   add(x, h, z, w + 0.7, 0.42, d + 0.7, ROOF);             // stepped roof edge
   add(x, h + 0.42, z, w * 0.74, 0.32, d * 0.72, wall);
-  if (!br && r() < 0.5) add(x + (r() < 0.5 ? -2.4 : 2.4), h + 0.7, z, 0.65, 1.1, 0.7, ROOF);
-  if (maquette && side === 1) {
+  const stacks = maquette && roofStacks && side === 1;
+  // Keep both r() draws so the random sequence (and every later house) is unchanged; skip the legacy chimney where the stacks stand.
+  if (!br && r() < 0.5) { const sx = r() < 0.5 ? -2.4 : 2.4; if (!stacks) add(x + sx, h + 0.7, z, 0.65, 1.1, 0.7, ROOF); }
+  if (stacks) {
     // The follow camera looks down on near-side roofs: paired stacks and a parapet keep them from reading as plain slabs.
     for (const dx of [-(w * 0.37 - 0.5), w * 0.37 - 0.5]) {
       add(x + dx, h + 0.74, z, 0.9, 1.1, 0.7, BANK);
@@ -121,7 +123,7 @@ export function buildCity(add, stops, pts, curve) {
       if (side === -1 && LM.has(stops[i].id)) continue; // keep the landmark-side view clear
       for (const dx of [-9, 0, 9]) {
         if (side === 1 && stops[i].id === 'contact' && dx === 0) continue; // keep the closing bus view clear
-        townhouse(add, p.x + dx, p.z + side * (side === 1 ? 21 : 17), side, br, r, maquette);
+        townhouse(add, p.x + dx, p.z + side * (side === 1 ? 21 : 17), side, br, r, maquette, i >= 2);
       }
       for (const dx of [-8, 8]) {
         const x = p.x + dx + (r() - 0.5) * 2, z = p.z + side * 10.2;

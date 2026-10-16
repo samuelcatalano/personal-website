@@ -169,4 +169,5 @@ test('lift raises the aim and pulls the camera back for tall landmarks', () => {
   assert.ok(tall.target[1] >= flat.target[1] + 8);
   assert.ok(Math.hypot(...tall.position) > Math.hypot(...flat.position));
   for (const v of Object.values(FRAME_LIFT)) assert.ok(v > 0 && v <= 1);
+  for (const key of Object.keys(FRAME_LIFT)) assert.ok(stops.some((s) => s.id === key), key);
 });

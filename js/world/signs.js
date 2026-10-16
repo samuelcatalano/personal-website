@@ -25,7 +25,6 @@ export function paintPlaque(text, color, size = 128) {
   g.fillStyle = '#8e8375'; g.fillRect(0, 0, size, size);
   g.fillStyle = '#f8f6f1'; g.fillRect(4, 4, size - 8, size - 8);
   g.fillStyle = color; g.fillRect(14, size - 26, size - 28, 6);
-  g.fillStyle = color;
   g.font = `600 ${Math.round(size * (text.length > 2 ? 0.3 : 0.38))}px Inter, system-ui, sans-serif`;
   g.textAlign = 'center'; g.textBaseline = 'middle';
   g.fillText(text, size / 2, size / 2 - 6);
