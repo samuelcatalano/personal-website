@@ -36,12 +36,12 @@ print(js(r'''(async () => {
   const boatBounds = boats.map(boat => new Box3().setFromObject(boat));
   check(boatBounds.every(b => b.min.z >= opening[0] && b.max.z <= opening[1]), 'All ambient boat hulls must fit between the towers');
   check(boatBounds.every(b => b.max.y < roadDeck.y), 'All ambient boats must clear the road deck vertically');
-  const walkways = nearBridge.filter(b => b.y === 19 && b.color === '#7f8b91' && b.h === 1.5 && b.d === 13);
+  const walkways = nearBridge.filter(b => b.y === 19 && b.color === PALETTE.steel && b.h === 1.5 && b.d === 13);
   check(walkways.length === 2 && walkways.every(b => Math.abs(b.z - RIVER_Z) <= 0.01), 'Both upper pedestrian decks must span only the 13m space between the towers');
-  check(nearBridge.filter(b => b.y === 5.2 && b.h === 0.28 && b.d === 34 && b.color === '#7f8b91').length === 2, 'Bridge must have steel outer road railings on both sides');
-  const pinnacles = nearBridge.filter(b => b.y === 26 && b.h === 3.2 && b.color === '#7f8b91');
+  check(nearBridge.filter(b => b.y === 5.2 && b.h === 0.28 && b.d === 34 && b.color === PALETTE.steel).length === 2, 'Bridge must have steel outer road railings on both sides');
+  const pinnacles = nearBridge.filter(b => b.y === 26 && b.h === 3.2 && b.color === PALETTE.steel);
   check(pinnacles.length === 8, `Each tower must have four steel corner pinnacles; found ${pinnacles.length}`);
-  const windows = nearBridge.filter(b => b.h === 1.8 && b.color === '#6b655e' && (Math.abs(Math.abs(b.x - bridgeX) - 3.12) < 0.01 || Math.abs(Math.abs(b.z - RIVER_Z) - 6.38) < 0.01 || Math.abs(Math.abs(b.z - RIVER_Z) - 12.62) < 0.01));
+  const windows = nearBridge.filter(b => b.h === 1.8 && b.color === PALETTE.roof && (Math.abs(Math.abs(b.x - bridgeX) - 3.12) < 0.01 || Math.abs(Math.abs(b.z - RIVER_Z) - 6.38) < 0.01 || Math.abs(Math.abs(b.z - RIVER_Z) - 12.62) < 0.01));
   check(windows.length === 32, `Tower window recesses must sit on all four outer faces; found ${windows.length}`);
   const cables = landmarkParts.details.getObjectByName('towerbridge-approach-cables');
   check(cables?.isInstancedMesh && cables.count === 4, 'Four continuous steel cable braces must connect both towers to their bank approaches');
