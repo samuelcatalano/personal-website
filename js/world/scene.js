@@ -10,7 +10,8 @@ import { createWater } from './water.js';
 import { createAmbient } from './ambient.js';
 import { createSigns } from './signs.js';
 import { buildFigure } from './figure.js';
-import { SECTION_SHOT, shotFor, blendShots, spring, approach } from './camera.js';
+import { SECTION_SHOT, shotFor, blendShots, spring, approach, nextTier } from './camera.js';
+import { createPost } from './post.js';
 
 const BUS_LANE = 1.75;
 const SCROLL_SMOOTH = 0.18;                // seconds
@@ -60,6 +61,9 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   scene.add(figure);
   // ── later tasks add more units ABOVE this line; sky must stay last (it collects glow materials) ──
   const sky = createSky(scene, { hemi, sun });
+  const post = createPost(renderer, scene, camera, { sun, tier: reducedMotion || matchMedia('(max-width: 767px)').matches ? 'medium' : 'high' });
+  post.addSSR(water.mesh);
+  let fpsT = 0, fpsN = 0;
   let night = 0, nightTarget = 0;
 
   let mobile = false;
@@ -88,6 +92,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     camera.aspect = innerWidth / innerHeight;
     camera.fov = Math.max(40, Math.min(65, Math.atan(0.48 / camera.aspect) * 360 / Math.PI));
     renderer.shadowMap.enabled = !mobile;
+    post?.setSize(innerWidth, innerHeight);
     fit();
     camera.updateProjectionMatrix();
     wake();
@@ -138,7 +143,11 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     night = reducedMotion || dt === 0 ? nightTarget : approach(night, nightTarget, dt, 1.4);
     sky.update(night);
     water.update(clock, night);
-    renderer.render(scene, camera);
+    if (dt > 0 && post.tier === 'high') { // sample FPS over 2 s
+      fpsT += dt; fpsN++;
+      if (fpsT >= 2) { post.setTier(nextTier(post.tier, [fpsN / fpsT])); fpsT = fpsN = 0; }
+    }
+    post.render(dt);
     if (!reducedMotion) wake();
   }
   const visibility = () => { last = 0; wake(); };

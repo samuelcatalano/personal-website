@@ -63,3 +63,7 @@ export function spring(state, target, dt, smoothTime) {
 // Linear approach capped at rate per second (day/night fade).
 export const approach = (current, target, dt, rate) =>
   current + Math.max(-rate * dt, Math.min(rate * dt, target - current));
+
+// Quality tier: high drops to medium when average FPS < 40 over the sampled window; never climbs back.
+export const nextTier = (tier, fpsSamples) =>
+  tier === 'high' && fpsSamples.length && fpsSamples.reduce((a, b) => a + b, 0) / fpsSamples.length < 40 ? 'medium' : tier;

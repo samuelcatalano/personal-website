@@ -171,3 +171,12 @@ test('lift raises the aim and pulls the camera back for tall landmarks', () => {
   for (const v of Object.values(FRAME_LIFT)) assert.ok(v > 0 && v <= 1);
   for (const key of Object.keys(FRAME_LIFT)) assert.ok(stops.some((s) => s.id === key), key);
 });
+
+import { nextTier } from '../js/world/camera.js';
+test('nextTier drops high to medium on low fps and never climbs', () => {
+  assert.equal(nextTier('high', [30, 35]), 'medium');
+  assert.equal(nextTier('high', [60, 58]), 'high');
+  assert.equal(nextTier('high', []), 'high');
+  assert.equal(nextTier('medium', [10]), 'medium');
+  assert.equal(nextTier('medium', [120]), 'medium');
+});
