@@ -28,3 +28,14 @@ export function rng(seed) {
 }
 // Mini->Routemaster swap: halfway before heathrow
 export const swapAt = (stops) => (stopIndex(stops, LANDMARKS.heathrow) - 0.5) / (stops.length - 1);
+// Plaque + year-sign anchors [x, z, kind]; shared by signs.js (placement) and city.js (clearance).
+export function furnitureSpots(stops, curve) {
+  const out = [], n = stops.length - 1;
+  stops.forEach((s, i) => {
+    const p = curve.getPointAt(i / n), t = curve.getTangentAt(i / n), last = i === n;
+    const at = (k, a) => [p.x - t.z * k + t.x * a, p.z + t.x * k + t.z * a];
+    if (s.brand) out.push({ i, kind: 'plaque', xz: at(11.5, 7) });
+    out.push({ i, kind: 'sign', xz: at(last ? 9 : 7.1, last ? 2 : -5) });
+  });
+  return out;
+}

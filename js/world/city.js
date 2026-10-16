@@ -1,4 +1,4 @@
-import { RIVER_Z, LANDMARKS, rng, riverEnd, riverStart } from './layout.js';
+import { furnitureSpots, RIVER_Z, LANDMARKS, rng, riverEnd, riverStart } from './layout.js';
 import { PALETTE as P } from './palette.js';
 const PATCH = P.patch, ROAD = P.road, LINE = P.cream;
 const BANK = P.taupe, PATH = P.stone, CREAM = P.cream;
@@ -6,6 +6,7 @@ const UK_WALLS = [CREAM, '#d8d0c2', P.stone];
 const BR_WALLS = [P.stone, '#d8d0c2', '#bdb3a4'];
 const ROOF = P.roof, ROOFS = [P.brick, P.roof, P.oak, P.steel], // ponytail: tint by position keeps r() sequence
    GLASS = P.glass, WINDOW_LIT = P.lit;
+export const CLEAR = 3;
 const TRUNK = P.trunk, LEAF = P.leaf, LEAF_SHADE = P.grass, PHONE = P.red;
 function townhouse(add, x, z, side, br, r, roofStacks) {
   const w = 9, d = 7, floors = side === 1 ? 2 : br ? 2 + (r() < 0.25) : 2 + (r() < 0.6 ? 1 : 0);
@@ -45,20 +46,16 @@ function townhouse(add, x, z, side, br, r, roofStacks) {
   add(x, 2.48, face - side * 0.12, 1.7, 0.2, 0.34, BANK);
   add(x, 0.2, face - side * 0.12, 1.72, 0.18, 0.34, BANK);
 }
-function broadleaf(add, x, z, r) {
-  const h = 2.6 + r() * 0.6, crown = 1.8 + r() * 0.5;
+const broadleaf = (r) => ({ h: 2.6 + r() * 0.6, crown: 1.8 + r() * 0.5 });
+export function tree(add, x, z, { h, crown }) {
   add(x, 0, z, 0.32, h, 0.32, TRUNK);
   add(x, h - 0.4, z, crown, 1.1, crown, LEAF);
   add(x - crown * 0.22, h + 0.2, z + crown * 0.16, crown * 0.52, 1, crown * 0.52, LEAF_SHADE);
   add(x + crown * 0.2, h + 0.15, z - crown * 0.2, crown * 0.48, 0.9, crown * 0.48, LEAF);
 }
-function palm(add, x, z) {
-  add(x, 0, z, 0.45, 4.2, 0.45, TRUNK);
-  for (const [dx, dz, w, d] of [[2, 0, 3.8, 0.65], [-2, 0, 3.8, 0.65], [0, 2, 0.65, 3.8], [0, -2, 0.65, 3.8]]) {
-    add(x + dx * 0.35, 4.1, z + dz * 0.35, w, 0.35, d, LEAF);
-  }
-}
 export function buildCity(add, stops, pts, curve) {
+  const spots = furnitureSpots(stops, curve).map((o) => o.xz);
+  const free = (x, z) => spots.every(([a, b]) => Math.hypot(a - x, b - z) > CLEAR); // ponytail: skip, not shift
   const r = rng(2026), LM = new Set(Object.values(LANDMARKS));
   const span = pts.length * 30 + 120, N = pts.length * 20;
   add(0, -1, 0, span, 1, 200, P.pave);
@@ -80,6 +77,7 @@ export function buildCity(add, stops, pts, curve) {
     if (i % 16 === 8) {
       for (const side of [-1, 1]) {
         const x = p.x + nx * side * 9.4, z = p.z + nz * side * 9.4;
+        if (!free(x, z)) continue;
         add(x, 0, z, 0.16, 3, 0.16, ROOF);
         add(x, 3, z, 0.7, 0.2, 0.7, WINDOW_LIT);
       }
@@ -104,9 +102,10 @@ export function buildCity(add, stops, pts, curve) {
       }
       for (const dx of [-8, 8]) {
         const x = p.x + dx + (r() - 0.5) * 2, z = p.z + side * 10.2;
-        br ? palm(add, x, z) : broadleaf(add, x, z, r);
+        const h = broadleaf(r); // always draw rng so layout stays stable
+        if (free(x, z)) tree(add, x, z, h);
       }
-      if (!br && i % 2 === 0) {
+      if (!br && i % 2 === 0 && free(p.x + 4, p.z + side * 11.2)) {
         add(p.x + 4, 0, p.z + side * 11.2, 1.2, 2.5, 1.2, PHONE);
         add(p.x + 4, 2.5, p.z + side * 11.2, 1.4, 0.3, 1.4, ROOF);
       }

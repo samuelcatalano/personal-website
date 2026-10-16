@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { furnitureSpots } from './layout.js';
 const tex = (c) => Object.assign(new THREE.CanvasTexture(c), { colorSpace: THREE.SRGBColorSpace });
 export function paintSign(text) {
   const c = document.createElement('canvas');
@@ -29,30 +30,24 @@ export function paintPlaque(text, color, size = 128) {
 }
 export async function createSigns(scene, { stops, curve }) {
   await Promise.race([document.fonts?.load('600 48px Inter'), new Promise((r) => setTimeout(r, 1500))]).catch(() => {});
-  const company = [];
-  stops.forEach((s, i) => {
-    if (!s.brand) return;
-    const t = i / (stops.length - 1);
-    const p = curve.getPointAt(t), tan = curve.getTangentAt(t);
-    const far = new THREE.Vector3(tan.z, 0, -tan.x).normalize();
-    const x = p.x - far.x * 11.5 + tan.x * 7, z = p.z - far.z * 11.5 + tan.z * 7;
-    const pole = new THREE.Mesh(new THREE.BoxGeometry(0.16, 3.4, 0.16), new THREE.MeshLambertMaterial({ color: 0x8e8375 }));
-    pole.position.set(x, 1.7, z);
-    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: paintPlaque(s.brand.initials, s.brand.color), toneMapped: false }));
-    sprite.position.set(x, 3.7, z);
-    sprite.scale.set(1.6, 1.6, 1);
-    scene.add(pole, sprite);
-    company.push({ i, sprite });
-  });
-  const sign = (i, s) => {
-    const t = i / (stops.length - 1), p = curve.getPointAt(t), tan = curve.getTangentAt(t);
-    const last = i === stops.length - 1, k = last ? 9 : 7.1, a = last ? 2 : -5;
-    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: paintSign(s.year), toneMapped: false }));
-    sp.scale.set(4.2, 3.36, 1);
-    sp.position.set(p.x - tan.z * k + tan.x * a, 1.68, p.z + tan.x * k + tan.z * a);
-    scene.add(sp);
-  };
-  stops.forEach((s, i) => sign(i, s));
+  const company = [], spots = furnitureSpots(stops, curve);
+  for (const { i, kind, xz: [x, z] } of spots) {
+    if (kind === 'plaque') {
+      const { brand } = stops[i];
+      const pole = new THREE.Mesh(new THREE.BoxGeometry(0.16, 3.4, 0.16), new THREE.MeshLambertMaterial({ color: 0x8e8375 }));
+      pole.position.set(x, 1.7, z);
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: paintPlaque(brand.initials, brand.color), toneMapped: false }));
+      sprite.position.set(x, 3.7, z);
+      sprite.scale.set(1.6, 1.6, 1);
+      scene.add(pole, sprite);
+      company.push({ i, sprite });
+    } else {
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: paintSign(stops[i].year), toneMapped: false }));
+      sp.scale.set(4.2, 3.36, 1);
+      sp.position.set(x, 1.68, z);
+      scene.add(sp);
+    }
+  }
   let shown = -1;
   return {
     update({ active }) {
