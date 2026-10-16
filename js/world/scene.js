@@ -20,16 +20,17 @@ const ARC = 10;                            // camera lift when blending between 
 export async function createWorld(canvas, stops, { reducedMotion = false, onProgress = () => {} } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.1;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.shadowMap.enabled = !matchMedia('(max-width: 767px)').matches;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xe8e0d2);
-  scene.fog = new THREE.Fog(0xe8e0d2, 180, 650);
+  scene.background = new THREE.Color(0xa8d0f2);
+  scene.fog = new THREE.Fog(0xa8d0f2, 300, 880);
   const camera = new THREE.PerspectiveCamera(40, 1, 1, 900);
-  const hemi = new THREE.HemisphereLight(0xfff8eb, 0x8e8375, 1.25);
-  const sun = new THREE.DirectionalLight(0xfff3df, 1.25);
+  const hemi = new THREE.HemisphereLight(0xa8d4ff, 0x5fa032, 1.0);
+  const sun = new THREE.DirectionalLight(0xfff0d0, 2.4);
   sun.castShadow = true;
   sun.shadow.bias = -0.0002;
   sun.shadow.normalBias = 0.05;

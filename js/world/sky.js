@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { Sky } from 'three/addons/objects/Sky.js';
 
-const DAY = { fog: new THREE.Color(0xe8e0d2), sun: 1.25, hemi: 1.25 };
-const NIGHT = { fog: new THREE.Color(0x30343a), sun: 0.34, hemi: 0.48 };
+const DAY = { fog: new THREE.Color(0xa8d0f2), sun: 2.4, hemi: 1.0 };
+const NIGHT = { fog: new THREE.Color(0x0e1424), sun: 0.34, hemi: 0.48 };
 const GLOW = new THREE.Color(0xffc85a);
 
 // Call after every glow material is in the scene: it collects them once.
@@ -10,7 +10,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
   const dome = new Sky();
   dome.scale.setScalar(800); // camera far = 900; follows the camera
   const u = dome.material.uniforms;
-  u.turbidity.value = 4; u.mieCoefficient.value = 0.005; u.mieDirectionalG.value = 0.8;
+  u.turbidity.value = 2.5; u.mieCoefficient.value = 0.005; u.mieDirectionalG.value = 0.8;
   const sunDir = new THREE.Vector3();
   scene.add(dome);
 
@@ -51,7 +51,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
       const el = 35 - 55 * night; // degrees; below the horizon at night
       sunDir.setFromSphericalCoords(1, Math.PI / 2 - el * Math.PI / 180, 0.9);
       u.sunPosition.value.copy(sunDir);
-      u.rayleigh.value = 1.5 - 1.3 * night;
+      u.rayleigh.value = 2.2 - 2.0 * night;
       cloudMat.color.setScalar(1 - 0.75 * night);
       cloudMat.opacity = 1 - 0.5 * night;
       if (cam) { dome.position.copy(cam); clouds.position.set(cam.x, 0, cam.z); }

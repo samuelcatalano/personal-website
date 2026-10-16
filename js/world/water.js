@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-const DAY_SKY = new THREE.Color(0x9dbcd6), NIGHT_SKY = new THREE.Color(0x2a3140);
+const DAY_SKY = new THREE.Color(0x8cc4f0), NIGHT_SKY = new THREE.Color(0x18203a);
 
 const vertexShader = /* glsl */`
 #include <fog_pars_vertex>
@@ -36,8 +36,8 @@ void main() {
                 cos(q.y * 0.4 - uTime * 0.7) * 0.5 + cos(q.y * 1.1 + q.x * 0.5 + uTime * 1.1) * 0.25) * 0.12;
   vec3 n = normalize(vec3(-g.x, 1.0, -g.y));
   vec3 v = normalize(cameraPosition - vPos);
-  float fres = 0.04 + 0.96 * pow(1.0 - max(dot(n, v), 0.0), 4.0);
-  c = mix(c, uSky, fres * 0.8);
+  float fres = 0.04 + 0.96 * pow(1.0 - max(dot(n, v), 0.0), 3.0);
+  c = mix(c, uSky, fres * 0.9);
   gl_FragColor = vec4(c, 1.0);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
@@ -51,14 +51,14 @@ export function createWater({ span, z, width }) {
     mat = new THREE.ShaderMaterial({
       uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
         uTime: { value: 0 }, uNight: { value: 0 },
-        uDeep: { value: new THREE.Color(0x71838c) }, uShallow: { value: new THREE.Color(0x96a3a4) },
-        uGlint: { value: new THREE.Color(0xc4cbc5) }, uNightTint: { value: new THREE.Color(0x20252c) }, uSky: { value: new THREE.Color(0x9dbcd6) },
+        uDeep: { value: new THREE.Color(0x1456b0) }, uShallow: { value: new THREE.Color(0x2b8ae6) },
+        uGlint: { value: new THREE.Color(0xe6f6ff) }, uNightTint: { value: new THREE.Color(0x0a1330) }, uSky: { value: new THREE.Color(0x8cc4f0) },
       }]),
       vertexShader, fragmentShader, fog: true,
     });
   } catch {
     shader = false;
-    mat = new THREE.MeshLambertMaterial({ color: 0x71838c }); // flat fallback
+    mat = new THREE.MeshLambertMaterial({ color: 0x1f6fd0 }); // flat fallback
   }
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.set(0, 0.1, z);

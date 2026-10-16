@@ -5,7 +5,8 @@ const GRASS = P.grass, PATCH = P.patch, ROAD = P.road, LINE = P.cream;
 const BANK = P.taupe, PATH = P.stone, STONE = P.stone, CREAM = P.cream;
 const UK_WALLS = [CREAM, '#d8d0c2', P.stone];
 const BR_WALLS = [P.stone, '#d8d0c2', '#bdb3a4'];
-const ROOF = P.roof, GLASS = P.glass, WINDOW_LIT = P.lit;
+const ROOF = P.roof, ROOFS = [P.brick, P.roof, P.oak, P.steel], // ponytail: roof tint picked by position, keeps the r() sequence
+   GLASS = P.glass, WINDOW_LIT = P.lit;
 const TRUNK = P.trunk, LEAF = P.leaf, LEAF_SHADE = P.grass, PHONE = P.red;
 
 function townhouse(add, x, z, side, br, r, maquette = false, roofStacks = false) {
@@ -15,8 +16,9 @@ function townhouse(add, x, z, side, br, r, maquette = false, roofStacks = false)
   add(x, 0, z, w, h, d, wall);
   add(x, 0, z, w + 0.2, 0.38, d + 0.2, ROOF);             // stone plinth
   add(x, h - 0.25, z, w + 0.45, 0.3, d + 0.45, CREAM);    // cornice
-  add(x, h, z, w + 0.7, 0.42, d + 0.7, ROOF);             // stepped roof edge
-  add(x, h + 0.42, z, w * 0.74, 0.32, d * 0.72, wall);
+  const rc = ROOFS[Math.abs(Math.round(x * 0.37 + z * 0.11)) % ROOFS.length];
+  add(x, h, z, w + 0.7, 0.42, d + 0.7, rc);               // stepped roof edge
+  add(x, h + 0.42, z, w * 0.74, 0.32, d * 0.72, rc);
   const stacks = maquette && roofStacks && side === 1;
   // Keep both r() draws so the random sequence (and every later house) is unchanged; skip the legacy chimney where the stacks stand.
   if (!br && r() < 0.5) { const sx = r() < 0.5 ? -2.4 : 2.4; if (!stacks) add(x + sx, h + 0.7, z, 0.65, 1.1, 0.7, ROOF); }
@@ -76,7 +78,7 @@ function palm(add, x, z) {
 export function buildCity(add, stops, pts, curve) {
   const r = rng(2026), LM = new Set(Object.values(LANDMARKS));
   const span = pts.length * 30 + 120, N = pts.length * 20;
-  add(0, -1, 0, span, 1, 200, CREAM);
+  add(0, -1, 0, span, 1, 200, GRASS);
 
   // Thames banks sit just outside the water span; short stone blocks and reeds break the long edge.
   for (const side of [-1, 1]) {
