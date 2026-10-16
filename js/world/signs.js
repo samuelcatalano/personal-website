@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-
 export function paintSign(text, { bg = '#d6211f', fg = '#ffffff', w = 256, h = 96 } = {}) {
   const c = document.createElement('canvas');
   c.width = w; c.height = h;
@@ -16,8 +15,6 @@ export function paintSign(text, { bg = '#d6211f', fg = '#ffffff', w = 256, h = 9
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
 }
-
-// Ivory plaque with the brand colour as ink and a thin rule: the editorial counterpart of the panel badges.
 export function paintPlaque(text, color, size = 128) {
   const c = document.createElement('canvas');
   c.width = c.height = size;
@@ -33,23 +30,19 @@ export function paintPlaque(text, color, size = 128) {
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
 }
-
-const yearStyle = () => ({ bg: '#e8e0d2', fg: '#302d29' });
-
+const YEAR = { bg: '#e8e0d2', fg: '#302d29' };
 export async function createSigns(scene, { stops, curve }) {
-  await Promise.race([document.fonts?.load('600 48px Inter'), new Promise((r) => setTimeout(r, 1500))]).catch(() => {}); // fallback font if it never loads
-
-  const yearMat = new THREE.SpriteMaterial({ map: paintSign(stops[0].year, yearStyle(stops[0])), toneMapped: false });
+  await Promise.race([document.fonts?.load('600 48px Inter'), new Promise((r) => setTimeout(r, 1500))]).catch(() => {});
+  const yearMat = new THREE.SpriteMaterial({ map: paintSign(stops[0].year, YEAR), toneMapped: false });
   const year = new THREE.Sprite(yearMat);
   year.scale.set(4.2, 1.5, 1);
   scene.add(year);
-
   const company = [];
   stops.forEach((s, i) => {
     if (!s.brand) return;
     const t = i / (stops.length - 1);
     const p = curve.getPointAt(t), tan = curve.getTangentAt(t);
-    const far = new THREE.Vector3(tan.z, 0, -tan.x).normalize(); // far side, away from the camera
+    const far = new THREE.Vector3(tan.z, 0, -tan.x).normalize();
     const x = p.x - far.x * 11.5 + tan.x * 7, z = p.z - far.z * 11.5 + tan.z * 7;
     const pole = new THREE.Mesh(new THREE.BoxGeometry(0.16, 3.4, 0.16), new THREE.MeshLambertMaterial({ color: 0x8e8375 }));
     pole.position.set(x, 1.7, z);
@@ -59,7 +52,6 @@ export async function createSigns(scene, { stops, curve }) {
     scene.add(pole, sprite);
     company.push({ i, sprite });
   });
-
   let shown = -1;
   const near = new THREE.Vector3();
   return {
@@ -72,7 +64,7 @@ export async function createSigns(scene, { stops, curve }) {
       if (active === shown) return;
       const s = stops[active];
       yearMat.map.dispose();
-      yearMat.map = paintSign(s.year, yearStyle(s));
+      yearMat.map = paintSign(s.year, YEAR);
       yearMat.needsUpdate = true;
       for (const c of company) c.sprite.scale.setScalar(c.i === active ? 2 : 1.6);
       shown = active;

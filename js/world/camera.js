@@ -2,18 +2,15 @@
 export const SECTION_SHOT = {
   hero: 'hero', journey: 'follow', stack: 'high', articles: 'high', repos: 'high', recs: 'high', contact: 'closing',
 };
-
-// Shots are plain arrays: position and look-at target in world units.
 export function shotFor(kind, bus, { mobile = false, lift = 0 }) {
   const k = mobile ? 0.95 : 1;
   const { x, y, z } = bus;
   switch (kind) {
     case 'hero': {
-      // Three-quarter street view keeps the bus foreground and the terrace legible.
       return { position: [x + 28 * k, y + 32 * k, z + 45 * k], target: [x + 2, y + 4, z + 4] };
     }
     case 'follow': {
-      const L = lift; // 0 keeps the approved street framing exactly
+      const L = lift;
       return {
         position: [x + (20 + 6 * L) * k, y + (29 + 10 * L) * k, z + (50 + 14 * L) * k],
         target: [x + 2, y + 5 + 9 * L, z + 2 - 10 * L],
@@ -24,15 +21,12 @@ export function shotFor(kind, bus, { mobile = false, lift = 0 }) {
     default: throw new Error(`unknown shot ${kind}`);
   }
 }
-
 const lerp = (a, b, t) => a + (b - a) * t;
 function aim({ position: p, target: q }) {
   const d = [q[0] - p[0], q[1] - p[1], q[2] - p[2]];
   const len = Math.hypot(...d) || 1;
   return { yaw: Math.atan2(d[2], d[0]), pitch: Math.asin(d[1] / len), len };
 }
-
-// Position moves in a straight line plus a sin arc; the view direction turns by yaw/pitch the short way.
 export function blendShots(a, b, t, arc = 0) {
   const u = t * t * (3 - 2 * t);
   const A = aim(a), B = aim(b);
@@ -47,8 +41,7 @@ export function blendShots(a, b, t, arc = 0) {
   ];
   return { position, target };
 }
-
-// Critically damped spring (SmoothDamp). dt <= 0 snaps, which gives the first frame its exact position.
+// Critically damped spring; dt <= 0 snaps.
 export function spring(state, target, dt, smoothTime) {
   if (dt <= 0 || smoothTime <= 0) return { value: target, velocity: 0 };
   const omega = 2 / smoothTime, x = omega * dt;
@@ -56,14 +49,11 @@ export function spring(state, target, dt, smoothTime) {
   const change = state.value - target;
   const temp = (state.velocity + omega * change) * dt;
   const value = target + (change + temp) * exp;
-  if ((target - state.value > 0) === (value > target)) return { value: target, velocity: 0 }; // no overshoot
+  if ((target - state.value > 0) === (value > target)) return { value: target, velocity: 0 };
   return { value, velocity: (state.velocity - omega * temp) * exp };
 }
-
-// Linear approach capped at rate per second (day/night fade).
 export const approach = (current, target, dt, rate) =>
   current + Math.max(-rate * dt, Math.min(rate * dt, target - current));
-
-// Quality tier: high drops to medium when average FPS < 40 over the sampled window; never climbs back.
+// high drops to medium below 40 FPS; never climbs back.
 export const nextTier = (tier, fpsSamples) =>
   tier === 'high' && fpsSamples.length && fpsSamples.reduce((a, b) => a + b, 0) / fpsSamples.length < 40 ? 'medium' : tier;

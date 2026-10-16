@@ -1,14 +1,10 @@
 import * as THREE from 'three';
 import { blockMaterial } from './textures.js';
-
 export function createBoxes() {
   const list = [];
   return { list, add(x, y, z, w, h, d, color) { list.push({ x, y, z, w, h, d, color }); } };
 }
-
-const MATS = new Map(); // shared by colour+glow
-
-// One InstancedMesh per colour; each box is a scaled unit cube, so a 4x30x4 tower is one instance.
+const MATS = new Map();
 export function buildMeshes(list, { glow = [] } = {}) {
   const geo = new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0);
   const byColor = new Map();

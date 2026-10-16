@@ -5,26 +5,23 @@ import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-
-// Radial blur toward the sun's screen position, only over bright pixels.
 const SunRays = {
   uniforms: { tDiffuse: { value: null }, uSun: { value: new THREE.Vector2(0.5, 0.5) }, uStrength: { value: 0 } },
   vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
   fragmentShader: `uniform sampler2D tDiffuse; uniform vec2 uSun; uniform float uStrength; varying vec2 vUv;
-    void main(){
-      vec4 base = texture2D(tDiffuse, vUv);
-      vec2 step = (uSun - vUv) / 40.0 * 0.6;
-      vec2 p = vUv; vec3 acc = vec3(0.0); float w = 1.0;
-      for (int i = 0; i < 40; i++) {
-        p += step;
-        vec3 c = texture2D(tDiffuse, p).rgb;
-        acc += smoothstep(0.8, 1.2, dot(c, vec3(0.333))) * c * w;
-        w *= 0.96;
-      }
-      gl_FragColor = vec4(base.rgb + acc / 40.0 * uStrength, base.a);
-    }`,
+void main(){
+vec4 base = texture2D(tDiffuse, vUv);
+vec2 step = (uSun - vUv) / 40.0 * 0.6;
+vec2 p = vUv; vec3 acc = vec3(0.0); float w = 1.0;
+for (int i = 0; i < 40; i++) {
+p += step;
+vec3 c = texture2D(tDiffuse, p).rgb;
+acc += smoothstep(0.8, 1.2, dot(c, vec3(0.333))) * c * w;
+w *= 0.96;
+}
+gl_FragColor = vec4(base.rgb + acc / 40.0 * uStrength, base.a);
+}`,
 };
-
 export function createPost(renderer, scene, camera, { tier = 'high', sun } = {}) {
   const size = renderer.getSize(new THREE.Vector2());
   const composer = new EffectComposer(renderer);
@@ -33,7 +30,7 @@ export function createPost(renderer, scene, camera, { tier = 'high', sun } = {})
   let rays = null;
   if (tier === 'high') { // ponytail: medium start never builds the heavy passes; no climbing back up
     const ao = new GTAOPass(scene, camera, size.x, size.y);
-    // GTAO re-renders the scene with a normal material; sprites and the cut-out Memoji come out black there, so hide them from that pass.
+    // GTAO's normal pass renders sprites and the Memoji cut-out black; hide them from it.
     const hide = ao.overrideVisibility;
     ao.overrideVisibility = function () { hide.call(this); this.scene.traverse((o) => { if (o.isSprite || o.name === 'memoji') o.visible = false; }); };
     rays = new ShaderPass(SunRays);
@@ -42,7 +39,6 @@ export function createPost(renderer, scene, camera, { tier = 'high', sun } = {})
   }
   composer.addPass(new UnrealBloomPass(size, 0.35, 0.6, 0.85));
   composer.addPass(new OutputPass());
-
   const v = new THREE.Vector3();
   const post = {
     tier,

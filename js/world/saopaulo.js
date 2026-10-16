@@ -1,28 +1,25 @@
 import { LANDMARKS, stopIndex, RIVER_Z } from './layout.js';
 import { PALETTE as P } from './palette.js';
-
-const FAR = RIVER_Z - 18; // far bank, behind the river path, like Big Ben
-
+const FAR = RIVER_Z - 18;
 function masp(add, { x }) {
   const z = FAR;
-  for (const ex of [-17, 17]) {                           // two red frames carry the glass box
+  for (const ex of [-17, 17]) {
     add(x + ex, 0, z - 5.5, 1.6, 14, 1.6, P.masp);
     add(x + ex, 0, z + 5.5, 1.6, 14, 1.6, P.masp);
     add(x + ex, 14, z, 2, 1.6, 13, P.masp);
   }
-  add(x, 14, z, 40, 1.2, 3, P.masp);                      // roof beam tying the frames
-  add(x, 8, z, 34, 6, 10, P.concrete);                    // box raised above the open span
-  add(x, 8.8, z + 5.05, 34, 4.4, 0.12, P.glass);          // glass walls, both faces
+  add(x, 14, z, 40, 1.2, 3, P.masp);
+  add(x, 8, z, 34, 6, 10, P.concrete);
+  add(x, 8.8, z + 5.05, 34, 4.4, 0.12, P.glass);
   add(x, 8.8, z - 5.05, 34, 4.4, 0.12, P.glass);
-  add(x, 0, z, 36, 0.3, 12, P.stone);                     // plaza under the span
+  add(x, 0, z, 36, 0.3, 12, P.stone);
 }
-
 function se(add, { x }) {
   const z = FAR;
-  add(x, 0, z, 30, 14, 14, P.stone);                      // nave
+  add(x, 0, z, 30, 14, 14, P.stone);
   add(x, 14, z, 30.6, 0.8, 14.6, P.roof);
   for (const dx of [-8, 0, 8]) add(x + dx, 3, z + 7.05, 2, 6, 0.12, P.glass);
-  for (const sx of [-1, 1]) {                             // twin towers with spires
+  for (const sx of [-1, 1]) {
     const tx = x + sx * 11;
     add(tx, 0, z + 4, 6, 26, 6, P.stone);
     add(tx, 26, z + 4, 5, 2, 5, P.roof);
@@ -31,18 +28,17 @@ function se(add, { x }) {
     add(tx, 36, z + 4, 0.6, 3, 0.6, P.gilt);
     add(tx, 12, z + 7.05, 1.4, 3, 0.12, P.glass);
   }
-  [[9, 4], [7, 4], [5, 4], [3, 4]].forEach(([w, h], i) => add(x, 14.8 + i * 4, z, w, h, w, P.leaf)); // green dome
+  [[9, 4], [7, 4], [5, 4], [3, 4]].forEach(([w, h], i) => add(x, 14.8 + i * 4, z, w, h, w, P.leaf));
   add(x, 31, z, 0.6, 3, 0.6, P.gilt);
 }
-
 function estaiada(add, { x }) {
   const z = RIVER_Z;
-  add(x, 3.6, z, 8, 1.2, 76, P.concrete);                 // deck over the river
-  for (let y = 0; y < 46; y += 2) {                       // X-shaped mast, crossing at y 20
+  add(x, 3.6, z, 8, 1.2, 76, P.concrete);
+  for (let y = 0; y < 46; y += 2) {
     const o = Math.abs(y - 20) * 0.27;
     for (const s of [-1, 1]) add(x + s * o, y, z, 2.2, 2, 2.2, P.concrete);
   }
-  for (const side of [-1, 1]) for (let k = 0; k < 5; k++) {   // fan cables, deck to mast
+  for (const side of [-1, 1]) for (let k = 0; k < 5; k++) {
     const top = 44 - k * 3, run = 8 + k * 7;
     for (let i = 0; i <= 6; i++) {
       const t = i / 6;
@@ -50,7 +46,6 @@ function estaiada(add, { x }) {
     }
   }
 }
-
 function paulista(add, x, i) {
   const z = RIVER_Z - 22;
   [[-8, 30 + (i % 3) * 8], [9, 44 - (i % 2) * 10]].forEach(([dx, h], j) => {
@@ -62,7 +57,6 @@ function paulista(add, x, i) {
     add(tx, h + 1, z, 0.4, 5, 0.4, P.steel);
   });
 }
-
 export function buildSaoPaulo(add, stops, pts) {
   const at = (key) => pts[stopIndex(stops, LANDMARKS[key])];
   masp(add, at('masp'));

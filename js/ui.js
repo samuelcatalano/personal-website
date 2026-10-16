@@ -1,5 +1,4 @@
 import { stops, i18n, links, articles, repos, stack, sectionStart } from './content.js';
-
 export function loadPrefs(storage) {
   try {
     return {
@@ -9,10 +8,8 @@ export function loadPrefs(storage) {
   } catch { return { lang: 'en', theme: 'day' }; }
 }
 export function savePref(storage, key, value) { try { storage?.setItem(key, value); } catch { /* storage blocked */ } }
-
 const store = () => { try { return localStorage; } catch { return undefined; } };
 const flag = (c) => (c === 'BR' ? '🇧🇷' : '🇬🇧');
-
 // ponytail: innerHTML from our own static content.js only; no user input reaches it.
 function sectionHTML(section, t, active) {
   const s = t.sections[section];
@@ -43,24 +40,18 @@ function sectionHTML(section, t, active) {
       <p class="footer">${t.ui.footer}</p>`;
   }
 }
-
 export function initUI({ onGoto, onTheme }) {
   const prefs = loadPrefs(store());
   const panel = document.getElementById('panel');
   const announce = document.getElementById('announce');
   let active = -1;
-
   const applyTheme = () => {
     document.body.classList.toggle('theme-night', prefs.theme === 'night');
     const b = document.querySelector('[data-theme]');
-    const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    for (const [name, value] of Object.entries({ 'aria-hidden': 'true', focusable: 'false', width: '14', height: '14', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.7', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })) icon.setAttribute(name, value);
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.setAttribute('d', prefs.theme === 'night'
+    const d = prefs.theme === 'night'
       ? 'M20.985 12.486A9 9 0 1 1 11.514 3.015a7 7 0 0 0 9.471 9.471z'
-      : 'M12 2v2m0 16v2m10-10h-2M4 12H2m17.07 7.07-1.42-1.42M6.35 6.35 4.93 4.93m14.14 0-1.42 1.42M6.35 17.65l-1.42 1.42M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0z');
-    icon.append(path);
-    b.replaceChildren(icon);
+      : 'M12 2v2m0 16v2m10-10h-2M4 12H2m17.07 7.07-1.42-1.42M6.35 6.35 4.93 4.93m14.14 0-1.42 1.42M6.35 17.65l-1.42 1.42M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0z';
+    b.innerHTML = `<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
     b.setAttribute('aria-pressed', String(prefs.theme === 'night'));
     onTheme(prefs.theme);
   };
@@ -94,7 +85,6 @@ export function initUI({ onGoto, onTheme }) {
     const c = t.stops[st.id];
     announce.textContent = c ? `${st.year} ${c.title}` : t.sections[st.section].title;
   };
-
   document.addEventListener('click', (e) => {
     const go = e.target.closest('[data-goto]');
     if (go) { e.preventDefault(); onGoto(+go.dataset.goto); }
@@ -109,7 +99,6 @@ export function initUI({ onGoto, onTheme }) {
     if (e.key === 'j') onGoto(Math.min(active + 1, stops.length - 1));
     if (e.key === 'k') onGoto(Math.max(active - 1, 0));
   });
-
   applyTheme();
   return {
     get theme() { return prefs.theme; },

@@ -1,20 +1,16 @@
 import * as THREE from 'three';
 import { Sky } from 'three/addons/objects/Sky.js';
-
 const DAY = { fog: new THREE.Color(0xa8d0f2), sun: 2.4, hemi: 1.0 };
 const NIGHT = { fog: new THREE.Color(0x0e1424), sun: 0.34, hemi: 0.48 };
 const GLOW = new THREE.Color(0xffc85a);
-
 // Call after every glow material is in the scene: it collects them once.
 export function createSky(scene, { hemi, sun, reducedMotion = false }) {
   const dome = new Sky();
-  dome.scale.setScalar(800); // camera far = 900; follows the camera
+  dome.scale.setScalar(800);
   const u = dome.material.uniforms;
   u.turbidity.value = 2.5; u.mieCoefficient.value = 0.005; u.mieDirectionalG.value = 0.8;
   const sunDir = new THREE.Vector3();
   scene.add(dome);
-
-  // soft cloud sprites: one radial-gradient canvas shared by 8 flat planes
   const cv = document.createElement('canvas'); cv.width = cv.height = 128;
   const cx = cv.getContext('2d'), gr = cx.createRadialGradient(64, 64, 0, 64, 64, 64);
   gr.addColorStop(0, 'rgba(255,255,255,0.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
@@ -30,10 +26,8 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
     clouds.add(c);
   }
   scene.add(clouds);
-
   const glow = [];
   scene.traverse((o) => { if (o.material?.userData?.glow) glow.push(o.material); });
-
   const pos = [];
   for (let i = 0; i < 500; i++) {
     const a = Math.random() * Math.PI * 2, r = 300 + Math.random() * 200;
@@ -44,11 +38,9 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
     new THREE.PointsMaterial({ color: 0xffffff, size: 2, sizeAttenuation: false, transparent: true, fog: false, depthWrite: false }),
   );
   scene.add(stars);
-
   return {
-    // dt/cam optional: clouds drift and the dome tracks the camera
     update(night, dt = 0, cam) {
-      const el = 35 - 55 * night; // degrees; below the horizon at night
+      const el = 35 - 55 * night;
       sunDir.setFromSphericalCoords(1, Math.PI / 2 - el * Math.PI / 180, 0.9);
       u.sunPosition.value.copy(sunDir);
       u.rayleigh.value = 2.2 - 2.0 * night;
