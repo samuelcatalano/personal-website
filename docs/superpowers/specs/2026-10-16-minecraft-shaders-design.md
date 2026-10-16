@@ -28,18 +28,19 @@ New sections, backend, audio, manual bus control, GLB models, downloads, image-t
 - **Post-processing**, through `EffectComposer` from `three/addons/`:
   1. `RenderPass`;
   2. `GTAOPass` (ambient occlusion);
-  3. `SSRPass`, applied to the water only;
-  4. a god-rays pass based on `GodRaysShader`;
-  5. `UnrealBloomPass`;
-  6. `OutputPass`.
-- **Water.** Rivers and sea use a water material with animated normals and a fresnel effect, and SSR handles the reflections. The Thames appears only at Westminster and Tower Bridge; Wembley has no river.
+  3. a god-rays pass based on `GodRaysShader`;
+  4. `UnrealBloomPass`;
+  5. `OutputPass`.
+
+  SSR was dropped (`SSRPass` washed the whole frame white); water reflections come from the fresnel shader.
+- **Water.** Rivers and sea use a water material with animated normals and and a fresnel effect that mirrors the sky. The Thames appears only at Westminster and Tower Bridge; Wembley has no river.
 
 ## Quality tiers
 
 | Tier | When | Passes |
 |---|---|---|
 | high | desktop, average FPS ≥ 50 | all |
-| medium | mobile, or high falls below 40 FPS for 2 s | shadows, bloom and fresnel water; no GTAO, SSR or god rays |
+| medium | mobile, or high falls below 40 FPS for 2 s | shadows, bloom and fresnel water; no GTAO or god rays |
 | none | `prefers-reduced-motion` | medium, with no idle animation |
 
 Without WebGL, or if the CDN fails, the page uses the `no-webgl` fallback with the full panel, as it does today.
@@ -71,5 +72,5 @@ Without WebGL, or if the CDN fails, the page uses the `no-webgl` fallback with t
 
 ## Risks
 
-- **GPU cost** of SSR, GTAO and god rays. Mitigated by the quality tiers.
-- **SSR on voxels** can produce artefacts. If it looks bad at the checkpoint, the water falls back to `Water` from three's addons (planar reflection).
+- **GPU cost** of GTAO and god rays. Mitigated by the quality tiers.
+- **SSR dropped.** `SSRPass` washed the whole frame white (haze artefact); water reflections are the fresnel shader.

@@ -63,7 +63,6 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   // ── later tasks add more units ABOVE this line; sky must stay last (it collects glow materials) ──
   const sky = createSky(scene, { hemi, sun, reducedMotion });
   const post = createPost(renderer, scene, camera, { sun, tier: reducedMotion || matchMedia('(max-width: 767px)').matches ? 'medium' : 'high' });
-  post.addSSR(water.mesh);
   let fpsT = 0, fpsN = 0;
   let night = 0, nightTarget = 0;
 

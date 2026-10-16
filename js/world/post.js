@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
-import { SSRPass } from 'three/addons/postprocessing/SSRPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
@@ -31,13 +30,14 @@ export function createPost(renderer, scene, camera, { tier = 'high', sun } = {})
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
   const heavy = [];
-  let ssr = null, rays = null;
+  let rays = null;
   if (tier === 'high') { // ponytail: medium start never builds the heavy passes; no climbing back up
     const ao = new GTAOPass(scene, camera, size.x, size.y);
-    ssr = new SSRPass({ renderer, scene, camera, width: size.x, height: size.y, selects: [] });
-    ssr.enabled = false; // until addSSR
+    // GTAO re-renders the scene with a normal material; sprites and the cut-out Memoji come out black there, so hide them from that pass.
+    const hide = ao.overrideVisibility;
+    ao.overrideVisibility = function () { hide.call(this); this.scene.traverse((o) => { if (o.isSprite || o.name === 'memoji') o.visible = false; }); };
     rays = new ShaderPass(SunRays);
-    heavy.push(ao, ssr, rays);
+    heavy.push(ao, rays);
     heavy.forEach((p) => composer.addPass(p));
   }
   composer.addPass(new UnrealBloomPass(size, 0.35, 0.6, 0.85));
@@ -46,11 +46,10 @@ export function createPost(renderer, scene, camera, { tier = 'high', sun } = {})
   const v = new THREE.Vector3();
   const post = {
     tier,
-    addSSR(mesh) { if (ssr) { ssr.selects = [mesh]; ssr.enabled = post.tier === 'high'; } },
     setSize(w, h) { composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h); },
     setTier(t) {
       post.tier = t;
-      heavy.forEach((p) => { p.enabled = t === 'high' && (p !== ssr || ssr.selects.length > 0); });
+      heavy.forEach((p) => { p.enabled = t === 'high'; });
     },
     render(dt) {
       if (rays && post.tier === 'high' && sun) {

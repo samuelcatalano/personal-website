@@ -10,7 +10,7 @@ function noiseTexture() {
   for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
     s = (s * 1664525 + 1013904223) >>> 0;
     let v = 0.85 + 0.15 * (s / 4294967296);
-    if (x === 0 || y === 0) v *= 0.82; // darker edge so blocks read as blocks
+    if (x === 0 || y === 0) v *= 0.93; // darker edge so blocks read as blocks
     const n = Math.round(v * 255);
     g.fillStyle = `rgb(${n},${n},${n})`;
     g.fillRect(x, y, 1, 1);
