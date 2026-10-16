@@ -50,9 +50,9 @@ export const stack = ['Java 17', 'Spring Boot', 'Quarkus', 'Kafka', 'Debezium', 
 export const i18n = {
   en: {
     ui: {
-      nav: { journey: 'Journey', stack: 'Stack', articles: 'Writing', repos: 'Code', contact: 'Contact' },
+      nav: { journey: 'Journey', stack: 'Stack', articles: 'Writing', repos: 'Code', recs: 'Recommendations', contact: 'Contact' },
       theme: 'Switch between day and night', lang: 'Switch language', scroll: 'Scroll to ride',
-      beforeLondon: 'Before London', present: 'Present', skip: 'Skip to content', footer: 'Designed and built by Samuel Catalano.',
+      navLabel: 'Sections', beforeLondon: 'Before London', present: 'Present', skip: 'Skip to content', footer: 'Designed and built by Samuel Catalano.',
     },
     sections: {
       hero: { title: 'Samuel Catalano', role: 'Senior Software Engineer', tagline: 'Ranked #1 Software Engineer in the world according to my parents.', meta: '17+ years · Java · Backend · London' },
@@ -82,9 +82,9 @@ export const i18n = {
   },
   pt: {
     ui: {
-      nav: { journey: 'Trajetória', stack: 'Stack', articles: 'Artigos', repos: 'Código', contact: 'Contato' },
+      nav: { journey: 'Trajetória', stack: 'Stack', articles: 'Artigos', repos: 'Código', recs: 'Recomendações', contact: 'Contato' },
       theme: 'Alternar entre dia e noite', lang: 'Trocar idioma', scroll: 'Role para embarcar',
-      beforeLondon: 'Antes de Londres', present: 'Atual', skip: 'Pular para o conteúdo', footer: 'Projetado e construído por Samuel Catalano.',
+      navLabel: 'Seções', beforeLondon: 'Antes de Londres', present: 'Atual', skip: 'Pular para o conteúdo', footer: 'Projetado e construído por Samuel Catalano.',
     },
     sections: {
       hero: { title: 'Samuel Catalano', role: 'Engenheiro de Software Sênior', tagline: 'Engenheiro de software nº 1 do mundo, segundo meus pais.', meta: '17+ anos · Java · Backend · Londres' },

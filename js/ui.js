@@ -21,7 +21,11 @@ function sectionHTML(section, t, active) {
     case 'hero': return `
       <img class="avatar" src="assets/avatar.png" alt="" width="96" height="96">
       <h1>${s.title}</h1><p class="role">${s.role}</p><p class="meta">${s.meta}</p>
-      <p class="tagline">${s.tagline}</p><p class="hint">${t.ui.scroll} ↓</p>`;
+      <p class="tagline">${s.tagline}</p><ul class="hero-links contact">
+        <li><a href="${links.email}">${t.sections.contact.email}</a></li>
+        <li>${ext(links.linkedin, t.sections.contact.linkedin)}</li>
+        <li>${ext(links.github, t.sections.contact.github)}</li>
+      </ul><p class="hint">${t.ui.scroll} ↓</p>`;
     case 'journey': return `
       <h2>${s.title}</h2><p>${s.intro}</p><ol class="stops">${stops.map((st, i) => {
         if (st.section !== 'journey') return '';
@@ -55,15 +59,23 @@ export function initUI({ onGoto, onTheme }) {
   };
   const render = (reveal = false) => {
     const t = i18n[prefs.lang];
+    const st = stops[Math.max(active, 0)];
     document.documentElement.lang = prefs.lang === 'pt' ? 'pt-BR' : 'en';
-    document.querySelectorAll('[data-nav]').forEach(a => { a.textContent = t.ui.nav[a.dataset.nav]; });
+    document.querySelector('.bar nav').setAttribute('aria-label', t.ui.navLabel);
+    const home = document.querySelector('[data-nav-home]');
+    if (st.section === 'hero') home.setAttribute('aria-current', 'page');
+    else home.removeAttribute('aria-current');
+    document.querySelectorAll('[data-nav]').forEach(a => {
+      a.textContent = t.ui.nav[a.dataset.nav];
+      if (a.dataset.nav === st.section) a.setAttribute('aria-current', 'page');
+      else a.removeAttribute('aria-current');
+    });
     document.querySelector('[data-lang]').textContent = prefs.lang === 'en' ? 'PT' : 'EN';
     document.querySelector('[data-lang]').setAttribute('aria-label', t.ui.lang);
     document.querySelector('[data-theme]').setAttribute('aria-label', t.ui.theme);
     document.querySelector('.skip').textContent = t.ui.skip;
-    const st = stops[Math.max(active, 0)];
     const prev = document.activeElement;
-    const key = ['data-goto', 'data-nav'].find(a => prev?.hasAttribute?.(a));
+    const key = ['data-goto', 'data-nav', 'data-nav-home', 'data-lang', 'data-theme'].find(a => prev?.hasAttribute?.(a));
     const keep = key && [key, prev.getAttribute(key)];
     const top = panel.dataset.section === st.section ? panel.scrollTop : 0;
     panel.innerHTML = sectionHTML(st.section, t, active);
