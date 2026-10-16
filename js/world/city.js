@@ -65,7 +65,7 @@ function palm(add, x, z) {
 export function buildCity(add, stops, pts, curve) {
   const r = rng(2026), LM = new Set(Object.values(LANDMARKS));
   const span = pts.length * 30 + 120, N = pts.length * 20;
-  add(0, -1, 0, span, 1, 200, GRASS);
+  add(0, -1, 0, span, 1, 200, CREAM);
 
   // Thames banks sit just outside the water span; short stone blocks and reeds break the long edge.
   for (const side of [-1, 1]) {
@@ -84,16 +84,22 @@ export function buildCity(add, stops, pts, curve) {
     const nx = -t.z, nz = t.x;
     add(p.x, -0.18, p.z, 8.5, 0.25, 8.5, ROAD);
     if (i % 6 === 0) add(p.x, 0.05, p.z, 1.2, 0.03, 0.3, LINE);
-    for (const side of [-1, 1]) {
-      add(p.x + nx * side * 4.55, -0.01, p.z + nz * side * 4.55, 5.2, 0.18, 0.42, BANK);
-      add(p.x + nx * side * 7.1, -0.02, p.z + nz * side * 7.1, 5.2, 0.12, 2.7, PATH);
-    }
     if (i % 16 === 8) {
       for (const side of [-1, 1]) {
         const x = p.x + nx * side * 9.4, z = p.z + nz * side * 9.4;
         add(x, 0, z, 0.16, 3, 0.16, ROOF);
         add(x, 3, z, 0.7, 0.2, 0.7, WINDOW_LIT);
       }
+    }
+  }
+
+  // Dense square pavers overlap along the route so curbs and sidewalks stay continuous on bends.
+  for (let i = 0; i <= N * 2; i++) {
+    const p = curve.getPointAt(i / (N * 2)), t = curve.getTangentAt(i / (N * 2));
+    const nx = -t.z, nz = t.x;
+    for (const side of [-1, 1]) {
+      add(p.x + nx * side * 4.55, -0.01, p.z + nz * side * 4.55, 1.5, 0.18, 1.5, BANK);
+      add(p.x + nx * side * 7.1, -0.02, p.z + nz * side * 7.1, 3.3, 0.12, 3.3, PATH);
     }
   }
 
