@@ -4,17 +4,17 @@ export const SECTION_SHOT = {
 };
 
 // Shots are plain arrays: position and look-at target in world units.
-export function shotFor(kind, bus, { extent, mobile = false }) {
-  const k = mobile ? 1.8 : 1;
+export function shotFor(kind, bus, { mobile = false }) {
+  const k = mobile ? 1.15 : 1;
   const { x, y, z } = bus;
   switch (kind) {
     case 'hero': {
-      const cx = (extent.minX + extent.maxX) / 2;
-      return { position: [cx - 60, 120 * k, 190 * k], target: [cx, 0, -50] };
+      // Look down the route so the bus stays foreground and London forms the backdrop.
+      return { position: [x - 45 * k, 26 * k, z + 24 * k], target: [x + 22, 4, z - 8] };
     }
-    case 'follow': return { position: [x + 14 * k, y + 14 * k, z + 46 * k], target: [x, y + 7, z - 12] };
+    case 'follow': return { position: [x + 14 * k, y + 24 * k, z + 58 * k], target: [x, y + 5, z - 18] };
     case 'high': return { position: [x + 30 * k, y + 34 * k, z + 60 * k], target: [x - 6, y + 6, z - 20] };
-    case 'closing': return { position: [x - 6 * k, y + 12 * k, z + 42 * k], target: [x - 2, y + 12, z - 60] };
+    case 'closing': return { position: [x - 6 * k, y + 18 * k, z + 42 * k], target: [x + (mobile ? 6 : -2), y + 10, z - 60] };
     default: throw new Error(`unknown shot ${kind}`);
   }
 }
@@ -28,11 +28,12 @@ function aim({ position: p, target: q }) {
 
 // Position moves in a straight line plus a sin arc; the view direction turns by yaw/pitch the short way.
 export function blendShots(a, b, t, arc = 0) {
+  const u = t * t * (3 - 2 * t);
   const A = aim(a), B = aim(b);
   const dyaw = ((B.yaw - A.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
-  const yaw = A.yaw + dyaw * t, pitch = lerp(A.pitch, B.pitch, t), len = lerp(A.len, B.len, t);
-  const position = a.position.map((v, i) => lerp(v, b.position[i], t));
-  position[1] += Math.sin(Math.PI * t) * arc;
+  const yaw = A.yaw + dyaw * u, pitch = lerp(A.pitch, B.pitch, u), len = lerp(A.len, B.len, u);
+  const position = a.position.map((v, i) => lerp(v, b.position[i], u));
+  position[1] += Math.sin(Math.PI * u) * arc;
   const target = [
     position[0] + Math.cos(yaw) * Math.cos(pitch) * len,
     position[1] + Math.sin(pitch) * len,

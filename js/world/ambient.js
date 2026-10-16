@@ -1,27 +1,19 @@
 import * as THREE from 'three';
 import { createBoxes, buildMeshes } from './voxel.js';
+import { buildBus } from './bus.js';
 import { RIVER_Z, LANDMARKS, stopIndex } from './layout.js';
+import { routeT } from '../scroll.js';
 
 const LIGHT = '#fff7c2';
 
 function cab() {
   const { add, list } = createBoxes();
-  add(0, 0.4, 0, 3.2, 1.2, 1.6, '#16181c');
-  add(-0.2, 1.6, 0, 1.8, 0.8, 1.5, '#16181c');
-  add(0.5, 1.7, 0, 0.6, 0.5, 1.52, '#9fc6e6');
-  add(1.62, 0.8, 0.5, 0.05, 0.3, 0.3, LIGHT);
-  add(1.62, 0.8, -0.5, 0.05, 0.3, 0.3, LIGHT);
-  for (const x of [-1, 1]) for (const z of [0.8, -0.8]) add(x, 0, z, 0.7, 0.7, 0.2, '#0b0b0b');
-  return buildMeshes(list, { glow: [LIGHT] });
-}
-
-function miniBus() {
-  const { add, list } = createBoxes();
-  add(0, 0.6, 0, 7, 4.4, 1.9, '#d6211f');
-  for (const y of [1.6, 3.6]) { add(0, y, 0.96, 6, 0.9, 0.05, '#bfe3ff'); add(0, y, -0.96, 6, 0.9, 0.05, '#bfe3ff'); }
-  add(3.52, 0.9, 0.6, 0.05, 0.35, 0.35, LIGHT);
-  add(3.52, 0.9, -0.6, 0.05, 0.35, 0.35, LIGHT);
-  for (const x of [-2.3, 2.3]) for (const z of [0.85, -0.85]) add(x, 0, z, 1, 1, 0.3, '#0b0b0b');
+  add(0, 0.3, 0, 4.3, 1, 1.8, '#16181c');
+  add(-0.1, 1.15, 0, 2.2, 0.55, 1.55, '#16181c');
+  add(0.5, 1.2, 0, 0.7, 0.4, 1.57, '#9fc6e6');
+  add(2.15, 0.6, 0.5, 0.05, 0.25, 0.3, LIGHT);
+  add(2.15, 0.6, -0.5, 0.05, 0.25, 0.3, LIGHT);
+  for (const x of [-1.3, 1.3]) for (const z of [0.75, -0.75]) add(x, 0, z, 0.65, 0.55, 0.2, '#0b0b0b');
   return buildMeshes(list, { glow: [LIGHT] });
 }
 
@@ -34,10 +26,15 @@ function boat() {
 }
 
 export function createAmbient(scene, { curve, pts, stops }) {
-  const traffic = Array.from({ length: 6 }, (_, i) => {
-    const mesh = i % 3 === 2 ? miniBus() : cab();
+  const traffic = [
+    { mesh: buildBus({ avatar: false }), lane: 1.75, offset: -0.16, relative: true },
+    { mesh: cab(), lane: 1.75, offset: 0.22, relative: true },
+    { mesh: cab(), lane: -1.75, offset: 0.25, reverse: true },
+    { mesh: cab(), lane: -1.75, offset: 0.75, reverse: true },
+  ].map((v) => {
+    const { mesh } = v;
     scene.add(mesh);
-    return { mesh, lane: i % 2 ? 1 : -1, offset: i / 6, speed: 0.012 + (i % 3) * 0.004 };
+    return v;
   });
 
   const boats = [-0.3, 0.05, 0.35].map((f, i) => {
@@ -64,14 +61,16 @@ export function createAmbient(scene, { curve, pts, stops }) {
 
   const nrm = new THREE.Vector3();
   return {
-    update({ time }) {
+    update({ time, progress }) {
+      const route = routeT(progress, stops.length);
       for (const v of traffic) {
-        let t = (v.offset + time * v.speed) % 1;
-        if (v.lane < 0) t = 1 - t;
+        let t = v.relative ? route + v.offset : ((v.offset - time * 0.012) % 1 + 1) % 1;
+        v.mesh.visible = t >= 0 && t <= 1;
+        if (!v.mesh.visible) continue;
         const p = curve.getPointAt(t), tan = curve.getTangentAt(t);
         nrm.set(tan.z, 0, -tan.x).normalize();
-        v.mesh.position.copy(p).addScaledVector(nrm, 3.0 * v.lane); // hero bus reaches 2.0 at its wheels; vehicles <=1.0 half-width; road half-width 4.25
-        v.mesh.rotation.y = Math.atan2(-tan.z, tan.x) + (v.lane < 0 ? Math.PI : 0);
+        v.mesh.position.copy(p).addScaledVector(nrm, v.lane);
+        v.mesh.rotation.y = Math.atan2(-tan.z, tan.x) + (v.reverse ? Math.PI : 0);
       }
       boats.forEach((b, i) => {
         b.position.y = 0.1 + Math.sin(time * 1.1 + i * 2) * 0.25;

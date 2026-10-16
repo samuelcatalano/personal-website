@@ -19,14 +19,37 @@ test('nearestStop maps ends to first and last', () => {
   assert.equal(nearestStop(0, 1), 0);
 });
 
-test('routeT dwells at stops and is monotonic', () => {
+test('routeT maps scroll continuously and uniformly onto the route', () => {
   const n = 5, seg = 1 / (n - 1);
   assert.equal(routeT(0, n), 0);
   assert.equal(routeT(1, n), 1);
-  assert.equal(routeT(seg * 0.1, n), 0);            // still parked at stop 0
-  assert.equal(routeT(seg * 0.9, n), seg);          // already parked at stop 1
+  assert.equal(routeT(-1, n), 0);
+  assert.equal(routeT(2, n), 1);
+  for (let i = 0; i < n; i++) assert.equal(routeT(i * seg, n), i * seg);
+  assert.equal(routeT(seg * 0.04, n), seg * 0.04);
+  assert.equal(routeT(seg * 0.96, n), seg * 0.96);
+  assert.equal(routeT(0.4, 1), 0);
+  const eps = 1e-4;
+  for (let i = 1; i < n - 1; i++) {
+    const stop = i * seg;
+    assert.ok(routeT(stop - eps, n) < stop && routeT(stop + eps, n) > stop);
+    assert.ok(Math.abs((routeT(stop + eps, n) - routeT(stop - eps, n)) - 2 * eps) < 1e-12);
+  }
   let prev = -1;
   for (let p = 0; p <= 1; p += 0.01) { const t = routeT(p, n); assert.ok(t >= prev); prev = t; }
+});
+
+test('spring gives nearly the same result mid-motion at 30, 60 and 120 Hz', () => {
+  const after = (hz) => {
+    let state = { value: 0, velocity: 0 };
+    for (let i = 0; i < hz * 0.2; i++) state = spring(state, 1, 1 / hz, 0.18);
+    return state;
+  };
+  const at30 = after(30), at60 = after(60), at120 = after(120);
+  for (const state of [at30, at120]) {
+    assert.ok(Math.abs(state.value - at60.value) < 0.002);
+    assert.ok(Math.abs(state.velocity - at60.velocity) < 0.02);
+  }
 });
 
 test('scrollYForStop is the inverse of nearestStop', () => {
@@ -86,6 +109,19 @@ test('blendShots hits endpoints and arcs at the middle', () => {
   close(blendShots(a, b, 0).position, a.position); close(blendShots(a, b, 0).target, a.target, 1e-4);
   close(blendShots(a, b, 1).position, b.position); close(blendShots(a, b, 1).target, b.target, 1e-4);
   assert.ok(Math.abs(blendShots(a, b, 0.5, 18).position[1] - (20 + 18)) < 1e-9);
+});
+
+test('blendShots eases camera framing at transition boundaries', () => {
+  const a = { position: [0, 10, 40], target: [0, 0, 0] };
+  const b = { position: [50, 30, 60], target: [60, 5, -20] };
+  const velocityAt = (at) => {
+    const epsilon = 1e-4;
+    const before = blendShots(a, b, at - epsilon, 18).position;
+    const after = blendShots(a, b, at + epsilon, 18).position;
+    return Math.hypot(...after.map((v, i) => v - before[i])) / (2 * epsilon);
+  };
+  assert.ok(velocityAt(0.001) < velocityAt(0.1));
+  assert.ok(velocityAt(0.999) < velocityAt(0.9));
 });
 
 test('blendShots turns the short way round', () => {

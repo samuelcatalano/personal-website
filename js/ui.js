@@ -53,7 +53,7 @@ export function initUI({ onGoto, onTheme }) {
     b.setAttribute('aria-pressed', String(prefs.theme === 'night'));
     onTheme(prefs.theme);
   };
-  const render = () => {
+  const render = (reveal = false) => {
     const t = i18n[prefs.lang];
     document.documentElement.lang = prefs.lang === 'pt' ? 'pt-BR' : 'en';
     document.querySelectorAll('[data-nav]').forEach(a => { a.textContent = t.ui.nav[a.dataset.nav]; });
@@ -69,6 +69,7 @@ export function initUI({ onGoto, onTheme }) {
     panel.innerHTML = sectionHTML(st.section, t, active);
     panel.scrollTop = top;
     panel.dataset.section = st.section;
+    if (reveal) panel.querySelector('.on')?.scrollIntoView({ block: 'nearest', behavior: 'instant' });
     if (keep) document.querySelector(`[${keep[0]}="${keep[1]}"]`)?.focus({ preventScroll: true });
     const c = t.stops[st.id];
     announce.textContent = c ? `${st.year} ${c.title}` : t.sections[st.section].title;
@@ -92,6 +93,6 @@ export function initUI({ onGoto, onTheme }) {
   applyTheme();
   return {
     get theme() { return prefs.theme; },
-    setActive(i) { if (i !== active) { active = i; render(); } },
+    setActive(i) { if (i !== active) { active = i; render(true); } },
   };
 }

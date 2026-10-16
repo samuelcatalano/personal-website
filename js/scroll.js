@@ -7,16 +7,8 @@ export function progressFromScroll(scrollY, scrollHeight, viewport) {
 
 export const nearestStop = (progress, n) => (n <= 1 ? 0 : Math.round(clamp01(progress) * (n - 1)));
 
-// Bus parks for the first and last 20% of each segment so the reader can read the stop.
-const DWELL = 0.2;
-const smooth = (x) => x * x * (3 - 2 * x);
 export function routeT(progress, n) {
-  if (n <= 1) return 0;
-  const s = clamp01(progress) * (n - 1);
-  const i = Math.min(Math.floor(s), n - 2);
-  const f = s - i;
-  const moved = f <= DWELL ? 0 : f >= 1 - DWELL ? 1 : smooth((f - DWELL) / (1 - 2 * DWELL));
-  return (i + moved) / (n - 1);
+  return n <= 1 ? 0 : clamp01(progress);
 }
 
 export const scrollYForStop = (i, n, scrollHeight, viewport) =>

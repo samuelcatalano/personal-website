@@ -12,24 +12,28 @@ import { createSigns } from './signs.js';
 import { buildFigure } from './figure.js';
 import { SECTION_SHOT, shotFor, blendShots, spring, approach } from './camera.js';
 
-const PIXEL_DESKTOP = 3, PIXEL_MOBILE = 2; // drawing buffer = viewport / k, upscaled with image-rendering: pixelated
-const SCROLL_SMOOTH = 0.32;                // seconds
-const ARC = 18;                            // camera lift when blending between different shot kinds
+const PIXEL_DESKTOP = 2, PIXEL_MOBILE = 1.5; // drawing buffer = viewport / k, upscaled with image-rendering: pixelated
+const BUS_LANE = 1.75;
+const SCROLL_SMOOTH = 0.18;                // seconds
+const ARC = 10;                            // camera lift when blending between different shot kinds
 
-export async function createWorld(canvas, stops, { reducedMotion = false } = {}) {
+export async function createWorld(canvas, stops, { reducedMotion = false, onProgress = () => {} } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
   renderer.setPixelRatio(1);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.shadowMap.enabled = !matchMedia('(max-width: 767px)').matches;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xa9d8f5);
-  scene.fog = new THREE.Fog(0xcfe8f7, 90, 340);
+  scene.fog = new THREE.Fog(0xcfe8f7, 180, 650);
   const camera = new THREE.PerspectiveCamera(40, 1, 1, 900);
   const hemi = new THREE.HemisphereLight(0xffffff, 0x5a7a4a, 1.1);
   const sun = new THREE.DirectionalLight(0xffffff, 1.6);
   sun.castShadow = true;
+  sun.shadow.bias = -0.0002;
+  sun.shadow.normalBias = 0.05;
   sun.shadow.mapSize.set(1024, 1024);
   Object.assign(sun.shadow.camera, { left: -80, right: 80, top: 80, bottom: -80, far: 300 });
   scene.add(hemi, sun, sun.target);
@@ -42,7 +46,6 @@ export async function createWorld(canvas, stops, { reducedMotion = false } = {})
   const { eye, plane, planeAt } = buildLandmarks(add, stops, pts);
   const bus = buildBus();
   scene.add(buildMeshes(list, { glow: ['#ffd86b', '#fff7c2'] }), eye, plane, bus);
-  const extent = { minX: pts[0].x, maxX: pts[n - 1].x };
 
   // Per-frame units register here as { update(frame) }; frame = { time, dt, progress, active, bus }.
   const units = [];
@@ -65,13 +68,14 @@ export async function createWorld(canvas, stops, { reducedMotion = false } = {})
     const k = mobile ? PIXEL_MOBILE : PIXEL_DESKTOP;
     renderer.setSize(Math.ceil(innerWidth / k), Math.ceil(innerHeight / k), false);
     camera.aspect = innerWidth / innerHeight;
+    camera.fov = Math.max(40, Math.min(65, Math.atan(0.48 / camera.aspect) * 360 / Math.PI));
+    renderer.shadowMap.enabled = !mobile;
     // bus right of the 400px panel on desktop, above the bottom sheet on mobile
     if (!mobile) camera.setViewOffset(innerWidth, innerHeight, -innerWidth * 0.12, 0, innerWidth, innerHeight);
     else camera.setViewOffset(innerWidth, innerHeight, 0, innerHeight * 0.18, innerWidth, innerHeight);
     camera.updateProjectionMatrix();
+    wake();
   };
-  addEventListener('resize', resize);
-  resize();
 
   const busPos = { x: 0, y: 0, z: 0 };
   const updatePlane = (p) => {
@@ -81,23 +85,26 @@ export async function createWorld(canvas, stops, { reducedMotion = false } = {})
   };
 
   let scroll = { value: 0, velocity: 0 }, target = 0, clock = 0, last = 0, raf = 0;
+  const lateral = new THREE.Vector3();
+  const wake = () => { if (!raf && !document.hidden) raf = requestAnimationFrame(frame); };
   const frame = (now) => {
-    raf = requestAnimationFrame(frame);
+    raf = 0;
+    if (document.hidden) { last = 0; return; }
     const dt = last ? Math.min(0.1, (now - last) / 1000) : 0; // first frame dt=0 → spring snaps
     last = now;
-    if (document.hidden) return;
-    scroll = reducedMotion ? { value: target, velocity: 0 } : spring(scroll, target, dt, SCROLL_SMOOTH);
+    scroll = reducedMotion ? { value: nearestStop(target, n) / (n - 1), velocity: 0 } : spring(scroll, target, dt, SCROLL_SMOOTH);
     if (!reducedMotion) clock += dt;
 
     const p = scroll.value, t = routeT(p, n);
     const bp = curve.getPointAt(t), tan = curve.getTangentAt(t);
-    bus.position.copy(bp);
+    lateral.set(tan.z, 0, -tan.x).normalize().multiplyScalar(BUS_LANE);
+    bus.position.copy(bp).add(lateral);
     bus.rotation.y = Math.atan2(-tan.z, tan.x);
-    Object.assign(busPos, { x: bp.x, y: bp.y, z: bp.z });
+    Object.assign(busPos, { x: bp.x + lateral.x, y: bp.y, z: bp.z + lateral.z });
 
     const s = t * (n - 1), i = Math.min(Math.floor(s), n - 2);
     const ka = SECTION_SHOT[stops[i].section], kb = SECTION_SHOT[stops[i + 1].section];
-    const view = { extent, mobile };
+    const view = { mobile };
     const shot = blendShots(shotFor(ka, busPos, view), shotFor(kb, busPos, view), s - i, ka === kb ? 0 : ARC);
     camera.position.fromArray(shot.position);
     camera.lookAt(shot.target[0], shot.target[1], shot.target[2]);
@@ -107,20 +114,31 @@ export async function createWorld(canvas, stops, { reducedMotion = false } = {})
     eye.rotation.z = clock * 0.1;
     updatePlane(p);
     const f = { time: clock, dt, progress: p, active: nearestStop(p, n), bus: busPos };
+    onProgress(p);
     for (const u of units) u.update(f);
-    night = reducedMotion ? nightTarget : approach(night, nightTarget, dt, 1.4);
+    night = reducedMotion || dt === 0 ? nightTarget : approach(night, nightTarget, dt, 1.4);
     sky.update(night);
     water.update(clock, night);
     renderer.render(scene, camera);
+    if (!reducedMotion) wake();
   };
+  const visibility = () => { last = 0; wake(); };
+  addEventListener('resize', resize);
+  document.addEventListener('visibilitychange', visibility);
+  resize();
 
   return {
-    setProgress(p) { target = p; },
-    jump(p) { target = p; scroll = { value: p, velocity: 0 }; },
+    setProgress(p) { target = p; wake(); },
+    jump(p) { target = p; scroll = { value: p, velocity: 0 }; wake(); },
     setTheme(name) {
       nightTarget = name === 'night' ? 1 : 0;
-      if (!raf) { night = nightTarget; raf = requestAnimationFrame(frame); }
+      wake();
     },
-    dispose() { cancelAnimationFrame(raf); raf = 0; removeEventListener('resize', resize); renderer.dispose(); },
+    dispose() {
+      cancelAnimationFrame(raf); raf = 0;
+      removeEventListener('resize', resize);
+      document.removeEventListener('visibilitychange', visibility);
+      renderer.dispose();
+    },
   };
 }

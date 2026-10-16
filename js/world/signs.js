@@ -24,7 +24,7 @@ export async function createSigns(scene, { stops, curve }) {
 
   const yearMat = new THREE.SpriteMaterial({ map: paintSign(stops[0].year, yearStyle(stops[0])), toneMapped: false });
   const year = new THREE.Sprite(yearMat);
-  year.scale.set(8, 3, 1);
+  year.scale.set(6, 2.2, 1);
   scene.add(year);
 
   const company = [];
@@ -46,7 +46,7 @@ export async function createSigns(scene, { stops, curve }) {
   let shown = -1;
   return {
     update({ active, bus }) {
-      year.position.set(bus.x, bus.y + 11, bus.z);
+      year.position.set(bus.x, bus.y + 6.8, bus.z);
       if (active === shown) return;
       const s = stops[active];
       yearMat.map.dispose();

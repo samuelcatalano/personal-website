@@ -10,7 +10,7 @@ let world = null;
 let progress = 0;
 const goto = (i) => scrollTo({
   top: scrollYForStop(i, n, document.documentElement.scrollHeight, innerHeight),
-  behavior: reducedMotion ? 'auto' : 'smooth',
+  behavior: 'auto', // the world spring supplies the transition, without a second scroll animation
 });
 const ui = initUI({ onGoto: goto, onTheme: (t) => world?.setTheme(t) });
 
@@ -25,14 +25,16 @@ if (SECTIONS.includes(hash)) addEventListener('load', () => requestAnimationFram
 
 watchScroll((p) => {
   progress = p;
-  ui.setActive(nearestStop(p, n));
+  if (!world) ui.setActive(nearestStop(p, n));
   world?.setProgress(p);
 });
 
 const hasWebGL = () => { try { const gl = document.createElement('canvas').getContext('webgl2'); gl?.getExtension('WEBGL_lose_context')?.loseContext(); return !!gl; } catch { return false; } };
 if (hasWebGL()) {
   import('./world/scene.js')
-    .then((m) => m.createWorld(document.getElementById('world'), stops, { reducedMotion }))
+    .then((m) => m.createWorld(document.getElementById('world'), stops, {
+      reducedMotion, onProgress: (p) => ui.setActive(nearestStop(p, n)),
+    }))
     .then((w) => { world = w; w.setProgress(progress); w.setTheme(ui.theme); document.body.classList.add('world-ready'); })
     .catch((err) => { console.warn('3D world unavailable:', err); document.body.classList.add('no-webgl'); });
 } else {
