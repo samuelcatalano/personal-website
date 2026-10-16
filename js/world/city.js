@@ -1,6 +1,6 @@
 import { RIVER_Z, LANDMARKS, rng, riverEnd, riverStart } from './layout.js';
 import { PALETTE as P } from './palette.js';
-const GRASS = P.grass, PATCH = P.patch, ROAD = P.road, LINE = P.cream;
+const PATCH = P.patch, ROAD = P.road, LINE = P.cream;
 const BANK = P.taupe, PATH = P.stone, CREAM = P.cream;
 const UK_WALLS = [CREAM, '#d8d0c2', P.stone];
 const BR_WALLS = [P.stone, '#d8d0c2', '#bdb3a4'];
@@ -27,8 +27,8 @@ function townhouse(add, x, z, side, br, r, roofStacks) {
     add(x, h + 0.74, z - side * (d * 0.36 - 0.12), w * 0.74, 0.28, 0.16, CREAM);
   }
   for (const dx of [-w / 2 + 0.18, w / 2 - 0.18]) add(x + dx, 0.42, face, 0.22, h - 0.72, 0.18, BANK);
-  for (let floor = 0; floor < floors; floor++) add(x, 0.42 + floor * 2.8, face, w, 0.12, 0.22, BANK);
   for (let floor = 0; floor < floors; floor++) {
+    add(x, 0.42 + floor * 2.8, face, w, 0.12, 0.22, BANK);
     for (const dx of [-2.15, 2.15]) {
       const y = 0.65 + floor * 2.8, lit = r() < 0.08;
       add(x + dx, y, face, 1.5, 1.9, 0.16, CREAM);
@@ -61,7 +61,7 @@ function palm(add, x, z) {
 export function buildCity(add, stops, pts, curve) {
   const r = rng(2026), LM = new Set(Object.values(LANDMARKS));
   const span = pts.length * 30 + 120, N = pts.length * 20;
-  add(0, -1, 0, span, 1, 200, GRASS);
+  add(0, -1, 0, span, 1, 200, P.pave);
   const x0 = riverStart(stops, pts), rEnd = riverEnd(stops, pts), mid = (x0 + rEnd) / 2, len = rEnd - x0;
   for (const side of [-1, 1]) {
     const edge = RIVER_Z + side * 12;

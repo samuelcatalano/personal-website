@@ -1,4 +1,3 @@
-// Pure math: node-testable
 export const SECTION_SHOT = {
   hero: 'hero', journey: 'follow', stack: 'high', articles: 'high', repos: 'high', recs: 'high', contact: 'closing',
 };
@@ -39,7 +38,6 @@ export function blendShots(a, b, t, arc = 0) {
   ];
   return { position, target };
 }
-// dt <= 0 snaps
 export function spring(state, target, dt, smoothTime) {
   if (dt <= 0 || smoothTime <= 0) return { value: target, velocity: 0 };
   const omega = 2 / smoothTime, x = omega * dt;

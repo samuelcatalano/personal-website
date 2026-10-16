@@ -4,21 +4,25 @@ import { buildBus } from './bus.js';
 import { RIVER_Z, LANDMARKS, stopIndex, swapAt, riverEnd, riverStart } from './layout.js';
 import { routeT } from '../scroll.js';
 const LIGHT = '#fff7c2';
-function cab() {
+function cab(c = '#16181c', sx = 1) {
   const { add, list } = createBoxes();
-  add(0, 0.3, 0, 4.3, 1, 1.8, '#16181c');
-  add(-0.1, 1.15, 0, 2.2, 0.55, 1.55, '#16181c');
+  add(0, 0.3, 0, 4.3, 1, 1.8, c);
+  add(-0.1, 1.15, 0, 2.2, 0.55, 1.55, c);
   add(0.5, 1.2, 0, 0.7, 0.4, 1.57, '#9fc6e6');
   for (const z of [0.5, -0.5]) add(2.15, 0.6, z, 0.05, 0.25, 0.3, LIGHT);
   for (const x of [-1.3, 1.3]) for (const z of [0.75, -0.75]) add(x, 0, z, 0.65, 0.55, 0.2, '#0b0b0b');
-  return buildMeshes(list, { glow: [LIGHT] });
+  const m = buildMeshes(list, { glow: [LIGHT] });
+  m.scale.x = sx;
+  return m;
 }
-function boat() {
+function boat(hull = '#6b4f3a', cabin = '#f4f4f4', sx = 1) {
   const { add, list } = createBoxes();
-  add(0, 0, 0, 6, 1, 2.2, '#6b4f3a');
-  add(-0.5, 1, 0, 2.6, 1.2, 1.8, '#f4f4f4');
+  add(0, 0, 0, 6, 1, 2.2, hull);
+  add(-0.5, 1, 0, 2.6, 1.2, 1.8, cabin);
   add(-0.5, 1.4, 0.91, 2, 0.4, 0.05, '#bfe3ff');
-  return buildMeshes(list);
+  const m = buildMeshes(list);
+  m.scale.x = sx;
+  return m;
 }
 export function createAmbient(scene, { curve, pts, stops }) {
   const traffic = [
@@ -27,11 +31,15 @@ export function createAmbient(scene, { curve, pts, stops }) {
     { mesh: cab(), lane: -1.75, offset: 0.25, reverse: true },
     { mesh: cab(), lane: -1.75, offset: 0.75, reverse: true },
     { mesh: cab(), lane: 1.75, offset: -0.16, relative: true, uk: false },
+    ...[['#e8c425', .08], ['#2f6fcf', .17], ['#3f9d4a', .42], ['#16181c', .5, 1], ['#b9bec4', .58], ['#e07a1f', .67], ['#16181c', .83, 1]].map(([c, offset, uk], i) => (
+      { mesh: cab(c, .9 + i % 2 * .1), lane: -1.75, offset, reverse: true, uk: uk && true })),
   ];
   traffic.forEach((v) => scene.add(v.mesh));
-  const boats = [-0.3, 0.05, 0.35].map((f, i) => {
-    const mesh = boat();
-    mesh.position.set(riverStart(stops, pts) + (riverEnd(stops, pts) - riverStart(stops, pts)) * (f + 0.3), 0.1, RIVER_Z + (i - 1) * 5);
+  // Thames only: none on the Pinheiros
+  const bx = pts[stopIndex(stops, LANDMARKS.heathrow)].x - 15, bw = riverEnd(stops, pts) - bx;
+  const boats = Array.from({ length: 7 }, (_, i) => {
+    const mesh = boat(...[[], ['#2b4a7a', '#f4f4f4', 1.2], ['#a8442f', '#e0c880', 0.85], ['#2f6b4a', '#f4f4f4', 1.1]][i % 4]);
+    mesh.position.set(bx + bw * (i + 0.5) / 7, 0.1, RIVER_Z + ((i % 3) - 1) * 4);
     scene.add(mesh);
     return mesh;
   });

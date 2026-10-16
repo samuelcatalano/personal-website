@@ -40,8 +40,7 @@ function sectionHTML(section, t, active) {
 }
 export function initUI({ onGoto, onTheme }) {
   const prefs = loadPrefs(store());
-  const panel = document.getElementById('panel');
-  const announce = document.getElementById('announce');
+  const panel = document.getElementById('panel'), announce = document.getElementById('announce');
   let active = -1;
   const applyTheme = () => {
     document.body.classList.toggle('theme-night', prefs.theme === 'night');

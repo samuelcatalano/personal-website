@@ -60,16 +60,9 @@ export function buildBus() {
     addBox(GLOW, 5.505, 0.72, z, 0.025, 0.22, 0.3);
     addBox(GLOW, -5.505, 0.72, z, 0.025, 0.2, 0.28);
   }
-  const details = buildMeshes(list, { glow: [GLOW] });
-  bus.add(details);
-  const wheels = [], hubs = [];
-  for (const x of [-3.75, 3.75]) for (const z of [-1.18, 1.18]) {
-    wheels.push([x, 0.55, z]);
-    hubs.push([x, 0.55, Math.sign(z) * 1.29]);
-  }
-  const wheelGeometry = new THREE.CylinderGeometry(0.55, 0.55, 0.22, 20).rotateX(Math.PI / 2);
-  const hubGeometry = new THREE.CylinderGeometry(0.22, 0.22, 0.04, 16).rotateX(Math.PI / 2);
-  addWheels(bus, wheelGeometry, TYRE, wheels);
-  addWheels(bus, hubGeometry, HUB, hubs);
+  bus.add(buildMeshes(list, { glow: [GLOW] }));
+  const wheels = [-3.75, 3.75].flatMap((x) => [-1.18, 1.18].map((z) => [x, 0.55, z]));
+  addWheels(bus, new THREE.CylinderGeometry(0.55, 0.55, 0.22, 20).rotateX(Math.PI / 2), TYRE, wheels);
+  addWheels(bus, new THREE.CylinderGeometry(0.22, 0.22, 0.04, 16).rotateX(Math.PI / 2), HUB, wheels.map(([x, y, z]) => [x, y, Math.sign(z) * 1.29]));
   return bus;
 }

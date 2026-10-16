@@ -23,7 +23,7 @@ print(js(r'''(async () => {
     `Tower Bridge towers must stand on opposite Thames banks; found z=${towerZ.join(',')}`);
   check(towers.every(b => Math.abs(b.x - bridgeX) < 1), 'Tower Bridge towers must share the crossing centerline');
   const opening = [towerZ[0] + Math.max(...towers.map(b => b.d)) / 2, towerZ.at(-1) - Math.max(...towers.map(b => b.d)) / 2];
-  check(boats.length === 3, `Expected all three ambient boats at the bridge; found ${boats.length}`);
+  check(boats.length === 7, `Expected seven Thames boats, all within the bridge opening in z; found ${boats.length}`);
   const deck = nearBridge.filter(b => b.y >= 3 && b.y <= 5 && b.h < 2 && b.d > 20);
   const roadDeck = deck.find(b => b.w === 6);
   check(roadDeck && roadDeck.z - roadDeck.d / 2 < RIVER_Z - 11 && roadDeck.z + roadDeck.d / 2 > RIVER_Z + 11,

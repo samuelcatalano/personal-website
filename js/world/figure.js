@@ -21,11 +21,8 @@ export function buildFigure(onReady = () => {}) {
   shadow.scale.x = 1.3;
   figure.add(shadow);
   new THREE.TextureLoader().load('assets/memoji-wave.png', (texture) => {
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.anisotropy = 4;
-    material.map = texture;
-    material.opacity = 1;
-    material.needsUpdate = true;
+    Object.assign(texture, { colorSpace: THREE.SRGBColorSpace, anisotropy: 4 });
+    Object.assign(material, { map: texture, opacity: 1, needsUpdate: true });
     onReady();
   });
   return figure;

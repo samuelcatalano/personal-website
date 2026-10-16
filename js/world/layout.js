@@ -1,4 +1,3 @@
-// Pure data: node-testable
 export const STOP_SPACING = 30;
 export const RIVER_Z = -45;
 export const routePoints = (n) => Array.from({ length: n }, (_, i) => ({

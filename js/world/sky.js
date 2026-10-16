@@ -3,7 +3,6 @@ import { Sky } from 'three/addons/objects/Sky.js';
 const DAY = { fog: new THREE.Color(0xa8d0f2), sun: 2.4, hemi: 1.0 };
 const NIGHT = { fog: new THREE.Color(0x0e1424), sun: 0.34, hemi: 0.48 };
 const GLOW = new THREE.Color(0xffc85a);
-// call after all glow materials exist
 export function createSky(scene, { hemi, sun, reducedMotion = false }) {
   const dome = new Sky();
   dome.scale.setScalar(800);
