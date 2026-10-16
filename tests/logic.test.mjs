@@ -138,6 +138,17 @@ test('spring snaps on dt <= 0 and converges without overshoot', () => {
   assert.ok(Math.abs(s.value - 1) < 1e-3);
 });
 
+test('spring reverses an in-flight scroll and converges inside the progress range', () => {
+  let s = { value: 0, velocity: 0 };
+  for (let i = 0; i < 18; i++) s = spring(s, 1, 1 / 60, 0.18);
+  assert.ok(s.value > 0.5 && s.value < 1);
+  for (let i = 0; i < 300; i++) {
+    s = spring(s, 0, 1 / 60, 0.18);
+    assert.ok(Number.isFinite(s.value) && s.value >= 0 && s.value <= 1);
+  }
+  assert.ok(s.value < 1e-3);
+});
+
 test('approach moves at most rate*dt and reverses smoothly', () => {
   const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-12, `${a} vs ${b}`);
   near(approach(0, 1, 0.1, 1.4), 0.14);

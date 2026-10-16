@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
-const DAY = { sky: new THREE.Color(0xa9d8f5), fog: new THREE.Color(0xcfe8f7), sun: 1.6, hemi: 1.1 };
-const NIGHT = { sky: new THREE.Color(0x0d1b3a), fog: new THREE.Color(0x14244a), sun: 0.25, hemi: 0.35 };
+const DAY = { sky: new THREE.Color(0xe8e0d2), fog: new THREE.Color(0xe8e0d2), sun: 1.25, hemi: 1.25 };
+const NIGHT = { sky: new THREE.Color(0x20252c), fog: new THREE.Color(0x30343a), sun: 0.34, hemi: 0.48 };
 const GLOW = new THREE.Color(0xffc85a);
 
 // Call after every glow material is in the scene: it collects them once.

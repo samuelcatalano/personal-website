@@ -12,25 +12,23 @@ import { createSigns } from './signs.js';
 import { buildFigure } from './figure.js';
 import { SECTION_SHOT, shotFor, blendShots, spring, approach } from './camera.js';
 
-const PIXEL_DESKTOP = 2, PIXEL_MOBILE = 1.5; // drawing buffer = viewport / k, upscaled with image-rendering: pixelated
 const BUS_LANE = 1.75;
 const SCROLL_SMOOTH = 0.18;                // seconds
 const ARC = 10;                            // camera lift when blending between different shot kinds
 
 export async function createWorld(canvas, stops, { reducedMotion = false, onProgress = () => {} } = {}) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(1);
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.shadowMap.enabled = !matchMedia('(max-width: 767px)').matches;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xa9d8f5);
-  scene.fog = new THREE.Fog(0xcfe8f7, 180, 650);
+  scene.background = new THREE.Color(0xe8e0d2);
+  scene.fog = new THREE.Fog(0xe8e0d2, 180, 650);
   const camera = new THREE.PerspectiveCamera(40, 1, 1, 900);
-  const hemi = new THREE.HemisphereLight(0xffffff, 0x5a7a4a, 1.1);
-  const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+  const hemi = new THREE.HemisphereLight(0xfff8eb, 0x8e8375, 1.25);
+  const sun = new THREE.DirectionalLight(0xfff3df, 1.25);
   sun.castShadow = true;
   sun.shadow.bias = -0.0002;
   sun.shadow.normalBias = 0.05;
@@ -45,7 +43,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   buildCity(add, stops, pts, curve);
   const { eye, plane, planeAt } = buildLandmarks(add, stops, pts);
   const bus = buildBus();
-  scene.add(buildMeshes(list, { glow: ['#ffd86b', '#fff7c2'] }), eye, plane, bus);
+  scene.add(buildMeshes(list, { glow: ['#e8d7b3', '#ffd86b', '#fff7c2'] }), eye, plane, bus);
 
   // Per-frame units register here as { update(frame) }; frame = { time, dt, progress, active, bus }.
   const units = [];
@@ -63,19 +61,38 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   let night = 0, nightTarget = 0;
 
   let mobile = false;
+  const bar = document.querySelector('.bar'), panel = document.querySelector('#panel');
+  let fitKey = '';
+  const fit = () => {
+    const width = innerWidth, height = innerHeight;
+    const headerBottom = bar?.getBoundingClientRect().bottom ?? 0;
+    const panelBox = panel?.getBoundingClientRect();
+    const key = `${width}:${height}:${mobile}:${headerBottom}:${panelBox?.left}:${panelBox?.top}:${panelBox?.right}:${panelBox?.bottom}`;
+    if (key === fitKey) return false;
+    fitKey = key;
+    if (mobile) {
+      const panelTop = panelBox?.top ?? height;
+      camera.setViewOffset(width, height, 0, height / 2 - (headerBottom + panelTop) / 2, width, height);
+    } else if (panel) {
+      const panelRight = panelBox.right;
+      camera.setViewOffset(width, height, -panelRight / 2, -headerBottom / 2, width, height);
+    } else camera.clearViewOffset();
+    return true;
+  };
   const resize = () => {
     mobile = innerWidth < 768;
-    const k = mobile ? PIXEL_MOBILE : PIXEL_DESKTOP;
-    renderer.setSize(Math.ceil(innerWidth / k), Math.ceil(innerHeight / k), false);
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, mobile ? 1 : 1.5));
+    renderer.setSize(innerWidth, innerHeight, false);
     camera.aspect = innerWidth / innerHeight;
     camera.fov = Math.max(40, Math.min(65, Math.atan(0.48 / camera.aspect) * 360 / Math.PI));
     renderer.shadowMap.enabled = !mobile;
-    // bus right of the 400px panel on desktop, above the bottom sheet on mobile
-    if (!mobile) camera.setViewOffset(innerWidth, innerHeight, -innerWidth * 0.12, 0, innerWidth, innerHeight);
-    else camera.setViewOffset(innerWidth, innerHeight, 0, innerHeight * 0.18, innerWidth, innerHeight);
+    fit();
     camera.updateProjectionMatrix();
     wake();
   };
+  const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => { if (fit()) { camera.updateProjectionMatrix(); wake(); } });
+  if (bar) observer?.observe(bar);
+  if (panel) observer?.observe(panel);
 
   const busPos = { x: 0, y: 0, z: 0 };
   const updatePlane = (p) => {
@@ -138,6 +155,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       cancelAnimationFrame(raf); raf = 0;
       removeEventListener('resize', resize);
       document.removeEventListener('visibilitychange', visibility);
+      observer?.disconnect();
       renderer.dispose();
     },
   };

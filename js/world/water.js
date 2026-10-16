@@ -40,14 +40,14 @@ export function createWater({ span, z, width }) {
     mat = new THREE.ShaderMaterial({
       uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
         uTime: { value: 0 }, uNight: { value: 0 },
-        uDeep: { value: new THREE.Color(0x3f7fb8) }, uShallow: { value: new THREE.Color(0x5a9fd6) },
-        uGlint: { value: new THREE.Color(0xd6f0ff) }, uNightTint: { value: new THREE.Color(0x16264a) },
+        uDeep: { value: new THREE.Color(0x71838c) }, uShallow: { value: new THREE.Color(0x96a3a4) },
+        uGlint: { value: new THREE.Color(0xc4cbc5) }, uNightTint: { value: new THREE.Color(0x20252c) },
       }]),
       vertexShader, fragmentShader, fog: true,
     });
   } catch {
     shader = false;
-    mat = new THREE.MeshLambertMaterial({ color: 0x4f86b8 }); // flat fallback
+    mat = new THREE.MeshLambertMaterial({ color: 0x71838c }); // flat fallback
   }
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.set(0, 0.1, z);
@@ -55,7 +55,7 @@ export function createWater({ span, z, width }) {
     mesh,
     update(time, night) {
       if (!shader) return;
-      mat.uniforms.uTime.value = Math.floor(time * 8) / 8; // stepped, pixel-art shimmer
+      mat.uniforms.uTime.value = Math.floor(time * 8) / 8; // stepped shimmer remains low-cost
       mat.uniforms.uNight.value = night;
     },
   };
