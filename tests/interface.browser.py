@@ -46,17 +46,26 @@ try:
     print(js("""(async () => {
   const check = (ok, message) => { if (!ok) throw Error(message); };
   const wait = () => new Promise(resolve => setTimeout(resolve, 30));
+  const { i18n } = await import('./js/content.js');
+  const checkLanguageLabel = lang => {
+    const button = document.querySelector('[data-lang]');
+    const description = i18n[lang].ui.lang;
+    check(button.getAttribute('aria-label').includes(button.textContent) && button.getAttribute('aria-label').includes(description), `${lang} language button label must include its visible target and localized description`);
+  };
   document.querySelector('[data-nav=journey]').click(); await wait();
   const rows = document.querySelectorAll('[data-goto]');
   check(rows.length === 10, `Expected 10 journey buttons, found ${rows.length}`);
   check(document.querySelectorAll('.stops li.on').length === 1, 'Journey must show exactly one active detail');
   check(document.querySelectorAll('.detail').length === 1, 'Journey must show exactly one open detail');
   const prevY = scrollY;
+  checkLanguageLabel('en');
   document.querySelector('[data-lang]').focus(); document.querySelector('[data-lang]').click(); await wait();
   check(document.documentElement.lang === 'pt-BR', 'Portuguese language did not apply');
+  checkLanguageLabel('pt');
   check(document.activeElement.matches('[data-lang]'), 'Language control lost focus after rendering');
   check(scrollY === prevY, 'Language rendering changed page scroll');
   document.querySelector('[data-lang]').click(); await wait();
+  checkLanguageLabel('en');
   document.querySelector('[data-nav-home]').click(); await wait();
   document.querySelector('[data-nav=journey]').click(); await wait();
   const row = document.querySelector('[data-goto]'); row.focus(); row.click(); await wait();

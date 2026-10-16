@@ -70,8 +70,9 @@ export function initUI({ onGoto, onTheme }) {
       if (a.dataset.nav === st.section) a.setAttribute('aria-current', 'page');
       else a.removeAttribute('aria-current');
     });
-    document.querySelector('[data-lang]').textContent = prefs.lang === 'en' ? 'PT' : 'EN';
-    document.querySelector('[data-lang]').setAttribute('aria-label', t.ui.lang);
+    const langButton = document.querySelector('[data-lang]');
+    langButton.textContent = prefs.lang === 'en' ? 'PT' : 'EN';
+    langButton.setAttribute('aria-label', `${langButton.textContent} — ${t.ui.lang}`);
     document.querySelector('[data-theme]').setAttribute('aria-label', t.ui.theme);
     document.querySelector('.skip').textContent = t.ui.skip;
     const prev = document.activeElement;
