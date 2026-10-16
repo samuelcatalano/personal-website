@@ -112,7 +112,7 @@ function wembley(add, { x }) {
     const r = (a * PI) / 180;
     add(x + Math.cos(r) * 16, 0, cz + Math.sin(r) * 11, 5, 9, 5, P.cream);
   }
-  add(x, 0, cz, 22, 0.5, 14, P.pave);
+  add(x, 0, cz, 22, 0.5, 14, P.patch);
   for (let a = 0; a <= 180; a += 6) {
     const r = (a * PI) / 180;
     add(x + Math.cos(r) * 20, Math.sin(r) * 34, cz, 1.4, 1.4, 1.4, WHITE);
