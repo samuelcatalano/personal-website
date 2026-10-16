@@ -60,7 +60,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   figure.position.set(end.x + endTan.x * 9 + near.x * 2, 0, end.z + endTan.z * 9 + near.z * 2); // off the road, framed by the closing shot
   scene.add(figure);
   // ── later tasks add more units ABOVE this line; sky must stay last (it collects glow materials) ──
-  const sky = createSky(scene, { hemi, sun });
+  const sky = createSky(scene, { hemi, sun, reducedMotion });
   const post = createPost(renderer, scene, camera, { sun, tier: reducedMotion || matchMedia('(max-width: 767px)').matches ? 'medium' : 'high' });
   post.addSSR(water.mesh);
   let fpsT = 0, fpsN = 0;
@@ -141,7 +141,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     onProgress(p);
     for (const u of units) u.update(f);
     night = reducedMotion || dt === 0 ? nightTarget : approach(night, nightTarget, dt, 1.4);
-    sky.update(night);
+    sky.update(night, dt, camera.position);
     water.update(clock, night);
     if (dt > 0 && post.tier === 'high') { // sample FPS over 2 s
       fpsT += dt; fpsN++;

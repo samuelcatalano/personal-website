@@ -1,11 +1,36 @@
 import * as THREE from 'three';
+import { Sky } from 'three/addons/objects/Sky.js';
 
-const DAY = { sky: new THREE.Color(0xe8e0d2), fog: new THREE.Color(0xe8e0d2), sun: 1.25, hemi: 1.25 };
-const NIGHT = { sky: new THREE.Color(0x20252c), fog: new THREE.Color(0x30343a), sun: 0.34, hemi: 0.48 };
+const DAY = { fog: new THREE.Color(0xe8e0d2), sun: 1.25, hemi: 1.25 };
+const NIGHT = { fog: new THREE.Color(0x30343a), sun: 0.34, hemi: 0.48 };
 const GLOW = new THREE.Color(0xffc85a);
 
 // Call after every glow material is in the scene: it collects them once.
-export function createSky(scene, { hemi, sun }) {
+export function createSky(scene, { hemi, sun, reducedMotion = false }) {
+  const dome = new Sky();
+  dome.scale.setScalar(800); // camera far = 900; follows the camera
+  const u = dome.material.uniforms;
+  u.turbidity.value = 4; u.mieCoefficient.value = 0.005; u.mieDirectionalG.value = 0.8;
+  const sunDir = new THREE.Vector3();
+  scene.add(dome);
+
+  // soft cloud sprites: one radial-gradient canvas shared by 8 flat planes
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+  const cx = cv.getContext('2d'), gr = cx.createRadialGradient(64, 64, 0, 64, 64, 64);
+  gr.addColorStop(0, 'rgba(255,255,255,0.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  cx.fillStyle = gr; cx.fillRect(0, 0, 128, 128);
+  const cloudMat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false, fog: false });
+  const clouds = new THREE.Group();
+  for (let i = 0; i < 8; i++) {
+    const c = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), cloudMat);
+    const w = 160 + Math.random() * 140;
+    c.scale.set(w, w * 0.55, 1);
+    c.rotation.x = -Math.PI / 2;
+    c.position.set((Math.random() - 0.5) * 900, 120, (Math.random() - 0.5) * 600);
+    clouds.add(c);
+  }
+  scene.add(clouds);
+
   const glow = [];
   scene.traverse((o) => { if (o.material?.userData?.glow) glow.push(o.material); });
 
@@ -21,8 +46,16 @@ export function createSky(scene, { hemi, sun }) {
   scene.add(stars);
 
   return {
-    update(night) {
-      scene.background.lerpColors(DAY.sky, NIGHT.sky, night);
+    // dt/cam optional: clouds drift and the dome tracks the camera
+    update(night, dt = 0, cam) {
+      const el = 35 - 55 * night; // degrees; below the horizon at night
+      sunDir.setFromSphericalCoords(1, Math.PI / 2 - el * Math.PI / 180, 0.9);
+      u.sunPosition.value.copy(sunDir);
+      u.rayleigh.value = 1.5 - 1.3 * night;
+      cloudMat.color.setScalar(1 - 0.75 * night);
+      cloudMat.opacity = 1 - 0.5 * night;
+      if (cam) { dome.position.copy(cam); clouds.position.set(cam.x, 0, cam.z); }
+      if (!reducedMotion) for (const c of clouds.children) { c.position.x += dt * 2; if (c.position.x > 450) c.position.x -= 900; }
       scene.fog.color.lerpColors(DAY.fog, NIGHT.fog, night);
       sun.intensity = DAY.sun + (NIGHT.sun - DAY.sun) * night;
       hemi.intensity = DAY.hemi + (NIGHT.hemi - DAY.hemi) * night;
