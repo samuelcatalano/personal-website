@@ -34,8 +34,8 @@ gl_FragColor = vec4(c, 1.0);
 #include <colorspace_fragment>
 #include <fog_fragment>
 }`;
-export function createWater({ span, z, width }) {
-  const geo = new THREE.PlaneGeometry(span, width).rotateX(-Math.PI / 2);
+export function createWater({ x0, x1, z, width }) {
+  const geo = new THREE.PlaneGeometry(x1 - x0, width).rotateX(-Math.PI / 2);
   const mat = new THREE.ShaderMaterial({
     uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
       uTime: { value: 0 }, uNight: { value: 0 },
@@ -45,7 +45,7 @@ export function createWater({ span, z, width }) {
     vertexShader, fragmentShader, fog: true,
   });
   const mesh = new THREE.Mesh(geo, mat);
-  mesh.position.set(0, 0.1, z);
+  mesh.position.set((x0 + x1) / 2, 0.1, z);
   return {
     mesh,
     update(time, night) {

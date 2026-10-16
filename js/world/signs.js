@@ -1,16 +1,19 @@
 import * as THREE from 'three';
-const tex = (c) => Object.assign(new THREE.CanvasTexture(c), { minFilter: THREE.LinearMipmapLinearFilter, colorSpace: THREE.SRGBColorSpace });
-export function paintSign(text, { bg = '#d6211f', fg = '#ffffff', w = 256, h = 96 } = {}) {
+const tex = (c) => Object.assign(new THREE.CanvasTexture(c), { colorSpace: THREE.SRGBColorSpace });
+export function paintSign(text) {
   const c = document.createElement('canvas');
-  c.width = w; c.height = h;
+  c.width = 80; c.height = 64;
   const g = c.getContext('2d');
-  g.fillStyle = '#f8f6f1'; g.fillRect(0, 0, w, h);
-  g.fillStyle = bg; g.fillRect(4, 4, w - 8, h - 8);
-  g.fillStyle = fg;
-  g.font = `600 ${Math.round(h * 0.42)}px Inter, system-ui, sans-serif`;
+  const r = (col, ...a) => { g.fillStyle = col; g.fillRect(...a); };
+  r('#4a3419', 34, 40, 12, 24);
+  r('#6b4a24', 0, 0, 80, 40);
+  r('#a27b4c', 2, 2, 76, 36);
+  for (let y = 10; y < 38; y += 9) r('#8a6638', 2, y, 76, 1);
+  g.fillStyle = '#2b1d0e';
+  g.font = 'bold 15px monospace';
   g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.fillText(text, w / 2, h / 2 + 2);
-  return tex(c);
+  g.fillText(text, 40, 21);
+  return Object.assign(tex(c), { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter });
 }
 export function paintPlaque(text, color, size = 128) {
   const c = document.createElement('canvas');
@@ -24,12 +27,11 @@ export function paintPlaque(text, color, size = 128) {
   g.fillText(text, size / 2, size / 2 - 6);
   return tex(c);
 }
-const YEAR = { bg: '#e8e0d2', fg: '#302d29' };
 export async function createSigns(scene, { stops, curve }) {
   await Promise.race([document.fonts?.load('600 48px Inter'), new Promise((r) => setTimeout(r, 1500))]).catch(() => {});
-  const yearMat = new THREE.SpriteMaterial({ map: paintSign(stops[0].year, YEAR), toneMapped: false });
+  const yearMat = new THREE.SpriteMaterial({ map: paintSign(stops[0].year), toneMapped: false });
   const year = new THREE.Sprite(yearMat);
-  year.scale.set(4.2, 1.5, 1);
+  year.scale.set(4.2, 3.36, 1);
   scene.add(year);
   const company = [];
   stops.forEach((s, i) => {
@@ -58,7 +60,7 @@ export async function createSigns(scene, { stops, curve }) {
       if (active === shown) return;
       const s = stops[active];
       yearMat.map.dispose();
-      yearMat.map = paintSign(s.year, YEAR);
+      yearMat.map = paintSign(s.year);
       yearMat.needsUpdate = true;
       for (const c of company) c.sprite.scale.setScalar(c.i === active ? 2 : 1.6);
       shown = active;

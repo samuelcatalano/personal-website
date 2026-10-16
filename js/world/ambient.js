@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { createBoxes, buildMeshes } from './voxel.js';
 import { buildBus } from './bus.js';
-import { RIVER_Z, LANDMARKS, stopIndex, swapAt } from './layout.js';
+import { RIVER_Z, LANDMARKS, stopIndex, swapAt, riverEnd } from './layout.js';
 import { routeT } from '../scroll.js';
 const LIGHT = '#fff7c2';
 function cab() {
@@ -9,8 +9,7 @@ function cab() {
   add(0, 0.3, 0, 4.3, 1, 1.8, '#16181c');
   add(-0.1, 1.15, 0, 2.2, 0.55, 1.55, '#16181c');
   add(0.5, 1.2, 0, 0.7, 0.4, 1.57, '#9fc6e6');
-  add(2.15, 0.6, 0.5, 0.05, 0.25, 0.3, LIGHT);
-  add(2.15, 0.6, -0.5, 0.05, 0.25, 0.3, LIGHT);
+  for (const z of [0.5, -0.5]) add(2.15, 0.6, z, 0.05, 0.25, 0.3, LIGHT);
   for (const x of [-1.3, 1.3]) for (const z of [0.75, -0.75]) add(x, 0, z, 0.65, 0.55, 0.2, '#0b0b0b');
   return buildMeshes(list, { glow: [LIGHT] });
 }
@@ -32,7 +31,7 @@ export function createAmbient(scene, { curve, pts, stops }) {
   traffic.forEach((v) => scene.add(v.mesh));
   const boats = [-0.3, 0.05, 0.35].map((f, i) => {
     const mesh = boat();
-    mesh.position.set(pts[0].x + (pts.at(-1).x - pts[0].x) * (f + 0.3), 0.1, RIVER_Z + (i - 1) * 5);
+    mesh.position.set(pts[0].x + (riverEnd(stops, pts) - pts[0].x) * (f + 0.3), 0.1, RIVER_Z + (i - 1) * 5);
     scene.add(mesh);
     return mesh;
   });
@@ -47,7 +46,7 @@ export function createAmbient(scene, { curve, pts, stops }) {
   birds.position.set(bb.x, 0, RIVER_Z - 16);
   scene.add(birds);
   const blink = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), new THREE.MeshBasicMaterial({ color: 0xff2a2a }));
-  blink.position.set(bb.x, 34.4, RIVER_Z - 16); // top of Big Ben's spire
+  blink.position.set(bb.x, 34.4, RIVER_Z - 16);
   scene.add(blink);
   const nrm = new THREE.Vector3(), swap = swapAt(stops);
   return {

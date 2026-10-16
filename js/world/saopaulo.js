@@ -33,7 +33,7 @@ function se(add, { x }) {
 }
 function estaiada(add, { x }) {
   const z = RIVER_Z;
-  add(x, 3.6, z, 8, 1.2, 56, P.concrete); // clears road
+  add(x, 3.6, z, 8, 1.2, 56, P.concrete);
   for (let y = 0; y < 46; y += 2) {
     const o = Math.abs(y - 20) * 0.27;
     for (const s of [-1, 1]) add(x + s * o, y, z, 2.2, 2, 2.2, P.concrete);

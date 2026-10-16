@@ -17,6 +17,7 @@ export const LANDMARKS = {
 };
 export const FRAME_LIFT = { xdesign: 1, olm: 0.6, tribal: 1 };
 export const stopIndex = (stops, id) => stops.findIndex((s) => s.id === id);
+export const riverEnd = (stops, pts) => pts[stopIndex(stops, LANDMARKS.towerbridge)].x + 24;
 export function rng(seed) {
   return () => {
     seed |= 0; seed = (seed + 0x6d2b79f5) | 0;

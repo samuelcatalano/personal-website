@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { routeT, nearestStop } from '../scroll.js';
-import { routePoints, RIVER_Z, FRAME_LIFT, swapAt } from './layout.js';
+import { routePoints, RIVER_Z, riverEnd, FRAME_LIFT, swapAt } from './layout.js';
 import { createBoxes, buildMeshes } from './voxel.js';
 import { buildCity } from './city.js';
 import { buildLandmarks } from './landmarks.js';
@@ -42,7 +42,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const routemaster = buildBus(), mini = buildMini(), bus = new THREE.Group().add(mini, routemaster), swap = swapAt(stops);
   scene.add(buildMeshes(list, { glow: ['#e8d7b3', '#ffd86b', '#fff7c2'] }), eye, details, plane, bus);
   const units = [];
-  const water = createWater({ span: pts.length * 30 + 120, z: RIVER_Z, width: 22 });
+  const water = createWater({ x0: -(pts.length * 30 + 120) / 2, x1: riverEnd(stops, pts), z: RIVER_Z, width: 22 });
   scene.add(water.mesh);
   units.push(createAmbient(scene, { curve, pts, stops }));
   units.push(await createSigns(scene, { stops, curve }));
@@ -65,7 +65,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const width = innerWidth, height = innerHeight;
     const headerBottom = bar?.getBoundingClientRect().bottom ?? 0;
     const panelBox = panel?.getBoundingClientRect();
-    const key = `${width}:${height}:${mobile}:${headerBottom}:${panelBox?.left}:${panelBox?.top}:${panelBox?.right}:${panelBox?.bottom}`;
+    const key = JSON.stringify([width, height, mobile, headerBottom, panelBox]);
     if (key === fitKey) return false;
     fitKey = key;
     if (mobile) {
@@ -96,7 +96,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const updatePlane = (p) => {
     const d = (p - planeAt) * (n - 1);
     plane.visible = planeAt >= 0 && Math.abs(d) < 1;
-    if (plane.visible) plane.position.set(busPos.x + 16 + d * 60, Math.max(3, 14 - d * 10), busPos.z + 8); // in frame at 2019
+    if (plane.visible) plane.position.set(busPos.x + 16 + d * 60, Math.max(3, 14 - d * 10), busPos.z + 8);
   };
   let scroll = { value: 0, velocity: 0 }, target = 0, clock = 0, last = 0;
   const lateral = new THREE.Vector3();

@@ -12,7 +12,7 @@ export function buildMini() {
   const mini = new THREE.Group(), { add, list } = createBoxes();
   add(0, 0.28, 0, 3.9, 0.9, 1.68, '#f4f1ea');
   add(-0.25, 1.1, 0, 2.1, 0.4, 1.5, '#1d2630');
-  add(-0.25, 1.5, 0, 2.2, 0.1, 1.58, '#16181c');
+  add(-0.25, 1.5, 0, 2.2, 0.1, 1.58, RED);
   mini.add(buildMeshes(list));
   addWheels(mini, new THREE.CylinderGeometry(0.3, 0.3, 0.2, 16).rotateX(Math.PI / 2), TYRE, [1.2, -1.2].flatMap((x) => [[x, 0.3, 0.76], [x, 0.3, -0.76]]));
   addWheels(mini, new THREE.CylinderGeometry(0.15, 0.15, 0.06, 14).rotateZ(Math.PI / 2), GLOW, [[1.96, 0.62, 0.55], [1.96, 0.62, -0.55]]);

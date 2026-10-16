@@ -9,7 +9,6 @@ let world = null;
 let progress = 0;
 const goto = (i) => scrollTo({
   top: scrollYForStop(i, n, H(), innerHeight),
-  behavior: 'auto',
 });
 const ui = initUI({ onGoto: goto, onTheme: (t) => world?.setTheme(t) });
 const hash = location.hash.slice(1);
