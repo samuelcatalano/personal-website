@@ -16,7 +16,7 @@ function townhouse(add, x, z, side, br, r, roofStacks) {
   add(x, 0, z, w + 0.2, 0.38, d + 0.2, ROOF);
   add(x, h - 0.25, z, w + 0.45, 0.3, d + 0.45, CREAM);
   const rc = ROOFS[Math.abs(Math.round(x * 0.37 + z * 0.11)) % ROOFS.length];
-  add(x, h, z, w + 0.7, 0.42, d + 0.7, rc);
+  add(x, h, z, w, 0.42, d + 0.7, rc); // roof abuts its neighbour: no coplanar overlap
   add(x, h + 0.42, z, w * 0.74, 0.32, d * 0.72, rc);
   const stacks = roofStacks && side === 1;
   if (!br && r() < 0.5) { const sx = r() < 0.5 ? -2.4 : 2.4; if (!stacks) add(x + sx, h + 0.7, z, 0.65, 1.1, 0.7, ROOF); }
@@ -29,7 +29,7 @@ function townhouse(add, x, z, side, br, r, roofStacks) {
   }
   for (const dx of [-w / 2 + 0.18, w / 2 - 0.18]) add(x + dx, 0.42, face, 0.22, h - 0.72, 0.18, BANK);
   for (let floor = 0; floor < floors; floor++) {
-    add(x, 0.42 + floor * 2.8, face, w, 0.12, 0.22, BANK);
+    add(x, 0.42 + floor * 2.8, face, w + 0.06, 0.12, 0.22, BANK);
     for (const dx of [-2.15, 2.15]) {
       const y = 0.65 + floor * 2.8, lit = r() < 0.08;
       add(x + dx, y, face, 1.5, 1.9, 0.16, CREAM);
@@ -44,7 +44,7 @@ function townhouse(add, x, z, side, br, r, roofStacks) {
   add(x, 0.25, face - side * 0.14, 1.12, 2.02, 0.1, ROOF);
   add(x, 1.7, face - side * 0.21, 0.18, 0.18, 0.08, WINDOW_LIT);
   add(x, 2.48, face - side * 0.12, 1.7, 0.2, 0.34, BANK);
-  add(x, 0.2, face - side * 0.12, 1.72, 0.18, 0.34, BANK);
+  add(x, 0.22, face - side * 0.12, 1.72, 0.18, 0.34, BANK);
 }
 const broadleaf = (r) => ({ h: 2.6 + r() * 0.6, crown: 1.8 + r() * 0.5 });
 export function tree(add, x, z, { h, crown }) {
@@ -63,7 +63,7 @@ export function buildCity(add, stops, pts, curve) {
   for (const side of [-1, 1]) {
     const edge = RIVER_Z + side * 12;
     add(mid, -0.08, edge, len, 0.18, 2.2, BANK);
-    add(mid, 0.02, edge + side * 2.1, len, 0.12, 3.2, PATH);
+    add(mid, 0.02, edge + side * 2.1, len - 0.1, 0.12, 3.2, PATH);
     for (let x = x0 + 7; x < rEnd; x += 18) {
       add(x, 0.02, edge + side * 3.1, 1.2, 0.42, 0.7, PATCH);
       add(x + 1.3, 0.02, edge + side * 3.1, 0.55, 0.7, 0.55, LEAF);

@@ -4,8 +4,8 @@ const FAR = RIVER_Z - 18;
 function masp(add, { x }) {
   const z = FAR;
   for (const ex of [-17, 17]) {
-    add(x + ex, 0, z - 5.5, 1.6, 14, 1.6, P.masp);
-    add(x + ex, 0, z + 5.5, 1.6, 14, 1.6, P.masp);
+    add(x + ex, 0, z - 5.5, 1.6, 13.98, 1.6, P.masp);
+    add(x + ex, 0, z + 5.5, 1.6, 13.98, 1.6, P.masp);
     add(x + ex, 14, z, 2, 1.6, 13, P.masp);
   }
   add(x, 14, z, 40, 1.2, 3, P.masp);
@@ -51,7 +51,7 @@ function paulista(add, x, i) {
   [[-8, 30 + (i % 3) * 8], [9, 44 - (i % 2) * 10]].forEach(([dx, h], j) => {
     const tx = x + dx, w = 9, t = j ? 4.4 : 4.5;
     add(tx, 0, z, w, h, w, P.glass);
-    for (const [cx, cz] of [[-t, -t], [-t, t], [t, -t], [t, t]]) add(tx + cx, 0, z + cz, 1, h + 0.5, 1, P.concrete);
+    for (const [cx, cz] of [[-t, -t], [-t, t], [t, -t], [t, t]]) add(tx + cx, 0, z + cz, 1.06, h + 0.5, 1.06, P.concrete);
     for (let y = 6; y < h; y += 6) add(tx, y, z, w + 0.4, 0.8, w + 0.4, P.concrete);
     add(tx, h, z, w + 0.6, 1, w + 0.6, P.steel);
     add(tx, h + 1, z, 0.4, 5, 0.4, P.steel);

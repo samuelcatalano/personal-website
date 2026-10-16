@@ -17,7 +17,7 @@ export function car({ L, W, c, roof = c, hl, bl, ch, taxi, ring }) {
   add(0, 0.4, 0, L - 0.2, 0.5, W, c);                                // lower body
   add((xf + bx) / 2, 0.9, 0, hl, 0.1, W - 0.1, c);                   // hood, below the cabin
   add((xr - bx) / 2, 0.9, 0, bl, 0.1, W - 0.1, c);                   // boot
-  add(cx, 0.9, 0, cl - 0.1, ch, W - 0.24, '#1d2630');                // glass, inset 0.06
+  add(cx, 0.9, 0, cl - 0.1, ch - 0.02, W - 0.24, '#1d2630');                // glass, inset 0.06
   for (const x of [cx - cl / 2 + 0.07, cx + cl / 2 - 0.07, cx + cl * 0.05]) add(x, 0.9, 0, 0.14, ch, W - 0.12, c); // A/B/C pillars
   add(cx, top, 0, cl + 0.05, 0.1, W - 0.14, roof);                   // roof, narrower than the body
   if (taxi) add(cx + 0.4, top + 0.1, 0, 0.35, 0.14, 0.7, '#ffd36b'); // TAXI roof sign
@@ -28,11 +28,11 @@ export function car({ L, W, c, roof = c, hl, bl, ch, taxi, ring }) {
     if (ring) add(e - 0.08, 0.57, lz, 0.08, 0.3, 0.3, '#c9c9c9');    // chrome ring (Mini)
     add(e - 0.05, 0.62, lz, 0.1, ring ? 0.2 : 0.18, ring ? 0.2 : 0.3, GLOW);   // headlight
     add(-e + 0.07, 0.62, lz, 0.1, 0.2, 0.3, TAIL);                   // tail-light
-    add(-e + 0.07, 0.82, lz, 0.1, 0.08, 0.3, INDI);                  // indicator
+    add(-e + 0.07, 0.83, lz, 0.1, 0.08, 0.3, INDI);                  // indicator
     add(cx + cl / 2, 1, z * (W / 2 + 0.04), 0.12, 0.1, 0.12, c);      // mirror
     for (const x of [L * 0.3, -L * 0.3]) {
       add(x, 0.05, z * (W / 2 - 0.03), 0.84, 0.72, 0.1, ARCH);       // wheel arch
-      add(x, 0, z * (W / 2 - 0.1), 0.6, 0.6, 0.24, TYRE);            // wheel, tucked in
+      add(x, 0, z * (W / 2 - 0.11), 0.6, 0.6, 0.24, TYRE);            // wheel, tucked in
       add(x, 0.2, z * (W / 2 + 0.02), 0.2, 0.2, 0.04, HUB);
     }
   }

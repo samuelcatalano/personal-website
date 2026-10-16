@@ -19,5 +19,6 @@ export function buildMeshes(list, { glow = [] } = {}) {
     mesh.castShadow = mesh.receiveShadow = true;
     group.add(mesh);
   }
+  group.userData.list = list; // for tests/zfight.browser.py
   return group;
 }

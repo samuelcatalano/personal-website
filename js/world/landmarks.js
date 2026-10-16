@@ -48,8 +48,8 @@ function bigBen(add, { x }) {
   add(x, 28, z, 2, 3, 2, SLATE);
   add(x, 31, z, 0.5, 3, 0.5, GOLD);
   for (const side of [-1, 1]) {
-    add(x + side * 2.55, 18, z, 0.18, 6, 0.18, GOLD);
-    add(x, 18, z + side * 2.55, 0.18, 6, 0.18, GOLD);
+    add(x + side * 2.55, 18, z, 0.18, 5.96, 0.18, GOLD);
+    add(x, 18, z + side * 2.55, 0.18, 5.96, 0.18, GOLD);
     for (const dx of [-2.25, 2.25]) add(x + dx, 1, z + side * 2.54, 0.28, 16, 0.28, SLATE);
     for (const dz of [-2.25, 2.25]) add(x + side * 2.54, 1, z + dz, 0.28, 16, 0.28, SLATE);
     for (const y of [4, 9, 14]) {
@@ -148,7 +148,7 @@ function plane() {
   const { add, list } = createBoxes(), W = P.white, R = P.red, N = P.navy, L = P.pearl;
   add(0, 0, 0, 16, 0.9, 2.2, N);
   add(0, 0.9, 0, 16, 1.1, 2.2, L);
-  add(0, 0.9, 0, 16, 0.14, 2.26, R);
+  add(0, 0.9, 0, 16.04, 0.14, 2.26, R);
   add(1, 2, 0, 6, 0.7, 1.6, L);
   add(8, 0.3, 0, 1.2, 1.4, 1.6, L);
   add(5.6, 1.2, 0, 1.6, 0.6, 2.26, R);
@@ -157,7 +157,7 @@ function plane() {
     add(-8.3 + i * 0.7, 1.9 + i, 0, 0.7, 1, 0.4, R);
     add(-7.6 + i * 0.7, 1.9 + i, 0, 0.7, 1, 0.4, W);
   }
-  add(-7.2, 1, 0, 1.6, 0.25, 7, L);
+  add(-7.2, 1, 0, 1.7, 0.25, 7, L);
   for (const s of [-1, 1]) {
     add(2, 0.5, s * 4, 4, 0.3, 7, L);
     add(0.2, 0.5, s * 9, 2.4, 0.3, 4, L);
