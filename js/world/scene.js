@@ -96,7 +96,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const updatePlane = (p) => {
     const d = (p - planeAt) * (n - 1);
     plane.visible = planeAt >= 0 && Math.abs(d) < 1;
-    if (plane.visible) plane.position.set(busPos.x + d * 60, 22 - Math.max(0, d) * 14, busPos.z - 6);
+    if (plane.visible) plane.position.set(busPos.x + 16 + d * 60, Math.max(3, 14 - d * 10), busPos.z + 8); // mid-frame at 2019, descends to Heathrow
   };
   let scroll = { value: 0, velocity: 0 }, target = 0, clock = 0, last = 0;
   const lateral = new THREE.Vector3();
