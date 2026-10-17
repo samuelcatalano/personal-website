@@ -51,7 +51,7 @@ function townhouse(add, x, z, side, br, r, roofStacks) {
 }
 const broadleaf = (r) => ({ h: 2.6 + r() * 0.6, crown: 1.8 + r() * 0.5 });
 export function tree(add, x, z, { h, crown }) {
-  add(x, 0, z, 0.32, h, 0.32, TRUNK);
+  add(x, 0.1, z, 0.32, h - 0.1, 0.32, TRUNK); // starts on the paving top: no coplanar sides with it
   add(x, h - 0.4, z, crown, 1.1, crown, LEAF);
   add(x - crown * 0.22, h + 0.2, z + crown * 0.16, crown * 0.52, 1, crown * 0.52, LEAF_SHADE);
   add(x + crown * 0.2, h + 0.15, z - crown * 0.2, crown * 0.48, 0.9, crown * 0.48, LEAF);
