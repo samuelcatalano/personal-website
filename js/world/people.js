@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { crowdPlan, chooseVariants } from './crowd.js';
 import { buildAtlas, CELL_W, CELL_H, GROUND, S, COLS, FRAMES, FB_W, FB_COLS, FB_X, ATLAS_W, ATLAS_H, strideOf } from './sprites.js';
 // Walking-emoji pedestrians: canvas-drawn sprites (side, front and back views) in one atlas, ONE InstancedMesh of cylindrical billboards (+ one for soft shadows). Paths come from crowd.js (pure data).
-const NEAR = 140, INSET = 0.6, FEET = 0.02, SEED = 1017, VARIANTS = 28, STAND = 2; // sprite looks; the standing frame (legs passing)
+const NEAR = 140, INSET = 0.6, FEET = 0.02, SEED = 1017, VARIANTS = 28, STAND = 2, LOCK = 0.6; // sprite looks; the standing frame (legs passing)
 export function createPeople(scene, { curve, pts, stops, reducedMotion = false }) {
   const plan = crowdPlan(stops, pts, SEED), N = plan.length;
   // Arc-length table of the route (curve parameter is per stop, so speed would vary): positions + normals every ~1 m.
@@ -41,7 +41,7 @@ export function createPeople(scene, { curve, pts, stops, reducedMotion = false }
   const geo = new THREE.PlaneGeometry(CELL_W / S, CELL_H / S).translate(0, (GROUND - CELL_H / 2) / S, 0); // unit = body height; ground at y 0
   const info = new THREE.InstancedBufferAttribute(new Float32Array(N * 4), 4).setUsage(THREE.DynamicDrawUsage); // cell index, walk dir x / z, view (0 side, 1 front, 2 back)
   geo.setAttribute('aInfo', info);
-  const mat = new THREE.MeshLambertMaterial({ map, alphaTest: 0.5, alphaToCoverage: true, side: THREE.DoubleSide });
+  const mat = new THREE.MeshLambertMaterial({ map, transparent: true, alphaTest: 0.3, side: THREE.DoubleSide }) // soft blended edge; alphaToCoverage left fractional alpha in the composer target (no MSAA), which showed as a white rim;
   mat.onBeforeCompile = (sh) => { // cylindrical billboard + atlas cell + mirror so they face their walking direction as seen from the camera
         sh.vertexShader = sh.vertexShader
       .replace('#include <common>', '#include <common>\nattribute vec4 aInfo;')
@@ -60,16 +60,17 @@ gl_Position = projectionMatrix * mvPosition;`);
     sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', 'diffuseColor *= texture2D(map, vMapUv, -0.6);'); // sharper mips, so walk frames do not average into a blur
   };
   const crowd = new THREE.InstancedMesh(geo, mat, N);
-  Object.assign(crowd, { name: 'crowd', frustumCulled: false });
+  Object.assign(crowd, { name: 'crowd', frustumCulled: false, renderOrder: 1 }); // after the shadows
   crowd.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   const shadow = new THREE.InstancedMesh(new THREE.CircleGeometry(0.12, 16).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#2a2622', transparent: true, opacity: 0.25, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 }), N);
-  Object.assign(shadow, { name: 'crowd-shadow', frustumCulled: false });
+  Object.assign(shadow, { name: 'crowd-shadow', frustumCulled: false, renderOrder: 0 });
   shadow.instanceMatrix = crowd.instanceMatrix; // same position + scale, no second buffer
   scene.add(crowd, shadow);
   const A = crowd.instanceMatrix.array, I = info.array;
   const st = plan.map((q, i) => ({ s: q.s0 * perim(q.path), d: q.s0 * 40, vis: true, h: q.look.height }));
   for (let i = 0; i < N; i++) { A.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], i * 16); }
-  const show = (i, vis) => { const a = i * 16, h = vis ? st[i].h : 0; A[a] = A[a + 5] = A[a + 10] = h; A[a + 12] = out.x; A[a + 13] = FEET; A[a + 14] = out.z; };
+  const show = (i, vis, sx = 0, sz = 0) => { const a = i * 16, h = vis ? st[i].h : 0; A[a] = A[a + 5] = A[a + 10] = h; A[a + 12] = out.x + sx; A[a + 13] = FEET; A[a + 14] = out.z + sz; };
+  const vw = new Uint8Array(N); // current view per person, with hysteresis so sector changes do not flicker
   const face = (i, frame, view = 0) => { I[4 * i] = (view ? of[i] * 2 + view - 1 : of[i]) * FRAMES + frame; I[4 * i + 1] = out.fx; I[4 * i + 2] = out.fz; I[4 * i + 3] = view; };
   const flag = () => { crowd.instanceMatrix.needsUpdate = true; info.needsUpdate = true; };
   plan.forEach((p, i) => { place(p.path, st[i].s); show(i, true); face(i, STAND); });
@@ -82,11 +83,13 @@ gl_Position = projectionMatrix * mvPosition;`);
         const s = st[i]; s.s += path.dir * k.speed * dt; s.d += k.speed * dt;
         place(path, s.s);
         const near = Math.hypot(out.x - cam.x, out.z - cam.z) <= NEAR;
-        show(i, near);
-        if (near) { // side view mostly perpendicular to the camera, front when walking toward it, back when walking away (45 degree sectors)
-          const c = (out.fx * (out.x - cam.x) + out.fz * (out.z - cam.z)) / (Math.hypot(out.x - cam.x, out.z - cam.z) || 1);
-          face(i, Math.floor(s.d / cycle[i] * FRAMES) % FRAMES, c < -0.7 ? 1 : c > 0.7 ? 2 : 0);
-        }
+        if (!near) { show(i, false); return; }
+        const ph = s.d / cycle[i] * FRAMES, fi = Math.floor(ph), lock = -(ph - fi - 0.5) * (cycle[i] / FRAMES) * LOCK; // pose is sampled at the frame centre; slide the sprite back so the planted foot stays put between frames
+        show(i, true, out.fx * lock, out.fz * lock);
+        // side view mostly perpendicular to the camera, front when walking toward it, back when walking away (45 degree sectors, hysteresis at the edges)
+        const c = (out.fx * (out.x - cam.x) + out.fz * (out.z - cam.z)) / (Math.hypot(out.x - cam.x, out.z - cam.z) || 1), v = vw[i];
+        vw[i] = v === 0 ? (c < -0.76 ? 1 : c > 0.76 ? 2 : 0) : v === 1 ? (c > -0.6 ? 0 : 1) : (c < 0.6 ? 0 : 2);
+        face(i, ((fi % FRAMES) + FRAMES) % FRAMES, vw[i]);
       });
       flag();
     },

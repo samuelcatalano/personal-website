@@ -39,7 +39,7 @@ function tube(ctx, a, ra, b, rb) { // tapered capsule
 function dims(look) { // body proportions shared by the side, front and back drawings
   const kid = /boy|girl/.test(look.kind), girl = look.kind === 'woman' || look.kind === 'girl', woman = look.kind === 'woman', shape = hairShape(look);
   const hd = kid ? 0.21 : 0.15, hy = 1 - (shape === 'afro' && kid ? 0.84 : RES[shape] || 0.7) * hd - 0.005, hip = kid ? 0.43 : girl ? 0.49 : 0.5;
-  return { kid, girl, woman, ks: kid ? 0.84 : 1, shape, hd, hy, hip, sh: hy - 0.5 * hd - (kid ? 0.04 : 0.035), tw: kid ? 0.078 : woman ? 0.08 : 0.095, thigh: (hip - 0.05) / 2, afroS: kid ? 0.72 : 1, band: BANDS[Math.floor(look.height * 1000) % 4] };
+  return { kid, girl, woman, ks: kid ? 0.84 : 1, shape, hd, hy, hip, sh: hy - 0.5 * hd - (kid ? 0.04 : 0.035), tw: kid ? 0.078 : woman ? 0.08 : 0.095, thigh: (hip - 0.05) / 2, afroS: kid ? 0.72 : 1, lean: 0.03 + 0.045 * ((Math.floor(look.height * 7919) % 97) / 97), armAmp: 0.7 * (0.8 + 0.4 * ((Math.floor(look.height * 104729) % 89) / 89)), band: BANDS[Math.floor(look.height * 1000) % 4] };
 }
 // Gait: 60% stance (the planted foot moves back relative to the hip at a constant rate, so it stays put on the ground when the sprite advances by CYCLE per walk cycle), 40% swing.
 const DUTY = 0.6, smooth = (k) => k * k * (3 - 2 * k);
@@ -62,13 +62,13 @@ export function gait(look, f) { // sagittal pose (x forward, y up): ankles, knee
   return { legs, hipY, X };
 }
 export function drawFigure(ctx, look, frame) {
-  const { kid, girl, woman, ks, shape, hd, hy, sh, hip, tw, thigh, afroS, band } = dims(look), lean = 0.05, hx = 0.02;
+  const { kid, girl, woman, ks, shape, hd, hy, sh, hip, tw, thigh, afroS, lean, armAmp, band } = dims(look), hx = 0.02;
   const beard = look.kind === 'man' && Math.floor(look.height * 1000) % 3 === 0;
   const skin = look.skin, p = frame / FRAMES * 2 * Math.PI;
   const grad = (c, x0, y0, x1, y1, hi = 0.16, lo = -0.22) => { const g = ctx.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, tone(c, hi)); g.addColorStop(1, tone(c, lo)); return g; };
   const fill = (c, x0, y0, x1, y1, shade = 0, hi = 0.16, lo = -0.22) => { ctx.fillStyle = grad(c, x0, y0, x1, y1, hi + shade, lo + shade); ctx.fill(); };
   ctx.save();
-  const G = gait(look, frame), legs = G.legs, hipY = G.hipY, dh = hipY - hip;
+  const G = gait(look, frame + 0.5), legs = G.legs, hipY = G.hipY, dh = hipY - hip, hd0 = -0.4 * (hipY - (hip - 0.012)); // the head bobs less than the hips
   const leg = (L, shade) => {
     const H = [0, hipY], pc = look.bottom, r = ks;
     tube(ctx, H, 0.058 * r, L.K, 0.044 * r); fill(pc, -0.05, hipY, 0.05, L.A[1], shade, 0.03, -0.2); tube(ctx, L.K, 0.044 * r, L.A, 0.037 * r); fill(pc, -0.05, hipY, 0.05, L.A[1], shade, 0.03, -0.2);
@@ -88,7 +88,7 @@ export function drawFigure(ctx, look, frame) {
   };
   const upper = (fn) => { ctx.save(); ctx.translate(0, dh); ctx.translate(0, hip); ctx.rotate(-lean); ctx.translate(0, -hip); fn(); ctx.restore(); };
   const arm = (L, shade) => { // shoulder, elbow, fist + sleeve; swings opposite to the leg on this side
-    const a = -0.7 * L.x / G.X, flex = 0.2 + 0.55 * Math.max(0, a / 0.7), l1 = (kid ? 0.12 : 0.17), l2 = (kid ? 0.1 : 0.15);
+    const a = -armAmp * L.x / G.X, flex = 0.2 + 0.6 * Math.max(0, a / armAmp), l1 = (kid ? 0.12 : 0.17), l2 = (kid ? 0.1 : 0.15);
     const Sh = [-0.005, sh - 0.035], E = [Sh[0] + Math.sin(a) * l1, Sh[1] - Math.cos(a) * l1], W = [E[0] + Math.sin(a + flex) * l2, E[1] - Math.cos(a + flex) * l2];
     tube(ctx, Sh, 0.034 * ks, E, 0.029 * ks); fill(skin, -0.05, sh, 0.05, W[1], shade);
     tube(ctx, E, 0.029 * ks, W, 0.022 * ks); fill(skin, -0.05, sh, 0.05, W[1], shade);
@@ -108,10 +108,12 @@ export function drawFigure(ctx, look, frame) {
       ctx.save(); ctx.translate(hx + px * hd, hy + py * hd); ctx.rotate(ang); ctx.translate(-(hx + px * hd), -(hy + py * hd));
       blob(ctx, H(pts)); fill(look.hair, 0, hy + 0.8 * hd, 0, hy - 0.5 * hd, 0); ctx.restore();
     };
+    ctx.save(); ctx.translate(0, hd0);
     if (shape === 'afro') { blob(ctx, H(AFRO.map(([x, y]) => [x * afroS, y * afroS]))); hg(1, -0.6); }
     if (shape === 'long') { ctx.save(); ctx.translate(0.012 * sway, 0); blob(ctx, H(LONG)); fill(look.hair, 0, hy + 0.6 * hd, 0, hy - 1.3 * hd); ctx.restore(); }
     if (shape === 'ponytail') tail(-0.45, 0.4, TAIL, 0.14 * sway);
     if (shape === 'pigtails') { tail(-0.45, 0.05, PIG, 0.2 * sway); tail(-0.45, 0.05, PIG, 0.2 * -sway + 0.35); }
+    ctx.restore();
     // neck, torso
     tube(ctx, [hx - 0.01, hy - 0.3 * hd], 0.036 * ks, [0, sh], 0.04 * ks); fill(skin, 0, hy, 0, sh, -0.1);
     const t = tw;
@@ -119,6 +121,7 @@ export function drawFigure(ctx, look, frame) {
       : [[-0.75 * t, sh], [0, sh + 0.012], [0.8 * t, sh - 0.008], [t, sh - 0.08], [0.9 * t, hip + 0.12], [0.95 * t, hip - 0.01], [-0.95 * t, hip - 0.012], [-t, hip + 0.12], [-0.95 * t, sh - 0.08]]);
     fill(look.top, -t, sh, t, hip, 0, 0.12, -0.2);
     // head
+    ctx.save(); ctx.translate(0, hd0);
     blob(ctx, H(HEAD)); fill(skin, hx - 0.4 * hd, hy + 0.5 * hd, hx + 0.4 * hd, hy - 0.5 * hd, 0, 0.1, -0.16);
     if (beard) { ctx.globalAlpha = 0.8; blob(ctx, H(BEARD)); fill(look.hair, 0, hy, 0, hy - 0.5 * hd, 0); ctx.globalAlpha = 1; }
     ctx.beginPath(); ctx.ellipse(hx - 0.2 * hd, hy - 0.08 * hd, 0.1 * hd, 0.14 * hd, 0.1, 0, 7); fill(skin, 0, hy + 0.1 * hd, 0, hy - 0.2 * hd, 0, -0.08, -0.22);
@@ -137,6 +140,7 @@ export function drawFigure(ctx, look, frame) {
     if (shape === 'tousled') for (const t of TUFTS) { blob(ctx, H(t)); hg(0.9, 0.5); }
     if (shape === 'bun') { ctx.beginPath(); ctx.arc(hx - 0.4 * hd, hy + 0.68 * hd, 0.3 * hd, 0, 7); hg(1, 0.4); }
     if (shape === 'ponytail' || shape === 'pigtails' || shape === 'bun') for (const [bx, by] of shape === 'pigtails' ? [[-0.45, 0.05]] : shape === 'bun' ? [[-0.36, 0.5]] : [[-0.45, 0.4]]) { ctx.beginPath(); ctx.arc(hx + bx * hd, hy + by * hd, 0.075 * hd, 0, 7); ctx.fillStyle = band; ctx.fill(); }
+    ctx.restore();
   });
   ctx.beginPath(); ctx.arc(-0.04, hipY - 0.004, (woman ? 0.06 : kid ? 0.048 : 0.056), 0, 7); fill(look.bottom, -0.05, hipY + 0.06, 0.03, hipY - 0.06, 0, 0.0, -0.2);
   leg(near, 0); seam(near); foot(near, 0);
@@ -146,19 +150,20 @@ export function drawFigure(ctx, look, frame) {
 
 // Front (back = true: from behind) view: arms and legs alternate with foreshortening, hips sway, the lowest foot grounds the figure.
 export function drawFront(ctx, look, frame, back) {
-  const { kid, girl, woman, ks, shape, hd, hy, sh, hip, tw, thigh, afroS, band } = dims(look), skin = look.skin, p = frame / FRAMES * 2 * Math.PI, wk = kid ? 0.78 : 1, r = ks * wk;
-  const sw = (woman ? 0.1 : 0.115) * wk, side = [-1, 1], sole = look.shoes === '#f2f2ee' ? '#a8a8a2' : '#ecece6', beard = look.kind === 'man' && Math.floor(look.height * 1000) % 3 === 0;
+  const { kid, girl, woman, ks, shape, hd, hy, sh, hip, tw, thigh, afroS, armAmp, band } = dims(look), skin = look.skin, p = frame / FRAMES * 2 * Math.PI, wk = kid ? 0.78 : 1, r = ks * wk;
+  const sw = (woman ? 0.095 : 0.108) * wk, side = [-1, 1], sole = look.shoes === '#f2f2ee' ? '#a8a8a2' : '#ecece6', beard = look.kind === 'man' && Math.floor(look.height * 1000) % 3 === 0;
   const grad = (c, x0, y0, x1, y1, hi, lo) => { const g = ctx.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, tone(c, hi)); g.addColorStop(1, tone(c, lo)); return g; };
   const fill = (c, x0, y0, x1, y1, hi = 0.16, lo = -0.22) => { ctx.fillStyle = grad(c, x0, y0, x1, y1, hi, lo); ctx.fill(); };
   const H = (pts) => pts.map(([x, y]) => [x * hd, hy + y * hd]);
   const hg = (a, b) => fill(look.hair, 0, hy + a * hd, 0, hy + b * hd);
   const line = (c, w, alpha, pts) => { ctx.save(); ctx.strokeStyle = c; ctx.lineWidth = w; ctx.globalAlpha = alpha; ctx.lineCap = ctx.lineJoin = 'round'; ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); ctx.restore(); };
-  const G = gait(look, frame), sway = Math.sin(p + 1), swayX = 0.014 * Math.sin(p), tilt = 0.04 * Math.sin(p), TK = back ? -0.22 : 0.22; // TK: screen drop per unit of forward reach (closer to the camera = lower)
-  const dh = G.hipY - hip, X = G.X;
+  const G = gait(look, frame + 0.5), sway = Math.sin(p + 1), swayX = 0.014 * Math.sin(p), tilt = 0.04 * Math.sin(p), TK = back ? -0.14 : 0.14; // TK: screen drop per unit of forward reach (closer to the camera = lower)
+  const dh = G.hipY - hip, hd0 = -0.4 * (G.hipY - (hip - 0.012)), X = G.X;
   // Sagittal pose to screen: lateral hip offset, depth lowers (front) or raises (back) the point; nearer parts are drawn bigger.
   const P = (sd, lat, x, y) => [sd * lat, y - TK * x], big = (x) => 1 + 0.3 * x / X;
   const legs = side.map((sd, i) => { const L = G.legs[i], hx0 = sd * 0.05 * wk; return { sd, ...L, H: [hx0, G.hipY], K2: P(sd, 0.056 * wk + 0.012 * Math.abs(L.K[0]), L.K[0], L.K[1]), A2: P(sd, 0.05 * wk, L.x, L.A[1]) }; });
-  ctx.save();
+  const dyF = -Math.min(...legs.map((L) => L.A2[1] - 0.018 * ks - 0.054 * ks * big(L.x) * wk ** 0.5)); // lowest sole on the ground
+  ctx.save(); ctx.translate(0, dyF);
   const leg = (L) => {
     const rt = r * big(L.x * 0.5), rk = r * big(L.K[0]);
     tube(ctx, L.H, 0.058 * rt, L.K2, 0.046 * rk); fill(look.bottom, -0.1, G.hipY, 0.1, L.A2[1], 0.03, -0.2);
@@ -169,7 +174,7 @@ export function drawFront(ctx, look, frame, back) {
   };
   const foot = (L) => {
     const sc = ks * big(L.x) * wk ** 0.5, up = Math.max(0, (L.fa - 0.15) / 0.55), sy = 1 - 0.3 * up; // toe-off: the foot tips away, shorter and with a thin dark sole edge
-    ctx.save(); ctx.translate(L.A2[0], L.A2[1] - 0.032 * ks); ctx.scale(sc, sc * sy);
+    ctx.save(); ctx.translate(L.A2[0], L.A2[1] - 0.018 * ks); ctx.scale(sc, sc * sy);
     const body = [[-0.04, 0.03], [-0.046, -0.012], [-0.03, -0.04], [0.03, -0.04], [0.046, -0.012], [0.04, 0.03], [0, 0.05]];
     ctx.lineCap = 'round'; ctx.strokeStyle = up > 0.3 ? tone(look.shoes, -0.45) : sole; ctx.lineWidth = up > 0.3 ? 0.012 : 0.02; ctx.beginPath(); ctx.moveTo(-0.034, -0.044); ctx.lineTo(0.034, -0.044); ctx.stroke();
     blob(ctx, body); fill(look.shoes, 0, 0.05, 0, -0.04, 0.12, -0.15);
@@ -181,7 +186,7 @@ export function drawFront(ctx, look, frame, back) {
   // upper body sways with the hips and counter-rotates; bobs with the hip height
   ctx.save(); ctx.translate(swayX, dh); ctx.translate(0, hip); ctx.rotate(-tilt); ctx.translate(0, -hip);
   const arms = side.map((sd, i) => { // swings opposite to the leg on the same side, out from the body, hand up / down with the swing
-    const a = -0.8 * G.legs[i].x / X, flex = 0.25 + 0.6 * Math.max(0, a / 0.8), l1 = kid ? 0.13 : 0.185, l2 = kid ? 0.11 : 0.165, out = 0.012 + 0.03 * Math.abs(Math.sin(a));
+    const a = -1.15 * armAmp * G.legs[i].x / X, flex = 0.25 + 0.6 * Math.max(0, a / (1.15 * armAmp)), l1 = kid ? 0.13 : 0.185, l2 = kid ? 0.11 : 0.165, out = 0.008 + 0.018 * Math.abs(Math.sin(a));
     const xs1 = Math.sin(a) * l1, ys1 = -Math.cos(a) * l1, xs2 = xs1 + Math.sin(a + flex) * l2, ys2 = ys1 - Math.cos(a + flex) * l2;
     const S0 = [sd * (sw - 0.004), sh - 0.035], E = [S0[0] + sd * out * 0.6, S0[1] + ys1 - TK * xs1], W = [S0[0] + sd * out, S0[1] + ys2 - TK * xs2];
     return { sd, S0, E, W, a, fs: big(xs2) };
@@ -193,11 +198,13 @@ export function drawFront(ctx, look, frame, back) {
     line(tone(skin, -0.35), 0.004, 0.6, [[W[0] - 0.014 * ks * fs, W[1] - 0.012 * ks * fs], [W[0] + 0.012 * ks * fs, W[1] - 0.012 * ks * fs]]);
   });
   armSkin(0);
-  // hair behind the body
+  // hair behind the body (and the head: both bob less than the hips)
+  ctx.save(); ctx.translate(0, hd0);
   const hairBlob = (pts, a, b) => { blob(ctx, H(pts)); hg(a, b); };
   if (shape === 'afro') { blob(ctx, H(AFRO.map(([x, y]) => [(x + 0.12) * afroS, y * afroS]))); hg(1, -0.6); }
   if (shape === 'long') hairBlob(back ? [[-0.52, 0.3], [-0.58, -0.5], [-0.6, -1.25], [-0.25, -1.45], [0.25, -1.45], [0.6, -1.25], [0.58, -0.5], [0.52, 0.3], [0, 0.5]] : [[-0.5, 0.35], [-0.6, -0.3], [-0.62, -1.2], [-0.25, -1.38], [0.25, -1.38], [0.62, -1.2], [0.6, -0.3], [0.5, 0.35], [0, 0.6]], 0.6, -1.4);
-  if (shape === 'ponytail' && !back) { ctx.save(); ctx.translate(0.5 * hd, hy + 0.1 * hd); ctx.rotate(0.1 * sway); ctx.translate(-0.5 * hd, -(hy + 0.1 * hd)); hairBlob([[0.4, 0.3], [0.68, 0.1], [0.78, -0.5], [0.64, -1.05], [0.5, -0.4], [0.4, -0.05]], 0.2, -1); ctx.restore(); } // the tail hangs behind one shoulder
+  if (shape === 'ponytail' && !back) { ctx.save(); ctx.translate(0.5 * hd, hy + 0.1 * hd); ctx.rotate(0.1 * sway); ctx.translate(-0.5 * hd, -(hy + 0.1 * hd)); hairBlob([[0.38, 0.3], [0.58, 0.1], [0.66, -0.5], [0.54, -1.05], [0.44, -0.4], [0.38, -0.05]], 0.2, -1); ctx.restore(); } // the tail hangs behind one shoulder
+  ctx.restore();
   // torso + neckline
   const t = tw * 1.15 * wk, chest = woman ? 1.04 : 1, waist = woman ? 0.76 : 0.92;
   blob(ctx, [[-0.9 * sw, sh], [0, sh + 0.012], [0.9 * sw, sh], [sw, sh - 0.05], [t * chest, sh - 0.12], [t * waist, hip + 0.1], [t * 1.1, hip - 0.012], [-t * 1.1, hip - 0.012], [-t * waist, hip + 0.1], [-t * chest, sh - 0.12], [-sw, sh - 0.05]]);
@@ -217,6 +224,7 @@ export function drawFront(ctx, look, frame, back) {
     line(tone(look.top, -0.35), 0.006, 0.7, [[M[0] - 0.038 * ks, M[1]], [M[0] + 0.038 * ks, M[1]]]);
   });
   // neck, head
+  ctx.save(); ctx.translate(0, hd0);
   tube(ctx, [0, hy - 0.3 * hd], 0.036 * ks, [0, sh + 0.01], 0.04 * ks); fill(skin, 0, hy, 0, sh, -0.08, -0.32);
   blob(ctx, H([[0, 0.5], [0.3, 0.44], [0.44, 0.2], [0.44, -0.1], [0.36, -0.34], [0.16, -0.5], [0, -0.52], [-0.16, -0.5], [-0.36, -0.34], [-0.44, -0.1], [-0.44, 0.2], [-0.3, 0.44]]));
   fill(skin, -0.4 * hd, hy + 0.5 * hd, 0.4 * hd, hy - 0.5 * hd, 0.1, -0.16);
@@ -250,10 +258,11 @@ export function drawFront(ctx, look, frame, back) {
   if (shape === 'bun') { ctx.beginPath(); ctx.arc(0, hy + 0.78 * hd, 0.28 * hd, 0, 7); hg(1, 0.4); ctx.beginPath(); ctx.arc(0, hy + 0.55 * hd, 0.07 * hd, 0, 7); ctx.fillStyle = band; ctx.fill(); }
   if (shape === 'ponytail' && back) { ctx.beginPath(); ctx.arc(0, hy + 0.38 * hd, 0.08 * hd, 0, 7); ctx.fillStyle = band; ctx.fill(); }
   if (shape === 'pigtails') for (const sd of side) {
-    ctx.save(); ctx.translate(sd * 0.55 * hd, hy + 0.05 * hd); ctx.rotate(sd * 0.15 * sway);
-    blob(ctx, [[0, 0.08], [sd * 0.28, 0.0], [sd * 0.4, -0.4], [sd * 0.2, -0.85], [0, -0.45]].map(([x, y]) => [x * hd, y * hd])); hg(0.1, -0.9); ctx.restore();
-    ctx.beginPath(); ctx.arc(sd * 0.55 * hd, hy + 0.05 * hd, 0.075 * hd, 0, 7); ctx.fillStyle = band; ctx.fill();
+    ctx.save(); ctx.translate(sd * 0.46 * hd, hy + 0.05 * hd); ctx.rotate(sd * 0.07 * sway);
+    blob(ctx, [[0, 0.08], [sd * 0.2, 0.0], [sd * 0.3, -0.4], [sd * 0.14, -0.85], [0, -0.45]].map(([x, y]) => [x * hd, y * hd])); hg(0.1, -0.9); ctx.restore();
+    ctx.beginPath(); ctx.arc(sd * 0.46 * hd, hy + 0.05 * hd, 0.075 * hd, 0, 7); ctx.fillStyle = band; ctx.fill();
   }
+  ctx.restore();
   ctx.restore(); // upper body
   ctx.restore();
 }
@@ -268,7 +277,8 @@ function bleed({ data: d, width: w, height: h }, passes = 4) {
       const i = y * w + x; if (solid[i]) continue;
       const n = x > 0 && solid[i - 1] ? i - 1 : x < w - 1 && solid[i + 1] ? i + 1 : y > 0 && solid[i - w] ? i - w : y < h - 1 && solid[i + w] ? i + w : -1;
       if (n < 0) continue;
-      d[4 * i] = d[4 * n]; d[4 * i + 1] = d[4 * n + 1]; d[4 * i + 2] = d[4 * n + 2]; next[i] = 1;
+      const m = k ? 1 : 0.86; // the first ring (the antialiased edge) is a touch darker: a subtle edge shade, like emoji art, so the rim never reads light against the ground
+      d[4 * i] = d[4 * n] * m; d[4 * i + 1] = d[4 * n + 1] * m; d[4 * i + 2] = d[4 * n + 2] * m; next[i] = 1;
     }
     solid = next;
   }
