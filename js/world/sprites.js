@@ -1,9 +1,14 @@
 import { hairShape } from './crowd.js';
 // Walking-emoji people drawn with canvas 2D: smooth outline-free shapes, soft gradients, 6 walk frames per look, side view facing right.
 // Unit space while drawing: x forward, y up, 1 = body height, origin = feet centre.
-// Atlas 4096 x 2464: left, 16 x 14 side cells (28 looks x 8 frames); right, 32 x 14 narrow cells for front and back (28 looks x 2 views x 8 frames).
-export const CELL_W = 120, CELL_H = 176, COLS = 16, ROWS = 14, FRAMES = 8, GROUND = 172, S = 164; // S = px per body height; the stride fits the cell width
-export const FB_W = 68, FB_COLS = 32, FB_X = COLS * CELL_W, ATLAS_W = 4096, ATLAS_H = ROWS * CELL_H;
+// Two atlas textures, rows top-down: side cells (16 x 14, 28 looks x 8 frames) and narrow front/back cells (32 x 14, 28 looks x 2 views x 8 frames).
+// setScale(k) sizes them: k = 1 is 1920 x 2464 + 2176 x 2464 (mobile), k = 1.4 is the sharp desktop atlas. The live bindings below are read after setScale.
+export const COLS = 16, ROWS = 14, FB_COLS = 32, FRAMES = 8;
+export let CELL_W = 120, CELL_H = 176, GROUND = 172, S = 164, FB_W = 68, SIDE_W = COLS * 120, FB_TEX_W = FB_COLS * 68, TEX_H = ROWS * 176; // S = px per body height; the stride fits the cell width
+export function setScale(k) {
+  CELL_W = Math.ceil(120 * k); CELL_H = Math.ceil(176 * k); GROUND = Math.round(172 * k); S = Math.round(164 * k); FB_W = Math.ceil(68 * k);
+  SIDE_W = COLS * CELL_W; FB_TEX_W = FB_COLS * FB_W; TEX_H = ROWS * CELL_H;
+}
 const hex = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
 const tone = (c, a) => `rgb(${hex(c).map((v) => Math.round(v + ((a < 0 ? 0 : 255) - v) * Math.abs(a))).join(',')})`; // a > 0 lighter, < 0 darker
 const EYE = '#1a1512', IRIS = '#5a3d28', BAND = '#c0392b';
@@ -65,6 +70,7 @@ export function drawFigure(ctx, look, frame) {
   const { kid, girl, woman, ks, shape, hd, hy, sh, hip, tw, thigh, afroS, lean, armAmp, band } = dims(look), hx = 0.02;
   const beard = look.kind === 'man' && Math.floor(look.height * 1000) % 3 === 0;
   const skin = look.skin, p = frame / FRAMES * 2 * Math.PI;
+  const line = (c, w, alpha, pts) => { ctx.save(); ctx.strokeStyle = c; ctx.lineWidth = w; ctx.globalAlpha = alpha; ctx.lineCap = ctx.lineJoin = 'round'; ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); ctx.restore(); };
   const grad = (c, x0, y0, x1, y1, hi = 0.16, lo = -0.22) => { const g = ctx.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, tone(c, hi)); g.addColorStop(1, tone(c, lo)); return g; };
   const fill = (c, x0, y0, x1, y1, shade = 0, hi = 0.16, lo = -0.22) => { ctx.fillStyle = grad(c, x0, y0, x1, y1, hi + shade, lo + shade); ctx.fill(); };
   ctx.save();
@@ -93,6 +99,7 @@ export function drawFigure(ctx, look, frame) {
     tube(ctx, Sh, 0.034 * ks, E, 0.029 * ks); fill(skin, -0.05, sh, 0.05, W[1], shade);
     tube(ctx, E, 0.029 * ks, W, 0.022 * ks); fill(skin, -0.05, sh, 0.05, W[1], shade);
     ctx.beginPath(); ctx.arc(W[0] + Math.sin(a + flex) * 0.012, W[1] - Math.cos(a + flex) * 0.012, 0.027 * ks, 0, 7); fill(skin, 0, W[1] + 0.03, 0, W[1] - 0.03, shade ? shade : 0);
+    { const fx = W[0] + Math.sin(a + flex) * 0.012, fy = W[1] - Math.cos(a + flex) * 0.012; line(tone(skin, -0.38), 0.004, 0.55, [[fx - 0.014 * ks, fy - 0.01 * ks], [fx + 0.014 * ks, fy - 0.012 * ks]]); line(tone(skin, -0.38), 0.004, 0.55, [[fx - 0.012 * ks, fy - 0.019 * ks], [fx + 0.012 * ks, fy - 0.02 * ks]]); ctx.beginPath(); ctx.ellipse(fx + 0.014 * ks, fy + 0.006 * ks, 0.008 * ks, 0.014 * ks, 0.3, 0, 7); fill(skin, 0, fy + 0.02, 0, fy - 0.01, shade ? shade : 0, 0.2, -0.05); }
     const M = [Sh[0] + (E[0] - Sh[0]) * 0.5, Sh[1] + (E[1] - Sh[1]) * 0.5];
     tube(ctx, [Sh[0], Sh[1] + 0.012], 0.047 * ks, M, 0.042 * ks); fill(look.top, -0.05, sh, 0.05, M[1], shade);
   };
@@ -120,6 +127,7 @@ export function drawFigure(ctx, look, frame) {
     blob(ctx, woman ? [[-0.7 * t, sh], [0, sh + 0.012], [0.72 * t, sh - 0.01], [1.14 * t, sh - 0.085], [0.98 * t, sh - 0.165], [0.8 * t, hip + 0.1], [0.98 * t, hip - 0.01], [-0.98 * t, hip - 0.012], [-0.86 * t, hip + 0.1], [-0.92 * t, sh - 0.1]]
       : [[-0.75 * t, sh], [0, sh + 0.012], [0.8 * t, sh - 0.008], [t, sh - 0.08], [0.9 * t, hip + 0.12], [0.95 * t, hip - 0.01], [-0.95 * t, hip - 0.012], [-t, hip + 0.12], [-0.95 * t, sh - 0.08]]);
     fill(look.top, -t, sh, t, hip, 0, 0.12, -0.2);
+    line(tone(look.top, -0.32), 0.006, 0.34, [[-0.5 * t, hip + 0.1], [0.05 * t, hip + 0.14], [0.55 * t, hip + 0.13]]); // folds
     // head
     ctx.save(); ctx.translate(0, hd0);
     blob(ctx, H(HEAD)); fill(skin, hx - 0.4 * hd, hy + 0.5 * hd, hx + 0.4 * hd, hy - 0.5 * hd, 0, 0.1, -0.16);
@@ -130,6 +138,10 @@ export function drawFigure(ctx, look, frame) {
     ctx.beginPath(); ctx.ellipse(hx + 0.22 * hd, hy + 0.05 * hd, 0.11 * hd, 0.08 * hd, 0, 0, 7); ctx.fillStyle = '#fbfbf8'; ctx.fill();
     ctx.beginPath(); ctx.arc(hx + 0.27 * hd, hy + 0.05 * hd, 0.062 * hd, 0, 7); ctx.fillStyle = IRIS; ctx.fill();
     ctx.beginPath(); ctx.arc(hx + 0.28 * hd, hy + 0.05 * hd, 0.034 * hd, 0, 7); ctx.fillStyle = EYE; ctx.fill();
+    ctx.beginPath(); ctx.arc(hx + 0.295 * hd, hy + 0.07 * hd, 0.011 * hd, 0, 7); ctx.fillStyle = '#fff'; ctx.fill(); // eye highlight
+    line(tone(skin, -0.4), 0.02 * hd, 0.8, [[hx + 0.12 * hd, hy + 0.11 * hd], [hx + 0.22 * hd, hy + 0.135 * hd], [hx + 0.335 * hd, hy + 0.1 * hd]]); // upper lid
+    ctx.save(); ctx.globalAlpha = 0.2; ctx.beginPath(); ctx.ellipse(hx + 0.14 * hd, hy - 0.13 * hd, 0.11 * hd, 0.07 * hd, 0, 0, 7); ctx.fillStyle = '#e0605a'; ctx.fill(); ctx.restore(); // cheek
+    ctx.beginPath(); ctx.arc(hx + 0.46 * hd, hy - 0.185 * hd, 0.013 * hd, 0, 7); ctx.fillStyle = tone(skin, -0.5); ctx.fill(); // nostril
     ctx.lineCap = 'round';
     if (girl) { ctx.strokeStyle = EYE; ctx.lineWidth = 0.03 * hd; ctx.beginPath(); ctx.moveTo(hx + 0.12 * hd, hy + 0.1 * hd); ctx.quadraticCurveTo(hx + 0.24 * hd, hy + 0.15 * hd, hx + 0.34 * hd, hy + 0.1 * hd); ctx.moveTo(hx + 0.12 * hd, hy + 0.1 * hd); ctx.lineTo(hx + 0.07 * hd, hy + 0.13 * hd); ctx.stroke(); }
     ctx.strokeStyle = tone(look.hair, -0.1); ctx.lineWidth = 0.04 * hd; ctx.beginPath(); ctx.moveTo(hx + 0.1 * hd, hy + 0.17 * hd); ctx.quadraticCurveTo(hx + 0.24 * hd, hy + 0.23 * hd, hx + 0.37 * hd, hy + 0.19 * hd); ctx.stroke();
@@ -138,6 +150,7 @@ export function drawFigure(ctx, look, frame) {
     // hair on top
     if (shape !== 'bald') { blob(ctx, H({ quiff: QUIFF, curly: CURLY, tousled: CAP, afro: CAP, short: CAP }[shape] || SOFT)); hg(0.8, -0.3); }
     if (shape === 'tousled') for (const t of TUFTS) { blob(ctx, H(t)); hg(0.9, 0.5); }
+    if (shape !== 'bald') for (const [a, b, c, d, e, f] of [[-0.28, 0.5, 0.02, 0.74, 0.36, 0.46], [-0.42, 0.26, -0.22, 0.6, 0.1, 0.6]]) { ctx.save(); ctx.globalAlpha = 0.4; ctx.strokeStyle = tone(look.hair, 0.5); ctx.lineWidth = 0.016 * hd; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(hx + a * hd, hy + b * hd); ctx.quadraticCurveTo(hx + c * hd, hy + d * hd, hx + e * hd, hy + f * hd); ctx.stroke(); ctx.restore(); } // glossy strands
     if (shape === 'bun') { ctx.beginPath(); ctx.arc(hx - 0.4 * hd, hy + 0.68 * hd, 0.3 * hd, 0, 7); hg(1, 0.4); }
     if (shape === 'ponytail' || shape === 'pigtails' || shape === 'bun') for (const [bx, by] of shape === 'pigtails' ? [[-0.45, 0.05]] : shape === 'bun' ? [[-0.36, 0.5]] : [[-0.45, 0.4]]) { ctx.beginPath(); ctx.arc(hx + bx * hd, hy + by * hd, 0.075 * hd, 0, 7); ctx.fillStyle = band; ctx.fill(); }
     ctx.restore();
@@ -239,6 +252,7 @@ export function drawFront(ctx, look, frame, back) {
       line(tone(look.hair, -0.1), 0.04 * hd, 1, [[sd * 0.07 * hd, hy + 0.14 * hd], [sd * 0.19 * hd, hy + 0.19 * hd], [sd * 0.31 * hd, hy + 0.15 * hd]]);
       if (girl) line(EYE, 0.026 * hd, 1, [[sd * 0.08 * hd, hy + 0.08 * hd], [sd * 0.19 * hd, hy + 0.115 * hd], [sd * 0.3 * hd, hy + 0.08 * hd]]);
     }
+    for (const sd of side) { ctx.save(); ctx.globalAlpha = 0.2; ctx.beginPath(); ctx.ellipse(sd * 0.27 * hd, hy - 0.16 * hd, 0.1 * hd, 0.065 * hd, 0, 0, 7); ctx.fillStyle = '#e0605a'; ctx.fill(); ctx.restore(); }
     line(tone(skin, -0.25), 0.028 * hd, 0.9, [[-0.05 * hd, hy - 0.04 * hd], [-0.06 * hd, hy - 0.11 * hd], [0, hy - 0.14 * hd], [0.06 * hd, hy - 0.11 * hd], [0.05 * hd, hy - 0.04 * hd]]);
     ctx.beginPath(); ctx.ellipse(0, hy - 0.12 * hd, 0.07 * hd, 0.04 * hd, 0, 0, 7); ctx.fillStyle = tone(skin, 0.08); ctx.globalAlpha = 0.5; ctx.fill(); ctx.globalAlpha = 1;
     line(girl ? tone('#c0504d', -0.1) : tone(skin, -0.5), (girl ? 0.04 : 0.03) * hd, 1, [[-0.14 * hd, hy - 0.26 * hd], [0, hy - 0.33 * hd], [0.14 * hd, hy - 0.26 * hd]]);
@@ -255,6 +269,7 @@ export function drawFront(ctx, look, frame, back) {
     if (shape === 'curly') for (const [x, y] of [[-0.34, 0.5], [-0.12, 0.64], [0.14, 0.64], [0.36, 0.5], [-0.5, 0.2], [0.5, 0.2]]) { ctx.beginPath(); ctx.arc(x * hd, hy + y * hd, 0.13 * hd, 0, 7); hg(0.8, 0.3); }
     if (shape === 'long') for (const sd of side) hairBlob([[sd * 0.46, 0.15], [sd * 0.56, -0.4], [sd * 0.6, -1.05], [sd * 0.42, -1.15], [sd * 0.38, -0.4]], 0.1, -1);
   }
+  if (shape !== 'bald') for (const sd of side) { ctx.save(); ctx.globalAlpha = 0.38; ctx.strokeStyle = tone(look.hair, 0.5); ctx.lineWidth = 0.016 * hd; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(sd * 0.36 * hd, hy + (back ? 0.2 : 0.4) * hd); ctx.quadraticCurveTo(sd * 0.2 * hd, hy + 0.62 * hd, -sd * 0.08 * hd, hy + 0.58 * hd); ctx.stroke(); ctx.restore(); }
   if (shape === 'bun') { ctx.beginPath(); ctx.arc(0, hy + 0.78 * hd, 0.28 * hd, 0, 7); hg(1, 0.4); ctx.beginPath(); ctx.arc(0, hy + 0.55 * hd, 0.07 * hd, 0, 7); ctx.fillStyle = band; ctx.fill(); }
   if (shape === 'ponytail' && back) { ctx.beginPath(); ctx.arc(0, hy + 0.38 * hd, 0.08 * hd, 0, 7); ctx.fillStyle = band; ctx.fill(); }
   if (shape === 'pigtails') for (const sd of side) {
@@ -267,37 +282,57 @@ export function drawFront(ctx, look, frame, back) {
   ctx.restore();
 }
 
+// Work in slices of ~12 ms so building the atlas never blocks a frame for long.
+let slice0 = 0;
+const rest = async () => { if (performance.now() - slice0 > 12) { await new Promise((r) => setTimeout(r)); slice0 = performance.now(); } };
 // Edge bleed: transparent / half-transparent pixels take the colour of the nearest solid neighbour (a few px), so filtering and mips never blend in black or white fringes.
-function bleed({ data: d, width: w, height: h }, passes = 4) {
+async function bleed({ data: d, width: w, height: h }, passes = 4) {
   let solid = new Uint8Array(w * h);
-  for (let i = 0; i < solid.length; i++) solid[i] = d[4 * i + 3] >= 200;
+  for (let i = 0; i < solid.length; i++) { solid[i] = d[4 * i + 3] >= 200; if (!(i & 0x3ffff)) await rest(); }
   for (let k = 0; k < passes; k++) {
     const next = solid.slice();
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-      const i = y * w + x; if (solid[i]) continue;
-      const n = x > 0 && solid[i - 1] ? i - 1 : x < w - 1 && solid[i + 1] ? i + 1 : y > 0 && solid[i - w] ? i - w : y < h - 1 && solid[i + w] ? i + w : -1;
-      if (n < 0) continue;
-      const m = k ? 1 : 0.86; // the first ring (the antialiased edge) is a touch darker: a subtle edge shade, like emoji art, so the rim never reads light against the ground
-      d[4 * i] = d[4 * n] * m; d[4 * i + 1] = d[4 * n + 1] * m; d[4 * i + 2] = d[4 * n + 2] * m; next[i] = 1;
+    for (let y = 0; y < h; y++) {
+      if (!(y & 31)) await rest();
+      for (let x = 0; x < w; x++) {
+        const i = y * w + x; if (solid[i]) continue;
+        const n = x > 0 && solid[i - 1] ? i - 1 : x < w - 1 && solid[i + 1] ? i + 1 : y > 0 && solid[i - w] ? i - w : y < h - 1 && solid[i + w] ? i + w : -1;
+        if (n < 0) continue;
+        const m = k ? 1 : 0.86; // the first ring (the antialiased edge) is a touch darker: a subtle edge shade, like emoji art, so the rim never reads light against the ground
+        d[4 * i] = d[4 * n] * m; d[4 * i + 1] = d[4 * n + 1] * m; d[4 * i + 2] = d[4 * n + 2] * m; next[i] = 1;
+      }
     }
     solid = next;
   }
 }
-// One atlas (un-premultiplied RGBA, row 0 = top). Side look v frame f: cell v * FRAMES + f; front / back: cell (v * 2 + view) * FRAMES + f in the narrow block.
-export function buildAtlas(variants) {
-  const canvas = Object.assign(document.createElement('canvas'), { width: ATLAS_W, height: ATLAS_H }), ctx = canvas.getContext('2d', { willReadFrequently: true });
-  const cell = (x, y, w, fn) => { ctx.save(); ctx.translate(x + w / 2, y + GROUND); ctx.scale(S, -S); fn(); ctx.restore(); };
-  variants.forEach((look, v) => {
+// Soft light from the top left and shade to the bottom right over the figure only (source-atop), clipped to its cell: the emoji-style shaded look.
+function finish(ctx, w) {
+  ctx.save(); ctx.globalCompositeOperation = 'source-atop'; ctx.beginPath(); ctx.rect(-w / 2 / S, -(TEX_H / ROWS - GROUND) / S, w / S, TEX_H / ROWS / S); ctx.clip();
+  const g = ctx.createLinearGradient(-0.2, 0.95, 0.2, 0.05); g.addColorStop(0, 'rgba(255,255,255,0.13)'); g.addColorStop(0.45, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(25,10,50,0.17)');
+  ctx.fillStyle = g; ctx.fillRect(-1, -0.2, 2, 1.5); ctx.restore();
+}
+// Un-premultiplied RGBA images { side, fb }. Side look v frame f: cell v * FRAMES + f; front / back: cell (v * 2 + view) * FRAMES + f.
+export async function buildAtlas(variants) {
+  const mk = (w) => { const canvas = Object.assign(document.createElement('canvas'), { width: w, height: TEX_H }); return canvas.getContext('2d', { willReadFrequently: true }); };
+  const cs = mk(SIDE_W), cf = mk(FB_TEX_W);
+  const cell = (ctx, x, y, w, fn) => { ctx.save(); ctx.translate(x + w / 2, y + GROUND); ctx.scale(S, -S); fn(); finish(ctx, w); ctx.restore(); };
+  slice0 = performance.now();
+  for (let v = 0; v < variants.length; v++) {
+    const look = variants[v];
     for (let f = 0; f < FRAMES; f++) {
       const c = v * FRAMES + f;
-      cell((c % COLS) * CELL_W, Math.floor(c / COLS) * CELL_H, CELL_W, () => drawFigure(ctx, look, f));
+      cell(cs, (c % COLS) * CELL_W, Math.floor(c / COLS) * CELL_H, CELL_W, () => drawFigure(cs, look, f));
       for (let view = 0; view < 2; view++) {
         const n = (v * 2 + view) * FRAMES + f;
-        cell(FB_X + (n % FB_COLS) * FB_W, Math.floor(n / FB_COLS) * CELL_H, FB_W, () => drawFront(ctx, look, f, view === 1));
+        cell(cf, (n % FB_COLS) * FB_W, Math.floor(n / FB_COLS) * CELL_H, FB_W, () => drawFront(cf, look, f, view === 1));
       }
     }
-  });
-  const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  bleed(img);
-  return img;
+    await rest();
+  }
+  const out = {};
+  for (const [key, ctx] of [['side', cs], ['fb', cf]]) { // read back in strips so no single call is long
+    const { width: w, height: h } = ctx.canvas, data = new Uint8ClampedArray(w * h * 4);
+    for (let y = 0; y < h; y += 192) { data.set(ctx.getImageData(0, y, w, Math.min(192, h - y)).data, y * w * 4); await rest(); }
+    out[key] = { data, width: w, height: h }; await bleed(out[key]);
+  }
+  return out;
 }

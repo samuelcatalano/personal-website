@@ -34,7 +34,7 @@ export function walkPaths(stops, pts) {
     { type: 'loop', name: 'wembley', rect: rect(wx + 14, wx + 40, 19, 28) }, // beside the figure; the front of the stadium is walled by blocks
   ];
 }
-export function crowdPlan(stops, pts, seed, count = 480) {
+export function crowdPlan(stops, pts, seed, count = 600) {
   const r = rng(seed), paths = walkPaths(stops, pts), lanes = paths.filter((p) => p.type === 'lane'), loops = paths.filter((p) => p.type === 'loop');
   const keys = [], plan = Array.from({ length: count }, (_, i) => {
     const look = makeLook(r), onLane = i % 10 < 7;

@@ -1,9 +1,14 @@
 import * as THREE from 'three';
 import { crowdPlan, chooseVariants } from './crowd.js';
-import { buildAtlas, CELL_W, CELL_H, GROUND, S, COLS, FRAMES, FB_W, FB_COLS, FB_X, ATLAS_W, ATLAS_H, strideOf } from './sprites.js';
-// Walking-emoji pedestrians: canvas-drawn sprites (side, front and back views) in one atlas, ONE InstancedMesh of cylindrical billboards (+ one for soft shadows). Paths come from crowd.js (pure data).
+import * as SP from './sprites.js';
+const { FRAMES, COLS, FB_COLS, ROWS, strideOf } = SP;
+// Walking-emoji pedestrians: canvas-drawn sprites (side, front and back views) in two atlas textures, ONE InstancedMesh of cylindrical billboards (+ one for soft shadows). Paths come from crowd.js (pure data).
 const NEAR = 140, INSET = 0.6, FEET = 0.02, SEED = 1017, VARIANTS = 28, STAND = 2, LOCK = 0.6; // sprite looks; the standing frame (legs passing)
-export function createPeople(scene, { curve, pts, stops, reducedMotion = false }) {
+// The sharp atlas (about 80 MB of textures) only where the screen and GPU can afford it; phones get the 1x one (about 40 MB).
+const sharp = () => { try { const gl = document.createElement('canvas').getContext('webgl2'); return !matchMedia('(max-width: 767px)').matches && (navigator.deviceMemory ?? 8) >= 4 && !!gl && gl.getParameter(gl.MAX_TEXTURE_SIZE) >= 4096; } catch { return false; } };
+export function createPeople(scene, { curve, pts, stops, reducedMotion = false, hd = sharp() }) {
+  SP.setScale(hd ? 1.4 : 1);
+  const { CELL_W, CELL_H, GROUND, S, FB_W, SIDE_W, FB_TEX_W, TEX_H } = SP;
   const plan = crowdPlan(stops, pts, SEED), N = plan.length;
   // Arc-length table of the route (curve parameter is per stop, so speed would vary): positions + normals every ~1 m.
   const fine = Array.from({ length: 4001 }, (_, k) => curve.getPoint(k / 4000)), cum = [0];
@@ -35,29 +40,35 @@ export function createPeople(scene, { curve, pts, stops, reducedMotion = false }
 
   // Atlas: VARIANTS looks x FRAMES walk frames; every person maps to its nearest look.
   const { variants, of } = chooseVariants(plan.map((q) => q.look), VARIANTS);
-  const img = buildAtlas(variants), map = new THREE.DataTexture(new Uint8Array(img.data.buffer), img.width, img.height); // DataTexture keeps the bled RGB under alpha 0 (canvas uploads would not)
-  Object.assign(map, { colorSpace: THREE.SRGBColorSpace, anisotropy: 8, generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter, magFilter: THREE.LinearFilter, needsUpdate: true });
+  const blank = () => new THREE.DataTexture(new Uint8Array(4), 1, 1), pending = { map: blank(), map2: { value: blank() } }; // transparent until the atlas is built (in slices, off the first frame)
+  for (const t of [pending.map, pending.map2.value]) t.needsUpdate = true;
+  const texture = (img) => Object.assign(new THREE.DataTexture(new Uint8Array(img.data.buffer), img.width, img.height), { colorSpace: THREE.SRGBColorSpace, anisotropy: 8, generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter, magFilter: THREE.LinearFilter, needsUpdate: true }); // DataTexture keeps the bled RGB under alpha 0 (canvas uploads would not)
+  let atlasMs = 0;
+  const t0 = performance.now(), ready = SP.buildAtlas(variants).then(({ side, fb }) => { mat.map = texture(side); u.map2.value = texture(fb); atlasMs = performance.now() - t0; });
   const cycle = plan.map((q) => strideOf(q.look) * q.look.height); // metres per walk cycle: the sprite's own stance travel, so the planted foot does not slide
   const geo = new THREE.PlaneGeometry(CELL_W / S, CELL_H / S).translate(0, (GROUND - CELL_H / 2) / S, 0); // unit = body height; ground at y 0
   const info = new THREE.InstancedBufferAttribute(new Float32Array(N * 4), 4).setUsage(THREE.DynamicDrawUsage); // cell index, walk dir x / z, view (0 side, 1 front, 2 back)
   geo.setAttribute('aInfo', info);
-  const mat = new THREE.MeshLambertMaterial({ map, transparent: true, alphaTest: 0.3, side: THREE.DoubleSide }) // soft blended edge; alphaToCoverage left fractional alpha in the composer target (no MSAA), which showed as a white rim;
+  const u = { map2: pending.map2 };
+  const mat = new THREE.MeshLambertMaterial({ map: pending.map, transparent: true, alphaTest: 0.3, side: THREE.DoubleSide }) // soft blended edge; alphaToCoverage left fractional alpha in the composer target (no MSAA), which showed as a white rim;
   mat.onBeforeCompile = (sh) => { // cylindrical billboard + atlas cell + mirror so they face their walking direction as seen from the camera
-        sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', '#include <common>\nattribute vec4 aInfo;')
+    sh.uniforms.map2 = u.map2; sh.uniforms.uCells = { value: new THREE.Vector4(CELL_W, CELL_H, FB_W, TEX_H) }; sh.uniforms.uTex = { value: new THREE.Vector4(SIDE_W, FB_TEX_W, COLS, FB_COLS) };
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nattribute vec4 aInfo; uniform vec4 uCells, uTex; varying float vSd;')
       .replace('#include <beginnormal_vertex>', 'vec3 objectNormal = normalize(vec3(viewMatrix[0][2] * 0.35, 1.0, viewMatrix[2][2] * 0.35));')
       .replace('#include <uv_vertex>', `#include <uv_vertex>
 vec2 rr = vec2(viewMatrix[0][0], viewMatrix[2][0]); rr /= max(length(rr), 1e-4);
 float sd = aInfo.w < 0.5 ? 1.0 : 0.0;
 vec2 lu = vec2(sd > 0.5 && dot(aInfo.yz, rr) < 0.0 ? 1.0 - uv.x : uv.x, 1.0 - uv.y);
-vec2 px = sd > 0.5 ? vec2(mod(aInfo.x, ${COLS}.0) * ${CELL_W}.0 + lu.x * ${CELL_W}.0, floor(aInfo.x / ${COLS}.0) * ${CELL_H}.0 + lu.y * ${CELL_H}.0)
-  : vec2(${FB_X}.0 + mod(aInfo.x, ${FB_COLS}.0) * ${FB_W}.0 + lu.x * ${FB_W}.0, floor(aInfo.x / ${FB_COLS}.0) * ${CELL_H}.0 + lu.y * ${CELL_H}.0);
-vMapUv = px / vec2(${ATLAS_W}.0, ${ATLAS_H}.0);`)
+vSd = sd;
+vec2 px = sd > 0.5 ? vec2(mod(aInfo.x, uTex.z) * uCells.x + lu.x * uCells.x, floor(aInfo.x / uTex.z) * uCells.y + lu.y * uCells.y)
+  : vec2(mod(aInfo.x, uTex.w) * uCells.z + lu.x * uCells.z, floor(aInfo.x / uTex.w) * uCells.y + lu.y * uCells.y);
+vMapUv = px / (sd > 0.5 ? vec2(uTex.x, uCells.w) : vec2(uTex.y, uCells.w));`)
       .replace('#include <project_vertex>', `float sc = instanceMatrix[0][0];
-vec3 wp = instanceMatrix[3].xyz + vec3(rr.x, 0.0, rr.y) * position.x * (sd > 0.5 ? 1.0 : ${FB_W / CELL_W}) * sc + vec3(0.0, position.y * sc, 0.0);
+vec3 wp = instanceMatrix[3].xyz + vec3(rr.x, 0.0, rr.y) * position.x * (sd > 0.5 ? 1.0 : uCells.z / uCells.x) * sc + vec3(0.0, position.y * sc, 0.0);
 vec4 mvPosition = viewMatrix * vec4(wp, 1.0);
 gl_Position = projectionMatrix * mvPosition;`);
-    sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', 'diffuseColor *= texture2D(map, vMapUv, -0.6);'); // sharper mips, so walk frames do not average into a blur
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform sampler2D map2; varying float vSd;').replace('#include <map_fragment>', 'vec4 ta = texture2D(map, vMapUv, -0.6), tb = texture2D(map2, vMapUv, -0.6); diffuseColor *= vSd > 0.5 ? ta : tb;'); // sharper mips, so walk frames do not average into a blur; both reads are unconditional on the view
   };
   const crowd = new THREE.InstancedMesh(geo, mat, N);
   Object.assign(crowd, { name: 'crowd', frustumCulled: false, renderOrder: 1 }); // after the shadows
@@ -76,7 +87,7 @@ gl_Position = projectionMatrix * mvPosition;`);
   plan.forEach((p, i) => { place(p.path, st[i].s); show(i, true); face(i, STAND); });
   flag();
   return {
-    count: N, meshes: [crowd, shadow],
+    count: N, meshes: [crowd, shadow], ready, get atlasMs() { return atlasMs; },
     update(dt, cam) {
       if (reducedMotion || dt <= 0) return;
       plan.forEach(({ look: k, path }, i) => {

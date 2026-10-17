@@ -6,10 +6,10 @@ import { stops } from '../js/content.js';
 
 const pts = routePoints(stops.length), plan = crowdPlan(stops, pts, 42), looks = plan.map((p) => p.look);
 
-test('plan is deterministic and about 480 people', () => {
+test('plan is deterministic and about 600 people', () => {
   assert.deepEqual(crowdPlan(stops, pts, 42), plan);
   assert.notDeepEqual(crowdPlan(stops, pts, 43), plan);
-  assert.equal(plan.length, 480);
+  assert.equal(plan.length, 600);
   assert.ok(plan.every((p) => p.s0 >= 0 && p.s0 < 1));
   const lanes = plan.filter((p) => p.path.type === 'lane').length / plan.length;
   assert.ok(lanes > 0.6 && lanes < 0.8, `lane share ${lanes}`);
