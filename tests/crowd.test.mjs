@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { makeLook, walkPaths, crowdPlan, chooseVariants, SKIN } from '../js/world/crowd.js';
+import { makeLook, walkPaths, crowdPlan, chooseVariants, hairShape, SKIN } from '../js/world/crowd.js';
 import { routePoints, rng } from '../js/world/layout.js';
 import { stops } from '../js/content.js';
 
@@ -59,4 +59,5 @@ test('sprite variants cover every skin tone, kind and hair style', () => {
   assert.equal(new Set(variants.map((l) => l.skin)).size, 7);
   assert.equal(new Set(variants.map((l) => l.kind)).size, 4);
   assert.ok(new Set(variants.map((l) => l.hairStyle)).size >= 4);
+  assert.ok(new Set(variants.map(hairShape)).size >= 7, 'quiff, curly, afro, long, bun, pigtails, ...');
 });

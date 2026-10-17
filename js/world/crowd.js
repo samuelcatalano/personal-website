@@ -44,8 +44,16 @@ export function crowdPlan(stops, pts, seed, count = 160) {
 }
 // Sprite atlas variants: greedy k-center over a look distance, so every skin tone, kind and hair style shows up; each person maps to the nearest variant.
 const KIDS = /boy|girl/;
+// Sprite hair shape, derived from the look (so crowd.js keeps its rng stream): men quiff / curly / short / afro (dark skin), boys tousled, girls pigtails.
+export function hairShape(l) {
+  const h = Math.floor(l.height * 7919) % 3;
+  if (l.hairStyle === 'ponytail' && KIDS.test(l.kind)) return 'pigtails';
+  if (l.hairStyle !== 'short') return l.hairStyle;
+  if (SKIN.indexOf(l.skin) >= 4) return 'afro';
+  return l.kind === 'boy' ? 'tousled' : ['quiff', 'curly', 'short'][h];
+}
 const dist = (a, b) => (a.kind !== b.kind ? 50 + 60 * (KIDS.test(a.kind) !== KIDS.test(b.kind)) : 0) + 14 * Math.abs(SKIN.indexOf(a.skin) - SKIN.indexOf(b.skin))
-  + 25 * (a.hairStyle !== b.hairStyle) + 14 * (a.hair !== b.hair) + 10 * (a.top !== b.top) + 6 * (a.bottom !== b.bottom) + 3 * (a.shoes !== b.shoes);
+  + 25 * (hairShape(a) !== hairShape(b)) + 14 * (a.hair !== b.hair) + 10 * (a.top !== b.top) + 6 * (a.bottom !== b.bottom) + 3 * (a.shoes !== b.shoes);
 export function chooseVariants(looks, n) {
   const chosen = [0], near = looks.map((l) => dist(l, looks[0])), of = looks.map(() => 0);
   while (chosen.length < Math.min(n, looks.length)) {
