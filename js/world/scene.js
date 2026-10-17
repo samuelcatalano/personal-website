@@ -6,7 +6,7 @@ import { createBoxes, buildMeshes } from './voxel.js';
 import { buildCity } from './city.js';
 import { buildLandmarks } from './landmarks.js';
 import { buildBus, buildMini } from './bus.js';
-import { createSky } from './sky.js';
+import { createSky, EXPOSURE, SUN_DIR } from './sky.js';
 import { createWater } from './water.js';
 import { createAmbient } from './ambient.js';
 import { createPeople } from './people.js';
@@ -17,7 +17,7 @@ import { createPost } from './post.js';
 const BUS_LANE = 1.75, SCROLL_SMOOTH = 0.18, ARC = 10;
 export async function createWorld(canvas, stops, { reducedMotion = false, onProgress = () => {} } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-  Object.assign(renderer, { toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.1, outputColorSpace: THREE.SRGBColorSpace });
+  Object.assign(renderer, { toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: EXPOSURE, outputColorSpace: THREE.SRGBColorSpace });
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xa8d0f2);
@@ -29,7 +29,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   Object.assign(sun.shadow, { bias: -0.0002, normalBias: 0.05 });
   sun.shadow.mapSize.set(1024, 1024);
   Object.assign(sun.shadow.camera, { left: -80, right: 80, top: 80, bottom: -80, far: 300 });
-  const SUN = new THREE.Vector3(40, 80, 30), LD = SUN.clone().normalize(), TEXEL = 160 / 1024;
+  const SUN = SUN_DIR.clone().multiplyScalar(95), LD = SUN.clone().normalize(), TEXEL = 160 / 1024;
   const LU = new THREE.Vector3(0, 1, 0).cross(LD).normalize(), LV = LD.clone().cross(LU);
   scene.add(hemi, sun, sun.target);
   const n = stops.length, pts = routePoints(n);

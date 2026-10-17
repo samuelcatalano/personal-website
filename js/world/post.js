@@ -16,7 +16,7 @@ vec2 p = vUv; vec3 acc = vec3(0.0); float w = 1.0;
 for (int i = 0; i < 40; i++) {
 p += step;
 vec3 c = texture2D(tDiffuse, p).rgb;
-acc += smoothstep(0.8, 1.2, dot(c, vec3(0.333))) * c * w;
+acc += smoothstep(2.2, 3.5, dot(c, vec3(0.333))) * c * w;
 w *= 0.96;
 }
 gl_FragColor = vec4(base.rgb + acc / 40.0 * uStrength, base.a);
@@ -50,7 +50,7 @@ export function createPost(renderer, scene, camera, { tier = 'high', sun } = {})
       if (rays && post.tier === 'high' && sun) {
         v.copy(sun.position).sub(sun.target.position).normalize().multiplyScalar(500).add(camera.position).project(camera);
         rays.uniforms.uSun.value.set(v.x / 2 + 0.5, v.y / 2 + 0.5);
-        rays.uniforms.uStrength.value = v.z < 1 ? 0.5 * Math.min(1, sun.intensity / 2.4) : 0;
+        rays.uniforms.uStrength.value = v.z < 1 ? 0.2 * Math.min(1, sun.intensity / 2.4) : 0;
       }
       composer.render(dt);
     },
