@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { makeLook, walkPaths, crowdPlan, SKIN } from '../js/world/crowd.js';
+import { makeLook, walkPaths, crowdPlan, chooseVariants, SKIN } from '../js/world/crowd.js';
 import { routePoints, rng } from '../js/world/layout.js';
 import { stops } from '../js/content.js';
 
@@ -50,4 +50,13 @@ test('plaza loops stay 5.6 m clear of the road', () => {
     assert.ok(d >= 5.6, `${d}`);
   }
   assert.ok(plan.some((p) => p.path.type === 'loop' && (p.path.dir === 1 || p.path.dir === -1)));
+});
+test('sprite variants cover every skin tone, kind and hair style', () => {
+  const { variants, of } = chooseVariants(looks, 32);
+  assert.equal(variants.length, 32);
+  assert.ok(of.every((v) => v >= 0 && v < 32));
+  assert.ok(of.every((v, i) => variants[v].kind === looks[i].kind), 'variant keeps the kind');
+  assert.equal(new Set(variants.map((l) => l.skin)).size, 7);
+  assert.equal(new Set(variants.map((l) => l.kind)).size, 4);
+  assert.ok(new Set(variants.map((l) => l.hairStyle)).size >= 4);
 });

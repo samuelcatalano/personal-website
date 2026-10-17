@@ -31,7 +31,7 @@ export function createPost(renderer, scene, camera, { tier = 'high', sun } = {})
   if (tier === 'high') { // ponytail: medium never builds heavy passes
     const ao = new GTAOPass(scene, camera, size.x, size.y);
     const hide = ao.overrideVisibility;
-    ao.overrideVisibility = function () { hide.call(this); this.scene.traverse((o) => { if (o.isSprite || o.material?.transparent) o.visible = false; }); };
+    ao.overrideVisibility = function () { hide.call(this); this.scene.traverse((o) => { if (o.isSprite || o.name === 'crowd' || o.material?.transparent) o.visible = false; }); };
     rays = new ShaderPass(SunRays);
     heavy.push(ao, rays);
     heavy.forEach((p) => composer.addPass(p));

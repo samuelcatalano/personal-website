@@ -1,11 +1,10 @@
 import { rng, stopIndex, riverEnd, copan, RIVER_Z, LANDMARKS as L } from './layout.js';
-// Pure data (no three): people looks and where they walk. Rendering lives in people.js.
+// Pure data (no three): people looks and where they walk. Rendering lives in people.js / sprites.js.
 export const SKIN = ['#f6d9c4', '#efc3a0', '#d9a579', '#b9824f', '#8a5a35', '#5e3a22', '#3d2517'];
 const HAIR = ['#1b1714', '#3a2415', '#6b4328', '#d9b86a'], GREY = '#b5b5b0';
 const TOPS = ['#c0392b', '#2e6fb7', '#2f8f5b', '#e8b930', '#f2f2ee', '#222831', '#8e5ab8', '#e87d3e', '#d96a8c', '#5a6b3a', '#4a90a4'];
 const BOTTOMS = ['#2b3a55', '#1f2328', '#4a5a78', '#7a6a55', '#3d3d3d', '#6b4f3a', '#a89c86', '#5b3a5e'];
 const SHOES = ['#1a1a1a', '#f2f2ee', '#5a3a22', '#c0392b', '#2e6fb7'];
-export const PROPORTIONS = { head: 0.135, legs: 0.47, torso: 0.375, arms: 0.38 }; // fractions of height, for people.js
 const pick = (r, a) => a[r() * a.length | 0], between = (r, a, b) => a + r() * (b - a);
 export function makeLook(r) {
   const adult = r() < 0.7, female = r() < 0.5;
@@ -42,4 +41,16 @@ export function crowdPlan(stops, pts, seed, count = 160) {
     const path = onLane ? pick(r, lanes) : { ...pick(r, loops), dir: r() < 0.5 ? 1 : -1 }; // loops get a per-person direction
     return { look, path, s0 };
   });
+}
+// Sprite atlas variants: greedy k-center over a look distance, so every skin tone, kind and hair style shows up; each person maps to the nearest variant.
+const KIDS = /boy|girl/;
+const dist = (a, b) => (a.kind !== b.kind ? 50 + 60 * (KIDS.test(a.kind) !== KIDS.test(b.kind)) : 0) + 14 * Math.abs(SKIN.indexOf(a.skin) - SKIN.indexOf(b.skin))
+  + 25 * (a.hairStyle !== b.hairStyle) + 14 * (a.hair !== b.hair) + 10 * (a.top !== b.top) + 6 * (a.bottom !== b.bottom) + 3 * (a.shoes !== b.shoes);
+export function chooseVariants(looks, n) {
+  const chosen = [0], near = looks.map((l) => dist(l, looks[0])), of = looks.map(() => 0);
+  while (chosen.length < Math.min(n, looks.length)) {
+    const far = near.indexOf(Math.max(...near)), v = chosen.push(far) - 1;
+    looks.forEach((l, i) => { const d = dist(l, looks[far]); if (d < near[i]) { near[i] = d; of[i] = v; } });
+  }
+  return { variants: chosen.map((i) => looks[i]), of };
 }

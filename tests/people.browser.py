@@ -10,9 +10,9 @@ print(js(r'''(async () => {
   const pts = routePoints(stops.length), curve = routeCurve(THREE, pts), cam = curve.getPointAt(0.5);
   const run = (reducedMotion) => {
     const scene = new THREE.Scene(), people = createPeople(scene, { curve, pts, stops, reducedMotion });
-    const before = people.meshes.map((m) => Float32Array.from(m.instanceMatrix.array));
+    const crowd = people.meshes[0], info = crowd.geometry.getAttribute('aInfo'), before = [Float32Array.from(crowd.instanceMatrix.array), Float32Array.from(info.array)];
     people.update(0.5, cam);
-    const changed = people.meshes.some((m, i) => m.instanceMatrix.array.some((v, k) => v !== before[i][k]));
+    const changed = crowd.instanceMatrix.array.some((v, k) => v !== before[0][k]) || info.array.some((v, k) => v !== before[1][k]);
     return { scene, people, changed };
   };
   const { scene, people, changed } = run(false);
@@ -20,8 +20,8 @@ print(js(r'''(async () => {
   check(changed, 'update(0.5) must move some people');
   check(!run(true).changed, 'reduced motion must not move anyone');
   const meshes = []; scene.traverse((o) => { if (o.isInstancedMesh) meshes.push(o); });
-  check(meshes.length <= 16, 'at most 16 instanced meshes');
-  const samples = Array.from({ length: 3001 }, (_, i) => curve.getPoint(i / 3000)), head = meshes.find((m) => m.name === 'head'), a = head.instanceMatrix.array;
+  check(meshes.length <= 3, 'at most 3 instanced meshes');
+  const samples = Array.from({ length: 3001 }, (_, i) => curve.getPoint(i / 3000)), head = meshes.find((m) => m.name === 'crowd'), a = head.instanceMatrix.array;
   let nearest = Infinity, shown = 0;
   for (let i = 0; i < people.count; i++) {
     const x = a[i * 16 + 12], z = a[i * 16 + 14];
