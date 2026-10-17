@@ -115,15 +115,11 @@ export function buildCity(add, stops, pts, curve) {
         const h = broadleaf(r); // always draw rng so layout stays stable
         if (free(x, z)) { tree(add, x, z, h); obst.push([x, z]); }
       }
-      if (stops[i].country === 'UK' && i % 2 === 0 && free(p.x + 4, p.z + side * 11.2)) {
-        phoneBox(add, p.x + 4, p.z + side * 11.2);
-        obst.push([p.x + 4, p.z + side * 11.2]);
-      }
     }
   });
   // London kiosks on the pavement (own rng: nothing else shifts)
   const kq = rng(6403), u0 = (stopIndex(stops, LANDMARKS.heathrow) - 0.3) / (stops.length - 1), kiosks = [];
-  for (let tries = 0; kiosks.length < 10 && tries < 300; tries++) {
+  for (let tries = 0; kiosks.length < 15 && tries < 400; tries++) {
     const u = u0 + kq() * (1 - u0), side = kq() < 0.5 ? -1 : 1, p = curve.getPointAt(u), t = curve.getTangentAt(u);
     const x = p.x - t.z * side * 7.1, z = p.z + t.x * side * 7.1;
     if (!free(x, z) || [...obst, ...kiosks].some(([a, b]) => Math.hypot(a - x, b - z) < 3.5)) continue;
