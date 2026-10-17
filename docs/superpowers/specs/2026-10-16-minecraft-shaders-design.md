@@ -60,7 +60,7 @@ Without WebGL, or if the CDN fails, the page uses the `no-webgl` fallback with t
 
 ## Budgets
 
-- Own JS, code only, excluding `content.js`: < 64,000 B (raised from 60,000 by the user on 2026-10-16 for more detailed cars). The addons from three do not count.
+- Own JS, code only, excluding `content.js`: < 68,000 B (raised from 60,000 on 2026-10-16 for more detailed cars, then to 68,000 on 2026-10-17 for denser cities). The addons from three do not count.
 - Desktop high tier: ≥ 50 FPS at 1440p on a mid-range laptop. Mobile medium tier: ≥ 30 FPS.
 - < 150 draw calls.
 

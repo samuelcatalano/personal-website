@@ -48,7 +48,7 @@ Page height = `stops.length * 100vh`. `progress = scrollY / (scrollHeight - inne
 - Panel is real HTML with headings/lists/links; keyboard nav jumps between stops (`j/k`, arrows).
 
 ## Performance budget
-Panel visible before world loads (world is a dynamic `import()`). Own JS code excluding three and the EN/PT copy in `js/content.js` < 64 KB (raised from 60 KB on 2026-10-16; user decision 2026-10-16; content grows with the career). three module ~ 600 KB from CDN (cached).
+Panel visible before world loads (world is a dynamic `import()`). Own JS code excluding three and the EN/PT copy in `js/content.js` < 68 KB (raised to 64 KB on 2026-10-16 and 68 KB on 2026-10-17; user decision 2026-10-16; content grows with the career). three module ~ 600 KB from CDN (cached).
 
 ## Testing
 - `node --test tests/` content integrity.
