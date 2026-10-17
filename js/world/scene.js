@@ -9,6 +9,7 @@ import { buildBus, buildMini } from './bus.js';
 import { createSky } from './sky.js';
 import { createWater } from './water.js';
 import { createAmbient } from './ambient.js';
+import { createPeople } from './people.js';
 import { createSigns } from './signs.js';
 import { buildFigure } from './figure.js';
 import { SECTION_SHOT, shotFor, blendShots, spring, approach, nextTier } from './camera.js';
@@ -39,6 +40,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const routemaster = buildBus(), mini = buildMini(), bus = new THREE.Group().add(mini, routemaster), swap = swapAt(stops);
   scene.add(buildMeshes(list, { glow: [P.lit, '#ffd86b', '#fff7c2', P.arch] }), eye, details, plane, bus);
   const units = [createAmbient(scene, { curve, pts, stops })];
+  const people = createPeople(scene, { curve, pts, stops, reducedMotion });
   const water = createWater({ x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z: RIVER_Z, width: 22 });
   scene.add(water.mesh);
   units.push(await createSigns(scene, { stops, curve }));
@@ -121,6 +123,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const f = { time: clock, dt, progress: p, active: nearestStop(p, n), bus: busPos };
     onProgress(p);
     for (const u of units) u.update(f);
+    people.update(dt, camera.position);
     night = reducedMotion || dt === 0 ? nightTarget : approach(night, nightTarget, dt, 1.4);
     sky.update(night, dt, camera.position);
     water.update(clock, night);
