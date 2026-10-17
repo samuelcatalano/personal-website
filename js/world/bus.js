@@ -10,7 +10,7 @@ const addWheels = (group, geometry, color, positions) => {
 };
 // One data-driven voxel car. x = forward, y = up from the road, 1 unit = 1 m.
 const DARK = '#1b1d21', BUMP = '#4a4d52', ARCH = '#08090a', TAIL = '#c4151c', INDI = '#e8892b';
-export function car({ L, W, c, roof = c, hl, bl, ch, taxi, ring }) {
+export function car({ L, W, c, roof = c, hl, bl, ch, taxi }) {
   const { add, list } = createBoxes(), e = L / 2, bx = e - 0.1, sx = [1, -1], sz = [1, -1];
   const xf = bx - hl, xr = -bx + bl, cl = xf - xr, cx = (xf + xr) / 2, top = 0.9 + ch;
   add(0, 0.2, 0, L - 0.2, 0.2, W - 0.2, DARK);                       // chassis skirt
@@ -18,27 +18,17 @@ export function car({ L, W, c, roof = c, hl, bl, ch, taxi, ring }) {
   add((xf + bx) / 2, 0.9, 0, hl, 0.1, W - 0.1, c);                   // hood, below the cabin
   add((xr - bx) / 2, 0.9, 0, bl, 0.1, W - 0.1, c);                   // boot
   add(cx, 0.9, 0, cl - 0.1, ch - 0.02, W - 0.24, '#1d2630');                // glass, inset 0.06
-  for (const x of [cx - cl / 2 + 0.07, cx + cl / 2 - 0.07, cx + cl * 0.05]) add(x, 0.9, 0, 0.14, ch, W - 0.12, ring ? DARK : c); // A/B/C pillars (black on the Mini)
+  for (const x of [cx - cl / 2 + 0.07, cx + cl / 2 - 0.07, cx + cl * 0.05]) add(x, 0.9, 0, 0.14, ch, W - 0.12, c); // A/B/C pillars
   add(cx, top, 0, cl + 0.05, 0.1, W - 0.14, roof);                   // roof, narrower than the body
   if (taxi) add(cx + 0.4, top + 0.1, 0, 0.35, 0.14, 0.7, '#ffd36b'); // TAXI roof sign
-  for (const s of sx) add(s * bx, 0.28, 0, 0.2, 0.28, W - 0.06, ring ? CHROME : BUMP); // bumpers
+  for (const s of sx) add(s * bx, 0.28, 0, 0.2, 0.28, W - 0.06, BUMP); // bumpers
   add(e - 0.07, 0.6, 0, 0.08, 0.2, W - 0.9, DARK);                   // grille
-  if (ring) {                                                        // Mini extras
-    for (const y of [0.63, 0.69, 0.75]) add(e - 0.02, y, 0, 0.06, 0.03, W - 0.98, CHROME); // grille bars
-    add(-e + 0.06, 0.62, 0, 0.08, 0.16, 0.44, '#f2c230');            // rear plate
-  }
   for (const z of sz) {
-    if (ring) {
-      add(e - 0.01, 0.34, z * 0.62, 0.08, 0.08, 0.14, '#f2c230');    // fog light
-      for (const x of [L * 0.3, -L * 0.3]) add(x, 0.6, z * (W / 2), 1.0, 0.22, 0.08, ARCH); // wheel-arch trim
-      add(cx + cl * 0.05 + 0.25, 0.78, z * (W / 2 + 0.01), 0.14, 0.05, 0.05, CHROME); // door handle
-    }
     const lz = z * (W / 2 - 0.3);
-    if (ring) add(e - 0.08, 0.57, lz, 0.08, 0.3, 0.3, '#c9c9c9');    // chrome ring (Mini)
-    add(e - 0.05, 0.62, lz, 0.1, ring ? 0.2 : 0.18, ring ? 0.2 : 0.3, GLOW);   // headlight
+    add(e - 0.05, 0.62, lz, 0.1, 0.18, 0.3, GLOW);                   // headlight
     add(-e + 0.07, 0.62, lz, 0.1, 0.2, 0.3, TAIL);                   // tail-light
     add(-e + 0.07, 0.83, lz, 0.1, 0.08, 0.3, INDI);                  // indicator
-    add(cx + cl / 2, 1, z * (W / 2 + 0.04), 0.12, 0.1, 0.12, ring ? DARK : c); // mirror
+    add(cx + cl / 2, 1, z * (W / 2 + 0.04), 0.12, 0.1, 0.12, c);      // mirror
     for (const x of [L * 0.3, -L * 0.3]) {
       add(x, 0.05, z * (W / 2 - 0.03), 0.84, 0.72, 0.1, ARCH);       // wheel arch
       add(x, 0, z * (W / 2 - 0.11), 0.6, 0.6, 0.24, TYRE);            // wheel, tucked in
@@ -47,7 +37,87 @@ export function car({ L, W, c, roof = c, hl, bl, ch, taxi, ring }) {
   }
   return buildMeshes(list, { glow: [GLOW] });
 }
-export const buildMini = () => car({ L: 3.6, W: 1.68, c: '#f4f1ea', roof: RED, hl: 0.55, bl: 0.3, ch: 0.55, ring: 1 });
+// Mini Cooper, hand-built. x forward, z right (driver on +z), y up, 1 unit = 1 m. Outer faces sit >= 0.03 proud of what they cover.
+export function buildMini() {
+  const { add, list } = createBoxes();
+  const WHITE_ = '#f4f1ea', PANE = '#2c3d4a', SEAT = '#454a52', TRIM = '#23262b', ALLOY = '#b9bec4', YEL = '#f2c230';
+  const box = (c, x0, x1, y0, y1, z0, z1) => add((x0 + x1) / 2, y0, (z0 + z1) / 2, x1 - x0, y1 - y0, z1 - z0, c);
+  const side = (c, x0, x1, y0, y1, zo, t) => { box(c, x0, x1, y0, y1, zo - t, zo); box(c, x0, x1, y0, y1, -zo, -zo + t); };
+  const sym = (c, x0, x1, y0, y1, za, zb) => za ? (box(c, x0, x1, y0, y1, za, zb), box(c, x0, x1, y0, y1, -zb, -za)) : box(c, x0, x1, y0, y1, -zb, zb);
+  const nose = (c, xo, t, y0, y1, za, zb) => sym(c, xo - t, xo, y0, y1, za, zb);      // front, outer face at +xo
+  const tail = (c, xo, t, y0, y1, za, zb) => sym(c, -xo, -xo + t, y0, y1, za, zb);    // rear, outer face at -xo
+  // body: sill, lower body, stepped rounded ends, bonnet and boot
+  box(DARK, -1.6, 1.6, 0.2, 0.4, -0.78, 0.78);
+  box(WHITE_, -1.66, 1.66, 0.4, 0.9, -0.84, 0.84);
+  nose(WHITE_, 1.72, 0.06, 0.44, 0.88, 0, 0.78); tail(WHITE_, 1.72, 0.06, 0.44, 0.88, 0, 0.78);
+  box(WHITE_, 0.62, 1.72, 0.9, 1.0, -0.78, 0.78);                     // bonnet
+  box(WHITE_, 1.0, 1.7, 0.9, 1.0, -0.84, 0.84);                       // wing shoulders
+  box(WHITE_, -1.72, -1.05, 0.9, 1.0, -0.78, 0.78);                   // boot lid
+  side(DARK, -0.5, 0.5, 0.4, 0.5, 0.87, 0.03);                        // sill
+  box(DARK, 0.7, 1.62, 1.0, 1.03, -0.64, -0.6); box(DARK, 0.7, 1.62, 1.0, 1.03, 0.6, 0.64); // clamshell lines
+  box(CHROME, 0.9, 1.65, 1.0, 1.03, -0.03, 0.03);                     // bonnet chrome strip
+  box(RED, 0.7, 1.62, 1.0, 1.03, -0.26, -0.14); box(RED, 0.7, 1.62, 1.0, 1.03, 0.14, 0.26); // bonnet stripes
+ 
+  // roof: stepped eaves + crown
+  box(RED, -1.14, 0.7, 1.45, 1.5, -0.8, 0.8); box(RED, -1.08, 0.62, 1.5, 1.55, -0.7, 0.7);
+  // glass + black rubber pillars; side panes start above the door cards so seats show below
+  side(PANE, -0.18, 0.52, 1.12, 1.42, 0.72, 0.03); side(PANE, -0.98, -0.32, 1.12, 1.42, 0.72, 0.03);
+  box(PANE, 0.58, 0.63, 0.98, 1.2, -0.62, 0.62); box(PANE, 0.54, 0.59, 1.2, 1.43, -0.62, 0.62);   // windscreen, stepped rake
+  box(PANE, -1.12, -1.07, 0.98, 1.2, -0.62, 0.62); box(PANE, -1.07, -1.02, 1.2, 1.43, -0.62, 0.62); // rear window
+  for (const [x0, x1] of [[0.52, 0.66], [-0.32, -0.18], [-1.12, -0.98]]) side(DARK, x0, x1, 0.9, 1.45, 0.76, 0.14);
+  side(CHROME, -0.98, 0.52, 1.08, 1.12, 0.8, 0.04);                   // chrome window surround, bottom
+  side(CHROME, -1.1, 0.6, 1.42, 1.45, 0.8, 0.04);                     // drip rail
+  side(CHROME, -1.15, 0.7, 0.9, 0.93, 0.82, 0.06);                    // belt line
+  // interior hint
+  box(TRIM, -1.05, 0.58, 0.9, 0.92, -0.7, 0.7);                       // floor
+  box(TRIM, 0.45, 0.58, 0.92, 1.1, -0.7, 0.7);                        // dashboard
+  box(TRIM, 0.36, 0.42, 1.0, 1.14, 0.28, 0.5);                        // steering wheel (driver on +z)
+  for (const z of [-0.36, 0.36]) {
+    box(SEAT, 0.0, 0.4, 0.92, 1.0, z - 0.2, z + 0.2); box(SEAT, -0.22, -0.1, 0.92, 1.34, z - 0.2, z + 0.2); box(SEAT, -0.2, -0.12, 1.34, 1.44, z - 0.1, z + 0.1); // seat, back, headrest
+  }
+  box(SEAT, -0.9, -0.5, 0.92, 1.0, -0.62, 0.62); box(SEAT, -0.95, -0.82, 0.92, 1.3, -0.62, 0.62); // rear bench
+  // doors: seams, handles, side repeater, mirrors
+  for (const x of [0.54, -0.54]) side(DARK, x - 0.01, x + 0.01, 0.42, 0.9, 0.87, 0.03);
+  side(CHROME, -0.5, -0.36, 0.78, 0.83, 0.9, 0.06);
+  side(INDI, 1.2, 1.3, 0.82, 0.88, 0.9, 0.06);
+  for (const z of [-1, 1]) {
+    box(DARK, 0.5, 0.58, 1.02, 1.1, z * 0.76 - 0.06, z * 0.76 + 0.06);   // mirror stalk
+    box(DARK, 0.47, 0.57, 1.0, 1.12, z > 0 ? 0.82 : -0.93, z > 0 ? 0.93 : -0.82);
+  }
+  // nose: grille with chrome surround, badge, round headlights, indicators, bumper, fog lights, plate
+  nose(DARK, 1.75, 0.03, 0.6, 0.82, 0, 0.36);
+  for (const y of [0.64, 0.7, 0.76]) nose(CHROME, 1.78, 0.03, y, y + 0.025, 0, 0.36);
+  nose(CHROME, 1.78, 0.06, 0.56, 0.6, 0, 0.4); nose(CHROME, 1.78, 0.06, 0.82, 0.86, 0, 0.4); nose(CHROME, 1.78, 0.06, 0.6, 0.82, 0.36, 0.4);
+  nose(GILT, 1.75, 0.03, 0.92, 0.98, 0, 0.14);                        // badge on the bonnet nose
+  for (const z of [-0.62, 0.62]) {
+    const a = z - 0.15, b = z + 0.15;
+    box(CHROME, 1.72, 1.76, 0.72, 0.9, z - 0.12 * 1, z + 0.12); box(CHROME, 1.72, 1.76, 0.66, 0.96, z - 0.09, z + 0.09); box(CHROME, 1.72, 1.76, 0.69, 0.93, a, b); // bezel (octagon)
+    box(GLOW, 1.75, 1.79, 0.73, 0.89, z - 0.08, z + 0.08);            // lens
+    box(GLOW, 1.75, 1.79, 0.71, 0.91, z - 0.05, z + 0.05);
+    box(INDI, 1.72, 1.76, 0.52, 0.62, z - 0.05 + Math.sign(z) * 0.12, z + 0.05 + Math.sign(z) * 0.12); // indicator
+    box(YEL, 1.72, 1.79, 0.34, 0.44, Math.sign(z) * 0.5 - 0.07, Math.sign(z) * 0.5 + 0.07); // fog light
+  }
+  nose(CHROME, 1.76, 0.12, 0.3, 0.5, 0, 0.8);                        // bumper
+  nose(WHITE_, 1.79, 0.03, 0.32, 0.46, 0, 0.2);                       // front plate + text
+  nose(DARK, 1.805, 0.015, 0.37, 0.41, 0, 0.15);
+  // tail: vertical lamps, badge, plate, bumper, exhaust
+  tail(TAIL, 1.76, 0.04, 0.52, 0.88, 0.66, 0.76); tail(INDI, 1.79, 0.03, 0.78, 0.86, 0.66, 0.76);
+  tail(CHROME, 1.75, 0.03, 0.76, 0.84, 0, 0.07);                      // rear badge
+  tail(YEL, 1.755, 0.035, 0.56, 0.72, 0, 0.22); tail(DARK, 1.785, 0.03, 0.62, 0.66, 0, 0.17);
+  tail(CHROME, 1.76, 0.12, 0.3, 0.5, 0, 0.8);
+  box('#8a8e94', -1.74, -1.58, 0.22, 0.3, 0.42, 0.5); box(DARK, -1.8, -1.74, 0.23, 0.29, 0.43, 0.49); // exhaust
+  // wheels: arch flares, tyres (octagon), alloy rim, spokes, hub
+  for (const x of [1.08, -1.08]) for (const z of [-1, 1]) {
+    const w = (c, hx, hy, y0, zo, t) => box(c, x - hx, x + hx, y0 - hy, y0 + hy, z > 0 ? zo - t : -zo, z > 0 ? zo : -zo + t);
+    w(ARCH, 0.42, 0.36, 0.41, 0.86, 0.03);                            // arch hole
+    w(ARCH, 0.5, 0.09, 0.71, 0.9, 0.06);                              // flare
+    w(TYRE, 0.3, 0.18, 0.3, 0.87, 0.22); w(TYRE, 0.18, 0.3, 0.3, 0.87, 0.22); w(TYRE, 0.25, 0.25, 0.3, 0.87, 0.22);
+    w(ALLOY, 0.18, 0.12, 0.3, 0.9, 0.04); w(ALLOY, 0.12, 0.18, 0.3, 0.9, 0.04);
+    w(DARK, 0.17, 0.02, 0.3, 0.93, 0.03); w(DARK, 0.02, 0.17, 0.3, 0.93, 0.03);   // spokes
+    w(TRIM, 0.05, 0.05, 0.3, 0.95, 0.08);                             // hub
+  }
+  return buildMeshes(list, { glow: [GLOW] });
+}
 export function buildBus() {
   const bus = new THREE.Group();
   const bodyMaterial = new THREE.MeshLambertMaterial({ color: RED });
