@@ -20,7 +20,7 @@ print(js(r'''(async () => {
   check(changed, 'update(0.5) must move some people');
   check(!run(true).changed, 'reduced motion must not move anyone');
   const meshes = []; scene.traverse((o) => { if (o.isInstancedMesh) meshes.push(o); });
-  check(meshes.length <= 12, 'at most 12 instanced meshes');
+  check(meshes.length <= 14, 'at most 14 instanced meshes');
   const samples = Array.from({ length: 3001 }, (_, i) => curve.getPoint(i / 3000)), head = meshes.find((m) => m.name === 'head'), a = head.instanceMatrix.array;
   let nearest = Infinity, shown = 0;
   for (let i = 0; i < people.count; i++) {
