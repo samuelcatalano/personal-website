@@ -19,7 +19,7 @@ const C = (h) => new THREE.Color(h);
 const DAY = { zen: C(0x6fb1e8), hor: C(0xb9dcf5), cloud: C(0xf4f9ff), sun: 2.4, hemi: 1.0, light: C(0xfff0d0) };
 const NIGHT = { zen: C(0x0b1530), hor: C(0x1d2b4f), cloud: C(0x3b4668), sun: 0.34, hemi: 0.48, light: C(0xaec4ff) };
 export const SUN_DIR = new THREE.Vector3(110, 45, 40).normalize(); // directional light + sun + moon share this direction
-const DIST = 900;
+const DIST = 1300; // just inside camera.far (1400), beyond every building
 function disc(draw) {
   const cv = document.createElement('canvas'); cv.width = cv.height = 256;
   draw(cv.getContext('2d'));
@@ -27,8 +27,8 @@ function disc(draw) {
   return t;
 }
 const sprite = (map, size) => {
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(size, size), new THREE.MeshBasicMaterial({ map, transparent: true, depthTest: false, depthWrite: false, fog: false, toneMapped: false }));
-  m.renderOrder = 1000; // ponytail: drawn over the world on purpose, the follow camera looks down so buildings cover the real sky
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(size, size), new THREE.MeshBasicMaterial({ map, transparent: true, depthTest: true, depthWrite: false, fog: false, toneMapped: false }));
+  m.renderOrder = 1000;
   return m;
 };
 export function createSky(scene, { hemi, sun, reducedMotion = false }) {
@@ -48,17 +48,17 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
     const r = g.createRadialGradient(128, 128, 0, 128, 128, 128);
     r.addColorStop(0, '#fff'); r.addColorStop(0.2, '#fff'); r.addColorStop(0.24, 'rgba(255,255,255,0.12)'); r.addColorStop(1, 'rgba(255,255,255,0)');
     g.fillStyle = r; g.fillRect(0, 0, 256, 256);
-  }), 210);
+  }), 400);
   sunM.material.color.copy(untone(C(0xfff0b8)));
   const moonM = sprite(disc((g) => {
     g.fillStyle = '#fff'; g.beginPath(); g.arc(128, 128, 100, 0, 7); g.fill();
     g.fillStyle = 'rgba(150,160,185,0.55)';
     for (const [x, y, r] of [[100, 105, 18], [150, 95, 11], [140, 150, 22], [95, 155, 9], [170, 130, 7]]) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }
-  }), 170);
+  }), 200);
   moonM.material.color.copy(untone(C(0xe6e9f0)));
   scene.add(dome, sunM, moonM);
   // blocky clouds: flat-topped clusters of boxes in three layers
-  const cloudMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.85, depthTest: false, depthWrite: false, fog: false, toneMapped: false });
+  const cloudMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.85, depthWrite: false, fog: false, toneMapped: false });
   const box = new THREE.BoxGeometry(1, 1, 1), clouds = new THREE.Group();
   for (let i = 0; i < 10; i++) {
     const g = new THREE.Group(), n = 4 + Math.floor(Math.random() * 4);
@@ -68,7 +68,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
       m.position.set(j * 36 - n * 18, Math.random() * 5, (Math.random() - 0.5) * 40);
       g.add(m);
     }
-    g.userData = { x: Math.random() * 2.8 - 1.4, y: 0.6 + Math.random() * 0.38, k: 0.7 + Math.random() * 0.6 };
+    g.userData = { x: Math.random() * 2.8 - 1.4, y: 0.6 + Math.random() * 0.38, k: 1.3 + Math.random() * 1.1 };
     g.scale.setScalar(g.userData.k);
     clouds.add(g);
   }
@@ -106,10 +106,10 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
         for (const c of clouds.children) {
           const d = c.userData;
           if (!reducedMotion) d.x = d.x > 1.4 ? -1.4 : d.x + dt * 0.012;
-          at(cam, d.x, d.y, 650, c.position);
+          at(cam, d.x, d.y, 1250, c.position);
           c.lookAt(cam.position);
         }
-        place(sunM, cam, wide ? 0.62 : 0.5, wide ? 0.7 : 0.62); place(moonM, cam, wide ? 0.62 : 0.5, wide ? 0.7 : 0.62);
+        place(sunM, cam, wide ? 0.8 : 0.66, wide ? 0.9 : 0.8); place(moonM, cam, wide ? 0.8 : 0.66, wide ? 0.9 : 0.8);
       }
       sunM.visible = night < 0.98; sunM.material.opacity = 1 - night;
       moonM.visible = night > 0.02; moonM.material.opacity = night;
