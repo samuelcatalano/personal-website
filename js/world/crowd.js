@@ -5,7 +5,7 @@ const HAIR = ['#1b1714', '#3a2415', '#6b4328', '#d9b86a'], GREY = '#b5b5b0';
 const TOPS = ['#c0392b', '#2e6fb7', '#2f8f5b', '#e8b930', '#f2f2ee', '#222831', '#8e5ab8', '#e87d3e', '#d96a8c', '#5a6b3a', '#4a90a4'];
 const BOTTOMS = ['#2b3a55', '#1f2328', '#4a5a78', '#7a6a55', '#3d3d3d', '#6b4f3a', '#a89c86', '#5b3a5e'];
 const SHOES = ['#1a1a1a', '#f2f2ee', '#5a3a22', '#c0392b', '#2e6fb7'];
-export const PROPORTIONS = { head: 0.155, legs: 0.45, torso: 0.3, arms: 0.36 }; // fractions of height, for people.js
+export const PROPORTIONS = { head: 0.23, legs: 0.37, torso: 0.36, arms: 0.3 }; // fractions of height, for people.js
 const pick = (r, a) => a[r() * a.length | 0], between = (r, a, b) => a + r() * (b - a);
 export function makeLook(r) {
   const adult = r() < 0.7, female = r() < 0.5;
@@ -18,7 +18,7 @@ export function makeLook(r) {
   const hair = adult && r() < 0.12 ? GREY : pick(r, HAIR); // always draws the same rolls
   return {
     kind, height, skin: pick(r, SKIN), hair, hairStyle, top: pick(r, TOPS), bottom: pick(r, BOTTOMS), shoes: pick(r, SHOES),
-    shoulder: height * (female ? 0.22 : adult ? 0.25 : 0.23), speed: adult ? between(r, 1.1, 1.5) : between(r, 0.9, 1.3),
+    shoulder: height * (female ? 0.27 : 0.3), speed: adult ? between(r, 1.1, 1.5) : between(r, 0.9, 1.3),
   };
 }
 // Lane offsets sit between the kerb and the sign posts (7.1) and behind them; inner and outer lanes walk opposite ways.
