@@ -118,7 +118,7 @@ export function buildBus() {
   }
   // open rear platform, grab pole, plate, rear window
   rear(DARK, 5.524, 0.024, 0.85, 2.1, -0.85, 0.85);
-  rear(CHROME, 5.545, 0.045, 0.85, 2.2, -0.65, -0.6);
+  rear(CHROME, 5.56, 0.045, 0.85, 2.2, -0.65, -0.6);
   rear(PLATE_Y, 5.53, 0.03, 2.25, 2.42, -0.32, 0.32);
   rear(GLASS, 5.52, 0.016, 3.14, 3.86, -0.8, 0.8);
   add(0, 4.6, 0, 9.6, 0.06, 2.0, RED); add(0, 4.66, 0, 8.0, 0.04, 1.2, RED); // stepped roof
