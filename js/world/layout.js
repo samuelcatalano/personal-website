@@ -15,6 +15,8 @@ export const LANDMARKS = {
   wembley: 'contact',
 };
 export const FRAME_LIFT = { xdesign: 1, olm: 0.6, tribal: 1 };
+// Edifício Copan: S-shaped slab west of the MASP corridor, behind the road row (blocks.js reserves it)
+export const copan = (stops, pts) => ({ x: pts[stopIndex(stops, LANDMARKS.masp)].x - 46, z: -45, len: 40, amp: 5, depth: 9.2 });
 export const stopIndex = (stops, id) => stops.findIndex((s) => s.id === id);
 export const riverEnd = (stops, pts) => pts[stopIndex(stops, LANDMARKS.towerbridge)].x + 24;
 export const riverStart = (stops, pts) => pts[stopIndex(stops, LANDMARKS.estaiada)].x - 20;

@@ -1,4 +1,4 @@
-import { LANDMARKS, stopIndex, RIVER_Z } from './layout.js';
+import { LANDMARKS, stopIndex, RIVER_Z, copan } from './layout.js';
 import { PALETTE as P } from './palette.js';
 const FAR = RIVER_Z - 18;
 function masp(add, { x }) {
@@ -46,6 +46,18 @@ function estaiada(add, { x }) {
     }
   }
 }
+// Edifício Copan: ~46 m S-curve of slab segments; dark core shows between projecting concrete floor bands
+function copanTower(add, { x, z, len, amp, depth }) {
+  const N = 10, step = len / N, H = 48;
+  for (let i = 0; i < N; i++) {
+    const t = (i + 0.5) / N, cx = x - len / 2 + t * len, cz = z + amp * Math.sin(2 * Math.PI * t);
+    add(cx, 0.25, cz, step + 0.8, H - 0.25, depth - 0.8, P.ink);
+    for (let k = 0; k < 16; k++) add(cx, 0.5 + k * 3, cz, step + 0.2, 1.9, depth, P.concrete);
+    add(cx, H, cz, step + 0.2, 0.4, depth, P.concrete);
+    if (i === 2) add(cx, H + 0.4, cz, 3, 2, 3, P.steel);
+    if (i === 6) add(cx, H + 0.4, cz, 2, 1.4, 4, P.roof);
+  }
+}
 function paulista(add, x, i) {
   const z = RIVER_Z - 22;
   [[-8, 30 + (i % 3) * 8], [9, 44 - (i % 2) * 10]].forEach(([dx, h], j) => {
@@ -58,6 +70,7 @@ function paulista(add, x, i) {
   });
 }
 export function buildSaoPaulo(add, stops, pts) {
+  copanTower(add, copan(stops, pts));
   const at = (key) => pts[stopIndex(stops, LANDMARKS[key])];
   masp(add, at('masp'));
   se(add, at('se'));

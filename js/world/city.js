@@ -1,4 +1,6 @@
-import { furnitureSpots, RIVER_Z, LANDMARKS, rng, riverEnd, riverStart } from './layout.js';
+import { furnitureSpots, RIVER_Z, LANDMARKS, rng, riverEnd, riverStart, stopIndex } from './layout.js';
+import { house } from './houses.js';
+import { phoneBox } from './phone.js';
 import { PALETTE as P } from './palette.js';
 import { buildBlocks } from './blocks.js';
 const PATCH = P.patch, ROAD = P.road, LINE = P.cream;
@@ -8,7 +10,7 @@ const BR_WALLS = [P.stone, '#d8d0c2', '#bdb3a4'];
 const ROOF = P.roof, ROOFS = [P.brick, P.roof, P.oak, P.steel], // ponytail: tint by position keeps r() sequence
    GLASS = P.glass, WINDOW_LIT = P.lit;
 export const CLEAR = 4.5;
-const TRUNK = P.trunk, LEAF = P.leaf, LEAF_SHADE = P.grass, PHONE = P.red;
+const TRUNK = P.trunk, LEAF = P.leaf, LEAF_SHADE = P.grass;
 function townhouse(add, x, z, side, br, r, roofStacks) {
   const w = 9, d = 7, floors = side === 1 ? 2 : br ? 2 + (r() < 0.25) : 2 + (r() < 0.6 ? 1 : 0);
   const h = floors * 2.8, wall = (br ? BR_WALLS : UK_WALLS)[Math.floor(r() * (br ? BR_WALLS.length : UK_WALLS.length))];
@@ -57,7 +59,7 @@ export function tree(add, x, z, { h, crown }) {
 export function buildCity(add, stops, pts, curve) {
   const spots = furnitureSpots(stops, curve).map((o) => o.xz);
   const free = (x, z) => spots.every(([a, b]) => Math.hypot(a - x, b - z) > CLEAR); // ponytail: skip, not shift
-  const occ = [], r = rng(2026), LM = new Set(Object.values(LANDMARKS));
+  const occ = [], obst = [], r = rng(2026), hq = rng(8821), noop = () => {}, mx = pts[stopIndex(stops, LANDMARKS.masp)].x, LM = new Set(Object.values(LANDMARKS));
   const span = pts.length * 30 + 120, N = pts.length * 20;
   add(0, -1, 0, span, 1, 200, P.pave);
   const x0 = riverStart(stops, pts), rEnd = riverEnd(stops, pts), mid = (x0 + rEnd) / 2, len = rEnd - x0;
@@ -81,6 +83,7 @@ export function buildCity(add, stops, pts, curve) {
         if (!free(x, z)) continue;
         add(x, 0, z, 0.16, 3, 0.16, ROOF);
         add(x, 3, z, 0.7, 0.2, 0.7, WINDOW_LIT);
+        obst.push([x, z]);
       }
     }
   }
@@ -100,19 +103,32 @@ export function buildCity(add, stops, pts, curve) {
       for (const dx of [-9, 0, 9]) {
         if (side === 1 && stops[i].id === 'contact' && dx === 0) continue;
         const hz = p.z + side * (side === 1 ? 21 : 17);
-        townhouse(add, p.x + dx, hz, side, br, r, i >= 2);
+        // MASP view corridor: far-side houses in front of it are not drawn (townhouse still runs on a no-op so r() stays aligned)
+        const show = !(side === -1 && Math.abs(p.x + dx - mx) < 29.5);
+        const uk = stops[i].country === 'UK';
+        townhouse(show && !uk ? add : noop, p.x + dx, hz, side, br, r, i >= 2);
+        if (show && uk) house(add, hq, p.x + dx, hz, -side, 9, 7, side === 1 ? 2 : 3 + (hq() < 0.4), 3.1);
         occ.push([p.x + dx - 5, p.x + dx + 5, hz - 4.5, hz + 4.5]);
       }
       for (const dx of [-8, 8]) {
         const x = p.x + dx + (r() - 0.5) * 2, z = p.z + side * 10.2;
         const h = broadleaf(r); // always draw rng so layout stays stable
-        if (free(x, z)) tree(add, x, z, h);
+        if (free(x, z)) { tree(add, x, z, h); obst.push([x, z]); }
       }
       if (!br && i % 2 === 0 && free(p.x + 4, p.z + side * 11.2)) {
-        add(p.x + 4, 0, p.z + side * 11.2, 1.2, 2.5, 1.2, PHONE);
-        add(p.x + 4, 2.5, p.z + side * 11.2, 1.4, 0.3, 1.4, ROOF);
+        phoneBox(add, p.x + 4, p.z + side * 11.2);
+        obst.push([p.x + 4, p.z + side * 11.2]);
       }
     }
   });
+  // London kiosks on the pavement (own rng: nothing else shifts)
+  const kq = rng(6403), u0 = (stopIndex(stops, LANDMARKS.heathrow) - 0.3) / (stops.length - 1), kiosks = [];
+  for (let tries = 0; kiosks.length < 10 && tries < 300; tries++) {
+    const u = u0 + kq() * (1 - u0), side = kq() < 0.5 ? -1 : 1, p = curve.getPointAt(u), t = curve.getTangentAt(u);
+    const x = p.x - t.z * side * 7.1, z = p.z + t.x * side * 7.1;
+    if (!free(x, z) || [...obst, ...kiosks].some(([a, b]) => Math.hypot(a - x, b - z) < 3.5)) continue;
+    phoneBox(add, x, z);
+    kiosks.push([x, z]);
+  }
   buildBlocks(add, stops, pts, curve, occ);
 }
