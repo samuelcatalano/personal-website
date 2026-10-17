@@ -1,58 +1,83 @@
 # TRD — London Bus Portfolio
 
-## Reference analysis (REA, 2026-10-15)
-bridglabs.com: Vite + React 19 shell; lazy `World-*.js` chunk (~560 KB) with Three.js. Observed in the bundle: `WebGLRenderer`, `InstancedMesh`, `MeshLambertMaterial`, `Fog`, `DirectionalLight` + `HemisphereLight`, shadow maps. No scene images: the world is procedural voxels. Page ≈ 6.7k px tall; scroll drives the camera/vehicle; HTML side panel with sections; pixel font (Geist Pixel) for year signs; day/night theme via `data-theme`. Evidence: `ev_d6b53060938d1609e04d1323e36b0121cd24fab8cb54fab3edf6a245fc19cf40` (static, main bundle) plus runtime screenshots. We reproduce the *experience*, not the code or assets.
+## Historical reference analysis (REA, 2026-10-15)
 
-## Stack
-- Static HTML/CSS + native ES modules. No bundler, no npm.
-- `three@0.169.0` from `https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.min.js` via importmap.
-- Fonts: Google Fonts "Silkscreen" (pixel signs) + "Inter" (body).
-- Hosting: GitHub Pages, `main` / root. All URLs relative.
+The recorded REA of bridglabs.com described a Vite + React 19 shell, a lazy Three.js world bundle, procedural voxel scenery, an InstancedMesh-based renderer, scroll-driven travel, an HTML content panel, year signs and a day/night theme. The archived note cites evidence ID `ev_d6b53060938d1609e04d1323e36b0121cd24fab8cb54fab3edf6a245fc19cf40` (static bundle and runtime screenshots). That evidence artifact is not in this repository, so these are retained as historical notes rather than independently re-verified claims. This project's implementation below is separate and does not reuse the reference code or assets.
+
+## Stack and runtime
+
+- Static HTML, CSS and native ES modules; no build step or npm.
+- Three.js `0.169.0` is pinned in the import map in `index.html`, loaded from jsDelivr only when WebGL is available.
+- Inter is loaded from Google Fonts. Voxel year signs and the Big Ben clock faces are drawn to canvas textures.
+- GitHub Pages serves the repository root. Site links and assets use relative paths.
+- User-facing copy and journey stop data live in `js/content.js` in English and Portuguese.
 
 ## File layout
+
+```text
+index.html                 document shell, import map, accessible panel/nav skeleton, canvas and scroll track
+css/style.css              layout, day/night tokens, responsive panel and WebGL fallback background
+js/content.js              sections, stops, localized copy, articles, repos, stack and external links
+js/main.js                 panel boot, stop-sized scroll track, WebGL detection, lazy world import and wiring
+js/ui.js                   HTML panel rendering, section navigation, language/theme preferences and announcements
+js/scroll.js               scroll progress, nearest stop, stop navigation positions and passive scroll listener
+js/world/scene.js          renderer, route, scene assembly, camera framing, animation, resize and lifecycle
+js/world/layout.js         route point spacing, landmark anchors, camera lifts, furniture anchors and seeded RNG
+js/world/camera.js         shot definitions, eased shot blending, spring, approach and quality-tier selection
+js/world/voxel.js          group box data into InstancedMesh batches by material/color
+js/world/city.js           road, paving, Thames banks, street furniture, houses/trees and generation orchestration
+js/world/blocks.js         procedural city blocks, skyline and protected building regions
+js/world/parks.js          park and plaza geometry, landscaping and sign-clearance rules
+js/world/landmarks.js      London landmarks, Heathrow plane, Glasgow and São Paulo builder orchestration
+js/world/glasgow.js        George Square, City Chambers and Duke of Wellington statue with traffic cone
+js/world/saopaulo.js       São Paulo landmarks and Brazil-era skyline
+js/world/{bus,figure}.js   vehicles and closing figure
+js/world/{people,crowd,sprites}.js deterministic pedestrian plan, movement and atlas sprites
+js/world/{signs,phone,houses}.js signs, phone boxes and house geometry helpers
+js/world/{sky,water,ambient,beams,textures,palette,post}.js environment, lighting effects, materials and postprocessing
+tests/*.test.mjs           node:test checks for content, route/camera logic and procedural geometry
+tests/*.browser.py         browser checks for scene, landmarks, vehicles, people, fallback and visual regressions
 ```
-index.html            shell, importmap, panel markup skeleton, <canvas id="world">
-css/style.css         tokens (day/night), panel, signs, mobile bottom sheet
-js/content.js         export const content = { en: {...}, pt: {...} }, stops[]
-js/main.js            boot: render panel, detect WebGL/reduced-motion, lazy import world
-js/ui.js              panel render, nav, i18n toggle, theme toggle, active-stop highlight
-js/scroll.js          scroll → progress (0..1) → active stop index; emits events
-js/world/scene.js     renderer, camera, lights, fog, resize, render loop
-js/world/voxel.js     helper: build InstancedMesh from list of {x,y,z,color}
-js/world/city.js      ground, Thames, roads, generic buildings, trees, phone boxes
-js/world/landmarks.js Big Ben, Tower Bridge, London Eye, Wembley arch, Heathrow
-js/world/bus.js       red double-decker (voxels) + avatar in upper front window
-js/world/route.js     CatmullRomCurve3 through stop points; bus + camera follow
-tests/content.test.mjs node --test: every string has en+pt, stops chronological
-assets/avatar.png     Memoji (pixel version generated from it)
-```
 
-## Interfaces
-- `content.stops: Array<{ id, year, kind: 'hero'|'job'|'edu'|'stack'|'articles'|'repos'|'recs'|'contact', country: 'BR'|'UK', t: number /*0..1 on route*/ }>`; localized text in `content[lang][id]`.
-- `scroll.js`: `onProgress(cb(progress, stopIndex))`.
-- `world/scene.js`: `export async function createWorld(canvas, stops) → { setProgress(p), setTheme('day'|'night'), dispose() }`.
-- `ui.js`: `renderPanel(lang)`, `setActiveStop(i)`, `setLang(lang)`, `setTheme(theme)`; persists lang/theme in `localStorage` (try/catch).
+## Data and interfaces
 
-## Rendering
-- All voxels are unit boxes in `InstancedMesh` grouped by material; target < 150 draw calls, < 60k instances.
-- Lambert materials, flat colors; fog for depth; one directional light with shadows (shadow map 2048 desktop, off on mobile).
-- DPR capped at 2 desktop, 1.5 mobile. Render loop only runs while progress or theme changes (idle = no frames), plus subtle ambient animation (Eye rotation, river shimmer) paused when tab hidden.
-- Night theme: darker sky/fog, lit windows (emissive instances), bus headlights.
+- `stops` is the ordered route and panel index. Each item has `id`, `section`, `year`, and `country`; journey stops also have a `brand` monogram/color. Stops do not carry a `t`: route progress is derived from array position. Localized panel copy is in `i18n[lang].sections` and `i18n[lang].stops`.
+- `sectionStart(section)` returns the first stop index for a section. `SECTIONS` defines the section order used by navigation and content tests.
+- `scroll.js` exports `progressFromScroll(scrollY, scrollHeight, viewport)`, `nearestStop(progress, count)`, `routeT(progress, count)`, `scrollYForStop(index, count, scrollHeight, viewport)` and `watchScroll(callback)`. The callback receives progress only.
+- `initUI({ onGoto, onTheme })` renders the current panel and returns `{ theme, setActive(index) }`. Language and theme preferences use guarded `localStorage` access. Keyboard `j`/`k`, buttons and section links navigate by stop index.
+- `createWorld(canvas, stops, { reducedMotion, onProgress })` asynchronously returns `{ setProgress(p), jump(p), setTheme(name), dispose() }`. `onProgress` receives current animated progress. `dispose()` cancels the frame, removes resize/visibility listeners, disconnects the resize observer and disposes the renderer.
 
-## Scroll model
-Page height = `stops.length * 100vh`. `progress = scrollY / (scrollHeight - innerHeight)`. Bus position = `curve.getPointAt(ease(progress))`; camera = bus position + offset, `lookAt` bus, lerped per frame. Active stop = nearest `stop.t`. Year sign = HTML overlay projected from 3D point above the bus.
+## Scene and rendering
 
-## Fallbacks
-- No WebGL (`canvas.getContext('webgl2')` fails) → CSS gradient sky + static skyline SVG; panel unchanged.
-- `prefers-reduced-motion` → no camera lerp, jump to stop poses; no ambient animation.
-- Panel is real HTML with headings/lists/links; keyboard nav jumps between stops (`j/k`, arrows).
+`main.js` sets the scroll track to `stops.length * 100vh`, paints the panel immediately, probes `webgl2`, then dynamically imports `world/scene.js`. A failed probe or world import adds `no-webgl`; the canvas is hidden and the CSS gradient remains behind the usable HTML panel. The fallback does not draw a static skyline.
 
-## Performance budget
-Panel visible before world loads (world is a dynamic `import()`). Own JS size has no byte limit (user decision 2026-10-17); performance budgets (draw calls, FPS) still apply.
+`scene.js` builds a Catmull–Rom route from one world point per stop, then assembles city, landmarks, vehicles, people, water, signs, sky and a closing figure. `voxel.js` groups generated box records by color/material into instanced meshes; landmarks may also add purpose-built meshes and sprites. There is no declared draw-call or instance-count target in the implementation.
+
+The scroll target is smoothed with a spring and the bus follows the resulting route parameter. Camera shots vary by content section; `blendShots` eases framing between adjacent stops, while `FRAME_LIFT` gives selected journey stops extra headroom. Desktop and mobile use different framing to account for the panel. Resize handling updates DPR (capped at 1.5 desktop and 1 mobile), viewport, shadow-map enablement and camera view offset. The renderer uses a 1024² directional shadow map on desktop and disables shadows on mobile.
+
+Postprocessing uses a render pass, bloom and output pass. Desktop starts at the high tier with GTAO and sun rays; mobile and reduced-motion start at medium, without those heavier passes. On desktop, an average below 40 FPS over a two-second sampling window lowers high to medium; the tier does not rise again. This is a quality fallback, not a guaranteed FPS target.
+
+## Extending the route: Glasgow example
+
+Add a stop to `content.js` in chronological order, with matching English and Portuguese panel copy, and add its stop-specific geometry through a landmark builder. Route points, scroll mapping, panel indices and camera interpolation derive from `stops.length`, so the extra stop extends the route and page track without per-stop `t` values. Stop landmarks are anchored by ID through `LANDMARKS` and `stopIndex`, rather than hard-coded route coordinates.
+
+Glasgow follows the London OLM stop and precedes Tribal. `LANDMARKS.glasgow` anchors George Square at that route point; its builder receives the point and places the square/civic frontage on the far side of the road. `city.js` suppresses far-side houses whose footprints intersect the square's x/z bounds, while `blocks.js` includes its clearance rectangle among protected regions. Existing stop furniture is derived from the curve, and parks/plazas are checked against pedestrian loops and their clearances. This keeps the new landmark footprint free as the route is regenerated.
+
+The camera continues to use the same section shots and smooth blend at the new stop. Glasgow has no special `FRAME_LIFT`, so it uses the normal follow framing. Geometry joins the existing color batches where possible; adding a stop does not add a new render pass. Keep the landmark modest and preserve instancing/clearance checks so route growth does not needlessly increase draw calls or crowd the camera. The current FPS tier mechanism can drop desktop postprocessing quality if measured performance falls below its threshold.
+
+## Motion and accessibility behavior
+
+- With `prefers-reduced-motion`, route progress snaps to the nearest stop, ambient time and pedestrian movement are paused, and the world starts on the medium postprocessing tier. The HTML panel and its navigation remain available.
+- Without WebGL, or if dynamic world loading fails, the panel remains usable over a CSS gradient background.
+- The canvas is `aria-hidden`; content, links, controls and announcements are HTML. The panel is the source of truth; the 3D world is decorative.
+- Mobile CSS turns the panel into a bottom sheet; the scene reframes its camera around the visible viewport region.
 
 ## Testing
-- `node --test tests/` content integrity.
-- Manual matrix from CLAUDE.md; accesslint audit on `http://localhost:8000`.
+
+- `node --test tests/` checks localized content integrity, route and camera math, palette, landmark geometry, pedestrian plans, park clearance and Glasgow footprint clearance.
+- `tests/*.browser.py` exercise real WebGL rendering and browser behavior, including fallback, world assembly, camera, vehicles, people and visual regressions.
+- The manual verification matrix is in `CLAUDE.md`: desktop and 375px mobile, day/night, EN/PT, WebGL disabled, reduced motion, no console errors and Lighthouse accessibility at least 95.
 
 ## Privacy
-Contact block only: samuel.catalano@gmail.com, linkedin.com/in/samuelcatalano, github.com/samuelcatalano. The CV PDF shipped in the repo must be a version without address/phone (Samuel to supply) or not linked.
+
+The contact UI exposes email, LinkedIn and GitHub only. Do not publish a home address or phone number. The current repository policy in `CLAUDE.md` says any shipped CV must be redacted or omitted.
