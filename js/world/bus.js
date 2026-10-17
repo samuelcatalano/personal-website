@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { createBoxes, buildMeshes } from './voxel.js';
 const RED = '#c9252b', GLASS = '#a9c5d3', FRAME = '#8f171d', TYRE = '#242629', HUB = '#a9a49a';
+const PURPLE = '#5b2a86', PURPLE_D = '#3f1c5e', GREY = '#c9cdd2'; // First Glasgow livery
 const WARM = new THREE.Color('#ffc865'), GLOW = '#fff0b5', CREAM = '#e6dcc4', WHITE = '#f4f1ea', CHROME = '#c9c9c9', GILT = '#b39a64', PLATE_Y = '#f2c230';
 const addWheels = (group, geometry, color, positions) => {
   const mesh = new THREE.InstancedMesh(geometry, new THREE.MeshLambertMaterial({ color }), positions.length);
@@ -196,6 +197,24 @@ export function buildBus() {
   const body = buildMeshes(list, { glow: [GLOW, GLASS], glowK: { [GLASS]: 0.18 } }); // windows: warm cabin light at night
   body.traverse((o) => { if (o.material?.color?.getHexString() === GLASS.slice(1)) o.material.userData.glowColor = WARM; });
   bus.add(body);
+  // Glasgow livery: same mesh, repaint. RED/FRAME instanced meshes get private material clones (world materials are shared by colour); grey panels are hidden in London.
+  const paint = [bodyMaterial, ...[[RED, PURPLE], [FRAME, PURPLE_D]].flatMap(([from, to]) => {
+    const ms = [];
+    body.traverse((o) => {
+      if (!o.isInstancedMesh || '#' + o.material.color.getHexString() !== from) return;
+      const m = o.material, c = new THREE.MeshStandardMaterial({ color: from, map: m.map, roughness: m.roughness, metalness: 0 });
+      c.onBeforeCompile = m.onBeforeCompile; c.userData = { ...m.userData }; o.material = c; ms.push(c);
+    });
+    return ms.map((m) => (m.userData.from = from, m.userData.to = to, m));
+  })];
+  const g = createBoxes();
+  const gs = (x0, x1, y0, y1) => { for (const s of [1, -1]) g.add((x0 + x1) / 2, y0, s * 1.252, x1 - x0, y1 - y0, 0.02, GREY); }; // flank panel, outer face 1.262 (shell 1.25, glass 1.27)
+  gs(-5, 5.1, 0.5, 1.12);                                                              // lower band
+  [[2.0, 5.3, 1.12, 1.3], [2.6, 5.46, 1.3, 2.2], [3.2, 5.46, 2.2, 3.1], [3.8, 5.3, 3.1, 4.5]].forEach(([x0, x1, y0, y1]) => gs(x0, x1, y0, y1)); // stepped swoosh, front end grey
+  g.add(5.5, 0.5, 0, 0.02, 4.0, 2.4, GREY);                                            // whole nose face, outer 5.51 (glass 5.52)
+  const grey = buildMeshes(g.list); grey.visible = false; bus.add(grey);
+  bodyMaterial.userData.from = RED; bodyMaterial.userData.to = PURPLE;
+  bus.userData.setLivery = (glasgow) => { grey.visible = glasgow; for (const m of paint) m.color.set(glasgow ? m.userData.to : m.userData.from); };
   const wheels = [-3.75, 3.75].flatMap((x) => [-1.18, 1.18].map((z) => [x, 0.55, z]));
   addWheels(bus, new THREE.CylinderGeometry(0.55, 0.55, 0.22, 20).rotateX(Math.PI / 2), TYRE, wheels);
   addWheels(bus, new THREE.CylinderGeometry(0.22, 0.22, 0.04, 16).rotateX(Math.PI / 2), HUB, wheels.map(([x, y, z]) => [x, y, Math.sign(z) * 1.29]));

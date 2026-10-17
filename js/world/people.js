@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { crowdPlan, chooseVariants } from './crowd.js';
 import * as SP from './sprites.js';
+import { regions, inRegion } from './layout.js';
 const { FRAMES, COLS, FB_COLS, ROWS, strideOf } = SP;
 // Walking-emoji pedestrians: canvas-drawn sprites (side, front and back views) in two atlas textures, ONE InstancedMesh of cylindrical billboards (+ one for soft shadows). Paths come from crowd.js (pure data).
 const NEAR = 140, INSET = 0.6, FEET = 0.02, SEED = 1017, VARIANTS = 28, STAND = 2, LOCK = 0.6; // sprite looks; the standing frame (legs passing)
@@ -9,7 +10,7 @@ const sharp = () => { try { const gl = document.createElement('canvas').getConte
 export function createPeople(scene, { curve, pts, stops, reducedMotion = false, hd = sharp() }) {
   SP.setScale(hd ? 1.4 : 1);
   const { CELL_W, CELL_H, GROUND, S, FB_W, SIDE_W, FB_TEX_W, TEX_H } = SP;
-  const plan = crowdPlan(stops, pts, SEED), N = plan.length;
+  const plan = crowdPlan(stops, pts, SEED), N = plan.length, rgs = regions(stops, pts); // lane walkers vanish in open countryside
   // Arc-length table of the route (curve parameter is per stop, so speed would vary): positions + normals every ~1 m.
   const fine = Array.from({ length: 4001 }, (_, k) => curve.getPoint(k / 4000)), cum = [0];
   for (let k = 1; k < fine.length; k++) cum.push(cum[k - 1] + fine[k].distanceTo(fine[k - 1]));
@@ -80,7 +81,7 @@ gl_Position = projectionMatrix * mvPosition;`);
   const A = crowd.instanceMatrix.array, I = info.array;
   const st = plan.map((q, i) => ({ s: q.s0 * perim(q.path), d: q.s0 * 40, vis: true, h: q.look.height }));
   for (let i = 0; i < N; i++) { A.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], i * 16); }
-  const show = (i, vis, sx = 0, sz = 0) => { const a = i * 16, h = vis ? st[i].h : 0; A[a] = A[a + 5] = A[a + 10] = h; A[a + 12] = out.x + sx; A[a + 13] = FEET; A[a + 14] = out.z + sz; };
+  const show = (i, vis, sx = 0, sz = 0) => { const a = i * 16, h = vis && !(plan[i].path.type === 'lane' && inRegion(rgs, 'ctry', out.x)) ? st[i].h : 0; A[a] = A[a + 5] = A[a + 10] = h; A[a + 12] = out.x + sx; A[a + 13] = FEET; A[a + 14] = out.z + sz; };
   const vw = new Uint8Array(N); // current view per person, with hysteresis so sector changes do not flicker
   const face = (i, frame, view = 0) => { I[4 * i] = (view ? of[i] * 2 + view - 1 : of[i]) * FRAMES + frame; I[4 * i + 1] = out.fx; I[4 * i + 2] = out.fz; I[4 * i + 3] = view; };
   const flag = () => { crowd.instanceMatrix.needsUpdate = true; info.needsUpdate = true; };

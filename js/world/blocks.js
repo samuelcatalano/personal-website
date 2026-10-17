@@ -1,4 +1,4 @@
-import { rng, stopIndex, riverStart, riverEnd, copan, LANDMARKS as L } from './layout.js';
+import { rng, stopIndex, riverStart, riverEnd, copan, regions, inRegion, LANDMARKS as L } from './layout.js';
 import { house } from './houses.js';
 import { PALETTE as P } from './palette.js';
 const { concrete: C, cream: CR, white: W, stone: S, sandstone: SS, brick: B, glass: G, terracotta: TC, ochre: OC, mint: MN, salmon: SA, skyBlue: SB, offWhite: OW, concreteDark: CD, concreteMid: CM, redBrown: RB, londonStock: LS, teal: TL, bronze: BZ } = P, AWN = [P.red, P.slate, P.sand];
@@ -36,13 +36,13 @@ function draw(add, x, z, [w0, d, n, fh, wall, trim, kind, u], r, q, near, civic)
 }
 // Back rows + skyline. Skips `hard` (river, landmarks + 6 m, plaza), `occ` (houses), 26 m of road; near side and Sé/MASP flanks <= 12 m.
 export function buildBlocks(add, stops, pts, curve, occ) {
-  const r = rng(7311), q = rng(5521), cp = copan(stops, pts), gl = pts[stopIndex(stops, L.glasgow)], X = (k) => pts[stopIndex(stops, L[k])].x, mv = X('heathrow') - 15, lz = pts[pts.length - 1].z;
+  const r = rng(7311), q = rng(5521), cp = copan(stops, pts), gl = pts[stopIndex(stops, L.glasgow)], rgs = regions(stops, pts), X = (k) => pts[stopIndex(stops, L[k])].x, mv = X('heathrow') - 15, lz = pts[pts.length - 1].z;
   const H = (k, a, b, z0, z1) => [X(k) - a, X(k) + b, z0, z1], path = Array.from({ length: 241 }, (_, i) => curve.getPointAt(i / 240));
   const zAt = (x) => path.reduce((a, p) => Math.abs(p.x - x) < Math.abs(a.x - x) ? p : a).z;
   const hard = [
     [riverStart(stops, pts) - 6, riverEnd(stops, pts) + 6, -64, -26], H('masp', 26, 26, -76, -50), H('se', 24, 24, -77, -49), H('estaiada', 16, 16, -80, -12),
     H('heathrow', 18, 18, -38, -14), H('bigben', 10, 43, -76, -48), H('wembley', 30, 30, -92, -50), H('wembley', 14, 14, lz + 10, lz + 45),
-    [gl.x - 20, gl.x + 20, gl.z - 43, gl.z - 17],
+    [gl.x - 20, gl.x + 20, gl.z - 43, gl.z - 17], ...rgs.map((rg) => [rg.ctry[0], rg.ctry[1], -400, 400]), // countryside: country.js owns it
     ...pts.slice(0, 6).map((p) => [p.x - 16, p.x + 16, -80, -58]),
   ];
   // Reserved after the fact: blocks that would land here still draw r() but add nothing, so every other block keeps its place.
@@ -52,15 +52,16 @@ export function buildBlocks(add, stops, pts, curve, occ) {
   ];
   const hit = (a, b, e = 0) => a[0] < b[1] + e && b[0] - e < a[1] && a[2] < b[3] + e && b[2] - e < a[3];
   for (const [side, f, sp, uk] of ROWS) for (let x = pts[0].x - 40; x < X('wembley') + 40;) {
-    const mix = x > mv ? uk : sp, make = (s) => [s[0], s[1], s[2] + (r() * (s[3] - s[2] + 1) | 0), s[4], s[5][r() * s[5].length | 0], s[6], s[7], s[7] > 2 ? 3 + (r() * 3 | 0) : 1];
-    const low = side && (side > 0 || x < mv && [X('se'), X('masp')].some((l) => Math.abs(x - l) < 34));
+    const sc = inRegion(rgs, 'scot', x), sub = inRegion(rgs, 'sub', x), mix = sc ? [0] : x > mv ? uk : sp; // Scottish edge: low red-sandstone flats
+    const make = (s) => [s[0], s[1], s[2] + (r() * (s[3] - s[2] + 1) | 0), s[4], sc && !s[7] ? (r(), P.redSand) : s[5][r() * s[5].length | 0], s[6], s[7], s[7] > 2 ? 3 + (r() * 3 | 0) : 1];
+    const low = side && (side > 0 || sc || sub || x < mv && [X('se'), X('masp')].some((l) => Math.abs(x - l) < 34));
     let b = make(PRE[mix[r() * mix.length | 0]]);
     const z = () => (side ? zAt(x + w() / 2) + side * (f + b[1] / 2) : f), w = () => b[0] * b[7], bad = () => low && b[2] * b[3] > 12;
     if (bad()) b = make(PRE[mix[0]]);
     const R = [x - 1, x + w() + 1, z() - b[1] / 2 - 1, z() + b[1] / 2 + 1];
     if (!bad() && ![...hard, ...occ].some((o) => hit(R, o)) && !path.some((p) => hit(R, [p.x, p.x, p.z, p.z], 25))) {
       const clear = side > 0 && Math.abs(x + w() / 2 - X('wembley')) < 35; // camera side of the last stop stays open
-      const civic = z() <= -65 && x + w() >= X('bigben') - 20 && x <= gl.x + 26;
+      const civic = z() <= -65 && (x + w() >= X('bigben') - 20 && x <= rgs[0].sub[1] || x + w() >= rgs[0].scot[0] && x <= rgs[1].scot[1]); // London landmark stretch + Glasgow (both edges) only
       draw(clear || cut.some((o) => hit(R, o)) ? () => {} : add, x + w() / 2, z(), b, r, q, side > 0, civic);
       occ.push(R);
       x += w() + 2 + r() * 3;

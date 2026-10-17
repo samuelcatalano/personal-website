@@ -1,10 +1,12 @@
 export const STOP_SPACING = 30;
 export const RIVER_Z = -45;
-// One-off extra road after MASP (stop `after`) for the Copan; every later stop shifts east by `size`.
-// ponytail: `after` is the taqtile index, asserted in tests/logic.test.mjs
-export const GAP = { after: 4, size: 60 };
+// Extra roads: after MASP (taqtile, stop 4) for the Copan, and the London -> Glasgow run after the Eye (olm, stop 10), and the return run after Glasgow (stop 11). Every later stop shifts east by `size`.
+// ponytail: `after` are stop indices, asserted in tests/logic.test.mjs
+export const LONG_GAP = 180; // olm -> glasgow and glasgow -> tribal = STOP_SPACING + LONG_GAP; the one knob for the trip length
+export const GAPS = [{ after: 4, size: 60 }, { after: 10, size: LONG_GAP }, { after: 11, size: LONG_GAP }];
+export const GAP_TOTAL = GAPS.reduce((a, g) => a + g.size, 0);
 export const routePoints = (n) => Array.from({ length: n }, (_, i) => ({
-  x: (i - (n - 1) / 2) * STOP_SPACING + (i > GAP.after ? GAP.size : 0),
+  x: (i - (n - 1) / 2) * STOP_SPACING + GAPS.reduce((a, g) => a + (i > g.after ? g.size : 0), 0),
   z: Math.round(12 * Math.sin(i * 0.7)),
 }));
 export const LANDMARKS = {
@@ -29,6 +31,12 @@ export const routeCurve = (THREE, pts) => {
   return c;
 };
 export const stopIndex = (stops, id) => stops.findIndex((s) => s.id === id);
+// Regions (x ranges) of the two long runs, [out: Eye -> Glasgow, back: Glasgow -> Tower Bridge]: London terraces get lower in `sub`, open countryside `ctry`, Scottish sandstone edge `scot`.
+export const regions = (stops, pts) => {
+  const X = (id) => pts[stopIndex(stops, id)].x, [a, g, t] = [LANDMARKS.eye, LANDMARKS.glasgow, LANDMARKS.towerbridge].map(X);
+  return [{ sub: [a + 25, a + 55], ctry: [a + 55, g - 55], scot: [g - 55, g - 25] }, { scot: [g + 25, g + 55], ctry: [g + 55, t - 55], sub: [t - 55, t - 25] }];
+};
+export const inRegion = (rgs, key, x, e = 0) => rgs.some((r) => x >= r[key][0] - e && x < r[key][1] + e);
 export const riverEnd = (stops, pts) => pts[stopIndex(stops, LANDMARKS.towerbridge)].x + 24;
 export const riverStart = (stops, pts) => pts[stopIndex(stops, LANDMARKS.estaiada)].x - 20;
 export function rng(seed) {
@@ -41,6 +49,11 @@ export function rng(seed) {
 }
 // Mini->Routemaster swap: halfway before heathrow
 export const swapAt = (stops) => (stopIndex(stops, LANDMARKS.heathrow) - 0.5) / (stops.length - 1);
+// Glasgow livery between these route params: from mid-countryside on the way up (Eye + 0.6 of the run) to where the Scottish edge ends on the way back.
+export const scotRange = (stops) => {
+  const pts = routePoints(stops.length), g = stopIndex(stops, LANDMARKS.glasgow), [, back] = regions(stops, pts), seg = pts[g + 1].x - pts[g].x;
+  return [(stopIndex(stops, LANDMARKS.eye) + 0.6) / (stops.length - 1), (g + (back.scot[1] - pts[g].x) / seg) / (stops.length - 1)];
+};
 // Plaque + year-sign anchors [x, z, kind]; shared by signs.js (placement) and city.js (clearance).
 export function furnitureSpots(stops, curve) {
   const out = [], n = stops.length - 1;

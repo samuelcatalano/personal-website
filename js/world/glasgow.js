@@ -1,6 +1,6 @@
 import { PALETTE as P } from './palette.js';
 
-const CONE_ORANGE = '#f36b21';
+const CONE_ORANGE = '#f36b21', BRONZE_DK = '#4a3a22';
 
 // z is the road centre; George Square sits on its far-side (-z) edge.
 export function buildGlasgow(add, { x, z: roadZ }) {
@@ -32,26 +32,35 @@ export function buildGlasgow(add, { x, z: roadZ }) {
   add(x, 14.2, chambersZ, 4, 1, 3.5, P.gilt);
   add(x, 15.2, chambersZ, 1.3, 2.5, 1.3, P.sandstone);
 
-  // Duke of Wellington: pedestal, horse and rider; cone is the Glasgow in-joke.
-  const statueZ = roadZ - 20;
-  add(x, 0, statueZ, 4.8, 1.1, 4.8, P.concrete);
-  add(x, 1.1, statueZ, 3.4, 1.5, 3.4, P.stone);
-  add(x, 2.6, statueZ, 2.5, 0.5, 2.5, P.bronze);
-  add(x, 3.1, statueZ, 4.8, 1.5, 1.8, P.bronze);
-  add(x + 1.45, 4.3, statueZ, 1.2, 1.4, 1.3, P.bronze);
-  add(x + 2.3, 4, statueZ, 1.1, 1.6, 1.4, P.bronze);
-  add(x + 2.9, 5, statueZ, 1.2, 0.8, 1, P.bronze);
-  add(x + 2.65, 5.8, statueZ - 0.35, 0.4, 0.6, 0.35, P.bronze);
-  add(x + 2.95, 5.8, statueZ + 0.35, 0.4, 0.6, 0.35, P.bronze);
-  add(x - 2.65, 4.2, statueZ, 0.7, 0.8, 0.7, P.bronze);
-  add(x - 1.5, 2.7, statueZ - 0.6, 0.65, 1.3, 0.65, P.bronze);
-  add(x - 1.5, 2.7, statueZ + 0.6, 0.65, 1.3, 0.65, P.bronze);
-  add(x + 1.4, 2.7, statueZ - 0.6, 0.65, 1.3, 0.65, P.bronze);
-  add(x + 1.4, 2.7, statueZ + 0.6, 0.65, 1.3, 0.65, P.bronze);
-  add(x - 0.4, 4.6, statueZ, 1, 3, 1, P.bronze);
-  add(x + 0.45, 6.3, statueZ, 1.5, 0.45, 0.45, P.bronze);
-  add(x - 0.4, 7.6, statueZ, 1.3, 1.2, 1.3, P.bronze);
-  add(x - 0.4, 8.8, statueZ, 1.1, 0.95, 1.1, CONE_ORANGE);
-  add(x - 0.4, 9.75, statueZ, 0.9, 0.34, 0.9, P.white);
-  add(x - 0.4, 10.09, statueZ, 0.6, 0.7, 0.6, CONE_ORANGE);
+  // Duke of Wellington: stepped plinth, horse facing +x, rider; cone is the Glasgow in-joke.
+  const sz = roadZ - 20;
+  add(x, 0, sz, 5.8, 0.8, 3, P.concrete);
+  add(x, 0.8, sz, 4.8, 1.2, 2.4, P.stone);
+  add(x, 2, sz, 5.4, 0.6, 2.8, P.concrete);
+  for (const [dx, dz] of [[1.5, -0.45], [1.5, 0.45], [-1.5, -0.45], [-1.5, 0.45]]) {
+    add(x + dx, 2.6, sz + dz, 0.5, 0.3, 0.5, BRONZE_DK); // hoof
+    add(x + dx, 2.9, sz + dz, 0.5, 1.5, 0.45, P.bronze); // leg
+  }
+  add(x, 4.4, sz, 4.2, 1.6, 1.3, P.bronze); // body
+  add(x + 2.1, 5.5, sz, 1, 1.2, 0.8, P.bronze); // neck base
+  add(x + 2.4, 6.4, sz, 0.8, 1, 0.7, P.bronze); // neck arch
+  add(x + 1.9, 6, sz, 0.35, 1.4, 0.3, BRONZE_DK); // mane
+  add(x + 2.9, 6.7, sz, 0.9, 0.8, 0.7, P.bronze); // head
+  add(x + 3.45, 5.9, sz, 0.6, 1.3, 0.55, P.bronze); // muzzle
+  add(x + 2.65, 7.5, sz, 0.25, 0.4, 0.5, BRONZE_DK); // ears
+  add(x - 2.3, 5.2, sz, 0.5, 0.8, 0.45, BRONZE_DK); // tail root
+  add(x - 2.45, 3.5, sz, 0.4, 1.7, 0.4, BRONZE_DK); // tail
+  add(x - 0.2, 6, sz, 1.8, 0.2, 1.5, BRONZE_DK); // saddle
+  for (const s of [-1, 1]) {
+    add(x - 0.1, 5.1, sz + s * 0.85, 0.65, 1.4, 0.4, P.bronze); // rider leg
+    add(x + 0.15, 4.85, sz + s * 0.85, 0.95, 0.35, 0.5, BRONZE_DK); // boot in stirrup
+  }
+  add(x - 0.2, 6.2, sz, 0.9, 1.4, 1.1, P.bronze); // torso
+  add(x + 0.5, 6.7, sz + 0.65, 0.9, 0.4, 0.35, P.bronze); // reins arm
+  add(x + 1.05, 6.6, sz + 0.65, 0.4, 0.4, 0.4, BRONZE_DK); // hand
+  add(x - 0.2, 6.2, sz - 0.65, 0.35, 1, 0.35, P.bronze); // free arm
+  add(x - 0.2, 7.6, sz, 0.8, 0.8, 0.8, P.bronze); // head
+  add(x - 0.2, 8.4, sz, 0.9, 0.7, 0.9, CONE_ORANGE);
+  add(x - 0.2, 9.1, sz, 0.7, 0.3, 0.7, P.white);
+  add(x - 0.2, 9.4, sz, 0.5, 0.6, 0.5, CONE_ORANGE);
 }

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
 import { routeT, nearestStop } from '../scroll.js';
-import { routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, FRAME_LIFT, swapAt } from './layout.js';
+import { routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, FRAME_LIFT, swapAt, scotRange } from './layout.js';
 import { createBoxes, buildMeshes } from './voxel.js';
 import { buildCity } from './city.js';
 import { buildLandmarks } from './landmarks.js';
@@ -39,6 +39,9 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   buildCity(add, stops, pts, curve);
   const { eye, details, plane, planeAt } = buildLandmarks(add, stops, pts);
   const routemaster = buildBus(), mini = buildMini(), bus = new THREE.Group().add(mini, routemaster), swap = swapAt(stops);
+  // First Glasgow livery between these fractions of the olm->glasgow and glasgow->tribal segments
+  const [SCOT_IN, SCOT_OUT] = scotRange(stops);
+  let scot = false;
   addBeams(mini, 1.72, 0.55); addBeams(routemaster, 5.46, 0.8);
   scene.add(buildMeshes(list, { glow: [P.lit, '#ffd86b', '#fff7c2', P.arch], glowK: { [P.arch]: 1.1 } }), eye, details, plane, bus);
   const units = [createAmbient(scene, { curve, pts, stops })];
@@ -106,6 +109,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     lateral.set(tan.z, 0, -tan.x).normalize().multiplyScalar(BUS_LANE);
     routemaster.visible = t >= swap;
     mini.visible = !routemaster.visible;
+    const inScot = t >= SCOT_IN && t < SCOT_OUT;
+    if (inScot !== scot) routemaster.userData.setLivery(scot = inScot);
     bus.position.copy(bp).add(lateral);
     bus.rotation.y = Math.atan2(-tan.z, tan.x);
     Object.assign(busPos, { x: bp.x + lateral.x, y: bp.y, z: bp.z + lateral.z });

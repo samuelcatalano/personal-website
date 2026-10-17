@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { createBoxes, buildMeshes } from './voxel.js';
 import { buildBus, car } from './bus.js';
-import { RIVER_Z, LANDMARKS, stopIndex, swapAt, riverEnd, riverStart } from './layout.js';
+import { RIVER_Z, LANDMARKS, stopIndex, swapAt, scotRange, riverEnd, riverStart } from './layout.js';
 import { addBeams } from './beams.js';
 import { routeT } from '../scroll.js';
 function cab(c, sx = 1) {
@@ -50,13 +50,14 @@ export function createAmbient(scene, { curve, pts, stops }) {
   const blink = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), new THREE.MeshBasicMaterial({ color: 0xff2a2a }));
   blink.position.set(bb.x, 34.4, RIVER_Z - 16);
   scene.add(blink);
-  const nrm = new THREE.Vector3(), swap = swapAt(stops);
+  const nrm = new THREE.Vector3(), swap = swapAt(stops), [scotIn, scotOut] = scotRange(stops);
   return {
     update({ time, progress }) {
       const route = routeT(progress, stops.length);
       for (const v of traffic) {
         let t = v.relative ? route + v.offset : ((v.offset - time * 0.012) % 1 + 1) % 1;
         v.mesh.visible = t >= 0 && t <= 1 && (v.uk === undefined || (t >= swap) === v.uk);
+        if (v.mesh.userData.setLivery) { const scot = t >= scotIn && t < scotOut; if (scot !== v.scot) v.mesh.userData.setLivery(v.scot = scot); } // only the bus repaints
         if (!v.mesh.visible) continue;
         const p = curve.getPointAt(t), tan = curve.getTangentAt(t);
         nrm.set(tan.z, 0, -tan.x).normalize();

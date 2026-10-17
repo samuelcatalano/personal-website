@@ -16,7 +16,7 @@ test('park rects are big enough, do not overlap each other and stay off the road
   PARKS.forEach((p, i) => {
     assert.ok(p.x1 - p.x0 >= 6 && p.z1 - p.z0 >= 6);
     PARKS.slice(i + 1).forEach((q) => assert.ok(!hit(p, q, 2), 'parks overlap'));
-    assert.ok(p.z0 > 12 || p.z1 < -12 || p.x1 < -245 || p.x0 > 305, 'inside the road band');
+    assert.ok(p.z0 > 12 || p.z1 < -12 || p.x1 < -245 || p.x0 > 665, 'inside the road band');
   });
 });
 test('park colours exist in the palette', () => {

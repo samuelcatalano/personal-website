@@ -4,7 +4,7 @@ import { PALETTE as P } from './palette.js';
 import { tree, CLEAR } from './city.js'; // ponytail: import cycle is fine, both are function declarations used after load
 // Parks on the big bare paving. Rects were found with an occupancy grid of city + landmarks (tests/parks.test.mjs re-checks the plaza loops);
 // x/z are world metres. Axis u = longer side. uk: black railings + K6-free London look; pond/fountain: centre piece.
-export const PARKS = [
+export const PARKS = [ // stops after the Eye sit 180 m further east (LONG_GAP): the last four parks were moved with them, +180 again for the return gap after Glasgow
   { x0: -235, x1: -165, z0: -27, z1: -15, fountain: 1, trees: 7 }, // Sé side
   { x0: -293, x1: -273, z0: -24, z1: 24, fountain: 1, trees: 7 }, // behind the start
   { x0: -197, x1: -165, z0: -57, z1: -47, trees: 5 },
@@ -13,10 +13,10 @@ export const PARKS = [
   { x0: -103, x1: -62, z0: -69, z1: -63, trees: 4 }, // behind the Copan
   { x0: -27, x1: -3, z0: 21, z1: 27, trees: 3 },
   { x0: 5, x1: 57, z0: 21, z1: 27, uk: 1, rail: 1, trees: 5 },
-  { x0: 201, x1: 237, z0: -29, z1: -21, uk: 1, rail: 1, trees: 4 },
-  { x0: 201, x1: 281, z0: -69, z1: -61, uk: 1, rail: 1, trees: 6 },
-  { x0: 251, x1: 327, z0: -43, z1: -35, uk: 1, rail: 1, trees: 6 }, // in front of Wembley: trees stay <= 4.4 m
-  { x0: 337, x1: 361, z0: -12, z1: 24, uk: 1, rail: 1, pond: 1, trees: 7 },
+  { x0: 561, x1: 597, z0: -29, z1: -21, uk: 1, rail: 1, trees: 4 },
+  { x0: 561, x1: 641, z0: -69, z1: -61, uk: 1, rail: 1, trees: 6 },
+  { x0: 611, x1: 687, z0: -43, z1: -35, uk: 1, rail: 1, trees: 6 }, // in front of Wembley: trees stay <= 4.4 m
+  { x0: 697, x1: 721, z0: -12, z1: 24, uk: 1, rail: 1, pond: 1, trees: 7 },
 ];
 // The 4 pedestrian loops (crowd.js walkPaths) become parks: gravel ring over the walking inset, everything else >= 2.4 m inside the rect.
 export const WALK_INSET = [0.6, 1.6]; // ponytail: mirrors crowd.js between(r, 0.6, 1.6) / people.js INSET; keep in sync
@@ -25,6 +25,7 @@ export const PLAZAS = [
   { name: 'masp', trees: 0, beds: 4, quiet: 1 }, // MASP view corridor: nothing above 1 m except lamps
   { name: 'paulista', trees: 0, beds: 1, quiet: 1 },
   { name: 'thames', trees: 4, fountain: 1, nopath: 1 },
+  { name: 'tower', trees: 3, beds: 1, nopath: 1 },
   { name: 'wembley', trees: 2, beds: 1 },
 ];
 const { patch: LAWN, gravel: GRAVEL, hedge: HEDGE, leaf: LEAF, stone: STONE, oak: OAK, iron: IRON, glass: WATER, dirt: SOIL, roof: POLE, lit: LIT } = P;
@@ -85,9 +86,9 @@ export function buildParks(add, stops, pts, curve, occ) {
       BLOOM.forEach((c, k) => B(u - 0.825 + k * 0.55, v, 0.12, 0.5, 0.28, 0.95, c));
     }
     for (let i = 0; i < Math.max(2, Math.round(L / 9)); i++) { // bushes and low hedge runs
-      const at = spot(0.9, 20, 0.7); if (!at) continue;
+      const run = i % 3 === 0 && !park.quiet, at = spot(0.9, 20, run ? 2.6 : 0.7); if (!at) continue; // hedge runs are up to 5 m long: keep their whole length inside
       const [u, v] = at;
-      if (i % 3 === 0 && !park.quiet) B(u, v, 0.05, 3 + r() * 2, 0.8, 0.7, HEDGE); else B(u, v, 0.05, 1 + r() * 0.5, 0.7 + r() * 0.3, 1 + r() * 0.4, i % 2 ? LEAF : HEDGE);
+      if (run) B(u, v, 0.05, 3 + r() * 2, 0.8, 0.7, HEDGE); else B(u, v, 0.05, 1 + r() * 0.5, 0.7 + r() * 0.3, 1 + r() * 0.4, i % 2 ? LEAF : HEDGE);
     }
     const nb = Math.max(ring ? 2 : 1, Math.round(L / 22)); // benches beside the main path, backs to the lawn
     for (let i = 0; i < nb; i++) for (const f of [-1, 1]) {

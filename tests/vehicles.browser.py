@@ -23,6 +23,12 @@ print(js(r'''(async () => {
   bus.traverse(o => { if (o.isInstancedMesh && o.material?.color?.getHexString() === 'a9c5d3') glass.push(o); });
   check(glass.reduce((total, mesh) => total + mesh.count, 0) >= 4, 'bus must retain visible glass on multiple faces');
 
+  const hexes = () => { const h = new Set(); bus.traverse(o => { if (o.isMesh && o.material?.color && o.name !== 'beam') h.add(o.material.color.getHexString()); }); return h; };
+  bus.userData.setLivery(true);
+  check(hexes().has('5b2a86') && !hexes().has('c9252b'), 'Glasgow livery must repaint the red body purple');
+  bus.userData.setLivery(false);
+  check(hexes().has('c9252b') && !hexes().has('5b2a86'), 'London livery must restore classic red');
+
   const { buildMini } = await import('./js/world/bus.js');
   const mini = buildMini(), miniBox = bounds(mini), miniSize = miniBox.getSize(new THREE.Vector3());
   check(Math.abs(miniBox.min.y) < 1e-6, 'mini wheels must rest on the road');

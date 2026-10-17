@@ -30,7 +30,8 @@ export function walkPaths(stops, pts) {
     ...LANES.map(([offset, dir]) => ({ type: 'lane', offset, dir })),
     { type: 'loop', name: 'masp', rect: rect(X('masp') - 18, X('masp') + 18, -9, 23) }, // in front of MASP (z -54..-22)
     { type: 'loop', name: 'paulista', rect: rect(cp.x - 18, cp.x + 20, 11, 18) }, // between the houses and the Copan
-    { type: 'loop', name: 'thames', rect: rect(X('bigben') - 10, riverEnd(stops, pts) - 6, 19, 31) }, // ponytail: starts at xdesign; Heathrow and Millimetric houses block 'move'
+    { type: 'loop', name: 'thames', rect: rect(X('bigben') - 10, X('eye') + 25, 19, 31) }, // ponytail: starts at xdesign; Heathrow and Millimetric houses block 'move'; ends before the countryside
+    { type: 'loop', name: 'tower', rect: rect(X('towerbridge') - 40, riverEnd(stops, pts) - 6, 19, 31) }, // Tower Bridge promenade, east of the return gap
     { type: 'loop', name: 'wembley', rect: rect(wx + 14, wx + 40, 19, 28) }, // beside the figure; the front of the stadium is walled by blocks
   ];
 }

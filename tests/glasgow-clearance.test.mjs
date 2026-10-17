@@ -3,7 +3,7 @@ import test from 'node:test';
 import { stops } from '../js/content.js';
 import { buildCity } from '../js/world/city.js';
 import { buildBlocks } from '../js/world/blocks.js';
-import { routePoints, stopIndex } from '../js/world/layout.js';
+import { routePoints, stopIndex, regions } from '../js/world/layout.js';
 
 const pts = routePoints(stops.length);
 const curve = {
@@ -24,11 +24,12 @@ test('generated city buildings stay out of the Glasgow landmark footprint', () =
   assert.equal(boxes.filter((b) => b.w >= 5 && b.h >= 3 && overlap(b)).length, 0);
 });
 
-test('the civic skyline stays below landmark silhouettes from Big Ben through Glasgow', () => {
-  const boxes = [], west = pts[stopIndex(stops, 'xdesign')].x - 20, east = pts[stopIndex(stops, 'glasgow')].x + 26;
+test('the civic skyline stays below landmark silhouettes on the London stretch and around Glasgow, and the countryside is empty of blocks', () => {
+  const boxes = [], west = pts[stopIndex(stops, 'xdesign')].x - 20, [out, back] = regions(stops, pts), east = back.scot[1];
   buildBlocks((x, y, z, w, h, d) => boxes.push({ x, y, z, w, h, d }), stops, pts, curve, []);
-  const backdrop = boxes.filter((b) => b.x >= west && b.x <= east && b.z <= -65);
+  const backdrop = boxes.filter((b) => (b.x >= west && b.x <= out.sub[1] || b.x >= out.scot[0] && b.x <= east) && b.z <= -65);
   assert.ok(backdrop.length > 0, 'retains a city backdrop');
   assert.ok(backdrop.every((b) => b.y + b.h <= 16.4), 'background roofs stay below the 18m Eye hub');
+  assert.equal(boxes.filter((b) => [out, back].some((rg) => b.x > rg.ctry[0] && b.x < rg.ctry[1])).length, 0, 'no city blocks in the countryside');
   assert.ok(boxes.some((b) => (b.x < west || b.x > east) && b.h > 30), 'other skyline districts retain their towers');
 });
