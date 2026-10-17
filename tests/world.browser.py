@@ -32,10 +32,10 @@ finally:
 print(js("""(async () => {
   const THREE = await import('three');
   const { createSigns } = await import('./js/world/signs.js');
-  const { routePoints } = await import('./js/world/layout.js');
+  const { routePoints, routeCurve } = await import('./js/world/layout.js');
   const { stops } = await import('./js/content.js');
   const pts = routePoints(stops.length);
-  const curve = new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(p.x, 0, p.z)));
+  const curve = routeCurve(THREE, pts);
   const scene = new THREE.Scene();
   const signs = await createSigns(scene, { stops, curve });
   const before = scene.children.filter(o => o.isSprite).map(o => o.position.toArray().join());

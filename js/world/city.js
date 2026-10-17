@@ -1,4 +1,4 @@
-import { furnitureSpots, RIVER_Z, LANDMARKS, rng, riverEnd, riverStart, stopIndex } from './layout.js';
+import { furnitureSpots, GAP, STOP_SPACING, RIVER_Z, LANDMARKS, rng, riverEnd, riverStart, stopIndex } from './layout.js';
 import { house } from './houses.js';
 import { phoneBox } from './phone.js';
 import { PALETTE as P } from './palette.js';
@@ -60,8 +60,13 @@ export function buildCity(add, stops, pts, curve) {
   const spots = furnitureSpots(stops, curve).map((o) => o.xz);
   const free = (x, z) => spots.every(([a, b]) => Math.hypot(a - x, b - z) > CLEAR); // ponytail: skip, not shift
   const occ = [], obst = [], r = rng(2026), hq = rng(8821), noop = () => {}, mx = pts[stopIndex(stops, LANDMARKS.masp)].x, LM = new Set(Object.values(LANDMARKS));
-  const span = pts.length * 30 + 120, N = pts.length * 20;
-  add(0, -1, 0, span, 1, 200, P.pave);
+  const span = pts.length * STOP_SPACING + GAP.size + 120;
+  add(GAP.size / 2, -1, 0, span, 1, 200, P.pave);
+  // Samples along the curve every ~`step` m (curve param is per stop, so count follows each segment's length)
+  const ticks = (step) => [...pts.slice(1).flatMap((q, s) => {
+    const m = Math.ceil(Math.hypot(q.x - pts[s].x, q.z - pts[s].z) / step);
+    return Array.from({ length: m }, (_, k) => (s + k / m) / (pts.length - 1));
+  }), 1];
   const x0 = riverStart(stops, pts), rEnd = riverEnd(stops, pts), mid = (x0 + rEnd) / 2, len = rEnd - x0;
   for (const side of [-1, 1]) {
     const edge = RIVER_Z + side * 12;
@@ -72,8 +77,9 @@ export function buildCity(add, stops, pts, curve) {
       add(x + 1.3, 0.02, edge + side * 3.1, 0.55, 0.7, 0.55, LEAF);
     }
   }
-  for (let i = 0; i <= N; i += 2) {
-    const p = curve.getPointAt(i / N), t = curve.getTangentAt(i / N);
+  ticks(1.4).forEach((u, i) => {
+    if (i % 2) return;
+    const p = curve.getPointAt(u), t = curve.getTangentAt(u);
     const nx = -t.z, nz = t.x;
     add(p.x, -0.18, p.z, 8.5, 0.25, 8.5, ROAD);
     if (i % 6 === 0) add(p.x, 0.05, p.z, 1.2, 0.03, 0.3, LINE);
@@ -86,20 +92,25 @@ export function buildCity(add, stops, pts, curve) {
         obst.push([x, z]);
       }
     }
-  }
-  for (let i = 0; i <= N * 2; i++) {
-    const p = curve.getPointAt(i / (N * 2)), t = curve.getTangentAt(i / (N * 2));
+  });
+  for (const u of ticks(0.7)) {
+    const p = curve.getPointAt(u), t = curve.getTangentAt(u);
     const nx = -t.z, nz = t.x;
     for (const side of [-1, 1]) {
       add(p.x + nx * side * 4.55, 0.07, p.z + nz * side * 4.55, 1.5, 0.1, 1.5, BANK);
       add(p.x + nx * side * 7.1, -0.02, p.z + nz * side * 7.1, 3.3, 0.12, 3.3, PATH);
     }
   }
-  pts.forEach((p, i) => {
+  // Frontage sites: every stop plus filler sites (same 30 m rhythm) along the gap after MASP, so the new stretch gets houses, trees and patches too
+  const filler = Array.from({ length: GAP.size / STOP_SPACING - 1 }, (_, k) => {
+    const x = pts[GAP.after].x + (k + 1) * STOP_SPACING, q = curve.getPointAt(ticks(0.7).reduce((a, u) => Math.abs(curve.getPointAt(u).x - x) < Math.abs(curve.getPointAt(a).x - x) ? u : a, 0));
+    return { p: { x, z: q.z }, i: GAP.after, filler: true };
+  });
+  [...pts.map((p, i) => ({ p, i })), ...filler].forEach(({ p, i, filler }) => {
     const br = stops[i].country === 'BR' && i >= 2;
     for (const side of [-1, 1]) {
       add(p.x, 0, p.z + side * 10.5, 25, 0.035, 3.2, PATCH);
-      if (side === -1 && LM.has(stops[i].id)) continue;
+      if (side === -1 && !filler && LM.has(stops[i].id)) continue;
       for (const dx of [-9, 0, 9]) {
         if (side === 1 && stops[i].id === 'contact' && dx === 0) continue;
         const hz = p.z + side * (side === 1 ? 21 : 17);

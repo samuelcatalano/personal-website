@@ -6,7 +6,7 @@ print(js(r'''(async () => {
   const { buildBus } = await import('./js/world/bus.js');
   const { createAmbient } = await import('./js/world/ambient.js');
   const { stops } = await import('./js/content.js');
-  const { routePoints } = await import('./js/world/layout.js');
+  const { routePoints, routeCurve } = await import('./js/world/layout.js');
   const { routeT } = await import('./js/scroll.js');
   const check = (ok, message) => { if (!ok) throw Error(message); };
   const bounds = (object) => { object.updateMatrixWorld(true); return new THREE.Box3().setFromObject(object); };
@@ -29,7 +29,7 @@ print(js(r'''(async () => {
   check(miniSize.x > 3.7 && miniSize.x < 4.1 && miniSize.y < 1.8 && miniSize.z < 2, 'mini must be ~3.9m long');
 
   const pts = routePoints(stops.length);
-  const curve = new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(p.x, 0, p.z)));
+  const curve = routeCurve(THREE, pts);
   const scene = new THREE.Scene(), start = scene.children.length;
   const ambient = createAmbient(scene, { curve, pts, stops });
   const traffic = scene.children.slice(start, start + 4);

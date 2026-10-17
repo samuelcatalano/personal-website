@@ -8,9 +8,9 @@ print(js(r'''(async () => {
   const { buildLandmarks } = await import(`./js/world/landmarks.js${q}`);
   const { buildBus, buildMini, car } = await import(`./js/world/bus.js${q}`);
   const { stops } = await import('./js/content.js');
-  const { routePoints } = await import('./js/world/layout.js');
+  const { routePoints, routeCurve } = await import('./js/world/layout.js');
   const pts = routePoints(stops.length);
-  const curve = new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(p.x, 0, p.z)));
+  const curve = routeCurve(THREE, pts);
   const world = [], add = (x, y, z, w, h, d, color) => world.push({ x, y, z, w, h, d, color });
   buildCity(add, stops, pts, curve);
   const lm = buildLandmarks(add, stops, pts);

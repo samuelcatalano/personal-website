@@ -69,13 +69,14 @@ test('prefs default and survive throwing storage', () => {
   assert.deepEqual(loadPrefs({ getItem: () => 'garbage' }), { lang: 'en', theme: 'day' });
 });
 
-import { routePoints, LANDMARKS, stopIndex, rng, STOP_SPACING } from '../js/world/layout.js';
+import { routePoints, LANDMARKS, stopIndex, rng, STOP_SPACING, GAP } from '../js/world/layout.js';
 import { stops } from '../js/content.js';
 
 test('route has one point per stop, increasing x', () => {
   const pts = routePoints(stops.length);
   assert.equal(pts.length, stops.length);
-  pts.slice(1).forEach((p, i) => assert.equal(p.x - pts[i].x, STOP_SPACING));
+  pts.slice(1).forEach((p, i) => assert.equal(p.x - pts[i].x, STOP_SPACING + (i === GAP.after ? GAP.size : 0)));
+  assert.equal(stops[GAP.after].id, LANDMARKS.masp); // the extra road sits right after MASP
 });
 
 test('every landmark is anchored to an existing stop', () => {

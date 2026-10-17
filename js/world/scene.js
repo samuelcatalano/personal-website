@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
 import { routeT, nearestStop } from '../scroll.js';
-import { routePoints, RIVER_Z, riverEnd, riverStart, FRAME_LIFT, swapAt } from './layout.js';
+import { routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, FRAME_LIFT, swapAt } from './layout.js';
 import { createBoxes, buildMeshes } from './voxel.js';
 import { buildCity } from './city.js';
 import { buildLandmarks } from './landmarks.js';
@@ -32,7 +32,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const LU = new THREE.Vector3(0, 1, 0).cross(LD).normalize(), LV = LD.clone().cross(LU);
   scene.add(hemi, sun, sun.target);
   const n = stops.length, pts = routePoints(n);
-  const curve = new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(p.x, 0, p.z)));
+  const curve = routeCurve(THREE, pts);
   const { add, list } = createBoxes();
   buildCity(add, stops, pts, curve);
   const { eye, details, plane, planeAt } = buildLandmarks(add, stops, pts);

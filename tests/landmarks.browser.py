@@ -6,10 +6,10 @@ print(js(r'''(async () => {
   const { createAmbient } = await import('./js/world/ambient.js');
   const { stops } = await import('./js/content.js');
   const { PALETTE } = await import('./js/world/palette.js');
-  const { routePoints, RIVER_Z } = await import('./js/world/layout.js');
+  const { routePoints, routeCurve, RIVER_Z } = await import('./js/world/layout.js');
   const { CatmullRomCurve3, Vector3, Scene, Box3 } = THREE;
   const pts = routePoints(stops.length), bridgeX = pts[stops.findIndex(stop => stop.id === 'tribal')].x;
-  const curve = new CatmullRomCurve3(pts.map(p => new Vector3(p.x, 0, p.z))), ambientScene = new Scene();
+  const curve = routeCurve(THREE, pts), ambientScene = new Scene();
   createAmbient(ambientScene, { curve, pts, stops });
   ambientScene.updateMatrixWorld(true);
   const boats = ambientScene.children.filter(o => o.isGroup && o.position.y === 0.1 && Math.abs(o.position.z - RIVER_Z) <= 5.1);

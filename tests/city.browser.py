@@ -5,9 +5,9 @@ print(js(r'''(async () => {
   const { buildCity } = await import(`./js/world/city.js?test=${Date.now()}`);
   const { stops } = await import('./js/content.js');
   const { PALETTE } = await import('./js/world/palette.js');
-  const { routePoints, furnitureSpots } = await import('./js/world/layout.js');
+  const { routePoints, routeCurve, furnitureSpots } = await import('./js/world/layout.js');
   const pts = routePoints(stops.length);
-  const curve = new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(p.x, 0, p.z)));
+  const curve = routeCurve(THREE, pts);
   const build = () => {
     const boxes = [];
     buildCity((x, y, z, w, h, d, color) => boxes.push({ x, y, z, w, h, d, color }), stops, pts, curve);
