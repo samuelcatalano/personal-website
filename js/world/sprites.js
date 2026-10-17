@@ -1,8 +1,8 @@
 import { hairShape } from './crowd.js';
 // Walking-emoji people drawn with canvas 2D: smooth outline-free shapes, soft gradients, 6 walk frames per look, side view facing right.
 // Unit space while drawing: x forward, y up, 1 = body height, origin = feet centre.
-// Atlas 4096 x 2112: left, 16 x 12 side cells (32 looks x 6 frames); right, 32 x 12 narrow cells for front and back (32 looks x 2 views x 6 frames).
-export const CELL_W = 120, CELL_H = 176, COLS = 16, ROWS = 12, FRAMES = 6, GROUND = 172, S = 164; // S = px per body height; the stride fits the cell width
+// Atlas 4096 x 2464: left, 16 x 14 side cells (28 looks x 8 frames); right, 32 x 14 narrow cells for front and back (28 looks x 2 views x 8 frames).
+export const CELL_W = 120, CELL_H = 176, COLS = 16, ROWS = 14, FRAMES = 8, GROUND = 172, S = 164; // S = px per body height; the stride fits the cell width
 export const FB_W = 68, FB_COLS = 32, FB_X = COLS * CELL_W, ATLAS_W = 4096, ATLAS_H = ROWS * CELL_H;
 const hex = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
 const tone = (c, a) => `rgb(${hex(c).map((v) => Math.round(v + ((a < 0 ? 0 : 255) - v) * Math.abs(a))).join(',')})`; // a > 0 lighter, < 0 darker
@@ -38,32 +38,40 @@ function tube(ctx, a, ra, b, rb) { // tapered capsule
 
 function dims(look) { // body proportions shared by the side, front and back drawings
   const kid = /boy|girl/.test(look.kind), girl = look.kind === 'woman' || look.kind === 'girl', woman = look.kind === 'woman', shape = hairShape(look);
-  const hd = kid ? 0.21 : 0.15, hy = 1 - (RES[shape] || 0.7) * hd - 0.005, hip = kid ? 0.43 : girl ? 0.49 : 0.5;
-  return { kid, girl, woman, ks: kid ? 0.84 : 1, shape, hd, hy, hip, sh: hy - 0.5 * hd - (kid ? 0.04 : 0.035), tw: kid ? 0.078 : woman ? 0.08 : 0.095, thigh: (hip - 0.05) / 2, band: BANDS[Math.floor(look.height * 1000) % 4] };
+  const hd = kid ? 0.21 : 0.15, hy = 1 - (shape === 'afro' && kid ? 0.84 : RES[shape] || 0.7) * hd - 0.005, hip = kid ? 0.43 : girl ? 0.49 : 0.5;
+  return { kid, girl, woman, ks: kid ? 0.84 : 1, shape, hd, hy, hip, sh: hy - 0.5 * hd - (kid ? 0.04 : 0.035), tw: kid ? 0.078 : woman ? 0.08 : 0.095, thigh: (hip - 0.05) / 2, afroS: kid ? 0.72 : 1, band: BANDS[Math.floor(look.height * 1000) % 4] };
+}
+// Gait: 60% stance (the planted foot moves back relative to the hip at a constant rate, so it stays put on the ground when the sprite advances by CYCLE per walk cycle), 40% swing.
+const DUTY = 0.6, smooth = (k) => k * k * (3 - 2 * k);
+const stepX = (look) => { const { kid, thigh } = dims(look); return thigh * (kid ? 1.25 : 1.07); }; // half the planted foot's travel relative to the hip
+export const strideOf = (look) => 2 * stepX(look) / DUTY; // body heights travelled per walk cycle (2 steps)
+export function gait(look, f) { // sagittal pose (x forward, y up): ankles, knees, foot pitch and hip height for frame f
+  const { ks, hip, thigh } = dims(look), X = stepX(look), c = f / FRAMES;
+  const legs = [c, (c + 0.5) % 1].map((u) => {
+    let x, lift = 0, fa;
+    if (u < DUTY) { const k = u / DUTY; x = X - 2 * X * k; fa = -0.25 + 0.35 * k + 0.6 * smooth(Math.max(0, (k - 0.75) / 0.25)); }
+    else { const k = (u - DUTY) / (1 - DUTY); x = -X + 2 * X * smooth(k); lift = 0.06 * Math.sin(Math.PI * k); fa = 0.7 - 0.95 * smooth(k); }
+    const sf = Math.sin(fa), cf = Math.cos(fa);
+    return { x, fa, ay: lift - ks * Math.min(0.03 * sf - 0.06 * cf, -0.115 * sf - 0.06 * cf), lift }; // ankle height puts the lowest sole corner on the ground
+  });
+  const hipY = hip - 0.012 - 0.018 * Math.cos(4 * Math.PI * c); // up at mid-stance, down at double support: about 3.6% of height
+  legs.forEach((L) => {
+    const dx = L.x, dy = L.ay - hipY, d = Math.hypot(dx, dy), h = Math.sqrt(Math.max(0, thigh * thigh - (d / 2) ** 2)), ux = dx / d, uy = dy / d;
+    L.K = [dx / 2 - uy * h, hipY + dy / 2 + ux * h]; L.A = [dx, L.ay]; // knee bends forward
+  });
+  return { legs, hipY, X };
 }
 export function drawFigure(ctx, look, frame) {
-  const { kid, girl, woman, ks, shape, hd, hy, sh, hip, tw, thigh, band } = dims(look), lean = 0.05, hx = 0.02;
+  const { kid, girl, woman, ks, shape, hd, hy, sh, hip, tw, thigh, afroS, band } = dims(look), lean = 0.05, hx = 0.02;
   const beard = look.kind === 'man' && Math.floor(look.height * 1000) % 3 === 0;
   const skin = look.skin, p = frame / FRAMES * 2 * Math.PI;
   const grad = (c, x0, y0, x1, y1, hi = 0.16, lo = -0.22) => { const g = ctx.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, tone(c, hi)); g.addColorStop(1, tone(c, lo)); return g; };
   const fill = (c, x0, y0, x1, y1, shade = 0, hi = 0.16, lo = -0.22) => { ctx.fillStyle = grad(c, x0, y0, x1, y1, hi + shade, lo + shade); ctx.fill(); };
-  const walk = (ph) => { // leg pose for a phase: thigh angle, knee flexion
-    const t = 0.5 * Math.sin(ph), flex = 0.08 + 0.9 * Math.max(0, Math.cos(ph - 0.3)) ** 1.5;
-    return { t, s: t - flex };
-  };
-  // Legs: hip pivot, knee, ankle; ground the lower foot so the figure bobs with the stride.
-  const legs = [p, p + Math.PI].map((ph) => {
-    const { t, s } = walk(ph), K = [Math.sin(t) * thigh, hip - Math.cos(t) * thigh], A = [K[0] + Math.sin(s) * thigh, K[1] - Math.cos(s) * thigh];
-    const fa = s > 0 ? -s * 0.5 : -s, sf = Math.sin(fa), cf = Math.cos(fa); // toes-down angle; lowest sole corner (heel / toe)
-    return { K, A, s, fa, low: A[1] + ks * Math.min(0.03 * sf - 0.06 * cf, -0.115 * sf - 0.06 * cf) };
-  });
-  const dy = -Math.min(legs[0].low, legs[1].low);
-  ctx.save(); ctx.translate(0, dy);
+  ctx.save();
+  const G = gait(look, frame), legs = G.legs, hipY = G.hipY, dh = hipY - hip;
   const leg = (L, shade) => {
-    const H = [0, hip], pc = look.bottom, r = ks;
-    ctx.save();
-    tube(ctx, H, 0.058 * r, L.K, 0.044 * r); fill(pc, -0.05, hip, 0.05, L.A[1], shade, 0.03, -0.2); tube(ctx, L.K, 0.044 * r, L.A, 0.037 * r); fill(pc, -0.05, hip, 0.05, L.A[1], shade, 0.03, -0.2);
-    ctx.restore();
+    const H = [0, hipY], pc = look.bottom, r = ks;
+    tube(ctx, H, 0.058 * r, L.K, 0.044 * r); fill(pc, -0.05, hipY, 0.05, L.A[1], shade, 0.03, -0.2); tube(ctx, L.K, 0.044 * r, L.A, 0.037 * r); fill(pc, -0.05, hipY, 0.05, L.A[1], shade, 0.03, -0.2);
   };
   const foot = (L, shade) => {
     ctx.save(); ctx.translate(L.A[0], L.A[1]); ctx.rotate(-L.fa); ctx.scale(ks, ks);
@@ -75,12 +83,12 @@ export function drawFigure(ctx, look, frame) {
   };
   const seam = (L) => {
     ctx.save(); ctx.strokeStyle = tone(look.bottom, -0.55); ctx.globalAlpha = 0.55; ctx.lineWidth = 0.004; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(0.01, hip - 0.02); ctx.lineTo(L.K[0] + 0.012, L.K[1]); ctx.lineTo(L.A[0] + 0.01, L.A[1] + 0.05 * ks); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0.01, hipY - 0.02); ctx.lineTo(L.K[0] + 0.012, L.K[1]); ctx.lineTo(L.A[0] + 0.01, L.A[1] + 0.05 * ks); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(L.A[0] - 0.035 * ks, L.A[1] + 0.045 * ks); ctx.lineTo(L.A[0] + 0.033 * ks, L.A[1] + 0.05 * ks); ctx.stroke(); ctx.restore();
   };
-  const upper = (fn) => { ctx.save(); ctx.translate(0, hip); ctx.rotate(-lean); ctx.translate(0, -hip); fn(); ctx.restore(); };
-  const arm = (ph, shade) => { // shoulder, elbow, fist + sleeve
-    const a = -0.65 * Math.sin(ph), flex = 0.2 + 0.55 * Math.max(0, a / 0.65), l1 = (kid ? 0.12 : 0.17), l2 = (kid ? 0.1 : 0.15);
+  const upper = (fn) => { ctx.save(); ctx.translate(0, dh); ctx.translate(0, hip); ctx.rotate(-lean); ctx.translate(0, -hip); fn(); ctx.restore(); };
+  const arm = (L, shade) => { // shoulder, elbow, fist + sleeve; swings opposite to the leg on this side
+    const a = -0.7 * L.x / G.X, flex = 0.2 + 0.55 * Math.max(0, a / 0.7), l1 = (kid ? 0.12 : 0.17), l2 = (kid ? 0.1 : 0.15);
     const Sh = [-0.005, sh - 0.035], E = [Sh[0] + Math.sin(a) * l1, Sh[1] - Math.cos(a) * l1], W = [E[0] + Math.sin(a + flex) * l2, E[1] - Math.cos(a + flex) * l2];
     tube(ctx, Sh, 0.034 * ks, E, 0.029 * ks); fill(skin, -0.05, sh, 0.05, W[1], shade);
     tube(ctx, E, 0.029 * ks, W, 0.022 * ks); fill(skin, -0.05, sh, 0.05, W[1], shade);
@@ -91,7 +99,7 @@ export function drawFigure(ctx, look, frame) {
   const [near, far] = [legs[0], legs[1]];
   leg(far, -0.2); foot(far, -0.2);
   upper(() => {
-    arm(p + Math.PI, -0.2);
+    arm(far, -0.2);
     // hair behind head
     const H = (pts, sx = 1) => pts.map(([x, y]) => [hx + x * hd * sx, hy + y * hd]);
     const hg = (a, b) => fill(look.hair, 0, hy + a * hd, 0, hy + b * hd, 0);
@@ -100,7 +108,7 @@ export function drawFigure(ctx, look, frame) {
       ctx.save(); ctx.translate(hx + px * hd, hy + py * hd); ctx.rotate(ang); ctx.translate(-(hx + px * hd), -(hy + py * hd));
       blob(ctx, H(pts)); fill(look.hair, 0, hy + 0.8 * hd, 0, hy - 0.5 * hd, 0); ctx.restore();
     };
-    if (shape === 'afro') { blob(ctx, H(AFRO)); hg(1, -0.6); }
+    if (shape === 'afro') { blob(ctx, H(AFRO.map(([x, y]) => [x * afroS, y * afroS]))); hg(1, -0.6); }
     if (shape === 'long') { ctx.save(); ctx.translate(0.012 * sway, 0); blob(ctx, H(LONG)); fill(look.hair, 0, hy + 0.6 * hd, 0, hy - 1.3 * hd); ctx.restore(); }
     if (shape === 'ponytail') tail(-0.45, 0.4, TAIL, 0.14 * sway);
     if (shape === 'pigtails') { tail(-0.45, 0.05, PIG, 0.2 * sway); tail(-0.45, 0.05, PIG, 0.2 * -sway + 0.35); }
@@ -130,71 +138,64 @@ export function drawFigure(ctx, look, frame) {
     if (shape === 'bun') { ctx.beginPath(); ctx.arc(hx - 0.4 * hd, hy + 0.68 * hd, 0.3 * hd, 0, 7); hg(1, 0.4); }
     if (shape === 'ponytail' || shape === 'pigtails' || shape === 'bun') for (const [bx, by] of shape === 'pigtails' ? [[-0.45, 0.05]] : shape === 'bun' ? [[-0.36, 0.5]] : [[-0.45, 0.4]]) { ctx.beginPath(); ctx.arc(hx + bx * hd, hy + by * hd, 0.075 * hd, 0, 7); ctx.fillStyle = band; ctx.fill(); }
   });
-  ctx.beginPath(); ctx.arc(-0.04, hip - 0.004, (woman ? 0.06 : kid ? 0.048 : 0.056), 0, 7); fill(look.bottom, -0.05, hip + 0.06, 0.03, hip - 0.06, 0, 0.0, -0.2);
+  ctx.beginPath(); ctx.arc(-0.04, hipY - 0.004, (woman ? 0.06 : kid ? 0.048 : 0.056), 0, 7); fill(look.bottom, -0.05, hipY + 0.06, 0.03, hipY - 0.06, 0, 0.0, -0.2);
   leg(near, 0); seam(near); foot(near, 0);
-  upper(() => arm(p, 0));
+  upper(() => arm(near, 0));
   ctx.restore();
 }
 
 // Front (back = true: from behind) view: arms and legs alternate with foreshortening, hips sway, the lowest foot grounds the figure.
 export function drawFront(ctx, look, frame, back) {
-  const { kid, girl, woman, ks, shape, hd, hy, sh, hip, tw, thigh, band } = dims(look), skin = look.skin, p = frame / FRAMES * 2 * Math.PI, wk = kid ? 0.78 : 1, r = ks * wk;
+  const { kid, girl, woman, ks, shape, hd, hy, sh, hip, tw, thigh, afroS, band } = dims(look), skin = look.skin, p = frame / FRAMES * 2 * Math.PI, wk = kid ? 0.78 : 1, r = ks * wk;
   const sw = (woman ? 0.1 : 0.115) * wk, side = [-1, 1], sole = look.shoes === '#f2f2ee' ? '#a8a8a2' : '#ecece6', beard = look.kind === 'man' && Math.floor(look.height * 1000) % 3 === 0;
   const grad = (c, x0, y0, x1, y1, hi, lo) => { const g = ctx.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, tone(c, hi)); g.addColorStop(1, tone(c, lo)); return g; };
   const fill = (c, x0, y0, x1, y1, hi = 0.16, lo = -0.22) => { ctx.fillStyle = grad(c, x0, y0, x1, y1, hi, lo); ctx.fill(); };
   const H = (pts) => pts.map(([x, y]) => [x * hd, hy + y * hd]);
   const hg = (a, b) => fill(look.hair, 0, hy + a * hd, 0, hy + b * hd);
   const line = (c, w, alpha, pts) => { ctx.save(); ctx.strokeStyle = c; ctx.lineWidth = w; ctx.globalAlpha = alpha; ctx.lineCap = ctx.lineJoin = 'round'; ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); ctx.restore(); };
-  const sway = Math.sin(p + 1), swayX = 0.012 * Math.sin(p), tilt = 0.03 * Math.sin(p);
-  // legs: thigh angle t (forward +) and knee flexion per side; forward foot lower and bigger, rear foot raised (toe-off)
-  const legs = side.map((sd) => {
-    const ph = p + (sd < 0 ? 0 : Math.PI), t = 0.5 * Math.sin(ph), flex = 0.08 + 0.9 * Math.max(0, Math.cos(ph - 0.3)) ** 1.5, sa = t - flex, rear = Math.max(0, -t / 0.5);
-    const K = [sd * (0.056 + 0.012 * flex) * wk, hip - Math.cos(t) * thigh], A = [sd * (0.05 + 0.006 * flex) * wk, K[1] - Math.cos(sa) * thigh - 0.045 * Math.sin(t) + 0.03 * rear];
-    return { sd, t, K, A, rear, H: [sd * 0.05 * wk, hip] };
-  });
-  const dy = -Math.min(legs[0].A[1], legs[1].A[1]) + 0.05 * ks;
-  ctx.save(); ctx.translate(0, dy);
+  const G = gait(look, frame), sway = Math.sin(p + 1), swayX = 0.014 * Math.sin(p), tilt = 0.04 * Math.sin(p), TK = back ? -0.22 : 0.22; // TK: screen drop per unit of forward reach (closer to the camera = lower)
+  const dh = G.hipY - hip, X = G.X;
+  // Sagittal pose to screen: lateral hip offset, depth lowers (front) or raises (back) the point; nearer parts are drawn bigger.
+  const P = (sd, lat, x, y) => [sd * lat, y - TK * x], big = (x) => 1 + 0.3 * x / X;
+  const legs = side.map((sd, i) => { const L = G.legs[i], hx0 = sd * 0.05 * wk; return { sd, ...L, H: [hx0, G.hipY], K2: P(sd, 0.056 * wk + 0.012 * Math.abs(L.K[0]), L.K[0], L.K[1]), A2: P(sd, 0.05 * wk, L.x, L.A[1]) }; });
+  ctx.save();
   const leg = (L) => {
-    tube(ctx, L.H, 0.058 * r, L.K, 0.046 * r); fill(look.bottom, -0.1, hip, 0.1, L.A[1], 0.03, -0.2);
-    tube(ctx, L.K, 0.046 * r, L.A, 0.04 * r); fill(look.bottom, -0.1, hip, 0.1, L.A[1], 0.03, -0.2);
-    const o = L.sd * 0.034 * r; // outer seam and hem
-    line(tone(look.bottom, -0.5), 0.004, 0.5, [[L.H[0] + o * 1.1, hip - 0.01], [L.K[0] + o, L.K[1]], [L.A[0] + o * 0.85, L.A[1] + 0.03]]);
-    line(tone(look.bottom, -0.45), 0.005, 0.55, [[L.A[0] - 0.038 * r, L.A[1] + 0.05 * r], [L.A[0] + 0.038 * r, L.A[1] + 0.05 * r]]);
+    const rt = r * big(L.x * 0.5), rk = r * big(L.K[0]);
+    tube(ctx, L.H, 0.058 * rt, L.K2, 0.046 * rk); fill(look.bottom, -0.1, G.hipY, 0.1, L.A2[1], 0.03, -0.2);
+    tube(ctx, L.K2, 0.046 * rk, L.A2, 0.04 * big(L.x) * r); fill(look.bottom, -0.1, G.hipY, 0.1, L.A2[1], 0.03, -0.2);
+    const o = L.sd * 0.034 * r;
+    line(tone(look.bottom, -0.5), 0.004, 0.5, [[L.H[0] + o * 1.1, G.hipY - 0.01], [L.K2[0] + o, L.K2[1]], [L.A2[0] + o * 0.85, L.A2[1] + 0.03]]);
+    line(tone(look.bottom, -0.45), 0.005, 0.55, [[L.A2[0] - 0.038 * r, L.A2[1] + 0.05 * r], [L.A2[0] + 0.038 * r, L.A2[1] + 0.05 * r]]);
   };
   const foot = (L) => {
-    const sc = ks * (1 + 0.28 * Math.sin(L.t)) * wk ** 0.5;
-    ctx.save(); ctx.translate(L.A[0], L.A[1] - 0.032 * ks); ctx.scale(sc, sc);
+    const sc = ks * big(L.x) * wk ** 0.5, up = Math.max(0, (L.fa - 0.15) / 0.55), sy = 1 - 0.3 * up; // toe-off: the foot tips away, shorter and with a thin dark sole edge
+    ctx.save(); ctx.translate(L.A2[0], L.A2[1] - 0.032 * ks); ctx.scale(sc, sc * sy);
     const body = [[-0.04, 0.03], [-0.046, -0.012], [-0.03, -0.04], [0.03, -0.04], [0.046, -0.012], [0.04, 0.03], [0, 0.05]];
-    if (L.rear > 0.55) { // toe-off: the sole faces the camera in front view, the raised heel in back view
-      if (back) { blob(ctx, body); fill(look.shoes, 0, 0.05, 0, -0.04, 0.12, -0.15); blob(ctx, [[-0.032, -0.012], [0.032, -0.012], [0.036, -0.044], [-0.036, -0.044]]); fill(sole, 0, -0.01, 0, -0.045, 0.05, -0.2); }
-      else { blob(ctx, [[-0.036, 0.04], [-0.044, -0.01], [-0.026, -0.05], [0.026, -0.05], [0.044, -0.01], [0.036, 0.04], [0, 0.056]]); fill(sole, 0, 0.05, 0, -0.05, 0.08, -0.2); blob(ctx, [[-0.034, -0.012], [0, -0.004], [0.034, -0.012], [0.026, -0.05], [-0.026, -0.05]]); fill(look.shoes, 0, 0, 0, -0.05, 0.1, -0.15); line(tone(sole, -0.3), 0.004, 0.6, [[-0.03, 0.02], [0.03, 0.02]]); }
-    } else {
-      ctx.lineCap = 'round'; ctx.strokeStyle = sole; ctx.lineWidth = 0.02; ctx.beginPath(); ctx.moveTo(-0.034, -0.044); ctx.lineTo(0.034, -0.044); ctx.stroke();
-      blob(ctx, body); fill(look.shoes, 0, 0.05, 0, -0.04, 0.12, -0.15);
-      if (back) { ctx.beginPath(); ctx.ellipse(0, -0.012, 0.022, 0.028, 0, 0, 7); ctx.fillStyle = tone(look.shoes, -0.2); ctx.fill(); line(tone(sole, -0.15), 0.006, 0.8, [[-0.034, 0.02], [0, 0.026], [0.034, 0.02]]); }
-      else { ctx.beginPath(); ctx.ellipse(0, -0.026, 0.03, 0.016, 0, 0, 7); ctx.fillStyle = tone(look.shoes, 0.18); ctx.fill(); for (const y of [0.006, 0.022]) line(tone(sole, -0.05), 0.004, 0.9, [[-0.016, y], [0.016, y]]); }
-    }
+    ctx.lineCap = 'round'; ctx.strokeStyle = up > 0.3 ? tone(look.shoes, -0.45) : sole; ctx.lineWidth = up > 0.3 ? 0.012 : 0.02; ctx.beginPath(); ctx.moveTo(-0.034, -0.044); ctx.lineTo(0.034, -0.044); ctx.stroke();
+    blob(ctx, body); fill(look.shoes, 0, 0.05, 0, -0.04, 0.12, -0.15);
+    if (back) { ctx.beginPath(); ctx.ellipse(0, -0.012, 0.022, 0.028, 0, 0, 7); ctx.fillStyle = tone(look.shoes, -0.2); ctx.fill(); line(tone(sole, -0.15), 0.006, 0.8, [[-0.034, 0.02], [0, 0.026], [0.034, 0.02]]); }
+    else { ctx.beginPath(); ctx.ellipse(0, -0.026, 0.03, 0.016, 0, 0, 7); ctx.fillStyle = tone(look.shoes, 0.18); ctx.fill(); for (const y of [0.006, 0.022]) line(tone(sole, -0.05), 0.004, 0.9, [[-0.016, y], [0.016, y]]); }
     ctx.restore();
   };
-  [...legs].sort((a, b) => a.t - b.t).forEach((L) => { leg(L); foot(L); });
-  // upper body sways with the hips
-  ctx.save(); ctx.translate(swayX, 0); ctx.translate(0, hip); ctx.rotate(-tilt); ctx.translate(0, -hip);
-  const arms = side.map((sd) => {
-    const a = 0.65 * Math.sin(p + (sd < 0 ? Math.PI : 0)), flex = 0.2 + 0.55 * Math.max(0, a / 0.65), l1 = kid ? 0.13 : 0.185, l2 = kid ? 0.11 : 0.165;
-    const S0 = [sd * (sw - 0.004), sh - 0.035], E = [S0[0] + sd * (0.012 - 0.008 * Math.sin(a)), S0[1] - Math.cos(a) * l1], W = [E[0] + sd * (0.006 - 0.014 * Math.sin(a)), E[1] - Math.cos(a + flex) * l2];
-    return { sd, S0, E, W, a };
+  [...legs].sort((a, b) => a.x - b.x).forEach((L) => { leg(L); foot(L); }); // the rear leg first
+  // upper body sways with the hips and counter-rotates; bobs with the hip height
+  ctx.save(); ctx.translate(swayX, dh); ctx.translate(0, hip); ctx.rotate(-tilt); ctx.translate(0, -hip);
+  const arms = side.map((sd, i) => { // swings opposite to the leg on the same side, out from the body, hand up / down with the swing
+    const a = -0.8 * G.legs[i].x / X, flex = 0.25 + 0.6 * Math.max(0, a / 0.8), l1 = kid ? 0.13 : 0.185, l2 = kid ? 0.11 : 0.165, out = 0.012 + 0.03 * Math.abs(Math.sin(a));
+    const xs1 = Math.sin(a) * l1, ys1 = -Math.cos(a) * l1, xs2 = xs1 + Math.sin(a + flex) * l2, ys2 = ys1 - Math.cos(a + flex) * l2;
+    const S0 = [sd * (sw - 0.004), sh - 0.035], E = [S0[0] + sd * out * 0.6, S0[1] + ys1 - TK * xs1], W = [S0[0] + sd * out, S0[1] + ys2 - TK * xs2];
+    return { sd, S0, E, W, a, fs: big(xs2) };
   });
-  const armSkin = (shade) => arms.forEach(({ sd, S0, E, W, a }) => {
+  const armSkin = (shade) => arms.forEach(({ sd, S0, E, W, fs }) => {
     tube(ctx, S0, 0.036 * ks, E, 0.03 * ks); fill(skin, sd * 0.1, sh, -sd * 0.04, W[1], 0.12 + shade, -0.2 + shade);
-    tube(ctx, E, 0.03 * ks, W, 0.022 * ks); fill(skin, sd * 0.1, sh, -sd * 0.04, W[1], 0.12 + shade, -0.2 + shade);
-    const fs = 1 + 0.25 * Math.sin(a); // swinging forward brings the fist toward the camera
+    tube(ctx, E, 0.03 * ks, W, 0.022 * ks * fs); fill(skin, sd * 0.1, sh, -sd * 0.04, W[1], 0.12 + shade, -0.2 + shade);
     ctx.beginPath(); ctx.arc(W[0], W[1] - 0.014 * ks * fs, 0.028 * ks * fs, 0, 7); fill(skin, 0, W[1] + 0.03, 0, W[1] - 0.04, 0.1, -0.25);
-    line(tone(skin, -0.35), 0.004, 0.6, [[W[0] - 0.014 * ks * fs, W[1] - 0.012 * ks * fs], [W[0] + 0.012 * ks * fs, W[1] - 0.012 * ks * fs]]); // finger line
+    line(tone(skin, -0.35), 0.004, 0.6, [[W[0] - 0.014 * ks * fs, W[1] - 0.012 * ks * fs], [W[0] + 0.012 * ks * fs, W[1] - 0.012 * ks * fs]]);
   });
   armSkin(0);
   // hair behind the body
   const hairBlob = (pts, a, b) => { blob(ctx, H(pts)); hg(a, b); };
-  if (shape === 'afro') { blob(ctx, H(AFRO.map(([x, y]) => [x + 0.12, y]))); hg(1, -0.6); }
+  if (shape === 'afro') { blob(ctx, H(AFRO.map(([x, y]) => [(x + 0.12) * afroS, y * afroS]))); hg(1, -0.6); }
   if (shape === 'long') hairBlob(back ? [[-0.52, 0.3], [-0.58, -0.5], [-0.6, -1.25], [-0.25, -1.45], [0.25, -1.45], [0.6, -1.25], [0.58, -0.5], [0.52, 0.3], [0, 0.5]] : [[-0.5, 0.35], [-0.6, -0.3], [-0.62, -1.2], [-0.25, -1.38], [0.25, -1.38], [0.62, -1.2], [0.6, -0.3], [0.5, 0.35], [0, 0.6]], 0.6, -1.4);
   if (shape === 'ponytail' && !back) { ctx.save(); ctx.translate(0.5 * hd, hy + 0.1 * hd); ctx.rotate(0.1 * sway); ctx.translate(-0.5 * hd, -(hy + 0.1 * hd)); hairBlob([[0.4, 0.3], [0.68, 0.1], [0.78, -0.5], [0.64, -1.05], [0.5, -0.4], [0.4, -0.05]], 0.2, -1); ctx.restore(); } // the tail hangs behind one shoulder
   // torso + neckline

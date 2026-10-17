@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { crowdPlan, chooseVariants } from './crowd.js';
-import { buildAtlas, CELL_W, CELL_H, GROUND, S, COLS, FRAMES, FB_W, FB_COLS, FB_X, ATLAS_W, ATLAS_H } from './sprites.js';
+import { buildAtlas, CELL_W, CELL_H, GROUND, S, COLS, FRAMES, FB_W, FB_COLS, FB_X, ATLAS_W, ATLAS_H, strideOf } from './sprites.js';
 // Walking-emoji pedestrians: canvas-drawn sprites (side, front and back views) in one atlas, ONE InstancedMesh of cylindrical billboards (+ one for soft shadows). Paths come from crowd.js (pure data).
-const NEAR = 140, INSET = 0.6, FEET = 0.02, SEED = 1017, VARIANTS = 32, STAND = 3, CYCLE = 0.8; // CYCLE: metres of travel per walk cycle, in body heights
+const NEAR = 140, INSET = 0.6, FEET = 0.02, SEED = 1017, VARIANTS = 28, STAND = 2; // sprite looks; the standing frame (legs passing)
 export function createPeople(scene, { curve, pts, stops, reducedMotion = false }) {
   const plan = crowdPlan(stops, pts, SEED), N = plan.length;
   // Arc-length table of the route (curve parameter is per stop, so speed would vary): positions + normals every ~1 m.
@@ -37,6 +37,7 @@ export function createPeople(scene, { curve, pts, stops, reducedMotion = false }
   const { variants, of } = chooseVariants(plan.map((q) => q.look), VARIANTS);
   const img = buildAtlas(variants), map = new THREE.DataTexture(new Uint8Array(img.data.buffer), img.width, img.height); // DataTexture keeps the bled RGB under alpha 0 (canvas uploads would not)
   Object.assign(map, { colorSpace: THREE.SRGBColorSpace, anisotropy: 8, generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter, magFilter: THREE.LinearFilter, needsUpdate: true });
+  const cycle = plan.map((q) => strideOf(q.look) * q.look.height); // metres per walk cycle: the sprite's own stance travel, so the planted foot does not slide
   const geo = new THREE.PlaneGeometry(CELL_W / S, CELL_H / S).translate(0, (GROUND - CELL_H / 2) / S, 0); // unit = body height; ground at y 0
   const info = new THREE.InstancedBufferAttribute(new Float32Array(N * 4), 4).setUsage(THREE.DynamicDrawUsage); // cell index, walk dir x / z, view (0 side, 1 front, 2 back)
   geo.setAttribute('aInfo', info);
@@ -56,6 +57,7 @@ vMapUv = px / vec2(${ATLAS_W}.0, ${ATLAS_H}.0);`)
 vec3 wp = instanceMatrix[3].xyz + vec3(rr.x, 0.0, rr.y) * position.x * (sd > 0.5 ? 1.0 : ${FB_W / CELL_W}) * sc + vec3(0.0, position.y * sc, 0.0);
 vec4 mvPosition = viewMatrix * vec4(wp, 1.0);
 gl_Position = projectionMatrix * mvPosition;`);
+    sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', 'diffuseColor *= texture2D(map, vMapUv, -0.6);'); // sharper mips, so walk frames do not average into a blur
   };
   const crowd = new THREE.InstancedMesh(geo, mat, N);
   Object.assign(crowd, { name: 'crowd', frustumCulled: false });
@@ -83,7 +85,7 @@ gl_Position = projectionMatrix * mvPosition;`);
         show(i, near);
         if (near) { // side view mostly perpendicular to the camera, front when walking toward it, back when walking away (45 degree sectors)
           const c = (out.fx * (out.x - cam.x) + out.fz * (out.z - cam.z)) / (Math.hypot(out.x - cam.x, out.z - cam.z) || 1);
-          face(i, Math.floor(s.d / (CYCLE * s.h) * FRAMES) % FRAMES, c < -0.7 ? 1 : c > 0.7 ? 2 : 0);
+          face(i, Math.floor(s.d / cycle[i] * FRAMES) % FRAMES, c < -0.7 ? 1 : c > 0.7 ? 2 : 0);
         }
       });
       flag();
