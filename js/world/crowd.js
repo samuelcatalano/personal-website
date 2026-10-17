@@ -34,13 +34,20 @@ export function walkPaths(stops, pts) {
     { type: 'loop', name: 'wembley', rect: rect(wx + 14, wx + 40, 19, 28) }, // beside the figure; the front of the stadium is walled by blocks
   ];
 }
-export function crowdPlan(stops, pts, seed, count = 160) {
+export function crowdPlan(stops, pts, seed, count = 480) {
   const r = rng(seed), paths = walkPaths(stops, pts), lanes = paths.filter((p) => p.type === 'lane'), loops = paths.filter((p) => p.type === 'loop');
-  return Array.from({ length: count }, (_, i) => {
-    const look = makeLook(r), onLane = i % 10 < 7, s0 = r();
-    const path = onLane ? pick(r, lanes) : { ...pick(r, loops), dir: r() < 0.5 ? 1 : -1 }; // loops get a per-person direction
-    return { look, path, s0 };
+  const keys = [], plan = Array.from({ length: count }, (_, i) => {
+    const look = makeLook(r), onLane = i % 10 < 7;
+    let path, key;
+    if (onLane) { const l = pick(r, lanes); path = { ...l, offset: l.offset + between(r, -0.3, 0.3) }; key = `lane${l.offset}`; } // spread across the pavement, not single file
+    else { const l = pick(r, loops), dir = r() < 0.5 ? 1 : -1; path = { ...l, dir, inset: between(r, 0.6, 1.6) }; key = `${l.name}`; } // loops get a per-person direction and inset
+    keys.push(key + path.dir);
+    return { look, path, s0: r() };
   });
+  const groups = new Map(); // stratify s0 inside each lane / loop so people are evenly spread along it, not clumped
+  keys.forEach((k, i) => groups.set(k, [...(groups.get(k) || []), i]));
+  for (const ids of groups.values()) ids.forEach((i, j) => { plan[i].s0 = (j + 0.15 + 0.7 * plan[i].s0) / ids.length; });
+  return plan;
 }
 // Sprite atlas variants: greedy k-center over a look distance, so every skin tone, kind and hair style shows up; each person maps to the nearest variant.
 const KIDS = /boy|girl/;

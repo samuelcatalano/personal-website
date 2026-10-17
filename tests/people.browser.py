@@ -16,7 +16,7 @@ print(js(r'''(async () => {
     return { scene, people, changed };
   };
   const { scene, people, changed } = run(false);
-  check(people.count >= 150, 'expected at least 150 people');
+  check(people.count >= 450, 'expected at least 450 people');
   check(changed, 'update(0.5) must move some people');
   check(!run(true).changed, 'reduced motion must not move anyone');
   const meshes = []; scene.traverse((o) => { if (o.isInstancedMesh) meshes.push(o); });
