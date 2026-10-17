@@ -75,18 +75,17 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   let fpsT = 0, fpsN = 0, night = 0, nightTarget = 0, mobile = false;
   const bar = document.querySelector('.bar'), panel = document.querySelector('#panel');
   let fitKey = '';
+  // panel size changes per section: ease the view offset to its new value instead of snapping the camera
+  const vo = {}, applyView = () => camera.setViewOffset(innerWidth, innerHeight, vo.x, vo.y, innerWidth, innerHeight);
   const fit = () => {
     const width = innerWidth, height = innerHeight, headerBottom = bar?.getBoundingClientRect().bottom ?? 0, panelBox = panel?.getBoundingClientRect();
     const key = JSON.stringify([width, height, mobile, headerBottom, panelBox]);
     if (key === fitKey) return false;
     fitKey = key;
-    if (mobile) {
-      const panelTop = panelBox?.top ?? height;
-      camera.setViewOffset(width, height, 0, height / 2 - (headerBottom + panelTop) / 2, width, height);
-    } else if (panel) {
-      const panelRight = panelBox.right;
-      camera.setViewOffset(width, height, -panelRight / 2, -headerBottom / 2, width, height);
-    } else camera.clearViewOffset();
+    vo.tx = mobile ? 0 : panel ? -panelBox.right / 2 : 0;
+    vo.ty = mobile ? height / 2 - (headerBottom + (panelBox?.top ?? height)) / 2 : panel ? -headerBottom / 2 : 0;
+    if (vo.x === undefined) { vo.x = vo.tx; vo.y = vo.ty; }
+    applyView();
     return true;
   };
   const resize = () => {
@@ -119,6 +118,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     last = now;
     scroll = reducedMotion ? { value: marks[nearestStop(target, n, marks)], velocity: 0 } : spring(scroll, target, dt, SCROLL_SMOOTH);
     if (!reducedMotion) clock += dt;
+    const ox = reducedMotion || !dt ? vo.tx : approach(vo.x, vo.tx, dt, 300), oy = reducedMotion || !dt ? vo.ty : approach(vo.y, vo.ty, dt, 300);
+    if (ox !== vo.x || oy !== vo.y) { vo.x = ox; vo.y = oy; applyView(); camera.updateProjectionMatrix(); }
     const p = scroll.value, t = routeT(p, n, knots);
     const bp = curve.getPointAt(t), tan = curve.getTangentAt(t);
     lateral.set(tan.z, 0, -tan.x).normalize().multiplyScalar(BUS_LANE);

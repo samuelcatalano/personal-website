@@ -1,7 +1,6 @@
 import { PALETTE as P } from './palette.js';
 const WALLS = [P.steel, P.oak, P.pearl, P.cream, P.brick, P.redBrown, P.londonStock, P.pinkStucco, P.blueStucco, P.mintStucco, P.lemonStucco], ROOFS = [P.brick, P.ink, P.roof], DOORS = [P.red, P.maroon, P.white, P.navy], W = P.white;
 // Georgian townhouse. Front faces o (+1: +z, -1: -z); `q` is a seeded rng. Every detail sits proud of the wall by >= 0.03.
-export const chimneys = []; // smoke sources, see motion.js
 export function house(add, q, x, z, o, w, d, n, fh = 3.1, lo = false) {
   const h = n * fh, f = z + o * d / 2, nc = Math.max(2, Math.round(w / 3)), pick = (a) => a[q() * a.length | 0];
   const F = (cx, y, bw, bh, front, col, back = -front / 2) => add(cx, y, f + o * (front + back) / 2, bw, bh, front - back, col);
@@ -15,7 +14,6 @@ export function house(add, q, x, z, o, w, d, n, fh = 3.1, lo = false) {
   A(x, h + 2.06, z, w * 0.4, 0.8, d * 0.55, roof);
   const cx = x + (q() < 0.5 ? -1 : 1) * (w / 2 - 0.7), cz = z - o * d * 0.2;
   A(cx, h + 1.06, cz, 0.9, 1.5, 0.9, P.brick);
-  if (!lo && (Math.sin(cx * 12.9898 + cz * 78.233) * 43758.5453 % 1 + 1) % 1 < 0.3) chimneys.push(cx, h + 2.56, cz); // ~30% by position hash, no rng draw
   const P0 = d * 0.4 + 0.45; // dormer front, behind the eave
   for (const dx of q() < 0.5 ? [0] : [-w * 0.28, w * 0.28]) {
     A(x + dx, h + 1.06, z + o * (d * 0.4 - 0.2), 1.5, 1.4, 1.3, W);

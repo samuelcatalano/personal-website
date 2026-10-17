@@ -51,3 +51,11 @@ test('fineMarks equalises speed inside a segment and keeps stop marks', async ()
   const seg = d.slice(0, 8); assert.ok(Math.max(...seg) / Math.min(...seg) > 1); // knots follow the curve, so t-per-progress varies
   assert.ok(Math.abs(routeT(f[16], n, f) - 2 / N) < 1e-12);
 });
+
+import { approach } from '../js/world/camera.js';
+test('view offset eases (never snaps) when the panel resizes between sections', () => {
+  let v = 126; const step = []; // 126 -> 103 px, as on mobile journey -> stack
+  for (let i = 0; i < 20; i++) { const n = approach(v, 103, 1 / 60, 300); step.push(Math.abs(n - v)); v = n; }
+  assert.ok(Math.max(...step) <= 5 + 1e-9);
+  assert.equal(v, 103);
+});

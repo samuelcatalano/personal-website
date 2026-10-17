@@ -22,27 +22,6 @@ w *= 0.96;
 gl_FragColor = vec4(base.rgb + acc / 40.0 * uStrength, base.a);
 }`,
 };
-// tilt-shift: sharp horizontal band, disc blur grows with |uv.y - FOCUS_Y| (uv, 0 = bottom)
-const FOCUS_Y = 0.3, HALF_BAND = 0.22, FALLOFF = 0.45, MAX_R = 3.5; // MAX_R in CSS px
-const TiltShift = {
-  uniforms: { tDiffuse: { value: null }, uInv: { value: new THREE.Vector2(1 / 1280, 1 / 720) }, uFocus: { value: new THREE.Vector3(FOCUS_Y, HALF_BAND, FALLOFF) }, uMax: { value: MAX_R } },
-  vertexShader: SunRays.vertexShader,
-  fragmentShader: `uniform sampler2D tDiffuse; uniform vec2 uInv; uniform vec3 uFocus; uniform float uMax; varying vec2 vUv;
-void main(){
-float k = smoothstep(uFocus.y, uFocus.y + uFocus.z, abs(vUv.y - uFocus.x));
-vec3 acc = texture2D(tDiffuse, vUv).rgb; float w = 1.0;
-if (k > 0.002) {
-vec2 r = uInv * uMax * k;
-for (int i = 1; i <= 12; i++) {
-float a = float(i) * 2.39996, d = sqrt(float(i) / 12.0);
-acc += texture2D(tDiffuse, vUv + vec2(cos(a), sin(a)) * d * r).rgb; w += 1.0;
-}
-}
-vec3 c = acc / w;
-c = mix(vec3(dot(c, vec3(0.299, 0.587, 0.114))), c, 1.04); // tiny toy-model saturation lift
-gl_FragColor = vec4(c, 1.0);
-}`,
-};
 export function createPost(renderer, scene, camera, { tier = 'high', sun } = {}) {
   const size = renderer.getSize(new THREE.Vector2());
   const composer = new EffectComposer(renderer);
@@ -58,13 +37,11 @@ export function createPost(renderer, scene, camera, { tier = 'high', sun } = {})
     heavy.forEach((p) => composer.addPass(p));
   }
   composer.addPass(new UnrealBloomPass(size, 0.15, 0.2, 0.95));
-  let tilt = null;
-  if (tier === 'high') { tilt = new ShaderPass(TiltShift); heavy.push(tilt); composer.addPass(tilt); }
   composer.addPass(new OutputPass());
   const v = new THREE.Vector3();
   const post = {
     tier,
-    setSize(w, h) { composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h); tilt?.uniforms.uInv.value.set(1 / w, 1 / h); },
+    setSize(w, h) { composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h); },
     setTier(t) {
       post.tier = t;
       heavy.forEach((p) => { p.enabled = t === 'high'; });

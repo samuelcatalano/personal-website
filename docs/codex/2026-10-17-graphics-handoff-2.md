@@ -23,6 +23,16 @@ Stopped early at 83% of the weekly usage limit (the stop rule was 85%). Item 4 c
    - **Visual check:** the lawn variation was seen in the browser; the river glint and the night look were not.
 4. **Tilt-shift softened** in `js/world/post.js` (`FOCUS_Y 0.3, HALF_BAND 0.22, FALLOFF 0.45, MAX_R 3.5`). The old values (0.25 / 0.15 / 0.33 / 7) blurred the Tower Bridge flags away and hid São Paulo detail.
 
+## Follow-up round (same day, stopped at 84% weekly / 83% 5-hour)
+
+- **Tilt-shift removed entirely** (`post.js`). Samuel didn't like the background blur.
+- **Chimney smoke removed entirely** (`motion.js`, `houses.js`). The current houses don't have chimneys. The flag waving stays.
+- **Journey→Stack jump:**
+  - **Cause:** `fit()` in `scene.js` snapped `camera.setViewOffset` when the panel resized at the section change. It was most visible on mobile.
+  - **Fix:** the offset now eases toward its target in the frame loop (300 px/s via `approach`), and snaps under reduced motion. A test is in `tests/scroll.test.mjs`.
+  - **Not verified:** whether this is the jump Samuel sees on desktop. The agent measured no scroll teleport and a constant desktop offset. Recheck on desktop by scrolling slowly across tribal→stack. If it still jumps, look at the `SECTION_SHOT` change between 'journey' and 'stack' in `camera.js`/`scene.js`.
+- **Visual check:** none for this round. The pane was hidden. The console is clean and `node --test` shows 71 pass.
+
 ## Not done (next round)
 
 - **4. Building variety:** rooftop details (chimneys, water tanks in SP, AC units, antennas) and per-district facade palettes. Watch out: `blocks.js` placement relies on seeded RNG streams, so add details without new `r()` draws, or put them after all placements (like `parks.js`).
