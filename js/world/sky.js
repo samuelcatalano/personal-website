@@ -109,7 +109,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
           at(cam, d.x, d.y, 1250, c.position);
           c.lookAt(cam.position);
         }
-        place(sunM, cam, wide ? 0.8 : 0.66, wide ? 0.9 : 0.8); place(moonM, cam, wide ? 0.8 : 0.66, wide ? 0.9 : 0.8);
+        place(sunM, cam, wide ? 0.66 : 0.6, wide ? 0.8 : 0.78); place(moonM, cam, wide ? 0.66 : 0.6, wide ? 0.8 : 0.78);
       }
       sunM.visible = night < 0.98; sunM.material.opacity = 1 - night;
       moonM.visible = night > 0.02; moonM.material.opacity = night;

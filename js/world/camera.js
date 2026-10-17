@@ -3,18 +3,19 @@ export const SECTION_SHOT = {
 };
 export function shotFor(kind, bus, { mobile = false, lift = 0 }) {
   const k = mobile ? 0.95 : 1;
+  const up = mobile ? 0 : 1; // tilt up on desktop to show sky; on mobile the panel already hides the lower frame, so the bus must stay high
   const { x, y, z } = bus;
   switch (kind) {
-    case 'hero': return { position: [x + 28 * k, y + 32 * k, z + 45 * k], target: [x + 2, y + 4, z + 4] };
+    case 'hero': return { position: [x + 28 * k, y + 32 * k, z + 45 * k], target: [x + 2, y + 4 + 9 * up, z + 4] };
     case 'follow': {
       const L = lift;
       return {
         position: [x + (20 + 6 * L) * k, y + (29 + 10 * L) * k, z + (50 + 14 * L) * k],
-        target: [x + 2, y + 5 + 9 * L, z + 2 - 10 * L],
+        target: [x + 2, y + 5 + 9 * up + 9 * L, z + 2 - 10 * L],
       };
     }
-    case 'high': return { position: [x + 30 * k, y + 34 * k, z + 60 * k], target: [x - 6, y + 6, z - 20] };
-    case 'closing': return { position: [x - 7 * k, y + 13 * k, z + 32 * k], target: [x + 1, y + 2.5, z] };
+    case 'high': return { position: [x + 30 * k, y + 34 * k, z + 60 * k], target: [x - 6, y + 6 + 10 * up, z - 20] };
+    case 'closing': return { position: [x - 7 * k, y + 13 * k, z + 32 * k], target: [x + 1, y + 2.5 + 6 * up, z] };
     default: throw new Error(`unknown shot ${kind}`);
   }
 }
