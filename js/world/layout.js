@@ -11,6 +11,7 @@ export const LANDMARKS = {
   heathrow: 'move',
   bigben: 'xdesign',
   eye: 'olm',
+  glasgow: 'glasgow',
   towerbridge: 'tribal',
   masp: 'taqtile',
   se: 'puc',

@@ -34,12 +34,13 @@ function draw(add, x, z, [w0, d, n, fh, wall, trim, kind, u], r, q, near) {
 }
 // Back rows + skyline. Skips `hard` (river, landmarks + 6 m, plaza), `occ` (houses), 26 m of road; near side and Sé/MASP flanks <= 12 m.
 export function buildBlocks(add, stops, pts, curve, occ) {
-  const r = rng(7311), q = rng(5521), cp = copan(stops, pts), X = (k) => pts[stopIndex(stops, L[k])].x, mv = X('heathrow') - 15, lz = pts[pts.length - 1].z;
+  const r = rng(7311), q = rng(5521), cp = copan(stops, pts), gl = pts[stopIndex(stops, L.glasgow)], X = (k) => pts[stopIndex(stops, L[k])].x, mv = X('heathrow') - 15, lz = pts[pts.length - 1].z;
   const H = (k, a, b, z0, z1) => [X(k) - a, X(k) + b, z0, z1], path = Array.from({ length: 241 }, (_, i) => curve.getPointAt(i / 240));
   const zAt = (x) => path.reduce((a, p) => Math.abs(p.x - x) < Math.abs(a.x - x) ? p : a).z;
   const hard = [
     [riverStart(stops, pts) - 6, riverEnd(stops, pts) + 6, -64, -26], H('masp', 26, 26, -76, -50), H('se', 24, 24, -77, -49), H('estaiada', 16, 16, -80, -12),
     H('heathrow', 18, 18, -38, -14), H('bigben', 10, 43, -76, -48), H('wembley', 30, 30, -92, -50), H('wembley', 14, 14, lz + 10, lz + 45),
+    [gl.x - 20, gl.x + 20, gl.z - 43, gl.z - 17],
     ...pts.slice(0, 6).map((p) => [p.x - 16, p.x + 16, -80, -58]),
   ];
   // Reserved after the fact: blocks that would land here still draw r() but add nothing, so every other block keeps its place.

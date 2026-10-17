@@ -71,6 +71,34 @@ test('move stop has EN and PT journey copy', () => {
   assert.equal(i18n.pt.stops.move.title, 'Mudança para Londres');
 });
 
+test('OLM is split between London and Glasgow with accurate dates and residence context', () => {
+  const ids = stops.map(s => s.id);
+  const olm = ids.indexOf('olm');
+  const glasgow = ids.indexOf('glasgow');
+  assert.equal(ids[olm + 1], 'glasgow');
+  assert.equal(ids[glasgow + 1], 'tribal');
+  assert.deepEqual(stops[olm], {
+    id: 'olm', section: 'journey', year: '2021', country: 'UK',
+    brand: { initials: 'OLM', color: '#0f766e' },
+  });
+  assert.deepEqual(stops[glasgow], {
+    id: 'glasgow', section: 'journey', year: '2023', country: 'UK',
+    brand: { initials: 'OLM', color: '#0f766e' },
+  });
+  assert.equal(i18n.en.stops.olm.dates, 'Jul 2021 – Dec 2022');
+  assert.equal(i18n.en.stops.glasgow.dates, 'Jan 2023 – Feb 2024');
+  assert.equal(i18n.en.stops.olm.title, 'OLM Systems — London');
+  assert.equal(i18n.en.stops.glasgow.title, 'OLM Systems — Glasgow');
+  assert.equal(i18n.pt.stops.olm.dates, 'jul 2021 – dez 2022');
+  assert.equal(i18n.pt.stops.glasgow.dates, 'jan 2023 – fev 2024');
+  assert.equal(i18n.pt.stops.olm.title, 'OLM Systems — Londres');
+  assert.equal(i18n.pt.stops.glasgow.title, 'OLM Systems — Glasgow');
+  assert.match(i18n.en.stops.glasgow.body, /lived in Glasgow through 2024/i);
+  assert.match(i18n.en.stops.glasgow.body, /Tribal from June 2024/i);
+  assert.match(i18n.pt.stops.glasgow.body, /morei em Glasgow até o fim de 2024/i);
+  assert.match(i18n.pt.stops.glasgow.body, /na Tribal a partir de junho de 2024/i);
+});
+
 test('heathrow landmark is the move stop', () => {
   assert.equal(LANDMARKS.heathrow, 'move');
 });

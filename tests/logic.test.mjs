@@ -83,6 +83,13 @@ test('every landmark is anchored to an existing stop', () => {
   for (const id of Object.values(LANDMARKS)) assert.ok(stopIndex(stops, id) >= 0, id);
 });
 
+test('Glasgow landmark is anchored between the OLM and Tribal stops', () => {
+  const olm = stopIndex(stops, 'olm');
+  const glasgow = stopIndex(stops, LANDMARKS.glasgow);
+  const tribal = stopIndex(stops, 'tribal');
+  assert.ok(olm < glasgow && glasgow < tribal);
+});
+
 test('rng is deterministic', () => {
   const a = rng(42), b = rng(42);
   for (let i = 0; i < 5; i++) assert.equal(a(), b());

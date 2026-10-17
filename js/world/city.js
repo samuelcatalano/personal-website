@@ -60,7 +60,7 @@ export function tree(add, x, z, { h, crown }) {
 export function buildCity(add, stops, pts, curve) {
   const spots = furnitureSpots(stops, curve).map((o) => o.xz);
   const free = (x, z) => spots.every(([a, b]) => Math.hypot(a - x, b - z) > CLEAR); // ponytail: skip, not shift
-  const occ = [], obst = [], r = rng(2026), hq = rng(8821), noop = () => {}, mx = pts[stopIndex(stops, LANDMARKS.masp)].x, LM = new Set(Object.values(LANDMARKS));
+  const occ = [], obst = [], r = rng(2026), hq = rng(8821), noop = () => {}, mx = pts[stopIndex(stops, LANDMARKS.masp)].x, gl = pts[stopIndex(stops, LANDMARKS.glasgow)], LM = new Set(Object.values(LANDMARKS));
   const span = pts.length * STOP_SPACING + GAP.size + 120;
   add(GAP.size / 2, -1, 0, span, 1, 200, P.pave);
   // Samples along the curve every ~`step` m (curve param is per stop, so count follows each segment's length)
@@ -115,8 +115,9 @@ export function buildCity(add, stops, pts, curve) {
       for (const dx of [-9, 0, 9]) {
         if (side === 1 && stops[i].id === 'contact' && dx === 0) continue;
         const hz = p.z + side * (side === 1 ? 21 : 17);
-        // MASP view corridor: far-side houses in front of it are not drawn (townhouse still runs on a no-op so r() stays aligned)
-        const show = !(side === -1 && Math.abs(p.x + dx - mx) < 29.5) && !(side === 1 && Math.abs(p.x + dx - pts[pts.length - 1].x) < 35); // near side stays clear of the Wembley foreground
+        // MASP and Glasgow need clear far-side sightlines; townhouse still runs on a no-op so r() stays aligned.
+        const glasgowSquare = side === -1 && Math.abs(p.x + dx - gl.x) < 25 && hz + 4.5 > gl.z - 43 && hz - 4.5 < gl.z - 17;
+        const show = !(side === -1 && (Math.abs(p.x + dx - mx) < 29.5 || glasgowSquare)) && !(side === 1 && Math.abs(p.x + dx - pts[pts.length - 1].x) < 35);
         const uk = stops[i].country === 'UK';
         townhouse(show && !uk ? add : noop, p.x + dx, hz, side, br, r, i >= 2);
         if (show && uk) house(add, hq, p.x + dx, hz, -side, 9, 7, side === 1 ? 2 : 3 + (hq() < 0.4), 3.1, side === 1);

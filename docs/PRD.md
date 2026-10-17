@@ -28,8 +28,10 @@ Inspiration: bridglabs.com (scroll-driven voxel San Francisco with a cable car).
    - 2017 Reclame AQUI — Software Engineer 🇧🇷
    - 2020 Millimetric.ai — Sr. Java Engineer (London)
    - 2020 xDesign — Senior Java Software Engineer (FanDuel / Onfido)
-   - 2021 OLM Systems — Software Developer III (CP-IS child protection)
+   - 2021–2022 OLM Systems, London — Software Developer III (CP-IS child protection)
+   - 2023–Feb 2024 OLM Systems, Glasgow — Software Developer III (CP-IS child protection)
    - 2024 Tribal Worldwide London — Senior Software Developer (VW stock platform) — current
+   - Samuel lived in Glasgow through the end of 2024, including while working at Tribal from June 2024; this does not extend the OLM role beyond February 2024.
 3. **Stack** as landmarks: Java, Spring Boot, Quarkus, Kafka/Debezium, AWS, Docker/Kubernetes, PostgreSQL/MySQL/MongoDB.
 4. **Articles**: Mastering the Art of Backend Hiring; Quarkus and the MicroProfile Fault Tolerance API; Mapping Entities to DTOs and vice versa in Java (links from the current site).
 5. **GitHub**: 3–6 curated public repos from github.com/samuelcatalano (static list, approved by Samuel).
@@ -47,7 +49,7 @@ Inspiration: bridglabs.com (scroll-driven voxel San Francisco with a cable car).
 ## Success
 - Lighthouse a11y ≥ 95, performance ≥ 80 on desktop.
 - First meaningful content (panel) < 2s on 4G; 3D world lazy-loads after.
-- All 10 journey entries reachable by scroll and keyboard.
+- All 12 journey entries reachable by scroll and keyboard.
 
 ## Out of scope
 Blog engine, CMS, analytics, contact form, sound, multiplayer, controllable driving.

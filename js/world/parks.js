@@ -5,18 +5,18 @@ import { tree, CLEAR } from './city.js'; // ponytail: import cycle is fine, both
 // Parks on the big bare paving. Rects were found with an occupancy grid of city + landmarks (tests/parks.test.mjs re-checks the plaza loops);
 // x/z are world metres. Axis u = longer side. uk: black railings + K6-free London look; pond/fountain: centre piece.
 export const PARKS = [
-  { x0: -220, x1: -150, z0: -27, z1: -15, fountain: 1, trees: 7 }, // Sé side
-  { x0: -278, x1: -258, z0: -24, z1: 24, fountain: 1, trees: 7 }, // behind the start
-  { x0: -182, x1: -150, z0: -57, z1: -47, trees: 5 },
-  { x0: -73, x1: -47, z0: 13, z1: 23, trees: 4 }, // south of Paulista
-  { x0: -73, x1: -47, z0: -23, z1: -15, trees: 3 }, // north, in front of the Copan: low trees only
-  { x0: -88, x1: -47, z0: -69, z1: -63, trees: 4 }, // behind the Copan
-  { x0: -12, x1: 12, z0: 21, z1: 27, trees: 3 },
-  { x0: 20, x1: 72, z0: 21, z1: 27, uk: 1, rail: 1, trees: 5 },
-  { x0: 186, x1: 222, z0: -29, z1: -21, uk: 1, rail: 1, trees: 4 },
-  { x0: 186, x1: 266, z0: -69, z1: -61, uk: 1, rail: 1, trees: 6 },
-  { x0: 236, x1: 312, z0: -43, z1: -35, uk: 1, rail: 1, trees: 6 }, // in front of Wembley: trees stay <= 4.4 m
-  { x0: 322, x1: 346, z0: -12, z1: 24, uk: 1, rail: 1, pond: 1, trees: 7 },
+  { x0: -235, x1: -165, z0: -27, z1: -15, fountain: 1, trees: 7 }, // Sé side
+  { x0: -293, x1: -273, z0: -24, z1: 24, fountain: 1, trees: 7 }, // behind the start
+  { x0: -197, x1: -165, z0: -57, z1: -47, trees: 5 },
+  { x0: -88, x1: -62, z0: 13, z1: 23, trees: 4 }, // south of Paulista
+  { x0: -88, x1: -62, z0: -23, z1: -15, trees: 3 }, // north, in front of the Copan: low trees only
+  { x0: -103, x1: -62, z0: -69, z1: -63, trees: 4 }, // behind the Copan
+  { x0: -27, x1: -3, z0: 21, z1: 27, trees: 3 },
+  { x0: 5, x1: 57, z0: 21, z1: 27, uk: 1, rail: 1, trees: 5 },
+  { x0: 201, x1: 237, z0: -29, z1: -21, uk: 1, rail: 1, trees: 4 },
+  { x0: 201, x1: 281, z0: -69, z1: -61, uk: 1, rail: 1, trees: 6 },
+  { x0: 251, x1: 327, z0: -43, z1: -35, uk: 1, rail: 1, trees: 6 }, // in front of Wembley: trees stay <= 4.4 m
+  { x0: 337, x1: 361, z0: -12, z1: 24, uk: 1, rail: 1, pond: 1, trees: 7 },
 ];
 // The 4 pedestrian loops (crowd.js walkPaths) become parks: gravel ring over the walking inset, everything else >= 2.4 m inside the rect.
 export const WALK_INSET = [0.6, 1.6]; // ponytail: mirrors crowd.js between(r, 0.6, 1.6) / people.js INSET; keep in sync

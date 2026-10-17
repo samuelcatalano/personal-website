@@ -58,7 +58,8 @@ try:
   try {
     scrollTo(0, 0);
     await new Promise(resolve => setTimeout(resolve, 700));
-    const target = (document.documentElement.scrollHeight - innerHeight) * 8 / 15;
+    const { stops } = await import('./js/content.js');
+    const target = (document.documentElement.scrollHeight - innerHeight) * 8 / (stops.length - 1);
     scrollTo(0, target);
     await new Promise(resolve => setTimeout(resolve, 700));
     const panel = document.querySelector('#panel').getBoundingClientRect();
@@ -102,7 +103,8 @@ print(js("""(async () => {
     world.setTheme('day');
     await nextFrame();
     await new Promise(resolve => setTimeout(resolve, 200));
-    check(progress.at(-1) === .6, 'First frame must use the actual stop');
+    const expectedStop = Math.round(.6 * (stops.length - 1)) / (stops.length - 1);
+    check(progress.at(-1) === expectedStop, 'First frame must use the actual stop');
     const settledFrames = progress.length;
     await new Promise(resolve => setTimeout(resolve, 200));
     check(progress.length === settledFrames, `Reduced motion continued rendering while idle (${settledFrames} to ${progress.length})`);

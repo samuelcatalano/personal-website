@@ -13,6 +13,7 @@ export const stops = [
   { id: 'millimetric', section: 'journey', year: '2020', country: 'UK', brand: { initials: 'MM', color: '#2b59c3' } },
   { id: 'xdesign', section: 'journey', year: '2020', country: 'UK', brand: { initials: 'XD', color: '#be123c' } },
   { id: 'olm', section: 'journey', year: '2021', country: 'UK', brand: { initials: 'OLM', color: '#0f766e' } },
+  { id: 'glasgow', section: 'journey', year: '2023', country: 'UK', brand: { initials: 'OLM', color: '#0f766e' } },
   { id: 'tribal', section: 'journey', year: '2024', country: 'UK', brand: { initials: 'TW', color: '#e2001a' } },
   { id: 'stack', section: 'stack', year: 'STACK', country: 'UK' },
   { id: 'articles', section: 'articles', year: 'WRITE', country: 'UK' },
@@ -74,7 +75,8 @@ export const i18n = {
       move: { title: 'Moved to London', role: 'Relocation', dates: '2019', place: 'London', body: 'Left São Paulo for London, starting the next chapter of my career.' },
       millimetric: { title: 'Millimetric.ai', role: 'Senior Java Engineer', dates: 'Apr 2020 – Nov 2020', place: 'London', body: 'Arrived in London. Real-time anomaly detection on business metrics with Spring Boot and Cassandra.' },
       xdesign: { title: 'xDesign', role: 'Senior Java Software Engineer', dates: 'Nov 2020 – May 2021', place: 'London', body: "Integrated Onfido document verification into FanDuel's US onboarding flow on AWS." },
-      olm: { title: 'OLM Systems', role: 'Software Developer III', dates: 'Jul 2021 – Feb 2024', place: 'London / Glasgow', body: 'CP-IS: secure information sharing that helps health and social care protect vulnerable children. Quarkus, Kafka, Debezium.' },
+      olm: { title: 'OLM Systems — London', role: 'Software Developer III', dates: 'Jul 2021 – Dec 2022', place: 'London', body: 'London phase of CP-IS: secure information sharing that helps health and social care protect vulnerable children. Quarkus, Kafka, Debezium.' },
+      glasgow: { title: 'OLM Systems — Glasgow', role: 'Software Developer III', dates: 'Jan 2023 – Feb 2024', place: 'Glasgow', body: 'Moved to Glasgow for the next phase of CP-IS. I lived in Glasgow through 2024, including while working at Tribal from June 2024. Quarkus, Kafka, Debezium.' },
       tribal: { title: 'Tribal Worldwide London', role: 'Senior Software Developer', dates: 'Jun 2024 – Present', place: 'London', body: "Stock archiving, import, export and API services for Volkswagen's vehicle stock data. Spring Boot, MongoDB, ActiveMQ." },
     },
     recs: [
@@ -107,7 +109,8 @@ export const i18n = {
       move: { title: 'Mudança para Londres', role: 'Mudança', dates: '2019', place: 'Londres', body: 'Deixei São Paulo rumo a Londres, começando o próximo capítulo da minha carreira.' },
       millimetric: { title: 'Millimetric.ai', role: 'Engenheiro Java Sênior', dates: 'abr 2020 – nov 2020', place: 'Londres', body: 'Cheguei a Londres. Detecção de anomalias em métricas de negócio em tempo real com Spring Boot e Cassandra.' },
       xdesign: { title: 'xDesign', role: 'Engenheiro de Software Java Sênior', dates: 'nov 2020 – mai 2021', place: 'Londres', body: 'Integração da verificação de documentos Onfido no onboarding da FanDuel nos EUA, na AWS.' },
-      olm: { title: 'OLM Systems', role: 'Desenvolvedor de Software III', dates: 'jul 2021 – fev 2024', place: 'Londres / Glasgow', body: 'CP-IS: compartilhamento seguro de informações para a saúde e assistência social protegerem crianças vulneráveis. Quarkus, Kafka, Debezium.' },
+      olm: { title: 'OLM Systems — Londres', role: 'Desenvolvedor de Software III', dates: 'jul 2021 – dez 2022', place: 'Londres', body: 'Fase londrina do CP-IS: compartilhamento seguro de informações para a saúde e assistência social protegerem crianças vulneráveis. Quarkus, Kafka, Debezium.' },
+      glasgow: { title: 'OLM Systems — Glasgow', role: 'Desenvolvedor de Software III', dates: 'jan 2023 – fev 2024', place: 'Glasgow', body: 'Mudei para Glasgow em 2023 para a próxima fase do CP-IS e morei em Glasgow até o fim de 2024, inclusive enquanto trabalhava na Tribal a partir de junho de 2024. Quarkus, Kafka, Debezium.' },
       tribal: { title: 'Tribal Worldwide London', role: 'Desenvolvedor de Software Sênior', dates: 'jun 2024 – atual', place: 'Londres', body: 'Serviços de arquivamento, importação, exportação e API para o estoque de veículos da Volkswagen. Spring Boot, MongoDB, ActiveMQ.' },
     },
     recs: [
