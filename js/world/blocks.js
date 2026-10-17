@@ -12,11 +12,11 @@ const ROWS = [
   [1, 29, [1, 0, 1], [4]], [1, 43, [0, 1, 0], [4]], [-1, 29, [1, 2, 2, 3, 0], [4, 5, 5]], [-1, 43, [0, 2, 3, 2], [4, 5, 6]],
   [0, -80, [0, 2, 3, 2], [4, 5, 6]], [0, -93, [3, 2, 3, 3], [6, 6, 5, 6]],
 ];
-function draw(add, x, z, [w0, d, n, fh, wall, trim, kind, u], r, q) {
+function draw(add, x, z, [w0, d, n, fh, wall, trim, kind, u], r, q, near) {
   const w = w0 * u, h = n * fh, zf = z + d / 2, nb = Math.round(w / 3.4), pw = w / nb, left = x - w / 2;
   if (kind > 2) { // London terrace: one townhouse per unit; r() drawn as before so later placements stay put
     for (let i = 0; i < n * 2 * u; i++) r();
-    for (let i = 0; i < u; i++) house(add, q, left + (i + 0.5) * w0, z, 1, w0, d, n, fh);
+    for (let i = 0; i < u; i++) house(add, q, left + (i + 0.5) * w0, z, 1, w0, d, near ? Math.min(n, 2) : n, fh, near);
     return;
   }
   add(x, 0, z, w, h, d, wall);
@@ -56,7 +56,8 @@ export function buildBlocks(add, stops, pts, curve, occ) {
     if (bad()) b = make(PRE[mix[0]]);
     const R = [x - 1, x + w() + 1, z() - b[1] / 2 - 1, z() + b[1] / 2 + 1];
     if (!bad() && ![...hard, ...occ].some((o) => hit(R, o)) && !path.some((p) => hit(R, [p.x, p.x, p.z, p.z], 25))) {
-      draw(cut.some((o) => hit(R, o)) ? () => {} : add, x + w() / 2, z(), b, r, q);
+      const clear = side > 0 && Math.abs(x + w() / 2 - X('wembley')) < 35; // camera side of the last stop stays open
+      draw(clear || cut.some((o) => hit(R, o)) ? () => {} : add, x + w() / 2, z(), b, r, q, side > 0);
       occ.push(R);
       x += w() + 2 + r() * 3;
     } else x += 6;

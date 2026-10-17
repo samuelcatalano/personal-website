@@ -1,7 +1,7 @@
 import { PALETTE as P } from './palette.js';
 const WALLS = [P.steel, P.oak, P.pearl, P.cream, P.brick], ROOFS = [P.brick, P.ink, P.roof], DOORS = [P.red, P.maroon, P.white, P.navy], W = P.white;
 // Georgian townhouse. Front faces o (+1: +z, -1: -z); `q` is a seeded rng. Every detail sits proud of the wall by >= 0.03.
-export function house(add, q, x, z, o, w, d, n, fh = 3.1) {
+export function house(add, q, x, z, o, w, d, n, fh = 3.1, lo = false) {
   const h = n * fh, f = z + o * d / 2, nc = Math.max(2, Math.round(w / 3)), pick = (a) => a[q() * a.length | 0];
   const F = (cx, y, bw, bh, front, col, back = -front / 2) => add(cx, y, f + o * (front + back) / 2, bw, bh, front - back, col);
   const wall = pick(WALLS), roof = pick(ROOFS), door = pick(DOORS), dc = q() < 0.5 ? 0 : nc - 1, bal = n > 2 && q() < 0.4, bc = q() * nc | 0;
@@ -9,14 +9,15 @@ export function house(add, q, x, z, o, w, d, n, fh = 3.1) {
   add(x, 0, z, w + 0.2, 0.5, d + 0.2, P.taupe);
   add(x, h - 0.3, z, w + 0.2, 0.36, d + 0.4, W);
   add(x, h + 0.06, z, w, 1, d + 0.8, roof);
-  add(x, h + 1.06, z, w * 0.8, 1, d * 0.8, roof);
-  add(x, h + 2.06, z, w * 0.4, 0.8, d * 0.55, roof);
-  add(x + (q() < 0.5 ? -1 : 1) * (w / 2 - 0.7), h + 1.06, z - o * d * 0.2, 0.9, 1.5, 0.9, P.brick);
+  const A = lo ? () => {} : add; // lo (camera-side rows): one low roof slab, no steps/chimney/dormers, so nothing rises into the frame
+  A(x, h + 1.06, z, w * 0.8, 1, d * 0.8, roof);
+  A(x, h + 2.06, z, w * 0.4, 0.8, d * 0.55, roof);
+  A(x + (q() < 0.5 ? -1 : 1) * (w / 2 - 0.7), h + 1.06, z - o * d * 0.2, 0.9, 1.5, 0.9, P.brick);
   const P0 = d * 0.4 + 0.45; // dormer front, behind the eave
   for (const dx of q() < 0.5 ? [0] : [-w * 0.28, w * 0.28]) {
-    add(x + dx, h + 1.06, z + o * (d * 0.4 - 0.2), 1.5, 1.4, 1.3, W);
-    add(x + dx, h + 1.36, z + o * (P0 + 0.02), 0.9, 0.8, 0.08, P.glass);
-    add(x + dx, h + 2.46, z + o * (d * 0.4 - 0.2), 1.9, 0.25, 1.6, roof);
+    A(x + dx, h + 1.06, z + o * (d * 0.4 - 0.2), 1.5, 1.4, 1.3, W);
+    A(x + dx, h + 1.36, z + o * (P0 + 0.02), 0.9, 0.8, 0.08, P.glass);
+    A(x + dx, h + 2.46, z + o * (d * 0.4 - 0.2), 1.9, 0.25, 1.6, roof);
   }
   for (let k = 0; k < n; k++) {
     const y = k * fh;

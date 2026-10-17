@@ -46,14 +46,16 @@ function estaiada(add, { x }) {
     }
   }
 }
-// Edifício Copan: ~46 m S-curve of slab segments; dark core shows between projecting concrete floor bands
+// Edifício Copan: ~46 m S-curve of slab segments; mid-grey core shows between projecting concrete floor bands
 function copanTower(add, { x, z, len, amp, depth }) {
   const N = 10, step = len / N, H = 48;
   for (let i = 0; i < N; i++) {
     const t = (i + 0.5) / N, cx = x - len / 2 + t * len, cz = z + amp * Math.sin(2 * Math.PI * t);
-    add(cx, 0.25, cz, step + 0.8, H - 0.25, depth - 0.8, P.ink);
-    for (let k = 0; k < 16; k++) add(cx, 0.5 + k * 3, cz, step + 0.2, 1.9, depth, P.concrete);
-    add(cx, H, cz, step + 0.2, 0.4, depth, P.concrete);
+    // neighbours overlap (same colours, depth staggered 0.04 on odd segments) so no gap shows between segments
+    const w = step * 1.35, dd = depth - (i % 2) * 0.04;
+    add(cx, 0.25, cz, w, H - 0.25, depth - 0.8 - (i % 2) * 0.04, P.stone);
+    for (let k = 0; k < 16; k++) add(cx, 0.5 + k * 3, cz, w, 1.9, dd, P.concrete);
+    add(cx, H, cz, w, 0.4, dd, P.concrete);
     if (i === 2) add(cx, H + 0.4, cz, 3, 2, 3, P.steel);
     if (i === 6) add(cx, H + 0.4, cz, 2, 1.4, 4, P.roof);
   }

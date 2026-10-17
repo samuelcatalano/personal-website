@@ -104,10 +104,10 @@ export function buildCity(add, stops, pts, curve) {
         if (side === 1 && stops[i].id === 'contact' && dx === 0) continue;
         const hz = p.z + side * (side === 1 ? 21 : 17);
         // MASP view corridor: far-side houses in front of it are not drawn (townhouse still runs on a no-op so r() stays aligned)
-        const show = !(side === -1 && Math.abs(p.x + dx - mx) < 29.5);
+        const show = !(side === -1 && Math.abs(p.x + dx - mx) < 29.5) && !(side === 1 && Math.abs(p.x + dx - pts[pts.length - 1].x) < 35); // near side stays clear of the Wembley foreground
         const uk = stops[i].country === 'UK';
         townhouse(show && !uk ? add : noop, p.x + dx, hz, side, br, r, i >= 2);
-        if (show && uk) house(add, hq, p.x + dx, hz, -side, 9, 7, side === 1 ? 2 : 3 + (hq() < 0.4), 3.1);
+        if (show && uk) house(add, hq, p.x + dx, hz, -side, 9, 7, side === 1 ? 2 : 3 + (hq() < 0.4), 3.1, side === 1);
         occ.push([p.x + dx - 5, p.x + dx + 5, hz - 4.5, hz + 4.5]);
       }
       for (const dx of [-8, 8]) {
