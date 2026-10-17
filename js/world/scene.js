@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
-import { routeT, nearestStop } from '../scroll.js';
+import { routeT, nearestStop, stopMarks, fineMarks } from '../scroll.js';
 import { routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, FRAME_LIFT, swapAt, scotRange } from './layout.js';
 import { createBoxes, buildMeshes } from './voxel.js';
 import { buildCity } from './city.js';
@@ -33,17 +33,23 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const SUN = SUN_DIR.clone().multiplyScalar(95), LD = SUN.clone().normalize(), TEXEL = 160 / 1024;
   const LU = new THREE.Vector3(0, 1, 0).cross(LD).normalize(), LV = LD.clone().cross(LU);
   scene.add(hemi, sun, sun.target);
-  const n = stops.length, pts = routePoints(n);
-  const curve = routeCurve(THREE, pts);
+  const n = stops.length, pts = routePoints(n), marks = stopMarks(pts);
+  const curve = routeCurve(THREE, pts), knots = fineMarks(marks, curve);
   const { add, list } = createBoxes();
-  buildCity(add, stops, pts, curve);
+  const { rotors: hubs } = buildCity(add, stops, pts, curve);
+  const blade = createBoxes(); blade.add(-0.25, 0, -0.15, 0.5, 9, 0.3, P.white); blade.add(-0.5, -0.5, -0.4, 1, 1, 0.8, P.white); // blade + hub cap
+  const bm = buildMeshes(blade.list), proto = new THREE.Group().add(...[0, 1, 2].map((k) => { const c = bm.clone(); c.rotation.z = k * Math.PI * 2 / 3; return c; }));
+  const rotors = hubs.map(([x, y, z], i) => { // 3 blades at 120deg; clones share geometry + materials
+    const g = proto.clone(); g.position.set(x, y, z); g.userData.phase = i * 1.3; return g;
+  });
+  const SPIN = 0.45; // rad/s
   const { eye, details, plane, planeAt } = buildLandmarks(add, stops, pts);
   const routemaster = buildBus(), mini = buildMini(), bus = new THREE.Group().add(mini, routemaster), swap = swapAt(stops);
   // First Glasgow livery between these fractions of the olm->glasgow and glasgow->tribal segments
   const [SCOT_IN, SCOT_OUT] = scotRange(stops);
   let scot = false;
   addBeams(mini, 1.72, 0.55); addBeams(routemaster, 5.46, 0.8);
-  scene.add(buildMeshes(list, { glow: [P.lit, '#ffd86b', '#fff7c2', P.arch], glowK: { [P.arch]: 1.1 } }), eye, details, plane, bus);
+  scene.add(buildMeshes(list, { glow: [P.lit, '#ffd86b', '#fff7c2', P.arch], glowK: { [P.arch]: 1.1 } }), eye, details, plane, bus, ...rotors);
   const units = [createAmbient(scene, { curve, pts, stops })];
   const people = createPeople(scene, { curve, pts, stops, reducedMotion });
   const water = createWater({ x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z: RIVER_Z, width: 22 });
@@ -102,9 +108,9 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     if (document.hidden) { last = 0; return; }
     const dt = last ? Math.min(0.1, (now - last) / 1000) : 0;
     last = now;
-    scroll = reducedMotion ? { value: nearestStop(target, n) / (n - 1), velocity: 0 } : spring(scroll, target, dt, SCROLL_SMOOTH);
+    scroll = reducedMotion ? { value: marks[nearestStop(target, n, marks)], velocity: 0 } : spring(scroll, target, dt, SCROLL_SMOOTH);
     if (!reducedMotion) clock += dt;
-    const p = scroll.value, t = routeT(p, n);
+    const p = scroll.value, t = routeT(p, n, knots);
     const bp = curve.getPointAt(t), tan = curve.getTangentAt(t);
     lateral.set(tan.z, 0, -tan.x).normalize().multiplyScalar(BUS_LANE);
     routemaster.visible = t >= swap;
@@ -126,8 +132,9 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     sun.target.position.copy(LU).multiplyScalar(a).addScaledVector(LV, b).addScaledVector(LD, bp.dot(LD));
     sun.position.copy(sun.target.position).add(SUN);
     eye.rotation.z = clock * 0.1;
-    updatePlane(p);
-    const f = { time: clock, dt, progress: p, active: nearestStop(p, n), bus: busPos };
+    for (const g of rotors) g.rotation.z = -clock * SPIN + g.userData.phase; // clockwise seen from +z
+    updatePlane(t);
+    const f = { time: clock, dt, progress: p, t, active: nearestStop(p, n, marks), bus: busPos };
     onProgress(p);
     for (const u of units) u.update(f);
     people.update(dt, camera.position);

@@ -69,7 +69,7 @@ test('prefs default and survive throwing storage', () => {
   assert.deepEqual(loadPrefs({ getItem: () => 'garbage' }), { lang: 'en', theme: 'day' });
 });
 
-import { routePoints, LANDMARKS, stopIndex, rng, scotRange, STOP_SPACING, GAPS, LONG_GAP } from '../js/world/layout.js';
+import { routePoints, LANDMARKS, stopIndex, rng, scotRange, STOP_SPACING, GAPS, LONG_GAP, OUT_GAP, regions, towerX, glasgowSites, riverEnd } from '../js/world/layout.js';
 import { stops } from '../js/content.js';
 
 test('route has one point per stop, increasing x', () => {
@@ -80,7 +80,7 @@ test('route has one point per stop, increasing x', () => {
   assert.equal(GAPS[0].size, 60);
   assert.equal(stops[GAPS[1].after].id, LANDMARKS.eye); // the long road sits right after the Eye
   const [o, g] = ['olm', 'glasgow'].map((id) => pts[stopIndex(stops, id)].x);
-  assert.equal(g - o, STOP_SPACING + LONG_GAP); // the Eye -> Glasgow trip is the long gap
+  assert.equal(g - o, STOP_SPACING + OUT_GAP); // the Eye -> Glasgow trip is the long out gap
 });
 
 test('every landmark is anchored to an existing stop', () => {
@@ -100,8 +100,19 @@ test('scotRange starts after the OLM stop and ends where the Scottish edge ends 
   assert.ok(at('olm') < a && a < at(LANDMARKS.glasgow));
   assert.ok(at(LANDMARKS.glasgow) < b && b < at('tribal'));
   const pts = routePoints(stops.length), g = pts[stopIndex(stops, 'glasgow')].x, t = pts[stopIndex(stops, 'tribal')].x;
-  assert.equal(t - g, STOP_SPACING + LONG_GAP); // Glasgow -> Tower Bridge is the second long gap
+  assert.equal(t - g, STOP_SPACING + LONG_GAP); // Glasgow -> Tribal is the return gap
   assert.ok(Math.abs(g + (b * (stops.length - 1) - stopIndex(stops, 'glasgow')) * (t - g) - (g + 55)) < 1e-6);
+});
+
+test('Tower Bridge sits after the Eye, before the lower terraces; out-leg countryside is >= 80 m; the river runs past Glasgow', () => {
+  const pts = routePoints(stops.length), [out, back] = regions(stops, pts), e = pts[stopIndex(stops, 'olm')].x, g = pts[stopIndex(stops, 'glasgow')].x, t = pts[stopIndex(stops, 'tribal')].x;
+  assert.ok(e < towerX(stops, pts) && towerX(stops, pts) + 19 < out.sub[0] && out.sub[0] < out.ctry[0]);
+  assert.ok(out.ctry[1] - out.ctry[0] >= 80 && back.ctry[1] - back.ctry[0] >= 80);
+  assert.ok(out.scot[1] - out.scot[0] >= 80 && out.scot[1] < g && back.sub[1] < t);
+  assert.ok(riverEnd(stops, pts) > g + 55 && riverEnd(stops, pts) < t);
+  const { museum, uni } = glasgowSites(stops, pts);
+  for (const s of [museum, uni]) assert.ok(s.x - s.w / 2 > out.scot[0] && s.x + s.w / 2 < g - 20, 'inside the Scottish approach, clear of the square');
+  assert.ok(museum.x + museum.w / 2 < uni.x - uni.w / 2 + 4 && museum.z > uni.z, 'museum first, on the river bank; university behind it');
 });
 
 test('rng is deterministic', () => {
@@ -201,4 +212,11 @@ test('nextTier drops high to medium on low fps and never climbs', () => {
   assert.equal(nextTier('high', []), 'high');
   assert.equal(nextTier('medium', [10]), 'medium');
   assert.equal(nextTier('medium', [120]), 'medium');
+});
+
+test('buildCountry returns 3 turbine hubs per leg', async () => {
+  const { buildCountry, HUB_Y } = await import('../js/world/country.js');
+  const curve = { getPointAt: (t) => ({ x: t * 1000, z: 0 }) }, hubs = buildCountry(() => {}, curve, () => {}, [0, 1000], 0);
+  assert.equal(hubs.length, 3);
+  assert.ok(hubs.every(([, y]) => y === HUB_Y));
 });

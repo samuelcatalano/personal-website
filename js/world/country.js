@@ -11,10 +11,11 @@ function cottage(add, r, x, z, o, big) { // low stone cottage / barn, front face
   add(x - w * 0.12, 0, f + o * 0.08, 1.1, 2, 0.16, P.maroon);
   for (const dx of [-w * 0.34, w * 0.3]) add(x + dx, 1, f + o * 0.08, 1.1, 1, 0.16, P.glass);
 }
+export const HUB_Y = 21.9, HUB_DZ = 1.4; // rotor centre above the tower, in front of the nacelle
 function turbine(add, x, z) {
   add(x, 0, z, 0.9, 22, 0.9, P.white);
   add(x, 21.4, z, 1.5, 1.4, 2.6, P.white);
-  add(x, 17.4, z + 1.4, 0.5, 9, 0.3, P.white); add(x, 21.65, z + 1.4, 9, 0.5, 0.3, P.white);
+  return [x, HUB_Y, z + HUB_DZ]; // blades are separate rotating meshes (scene.js)
 }
 // Open country between the Eye and Glasgow, and again Glasgow -> Tower Bridge (regions()[leg].ctry; leg 1 mirrors the farms/hills/turbines and reseeds): fields + hedgerows, scattered broadleaf, a few cottages, hills and wind turbines far behind.
 // Camera side (+z) stays <= ~4.8 m (hedges 1 m, small trees). ~400 boxes.
@@ -50,5 +51,5 @@ export function buildCountry(add, curve, tree, [c0, c1], leg = 0) {
   [[0.1, -125, 60], [0.45, -128, 80], [0.8, -124, 66]].forEach(([t, z, w]) => {
     [[w, 5, 34], [w * 0.64, 5, 22], [w * 0.32, 4, 12]].reduce((y, [bw, bh, bd], k) => (add(at(t) + k * 3, y, z, bw, bh, bd, k ? P.field2 : P.hill), y + bh), 0);
   });
-  [0.28, 0.5, 0.74].forEach((t) => turbine(add, at(t), -104));
+  return [0.28, 0.5, 0.74].map((t) => turbine(add, at(t), -104)); // hub positions
 }

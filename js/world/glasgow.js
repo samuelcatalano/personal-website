@@ -1,4 +1,7 @@
 import { PALETTE as P } from './palette.js';
+import { rng, stopIndex, LANDMARKS } from './layout.js';
+import { house } from './houses.js';
+import { draw } from './blocks.js';
 
 const CONE_ORANGE = '#f36b21', BRONZE_DK = '#4a3a22';
 
@@ -63,4 +66,28 @@ export function buildGlasgow(add, { x, z: roadZ }) {
   add(x - 0.2, 8.4, sz, 0.9, 0.7, 0.9, CONE_ORANGE);
   add(x - 0.2, 9.1, sz, 0.7, 0.3, 0.7, P.white);
   add(x - 0.2, 9.4, sz, 0.5, 0.6, 0.5, CONE_ORANGE);
+}
+
+// Green, residential Glasgow edges (own rng, nothing else shifts): the approach between the countryside and George Square (low houses and sandstone flats on the near bank, leaving the museum and university sightlines open) and the Scottish edge after the square.
+// [dx from the square, kind (h house, t tenement), setback from the road centre]; the square itself spans dx +-20, so nothing sits there.
+const EDGE = [[-104, 'h', 16], [-93, 't', 27], [-82, 'h', 19], [-71, 't', 25], [-60, 'h', 21], [-49, 't', 28], [-38, 'h', 17], [28, 'h', 17], [39, 't', 26], [49, 'h', 20]];
+export function buildGlasgowEdges(add, stops, pts, curve, tree) {
+  const r = rng(3319), q = rng(4421), g = pts[stopIndex(stops, LANDMARKS.glasgow)].x, path = Array.from({ length: 241 }, (_, i) => curve.getPointAt(i / 240));
+  const zr = (x) => path.reduce((a, p) => Math.abs(p.x - x) < Math.abs(a.x - x) ? p : a).z, taken = [], free = (x, z, d) => taken.every(([a, b, c]) => Math.hypot(a - x, b - z) > d + c);
+  for (const [dx, kind, back] of EDGE) {
+    const x = g + dx + (r() - 0.5) * 2, z = zr(x) - back, w = kind === 'h' ? 8 + r() * 2 : 10, d = kind === 'h' ? 7 + r() * 2 : 9;
+    add(x, 0.02, z + 1, w + 6, 0.05, d + 6, P.patch); // lawn round the building
+    if (kind === 'h') house(add, q, x, z, 1, w, d, 2, 3.1, back > 20);
+    else draw(add, x, z, [w, d, 2 + (r() < 0.4), 3.4, r() < 0.7 ? P.redSand : P.sandstone, P.white, 0, 1], r, q, false, false);
+    taken.push([x, z, w / 2 + 2.5]);
+  }
+  for (let i = 0; i < 46; i++) { // trees: near-bank strip and a few on the camera side (low, <= 4.8 m)
+    const x = g + (i % 2 ? 22 + r() * 32 : -108 + r() * 82), north = i % 3 < 2, z = zr(x) + (north ? -(11 + r() * 16) : 11 + r() * 2), h = north ? 2.8 + r() * 1.2 : 2.6 + r() * 0.7, crown = 1.8 + r() * 0.8;
+    if (Math.abs(x - g) > 21 || !north ? free(x, z, 2) : false) { tree(add, x, z, { h, crown }); taken.push([x, z, 1.5]); }
+  }
+  for (const dx of [-100, -86, -72, -58, -44, -30, 26, 40, 52]) { // lamps on the near-bank path and benches facing the road
+    const x = g + dx, z = zr(x) - 10.5;
+    add(x, 0, z, 0.16, 3, 0.16, P.roof); add(x, 3, z, 0.7, 0.2, 0.7, P.lit);
+    if (dx % 4 === 0) { add(x + 3, 0.45, z, 1.6, 0.1, 0.45, P.oak); add(x + 3, 0.55, z - 0.2, 1.6, 0.38, 0.08, P.oak); }
+  }
 }

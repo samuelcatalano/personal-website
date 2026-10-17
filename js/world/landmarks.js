@@ -1,9 +1,11 @@
 import * as THREE from 'three';
 import { createBoxes, buildMeshes } from './voxel.js';
-import { LANDMARKS, stopIndex, RIVER_Z } from './layout.js';
+import { LANDMARKS, stopIndex, RIVER_Z, towerX, glasgowSites } from './layout.js';
 import { PALETTE as P } from './palette.js';
 import { buildSaoPaulo } from './saopaulo.js';
 import { buildGlasgow } from './glasgow.js';
+import { buildRiverside } from './riverside.js';
+import { buildUniversity } from './university.js';
 const STONE = P.sand, SLATE = P.slate, WHITE = P.white, GOLD = P.gilt, STEEL = P.steel;
 const m = new THREE.Matrix4(), p = new THREE.Vector3(), q = new THREE.Quaternion(), s = new THREE.Vector3(1, 1, 1), UP = new THREE.Vector3(0, 1, 0);
 const PI = Math.PI, at = (stops, pts, key) => pts[stopIndex(stops, LANDMARKS[key])];
@@ -171,9 +173,13 @@ export function buildLandmarks(add, stops, pts) {
   heathrow(add, at(stops, pts, 'heathrow'));
   const details = new THREE.Group(); details.name = 'landmark-details';
   details.add(bigBen(add, at(stops, pts, 'bigben')));
-  details.add(towerBridge(add, at(stops, pts, 'towerbridge')));
+  details.add(towerBridge(add, { x: towerX(stops, pts) }));
   wembley(add, at(stops, pts, 'wembley'));
   buildGlasgow(add, at(stops, pts, 'glasgow'));
+  const { museum, uni } = glasgowSites(stops, pts), hill = (dx, w, d, y, h, c) => add(uni.x + dx, y, uni.z, w, h, d, c);
+  buildRiverside(add, museum);
+  hill(0, 56, 30, 0, 1.2, P.grass); hill(0, 50, 24, 1.2, 1.3, P.patch); // green terrace the university stands on
+  buildUniversity((x, y, z, w, h, d, c) => add(x, y + uni.lift, z, w, h, d, c), uni);
   buildSaoPaulo(add, stops, pts);
   const i = stopIndex(stops, LANDMARKS.heathrow);
   return {

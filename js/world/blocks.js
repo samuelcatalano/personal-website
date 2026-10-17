@@ -1,4 +1,4 @@
-import { rng, stopIndex, riverStart, riverEnd, copan, regions, inRegion, LANDMARKS as L } from './layout.js';
+import { rng, stopIndex, riverStart, riverEnd, copan, regions, inRegion, glasgowSites, LANDMARKS as L } from './layout.js';
 import { house } from './houses.js';
 import { PALETTE as P } from './palette.js';
 const { concrete: C, cream: CR, white: W, stone: S, sandstone: SS, brick: B, glass: G, terracotta: TC, ochre: OC, mint: MN, salmon: SA, skyBlue: SB, offWhite: OW, concreteDark: CD, concreteMid: CM, redBrown: RB, londonStock: LS, teal: TL, bronze: BZ } = P, AWN = [P.red, P.slate, P.sand];
@@ -12,7 +12,7 @@ const ROWS = [
   [1, 29, [1, 0, 1], [4]], [1, 43, [0, 1, 0], [4]], [-1, 29, [1, 2, 2, 3, 0], [4, 5, 5]], [-1, 43, [0, 2, 3, 2], [4, 5, 6]],
   [0, -80, [0, 2, 3, 2], [4, 5, 6]], [0, -93, [3, 2, 3, 3], [6, 6, 5, 6]],
 ];
-function draw(add, x, z, [w0, d, n, fh, wall, trim, kind, u], r, q, near, civic) {
+export function draw(add, x, z, [w0, d, n, fh, wall, trim, kind, u], r, q, near, civic) {
   const floors = civic ? Math.min(n, Math.floor(16 / fh)) : n;
   const w = w0 * u, h = floors * fh, zf = z + d / 2, nb = Math.round(w / 3.4), pw = w / nb, left = x - w / 2;
   if (kind > 2) { // London terrace: one townhouse per unit; r() drawn as before so later placements stay put
@@ -36,13 +36,14 @@ function draw(add, x, z, [w0, d, n, fh, wall, trim, kind, u], r, q, near, civic)
 }
 // Back rows + skyline. Skips `hard` (river, landmarks + 6 m, plaza), `occ` (houses), 26 m of road; near side and Sé/MASP flanks <= 12 m.
 export function buildBlocks(add, stops, pts, curve, occ) {
-  const r = rng(7311), q = rng(5521), cp = copan(stops, pts), gl = pts[stopIndex(stops, L.glasgow)], rgs = regions(stops, pts), X = (k) => pts[stopIndex(stops, L[k])].x, mv = X('heathrow') - 15, lz = pts[pts.length - 1].z;
+  const r = rng(7311), q = rng(5521), { museum: mu, uni } = glasgowSites(stops, pts), site = (o, m) => [o.x - o.w / 2 - m, o.x + o.w / 2 + m, o.z - o.d / 2 - m, o.z + o.d / 2 + m], cp = copan(stops, pts), gl = pts[stopIndex(stops, L.glasgow)], rgs = regions(stops, pts), X = (k) => pts[stopIndex(stops, L[k])].x, mv = X('heathrow') - 15, lz = pts[pts.length - 1].z;
   const H = (k, a, b, z0, z1) => [X(k) - a, X(k) + b, z0, z1], path = Array.from({ length: 241 }, (_, i) => curve.getPointAt(i / 240));
   const zAt = (x) => path.reduce((a, p) => Math.abs(p.x - x) < Math.abs(a.x - x) ? p : a).z;
   const hard = [
     [riverStart(stops, pts) - 6, riverEnd(stops, pts) + 6, -64, -26], H('masp', 26, 26, -76, -50), H('se', 24, 24, -77, -49), H('estaiada', 16, 16, -80, -12),
     H('heathrow', 18, 18, -38, -14), H('bigben', 10, 43, -76, -48), H('wembley', 30, 30, -92, -50), H('wembley', 14, 14, lz + 10, lz + 45),
-    [gl.x - 20, gl.x + 20, gl.z - 43, gl.z - 17], ...rgs.map((rg) => [rg.ctry[0], rg.ctry[1], -400, 400]), // countryside: country.js owns it
+    [gl.x - 20, gl.x + 20, gl.z - 43, gl.z - 17], site(mu, 5), site({ ...uni, w: 56, d: 30 }, 4), // museum + university with its hill
+ ...rgs.map((rg) => [rg.ctry[0], rg.ctry[1], -400, 400]), // countryside: country.js owns it
     ...pts.slice(0, 6).map((p) => [p.x - 16, p.x + 16, -80, -58]),
   ];
   // Reserved after the fact: blocks that would land here still draw r() but add nothing, so every other block keeps its place.

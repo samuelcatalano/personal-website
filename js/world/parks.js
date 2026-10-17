@@ -4,7 +4,7 @@ import { PALETTE as P } from './palette.js';
 import { tree, CLEAR } from './city.js'; // ponytail: import cycle is fine, both are function declarations used after load
 // Parks on the big bare paving. Rects were found with an occupancy grid of city + landmarks (tests/parks.test.mjs re-checks the plaza loops);
 // x/z are world metres. Axis u = longer side. uk: black railings + K6-free London look; pond/fountain: centre piece.
-export const PARKS = [ // stops after the Eye sit 180 m further east (LONG_GAP): the last four parks were moved with them, +180 again for the return gap after Glasgow
+export const PARKS = [ // stops after the Eye sit further east (OUT_GAP + LONG_GAP): the last four parks moved with them
   { x0: -235, x1: -165, z0: -27, z1: -15, fountain: 1, trees: 7 }, // Sé side
   { x0: -293, x1: -273, z0: -24, z1: 24, fountain: 1, trees: 7 }, // behind the start
   { x0: -197, x1: -165, z0: -57, z1: -47, trees: 5 },
@@ -13,10 +13,10 @@ export const PARKS = [ // stops after the Eye sit 180 m further east (LONG_GAP):
   { x0: -103, x1: -62, z0: -69, z1: -63, trees: 4 }, // behind the Copan
   { x0: -27, x1: -3, z0: 21, z1: 27, trees: 3 },
   { x0: 5, x1: 57, z0: 21, z1: 27, uk: 1, rail: 1, trees: 5 },
-  { x0: 561, x1: 597, z0: -29, z1: -21, uk: 1, rail: 1, trees: 4 },
-  { x0: 561, x1: 641, z0: -69, z1: -61, uk: 1, rail: 1, trees: 6 },
-  { x0: 611, x1: 687, z0: -43, z1: -35, uk: 1, rail: 1, trees: 6 }, // in front of Wembley: trees stay <= 4.4 m
-  { x0: 697, x1: 721, z0: -12, z1: 24, uk: 1, rail: 1, pond: 1, trees: 7 },
+  { x0: 681, x1: 717, z0: -29, z1: -21, uk: 1, rail: 1, trees: 4 },
+  { x0: 681, x1: 761, z0: -69, z1: -61, uk: 1, rail: 1, trees: 6 },
+  { x0: 731, x1: 807, z0: -43, z1: -35, uk: 1, rail: 1, trees: 6 }, // in front of Wembley: trees stay <= 4.4 m
+  { x0: 817, x1: 841, z0: -12, z1: 24, uk: 1, rail: 1, pond: 1, trees: 7 },
 ];
 // The 4 pedestrian loops (crowd.js walkPaths) become parks: gravel ring over the walking inset, everything else >= 2.4 m inside the rect.
 export const WALK_INSET = [0.6, 1.6]; // ponytail: mirrors crowd.js between(r, 0.6, 1.6) / people.js INSET; keep in sync

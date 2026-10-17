@@ -3,7 +3,6 @@ import { createBoxes, buildMeshes } from './voxel.js';
 import { buildBus, car } from './bus.js';
 import { RIVER_Z, LANDMARKS, stopIndex, swapAt, scotRange, riverEnd, riverStart } from './layout.js';
 import { addBeams } from './beams.js';
-import { routeT } from '../scroll.js';
 function cab(c, sx = 1) {
   const m = c ? car({ L: 4.4, W: 1.8, c, hl: 1, bl: 0.8, ch: 0.62 }) : car({ L: 4.4, W: 1.8, c: '#16181c', hl: 0.8, bl: 0.5, ch: 0.85, taxi: 1 }); // no colour = black cab
   m.scale.x = sx;
@@ -52,8 +51,7 @@ export function createAmbient(scene, { curve, pts, stops }) {
   scene.add(blink);
   const nrm = new THREE.Vector3(), swap = swapAt(stops), [scotIn, scotOut] = scotRange(stops);
   return {
-    update({ time, progress }) {
-      const route = routeT(progress, stops.length);
+    update({ time, t: route }) {
       for (const v of traffic) {
         let t = v.relative ? route + v.offset : ((v.offset - time * 0.012) % 1 + 1) % 1;
         v.mesh.visible = t >= 0 && t <= 1 && (v.uk === undefined || (t >= swap) === v.uk);

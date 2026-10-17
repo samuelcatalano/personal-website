@@ -1,10 +1,11 @@
-import { furnitureSpots, GAPS, GAP_TOTAL, STOP_SPACING, RIVER_Z, LANDMARKS, rng, riverEnd, riverStart, stopIndex, regions, inRegion } from './layout.js';
+import { furnitureSpots, GAPS, GAP_TOTAL, STOP_SPACING, RIVER_Z, LANDMARKS, rng, riverEnd, riverStart, stopIndex, regions, inRegion, towerX } from './layout.js';
 import { house } from './houses.js';
 import { phoneBox } from './phone.js';
 import { PALETTE as P } from './palette.js';
 import { buildBlocks } from './blocks.js';
 import { buildParks } from './parks.js';
 import { buildCountry } from './country.js';
+import { buildGlasgowEdges } from './glasgow.js';
 const PATCH = P.patch, ROAD = P.road, LINE = P.cream;
 const BANK = P.taupe, PATH = P.stone, CREAM = P.cream;
 const UK_WALLS = [CREAM, '#d8d0c2', P.stone, P.terracotta, P.ochre, P.mint, P.salmon, P.skyBlue, P.offWhite];
@@ -105,9 +106,9 @@ export function buildCity(add, stops, pts, curve) {
     }
   }
   // Frontage sites: every stop plus filler sites (same 30 m rhythm) along the gaps; the long gap only keeps the suburban ones (country.js takes over)
-  const filler = GAPS.flatMap((g, gi) => Array.from({ length: g.size < 100 ? g.size / STOP_SPACING - 1 : g.size / STOP_SPACING }, (_, k) => k + 1).map((k) => ({ g, k, x: pts[g.after].x + k * STOP_SPACING, rg: rgs[gi - 1] })).filter(({ g, x, rg }) => g.size < 100 || x >= rg.sub[0] - 10 && x <= rg.sub[1] + 10).map(({ g, x, rg }) => {
+  const filler = GAPS.flatMap((g, gi) => Array.from({ length: g.size < 100 ? g.size / STOP_SPACING - 1 : g.size / STOP_SPACING }, (_, k) => k + 1).map((k) => ({ g, k, x: pts[g.after].x + k * STOP_SPACING, rg: rgs[gi - 1] })).filter(({ g, x, rg }) => g.size < 100 || (gi === 1 ? x <= rg.sub[1] + 10 : x >= rg.sub[0] - 10)).map(({ g, x, rg }) => { // out leg: London from the Eye to the sub edge; return leg: sub edge to Tribal
     const q = curve.getPointAt(ticks(0.7).reduce((a, u) => Math.abs(curve.getPointAt(u).x - x) < Math.abs(curve.getPointAt(a).x - x) ? u : a, 0));
-    return { p: { x, z: q.z }, i: g.after, filler: true, sparse: !!rg && (x < rg.sub[0] || x >= rg.sub[1]) };
+    return { p: { x, z: q.z }, i: g.after, filler: true, sparse: !!rg && (g.after === 10 ? x >= rg.sub[1] : x < rg.sub[0]) };
   }));
   [...pts.map((p, i) => ({ p, i })), ...filler].forEach(({ p, i, filler, sparse }) => {
     const br = stops[i].country === 'BR' && i >= 2;
@@ -118,8 +119,8 @@ export function buildCity(add, stops, pts, curve) {
         if (side === 1 && stops[i].id === 'contact' && dx === 0) continue;
         const hz = p.z + side * (side === 1 ? 21 : 17);
         // MASP and Glasgow need clear far-side sightlines; townhouse still runs on a no-op so r() stays aligned.
-        const glasgowSquare = side === -1 && Math.abs(p.x + dx - gl.x) < 25 && hz + 4.5 > gl.z - 43 && hz - 4.5 < gl.z - 17;
-        const show = !(side === -1 && (Math.abs(p.x + dx - mx) < 29.5 || glasgowSquare)) && !(side === 1 && Math.abs(p.x + dx - pts[pts.length - 1].x) < 35);
+        const glasgowSquare = side === -1 && Math.abs(p.x + dx - gl.x) < 25 && hz + 4.5 > gl.z - 43 && hz - 4.5 < gl.z - 17, tower = side === -1 && Math.abs(p.x + dx - towerX(stops, pts) + 3) < 33; // the Tower Bridge promenade loop
+        const show = !tower && !(side === -1 && (Math.abs(p.x + dx - mx) < 29.5 || glasgowSquare)) && !(side === 1 && Math.abs(p.x + dx - pts[pts.length - 1].x) < 35);
         const uk = stops[i].country === 'UK';
         townhouse(show && !uk ? add : noop, p.x + dx, hz, side, br, r, i >= 2);
         if (show && uk) house(add, hq, p.x + dx, hz, -side, 9, 7, side === 1 ? 2 : 3 + (hq() < 0.4), 3.1, side === 1);
@@ -141,7 +142,9 @@ export function buildCity(add, stops, pts, curve) {
     phoneBox(add, x, z);
     kiosks.push([x, z]);
   }
-  rgs.forEach((rg, leg) => buildCountry(add, curve, tree, rg.ctry, leg));
+  const rotors = rgs.flatMap((rg, leg) => buildCountry(add, curve, tree, rg.ctry, leg));
+  buildGlasgowEdges(add, stops, pts, curve, tree);
   buildBlocks(add, stops, pts, curve, occ);
   buildParks(add, stops, pts, curve, occ); // after the blocks: own rng, reads the free plazas, never shifts a block
+  return { rotors }; // turbine hub positions [x, y, z]
 }

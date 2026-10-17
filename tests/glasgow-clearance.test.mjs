@@ -3,7 +3,7 @@ import test from 'node:test';
 import { stops } from '../js/content.js';
 import { buildCity } from '../js/world/city.js';
 import { buildBlocks } from '../js/world/blocks.js';
-import { routePoints, stopIndex, regions } from '../js/world/layout.js';
+import { routePoints, stopIndex, regions, glasgowSites } from '../js/world/layout.js';
 
 const pts = routePoints(stops.length);
 const curve = {
@@ -32,4 +32,10 @@ test('the civic skyline stays below landmark silhouettes on the London stretch a
   assert.ok(backdrop.every((b) => b.y + b.h <= 16.4), 'background roofs stay below the 18m Eye hub');
   assert.equal(boxes.filter((b) => [out, back].some((rg) => b.x > rg.ctry[0] && b.x < rg.ctry[1])).length, 0, 'no city blocks in the countryside');
   assert.ok(boxes.some((b) => (b.x < west || b.x > east) && b.h > 30), 'other skyline districts retain their towers');
+});
+
+test('no generic block overlaps the museum or the university hill', () => {
+  const boxes = [], { museum, uni } = glasgowSites(stops, pts);
+  buildBlocks((x, y, z, w, h, d) => boxes.push({ x, y, z, w, h, d }), stops, pts, curve, []);
+  for (const s of [museum, { ...uni, w: 56, d: 30 }]) assert.equal(boxes.filter((b) => b.x - b.w / 2 < s.x + s.w / 2 && b.x + b.w / 2 > s.x - s.w / 2 && b.z - b.d / 2 < s.z + s.d / 2 && b.z + b.d / 2 > s.z - s.d / 2).length, 0);
 });
