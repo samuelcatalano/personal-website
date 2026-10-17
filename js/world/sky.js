@@ -118,7 +118,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
       hemi.intensity = DAY.hemi + (NIGHT.hemi - DAY.hemi) * night;
       stars.material.opacity = Math.max(0, night * 1.4 - 0.4);
       stars.visible = night > 0.3;
-      for (const m of glow) m.emissive.copy(m.color).multiplyScalar(night * (m.userData.glowK ?? 2.2)); // each light glows in its own colour, bright enough to bloom
+      for (const m of glow) m.emissive.copy(m.userData.glowColor ?? m.color).multiplyScalar(night * (m.userData.glowK ?? 2.2)); // each light glows in its own colour, bright enough to bloom
     },
   };
 }

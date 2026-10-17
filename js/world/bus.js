@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { createBoxes, buildMeshes } from './voxel.js';
 const RED = '#c9252b', GLASS = '#a9c5d3', FRAME = '#8f171d', TYRE = '#242629', HUB = '#a9a49a';
-const GLOW = '#fff0b5', CREAM = '#e6dcc4', WHITE = '#f4f1ea', CHROME = '#c9c9c9', GILT = '#b39a64', PLATE_Y = '#f2c230';
+const WARM = new THREE.Color('#ffc865'), GLOW = '#fff0b5', CREAM = '#e6dcc4', WHITE = '#f4f1ea', CHROME = '#c9c9c9', GILT = '#b39a64', PLATE_Y = '#f2c230';
 const addWheels = (group, geometry, color, positions) => {
   const mesh = new THREE.InstancedMesh(geometry, new THREE.MeshLambertMaterial({ color }), positions.length);
   positions.forEach(([x, y, z], i) => mesh.setMatrixAt(i, new THREE.Matrix4().makeTranslation(x, y, z)));
@@ -193,7 +193,9 @@ export function buildBus() {
   rear(GLASS, 5.52, 0.016, 3.14, 3.86, -0.8, 0.8);
   add(0, 4.6, 0, 9.6, 0.06, 2.0, RED); add(0, 4.66, 0, 8.0, 0.04, 1.2, RED); // stepped roof
   add(0, 0.36, 0, 10.35, 0.12, 2.43, FRAME);                         // skirt
-  bus.add(buildMeshes(list, { glow: [GLOW] }));
+  const body = buildMeshes(list, { glow: [GLOW, GLASS], glowK: { [GLASS]: 0.18 } }); // windows: warm cabin light at night
+  body.traverse((o) => { if (o.material?.color?.getHexString() === GLASS.slice(1)) o.material.userData.glowColor = WARM; });
+  bus.add(body);
   const wheels = [-3.75, 3.75].flatMap((x) => [-1.18, 1.18].map((z) => [x, 0.55, z]));
   addWheels(bus, new THREE.CylinderGeometry(0.55, 0.55, 0.22, 20).rotateX(Math.PI / 2), TYRE, wheels);
   addWheels(bus, new THREE.CylinderGeometry(0.22, 0.22, 0.04, 16).rotateX(Math.PI / 2), HUB, wheels.map(([x, y, z]) => [x, y, Math.sign(z) * 1.29]));
