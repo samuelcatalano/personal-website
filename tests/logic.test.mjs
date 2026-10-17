@@ -220,3 +220,13 @@ test('buildCountry returns 3 turbine hubs per leg', async () => {
   assert.equal(hubs.length, 3);
   assert.ok(hubs.every(([, y]) => y === HUB_Y));
 });
+
+test('outskirts: each former-countryside stretch is built up with houses, and nothing sits on the road band', async () => {
+  const { buildCountry } = await import('../js/world/country.js'), { tree } = await import('../js/world/city.js');
+  for (const leg of [0, 1]) {
+    const boxes = [], curve = { getPointAt: (t) => ({ x: t * 100, z: 10 }) };
+    buildCountry((x, y, z, w, h, d) => boxes.push({ x, y, z, w, h, d }), curve, tree, [0, 100], leg);
+    assert.ok(boxes.filter((b) => b.w >= 6 && b.h >= 5 && b.y === 0 && b.z > -100).length >= 12, 'house bodies');
+    assert.equal(boxes.filter((b) => b.y + b.h > 0.1 && Math.abs(b.z - 10) < b.d / 2 + 4.25).length, 0, 'road band is clear');
+  }
+});

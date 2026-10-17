@@ -10,7 +10,7 @@ test('Glasgow builds George Square on the far side of its road anchor', () => {
   const boxes = [];
   buildGlasgow((x, y, z, w, h, d, color) => boxes.push({ x, y, z, w, h, d, color }), { x: 100, z: 20 });
 
-  assert.ok(boxes.length >= 35 && boxes.length <= 80, 'keeps the landmark batch modest');
+  assert.ok(boxes.length >= 35 && boxes.length <= 120, 'keeps the landmark batch modest');
   assert.ok(boxes.some((b) => b.color === P.gravel && b.y > 0 && near(b.x, 100) && near(b.z, -8) && b.w >= 34 && b.d >= 20), 'George Square paving clears the city ground across the road');
   assert.ok(boxes.some((b) => b.color === P.sandstone && near(b.x, 100) && near(b.z, -21) && b.w >= 28 && b.h >= 8), 'City Chambers closes the far side of the square');
   assert.ok(boxes.some((b) => b.color === P.gilt && near(b.x, 100) && near(b.z, -21) && b.y >= 12), 'City Chambers has a raised central dome');

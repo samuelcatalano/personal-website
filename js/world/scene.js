@@ -49,7 +49,10 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const [SCOT_IN, SCOT_OUT] = scotRange(stops);
   let scot = false;
   addBeams(mini, 1.72, 0.55); addBeams(routemaster, 5.46, 0.8);
-  scene.add(buildMeshes(list, { glow: [P.lit, '#ffd86b', '#fff7c2', P.arch], glowK: { [P.arch]: 1.1 } }), eye, details, plane, bus, ...rotors);
+  const WIN_L = '#2b2621', RG = '#27394b', RB = '#c9ccd1'; // Glasgow Uni windows, Riverside glass + band
+  const world = buildMeshes(list, { glow: [P.lit, '#ffd86b', '#fff7c2', P.arch, WIN_L, RG, RB], glowK: { [P.arch]: 1.1, [WIN_L]: 1.0, [RG]: 0.55, [RB]: 0.2 } });
+  world.traverse((o) => { const h = o.material?.color?.getHexString(); if (o.material?.userData.glow) { if (h === WIN_L.slice(1)) o.material.userData.glowColor = new THREE.Color('#ffb04a'); if (h === RG.slice(1)) o.material.userData.glowColor = new THREE.Color('#d8e86a'); if (h === RB.slice(1)) o.material.userData.glowColor = new THREE.Color('#bcd4ff'); } });
+  scene.add(world, eye, details, plane, bus, ...rotors);
   const units = [createAmbient(scene, { curve, pts, stops })];
   const people = createPeople(scene, { curve, pts, stops, reducedMotion });
   const water = createWater({ x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z: RIVER_Z, width: 22 });

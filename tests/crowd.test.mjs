@@ -43,7 +43,8 @@ test('plaza loops stay 5.6 m clear of the road', () => {
   const loops = walkPaths(stops, pts).filter((p) => p.type === 'loop'), line = [];
   for (let i = 1; i < pts.length; i++) for (let k = 0; k < 60; k++) line.push({ x: pts[i - 1].x + (pts[i].x - pts[i - 1].x) * k / 60, z: pts[i - 1].z + (pts[i].z - pts[i - 1].z) * k / 60 });
   line.push(pts[pts.length - 1]);
-  assert.equal(loops.length, 5);
+  assert.equal(loops.length, 6);
+  assert.ok(loops.some((l) => l.name === 'glasgow-uni'));
   for (const { rect: q } of loops) {
     assert.ok(q.x0 < q.x1 && q.z0 < q.z1);
     const d = Math.min(...line.map((p) => Math.hypot(p.x - Math.max(q.x0, Math.min(p.x, q.x1)), p.z - Math.max(q.z0, Math.min(p.z, q.z1)))));

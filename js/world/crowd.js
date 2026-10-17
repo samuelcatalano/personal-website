@@ -1,4 +1,4 @@
-import { rng, stopIndex, towerX, copan, RIVER_Z, LANDMARKS as L } from './layout.js';
+import { rng, stopIndex, towerX, copan, glasgowSites, RIVER_Z, LANDMARKS as L } from './layout.js';
 // Pure data (no three): people looks and where they walk. Rendering lives in people.js / sprites.js.
 export const SKIN = ['#f6d9c4', '#efc3a0', '#d9a579', '#b9824f', '#8a5a35', '#5e3a22', '#3d2517'];
 const HAIR = ['#1b1714', '#3a2415', '#6b4328', '#d9b86a'], GREY = '#b5b5b0';
@@ -25,6 +25,7 @@ const LANES = [[5.95, 1], [8.25, -1], [-5.95, -1], [-8.25, 1]];
 // Plaza rectangles (world x/z), checked free of boxes with a three stub; z is relative to the river line the landmarks hang on.
 export function walkPaths(stops, pts) {
   const X = (k) => pts[stopIndex(stops, L[k])].x, cp = copan(stops, pts), wx = pts[pts.length - 1].x;
+  const { museum, uni } = glasgowSites(stops, pts);
   const rect = (x0, x1, z0, z1) => ({ x0, x1, z0: RIVER_Z + z0, z1: RIVER_Z + z1 });
   return [
     ...LANES.map(([offset, dir]) => ({ type: 'lane', offset, dir })),
@@ -33,6 +34,7 @@ export function walkPaths(stops, pts) {
     { type: 'loop', name: 'thames', rect: rect(X('bigben') - 10, X('eye') + 25, 19, 31) }, // ponytail: starts at xdesign; Heathrow and Millimetric houses block 'move'; ends before the countryside
     { type: 'loop', name: 'tower', rect: rect(towerX(stops, pts) - 30, towerX(stops, pts) + 24, 19, 31) }, // Tower Bridge promenade, starts after the thames loop
     { type: 'loop', name: 'wembley', rect: rect(wx + 14, wx + 40, 19, 28) }, // beside the figure; the front of the stadium is walled by blocks
+    { type: 'loop', name: 'glasgow-uni', rect: rect(museum.x + museum.w / 2 + 2, uni.x + 30, -27, -13) }, // far-bank promenade in front of the university, from the museum's east edge; water is north of z -11, hill front at z -28
   ];
 }
 export function crowdPlan(stops, pts, seed, count = 600) {

@@ -27,6 +27,7 @@ export const PLAZAS = [
   { name: 'thames', trees: 4, fountain: 1, nopath: 1 },
   { name: 'tower', trees: 3, beds: 1, nopath: 1 },
   { name: 'wembley', trees: 2, beds: 1 },
+  { name: 'glasgow-uni', trees: 0, quiet: 1, nopath: 1, paved: 1 }, // far-bank promenade: paved, not a lawn; keeps the gravel ring
 ];
 const { patch: LAWN, gravel: GRAVEL, hedge: HEDGE, leaf: LEAF, stone: STONE, oak: OAK, iron: IRON, glass: WATER, dirt: SOIL, roof: POLE, lit: LIT } = P;
 const BLOOM = [P.red, P.tulip, P.violet, P.red];
@@ -43,7 +44,7 @@ export function buildParks(add, stops, pts, curve, occ) {
     const world = (u, v) => (wide ? [cx + u, cz + v] : [cx + v, cz + u]);
     const clearOfSigns = (u, v) => { const [x, z] = world(u, v); return spots.every(([a, b]) => Math.hypot(a - x, b - z) > CLEAR); };
     const mainPath = !park.nopath && S >= 6, cross = mainPath && S >= 10 && L >= 16, plaza = park.fountain || park.pond, taken = [];
-    B(0, 0, 0.02, L, 0.05, S, LAWN);
+    B(0, 0, 0.02, L, 0.05, S, park.paved ? P.pave : LAWN);
     if (ring) { // gravel ring over inset 0.3..1.9 of the loop rect
       const [a, b] = RING, w = b - a, W = orig.x1 - orig.x0, D = orig.z1 - orig.z0, m = (a + b) / 2;
       for (const f of [-1, 1]) {

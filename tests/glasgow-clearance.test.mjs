@@ -4,6 +4,7 @@ import { stops } from '../js/content.js';
 import { buildCity } from '../js/world/city.js';
 import { buildBlocks } from '../js/world/blocks.js';
 import { routePoints, stopIndex, regions, glasgowSites } from '../js/world/layout.js';
+import { PALETTE as P } from '../js/world/palette.js';
 
 const pts = routePoints(stops.length);
 const curve = {
@@ -38,4 +39,11 @@ test('no generic block overlaps the museum or the university hill', () => {
   const boxes = [], { museum, uni } = glasgowSites(stops, pts);
   buildBlocks((x, y, z, w, h, d) => boxes.push({ x, y, z, w, h, d }), stops, pts, curve, []);
   for (const s of [museum, { ...uni, w: 56, d: 30 }]) assert.equal(boxes.filter((b) => b.x - b.w / 2 < s.x + s.w / 2 && b.x + b.w / 2 > s.x - s.w / 2 && b.z - b.d / 2 < s.z + s.d / 2 && b.z + b.d / 2 > s.z - s.d / 2).length, 0);
+});
+
+test('nothing tall sits behind the Riverside Museum (countryside hills and the University plinth excepted)', () => {
+  const boxes = [], { museum, uni } = glasgowSites(stops, pts), green = [P.hill, P.field, P.field2];
+  buildCity((x, y, z, w, h, d, c) => boxes.push({ x, y, z, w, h, d, c }), stops, pts, curve);
+  const behind = boxes.filter((b) => b.h > 1 && !green.includes(b.c) && b.x - b.w / 2 < museum.x + museum.w / 2 && b.x + b.w / 2 > museum.x - museum.w / 2 && b.z < museum.z - 8 && !(Math.abs(b.x - uni.x) < 28 && Math.abs(b.z - uni.z) < 15));
+  assert.deepEqual(behind.map(({ x, z, h }) => ({ x: +x.toFixed(1), z: +z.toFixed(1), h })), []);
 });

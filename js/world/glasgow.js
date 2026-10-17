@@ -2,6 +2,7 @@ import { PALETTE as P } from './palette.js';
 import { rng, stopIndex, LANDMARKS } from './layout.js';
 import { house } from './houses.js';
 import { draw } from './blocks.js';
+import { flag } from './flags.js';
 
 const CONE_ORANGE = '#f36b21', BRONZE_DK = '#4a3a22';
 
@@ -34,6 +35,7 @@ export function buildGlasgow(add, { x, z: roadZ }) {
   add(x, 13, chambersZ, 6, 1.2, 4.5, P.sandstone);
   add(x, 14.2, chambersZ, 4, 1, 3.5, P.gilt);
   add(x, 15.2, chambersZ, 1.3, 2.5, 1.3, P.sandstone);
+  flag(add, x, 17.7, chambersZ, 'saltire');
 
   // Duke of Wellington: stepped plinth, horse facing +x, rider; cone is the Glasgow in-joke.
   const sz = roadZ - 20;

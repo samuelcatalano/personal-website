@@ -1,4 +1,4 @@
-import { furnitureSpots, GAPS, GAP_TOTAL, STOP_SPACING, RIVER_Z, LANDMARKS, rng, riverEnd, riverStart, stopIndex, regions, inRegion, towerX } from './layout.js';
+import { furnitureSpots, GAPS, GAP_TOTAL, STOP_SPACING, RIVER_Z, LANDMARKS, rng, riverEnd, riverStart, stopIndex, regions, towerX } from './layout.js';
 import { house } from './houses.js';
 import { phoneBox } from './phone.js';
 import { PALETTE as P } from './palette.js';
@@ -63,7 +63,7 @@ export function buildCity(add, stops, pts, curve) {
   const spots = furnitureSpots(stops, curve).map((o) => o.xz);
   const free = (x, z) => spots.every(([a, b]) => Math.hypot(a - x, b - z) > CLEAR); // ponytail: skip, not shift
   const occ = [], obst = [], r = rng(2026), hq = rng(8821), noop = () => {}, mx = pts[stopIndex(stops, LANDMARKS.masp)].x, gl = pts[stopIndex(stops, LANDMARKS.glasgow)], LM = new Set(Object.values(LANDMARKS));
-  const span = pts.length * STOP_SPACING + GAP_TOTAL + 120, rgs = regions(stops, pts), inCtry = (x) => inRegion(rgs, 'ctry', x, 4);
+  const span = pts.length * STOP_SPACING + GAP_TOTAL + 120, rgs = regions(stops, pts);
   add(GAP_TOTAL / 2, -1, 0, span, 1, 200, P.pave);
   // Samples along the curve every ~`step` m (curve param is per stop, so count follows each segment's length)
   const ticks = (step) => [...pts.slice(1).flatMap((q, s) => {
@@ -86,7 +86,7 @@ export function buildCity(add, stops, pts, curve) {
     const nx = -t.z, nz = t.x;
     add(p.x, -0.18, p.z, 8.5, 0.25, 8.5, ROAD);
     if (i % 6 === 0) add(p.x, 0.05, p.z, 1.2, 0.03, 0.3, LINE);
-    if (i % 16 === 8 && !inCtry(p.x)) {
+    if (i % 16 === 8) {
       for (const side of [-1, 1]) {
         const x = p.x + nx * side * 9.4, z = p.z + nz * side * 9.4;
         if (!free(x, z)) continue;
@@ -99,13 +99,12 @@ export function buildCity(add, stops, pts, curve) {
   for (const u of ticks(0.7)) {
     const p = curve.getPointAt(u), t = curve.getTangentAt(u);
     const nx = -t.z, nz = t.x;
-    if (inCtry(p.x)) continue; // country verge: fields run up to the tarmac
     for (const side of [-1, 1]) {
       add(p.x + nx * side * 4.55, 0.07, p.z + nz * side * 4.55, 1.5, 0.1, 1.5, BANK);
       add(p.x + nx * side * 7.1, -0.02, p.z + nz * side * 7.1, 3.3, 0.12, 3.3, PATH);
     }
   }
-  // Frontage sites: every stop plus filler sites (same 30 m rhythm) along the gaps; the long gap only keeps the suburban ones (country.js takes over)
+  // Frontage sites: every stop plus filler sites (same 30 m rhythm) along the gaps; the long gaps only keep the London ones (country.js builds the outskirts between)
   const filler = GAPS.flatMap((g, gi) => Array.from({ length: g.size < 100 ? g.size / STOP_SPACING - 1 : g.size / STOP_SPACING }, (_, k) => k + 1).map((k) => ({ g, k, x: pts[g.after].x + k * STOP_SPACING, rg: rgs[gi - 1] })).filter(({ g, x, rg }) => g.size < 100 || (gi === 1 ? x <= rg.sub[1] + 10 : x >= rg.sub[0] - 10)).map(({ g, x, rg }) => { // out leg: London from the Eye to the sub edge; return leg: sub edge to Tribal
     const q = curve.getPointAt(ticks(0.7).reduce((a, u) => Math.abs(curve.getPointAt(u).x - x) < Math.abs(curve.getPointAt(a).x - x) ? u : a, 0));
     return { p: { x, z: q.z }, i: g.after, filler: true, sparse: !!rg && (g.after === 10 ? x >= rg.sub[1] : x < rg.sub[0]) };
@@ -138,7 +137,7 @@ export function buildCity(add, stops, pts, curve) {
   for (let tries = 0; kiosks.length < 15 && tries < 400; tries++) {
     const u = u0 + kq() * (1 - u0), side = kq() < 0.5 ? -1 : 1, p = curve.getPointAt(u), t = curve.getTangentAt(u);
     const x = p.x - t.z * side * 7.1, z = p.z + t.x * side * 7.1;
-    if (inCtry(x) || !free(x, z) || [...obst, ...kiosks].some(([a, b]) => Math.hypot(a - x, b - z) < 3.5)) continue;
+    if (!free(x, z) || [...obst, ...kiosks].some(([a, b]) => Math.hypot(a - x, b - z) < 3.5)) continue;
     phoneBox(add, x, z);
     kiosks.push([x, z]);
   }

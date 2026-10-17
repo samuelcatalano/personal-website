@@ -6,6 +6,7 @@ import { buildSaoPaulo } from './saopaulo.js';
 import { buildGlasgow } from './glasgow.js';
 import { buildRiverside } from './riverside.js';
 import { buildUniversity } from './university.js';
+import { flag } from './flags.js';
 const STONE = P.sand, SLATE = P.slate, WHITE = P.white, GOLD = P.gilt, STEEL = P.steel;
 const m = new THREE.Matrix4(), p = new THREE.Vector3(), q = new THREE.Quaternion(), s = new THREE.Vector3(1, 1, 1), UP = new THREE.Vector3(0, 1, 0);
 const PI = Math.PI, at = (stops, pts, key) => pts[stopIndex(stops, LANDMARKS[key])];
@@ -81,6 +82,7 @@ function towerBridge(add, { x }) {
       box(along + dz, 2, c, 0.22, 19, 0.22, P.roof);
       box(along + dz, 26, c, 0.55, 3.2, 0.55, STEEL);
       box(along + dz, 28, c, 0.18, 3, 0.18, GOLD);
+      flag(add, x + c, 31, RIVER_Z + along + dz, 'jack', 0.65);
     }
     for (let y = 6; y <= 18; y += 4) {
       for (const side of [-1, 1]) {
@@ -178,8 +180,9 @@ export function buildLandmarks(add, stops, pts) {
   buildGlasgow(add, at(stops, pts, 'glasgow'));
   const { museum, uni } = glasgowSites(stops, pts), hill = (dx, w, d, y, h, c) => add(uni.x + dx, y, uni.z, w, h, d, c);
   buildRiverside(add, museum);
-  hill(0, 56, 30, 0, 1.2, P.grass); hill(0, 50, 24, 1.2, 1.3, P.patch); // green terrace the university stands on
+  hill(0, 56, 30, 0, 1.2, P.steel); hill(0, 50, 24, 1.2, 1.3, P.skyBlue); // blue-grey paved plaza the university stands on
   buildUniversity((x, y, z, w, h, d, c) => add(x, y + uni.lift, z, w, h, d, c), uni);
+  flag(add, uni.x, 34.7 + uni.lift, uni.z + 3, 'saltire', 1.1); // finial top
   buildSaoPaulo(add, stops, pts);
   const i = stopIndex(stops, LANDMARKS.heathrow);
   return {
