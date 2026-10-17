@@ -54,7 +54,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
     g.fillStyle = '#fff'; g.beginPath(); g.arc(128, 128, 100, 0, 7); g.fill();
     g.fillStyle = 'rgba(150,160,185,0.55)';
     for (const [x, y, r] of [[100, 105, 18], [150, 95, 11], [140, 150, 22], [95, 155, 9], [170, 130, 7]]) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }
-  }), 200);
+  }), 110); // moon disc ≈ sun disc (sun disc is ~0.2 of its 400 sprite)
   moonM.material.color.copy(untone(C(0xe6e9f0)));
   scene.add(dome, sunM, moonM);
   // blocky clouds: flat-topped clusters of boxes in three layers
