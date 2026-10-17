@@ -125,7 +125,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     for (const u of units) u.update(f);
     people.update(dt, camera.position);
     night = reducedMotion || dt === 0 ? nightTarget : approach(night, nightTarget, dt, 1.4);
-    sky.update(night, dt, camera.position);
+    sky.update(night, dt, camera.position, camera);
     water.update(clock, night);
     if (dt > 0 && post.tier === 'high') {
       fpsT += dt; fpsN++;

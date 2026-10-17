@@ -27,8 +27,8 @@ function disc(draw) {
   return t;
 }
 const sprite = (map, size) => {
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(size, size), new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false, fog: false, toneMapped: false }));
-  m.renderOrder = -9;
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(size, size), new THREE.MeshBasicMaterial({ map, transparent: true, depthTest: false, depthWrite: false, fog: false, toneMapped: false }));
+  m.renderOrder = 1000; // ponytail: drawn over the world on purpose, the follow camera looks down so buildings cover the real sky
   return m;
 };
 export function createSky(scene, { hemi, sun, reducedMotion = false }) {
@@ -46,9 +46,9 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
   const u = dome.material.uniforms;
   const sunM = sprite(disc((g) => {
     const r = g.createRadialGradient(128, 128, 0, 128, 128, 128);
-    r.addColorStop(0, '#fff'); r.addColorStop(0.2, '#fff'); r.addColorStop(0.24, 'rgba(255,255,255,0.3)'); r.addColorStop(1, 'rgba(255,255,255,0)');
+    r.addColorStop(0, '#fff'); r.addColorStop(0.2, '#fff'); r.addColorStop(0.24, 'rgba(255,255,255,0.12)'); r.addColorStop(1, 'rgba(255,255,255,0)');
     g.fillStyle = r; g.fillRect(0, 0, 256, 256);
-  }), 300);
+  }), 210);
   sunM.material.color.copy(untone(C(0xfff0b8)));
   const moonM = sprite(disc((g) => {
     g.fillStyle = '#fff'; g.beginPath(); g.arc(128, 128, 100, 0, 7); g.fill();
@@ -58,9 +58,9 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
   moonM.material.color.copy(untone(C(0xe6e9f0)));
   scene.add(dome, sunM, moonM);
   // blocky clouds: flat-topped clusters of boxes in three layers
-  const cloudMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.85, depthWrite: false, fog: false, toneMapped: false });
-  const box = new THREE.BoxGeometry(1, 1, 1), clouds = new THREE.Group(), SPAN = 1400;
-  for (let i = 0; i < 26; i++) {
+  const cloudMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.85, depthTest: false, depthWrite: false, fog: false, toneMapped: false });
+  const box = new THREE.BoxGeometry(1, 1, 1), clouds = new THREE.Group();
+  for (let i = 0; i < 10; i++) {
     const g = new THREE.Group(), n = 4 + Math.floor(Math.random() * 4);
     for (let j = 0; j < n; j++) {
       const m = new THREE.Mesh(box, cloudMat);
@@ -68,10 +68,14 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
       m.position.set(j * 36 - n * 18, Math.random() * 5, (Math.random() - 0.5) * 40);
       g.add(m);
     }
-    g.position.set((Math.random() - 0.5) * SPAN, 110 + (i % 3) * 28, (Math.random() - 0.5) * SPAN);
+    g.userData = { x: Math.random() * 2.8 - 1.4, y: 0.6 + Math.random() * 0.38, k: 0.7 + Math.random() * 0.6 };
+    g.scale.setScalar(g.userData.k);
     clouds.add(g);
   }
+  clouds.children.forEach((c) => c.children.forEach((m) => { m.renderOrder = 999; }));
   scene.add(clouds);
+  // sky band: the follow camera looks down, so the sun/moon/clouds are pinned to NDC points of the upper frame
+  const at = (cam, x, y, d, out) => out.set(x, y, 0.5).unproject(cam).sub(cam.position).normalize().multiplyScalar(d).add(cam.position);
   const glow = [];
   scene.traverse((o) => { if (o.material?.userData?.glow) glow.push(o.material); });
   const pos = [];
@@ -85,20 +89,28 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
   );
   stars.renderOrder = -9; stars.frustumCulled = false;
   scene.add(stars);
-  const place = (m, cam) => { m.position.copy(cam).addScaledVector(SUN_DIR, DIST); m.lookAt(cam); };
+  const place = (m, cam, x, y) => { at(cam, x, y, DIST, m.position); m.lookAt(cam.position); };
   return {
-    update(night, dt = 0, cam = new THREE.Vector3()) {
+    update(night, dt = 0, camPos = new THREE.Vector3(), cam) {
+      cam?.updateMatrixWorld();
       u.uZen.value.lerpColors(DAY.zen, NIGHT.zen, night); untone(u.uZen.value);
       u.uHor.value.lerpColors(DAY.hor, NIGHT.hor, night); untone(u.uHor.value);
       scene.fog.color.lerpColors(DAY.hor, NIGHT.hor, night); untone(scene.fog.color);
       scene.background?.copy(scene.fog.color);
       scene.fog.near = 380 - 130 * night; scene.fog.far = 1250 - 450 * night;
       cloudMat.color.lerpColors(DAY.cloud, NIGHT.cloud, night); untone(cloudMat.color);
-      cloudMat.opacity = 0.88 - 0.25 * night;
-      dome.position.copy(cam); stars.position.copy(cam);
-      clouds.position.set(cam.x, 0, cam.z);
-      if (!reducedMotion) for (const c of clouds.children) { c.position.x += dt * 3; if (c.position.x > SPAN / 2) c.position.x -= SPAN; }
-      place(sunM, cam); place(moonM, cam);
+      cloudMat.opacity = 0.7 - 0.2 * night;
+      dome.position.copy(camPos); stars.position.copy(camPos);
+      if (cam) {
+        const wide = cam.aspect > 1;
+        for (const c of clouds.children) {
+          const d = c.userData;
+          if (!reducedMotion) d.x = d.x > 1.4 ? -1.4 : d.x + dt * 0.012;
+          at(cam, d.x, d.y, 650, c.position);
+          c.lookAt(cam.position);
+        }
+        place(sunM, cam, wide ? 0.62 : 0.5, wide ? 0.7 : 0.62); place(moonM, cam, wide ? 0.62 : 0.5, wide ? 0.7 : 0.62);
+      }
       sunM.visible = night < 0.98; sunM.material.opacity = 1 - night;
       moonM.visible = night > 0.02; moonM.material.opacity = night;
       sun.intensity = DAY.sun + (NIGHT.sun - DAY.sun) * night;
