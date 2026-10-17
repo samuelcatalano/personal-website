@@ -39,7 +39,7 @@ export function buildBlocks(add, stops, pts, curve, occ) {
   const zAt = (x) => path.reduce((a, p) => Math.abs(p.x - x) < Math.abs(a.x - x) ? p : a).z;
   const hard = [
     [riverStart(stops, pts) - 6, riverEnd(stops, pts) + 6, -64, -26], H('masp', 26, 26, -76, -50), H('se', 24, 24, -77, -49), H('estaiada', 16, 16, -80, -12),
-    H('heathrow', 18, 18, -38, -14), H('bigben', 10, 37, -76, -48), H('wembley', 30, 30, -92, -50), H('wembley', 14, 14, lz + 10, lz + 45),
+    H('heathrow', 18, 18, -38, -14), H('bigben', 10, 43, -76, -48), H('wembley', 30, 30, -92, -50), H('wembley', 14, 14, lz + 10, lz + 45),
     ...pts.slice(0, 6).map((p) => [p.x - 16, p.x + 16, -80, -58]),
   ];
   // Reserved after the fact: blocks that would land here still draw r() but add nothing, so every other block keeps its place.

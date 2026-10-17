@@ -64,7 +64,7 @@ function bigBen(add, { x }) {
     }
   }
   for (const y of [17.5, 22.5, 24]) add(x, y, z, 6.2, 0.35, 6.2, GOLD);
-  add(x + 14, 0, z, 22, 10, 8, P.sandd);
+  add(x + 20, 0, z, 34, 10, 8, P.sandd); // Parliament: x+3..x+37
   return clockFaces(x, z);
 }
 function towerBridge(add, { x }) {
