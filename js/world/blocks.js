@@ -12,20 +12,22 @@ const ROWS = [
   [1, 29, [1, 0, 1], [4]], [1, 43, [0, 1, 0], [4]], [-1, 29, [1, 2, 2, 3, 0], [4, 5, 5]], [-1, 43, [0, 2, 3, 2], [4, 5, 6]],
   [0, -80, [0, 2, 3, 2], [4, 5, 6]], [0, -93, [3, 2, 3, 3], [6, 6, 5, 6]],
 ];
-function draw(add, x, z, [w0, d, n, fh, wall, trim, kind, u], r, q, near) {
-  const w = w0 * u, h = n * fh, zf = z + d / 2, nb = Math.round(w / 3.4), pw = w / nb, left = x - w / 2;
+function draw(add, x, z, [w0, d, n, fh, wall, trim, kind, u], r, q, near, civic) {
+  const floors = civic ? Math.min(n, Math.floor(16 / fh)) : n;
+  const w = w0 * u, h = floors * fh, zf = z + d / 2, nb = Math.round(w / 3.4), pw = w / nb, left = x - w / 2;
   if (kind > 2) { // London terrace: one townhouse per unit; r() drawn as before so later placements stay put
     for (let i = 0; i < n * 2 * u; i++) r();
-    for (let i = 0; i < u; i++) house(add, q, left + (i + 0.5) * w0, z, 1, w0, d, near ? Math.min(n, 2) : n, fh, near);
+    for (let i = 0; i < u; i++) house(add, q, left + (i + 0.5) * w0, z, 1, w0, d, near ? Math.min(floors, 2) : floors, fh, near);
     return;
   }
   add(x, 0, z, w, h, d, wall);
   add(x, h, z, w + 0.4, 0.4, d + 0.4, kind === 1 ? P.steel : P.roof);
   for (let k = 0; k < n; k++) {
     const y = k * fh;
-    if (k) add(x, y, z, w + 0.3, 0.3, d + 0.3, trim);
+    if (k && k < floors) add(x, y, z, w + 0.3, 0.3, d + 0.3, trim);
     for (let j = 0; j < nb; j++) {
       const wx = left + (j + 0.5) * pw, lit = r() < 0.08, wy = y + fh * 0.25, wh = fh * 0.55;
+      if (k >= floors) continue; // Consume each floor's RNG so later districts keep their layout.
       if (kind === 1) { if (lit) add(wx, wy, zf, pw * 0.7, wh, 0.14, P.lit); continue; }
       if (kind === 2 && !k) { add(wx, 0.3, zf, pw * 0.8, 2.3, 0.14, G); add(wx, 2.6, zf + 0.5, pw * 0.9, 0.3, 1.2, AWN[r() * 3 | 0]); continue; }
       add(wx, wy, zf, pw * 0.45, wh, 0.14, lit ? P.lit : G);
@@ -58,7 +60,8 @@ export function buildBlocks(add, stops, pts, curve, occ) {
     const R = [x - 1, x + w() + 1, z() - b[1] / 2 - 1, z() + b[1] / 2 + 1];
     if (!bad() && ![...hard, ...occ].some((o) => hit(R, o)) && !path.some((p) => hit(R, [p.x, p.x, p.z, p.z], 25))) {
       const clear = side > 0 && Math.abs(x + w() / 2 - X('wembley')) < 35; // camera side of the last stop stays open
-      draw(clear || cut.some((o) => hit(R, o)) ? () => {} : add, x + w() / 2, z(), b, r, q, side > 0);
+      const civic = z() <= -65 && x + w() >= X('bigben') - 20 && x <= gl.x + 26;
+      draw(clear || cut.some((o) => hit(R, o)) ? () => {} : add, x + w() / 2, z(), b, r, q, side > 0, civic);
       occ.push(R);
       x += w() + 2 + r() * 3;
     } else x += 6;
