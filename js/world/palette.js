@@ -5,4 +5,8 @@ export const PALETTE = {
   dirt: '#86603e', oak: '#a27b4c', brick: '#a8442f', sandstone: '#e0c880', concrete: '#c4c4c2',
   gilt: '#b39a64', masp: '#c8102e', steel: '#6f8fa3', ink: '#46505b', white: '#f4f1ea',
   sand: '#d4a548', sandd: '#b88a35', slate: '#3f5a8a', navy: '#0f1d4a', pearl: '#dfe3e9', maroon: '#6b1f2a',
+  terracotta: '#c8735a', ochre: '#d6a756', mint: '#9cc7a8', salmon: '#e3a08a', skyBlue: '#9bbbd4', offWhite: '#ece6da',
+  concreteDark: '#8f918d', concreteMid: '#aeb0ac', redBrown: '#8e3b2e', londonStock: '#c9a96b',
+  pinkStucco: '#e8b4b8', blueStucco: '#a9c4dc', mintStucco: '#b9d8c2', lemonStucco: '#efe0a0',
+  teal: '#5a9aa0', bronze: '#8a7356',
 };

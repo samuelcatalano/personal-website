@@ -1,5 +1,5 @@
 import { PALETTE as P } from './palette.js';
-const WALLS = [P.steel, P.oak, P.pearl, P.cream, P.brick], ROOFS = [P.brick, P.ink, P.roof], DOORS = [P.red, P.maroon, P.white, P.navy], W = P.white;
+const WALLS = [P.steel, P.oak, P.pearl, P.cream, P.brick, P.redBrown, P.londonStock, P.pinkStucco, P.blueStucco, P.mintStucco, P.lemonStucco], ROOFS = [P.brick, P.ink, P.roof], DOORS = [P.red, P.maroon, P.white, P.navy], W = P.white;
 // Georgian townhouse. Front faces o (+1: +z, -1: -z); `q` is a seeded rng. Every detail sits proud of the wall by >= 0.03.
 export function house(add, q, x, z, o, w, d, n, fh = 3.1, lo = false) {
   const h = n * fh, f = z + o * d / 2, nc = Math.max(2, Math.round(w / 3)), pick = (a) => a[q() * a.length | 0];

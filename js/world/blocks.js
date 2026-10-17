@@ -1,11 +1,11 @@
 import { rng, stopIndex, riverStart, riverEnd, copan, LANDMARKS as L } from './layout.js';
 import { house } from './houses.js';
 import { PALETTE as P } from './palette.js';
-const { concrete: C, cream: CR, white: W, stone: S, sandstone: SS, brick: B, glass: G } = P, AWN = [P.red, P.slate, P.sand];
-// [unit w, depth, floors lo..hi, floor h, walls, trim, kind: 0 flats 1 glass 2 shops 3 terrace]
+const { concrete: C, cream: CR, white: W, stone: S, sandstone: SS, brick: B, glass: G, terracotta: TC, ochre: OC, mint: MN, salmon: SA, skyBlue: SB, offWhite: OW, concreteDark: CD, concreteMid: CM, redBrown: RB, londonStock: LS, teal: TL, bronze: BZ } = P, AWN = [P.red, P.slate, P.sand];
+// [unit w, depth, floors lo..hi, floor h, walls, trim, kind: 0 flats 1 glass 2 shops 3 terrace]. Walls are picked with the existing r() draw.
 const PRE = [
-  [10, 10, 3, 4, 3, [CR, SS, S], W, 0], [10, 10, 2, 2, 3.4, [CR, SS, W], S, 2], [14, 12, 8, 15, 3, [C, SS, CR], W, 0],
-  [11, 11, 8, 13, 3.5, [G], C, 1], [6, 9, 3, 4, 3, [B, CR, B], W, 3], [16, 11, 4, 6, 3.2, [B, B, SS], CR, 0], [12, 12, 10, 24, 3.6, [G], C, 1],
+  [10, 10, 3, 4, 3, [CR, SS, S, TC, OC, OW], W, 0], [10, 10, 2, 2, 3.4, [CR, SS, W, MN, SA, SB], S, 2], [14, 12, 8, 15, 3, [C, SS, CR, CD, CM], W, 0],
+  [11, 11, 8, 13, 3.5, [G, TL, BZ], C, 1], [6, 9, 3, 4, 3, [B, CR, B], W, 3], [16, 11, 4, 6, 3.2, [B, RB, LS, SS], CR, 0], [12, 12, 10, 24, 3.6, [G, TL, BZ], C, 1],
 ];
 // [side (0: fixed z), front offset or z, SP mix, London mix]; mix[0] = low fallback
 const ROWS = [

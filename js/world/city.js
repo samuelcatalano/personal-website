@@ -5,8 +5,8 @@ import { PALETTE as P } from './palette.js';
 import { buildBlocks } from './blocks.js';
 const PATCH = P.patch, ROAD = P.road, LINE = P.cream;
 const BANK = P.taupe, PATH = P.stone, CREAM = P.cream;
-const UK_WALLS = [CREAM, '#d8d0c2', P.stone];
-const BR_WALLS = [P.stone, '#d8d0c2', '#bdb3a4'];
+const UK_WALLS = [CREAM, '#d8d0c2', P.stone, P.terracotta, P.ochre, P.mint, P.salmon, P.skyBlue, P.offWhite];
+const BR_WALLS = [P.stone, '#d8d0c2', '#bdb3a4', P.concreteDark, P.concreteMid, P.terracotta, P.ochre, P.mint, P.salmon, P.skyBlue, P.offWhite];
 const ROOF = P.roof, ROOFS = [P.brick, P.roof, P.oak, P.steel], // ponytail: tint by position keeps r() sequence
    GLASS = P.glass, WINDOW_LIT = P.lit;
 export const CLEAR = 4.5;
