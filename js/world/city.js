@@ -115,7 +115,7 @@ export function buildCity(add, stops, pts, curve) {
         const h = broadleaf(r); // always draw rng so layout stays stable
         if (free(x, z)) { tree(add, x, z, h); obst.push([x, z]); }
       }
-      if (!br && i % 2 === 0 && free(p.x + 4, p.z + side * 11.2)) {
+      if (stops[i].country === 'UK' && i % 2 === 0 && free(p.x + 4, p.z + side * 11.2)) {
         phoneBox(add, p.x + 4, p.z + side * 11.2);
         obst.push([p.x + 4, p.z + side * 11.2]);
       }
