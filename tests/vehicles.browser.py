@@ -26,7 +26,7 @@ print(js(r'''(async () => {
   const { buildMini } = await import('./js/world/bus.js');
   const mini = buildMini(), miniBox = bounds(mini), miniSize = miniBox.getSize(new THREE.Vector3());
   check(Math.abs(miniBox.min.y) < 1e-6, 'mini wheels must rest on the road');
-  check(miniSize.x > 3.7 && miniSize.x < 4.1 && miniSize.y < 1.8 && miniSize.z < 2, 'mini must be ~3.9m long');
+  check(miniSize.x > 3.4 && miniSize.x < 3.8 && miniSize.y < 1.8 && miniSize.z < 2, 'mini must be ~3.6m long');
 
   const pts = routePoints(stops.length);
   const curve = routeCurve(THREE, pts);
