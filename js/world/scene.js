@@ -3,6 +3,7 @@ import { PALETTE as P } from './palette.js';
 import { routeT, nearestStop, stopMarks, fineMarks } from '../scroll.js';
 import { routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, FRAME_LIFT, swapAt, scotRange } from './layout.js';
 import { createBoxes, buildMeshes } from './voxel.js';
+import { buildMotion } from './motion.js';
 import { buildCity } from './city.js';
 import { buildLandmarks } from './landmarks.js';
 import { buildBus, buildMini } from './bus.js';
@@ -16,6 +17,7 @@ import { createSigns } from './signs.js';
 import { buildFigure } from './figure.js';
 import { SECTION_SHOT, shotFor, blendShots, spring, approach, nextTier } from './camera.js';
 import { updateBeams, addBeams } from './beams.js';
+import { createLampPools } from './lamps.js';
 import { createPost } from './post.js';
 const BUS_LANE = 1.75, SCROLL_SMOOTH = 0.18, ARC = 10;
 export async function createWorld(canvas, stops, { reducedMotion = false, onProgress = () => {} } = {}) {
@@ -38,7 +40,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const n = stops.length, pts = routePoints(n), marks = stopMarks(pts);
   const curve = routeCurve(THREE, pts), knots = fineMarks(marks, curve);
   const { add, list } = createBoxes();
-  const { rotors: hubs } = buildCity(add, stops, pts, curve);
+  const { rotors: hubs, lamps } = buildCity(add, stops, pts, curve);
   const blade = createBoxes(); blade.add(-0.25, 0, -0.15, 0.5, 9, 0.3, P.white); blade.add(-0.5, -0.5, -0.4, 1, 1, 0.8, P.white); // blade + hub cap
   const bm = buildMeshes(blade.list), proto = new THREE.Group().add(...[0, 1, 2].map((k) => { const c = bm.clone(); c.rotation.z = k * Math.PI * 2 / 3; return c; }));
   const rotors = hubs.map(([x, y, z], i) => { // 3 blades at 120deg; clones share geometry + materials
@@ -54,6 +56,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const WIN_L = '#2b2621', RG = '#27394b', RB = '#c9ccd1'; // Glasgow Uni windows, Riverside glass + band
   const world = buildMeshes(list, { glow: [P.lit, '#ffd86b', '#fff7c2', P.arch, WIN_L, RG, RB], glowK: { [P.arch]: 1.1, [WIN_L]: 1.0, [RG]: 0.55, [RB]: 0.2 } });
   world.traverse((o) => { const h = o.material?.color?.getHexString(); if (o.material?.userData.glow) { if (h === WIN_L.slice(1)) o.material.userData.glowColor = new THREE.Color('#ffb04a'); if (h === RG.slice(1)) o.material.userData.glowColor = new THREE.Color('#d8e86a'); if (h === RB.slice(1)) o.material.userData.glowColor = new THREE.Color('#bcd4ff'); } });
+  const motion = buildMotion(); scene.add(motion.group);
   scene.add(world, eye, details, plane, bus, ...rotors);
   const units = [createAmbient(scene, { curve, pts, stops })];
   const people = createPeople(scene, { curve, pts, stops, reducedMotion });
@@ -66,6 +69,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const end = curve.getPointAt(1), endTan = curve.getTangentAt(1), near = new THREE.Vector3(-endTan.z, 0, endTan.x).normalize();
   figure.position.set(end.x + endTan.x * 9 + near.x * 2, 0, end.z + endTan.z * 9 + near.z * 2);
   scene.add(figure);
+  const pools = createLampPools(scene, lamps);
   const sky = createSky(scene, { hemi, sun, reducedMotion }), moodAt = createMood(stops), rain = createRain(scene, { reducedMotion });
   const post = createPost(renderer, scene, camera, { sun, tier: reducedMotion || matchMedia('(max-width: 767px)').matches ? 'medium' : 'high' });
   let fpsT = 0, fpsN = 0, night = 0, nightTarget = 0, mobile = false;
@@ -136,7 +140,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const a = Math.round(bp.dot(LU) / TEXEL) * TEXEL, b = Math.round(bp.dot(LV) / TEXEL) * TEXEL;
     sun.target.position.copy(LU).multiplyScalar(a).addScaledVector(LV, b).addScaledVector(LD, bp.dot(LD));
     sun.position.copy(sun.target.position).add(SUN);
-    eye.rotation.z = clock * 0.1;
+    eye.rotation.z = clock * 0.1; motion.uT.value = clock;
     for (const g of rotors) g.rotation.z = -clock * SPIN + g.userData.phase; // clockwise seen from +z
     updatePlane(t);
     const f = { time: clock, dt, progress: p, t, active: nearestStop(p, n, marks), bus: busPos };
@@ -147,7 +151,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const mood = moodAt(t);
     sky.update(night, dt, camera.position, camera, mood);
     rain.update(clock, busPos, mood.rain * (1 - 0.5 * night));
-    updateBeams(night);
+    updateBeams(night); pools.update(night);
     water.update(clock, night);
     if (dt > 0 && post.tier === 'high') {
       fpsT += dt; fpsN++;

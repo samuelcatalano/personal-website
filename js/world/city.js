@@ -62,7 +62,7 @@ export function tree(add, x, z, { h, crown }) {
 export function buildCity(add, stops, pts, curve) {
   const spots = furnitureSpots(stops, curve).map((o) => o.xz);
   const free = (x, z) => spots.every(([a, b]) => Math.hypot(a - x, b - z) > CLEAR); // ponytail: skip, not shift
-  const occ = [], obst = [], r = rng(2026), hq = rng(8821), noop = () => {}, mx = pts[stopIndex(stops, LANDMARKS.masp)].x, gl = pts[stopIndex(stops, LANDMARKS.glasgow)], LM = new Set(Object.values(LANDMARKS));
+  const lamps = [], occ = [], obst = [], r = rng(2026), hq = rng(8821), noop = () => {}, mx = pts[stopIndex(stops, LANDMARKS.masp)].x, gl = pts[stopIndex(stops, LANDMARKS.glasgow)], LM = new Set(Object.values(LANDMARKS));
   const span = pts.length * STOP_SPACING + GAP_TOTAL + 120, rgs = regions(stops, pts);
   add(GAP_TOTAL / 2, -1, 0, span, 1, 200, P.pave);
   // Samples along the curve every ~`step` m (curve param is per stop, so count follows each segment's length)
@@ -93,6 +93,7 @@ export function buildCity(add, stops, pts, curve) {
         add(x, 0, z, 0.16, 3, 0.16, ROOF);
         add(x, 3, z, 0.7, 0.2, 0.7, WINDOW_LIT);
         obst.push([x, z]);
+        lamps.push([x, z]);
       }
     }
   });
@@ -145,5 +146,5 @@ export function buildCity(add, stops, pts, curve) {
   buildGlasgowEdges(add, stops, pts, curve, tree);
   buildBlocks(add, stops, pts, curve, occ);
   buildParks(add, stops, pts, curve, occ); // after the blocks: own rng, reads the free plazas, never shifts a block
-  return { rotors }; // turbine hub positions [x, y, z]
+  return { rotors, lamps }; // turbine hub positions [x, y, z]
 }

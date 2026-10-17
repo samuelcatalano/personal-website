@@ -10,6 +10,7 @@ export function pixel(kind, i, j) {
   if (d1 <= 0.35 || d2 <= 0.35) return RED; // ponytail: no counterchange offset
   return d1 <= 0.9 || d2 <= 0.9 ? WHITE : BLUE.jack;
 }
+export const cloth = []; // flag cloth boxes (+ pole x px), kept out of the static world; see motion.js
 // pole base at (x, y, z); flag ~2.4 x 1.4 m * scale, hoisted at the pole, flying +x
 export function flag(add, x, y, z, kind, scale = 1) {
   const c = (2.4 * scale) / W, ph = H * c + 1.2 * scale;
@@ -18,7 +19,7 @@ export function flag(add, x, y, z, kind, scale = 1) {
   for (let j = 0; j < H; j++) for (let i = 0; i < W;) {
     const col = pixel(kind, i, j); let k = i;
     while (k < W && pixel(kind, k, j) === col) k++;
-    add(x + 0.05 * scale + ((i + k) / 2) * c, top - (j + 1) * c, z, (k - i) * c, c, 0.08 * scale, col);
+    cloth.push({ x: x + 0.05 * scale + ((i + k) / 2) * c, y: top - (j + 1) * c, z, w: (k - i) * c, h: c, d: 0.08 * scale, color: col, px: x + 0.05 * scale });
     i = k;
   }
 }

@@ -23,7 +23,7 @@ gl_FragColor = vec4(base.rgb + acc / 40.0 * uStrength, base.a);
 }`,
 };
 // tilt-shift: sharp horizontal band, disc blur grows with |uv.y - FOCUS_Y| (uv, 0 = bottom)
-const FOCUS_Y = 0.25, HALF_BAND = 0.15, FALLOFF = 0.33, MAX_R = 7; // MAX_R in CSS px
+const FOCUS_Y = 0.3, HALF_BAND = 0.22, FALLOFF = 0.45, MAX_R = 3.5; // MAX_R in CSS px
 const TiltShift = {
   uniforms: { tDiffuse: { value: null }, uInv: { value: new THREE.Vector2(1 / 1280, 1 / 720) }, uFocus: { value: new THREE.Vector3(FOCUS_Y, HALF_BAND, FALLOFF) }, uMax: { value: MAX_R } },
   vertexShader: SunRays.vertexShader,

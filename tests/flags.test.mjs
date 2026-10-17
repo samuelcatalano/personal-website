@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { flag, pixel, W, H } from '../js/world/flags.js';
-const count = (kind) => { const b = []; flag((...a) => b.push(a), 0, 0, 0, kind); return b.length; };
+import { flag, cloth, pixel, W, H } from '../js/world/flags.js';
+const count = (kind) => { const b = [], n = cloth.length; flag((...a) => b.push(a), 0, 0, 0, kind); return b.length + cloth.length - n; };
 test('saltire: white centre and diagonals, blue edges', () => {
   assert.equal(pixel('saltire', 5, 3), '#f4f4f0');
   assert.equal(pixel('saltire', 0, 0), '#f4f4f0');

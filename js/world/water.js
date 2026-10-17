@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { SUN_DIR } from './sky.js';
 const DAY_SKY = new THREE.Color(0x8cc4f0), NIGHT_SKY = new THREE.Color(0x18203a);
 const vertexShader = /* glsl */`
 #include <fog_pars_vertex>
@@ -12,6 +13,7 @@ gl_Position = projectionMatrix * mvPosition;
 }`;
 const fragmentShader = /* glsl */`
 uniform float uTime, uNight;
+uniform vec3 uSun;
 uniform vec3 uDeep, uShallow, uGlint, uNightTint, uSky;
 varying vec3 vPos;
 #include <fog_pars_fragment>
@@ -29,6 +31,9 @@ vec3 n = normalize(vec3(-g.x, 1.0, -g.y));
 vec3 v = normalize(cameraPosition - vPos);
 float fres = 0.04 + 0.96 * pow(1.0 - max(dot(n, v), 0.0), 3.0);
 c = mix(c, uSky, fres * 0.9);
+vec3 r = reflect(-v, n); // sun glint: sparkle cells where the reflection nears the sun
+float sp = step(0.82, hash(floor(q * 3.0) + floor(uTime * 3.0))) * smoothstep(0.93, 0.99, dot(r, uSun));
+c += uGlint * sp * 1.5 * (1.0 - uNight);
 gl_FragColor = vec4(c, 1.0);
 #include <tonemapping_fragment>
 #include <colorspace_fragment>
@@ -38,7 +43,7 @@ export function createWater({ x0, x1, z, width }) {
   const geo = new THREE.PlaneGeometry(x1 - x0, width).rotateX(-Math.PI / 2);
   const mat = new THREE.ShaderMaterial({
     uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
-      uTime: { value: 0 }, uNight: { value: 0 },
+      uTime: { value: 0 }, uSun: { value: SUN_DIR }, uNight: { value: 0 },
       uDeep: { value: new THREE.Color(0x1456b0) }, uShallow: { value: new THREE.Color(0x2b8ae6) },
       uGlint: { value: new THREE.Color(0xe6f6ff) }, uNightTint: { value: new THREE.Color(0x0a1330) }, uSky: { value: new THREE.Color(0x8cc4f0) },
     }]),

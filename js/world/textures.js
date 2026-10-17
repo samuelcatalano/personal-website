@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { PALETTE as P } from './palette.js';
 let noise;
 function noiseTexture() {
   if (noise) return noise;
@@ -23,13 +24,15 @@ function noiseTexture() {
 }
 const EDGE_W = 0.08, EDGE_DARK = 0.12, EDGE_HI = 0.05, EDGE_MIN = 0.1, EDGE_FULL = 0.4; // metres / fractions; effect fades in for faces EDGE_MIN..EDGE_FULL m
 // Triplanar, world space: 1 tile = 1 m
+const GRASS = new Set([P.grass, P.patch]);
 export function blockMaterial(color, { glow = false, k = 2.2 } = {}) {
   const mat = new THREE.MeshStandardMaterial({ color, map: noiseTexture(), roughness: 0.9, metalness: 0 });
+  const kind = GRASS.has(color) ? 1 : color === P.road ? 2 : 0; // 1 lawn, 2 asphalt: world-space tint noise
   mat.userData.glow = glow;
   mat.userData.glowK = k; // night emissive multiplier, see sky.update
-  mat.customProgramCacheKey = () => 'block' + glow; // glow/non-glow differ by define only
+  mat.customProgramCacheKey = () => 'block' + glow + kind; // glow/non-glow differ by define only
   mat.onBeforeCompile = (sh) => {
-    const common = '#include <common>\nvarying vec3 vWP; varying vec3 vWN; varying vec3 vLP; varying vec3 vLN; varying vec3 vSc;';
+    const common = '#include <common>\nvarying vec3 vWP; varying vec3 vWN; varying vec3 vLP; varying vec3 vLN; varying vec3 vSc; varying float vH;';
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', common)
       .replace('#include <begin_vertex>', `#include <begin_vertex>
@@ -39,14 +42,38 @@ mat4 bm = modelMatrix;
 #endif
 vWP = (bm * vec4(position, 1.0)).xyz;
 vWN = normalize(mat3(bm) * normal);
+#ifdef USE_INSTANCING
+  vH = fract(sin(dot(instanceMatrix[3].xyz, vec3(12.9898, 78.233, 37.719))) * 43758.5453); // per-instance, stable (local, so moving parents don't reshuffle)
+#else
+  vH = 0.0;
+#endif
 vLP = position; vLN = normal; vSc = vec3(length(bm[0].xyz), length(bm[1].xyz), length(bm[2].xyz));`);
+    if (kind) sh.fragmentShader = `#define GROUND ${kind}\n` + sh.fragmentShader;
+    if (glow) sh.uniforms.uNight = mat.userData.uNight = { value: 0 };
+    if (glow) sh.fragmentShader = '#define STAGGER\nuniform float uNight;\n' + sh.fragmentShader;
     if (!glow) sh.fragmentShader = '#define VOXEL_EDGE\n' + sh.fragmentShader;
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', common)
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+#ifdef STAGGER
+totalEmissiveRadiance *= smoothstep(0.0, 0.1, uNight - (0.1 + 0.8 * vH) + 0.05); // each instance switches on at its own night level
+#endif`)
       .replace('#include <map_fragment>', `
 vec3 an = abs(vWN);
 vec2 tuv = an.x > an.y && an.x > an.z ? vWP.zy : (an.y > an.z ? vWP.xz : vWP.xy);
 diffuseColor *= texture2D(map, tuv);
+#ifdef GROUND
+{ // low-freq value noise (~6 m patches); lawn: +-6% and yellow-green shift, road: +-4% wear
+  vec2 g = vWP.xz / 6.0, i = floor(g), f = fract(g); f *= f * (3.0 - 2.0 * f);
+  vec4 h = fract(sin(vec4(dot(i, vec2(12.9898, 78.233)), dot(i + vec2(1.0, 0.0), vec2(12.9898, 78.233)), dot(i + vec2(0.0, 1.0), vec2(12.9898, 78.233)), dot(i + 1.0, vec2(12.9898, 78.233)))) * 43758.5453);
+  float n = mix(mix(h.x, h.y, f.x), mix(h.z, h.w, f.x), f.y) - 0.5;
+  #if GROUND == 1
+  diffuseColor.rgb *= 1.0 + 0.12 * n + vec3(0.1, 0.0, -0.1) * n;
+  #else
+  diffuseColor.rgb *= 1.0 + 0.08 * n;
+  #endif
+}
+#endif
 #ifdef VOXEL_EDGE
 { // distance (m) to nearest edge of this face of the unit box; ln marks the face axis, pushed out of the min
   vec3 ln = step(0.5, abs(vLN)), sc = vSc;
