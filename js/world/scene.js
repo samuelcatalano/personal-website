@@ -6,6 +6,8 @@ import { createBoxes, buildMeshes } from './voxel.js';
 import { buildCity } from './city.js';
 import { buildLandmarks } from './landmarks.js';
 import { buildBus, buildMini } from './bus.js';
+import { createMood } from './mood.js';
+import { createRain } from './rain.js';
 import { createSky, EXPOSURE, SUN_DIR } from './sky.js';
 import { createWater } from './water.js';
 import { createAmbient } from './ambient.js';
@@ -64,7 +66,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const end = curve.getPointAt(1), endTan = curve.getTangentAt(1), near = new THREE.Vector3(-endTan.z, 0, endTan.x).normalize();
   figure.position.set(end.x + endTan.x * 9 + near.x * 2, 0, end.z + endTan.z * 9 + near.z * 2);
   scene.add(figure);
-  const sky = createSky(scene, { hemi, sun, reducedMotion });
+  const sky = createSky(scene, { hemi, sun, reducedMotion }), moodAt = createMood(stops), rain = createRain(scene, { reducedMotion });
   const post = createPost(renderer, scene, camera, { sun, tier: reducedMotion || matchMedia('(max-width: 767px)').matches ? 'medium' : 'high' });
   let fpsT = 0, fpsN = 0, night = 0, nightTarget = 0, mobile = false;
   const bar = document.querySelector('.bar'), panel = document.querySelector('#panel');
@@ -142,7 +144,9 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     for (const u of units) u.update(f);
     people.update(dt, camera.position);
     night = reducedMotion || dt === 0 ? nightTarget : approach(night, nightTarget, dt, 1.4);
-    sky.update(night, dt, camera.position, camera);
+    const mood = moodAt(t);
+    sky.update(night, dt, camera.position, camera, mood);
+    rain.update(clock, busPos, mood.rain * (1 - 0.5 * night));
     updateBeams(night);
     water.update(clock, night);
     if (dt > 0 && post.tier === 'high') {

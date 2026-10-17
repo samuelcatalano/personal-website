@@ -31,8 +31,9 @@ const sprite = (map, size) => {
   m.renderOrder = 1000;
   return m;
 };
+const LON = { zen: [0.435, 0.694, 0.91], hor: [0.725, 0.863, 0.961], cloud: [0.957, 0.976, 1], light: [1, 0.941, 0.816], sun: 1, hemi: 1, fogK: 1, cloudOp: 0 }; // default mood (== DAY)
 export function createSky(scene, { hemi, sun, reducedMotion = false }) {
-  const col = new THREE.Color();
+  const d1 = new THREE.Color(), day = (a, c = d1) => c.setRGB(a[0], a[1], a[2], THREE.SRGBColorSpace); // mood sRGB triplet -> working colour
   const dome = new THREE.Mesh(
     new THREE.SphereGeometry(1100, 24, 12),
     new THREE.ShaderMaterial({
@@ -91,15 +92,15 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
   scene.add(stars);
   const place = (m, cam, x, y) => { at(cam, x, y, DIST, m.position); m.lookAt(cam.position); };
   return {
-    update(night, dt = 0, camPos = new THREE.Vector3(), cam) {
+    update(night, dt = 0, camPos = new THREE.Vector3(), cam, mood = LON) {
       cam?.updateMatrixWorld();
-      u.uZen.value.lerpColors(DAY.zen, NIGHT.zen, night); untone(u.uZen.value);
-      u.uHor.value.lerpColors(DAY.hor, NIGHT.hor, night); untone(u.uHor.value);
-      scene.fog.color.lerpColors(DAY.hor, NIGHT.hor, night); untone(scene.fog.color);
+      u.uZen.value.lerpColors(day(mood.zen, d1), NIGHT.zen, night); untone(u.uZen.value);
+      u.uHor.value.lerpColors(day(mood.hor, d1), NIGHT.hor, night); untone(u.uHor.value);
+      scene.fog.color.copy(u.uHor.value); // already tone-inverted
       scene.background?.copy(scene.fog.color);
-      scene.fog.near = 380 - 130 * night; scene.fog.far = 1250 - 450 * night;
-      cloudMat.color.lerpColors(DAY.cloud, NIGHT.cloud, night); untone(cloudMat.color);
-      cloudMat.opacity = 0.7 - 0.2 * night;
+      scene.fog.near = (380 - 130 * night) * mood.fogK; scene.fog.far = (1250 - 450 * night) * mood.fogK;
+      cloudMat.color.lerpColors(day(mood.cloud, d1), NIGHT.cloud, night); untone(cloudMat.color);
+      cloudMat.opacity = 0.7 + mood.cloudOp - 0.2 * night;
       dome.position.copy(camPos); stars.position.copy(camPos);
       if (cam) {
         const wide = cam.aspect > 1;
@@ -111,11 +112,12 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
         }
         place(sunM, cam, wide ? 0.66 : 0.6, wide ? 0.8 : 0.78); place(moonM, cam, wide ? 0.66 : 0.6, wide ? 0.8 : 0.78);
       }
-      sunM.visible = night < 0.98; sunM.material.opacity = 1 - night;
+      sunM.visible = night < 0.98; sunM.material.opacity = (1 - night) * Math.min(1, mood.sun) ** 2; // veiled by overcast
       moonM.visible = night > 0.02; moonM.material.opacity = night;
-      sun.intensity = DAY.sun + (NIGHT.sun - DAY.sun) * night;
-      sun.color.lerpColors(DAY.light, NIGHT.light, night);
-      hemi.intensity = DAY.hemi + (NIGHT.hemi - DAY.hemi) * night;
+      const ds = DAY.sun * mood.sun, dh = DAY.hemi * mood.hemi;
+      sun.intensity = ds + (NIGHT.sun - ds) * night;
+      sun.color.lerpColors(day(mood.light, d1), NIGHT.light, night);
+      hemi.intensity = dh + (NIGHT.hemi - dh) * night;
       stars.material.opacity = Math.max(0, night * 1.4 - 0.4);
       stars.visible = night > 0.3;
       for (const m of glow) m.emissive.copy(m.userData.glowColor ?? m.color).multiplyScalar(night * (m.userData.glowK ?? 2.2)); // each light glows in its own colour, bright enough to bloom
