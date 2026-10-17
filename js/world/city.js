@@ -1,5 +1,6 @@
 import { furnitureSpots, RIVER_Z, LANDMARKS, rng, riverEnd, riverStart } from './layout.js';
 import { PALETTE as P } from './palette.js';
+import { buildBlocks } from './blocks.js';
 const PATCH = P.patch, ROAD = P.road, LINE = P.cream;
 const BANK = P.taupe, PATH = P.stone, CREAM = P.cream;
 const UK_WALLS = [CREAM, '#d8d0c2', P.stone];
@@ -56,7 +57,7 @@ export function tree(add, x, z, { h, crown }) {
 export function buildCity(add, stops, pts, curve) {
   const spots = furnitureSpots(stops, curve).map((o) => o.xz);
   const free = (x, z) => spots.every(([a, b]) => Math.hypot(a - x, b - z) > CLEAR); // ponytail: skip, not shift
-  const r = rng(2026), LM = new Set(Object.values(LANDMARKS));
+  const occ = [], r = rng(2026), LM = new Set(Object.values(LANDMARKS));
   const span = pts.length * 30 + 120, N = pts.length * 20;
   add(0, -1, 0, span, 1, 200, P.pave);
   const x0 = riverStart(stops, pts), rEnd = riverEnd(stops, pts), mid = (x0 + rEnd) / 2, len = rEnd - x0;
@@ -98,7 +99,9 @@ export function buildCity(add, stops, pts, curve) {
       if (side === -1 && LM.has(stops[i].id)) continue;
       for (const dx of [-9, 0, 9]) {
         if (side === 1 && stops[i].id === 'contact' && dx === 0) continue;
-        townhouse(add, p.x + dx, p.z + side * (side === 1 ? 21 : 17), side, br, r, i >= 2);
+        const hz = p.z + side * (side === 1 ? 21 : 17);
+        townhouse(add, p.x + dx, hz, side, br, r, i >= 2);
+        occ.push([p.x + dx - 5, p.x + dx + 5, hz - 4.5, hz + 4.5]);
       }
       for (const dx of [-8, 8]) {
         const x = p.x + dx + (r() - 0.5) * 2, z = p.z + side * 10.2;
@@ -111,4 +114,5 @@ export function buildCity(add, stops, pts, curve) {
       }
     }
   });
+  buildBlocks(add, stops, pts, curve, occ);
 }
