@@ -9,7 +9,7 @@ print(js(r'''(async () => {
   const { routePoints, routeCurve } = await import('./js/world/layout.js');
   const { routeT } = await import('./js/scroll.js');
   const check = (ok, message) => { if (!ok) throw Error(message); };
-  const bounds = (object) => { object.updateMatrixWorld(true); return new THREE.Box3().setFromObject(object); };
+  const bounds = (object) => { object.updateMatrixWorld(true); const box = new THREE.Box3(); object.traverse((o) => { if (o.isMesh && o.name !== 'beam') box.union(new THREE.Box3().setFromObject(o)); }); return box; }; // night beams are separate transparent meshes, not body
 
   const bus = buildBus(), busBox = bounds(bus), busSize = busBox.getSize(new THREE.Vector3());
   check(Math.abs(busBox.min.y) < 1e-6, 'bus wheels must rest on the road');

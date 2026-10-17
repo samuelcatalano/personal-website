@@ -129,18 +129,19 @@ function heathrow(add, { x }) {
   add(x + 9, 9, tz, 3.2, 1.8, 3.2, P.glass);
   add(x + 9, 10.8, tz, 3.6, 0.3, 3.6, P.roof);
 }
+const RIM = P.eyeRim, POD = P.eyePod; // Eye: cool white rim, warm pods, both glow at night
 function londonEye(x) {
   const { add, list } = createBoxes();
   for (let a = 0; a < 360; a += 6) {
     const r = (a * PI) / 180;
-    add(Math.cos(r) * 16, Math.sin(r) * 16, 0, 1, 1, 1, WHITE);
-    if (a % 30 === 0) add(Math.cos(r) * 17.5, Math.sin(r) * 17.5, 0, 1.6, 1.4, 1.6, '#bfe3ff');
+    add(Math.cos(r) * 16, Math.sin(r) * 16, 0, 1, 1, 1, RIM);
+    if (a % 30 === 0) add(Math.cos(r) * 17.5, Math.sin(r) * 17.5, 0, 1.6, 1.4, 1.6, POD);
   }
   for (let a = 0; a < 360; a += 45) {
     const r = (a * PI) / 180;
     for (let k = 2; k < 16; k += 2) add(Math.cos(r) * k, Math.sin(r) * k, 0, 0.4, 0.4, 0.4, WHITE);
   }
-  const eye = buildMeshes(list);
+  const eye = buildMeshes(list, { glow: [RIM, POD], glowK: { [RIM]: 1.0, [POD]: 1.2 } });
   eye.position.set(x, 18, RIVER_Z + 13);
   return eye;
 }

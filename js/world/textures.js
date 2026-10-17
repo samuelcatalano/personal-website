@@ -22,9 +22,10 @@ function noiseTexture() {
   return noise;
 }
 // Triplanar, world space: 1 tile = 1 m
-export function blockMaterial(color, { glow = false } = {}) {
+export function blockMaterial(color, { glow = false, k = 2.2 } = {}) {
   const mat = new THREE.MeshStandardMaterial({ color, map: noiseTexture(), roughness: 0.9, metalness: 0 });
   mat.userData.glow = glow;
+  mat.userData.glowK = k; // night emissive multiplier, see sky.update
   mat.onBeforeCompile = (sh) => {
     const common = '#include <common>\nvarying vec3 vWP; varying vec3 vWN;';
     sh.vertexShader = sh.vertexShader
