@@ -3,6 +3,7 @@ import { house } from './houses.js';
 import { phoneBox } from './phone.js';
 import { PALETTE as P } from './palette.js';
 import { buildBlocks } from './blocks.js';
+import { buildParks } from './parks.js';
 const PATCH = P.patch, ROAD = P.road, LINE = P.cream;
 const BANK = P.taupe, PATH = P.stone, CREAM = P.cream;
 const UK_WALLS = [CREAM, '#d8d0c2', P.stone, P.terracotta, P.ochre, P.mint, P.salmon, P.skyBlue, P.offWhite];
@@ -138,4 +139,5 @@ export function buildCity(add, stops, pts, curve) {
     kiosks.push([x, z]);
   }
   buildBlocks(add, stops, pts, curve, occ);
+  buildParks(add, stops, pts, curve, occ); // after the blocks: own rng, reads the free plazas, never shifts a block
 }

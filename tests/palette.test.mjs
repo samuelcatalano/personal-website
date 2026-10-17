@@ -16,7 +16,7 @@ const APPROVED = new Set(['#bfe3ff', '#f4f0e2', '#4d4030', '#6d604b', '#493d30',
 
 test('landmarks and city only use palette or approved colours', () => {
   const allowed = new Set([...Object.values(PALETTE), ...APPROVED]);
-  for (const f of ['js/world/landmarks.js', 'js/world/city.js']) {
+  for (const f of ['js/world/landmarks.js', 'js/world/city.js', 'js/world/parks.js']) {
     const used = readFileSync(join(root, f), 'utf8').match(/#[0-9a-fA-F]{6}\b/g) ?? [];
     for (const c of used) assert.ok(allowed.has(c.toLowerCase()), `${f} uses off-palette ${c}`);
   }

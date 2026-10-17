@@ -9,4 +9,5 @@ export const PALETTE = {
   concreteDark: '#8f918d', concreteMid: '#aeb0ac', redBrown: '#8e3b2e', londonStock: '#c9a96b',
   pinkStucco: '#e8b4b8', blueStucco: '#a9c4dc', mintStucco: '#b9d8c2', lemonStucco: '#efe0a0',
   teal: '#5a9aa0', bronze: '#8a7356',
+  hedge: '#2f6f1e', gravel: '#d8cfb8', iron: '#23262b', tulip: '#f0c030', violet: '#8e5ab8',
 };
