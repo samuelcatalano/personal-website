@@ -16,7 +16,7 @@ const fade = tex(64, 64, (g) => { // u = along the beam (bright near the car), v
 });
 const blob = tex(64, 64, (g) => { const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, 64, 64); });
 const M = { cone: mat(fade, 0xfff2cc), pool: mat(blob, 0xffe9b0), tail: mat(blob, 0xff2a1a) };
-const OP = { cone: 0.13, pool: 0.22, tail: 0.18 };
+const OP = { cone: 0.07, pool: 0.11, tail: 0.1 };
 const cone = new THREE.BufferGeometry(); // two soft fans, one flat and one upright, 12 m long, widening away from the car
 {
   const L = 12, p = [], uv = [], ix = [];
