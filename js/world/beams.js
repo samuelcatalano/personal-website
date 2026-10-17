@@ -16,7 +16,7 @@ const fade = tex(64, 64, (g) => { // u = along the beam (bright near the car), v
 });
 const blob = tex(64, 64, (g) => { const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, 64, 64); });
 const M = { cone: mat(fade, 0xfff2cc), pool: mat(blob, 0xffe9b0), tail: mat(blob, 0xff2a1a) };
-const OP = { cone: 0.2, pool: 0.32, tail: 0.4 };
+const OP = { cone: 0.13, pool: 0.22, tail: 0.18 };
 const cone = new THREE.BufferGeometry(); // two soft fans, one flat and one upright, 12 m long, widening away from the car
 {
   const L = 12, p = [], uv = [], ix = [];
@@ -27,7 +27,7 @@ const cone = new THREE.BufferGeometry(); // two soft fans, one flat and one upri
   cone.setAttribute('position', new THREE.Float32BufferAttribute(p, 3)).setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)).setIndex(ix);
 }
 const pool = new THREE.PlaneGeometry(10, 5).rotateX(-Math.PI / 2).translate(6.5, 0, 0);
-const tailPool = new THREE.PlaneGeometry(3.5, 3).rotateX(-Math.PI / 2).translate(-1.8, 0, 0);
+const tailPool = new THREE.PlaneGeometry(2, 1.8).rotateX(-Math.PI / 2).translate(-1.4, 0, 0);
 export function addBeams(vehicle, front, y = 0.65) {
   const c = new THREE.Mesh(cone, M.cone), p = new THREE.Mesh(pool, M.pool), t = new THREE.Mesh(tailPool, M.tail);
   c.position.set(front, y, 0); c.rotation.z = -0.07;
