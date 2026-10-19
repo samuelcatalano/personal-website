@@ -14,9 +14,11 @@ result = js(r'''(async () => {
     const curbs = local.filter(([,y,,w,h,d]) => h >= 0.08 && h <= 0.18 && Math.max(w,d) <= 0.8 && Math.min(w,d) >= 0.15 && y < 0.2);
     const stripes = local.filter(([,y,,w,h,d,c]) => c === '#e6dcc4' && h <= 0.06 && w >= 0.8 && w <= 1.5 && d < 0.7);
     const crosses = local.filter(([,y,,w,h,d,c]) => c === '#e6dcc4' && h <= 0.06 && Math.max(w,d) > 8 && Math.min(w,d) < 0.7);
+    const variationPatches = additions.filter(([,y,,w,h,d,c]) => c === '#d8cfb8' && y > 0.1 && h < 0.01 && w >= 0.4 && w <= 0.6 && d >= 0.4 && d <= 0.6);
+    const basePavement = additions.filter(([,y,,w,h,d]) => Math.abs(y+0.02)<1e-5 && Math.abs(h-0.12)<1e-5 && Math.abs(w-3.3)<1e-5 && Math.abs(d-3.3)<1e-5);
     const pilotOnly = additions.filter(([,y,,w,h,d,c]) =>
       c === '#7d7468' && Math.abs(h-0.1)<1e-5 && Math.abs(Math.max(w,d)-0.72)<1e-5 && Math.abs(Math.min(w,d)-0.16)<1e-5 ||
-      c === '#d8cfb8' && Math.abs(h-0.12)<1e-5 && Math.abs(w-3.3)<1e-5 && Math.abs(d-3.3)<1e-5 ||
+      c === '#d8cfb8' && y > 0.1 && h < 0.01 && w >= 0.4 && w <= 0.6 && d >= 0.4 && d <= 0.6 ||
       c === '#e6dcc4' && Math.abs(h-0.02)<1e-5 && Math.max(w,d)>8 && Math.min(w,d)<0.7);
     const paths = additions.filter(([, , ,w,h,d]) => w >= 3.1 && w <= 3.5 && d >= 3.1 && d <= 3.5 && h <= 0.14);
     const localPaths = local.filter(([, , ,w,h,d]) => w >= 3.1 && w <= 3.5 && d >= 3.1 && d <= 3.5 && h <= 0.14);
@@ -31,17 +33,19 @@ result = js(r'''(async () => {
     check(curbs.length >= 4, 'pilot street needs low curb geometry on both sides');
     check(stripes.length >= 3, 'pilot street needs restrained lane markings');
     check(crosses.length >= 8, 'pilot street needs two crossing sets');
+    check(variationPatches.length >= 4, 'pilot pavement needs small inset variation patches');
+    check(basePavement.length && basePavement.every(box => box[6] === '#9b9b99'), 'sidewalk tiles must share one material');
+    check(variationPatches.every(box => box[1]+box[4] < 0.11 && box[4] < 0.01 && basePavement.some(p => Math.abs(box[0]-p[0])+box[3]/2 <= p[3]/2 && Math.abs(box[2]-p[2])+box[5]/2 <= p[5]/2)), 'pavement variation must stay shallow and fully on the walkable path');
     check(pilotOnly.length > 0, 'pilot street details must exist');
     check(pilotOnly.every(([x,, ,w,,d]) => x-w/2 >= safeStart && x+w/2 <= safeEnd), 'pilot-only details must stay inside the safe street segment');
     check(pilotOnly.every(([x,, ,w,,d]) => x+w/2 <= bridgeX-20 || x-w/2 >= bridgeX+20), 'pilot-only details must stay outside the Tower Bridge span');
     check(pathContinuity.every(Boolean), 'pilot pedestrian paths must stay continuous through the block');
-    check(new Set(localPaths.map(box => box[6])).has('#d8cfb8'), 'pilot pavement needs subtle surface variation');
     for (const p of plots) for (const [x,,z,w,,d] of local) check(Math.abs(x-p.x) > (w+p.width)/2 || Math.abs(z-p.z) > (d+p.depth)/2, 'street detail intersects a pilot building');
     const routeDistance = ([x,,z]) => Math.min(...Array.from({length: 101}, (_,i) => { const q=curve.getPointAt(i/100); return Math.hypot(x-q.x,z-q.z); }));
     check(curbs.every(box => box[4] <= 0.12 && routeDistance(box) > 3.1), 'curbs must stay outside the vehicle envelope');
     check(localPaths.every(box => routeDistance(box) > 5), 'pedestrian path must remain clear of the vehicle envelope');
     check(crosses.every(([, , , ,h]) => h <= 0.03), 'crossings must stay flush with the roadway');
-    return { name: 'pilot street separates roadway from continuous pedestrian paths', curbs: curbs.length, laneMarks: stripes.length, crossings: crosses.length, pathContinuity };
+    return { name: 'pilot street separates roadway from continuous pedestrian paths', curbs: curbs.length, laneMarks: stripes.length, crossings: crosses.length, pavementPatches: variationPatches.length, pathContinuity };
   };
   const meshes = g => { const m = []; g.traverse(o => { if (o.isMesh) m.push(o); }); return m; };
   const fits = (g, p) => {

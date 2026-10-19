@@ -115,7 +115,9 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot) {
     for (const side of [-1, 1]) {
       const cw = pilot ? (Math.abs(t.x) >= Math.abs(t.z) ? 0.72 : 0.16) : 1.5, cd = pilot ? (Math.abs(t.x) >= Math.abs(t.z) ? 0.16 : 0.72) : 1.5;
       add(p.x + nx * side * 4.55, 0.07, p.z + nz * side * 4.55, cw, 0.1, cd, BANK);
-      add(p.x + nx * side * 7.1, -0.02, p.z + nz * side * 7.1, 3.3, 0.12, 3.3, pilot && i % 9 === 0 ? P.gravel : PATH);
+      const px = p.x + nx * side * 7.1, pz = p.z + nz * side * 7.1;
+      add(px, -0.02, pz, 3.3, 0.12, 3.3, PATH);
+      if (pilot && i % 9 === 0) add(px, 0.1005, pz, 0.55, 0.004, 0.55, P.gravel);
     }
   }
   // Frontage sites: every stop plus filler sites (same 30 m rhythm) along the gaps; the long gaps only keep the London ones (country.js builds the outskirts between)
