@@ -27,9 +27,12 @@ test('Riverside Museum fits its footprint, has a zigzag with a spike peak', () =
 
 test('University main building: tower is tallest, centred, within footprint', () => {
   const b = build(buildUniversity);
-  assert.ok(b.length >= 60 && b.length <= 150, `box count ${b.length}`);
+  assert.ok(b.length >= 60 && b.length <= 190, `box count ${b.length}`);
   const [x0, x1] = ext(b, (q) => q.x - q.w / 2, (q) => q.x + q.w / 2), [z0, z1] = ext(b, (q) => q.z - q.d / 2, (q) => q.z + q.d / 2);
-  assert.ok(x1 - x0 <= 44.01 && z1 - z0 <= 18.01, 'footprint <= 44x18');
+  assert.ok(x1 - x0 >= 70 && x1 - x0 <= 72.01 && z1 - z0 <= 18.01, 'elongated footprint 70–72 x 18');
+  const windows = b.filter(q => q.y === 1.2 && q.h === 4.6);
+  assert.ok(windows.length >= 16, 'extended wings retain repeated Gothic windows');
+  assert.ok(windows.some(q => q.x < 72) && windows.some(q => q.x > 128), 'windows reach both wing ends');
   assert.ok(b.every((q) => q.y >= 0));
   const top = b.reduce((m, q) => (q.y + q.h > m.y + m.h ? q : m));
   assert.ok(top.y + top.h >= 30 && top.y + top.h <= 36, 'tower + spire 30-36 m');

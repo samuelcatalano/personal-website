@@ -111,8 +111,11 @@ test('Tower Bridge sits after the Eye, before the lower terraces; out-leg countr
   assert.ok(out.scot[1] - out.scot[0] >= 80 && out.scot[1] < g && back.sub[1] < t);
   assert.ok(riverEnd(stops, pts) > g + 55 && riverEnd(stops, pts) < t);
   const { museum, uni } = glasgowSites(stops, pts);
-  for (const s of [museum, uni]) assert.ok(s.x - s.w / 2 > out.scot[0] && s.x + s.w / 2 < g - 20, 'inside the Scottish approach, clear of the square');
-  assert.ok(museum.x + museum.w / 2 < uni.x - uni.w / 2 + 4 && museum.z > uni.z, 'museum first, on the river bank; university behind it');
+  for (const s of [museum, uni]) {
+    assert.ok(s.x - s.w / 2 > out.scot[0] && s.x + s.w / 2 < g, 'inside the Scottish approach');
+    assert.ok(s.z + s.d / 2 < pts[stopIndex(stops, 'glasgow')].z - 43, 'clear of the square');
+  }
+  assert.ok(museum.x < uni.x && museum.z - museum.d / 2 > uni.z + uni.d / 2, 'museum first, on the river bank; university behind it without overlap');
 });
 
 test('rng is deterministic', () => {

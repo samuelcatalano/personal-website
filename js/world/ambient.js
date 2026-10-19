@@ -36,16 +36,7 @@ export function createAmbient(scene, { curve, pts, stops }) {
     scene.add(mesh);
     return mesh;
   });
-  const birds = new THREE.Group();
-  const birdMesh = buildMeshes([{ x: 0, y: 0, z: 0, w: 0.8, h: 0.3, d: 0.5, color: '#7d8590' }]);
-  for (let i = 0; i < 8; i++) {
-    const b = birdMesh.clone();
-    b.position.set(Math.cos(i) * 12, 26 + (i % 3) * 2, Math.sin(i) * 12);
-    birds.add(b);
-  }
   const bb = pts[stopIndex(stops, LANDMARKS.bigben)];
-  birds.position.set(bb.x, 0, RIVER_Z - 16);
-  scene.add(birds);
   const blink = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), new THREE.MeshBasicMaterial({ color: 0xff2a2a }));
   blink.position.set(bb.x, 34.4, RIVER_Z - 16);
   scene.add(blink);
@@ -66,7 +57,6 @@ export function createAmbient(scene, { curve, pts, stops }) {
         b.position.y = 0.1 + Math.sin(time * 1.1 + i * 2) * 0.25;
         b.rotation.z = Math.sin(time * 0.9 + i) * 0.04;
       });
-      birds.rotation.y = time * 0.3;
       blink.visible = Math.floor(time * 1.4) % 2 === 0;
     },
   };

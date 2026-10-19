@@ -7,15 +7,15 @@ export function buildUniversity(add, { x, z }) {
   const fz = z + 6; // range front face
   // range: left/right wings and central link
   for (const s of [-1, 1]) {
-    add(x + s * 12.5, 0, z, 15, 10, 12, STONE);
-    add(x + s * 12.5, 10, z, 15.6, 0.5, 12.6, STONE_LT); // cornice
-    for (const [w, d, y] of [[15.4, 12.4, 10.5], [15, 9.4, 12.5], [14.6, 6.4, 14.5], [14.2, 3.4, 16]]) add(x + s * 12.5, y, z, w, 2, d, SLATE);
+    add(x + s * 19.5, 0, z, 29, 10, 12, STONE);
+    add(x + s * 19.5, 10, z, 29.6, 0.5, 12.6, STONE_LT); // cornice
+    for (const [w, d, y] of [[29.4, 12.4, 10.5], [29, 9.4, 12.5], [28.6, 6.4, 14.5], [28.2, 3.4, 16]]) add(x + s * 19.5, y, z, w, 2, d, SLATE);
   }
   add(x, 0, z, 10, 9, 12, STONE);
   add(x, 9, z, 10.6, 0.5, 12.6, STONE_LT);
   add(x, 9.5, z, 10.4, 2.5, 12.4, SLATE);
   // gothic windows: tall bay with pointed head, upper row smaller
-  for (const s of [-1, 1]) for (const dx of [7.5, 10.5, 13.5, 16.5]) {
+  for (const s of [-1, 1]) for (const dx of [7.5, 10.5, 13.5, 16.5, 19.5, 22.5, 25.5, 28.5, 31.5]) {
     const wx = x + s * dx;
     add(wx, 1.2, fz + 0.05, 1.2, 4.6, 0.15, LIT_WIN);
     add(wx, 5.8, fz + 0.05, 0.6, 0.9, 0.15, LIT_WIN);
@@ -23,12 +23,12 @@ export function buildUniversity(add, { x, z }) {
     add(wx, 1, fz + 0.12, 0.25, 3.5, 0.1, STONE_LT); // mullion hint
   }
   add(x, 0, fz + 0.1, 10, 0.5, 0.2, '#ffd86b'); // floodlight uplight band at the base
-  for (const s of [-1, 1]) add(x + s * 12.5, 0, fz + 0.1, 15, 0.5, 0.2, '#ffd86b');
+  for (const s of [-1, 1]) add(x + s * 19.5, 0, fz + 0.1, 29, 0.5, 0.2, '#ffd86b');
   // end pavilions with gables and corner turrets
   for (const s of [-1, 1]) {
-    add(x + s * 19.2, 0, z + 2, 3.6, 13, 8, STONE);
-    for (const [w, y] of [[3.8, 13], [2.6, 14.5], [1.4, 16]]) add(x + s * 19.2, y, z + 2, w, 1.5, w * 2, SLATE);
-    for (const tx of [16.5, 20.8]) {
+    add(x + s * 33.2, 0, z + 2, 3.6, 13, 8, STONE);
+    for (const [w, y] of [[3.8, 13], [2.6, 14.5], [1.4, 16]]) add(x + s * 33.2, y, z + 2, w, 1.5, w * 2, SLATE);
+    for (const tx of [30.5, 34.8]) {
       add(x + s * tx, 0, fz + 0.2, 1.6, 11.5, 1.6, STONE);
       for (const [w, y] of [[1.9, 11.5], [1.3, 13], [0.8, 14.5], [0.4, 15.7]]) add(x + s * tx, y, fz + 0.2, w, 1.5, w, SPIRE);
     }

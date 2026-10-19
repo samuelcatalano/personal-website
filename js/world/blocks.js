@@ -42,7 +42,7 @@ export function buildBlocks(add, stops, pts, curve, occ) {
   const hard = [
     [riverStart(stops, pts) - 6, riverEnd(stops, pts) + 6, -64, -26], H('masp', 26, 26, -76, -50), H('se', 24, 24, -77, -49), H('estaiada', 16, 16, -80, -12),
     H('heathrow', 18, 18, -38, -14), H('bigben', 10, 43, -76, -48), H('wembley', 30, 30, -92, -50), H('wembley', 14, 14, lz + 10, lz + 45),
-    [gl.x - 20, gl.x + 20, gl.z - 43, gl.z - 17], site(mu, 5), site({ ...uni, w: 56, d: 30 }, 4), // museum + university with its hill
+    [gl.x - 20, gl.x + 20, gl.z - 43, gl.z - 17], site(mu, 5), site({ ...uni, w: uni.w + 12, d: 30 }, 4), // museum + university with its hill
  ...rgs.map((rg) => [rg.ctry[0], rg.ctry[1], -400, 400]), // countryside: country.js owns it
     ...pts.slice(0, 6).map((p) => [p.x - 16, p.x + 16, -80, -58]),
   ];
@@ -50,6 +50,8 @@ export function buildBlocks(add, stops, pts, curve, occ) {
   const cut = [
     [cp.x - cp.len / 2 - 3, cp.x + cp.len / 2 + 3, cp.z - cp.amp - cp.depth / 2 - 1.5, cp.z + cp.amp + cp.depth / 2 + 1.5],
     [X('masp') - 25, X('masp') + 25, -50, 12], // clear view of MASP from the taqtile camera
+    H('se', 24, 24, -56, 40), // open forecourt and view of the cathedral steps
+    H('wembley', 30, 30, -49, -33), // stadium frontage stays visible between the side buildings
     [mu.x - mu.w / 2 - 4, mu.x + mu.w / 2 + 4, -100, mu.z - 8], // open backdrop behind the Riverside Museum (r() still drawn, nothing added)
   ];
   const hit = (a, b, e = 0) => a[0] < b[1] + e && b[0] - e < a[1] && a[2] < b[3] + e && b[2] - e < a[3];
@@ -68,5 +70,13 @@ export function buildBlocks(add, stops, pts, curve, occ) {
       occ.push(R);
       x += w() + 2 + r() * 3;
     } else x += 6;
+  }
+  // Fill the three gaps beside the starting park; own RNG preserves every other district.
+  const infill = rng(1947);
+  for (const [dx, z, w, floors, wall] of [[-52, -14, 10, 3, CR], [-52, 0, 10, 4, SS], [-52, 14, 10, 3, OW], [-52, -34, 10, 3, OC], [1, -36, 8, 3, MN]]) {
+    draw(add, pts[0].x + dx, z, [w, 10, floors, 3, wall, W, 0, 1], infill, infill, false, false);
+  }
+  for (const [dx, z, floors, wall] of [[-48, -68, 10, SS], [-34, -64, 8, C]]) {
+    draw(add, X('wembley') + dx, z, [10, 10, floors, 3, wall, W, 0, 1], infill, infill, false, false);
   }
 }

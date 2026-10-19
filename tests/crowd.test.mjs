@@ -43,7 +43,7 @@ test('plaza loops stay 5.6 m clear of the road', () => {
   const loops = walkPaths(stops, pts).filter((p) => p.type === 'loop'), line = [];
   for (let i = 1; i < pts.length; i++) for (let k = 0; k < 60; k++) line.push({ x: pts[i - 1].x + (pts[i].x - pts[i - 1].x) * k / 60, z: pts[i - 1].z + (pts[i].z - pts[i - 1].z) * k / 60 });
   line.push(pts[pts.length - 1]);
-  assert.equal(loops.length, 6);
+  assert.equal(loops.length, 7);
   assert.ok(loops.some((l) => l.name === 'glasgow-uni'));
   for (const { rect: q } of loops) {
     assert.ok(q.x0 < q.x1 && q.z0 < q.z1);
@@ -51,6 +51,14 @@ test('plaza loops stay 5.6 m clear of the road', () => {
     assert.ok(d >= 5.6, `${d}`);
   }
   assert.ok(plan.some((p) => p.path.type === 'loop' && (p.path.dir === 1 || p.path.dir === -1)));
+});
+test('Sé plaza has pedestrians walking both ways below the cathedral stairs', () => {
+  const path = walkPaths(stops, pts).find(p => p.name === 'se');
+  assert.ok(path, 'Sé has a walking loop');
+  assert.ok(path.rect.z0 > -50.8 && path.rect.z1 < -27, 'loop clears stairs and existing park');
+  const people = crowdPlan(stops, pts, 1017).filter(p => p.path.name === 'se');
+  assert.ok(people.length >= 12, 'plaza feels populated');
+  assert.deepEqual([...new Set(people.map(p => p.path.dir))].sort(), [-1, 1]);
 });
 test('sprite variants cover every skin tone, kind and hair style', () => {
   const { variants, of } = chooseVariants(looks, 32);

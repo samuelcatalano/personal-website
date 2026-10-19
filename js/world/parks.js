@@ -18,7 +18,7 @@ export const PARKS = [ // stops after the Eye sit further east (OUT_GAP + LONG_G
   { x0: 731, x1: 807, z0: -43, z1: -35, uk: 1, rail: 1, trees: 6 }, // in front of Wembley: trees stay <= 4.4 m
   { x0: 817, x1: 841, z0: -12, z1: 24, uk: 1, rail: 1, pond: 1, trees: 7 },
 ];
-// The 4 pedestrian loops (crowd.js walkPaths) become parks: gravel ring over the walking inset, everything else >= 2.4 m inside the rect.
+// Pedestrian loops become plazas: walking ring, everything else >= 2.4 m inside the rect.
 export const WALK_INSET = [0.6, 1.6]; // ponytail: mirrors crowd.js between(r, 0.6, 1.6) / people.js INSET; keep in sync
 export const RING = [0.3, 1.9], KEEP = 2.4; // ring covers WALK_INSET with 0.3 to spare each side
 export const PLAZAS = [
@@ -27,7 +27,8 @@ export const PLAZAS = [
   { name: 'thames', trees: 4, fountain: 1, nopath: 1 },
   { name: 'tower', trees: 3, beds: 1, nopath: 1 },
   { name: 'wembley', trees: 2, beds: 1 },
-  { name: 'glasgow-uni', trees: 0, quiet: 1, nopath: 1, paved: 1 }, // far-bank promenade: paved, not a lawn; keeps the gravel ring
+  { name: 'glasgow-uni', trees: 0, quiet: 1, nopath: 1, paved: P.pave }, // far-bank promenade: paved, not a lawn; keeps the gravel ring
+  { name: 'se', paved: P.stone },
 ];
 const { patch: LAWN, gravel: GRAVEL, hedge: HEDGE, leaf: LEAF, stone: STONE, oak: OAK, iron: IRON, glass: WATER, dirt: SOIL, roof: POLE, lit: LIT } = P;
 const BLOOM = [P.red, P.tulip, P.violet, P.red];
@@ -36,6 +37,12 @@ export function buildParks(add, stops, pts, curve, occ) {
   const loops = walkPaths(stops, pts).filter((p) => p.type === 'loop');
   const plazas = PLAZAS.map((q) => ({ ...q, ...loops.find((l) => l.name === q.name).rect, ring: 1 }));
   for (const orig of [...PARKS, ...plazas]) {
+    if (orig.name === 'se') {
+      const z0 = orig.z0 - 7;
+      add((orig.x0 + orig.x1) / 2, 0.02, (z0 + orig.z1) / 2, orig.x1 - orig.x0, 0.05, orig.z1 - z0, orig.paved);
+      made.push(orig);
+      continue;
+    }
     const ring = orig.ring, i = ring ? RING[1] : 0, park = { ...orig, x0: orig.x0 + i, x1: orig.x1 - i, z0: orig.z0 + i, z1: orig.z1 - i }; // ring parks: lawn = rect inset 1.9
     const wide = park.x1 - park.x0 >= park.z1 - park.z0, L = wide ? park.x1 - park.x0 : park.z1 - park.z0, S = wide ? park.z1 - park.z0 : park.x1 - park.x0;
     const cx = (park.x0 + park.x1) / 2, cz = (park.z0 + park.z1) / 2;
@@ -44,7 +51,7 @@ export function buildParks(add, stops, pts, curve, occ) {
     const world = (u, v) => (wide ? [cx + u, cz + v] : [cx + v, cz + u]);
     const clearOfSigns = (u, v) => { const [x, z] = world(u, v); return spots.every(([a, b]) => Math.hypot(a - x, b - z) > CLEAR); };
     const mainPath = !park.nopath && S >= 6, cross = mainPath && S >= 10 && L >= 16, plaza = park.fountain || park.pond, taken = [];
-    B(0, 0, 0.02, L, 0.05, S, park.paved ? P.pave : LAWN);
+    B(0, 0, 0.02, L, 0.05, S, park.paved || LAWN);
     if (ring) { // gravel ring over inset 0.3..1.9 of the loop rect
       const [a, b] = RING, w = b - a, W = orig.x1 - orig.x0, D = orig.z1 - orig.z0, m = (a + b) / 2;
       for (const f of [-1, 1]) {

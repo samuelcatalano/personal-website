@@ -11,4 +11,5 @@ export const PALETTE = {
   teal: '#5a9aa0', bronze: '#8a7356',
   field: '#5d9e34', field2: '#7fae45', crop: '#c9b550', redSand: '#b5603f', hill: '#6d9a4a',
   hedge: '#2f6f1e', gravel: '#d8cfb8', iron: '#23262b', tulip: '#f0c030', violet: '#8e5ab8',
+  verdigris: '#a6d5c4',
 };

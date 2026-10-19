@@ -18,18 +18,31 @@ function se(add, { x }) {
   const z = FAR;
   add(x, 0, z, 30, 14, 14, P.stone);
   add(x, 14, z, 30.6, 0.8, 14.6, P.roof);
-  for (const dx of [-8, 0, 8]) add(x + dx, 3, z + 7.05, 2, 6, 0.12, P.glass);
+  for (const dx of [-8, 8]) add(x + dx, 3, z + 7.05, 2, 6, 0.12, P.glass);
+  add(x, 0, z + 7.2, 14, 1.5, 0.4, P.stone);
+  for (let i = 0; i < 6; i++) add(x, 0, z + 7.4 + (i + 0.5) * 0.8, 14, 1.5 - i * 0.25, 0.8, P.stone);
+  add(x, 1.5, z + 7.1, 3.2, 5, 0.2, P.roof);
   for (const sx of [-1, 1]) {
     const tx = x + sx * 11;
     add(tx, 0, z + 4, 6, 26, 6, P.stone);
-    add(tx, 26, z + 4, 5, 2, 5, P.roof);
-    add(tx, 28, z + 4, 3.5, 4, 3.5, P.stone);
-    add(tx, 32, z + 4, 2, 4, 2, P.stone);
+    for (let i = 0; i < 10; i++) {
+      const w = 5.6 - i * 0.54;
+      add(tx, 26 + i, z + 4, w, 1, w, P.verdigris);
+    }
     add(tx, 36, z + 4, 0.6, 3, 0.6, P.gilt);
     add(tx, 12, z + 7.05, 1.4, 3, 0.12, P.glass);
   }
-  [[9, 4], [7, 4], [5, 4], [3, 4]].forEach(([w, h], i) => add(x, 14.8 + i * 4, z, w, h, w, P.leaf));
-  add(x, 31, z, 0.6, 3, 0.6, P.gilt);
+  // Elliptical dome in circular rows, sharing the existing instanced box batches.
+  for (let i = 0; i < 10; i++) {
+    const radius = 7 * Math.sqrt(1 - ((i + 0.5) / 10) ** 2);
+    for (let dz = -6.5; dz <= 6.5; dz++) {
+      if (Math.abs(dz) >= radius) continue;
+      add(x, 14.8 + i * 0.9, z + dz, 2 * Math.sqrt(radius ** 2 - dz ** 2), 0.9, 1, P.verdigris);
+    }
+  }
+  add(x, 23.8, z, 2.4, 2, 2.4, P.verdigris);
+  add(x, 25.8, z, 1.8, 1, 1.8, P.verdigris);
+  add(x, 26.8, z, 0.6, 3, 0.6, P.gilt);
 }
 function estaiada(add, { x }) {
   const z = RIVER_Z;

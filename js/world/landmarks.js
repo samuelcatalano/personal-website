@@ -180,7 +180,7 @@ export function buildLandmarks(add, stops, pts) {
   buildGlasgow(add, at(stops, pts, 'glasgow'));
   const { museum, uni } = glasgowSites(stops, pts), hill = (dx, w, d, y, h, c) => add(uni.x + dx, y, uni.z, w, h, d, c);
   buildRiverside(add, museum);
-  hill(0, 56, 30, 0, 1.2, P.steel); hill(0, 50, 24, 1.2, 1.3, P.skyBlue); // blue-grey paved plaza the university stands on
+  hill(0, uni.w + 12, 24, 0, 1.2, P.steel); hill(0, uni.w + 6, 20, 1.2, 1.3, P.skyBlue); // blue-grey paved plaza the university stands on
   buildUniversity((x, y, z, w, h, d, c) => add(x, y + uni.lift, z, w, h, d, c), uni);
   flag(add, uni.x, 34.7 + uni.lift, uni.z + 3, 'saltire', 1.1); // finial top
   buildSaoPaulo(add, stops, pts);

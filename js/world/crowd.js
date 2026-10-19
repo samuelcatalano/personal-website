@@ -33,8 +33,9 @@ export function walkPaths(stops, pts) {
     { type: 'loop', name: 'paulista', rect: rect(cp.x - 18, cp.x + 20, 11, 18) }, // between the houses and the Copan
     { type: 'loop', name: 'thames', rect: rect(X('bigben') - 10, X('eye') + 25, 19, 31) }, // ponytail: starts at xdesign; Heathrow and Millimetric houses block 'move'; ends before the countryside
     { type: 'loop', name: 'tower', rect: rect(towerX(stops, pts) - 30, towerX(stops, pts) + 24, 19, 31) }, // Tower Bridge promenade, starts after the thames loop
-    { type: 'loop', name: 'wembley', rect: rect(wx + 14, wx + 40, 19, 28) }, // beside the figure; the front of the stadium is walled by blocks
+    { type: 'loop', name: 'wembley', rect: rect(wx + 14, wx + 40, 19, 28) }, // beside the closing figure
     { type: 'loop', name: 'glasgow-uni', rect: rect(museum.x + museum.w / 2 + 2, uni.x + 30, -27, -13) }, // far-bank promenade in front of the university, from the museum's east edge; water is north of z -11, hill front at z -28
+    { type: 'loop', name: 'se', rect: rect(X('se') - 20, X('se') + 20, -4, 14) }, // below the cathedral steps, above the existing garden
   ];
 }
 export function crowdPlan(stops, pts, seed, count = 600) {

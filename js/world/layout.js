@@ -23,7 +23,7 @@ export const LANDMARKS = {
 export const TOWER_AT = 60;
 export const towerX = (stops, pts) => pts[stopIndex(stops, LANDMARKS.eye)].x + TOWER_AT;
 // Glasgow approach landmarks (footprints centred; hill = green terrace the university stands on), shared by landmarks.js and blocks.js
-export const glasgowSites = (stops, pts) => { const g = pts[stopIndex(stops, LANDMARKS.glasgow)].x; return { museum: { x: g - 92, z: RIVER_Z - 23, w: 32, d: 16 }, uni: { x: g - 48, z: RIVER_Z - 43, w: 44, d: 18, lift: 2.5 } }; };
+export const glasgowSites = (stops, pts) => { const g = pts[stopIndex(stops, LANDMARKS.glasgow)].x; return { museum: { x: g - 92, z: RIVER_Z - 23, w: 32, d: 16 }, uni: { x: g - 48, z: RIVER_Z - 43, w: 72, d: 18, lift: 2.5 } }; };
 export const FRAME_LIFT = { mira: 1, xdesign: 1, olm: 0.6, tribal: 1 };
 // Edifício Copan: S-shaped slab on the new stretch after MASP, behind the road row, ending before the Estaiada river (blocks.js reserves it)
 // h = 36 so the whole tower, rooftop included, fits the lifted follow shot at mira (checked at 1440x900 and 375x812)
