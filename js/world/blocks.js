@@ -35,7 +35,7 @@ export function draw(add, x, z, [w0, d, n, fh, wall, trim, kind, u], r, q, near,
   }
 }
 // Back rows + skyline. Skips `hard` (river, landmarks + 6 m, plaza), `occ` (houses), 26 m of road; near side and Sé/MASP flanks <= 12 m.
-export function buildBlocks(add, stops, pts, curve, occ) {
+export function buildBlocks(add, stops, pts, curve, occ, onBuildingPlot) {
   const r = rng(7311), q = rng(5521), { museum: mu, uni } = glasgowSites(stops, pts), site = (o, m) => [o.x - o.w / 2 - m, o.x + o.w / 2 + m, o.z - o.d / 2 - m, o.z + o.d / 2 + m], cp = copan(stops, pts), gl = pts[stopIndex(stops, L.glasgow)], rgs = regions(stops, pts), X = (k) => pts[stopIndex(stops, L[k])].x, mv = X('heathrow') - 15, lz = pts[pts.length - 1].z;
   const H = (k, a, b, z0, z1) => [X(k) - a, X(k) + b, z0, z1], path = Array.from({ length: 241 }, (_, i) => curve.getPointAt(i / 240));
   const zAt = (x) => path.reduce((a, p) => Math.abs(p.x - x) < Math.abs(a.x - x) ? p : a).z;
@@ -55,6 +55,7 @@ export function buildBlocks(add, stops, pts, curve, occ) {
     [mu.x - mu.w / 2 - 4, mu.x + mu.w / 2 + 4, -100, mu.z - 8], // open backdrop behind the Riverside Museum (r() still drawn, nothing added)
   ];
   const hit = (a, b, e = 0) => a[0] < b[1] + e && b[0] - e < a[1] && a[2] < b[3] + e && b[2] - e < a[3];
+  const pilotKinds = new Set(), pilotX0 = X('eye'), pilotX1 = rgs[0].ctry[0];
   for (const [side, f, sp, uk] of ROWS) for (let x = pts[0].x - 40; x < X('wembley') + 40;) {
     const sc = inRegion(rgs, 'scot', x), sub = inRegion(rgs, 'sub', x), mix = sc ? [0] : x > mv ? uk : sp; // Scottish edge: low red-sandstone flats
     const make = (s) => [s[0], s[1], s[2] + (r() * (s[3] - s[2] + 1) | 0), s[4], sc && !s[7] ? (r(), P.redSand) : s[5][r() * s[5].length | 0], s[6], s[7], s[7] > 2 ? 3 + (r() * 3 | 0) : 1];
@@ -66,7 +67,14 @@ export function buildBlocks(add, stops, pts, curve, occ) {
     if (!bad() && ![...hard, ...occ].some((o) => hit(R, o)) && !path.some((p) => hit(R, [p.x, p.x, p.z, p.z], 25))) {
       const clear = side > 0 && Math.abs(x + w() / 2 - X('wembley')) < 35; // camera side of the last stop stays open
       const civic = z() <= -65 && (x + w() >= X('bigben') - 20 && x <= rgs[0].sub[1] || x + w() >= rgs[0].scot[0] && x <= rgs[1].scot[1]); // London landmark stretch + Glasgow (both edges) only
-      draw(clear || cut.some((o) => hit(R, o)) ? () => {} : add, x + w() / 2, z(), b, r, q, side > 0, civic);
+      const kind = b[7] === 3 ? 'terrace' : b[7] === 1 ? 'office' : 'midrise';
+      const pilot = onBuildingPlot && x + w() / 2 > pilotX0 && x + w() / 2 < pilotX1 && !pilotKinds.has(kind);
+      if (pilot) {
+        pilotKinds.add(kind);
+        const floors = civic ? Math.min(b[2], Math.floor(16 / b[3])) : b[2];
+        onBuildingPlot({ id: `london-${kind}`, kind, x: x + w() / 2, z: z(), width: w(), depth: b[1], height: (side > 0 && kind === 'terrace' ? Math.min(floors, 2) : floors) * b[3] });
+      }
+      draw(pilot || clear || cut.some((o) => hit(R, o)) ? () => {} : add, x + w() / 2, z(), b, r, q, side > 0, civic);
       occ.push(R);
       x += w() + 2 + r() * 3;
     } else x += 6;

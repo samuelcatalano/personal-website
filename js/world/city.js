@@ -59,7 +59,7 @@ export function tree(add, x, z, { h, crown, base = 0.1 }) {
   add(x - crown * 0.22, h + 0.2, z + crown * 0.16, crown * 0.52, 1, crown * 0.52, LEAF_SHADE);
   add(x + crown * 0.2, h + 0.15, z - crown * 0.2, crown * 0.48, 0.9, crown * 0.48, LEAF);
 }
-export function buildCity(add, stops, pts, curve, onTree) {
+export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot) {
   const drawTree = onTree ? (_add, x, z, shape) => onTree(x, z, shape) : tree;
   const spots = furnitureSpots(stops, curve).map((o) => o.xz);
   const free = (x, z) => spots.every(([a, b]) => Math.hypot(a - x, b - z) > CLEAR); // ponytail: skip, not shift
@@ -146,7 +146,7 @@ export function buildCity(add, stops, pts, curve, onTree) {
   }
   const rotors = rgs.flatMap((rg, leg) => buildCountry(add, curve, drawTree, rg.ctry, leg));
   buildGlasgowEdges(add, stops, pts, curve, drawTree);
-  buildBlocks(add, stops, pts, curve, occ);
+  buildBlocks(add, stops, pts, curve, occ, onBuildingPlot);
   buildParks(add, stops, pts, curve, occ, onTree); // after the blocks: own rng, reads the free plazas, never shifts a block
   return { rotors, lamps }; // turbine hub positions [x, y, z]
 }
