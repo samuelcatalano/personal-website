@@ -18,11 +18,20 @@ print(js("""(async () => {
   const side = city.filter(b => b.y === 0 && b.h >= 3 && b.w >= 5 && (b.x <= pts[0].x - 90 && b.z >= -99 || b.x === pts[0].x - 13 && b.z === -3));
   const greens = [P.field, P.field2, P.hill];
   const bodies = distant.filter(b => b.y === 0 && !greens.includes(b.color));
+  const nearWalls = bodies.filter(b => b.z > -150);
+  const tiers = distant.filter(b => b.h === 0.28 && nearWalls.some(w =>
+    b.x === w.x && b.z === w.z && b.y === w.h + 1.1 &&
+    Math.abs(b.w - w.w * 0.38) < 1e-9 && Math.abs(b.d - w.d * 0.45) < 1e-9));
+  if (!tiers.length) throw Error('No new backdrop roof tier');
   const minLandmarkZ = Math.min(...landmarks.map(b => b.z - b.d/2));
   // Sé is the westernmost named landmark; Paulista's generic skyline is decoration.
   const seX = pts[stops.findIndex(s => s.id === 'puc')].x;
   const cathedral = landmarks.filter(b => Math.abs(b.x-seX) <= 16 && b.z >= -74 && b.z <= -50);
   const minViewX = Math.min(...cathedral.map(b => b.x - b.w/2), ...pts.flatMap((p,i) => [false,true].map(mobile => shotFor(SECTION_SHOT[stops[i].section], {...p,y:0}, {mobile}).position[0])));
+  for (const mobile of [false, true]) {
+    const viewX = Math.min(...cathedral.map(c => c.x - c.w/2), ...pts.map((p,i) => shotFor(SECTION_SHOT[stops[i].section], {...p,y:0}, {mobile}).position[0]));
+    for (const b of tiers) if (b.z + b.d/2 >= minLandmarkZ && b.x + b.w/2 >= viewX) throw Error('Backdrop roof tier enters landmark view '+JSON.stringify({mobile,b,viewX,minLandmarkZ}));
+  }
   for (const b of [...distant.filter(b => b.y >= 0), ...rear, ...side]) {
     if (b.z + b.d/2 >= minLandmarkZ && b.x + b.w/2 >= minViewX) throw Error('New scenery enters landmark foreground '+JSON.stringify({b,minViewX,minLandmarkZ}));
   }

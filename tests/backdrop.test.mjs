@@ -19,6 +19,19 @@ test('backdrop is deterministic and stays within the box budget', () => {
   assert.ok(a.length <= 2500, `${a.length} boxes`);
 });
 
+test('near backdrop has an extra stepped roof tier while far rows stay muted', () => {
+  const a = make(), b = make();
+  assert.deepEqual(a, b);
+  assert.ok(a.length <= 2500, `${a.length} boxes`);
+  const walls = a.filter((box) => box.y === 0 && box.z < -110 && box.z > -150 && box.h >= 5.6 && box.h <= 11.2);
+  const tiers = a.filter((box) => box.h === 0.28 && walls.some((wall) =>
+    box.x === wall.x && box.z === wall.z && box.y === wall.h + 1.1 &&
+    Math.abs(box.w - wall.w * 0.38) < 1e-9 && Math.abs(box.d - wall.d * 0.45) < 1e-9));
+  assert.ok(tiers.length > 0, 'near houses have the extra 0.38 × stepped roof tier');
+  const farWalls = a.filter((box) => box.y === 0 && box.z <= -180 && box.h >= 5.6 && box.h <= 19.6);
+  assert.ok(farWalls.every((box) => [P.stone, P.concreteMid, P.taupe, P.steel].includes(box.color)));
+});
+
 test('ground reaches well past the route and beyond the fog horizon in every direction', () => {
   const ground = make().filter((b) => b.h >= 0.2 && b.y + b.h <= -1.05 && b.w > 1000 && b.d > 1000);
   assert.equal(ground.length, 1);
