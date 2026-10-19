@@ -105,7 +105,10 @@ print(js("""(async () => {
     world.setTheme('day');
     await nextFrame();
     await new Promise(resolve => setTimeout(resolve, 200));
-    const expectedStop = Math.round(.6 * (stops.length - 1)) / (stops.length - 1);
+    const { routePoints } = await import('./js/world/layout.js');
+    const { stopMarks, nearestStop } = await import('./js/scroll.js');
+    const marks = stopMarks(routePoints(stops.length));
+    const expectedStop = marks[nearestStop(.6, stops.length, marks)];
     check(progress.at(-1) === expectedStop, 'First frame must use the actual stop');
     const settledFrames = progress.length;
     await new Promise(resolve => setTimeout(resolve, 200));

@@ -6,9 +6,9 @@ print(js(r'''(async () => {
   const { createAmbient } = await import('./js/world/ambient.js');
   const { stops } = await import('./js/content.js');
   const { PALETTE } = await import('./js/world/palette.js');
-  const { routePoints, routeCurve, RIVER_Z } = await import('./js/world/layout.js');
+  const { routePoints, routeCurve, RIVER_Z, towerX } = await import('./js/world/layout.js');
   const { CatmullRomCurve3, Vector3, Scene, Box3 } = THREE;
-  const pts = routePoints(stops.length), bridgeX = pts[stops.findIndex(stop => stop.id === 'tribal')].x;
+  const pts = routePoints(stops.length), bridgeX = towerX(stops, pts);
   const curve = routeCurve(THREE, pts), ambientScene = new Scene();
   createAmbient(ambientScene, { curve, pts, stops });
   ambientScene.updateMatrixWorld(true);
