@@ -82,11 +82,12 @@ export function createBuilding(plot) {
   const winW = Math.min(0.85, w / columns * 0.46), winH = Math.min(1.35, bodyHeight / floors * 0.48);
   const frameW = Math.min(winW + 0.1, w / columns * 0.9), frameH = Math.min(winH + 0.1, bodyHeight / floors * 0.9);
   const frontDepth = Math.min(0.02, d * 0.05), sideWidth = Math.min(0.02, w * 0.05);
+  const frameZ = d / 2 - frontDepth / 2 - Math.min(0.003, frontDepth * 0.15);
   for (let floor = 0; floor < floors; floor++) for (let column = 0; column < columns; column++) {
     const x = -w / 2 + (column + 0.5) * w / columns;
     const y = (floor + 0.55) * bodyHeight / floors;
     windows.push([x, y, d / 2 - frontDepth / 2, winW, winH, frontDepth]);
-    borders.push([x, y, d / 2 - frontDepth / 2, frameW, frameH, frontDepth]);
+    borders.push([x, y, frameZ, frameW, frameH, frontDepth]);
     if (kind !== 'shop') for (let sideColumn = 0; sideColumn < sideColumns; sideColumn++) {
       const z = -d / 2 + (sideColumn + 0.5) * d / sideColumns;
       windows.push([w / 2 - sideWidth / 2, y, z, sideWidth, winH, Math.min(0.85, d / sideColumns * 0.46)]);
