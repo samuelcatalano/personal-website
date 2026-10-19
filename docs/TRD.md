@@ -27,6 +27,7 @@ js/world/camera.js         shot definitions, eased shot blending, spring, approa
 js/world/voxel.js          group box data into InstancedMesh batches by material/color
 js/world/city.js           road, paving, Thames banks, street furniture, houses/trees and generation orchestration
 js/world/blocks.js         procedural city blocks, skyline and protected building regions
+js/world/backdrop.js       deterministic distant neighborhoods, hills and extended ground behind all landmarks
 js/world/parks.js          park and plaza geometry, landscaping and sign-clearance rules
 js/world/landmarks.js      London landmarks, Heathrow plane, Glasgow and São Paulo builder orchestration
 js/world/glasgow.js        George Square, City Chambers and Duke of Wellington statue with traffic cone
@@ -52,6 +53,8 @@ tests/*.browser.py         browser checks for scene, landmarks, vehicles, people
 `main.js` sets the scroll track to `stops.length * 100vh`, paints the panel immediately, probes `webgl2`, then dynamically imports `world/scene.js`. A failed probe or world import adds `no-webgl`; the canvas is hidden and the CSS gradient remains behind the usable HTML panel. The fallback does not draw a static skyline.
 
 `scene.js` builds a Catmull–Rom route from one world point per stop, then assembles city, landmarks, vehicles, people, water, signs, sky and a closing figure. `voxel.js` groups generated box records by color/material into instanced meshes; landmarks may also add purpose-built meshes and sprites. There is no declared draw-call or instance-count target in the implementation.
+
+The rear infill street stays behind z=-100 and clears the university, museum backdrop and countryside hills. `backdrop.js` adds six denser staggered neighborhood rows behind z=-110, with simpler muted blocks farther away, green transitions around the countryside, and ground extending beyond the fog horizon. Its separate instanced group casts no shadows; tests cap it below 2,500 boxes. Fog fades from 240 to 900 m by day and 180 to 680 m by night, scaled by the regional mood. New raised scenery stays behind the backmost landmark footprint or entirely west of all route cameras and landmark footprints. The latter fills the starting-side neighborhood and a small corner shop without intersecting any landmark sightline. Urban paving fills the distant blocks while countryside bands remain green; paving tiles meet without coplanar overlap.
 
 The scroll target is smoothed with a spring and the bus follows the resulting route parameter. Camera shots vary by content section; `blendShots` eases framing between adjacent stops, while `FRAME_LIFT` gives selected journey stops extra headroom. Desktop and mobile use different framing to account for the panel. Resize handling updates DPR (capped at 1.5 desktop and 1 mobile), viewport, shadow-map enablement and camera view offset. The renderer uses a 1024² directional shadow map on desktop and disables shadows on mobile.
 
@@ -81,3 +84,7 @@ The camera continues to use the same section shots and smooth blend at the new s
 ## Privacy
 
 The contact UI exposes email, LinkedIn and GitHub only. Do not publish a home address or phone number. The current repository policy in `CLAUDE.md` says any shipped CV must be redacted or omitted.
+
+Public-space pedestrians reuse the existing sprite atlas and bidirectional rectangular walks: 600 original pedestrians plus 400 spread over 17 additional corridors at Sé, MASP, the Thames, George Square and Wembley. Per-person insets, starting positions and speeds vary; raised paving sets the foot height. Population stays the same day and night; reduced motion pauses walking.
+
+All 160 city, park, countryside and George Square trees use only the two rounded variants in `assets/trees/park-atlas.png`; the pine variants are unused. `trees.js` renders one instanced batch with a lit alpha-tested material and matching shadow material. An optional tree callback lets city and landmark builders preserve positions and RNG streams while collecting tree placements. Deterministic height variation stays below the old heights (also capped at 4.4 m including padding); crown width never exceeds the original footprint. If the image cannot load, scene assembly restores voxel trees.

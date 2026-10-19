@@ -1,21 +1,6 @@
 import * as THREE from 'three';
 import { furnitureSpots } from './layout.js';
 const tex = (c) => Object.assign(new THREE.CanvasTexture(c), { colorSpace: THREE.SRGBColorSpace });
-export function paintSign(text) {
-  const c = document.createElement('canvas');
-  c.width = 80; c.height = 64;
-  const g = c.getContext('2d');
-  const r = (col, ...a) => { g.fillStyle = col; g.fillRect(...a); };
-  r('#4a3419', 34, 40, 12, 24);
-  r('#6b4a24', 0, 0, 80, 40);
-  r('#a27b4c', 2, 2, 76, 36);
-  for (let y = 10; y < 38; y += 9) r('#8a6638', 2, y, 76, 1);
-  g.fillStyle = '#2b1d0e';
-  g.font = 'bold 15px monospace';
-  g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.fillText(text, 40, 21);
-  return Object.assign(tex(c), { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter });
-}
 export function paintPlaque(text, color, size = 128) {
   const c = document.createElement('canvas');
   c.width = c.height = size;
@@ -41,11 +26,6 @@ export async function createSigns(scene, { stops, curve }) {
       sprite.scale.set(1.6, 1.6, 1);
       scene.add(pole, sprite);
       company.push({ i, sprite });
-    } else {
-      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: paintSign(stops[i].year), toneMapped: false }));
-      sp.scale.set(4.2, 3.36, 1);
-      sp.position.set(x, 1.68, z);
-      scene.add(sp);
     }
   }
   let shown = -1;

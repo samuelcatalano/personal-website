@@ -79,4 +79,22 @@ export function buildBlocks(add, stops, pts, curve, occ) {
   for (const [dx, z, floors, wall] of [[-48, -68, 10, SS], [-34, -64, 8, C]]) {
     draw(add, X('wembley') + dx, z, [10, 10, floors, 3, wall, W, 0, 1], infill, infill, false, false);
   }
+  // A low rear street adds depth without entering any landmark's foreground.
+  const rear = rng(9274);
+  for (let x = pts[0].x - 100; x < X('wembley') + 100; x += 15) {
+    const w = 8 + rear() * 3, cx = x + w / 2, R = [x - 1, x + w + 1, -113, -103];
+    if ([...hard, ...occ].some(o => hit(R, o)) || inRegion(rgs, 'ctry', cx, 30 + w / 2) || Math.abs(cx - mu.x) < (w + mu.w) / 2 + 12) continue;
+    const wall = cx < mv ? [CR, OC, SS] : inRegion(rgs, 'scot', cx) ? [P.redSand, SS] : [B, LS, CR];
+    draw(add, cx, -108, [w, 8, 2 + (rear() < 0.35 ? 1 : 0), 3, wall[rear() * wall.length | 0], W, 0, 1], rear, rear, false, false);
+    occ.push(R);
+  }
+  // These blocks sit west of both the route cameras and every landmark.
+  const side = rng(5165), sx = pts[0].x - 125;
+  add(sx, -0.12, -72, 84, 0.14, 72, P.pave);
+  for (const z of [-83, -61]) add(sx, 0.025, z, 84, 0.015, 4.6, P.road);
+  add(sx, 0.026, -72, 4.6, 0.015, 72, P.road);
+  for (const dx of [-30, -10, 10, 30]) for (const z of [-94, -72, -50]) {
+    draw(add, sx + dx, z, [10, 10, 2 + (side() * 3 | 0), 3, [CR, SS, OC, OW][side() * 4 | 0], W, 0, 1], side, side, false, false);
+  }
+  draw(add, pts[0].x - 13, -3, [5.5, 6, 2, 3, OC, W, 2, 1], side, side, false, false);
 }

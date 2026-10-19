@@ -32,7 +32,7 @@ export const PLAZAS = [
 ];
 const { patch: LAWN, gravel: GRAVEL, hedge: HEDGE, leaf: LEAF, stone: STONE, oak: OAK, iron: IRON, glass: WATER, dirt: SOIL, roof: POLE, lit: LIT } = P;
 const BLOOM = [P.red, P.tulip, P.violet, P.red];
-export function buildParks(add, stops, pts, curve, occ) {
+export function buildParks(add, stops, pts, curve, occ, onTree) {
   const spots = furnitureSpots(stops, curve).map((o) => o.xz), r = rng(9157), made = [];
   const loops = walkPaths(stops, pts).filter((p) => p.type === 'loop');
   const plazas = PLAZAS.map((q) => ({ ...q, ...loops.find((l) => l.name === q.name).rect, ring: 1 }));
@@ -84,7 +84,11 @@ export function buildParks(add, stops, pts, curve, occ) {
     };
     for (let i = 0; i < park.trees; i++) {
       const at = spot(1.9, 30, 1.15), h = 2.6 + r() * 0.6, crown = 1.8 + r() * 0.5; // always draw rng
-      if (at) { const [x, z] = world(...at); tree(add, x, z, { h, crown }); }
+      if (at) {
+        const [x, z] = world(...at);
+        if (onTree) onTree(x, z, { h, crown });
+        else tree(add, x, z, { h, crown });
+      }
     }
     const beds = park.beds ?? (cross ? 2 : 1);
     for (let i = 0; i < beds; i++) { // flower beds: soil strip with four colour blocks

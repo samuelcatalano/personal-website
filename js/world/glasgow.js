@@ -7,7 +7,7 @@ import { flag } from './flags.js';
 const CONE_ORANGE = '#f36b21', BRONZE_DK = '#4a3a22';
 
 // z is the road centre; George Square sits on its far-side (-z) edge.
-export function buildGlasgow(add, { x, z: roadZ }) {
+export function buildGlasgow(add, { x, z: roadZ }, onTree) {
   const squareZ = roadZ - 28, chambersZ = roadZ - 41;
 
   add(x, 0.01, squareZ, 40, 0.14, 22, P.gravel);
@@ -18,8 +18,11 @@ export function buildGlasgow(add, { x, z: roadZ }) {
   }
   for (const dx of [-17, -11, 11, 17]) {
     for (const dz of [-8, 8]) {
-      add(x + dx, 0.2, squareZ + dz, 0.7, 3, 0.7, P.trunk);
-      add(x + dx, 3.1, squareZ + dz, 3.5, 3.5, 3.5, P.leaf);
+      if (onTree) onTree(x + dx, squareZ + dz, { h: 5.3, crown: 3.5, base: 0.2 });
+      else {
+        add(x + dx, 0.2, squareZ + dz, 0.7, 3, 0.7, P.trunk);
+        add(x + dx, 3.1, squareZ + dz, 3.5, 3.5, 3.5, P.leaf);
+      }
     }
   }
 

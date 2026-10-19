@@ -80,7 +80,7 @@ gl_Position = projectionMatrix * mvPosition;`);
   const A = crowd.instanceMatrix.array, I = info.array;
   const st = plan.map((q, i) => ({ s: q.s0 * perim(q.path), d: q.s0 * 40, vis: true, h: q.look.height }));
   for (let i = 0; i < N; i++) { A.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], i * 16); }
-  const show = (i, vis, sx = 0, sz = 0) => { const a = i * 16, h = vis ? st[i].h : 0; A[a] = A[a + 5] = A[a + 10] = h; A[a + 12] = out.x + sx; A[a + 13] = FEET; A[a + 14] = out.z + sz; };
+  const show = (i, vis, sx = 0, sz = 0) => { const a = i * 16, h = vis ? st[i].h : 0; A[a] = A[a + 5] = A[a + 10] = h; A[a + 12] = out.x + sx; A[a + 13] = plan[i].path.y ?? FEET; A[a + 14] = out.z + sz; };
   const vw = new Uint8Array(N); // current view per person, with hysteresis so sector changes do not flicker
   const face = (i, frame, view = 0) => { I[4 * i] = (view ? of[i] * 2 + view - 1 : of[i]) * FRAMES + frame; I[4 * i + 1] = out.fx; I[4 * i + 2] = out.fz; I[4 * i + 3] = view; };
   const flag = () => { crowd.instanceMatrix.needsUpdate = true; info.needsUpdate = true; };

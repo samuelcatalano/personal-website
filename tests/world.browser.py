@@ -42,7 +42,9 @@ print(js("""(async () => {
   signs.update({ progress: 0.5, active: 3, bus: { x: 99, y: 0, z: 99 } });
   const moved = scene.children.filter(o => o.isSprite).some((o, i) => o.position.toArray().join() !== before[i]);
   const distance = moved ? 1 : 0;
-  if (moved) throw Error('Year signs must stay planted');
+  if (moved) throw Error('Company plaques must stay planted');
+  const plaques = stops.filter(s => s.brand).length;
+  if (before.length !== plaques || scene.children.length !== plaques * 2) throw Error('Only company plaques and their poles should remain');
   scene.traverse(o => {
     o.geometry?.dispose();
     for (const material of (Array.isArray(o.material) ? o.material : [o.material])) {

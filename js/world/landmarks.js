@@ -171,13 +171,13 @@ function plane() {
   }
   return buildMeshes(list);
 }
-export function buildLandmarks(add, stops, pts) {
+export function buildLandmarks(add, stops, pts, onTree) {
   heathrow(add, at(stops, pts, 'heathrow'));
   const details = new THREE.Group(); details.name = 'landmark-details';
   details.add(bigBen(add, at(stops, pts, 'bigben')));
   details.add(towerBridge(add, { x: towerX(stops, pts) }));
   wembley(add, at(stops, pts, 'wembley'));
-  buildGlasgow(add, at(stops, pts, 'glasgow'));
+  buildGlasgow(add, at(stops, pts, 'glasgow'), onTree);
   const { museum, uni } = glasgowSites(stops, pts), hill = (dx, w, d, y, h, c) => add(uni.x + dx, y, uni.z, w, h, d, c);
   buildRiverside(add, museum);
   hill(0, uni.w + 12, 24, 0, 1.2, P.steel); hill(0, uni.w + 6, 20, 1.2, 1.3, P.skyBlue); // blue-grey paved plaza the university stands on

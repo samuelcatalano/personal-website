@@ -53,13 +53,14 @@ function townhouse(add, x, z, side, br, r, roofStacks) {
   add(x, 0.22, face - side * 0.12, 1.72, 0.18, 0.34, BANK);
 }
 const broadleaf = (r) => ({ h: 2.6 + r() * 0.6, crown: 1.8 + r() * 0.5 });
-export function tree(add, x, z, { h, crown }) {
-  add(x, 0.1, z, 0.32, h - 0.1, 0.32, TRUNK); // starts on the paving top: no coplanar sides with it
+export function tree(add, x, z, { h, crown, base = 0.1 }) {
+  add(x, base, z, 0.32, h - base, 0.32, TRUNK); // starts on the paving top: no coplanar sides with it
   add(x, h - 0.4, z, crown, 1.1, crown, LEAF);
   add(x - crown * 0.22, h + 0.2, z + crown * 0.16, crown * 0.52, 1, crown * 0.52, LEAF_SHADE);
   add(x + crown * 0.2, h + 0.15, z - crown * 0.2, crown * 0.48, 0.9, crown * 0.48, LEAF);
 }
-export function buildCity(add, stops, pts, curve) {
+export function buildCity(add, stops, pts, curve, onTree) {
+  const drawTree = onTree ? (_add, x, z, shape) => onTree(x, z, shape) : tree;
   const spots = furnitureSpots(stops, curve).map((o) => o.xz);
   const free = (x, z) => spots.every(([a, b]) => Math.hypot(a - x, b - z) > CLEAR); // ponytail: skip, not shift
   const lamps = [], occ = [], obst = [], r = rng(2026), hq = rng(8821), noop = () => {}, mx = pts[stopIndex(stops, LANDMARKS.masp)].x, gl = pts[stopIndex(stops, LANDMARKS.glasgow)], LM = new Set(Object.values(LANDMARKS));
@@ -130,7 +131,7 @@ export function buildCity(add, stops, pts, curve) {
       for (const dx of [-8, 8]) {
         const x = p.x + dx + (r() - 0.5) * 2, z = p.z + side * 10.2;
         const h = broadleaf(r); // always draw rng so layout stays stable
-        if (free(x, z)) { tree(add, x, z, h); obst.push([x, z]); }
+        if (free(x, z)) { drawTree(add, x, z, h); obst.push([x, z]); }
       }
     }
   });
@@ -143,9 +144,9 @@ export function buildCity(add, stops, pts, curve) {
     phoneBox(add, x, z);
     kiosks.push([x, z]);
   }
-  const rotors = rgs.flatMap((rg, leg) => buildCountry(add, curve, tree, rg.ctry, leg));
-  buildGlasgowEdges(add, stops, pts, curve, tree);
+  const rotors = rgs.flatMap((rg, leg) => buildCountry(add, curve, drawTree, rg.ctry, leg));
+  buildGlasgowEdges(add, stops, pts, curve, drawTree);
   buildBlocks(add, stops, pts, curve, occ);
-  buildParks(add, stops, pts, curve, occ); // after the blocks: own rng, reads the free plazas, never shifts a block
+  buildParks(add, stops, pts, curve, occ, onTree); // after the blocks: own rng, reads the free plazas, never shifts a block
   return { rotors, lamps }; // turbine hub positions [x, y, z]
 }

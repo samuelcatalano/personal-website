@@ -4,7 +4,9 @@ import { routeT, nearestStop, stopMarks, fineMarks } from '../scroll.js';
 import { routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, FRAME_LIFT, swapAt, scotRange } from './layout.js';
 import { createBoxes, buildMeshes } from './voxel.js';
 import { buildMotion } from './motion.js';
-import { buildCity } from './city.js';
+import { buildCity, tree } from './city.js';
+import { createTrees } from './trees.js';
+import { buildBackdrop } from './backdrop.js';
 import { buildLandmarks } from './landmarks.js';
 import { buildBus, buildMini } from './bus.js';
 import { createMood } from './mood.js';
@@ -26,7 +28,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xa8d0f2);
-  scene.fog = new THREE.Fog(0xa8d0f2, 450, 1300);
+  scene.fog = new THREE.Fog(0xa8d0f2, 240, 900);
   const camera = new THREE.PerspectiveCamera(40, 1, 1, 1400);
   const hemi = new THREE.HemisphereLight(0xa8d4ff, 0x5fa032, 1);
   const sun = new THREE.DirectionalLight(0xfff0d0, 2.4);
@@ -39,15 +41,25 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   scene.add(hemi, sun, sun.target);
   const n = stops.length, pts = routePoints(n), marks = stopMarks(pts);
   const curve = routeCurve(THREE, pts), knots = fineMarks(marks, curve);
+  const distant = createBoxes();
+  buildBackdrop(distant.add, stops, pts);
+  const backdrop = buildMeshes(distant.list);
+  backdrop.name = 'distant-neighborhoods';
+  backdrop.traverse(o => { o.castShadow = o.receiveShadow = false; });
+  scene.add(backdrop);
   const { add, list } = createBoxes();
-  const { rotors: hubs, lamps } = buildCity(add, stops, pts, curve);
+  const treePlacements = [];
+  const { rotors: hubs, lamps } = buildCity(add, stops, pts, curve, (x, z, shape) => treePlacements.push({ x, z, ...shape }));
   const blade = createBoxes(); blade.add(-0.25, 0, -0.15, 0.5, 9, 0.3, P.white); blade.add(-0.5, -0.5, -0.4, 1, 1, 0.8, P.white); // blade + hub cap
   const bm = buildMeshes(blade.list), proto = new THREE.Group().add(...[0, 1, 2].map((k) => { const c = bm.clone(); c.rotation.z = k * Math.PI * 2 / 3; return c; }));
   const rotors = hubs.map(([x, y, z], i) => { // 3 blades at 120deg; clones share geometry + materials
     const g = proto.clone(); g.position.set(x, y, z); g.userData.phase = i * 1.3; return g;
   });
   const SPIN = 0.45; // rad/s
-  const { eye, details, plane, planeAt } = buildLandmarks(add, stops, pts);
+  const { eye, details, plane, planeAt } = buildLandmarks(add, stops, pts, (x, z, shape) => treePlacements.push({ x, z, ...shape }));
+  let trees;
+  try { trees = await createTrees(treePlacements); scene.add(trees); }
+  catch { treePlacements.forEach(({ x, z, ...shape }) => tree(add, x, z, shape)); } // retain trees if the texture cannot load
   const routemaster = buildBus(), mini = buildMini(), bus = new THREE.Group().add(mini, routemaster), swap = swapAt(stops);
   // First Glasgow livery between these fractions of the olm->glasgow and glasgow->tribal segments
   const [SCOT_IN, SCOT_OUT] = scotRange(stops);
@@ -148,6 +160,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     onProgress(p);
     for (const u of units) u.update(f);
     people.update(dt, camera.position);
+    trees?.userData.update(camera);
     night = reducedMotion || dt === 0 ? nightTarget : approach(night, nightTarget, dt, 1.4);
     const mood = moodAt(t);
     sky.update(night, dt, camera.position, camera, mood);

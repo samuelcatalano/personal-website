@@ -1,0 +1,11 @@
+# Park tree atlas
+
+Original artwork generated with the built-in `image_gen` tool on 2026-10-19.
+`park-atlas.png` is a 1254 × 1254 RGBA image with four trees. The renderer's
+pixel rectangles follow the actual artwork bounds, including an 8px border;
+this is not an exactly aligned 2 × 2 grid. Update `trees.js` UV rectangles if
+replacing this asset. The world renderer uses ONLY the two rounded trees in the bottom row. The two pine variants are unused. All city, park, countryside and George Square trees share one instanced batch; original positions and crown limits are retained with varied, capped heights.
+
+## Generation prompt
+
+Use case: stylized-concept. Asset type: transparent 2x2 tree sprite atlas for a tiny isometric strategy game park. Create ONE square sprite sheet divided into an exact 2 by 2 grid of equally sized square cells, each containing one COMPLETE isolated tree. NO drawn grid, no borders, no text, no labels. Upper left: dense asymmetrical dark olive-green fir tree. Upper right: slightly brighter dense pine tree with tiered natural branches. Lower left: leafy rounded deciduous tree with irregular foliage clusters and visible slender brown trunk. Lower right: another rounded linden tree with slightly narrower crown and natural variations. Each tree centered horizontally in its own cell with its trunk foot on the SAME baseline at 92 percent of cell height; treetops at 6 percent of cell height. Keep ALL branches inside its cell with transparent margin of at least 8 percent. Entire image background genuinely TRANSPARENT, no ground, grass, shadow, pedestal or scenery. Art direction: late-1990s/early-2000s pre-rendered isometric real-time strategy game sprite, Age of Empires II inspired woodland art, small readable leaf clusters with richly mottled olive and forest-green tones, organic silhouette, detailed dappled foliage, crisp slightly pixelated game art; NOT cubist, NOT Minecraft, NOT smooth vector icons, NOT photographic cutout. View slightly elevated at about 25 degrees down from horizon, soft diffuse neutral daylight, light upper left, no hard baked cast shadows. Original assets rather than copied game sprites. High quality transparent alpha edges without white fringe. Overall square sheet, no additional objects.

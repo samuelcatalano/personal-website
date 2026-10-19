@@ -98,7 +98,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
       u.uHor.value.lerpColors(day(mood.hor, d1), NIGHT.hor, night); untone(u.uHor.value);
       scene.fog.color.copy(u.uHor.value); // already tone-inverted
       scene.background?.copy(scene.fog.color);
-      scene.fog.near = (380 - 130 * night) * mood.fogK; scene.fog.far = (1250 - 450 * night) * mood.fogK;
+      scene.fog.near = (240 - 60 * night) * mood.fogK; scene.fog.far = (900 - 220 * night) * mood.fogK;
       cloudMat.color.lerpColors(day(mood.cloud, d1), NIGHT.cloud, night); untone(cloudMat.color);
       cloudMat.opacity = 0.7 + mood.cloudOp - 0.2 * night;
       dome.position.copy(camPos); stars.position.copy(camPos);

@@ -26,6 +26,7 @@ const LANES = [[5.95, 1], [8.25, -1], [-5.95, -1], [-8.25, 1]];
 export function walkPaths(stops, pts) {
   const X = (k) => pts[stopIndex(stops, L[k])].x, cp = copan(stops, pts), wx = pts[pts.length - 1].x;
   const { museum, uni } = glasgowSites(stops, pts);
+  const g = pts[stopIndex(stops, L.glasgow)], squareZ = g.z - 28;
   const rect = (x0, x1, z0, z1) => ({ x0, x1, z0: RIVER_Z + z0, z1: RIVER_Z + z1 });
   return [
     ...LANES.map(([offset, dir]) => ({ type: 'lane', offset, dir })),
@@ -36,11 +37,24 @@ export function walkPaths(stops, pts) {
     { type: 'loop', name: 'wembley', rect: rect(wx + 14, wx + 40, 19, 28) }, // beside the closing figure
     { type: 'loop', name: 'glasgow-uni', rect: rect(museum.x + museum.w / 2 + 2, uni.x + 30, -27, -13) }, // far-bank promenade in front of the university, from the museum's east edge; water is north of z -11, hill front at z -28
     { type: 'loop', name: 'se', rect: rect(X('se') - 20, X('se') + 20, -4, 14) }, // below the cathedral steps, above the existing garden
+    ...[
+      ['se-inner', X('se') - 18, X('se') + 18, -49, -31, 0.08], ['se-front', X('se') - 12, X('se') + 56, -14, -11],
+      ['se-west', X('se') - 20, X('se') - 14, -46, -10], ['se-east', X('se') + 20.5, X('se') + 23, -46, -29],
+      ['masp-west', X('masp') - 24.5, X('masp') - 19.5, -53, -19], ['masp-east', X('masp') + 20, X('masp') + 24.5, -53, -19],
+      ['masp-front', X('masp') - 24, X('masp') + 24.5, -20, -15],
+      ['thames-front', X('bigben') - 10, X('eye') + 12, -13, -10.5], ['tower-front', towerX(stops, pts) - 29, towerX(stops, pts) + 19, -13, -10.5],
+      ['glasgow-cross', g.x - 17, g.x + 17, squareZ - 1.25, squareZ + 1.25, 0.21],
+      ['glasgow-axis', g.x - 2.3, g.x + 2.3, g.z - 37.5, g.z - 23, 0.21],
+      ['glasgow-west', g.x - 26, g.x - 22, g.z - 38, g.z - 12.5], ['glasgow-east', g.x + 20.7, g.x + 22.5, g.z - 38, g.z - 13],
+      ['glasgow-front', g.x - 22, g.x + 22, g.z - 15, g.z - 12.5],
+      ['wembley-entry', wx - 19, wx + 20, -54, -47.5], ['wembley-east', wx + 20.5, wx + 26, -69, -28], ['wembley-front', wx - 15, wx + 23, -32, -24],
+    ].map(([name, x0, x1, z0, z1, y = 0.02]) => ({ type: 'wander', name, rect: { x0, x1, z0, z1 }, y })),
   ];
 }
-export function crowdPlan(stops, pts, seed, count = 600) {
-  const r = rng(seed), paths = walkPaths(stops, pts), lanes = paths.filter((p) => p.type === 'lane'), loops = paths.filter((p) => p.type === 'loop');
-  const keys = [], plan = Array.from({ length: count }, (_, i) => {
+export function crowdPlan(stops, pts, seed, count = 1000) {
+  const r = rng(seed), paths = walkPaths(stops, pts), lanes = paths.filter((p) => p.type === 'lane'), loops = paths.filter((p) => p.type === 'loop'), wander = paths.filter((p) => p.type === 'wander');
+  const baseCount = Math.min(count, 600);
+  const keys = [], plan = Array.from({ length: baseCount }, (_, i) => {
     const look = makeLook(r), onLane = i % 10 < 7;
     let path, key;
     if (onLane) { const l = pick(r, lanes); path = { ...l, offset: l.offset + between(r, -0.3, 0.3) }; key = `lane${l.offset}`; } // spread across the pavement, not single file
@@ -51,6 +65,18 @@ export function crowdPlan(stops, pts, seed, count = 600) {
   const groups = new Map(); // stratify s0 inside each lane / loop so people are evenly spread along it, not clumped
   keys.forEach((k, i) => groups.set(k, [...(groups.get(k) || []), i]));
   for (const ids of groups.values()) ids.forEach((i, j) => { plan[i].s0 = (j + 0.15 + 0.7 * plan[i].s0) / ids.length; });
+  const extraKeys = [];
+  for (let i = baseCount; i < count; i++) {
+    const l = wander[(i - 600) % wander.length], dir = r() < 0.5 ? 1 : -1;
+    const minSide = Math.min(l.rect.x1 - l.rect.x0, l.rect.z1 - l.rect.z0);
+    const maxInset = Math.max(0.35, Math.min(6, (minSide - 1) / 2));
+    const path = { ...l, dir, inset: between(r, 0.35, maxInset) };
+    plan.push({ look: makeLook(r), path, s0: r() });
+    extraKeys.push(`${l.name}${dir}`);
+  }
+  const extraGroups = new Map();
+  extraKeys.forEach((k, j) => { const i = baseCount + j; extraGroups.set(k, [...(extraGroups.get(k) || []), i]); });
+  for (const ids of extraGroups.values()) ids.forEach((i, j) => { plan[i].s0 = (j + 0.15 + 0.7 * plan[i].s0) / ids.length; });
   return plan;
 }
 // Sprite atlas variants: greedy k-center over a look distance, so every skin tone, kind and hair style shows up; each person maps to the nearest variant.

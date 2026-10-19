@@ -5,6 +5,7 @@ print(js(r'''(async () => {
   const THREE = await import('three');
   const { createPeople } = await import('./js/world/people.js');
   const { stops } = await import('./js/content.js');
+  const { crowdPlan } = await import('./js/world/crowd.js');
   const { routePoints, routeCurve } = await import('./js/world/layout.js');
   const check = (ok, message) => { if (!ok) throw Error(message); };
   const pts = routePoints(stops.length), curve = routeCurve(THREE, pts), cam = curve.getPointAt(0.5);
@@ -16,7 +17,9 @@ print(js(r'''(async () => {
     return { scene, people, changed };
   };
   const { scene, people, changed } = run(false);
-  check(people.count >= 580, 'expected at least 580 people');
+  check(people.count === 1000, 'expected 1000 people');
+  const plan = crowdPlan(stops, pts, 1017);
+  check(plan.every((p,i) => Math.abs(people.meshes[0].instanceMatrix.array[i*16+13] - (p.path.y ?? .02)) < 1e-6), 'feet must follow paving height');
   check(changed, 'update(0.5) must move some people');
   check(!run(true).changed, 'reduced motion must not move anyone');
   const meshes = []; scene.traverse((o) => { if (o.isInstancedMesh) meshes.push(o); });

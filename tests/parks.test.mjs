@@ -4,6 +4,7 @@ import { PARKS, PLAZAS, RING, KEEP, WALK_INSET, buildParks } from '../js/world/p
 import { walkPaths } from '../js/world/crowd.js';
 import { routePoints } from '../js/world/layout.js';
 import { PALETTE } from '../js/world/palette.js';
+import { tree } from '../js/world/city.js';
 import { stops } from '../js/content.js';
 
 const pts = routePoints(stops.length), loops = walkPaths(stops, pts).filter((p) => p.type === 'loop');
@@ -47,4 +48,18 @@ test('plaza ring covers the walking inset; obstacles stay >= 2.4 m inside the lo
     const d = Math.min(b.x - b.w / 2 - r.x0, r.x1 - b.x - b.w / 2, b.z - b.d / 2 - r.z0, r.z1 - b.z - b.d / 2);
     assert.ok(d >= KEEP - 1e-6, `${name}: obstacle at inset ${d.toFixed(2)}`);
   }
+});
+
+test('tree renderer receives every park tree without changing layout', () => {
+  const curve = { getPointAt: () => ({ x: 0, z: 0 }), getTangentAt: () => ({ x: 1, z: 0 }) };
+  const collect = out => (...box) => out.push(box);
+  const baseline = [], replaced = [], placements = [];
+  buildParks(collect(baseline), stops, pts, curve, []);
+  buildParks(collect(replaced), stops, pts, curve, [], (x, z, shape) => {
+    placements.push({ x, z, ...shape });
+    tree(collect(replaced), x, z, shape);
+  });
+  assert.deepEqual(replaced, baseline, 'all geometry and random placements remain identical');
+  assert.equal(placements.length, baseline.filter(b => b[6] === PALETTE.trunk).length, 'every original park tree reaches the renderer');
+  assert.ok(placements.length > 7, 'the change extends beyond the pilot garden');
 });
