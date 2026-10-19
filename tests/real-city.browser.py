@@ -63,25 +63,29 @@ result = js(r'''(async () => {
   const errors = [], onError = e => errors.push(e.message), originalConsoleError = console.error;
   console.error = (...args) => { errors.push(args.map(String).join(' ')); originalConsoleError(...args); };
   addEventListener('error', onError);
-  const city = await buildRealCity(plots);
-  check(city.children.length === 3, 'expected three pilot buildings');
-  check(city.name === 'real-city-pilot', 'scene integration name changed');
-  check(city.children.map(g=>g.userData.kind).sort().join(',') === 'midrise,office,terrace', 'expected the three existing pilot plot kinds');
-  city.children.forEach((g,i) => {
-    fits(g,plots[i]);
-    check(meshes(g).some(m=>m.isInstancedMesh && m.count>0), 'facade details must use instanced geometry');
-  });
-  const repeated = await buildRealCity([...plots, ...plots]);
-  check(repeated.children.length === 5, 'pilot must cap output at five buildings');
-  check(repeated.children[0].children.some(m=>m.isInstancedMesh), 'first building lost its facade instances');
-  const original = meshes(city.children[0]), repeat = meshes(repeated.children[0]);
-  check(original.length && original.length===repeat.length && original.every((m,i) => m.geometry===repeat[i].geometry && m.material===repeat[i].material), 'procedural buildings must share geometry and materials');
-  check(meshes(city.children[0]).every(m=>m.geometry===meshes(city.children[1])[0].geometry), 'box geometry is not shared across plot kinds');
-  const assets = performance.getEntriesByType('resource').filter(e => /\.glb(?:$|[?#])/i.test(e.name));
-  check(assets.length === glbRequestsBefore, 'procedural integration issued GLB requests: '+assets.slice(glbRequestsBefore).map(e=>e.name).join(', '));
-  console.error = originalConsoleError; removeEventListener('error', onError);
-  check(errors.length===0, 'uncaught browser errors: '+errors.join(', '));
-  return {pass:true, name:'procedural pilot buildings fit their plots and share instanced resources', street:streetDetails, plots:plots.length, kinds:city.children.map(g=>g.userData.kind), sharedMeshes:original.length, glbRequests:assets.length-glbRequestsBefore, errors};
+  try {
+    const city = await buildRealCity(plots);
+    check(city.children.length === 3, 'expected three pilot buildings');
+    check(city.name === 'real-city-pilot', 'scene integration name changed');
+    check(city.children.map(g=>g.userData.kind).sort().join(',') === 'midrise,office,terrace', 'expected the three existing pilot plot kinds');
+    city.children.forEach((g,i) => {
+      fits(g,plots[i]);
+      check(meshes(g).some(m=>m.isInstancedMesh && m.count>0), 'facade details must use instanced geometry');
+    });
+    const repeated = await buildRealCity([...plots, ...plots]);
+    check(repeated.children.length === 5, 'pilot must cap output at five buildings');
+    check(repeated.children[0].children.some(m=>m.isInstancedMesh), 'first building lost its facade instances');
+    const original = meshes(city.children[0]), repeat = meshes(repeated.children[0]);
+    check(original.length && original.length===repeat.length && original.every((m,i) => m.geometry===repeat[i].geometry && m.material===repeat[i].material), 'procedural buildings must share geometry and materials');
+    check(meshes(city.children[0]).every(m=>m.geometry===meshes(city.children[1])[0].geometry), 'box geometry is not shared across plot kinds');
+    const assets = performance.getEntriesByType('resource').filter(e => /\.glb(?:$|[?#])/i.test(e.name));
+    check(assets.length === glbRequestsBefore, 'procedural integration issued GLB requests: '+assets.slice(glbRequestsBefore).map(e=>e.name).join(', '));
+    check(errors.length===0, 'uncaught browser errors: '+errors.join(', '));
+    return {pass:true, name:'procedural pilot buildings fit their plots and share instanced resources', street:streetDetails, plots:plots.length, kinds:city.children.map(g=>g.userData.kind), sharedMeshes:original.length, glbRequests:assets.length-glbRequestsBefore, errors};
+  } finally {
+    console.error = originalConsoleError;
+    removeEventListener('error', onError);
+  }
 })()''')
 print(result)
 assert isinstance(result, dict) and result.get('pass'), result
