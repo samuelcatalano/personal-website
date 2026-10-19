@@ -40,3 +40,27 @@ node --test tests/real-city.test.mjs tests/glasgow-clearance.test.mjs tests/scen
 ```
 
 `git diff --check` passed.
+
+## Follow-up: map plot kinds from the PRE source kind
+
+The descriptor had used `b[7]`, which is the width multiplier, instead of `b[6]`, which stores the PRE architectural kind. A new source-form assertion first failed with the terrace footprint labeled `midrise`. The implementation now maps `b[6] === 3` to terrace, `b[6] === 1` to office, and the remaining source kinds to midrise. Tests assert the resulting route's expected `(width, depth, height)` signature for each architecture.
+
+Focused verification:
+
+```text
+node --test tests/real-city.test.mjs tests/glasgow-clearance.test.mjs tests/scenery-fill.test.mjs
+ℹ tests 14
+ℹ pass 14
+ℹ fail 0
+```
+
+Full verification:
+
+```text
+node --test tests/
+ℹ tests 93
+ℹ pass 93
+ℹ fail 0
+```
+
+`git diff --check` passed.

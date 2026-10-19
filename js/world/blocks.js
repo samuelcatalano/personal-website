@@ -67,7 +67,7 @@ export function buildBlocks(add, stops, pts, curve, occ, onBuildingPlot) {
     if (!bad() && ![...hard, ...occ].some((o) => hit(R, o)) && !path.some((p) => hit(R, [p.x, p.x, p.z, p.z], 25))) {
       const clear = side > 0 && Math.abs(x + w() / 2 - X('wembley')) < 35; // camera side of the last stop stays open
       const civic = z() <= -65 && (x + w() >= X('bigben') - 20 && x <= rgs[0].sub[1] || x + w() >= rgs[0].scot[0] && x <= rgs[1].scot[1]); // London landmark stretch + Glasgow (both edges) only
-      const kind = b[7] === 3 ? 'terrace' : b[7] === 1 ? 'office' : 'midrise';
+      const kind = b[6] === 3 ? 'terrace' : b[6] === 1 ? 'office' : 'midrise';
       const pilot = onBuildingPlot && x + w() / 2 > pilotX0 && x + w() / 2 < pilotX1 && z() > pilotZ0 && z() < pilotZ1 && !pilotKinds.has(kind);
       if (pilot) {
         pilotKinds.add(kind);

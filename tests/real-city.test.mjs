@@ -19,6 +19,15 @@ test('pilot plots replace three procedural buildings', () => {
   assert.ok(Math.max(...plots.map(p => p.z)) - Math.min(...plots.map(p => p.z)) <= 165, 'pilot plots stay within the selected block depth');
 });
 
+test('pilot descriptor kinds match their source building forms', () => {
+  const plots = Object.fromEntries(plotsFor().map(p => [p.kind, [p.width, p.depth, p.height]]));
+  assert.deepEqual(plots, {
+    terrace: [24, 9, 6],
+    midrise: [16, 11, 16],
+    office: [12, 12, 14.4],
+  });
+});
+
 test('pilot plots clear protected landmark and route regions', () => {
   const plots = plotsFor(), xs = (id) => pts[stopIndex(stops, id)].x, { museum, uni } = glasgowSites(stops, pts), cp = copan(stops, pts), [out] = regions(stops, pts);
   const protectedRects = [
