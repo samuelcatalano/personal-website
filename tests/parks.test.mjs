@@ -63,3 +63,26 @@ test('tree renderer receives every park tree without changing layout', () => {
   assert.equal(placements.length, baseline.filter(b => b[6] === PALETTE.trunk).length, 'every original park tree reaches the renderer');
   assert.ok(placements.length > 7, 'the change extends beyond the pilot garden');
 });
+
+test('larger lawn parks have a low paved edge outside walking loops', () => {
+  const curve = { getPointAt: () => ({ x: 0, z: 0 }), getTangentAt: () => ({ x: 1, z: 0 }) };
+  const boxes = [];
+  buildParks((x, y, z, w, h, d, c) => boxes.push({ x, y, z, w, h, d, c }), stops, pts, curve, []);
+  const p = PARKS[0], lawn = boxes.find(b => b.c === PALETTE.patch && b.x === (p.x0 + p.x1) / 2 && b.z === (p.z0 + p.z1) / 2);
+  assert.ok(lawn, 'first park lawn exists');
+  const edges = boxes.filter(b => b.c === PALETTE.pave && b.y === 0.02 && b.h === 0.05 && (
+    Math.abs(b.x - (p.x0 + p.x1) / 2) < 1e-6 || Math.abs(b.z - (p.z0 + p.z1) / 2) < 1e-6
+  ) && (Math.abs(b.w - 0.45) < 1e-6 || Math.abs(b.d - 0.45) < 1e-6));
+  assert.equal(edges.length, 4, 'four paved strips surround the lawn');
+  for (const b of edges) {
+    const rect = { x0: b.x - b.w / 2, x1: b.x + b.w / 2, z0: b.z - b.d / 2, z1: b.z + b.d / 2 };
+    assert.ok(loops.every(l => !hit(rect, l.rect, 2.4)), 'edge stays at least 2.4 m from pedestrian loops');
+  }
+  const horizontal = edges.filter(b => b.w > b.d), vertical = edges.filter(b => b.d > b.w);
+  assert.equal(horizontal.length, 2);
+  assert.equal(vertical.length, 2);
+  for (const h of horizontal) for (const v of vertical) assert.ok(!hit(
+    { x0: h.x - h.w / 2, x1: h.x + h.w / 2, z0: h.z - h.d / 2, z1: h.z + h.d / 2 },
+    { x0: v.x - v.w / 2, x1: v.x + v.w / 2, z0: v.z - v.d / 2, z1: v.z + v.d / 2 },
+  ), 'edge corners do not overlap');
+});

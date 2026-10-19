@@ -52,6 +52,12 @@ export function buildParks(add, stops, pts, curve, occ, onTree) {
     const clearOfSigns = (u, v) => { const [x, z] = world(u, v); return spots.every(([a, b]) => Math.hypot(a - x, b - z) > CLEAR); };
     const mainPath = !park.nopath && S >= 6, cross = mainPath && S >= 10 && L >= 16, plaza = park.fountain || park.pond, taken = [];
     B(0, 0, 0.02, L, 0.05, S, park.paved || LAWN);
+    if (!ring && !park.paved) {
+      for (const f of [-1, 1]) {
+        B(0, f * (S / 2 + 0.225), 0.02, L + 0.9, 0.05, 0.45, P.pave);
+        B(f * (L / 2 + 0.225), 0, 0.02, 0.45, 0.05, S, P.pave);
+      }
+    }
     if (ring) { // gravel ring over inset 0.3..1.9 of the loop rect
       const [a, b] = RING, w = b - a, W = orig.x1 - orig.x0, D = orig.z1 - orig.z0, m = (a + b) / 2;
       for (const f of [-1, 1]) {
