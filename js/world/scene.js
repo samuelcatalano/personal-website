@@ -5,6 +5,7 @@ import { routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, FRAME_LIFT, swa
 import { createBoxes, buildMeshes } from './voxel.js';
 import { buildMotion } from './motion.js';
 import { buildCity, tree } from './city.js';
+import { buildRealCity } from './real-city.js';
 import { createTrees } from './trees.js';
 import { buildBackdrop } from './backdrop.js';
 import { buildLandmarks } from './landmarks.js';
@@ -48,8 +49,9 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   backdrop.traverse(o => { o.castShadow = o.receiveShadow = false; });
   scene.add(backdrop);
   const { add, list } = createBoxes();
-  const treePlacements = [];
-  const { rotors: hubs, lamps } = buildCity(add, stops, pts, curve, (x, z, shape) => treePlacements.push({ x, z, ...shape }));
+  const treePlacements = [], buildingPlots = [];
+  const { rotors: hubs, lamps } = buildCity(add, stops, pts, curve, (x, z, shape) => treePlacements.push({ x, z, ...shape }), plot => buildingPlots.push(plot));
+  const realCity = buildRealCity(buildingPlots);
   const blade = createBoxes(); blade.add(-0.25, 0, -0.15, 0.5, 9, 0.3, P.white); blade.add(-0.5, -0.5, -0.4, 1, 1, 0.8, P.white); // blade + hub cap
   const bm = buildMeshes(blade.list), proto = new THREE.Group().add(...[0, 1, 2].map((k) => { const c = bm.clone(); c.rotation.z = k * Math.PI * 2 / 3; return c; }));
   const rotors = hubs.map(([x, y, z], i) => { // 3 blades at 120deg; clones share geometry + materials
@@ -60,6 +62,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   let trees;
   try { trees = await createTrees(treePlacements); scene.add(trees); }
   catch { treePlacements.forEach(({ x, z, ...shape }) => tree(add, x, z, shape)); } // retain trees if the texture cannot load
+  scene.add(await realCity);
   const routemaster = buildBus(), mini = buildMini(), bus = new THREE.Group().add(mini, routemaster), swap = swapAt(stops);
   // First Glasgow livery between these fractions of the olm->glasgow and glasgow->tribal segments
   const [SCOT_IN, SCOT_OUT] = scotRange(stops);
