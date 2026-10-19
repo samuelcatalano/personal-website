@@ -88,6 +88,8 @@ export function createBuilding(plot) {
     const y = (floor + 0.55) * bodyHeight / floors;
     windows.push([x, y, d / 2 - frontDepth / 2, winW, winH, frontDepth]);
     borders.push([x, y, frameZ, frameW, frameH, frontDepth]);
+    if (column < columns - 1) borders.push([x + w / columns / 2, y, frameZ, Math.min(0.035, w / columns * 0.025), winH, frontDepth * 1.5]);
+    borders.push([x, y - winH * 0.53, frameZ, frameW * 1.08, Math.min(0.06, bodyHeight / floors * 0.04), frontDepth * 1.5]);
     if (kind !== 'shop') for (let sideColumn = 0; sideColumn < sideColumns; sideColumn++) {
       const z = -d / 2 + (sideColumn + 0.5) * d / sideColumns;
       windows.push([w / 2 - sideWidth / 2, y, z, sideWidth, winH, Math.min(0.85, d / sideColumns * 0.46)]);
@@ -95,5 +97,48 @@ export function createBuilding(plot) {
   }
   addInstances(building, frames, borders);
   addInstances(building, glass, windows);
+  if (kind === 'shop') {
+    const storeHeight = Math.min(bodyHeight * 0.3, 2.4);
+    const storeDepth = Math.min(0.01, d * 0.01), storeZ = d / 2 - storeDepth / 2;
+    addInstances(building, glass, [[0, storeHeight / 2, storeZ, w * 0.55, storeHeight, storeDepth]]);
+    addInstances(building, trim, [[0, storeHeight, d / 2 - Math.min(0.04, d * 0.02) / 2, w * 0.65, 0.08, Math.min(0.04, d * 0.02)]]);
+  } else if (kind === 'terrace') {
+    const balconyY = Math.min(bodyHeight * 0.52, h - 0.12);
+    const balconyDepth = Math.min(0.12, d * 0.025);
+    addInstances(building, trim, [[0, balconyY, d / 2 - balconyDepth / 2, w * 0.5, 0.08, balconyDepth]]);
+  }
   return building;
+}
+
+export function createCityBuildings(plots) {
+  const city = new THREE.Group(), batches = new Map(), kinds = new Set();
+  let buildingCount = 0;
+  for (const plot of plots) {
+    const building = createBuilding(plot);
+    buildingCount++;
+    kinds.add(plot.kind);
+    building.updateMatrix();
+    for (const child of building.children) {
+      child.updateMatrix();
+      const matrix = new THREE.Matrix4().makeTranslation(plot.x, 0, plot.z).multiply(child.matrix);
+      const mat = child.material;
+      let batch = batches.get(mat);
+      if (!batch) batches.set(mat, batch = []);
+      if (child.isInstancedMesh) {
+        const instance = new THREE.Matrix4();
+        for (let i = 0; i < child.count; i++) batch.push({ matrix: matrix.clone().multiply(child.getMatrixAt(i, instance).clone()) });
+      } else batch.push({ matrix });
+    }
+  }
+  for (const [mat, transforms] of batches) {
+    const mesh = new THREE.InstancedMesh(box, mat, transforms.length);
+    transforms.forEach(({ matrix }, i) => mesh.setMatrixAt(i, matrix));
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingBox(); mesh.computeBoundingSphere();
+    mesh.castShadow = mesh.receiveShadow = true;
+    city.add(mesh);
+  }
+  city.userData.buildingCount = buildingCount;
+  city.userData.kinds = [...kinds];
+  return city;
 }
