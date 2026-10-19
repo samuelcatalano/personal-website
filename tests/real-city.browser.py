@@ -2,7 +2,7 @@
 assert page_info()['url'].startswith(('http://localhost:', 'http://127.0.0.1:')), 'Open the local preview first'
 result = js(r'''(async () => {
   const T = await import('three');
-  const { buildRealCity } = await import('./js/world/real-city.js');
+  const { buildRealCity } = await import('./js/world/real-city.js?pilot='+Date.now());
   const { buildCity } = await import('./js/world/city.js?pilot-street='+Date.now());
   const { stops } = await import('./js/content.js');
   const { routePoints, routeCurve, towerX } = await import('./js/world/layout.js');
@@ -59,43 +59,29 @@ result = js(r'''(async () => {
   buildCity((...box) => street.push(box), stops, pts, curve, undefined, p => plots.push(p));
   const bridgeX = towerX(stops, pts), safeStart = pts[stops.findIndex(s => s.id === 'olm')].x + 12, safeEnd = bridgeX - 20;
   const streetDetails = assertPilotStreetSeparatesRoadwayFromContinuousPedestrianPaths(street, plots, curve, safeStart, safeEnd, bridgeX);
+  const glbRequestsBefore = performance.getEntriesByType('resource').filter(e => /\.glb(?:$|[?#])/i.test(e.name)).length;
   const errors = [], onError = e => errors.push(e.message), originalConsoleError = console.error;
   console.error = (...args) => { errors.push(args.map(String).join(' ')); originalConsoleError(...args); };
   addEventListener('error', onError);
   const city = await buildRealCity(plots);
   check(city.children.length === 3, 'expected three pilot buildings');
+  check(city.name === 'real-city-pilot', 'scene integration name changed');
+  check(city.children.map(g=>g.userData.kind).sort().join(',') === 'midrise,office,terrace', 'expected the three existing pilot plot kinds');
   city.children.forEach((g,i) => {
-    fits(g,plots[i]); check(!g.userData.fallback,'model unexpectedly fell back');
-    check(meshes(g).every(m=>m.material.map?.image?.width>0), 'embedded model texture did not load');
+    fits(g,plots[i]);
+    check(meshes(g).some(m=>m.isInstancedMesh && m.count>0), 'facade details must use instanced geometry');
   });
-  const repeated = await buildRealCity([plots[0], {...plots[0],id:'repeat',x:plots[0].x+100}, ...plots]);
-  check(repeated.children.length === 3, 'pilot must cap instances at three');
-  const a = meshes(repeated.children[0]), b = meshes(repeated.children[1]);
-  check(a.length && a.length===b.length && a.every((m,i) => m.geometry===b[i].geometry && m.material===b[i].material), 'repeated models duplicate resources');
-  check(a[0].geometry===meshes(city.children[0])[0].geometry, 'model cache does not span calls');
-  const assets = performance.getEntriesByType('resource').filter(e => /\/assets\/city\/pilot\/.*\.glb/.test(e.name));
-  check(new Set(assets.map(e=>e.name)).size <= 3, 'more than three model assets loaded');
-  const originalFetch = globalThis.fetch;
-  let failedURL = '';
-  try {
-    globalThis.fetch = (request,...args) => {
-      const url = typeof request==='string' ? request : request.url;
-      if (url.includes('/assets/city/pilot/terrace.glb')) {
-        failedURL = url;
-        return Promise.resolve(new Response('missing pilot model', {status:404}));
-      }
-      return originalFetch(request,...args);
-    };
-    const fresh = await import('./js/world/real-city.js?failure='+Date.now());
-    const fallback = await fresh.buildRealCity(plots);
-    const failed = plots.findIndex(p => p.kind==='terrace');
-    check(failedURL && fallback.children[failed].userData.fallback, 'failed URL did not trigger per-plot fallback');
-    fallback.children.forEach((g,i) => fits(g,plots[i]));
-    check(fallback.children.every((g,i)=>i===failed || !g.userData.fallback), 'one failure replaced healthy models');
-    check(meshes(fallback.children[failed]).length>1, 'fallback must have visible facade geometry');
-  } finally { globalThis.fetch = originalFetch; console.error = originalConsoleError; removeEventListener('error', onError); }
+  const repeated = await buildRealCity([...plots, ...plots]);
+  check(repeated.children.length === 5, 'pilot must cap output at five buildings');
+  check(repeated.children[0].children.some(m=>m.isInstancedMesh), 'first building lost its facade instances');
+  const original = meshes(city.children[0]), repeat = meshes(repeated.children[0]);
+  check(original.length && original.length===repeat.length && original.every((m,i) => m.geometry===repeat[i].geometry && m.material===repeat[i].material), 'procedural buildings must share geometry and materials');
+  check(meshes(city.children[0]).every(m=>m.geometry===meshes(city.children[1])[0].geometry), 'box geometry is not shared across plot kinds');
+  const assets = performance.getEntriesByType('resource').filter(e => /\.glb(?:$|[?#])/i.test(e.name));
+  check(assets.length === glbRequestsBefore, 'procedural integration issued GLB requests: '+assets.slice(glbRequestsBefore).map(e=>e.name).join(', '));
+  console.error = originalConsoleError; removeEventListener('error', onError);
   check(errors.length===0, 'uncaught browser errors: '+errors.join(', '));
-  return {pass:true, name:'pilot models fit their plot and failed models fall back', street:streetDetails, plots:plots.length, distinctAssets:new Set(assets.map(e=>e.name)).size, sharedMeshes:a.length, errors};
+  return {pass:true, name:'procedural pilot buildings fit their plots and share instanced resources', street:streetDetails, plots:plots.length, kinds:city.children.map(g=>g.userData.kind), sharedMeshes:original.length, glbRequests:assets.length-glbRequestsBefore, errors};
 })()''')
 print(result)
 assert isinstance(result, dict) and result.get('pass'), result
