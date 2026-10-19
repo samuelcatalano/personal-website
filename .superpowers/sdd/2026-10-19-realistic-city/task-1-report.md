@@ -25,3 +25,18 @@ node --test tests/
 ```
 
 `git diff --check` passed. Node emitted the repository's existing `MODULE_TYPELESS_PACKAGE_JSON` warnings for ES modules; they did not affect test results.
+
+## Follow-up: keep the pilot in one bounded block
+
+A review found the original Eye-to-countryside search could pick kinds from separate city areas. Selection now only considers existing eligible buildings inside the London pilot block bounds (Eye + 10 to Eye + 80 on X, and -100 to 65 on Z), still taking at most one of each kind and leaving the draw and occupancy paths unchanged. The placement test now asserts the three descriptors remain within the bounded block dimensions.
+
+Exact rerun:
+
+```text
+node --test tests/real-city.test.mjs tests/glasgow-clearance.test.mjs tests/scenery-fill.test.mjs
+ℹ tests 13
+ℹ pass 13
+ℹ fail 0
+```
+
+`git diff --check` passed.

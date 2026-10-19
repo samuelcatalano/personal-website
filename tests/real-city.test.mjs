@@ -15,6 +15,8 @@ test('pilot plots replace three procedural buildings', () => {
   assert.deepEqual(new Set(plots.map(p => p.kind)), new Set(['terrace', 'midrise', 'office']));
   assert.deepEqual(plots, plotsFor());
   for (const p of plots) for (const v of [p.x, p.z, p.width, p.depth, p.height]) assert.ok(Number.isFinite(v));
+  assert.ok(Math.max(...plots.map(p => p.x)) - Math.min(...plots.map(p => p.x)) <= 70, 'pilot plots stay within the selected block width');
+  assert.ok(Math.max(...plots.map(p => p.z)) - Math.min(...plots.map(p => p.z)) <= 165, 'pilot plots stay within the selected block depth');
 });
 
 test('pilot plots clear protected landmark and route regions', () => {
