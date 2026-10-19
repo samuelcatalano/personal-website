@@ -17,6 +17,6 @@ test('house roof profiles vary deterministically within the existing footprint',
   }
   assert.ok(outputs.flat().some(([, y, , w, , d]) => y > 9.3 && w === 9 * 0.6 && d === 7 * 0.6));
   for (const [, y, , , h] of render(0, true)) {
-    if (y > 9.3) assert.ok(y + h / 2 <= 3 * 3.1 + 1.06);
+    if (y > 9.3) assert.ok(y + h <= 3 * 3.1 + 1.06);
   }
 });
