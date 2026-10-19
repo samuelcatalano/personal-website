@@ -5,15 +5,19 @@ result = js(r'''(async () => {
   const { buildRealCity } = await import('./js/world/real-city.js');
   const { buildCity } = await import('./js/world/city.js?pilot-street='+Date.now());
   const { stops } = await import('./js/content.js');
-  const { routePoints, routeCurve } = await import('./js/world/layout.js');
+  const { routePoints, routeCurve, towerX } = await import('./js/world/layout.js');
   const check = (ok, message) => { if (!ok) throw Error(message); };
-  const assertPilotStreetSeparatesRoadwayFromContinuousPedestrianPaths = (additions, plots, curve) => {
+  const assertPilotStreetSeparatesRoadwayFromContinuousPedestrianPaths = (additions, plots, curve, safeStart, safeEnd, bridgeX) => {
     const minX = Math.min(...plots.map(p => p.x - p.width / 2)), maxX = Math.max(...plots.map(p => p.x + p.width / 2));
     const inPilot = ([x,,z,w,,d]) => x + w / 2 >= minX && x - w / 2 <= maxX && Math.abs(z - curve.getPointAt(0.5).z) < 30;
     const local = additions.filter(inPilot).filter(([, , ,w,,d]) => w < 50 && d < 50);
     const curbs = local.filter(([,y,,w,h,d]) => h >= 0.08 && h <= 0.18 && Math.max(w,d) <= 0.8 && Math.min(w,d) >= 0.15 && y < 0.2);
     const stripes = local.filter(([,y,,w,h,d,c]) => c === '#e6dcc4' && h <= 0.06 && w >= 0.8 && w <= 1.5 && d < 0.7);
     const crosses = local.filter(([,y,,w,h,d,c]) => c === '#e6dcc4' && h <= 0.06 && Math.max(w,d) > 8 && Math.min(w,d) < 0.7);
+    const pilotOnly = additions.filter(([,y,,w,h,d,c]) =>
+      c === '#7d7468' && Math.abs(h-0.1)<1e-5 && Math.abs(Math.max(w,d)-0.72)<1e-5 && Math.abs(Math.min(w,d)-0.16)<1e-5 ||
+      c === '#d8cfb8' && Math.abs(h-0.12)<1e-5 && Math.abs(w-3.3)<1e-5 && Math.abs(d-3.3)<1e-5 ||
+      c === '#e6dcc4' && Math.abs(h-0.02)<1e-5 && Math.max(w,d)>8 && Math.min(w,d)<0.7);
     const paths = additions.filter(([, , ,w,h,d]) => w >= 3.1 && w <= 3.5 && d >= 3.1 && d <= 3.5 && h <= 0.14);
     const localPaths = local.filter(([, , ,w,h,d]) => w >= 3.1 && w <= 3.5 && d >= 3.1 && d <= 3.5 && h <= 0.14);
     const pathContinuity = [];
@@ -27,6 +31,9 @@ result = js(r'''(async () => {
     check(curbs.length >= 4, 'pilot street needs low curb geometry on both sides');
     check(stripes.length >= 3, 'pilot street needs restrained lane markings');
     check(crosses.length >= 8, 'pilot street needs two crossing sets');
+    check(pilotOnly.length > 0, 'pilot street details must exist');
+    check(pilotOnly.every(([x,, ,w,,d]) => x-w/2 >= safeStart && x+w/2 <= safeEnd), 'pilot-only details must stay inside the safe street segment');
+    check(pilotOnly.every(([x,, ,w,,d]) => x+w/2 <= bridgeX-20 || x-w/2 >= bridgeX+20), 'pilot-only details must stay outside the Tower Bridge span');
     check(pathContinuity.every(Boolean), 'pilot pedestrian paths must stay continuous through the block');
     check(new Set(localPaths.map(box => box[6])).has('#d8cfb8'), 'pilot pavement needs subtle surface variation');
     for (const p of plots) for (const [x,,z,w,,d] of local) check(Math.abs(x-p.x) > (w+p.width)/2 || Math.abs(z-p.z) > (d+p.depth)/2, 'street detail intersects a pilot building');
@@ -46,7 +53,8 @@ result = js(r'''(async () => {
   };
   const pts = routePoints(stops.length), plots = [], street = [], curve = routeCurve(T,pts);
   buildCity((...box) => street.push(box), stops, pts, curve, undefined, p => plots.push(p));
-  const streetDetails = assertPilotStreetSeparatesRoadwayFromContinuousPedestrianPaths(street, plots, curve);
+  const bridgeX = towerX(stops, pts), safeStart = pts[stops.findIndex(s => s.id === 'olm')].x + 12, safeEnd = bridgeX - 20;
+  const streetDetails = assertPilotStreetSeparatesRoadwayFromContinuousPedestrianPaths(street, plots, curve, safeStart, safeEnd, bridgeX);
   const errors = [], onError = e => errors.push(e.message), originalConsoleError = console.error;
   console.error = (...args) => { errors.push(args.map(String).join(' ')); originalConsoleError(...args); };
   addEventListener('error', onError);

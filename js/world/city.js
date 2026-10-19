@@ -73,7 +73,7 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot) {
     return Array.from({ length: m }, (_, k) => (s + k / m) / (pts.length - 1));
   }), 1];
   const x0 = riverStart(stops, pts), rEnd = riverEnd(stops, pts), mid = (x0 + rEnd) / 2, len = rEnd - x0;
-  const pilotX0 = pts[stopIndex(stops, LANDMARKS.eye)].x + 10, pilotX1 = pilotX0 + 70;
+  const pilotX0 = pts[stopIndex(stops, LANDMARKS.eye)].x + 12, pilotX1 = towerX(stops, pts) - 20;
   for (const side of [-1, 1]) {
     const edge = RIVER_Z + side * 12;
     add(mid, -0.08, edge, len, 0.18, 2.2, BANK);
@@ -88,10 +88,9 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot) {
     if (i % 2) return;
     const p = curve.getPointAt(u), t = curve.getTangentAt(u);
     const nx = -t.z, nz = t.x;
-    const pilot = p.x >= pilotX0 && p.x <= pilotX1;
     add(p.x, -0.18, p.z, 8.5, 0.25, 8.5, ROAD);
     if (i % 6 === 0) add(p.x, 0.05, p.z, 1.2, 0.03, 0.3, LINE);
-    if (pilot && crossings < 2 && p.x >= pilotX0 + 14 + crossings * 34) {
+    if (crossings < 2 && p.x >= (crossings ? pilotX1 - 4 : pilotX0 + 4) && p.x <= pilotX1 - 2) {
       for (let k = -2; k <= 2; k++) {
         const x = p.x + t.x * k * 0.8, z = p.z + t.z * k * 0.8;
         add(x, -0.035, z, Math.abs(t.x) >= Math.abs(t.z) ? 0.45 : 8.5, 0.02, Math.abs(t.x) >= Math.abs(t.z) ? 8.5 : 0.45, LINE);
@@ -112,7 +111,7 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot) {
   for (const [i, u] of ticks(0.7).entries()) {
     const p = curve.getPointAt(u), t = curve.getTangentAt(u);
     const nx = -t.z, nz = t.x;
-    const pilot = p.x >= pilotX0 && p.x <= pilotX1;
+    const pilot = p.x >= pilotX0 + 1.65 && p.x <= pilotX1 - 1.65;
     for (const side of [-1, 1]) {
       const cw = pilot ? (Math.abs(t.x) >= Math.abs(t.z) ? 0.72 : 0.16) : 1.5, cd = pilot ? (Math.abs(t.x) >= Math.abs(t.z) ? 0.16 : 0.72) : 1.5;
       add(p.x + nx * side * 4.55, 0.07, p.z + nz * side * 4.55, cw, 0.1, cd, BANK);
