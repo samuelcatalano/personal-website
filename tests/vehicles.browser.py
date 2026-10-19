@@ -4,10 +4,10 @@ assert page_info()['url'].startswith(('http://localhost:', 'http://127.0.0.1:'))
 print(js(r'''(async () => {
   const THREE = await import('three');
   const { buildBus } = await import('./js/world/bus.js');
-  const { createAmbient } = await import('./js/world/ambient.js');
+  const { createAmbient } = await import('./js/world/ambient.js?traffic-speed-test');
   const { stops } = await import('./js/content.js');
   const { routePoints, routeCurve } = await import('./js/world/layout.js');
-  const { routeT } = await import('./js/scroll.js');
+  const { routeT, stopMarks, fineMarks } = await import('./js/scroll.js');
   const check = (ok, message) => { if (!ok) throw Error(message); };
   const bounds = (object) => { object.updateMatrixWorld(true); const box = new THREE.Box3(); object.traverse((o) => { if (o.isMesh && o.name !== 'beam') box.union(new THREE.Box3().setFromObject(o)); }); return box; }; // night beams are separate transparent meshes, not body
 
@@ -43,10 +43,30 @@ print(js(r'''(async () => {
   const fleetBusSize = bounds(traffic[0]).getSize(new THREE.Vector3());
   check(['x', 'y', 'z'].every(axis => Math.abs(fleetBusSize[axis] - busSize[axis]) < 0.001), 'ambient route bus must retain the physical bus dimensions');
   const radii = traffic.map(v => { const s = bounds(v).getSize(new THREE.Vector3()); return Math.hypot(s.x, s.z) / 2; });
-  const routeSamples = Array.from({ length: 501 }, (_, i) => curve.getPointAt(i / 500));
+  const marks = stopMarks(pts), knots = fineMarks(marks, curve), offset = 0.25;
+  const routeSamples = Array.from({ length: 2001 }, (_, i) => curve.getPointAt(routeT(i / 2000, pts.length, knots)));
+  const travel = (p) => {
+    const time = ((offset - p + 1) % 1) / 0.012;
+    ambient.update({ time, t: 0.5 });
+    const before = traffic[2].position.clone();
+    ambient.update({ time: time + 1, t: 0.5 });
+    return before.distanceTo(traffic[2].position);
+  };
+  const assertAtRouteProgress = (p) => {
+    const time = ((offset - p + 1) % 1) / 0.012;
+    ambient.update({ time, t: 0.5 });
+    const t = routeT(p, pts.length, knots), tangent = curve.getTangentAt(t);
+    const expected = curve.getPointAt(t).add(new THREE.Vector3(tangent.z, 0, -tangent.x).normalize().multiplyScalar(-1.75));
+    check(traffic[2].position.distanceTo(expected) < 1e-4, 'autonomous traffic must use the distance-mapped route position');
+  };
+  const shortProgress = (marks[2] + marks[3]) / 2, longProgress = (marks[10] + marks[11]) / 2;
+  assertAtRouteProgress(shortProgress);
+  assertAtRouteProgress(longProgress);
+  const shortSpeed = travel(shortProgress), longSpeed = travel(longProgress);
+  check(Math.abs(shortSpeed - longSpeed) < Math.max(shortSpeed, longSpeed) * 0.15, `traffic speed must stay consistent across short and OLM→Glasgow segments (${shortSpeed.toFixed(2)}m vs ${longSpeed.toFixed(2)}m per second)`);
   let updates = 0;
   for (const time of [0, 120, 600, 3600]) for (const progress of [0.05, 0.25, 0.5, 0.75, 0.95]) {
-    ambient.update({ time, progress }); updates++;
+    ambient.update({ time, t: progress }); updates++;
     check(traffic[2].visible && traffic[3].visible, 'reverse traffic must stay visible after modulo wrap');
     for (const v of traffic) {
       if (!v.visible) continue;

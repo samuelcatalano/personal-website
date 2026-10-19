@@ -27,6 +27,7 @@ js/world/camera.js         shot definitions, eased shot blending, spring, approa
 js/world/voxel.js          group box data into InstancedMesh batches by material/color
 js/world/city.js           road, paving, Thames banks, street furniture, houses/trees and generation orchestration
 js/world/blocks.js         procedural city blocks, skyline and protected building regions
+js/world/real-city.js      local CC0 GLB building pilot with shared model resources and per-plot fallback
 js/world/backdrop.js       deterministic distant neighborhoods, hills and extended ground behind all landmarks
 js/world/parks.js          park and plaza geometry, landscaping and sign-clearance rules
 js/world/landmarks.js      London landmarks, Heathrow plane, Glasgow and São Paulo builder orchestration
@@ -68,6 +69,8 @@ Glasgow follows the London OLM stop and precedes Tribal. `LANDMARKS.glasgow` anc
 
 The camera continues to use the same section shots and smooth blend at the new stop. Glasgow has no special `FRAME_LIFT`, so it uses the normal follow framing. Geometry joins the existing color batches where possible; adding a stop does not add a new render pass. Keep the landmark modest and preserve instancing/clearance checks so route growth does not needlessly increase draw calls or crowd the camera. The current FPS tier mechanism can drop desktop postprocessing quality if measured performance falls below its threshold.
 
+The realistic-city pilot replaces at most three generic buildings in one London block with local CC0 Kenney GLBs (`terrace`, `midrise`, `office`), uniformly fitted to their reserved footprints and sharing cached geometry/materials. A failed or invalid asset falls back to a small procedural facade for that plot. Pilot-only curbs, lane markings, crossings and shallow paving insets end before Tower Bridge and keep the existing vehicle and pedestrian corridors clear. Other buildings, landmarks, the bus, people and the route retain their existing renderers; do not extend the pilot to other blocks until its visible result is reviewed. Ambient traffic maps elapsed time through refined route-distance marks so speed stays consistent across short and long segments.
+
 ## Motion and accessibility behavior
 
 - With `prefers-reduced-motion`, route progress snaps to the nearest stop, ambient time and pedestrian movement are paused, and the world starts on the medium postprocessing tier. The HTML panel and its navigation remain available.
@@ -79,6 +82,7 @@ The camera continues to use the same section shots and smooth blend at the new s
 
 - `node --test tests/` checks localized content integrity, route and camera math, palette, landmark geometry, pedestrian plans, park clearance and Glasgow footprint clearance.
 - `tests/*.browser.py` exercise real WebGL rendering and browser behavior, including fallback, world assembly, camera, vehicles, people and visual regressions.
+- `tests/real-city.browser.py` checks the three local models, per-plot fallback, sidewalk details, path continuity and Tower Bridge clearance; `tests/vehicles.browser.py` checks consistent distance-mapped traffic speed.
 - The manual verification matrix is in `CLAUDE.md`: desktop and 375px mobile, day/night, EN/PT, WebGL disabled, reduced motion, no console errors and Lighthouse accessibility at least 95.
 
 ## Privacy
