@@ -11,7 +11,8 @@ export function house(add, q, x, z, o, w, d, n, fh = 3.1, lo = false) {
   add(x, h + 0.06, z, w, 1, d + 0.8, roof);
   const A = lo ? () => {} : add; // lo (camera-side rows): one low roof slab, no steps/chimney/dormers, so nothing rises into the frame
   A(x, h + 1.06, z, w * 0.8, 1, d * 0.8, roof);
-  A(x, h + 2.06, z, w * 0.4, 0.8, d * 0.55, roof);
+  const broadCap = q() >= 0.5;
+  A(x, h + 2.06, z, w * (broadCap ? 0.6 : 0.4), 0.8, d * (broadCap ? 0.6 : 0.55), roof);
   const cx = x + (q() < 0.5 ? -1 : 1) * (w / 2 - 0.7), cz = z - o * d * 0.2;
   A(cx, h + 1.06, cz, 0.9, 1.5, 0.9, P.brick);
   const P0 = d * 0.4 + 0.45; // dormer front, behind the eave
