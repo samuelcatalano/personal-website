@@ -32,7 +32,7 @@ print(js(r'''(async () => {
       billboards.getMatrixAt(i,m); m.decompose(p,q,scale);
       check(Math.abs(p.x-original.x)<1e-4 && Math.abs(p.z-original.z)<1e-4, 'tree position changed');
       check(scale.x <= original.crown + 1e-5, 'crown grows into paths');
-      check(p.y+scale.y <= Math.min((original.base ?? .1)+4.4, original.h+1.2+(original.base ?? .1)), 'tree grows above landmark clearance');
+      check(p.y+scale.y <= Math.min((original.base ?? .1)+6.6, (original.h+.65)*1.45+.4+(original.base ?? .1)), 'tree grows above landmark clearance'); // North Star canopy cap (2026-10-21)
       check(p.y >= 0, 'tree sinks below paving');
       const v=rects.getY(i), vh=rects.getW(i);
       check(v>=0 && v+vh<.5, 'a pine sprite is selected');

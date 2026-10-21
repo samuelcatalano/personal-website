@@ -40,7 +40,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
       side: THREE.BackSide, depthWrite: false, fog: false, toneMapped: false,
       uniforms: { uZen: { value: new THREE.Color() }, uHor: { value: new THREE.Color() } },
       vertexShader: 'varying float vY; void main(){ vY = normalize(position).y; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-      fragmentShader: 'uniform vec3 uZen; uniform vec3 uHor; varying float vY; void main(){ gl_FragColor = vec4(mix(uHor, uZen, smoothstep(0.0, 0.7, vY)), 1.0); }',
+      fragmentShader: 'uniform vec3 uZen; uniform vec3 uHor; varying float vY; void main(){ gl_FragColor = vec4(mix(uHor, uZen, smoothstep(-0.02, 0.2, vY)), 1.0); }',
     }),
   );
   dome.renderOrder = -10; dome.frustumCulled = false;

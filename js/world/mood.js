@@ -1,11 +1,11 @@
 import { swapAt, scotRange } from './layout.js';
 // Per-region DAY look. Colours are sRGB hex; sun/hemi scale the light intensities, fogK scales fog near/far, cloudOp adds to cloud opacity.
 // The regional palettes retain Glasgow overcast while warming the city daylight.
-const M = {
-  entry: { zen: 0x83b2d4, hor: 0xcbd8e2, cloud: 0xfff1df, light: 0xffd5a0, sun: 1.02, hemi: 1.18, fogK: .90, cloudOp: -.08, rain: 0 },
-  sp: { zen: 0x78afcf, hor: 0xd0dce3, cloud: 0xfff4e6, light: 0xffd9a0, sun: 1.03, hemi: 1.14, fogK: 0.94, cloudOp: 0, rain: 0 }, // warm golden
-  lon: { zen: 0x80accc, hor: 0xc7d5df, cloud: 0xfff0de, light: 0xffdeb5, sun: .96, hemi: 1.20, fogK: 1, cloudOp: 0, rain: 0 },
-  gla: { zen: 0x9aa7b4, hor: 0xcdd0d1, cloud: 0xa9b2bc, light: 0xdbe6f4, sun: 0.6, hemi: 1.25, fogK: 0.5, cloudOp: 0.2, rain: 1 }, // overcast, drizzle
+const M = { // golden-hour North Star: saturated zenith, warm horizon haze, warm key with a lower cool fill for contrast
+  entry: { zen: 0x3d8ad6, hor: 0xe3e5df, cloud: 0xfff0dc, light: 0xffdcae, sun: 1.32, hemi: 1.0, fogK: 1.25, cloudOp: .1, rain: 0 },
+  sp: { zen: 0x3a86d4, hor: 0xe7e3d8, cloud: 0xfff1de, light: 0xffd9a8, sun: 1.34, hemi: 0.98, fogK: 1.3, cloudOp: .1, rain: 0 }, // warm golden
+  lon: { zen: 0x4a8fd2, hor: 0xdce3e7, cloud: 0xfff3e4, light: 0xffe0b8, sun: 1.28, hemi: 1.02, fogK: 1.3, cloudOp: .08, rain: 0 },
+  gla: { zen: 0x8a9db2, hor: 0xc9ccce, cloud: 0xb3bcc6, light: 0xe2e6ee, sun: 0.7, hemi: 1.1, fogK: 0.6, cloudOp: 0.2, rain: 1 }, // overcast, drizzle
 };
 const rgb = (h) => [(h >> 16) / 255, ((h >> 8) & 255) / 255, (h & 255) / 255];
 const P = Object.fromEntries(Object.entries(M).map(([k, m]) => [k, { ...m, zen: rgb(m.zen), hor: rgb(m.hor), cloud: rgb(m.cloud), light: rgb(m.light) }]));

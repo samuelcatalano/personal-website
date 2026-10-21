@@ -22,3 +22,4 @@ Each milestone: related tests + screenshot + console; commit per milestone (`art
 - Ruling: implementers do not commit; the primary agent reviews and commits per milestone — avoids index collisions when independent files are worked in parallel — cost if wrong: slightly larger commits.
 - Ruling: London Eye is rebuilt despite the earlier "accepted segmented" note — the user's North Star brief explicitly calls for it — cost if wrong: revert one function.
 - Ruling: no external 3D assets; all upgrades procedural — every needed shape is achievable with lathe/extrude/tube primitives and avoids licence risk — cost if wrong: some assets less detailed than a curated CC0 model.
+- Ruling: tree visible-height cap raised 4.4 → 6.6 m (tests/trees.browser.py updated); crown width still ≤ path-safe `crown` — North Star needs full canopies, landmarks are 14–40 m tall so sightlines hold — cost if wrong: one constant.

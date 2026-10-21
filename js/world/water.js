@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { SUN_DIR } from './sky.js';
-const DAY_SKY = new THREE.Color(0xacc9d8), NIGHT_SKY = new THREE.Color(0x18203a);
+const DAY_SKY = new THREE.Color(0x8fc0e4), NIGHT_SKY = new THREE.Color(0x18203a);
 const vertexShader = /* glsl */`
 #include <fog_pars_vertex>
 varying vec3 vPos;
@@ -31,8 +31,8 @@ vec3 v = normalize(cameraPosition - vPos);
 float fres = 0.04 + 0.96 * pow(1.0 - max(dot(n, v), 0.0), 3.0);
 c = mix(c, uSky, fres * 0.9);
 vec3 r = reflect(-v, n); // Continuous sun highlight follows the existing small wave normals.
-float sp=pow(max(dot(r,uSun),0.0),72.0)*(0.7+0.3*ripple);
-c+=uGlint*sp*0.8*(1.0-uNight);
+float sp=pow(max(dot(r,uSun),0.0),48.0)*(0.7+0.3*ripple);
+c+=uGlint*sp*1.3*(1.0-uNight);
 // A restrained edge sheen joins the shallow tint to existing embankments.
 c=mix(c,uShallow,0.10*(1.0-depth)*(1.0-uNight));
 gl_FragColor = vec4(c, 1.0);
@@ -45,8 +45,8 @@ export function createWater({ x0, x1, z, width }) {
   const mat = new THREE.ShaderMaterial({
     uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
       uTime: { value: 0 }, uRiverCenter:{value:z},uHalfWidth:{value:width/2}, uSun: { value: SUN_DIR }, uNight: { value: 0 },
-      uDeep: { value: new THREE.Color(0x214c52) }, uShallow: { value: new THREE.Color(0x4d7b78) },
-      uGlint: { value: new THREE.Color(0xefd7ad) }, uNightTint: { value: new THREE.Color(0x0a1330) }, uSky: { value: new THREE.Color(0xacc9d8) },
+      uDeep: { value: new THREE.Color(0x1d5a86) }, uShallow: { value: new THREE.Color(0x3f8fae) },
+      uGlint: { value: new THREE.Color(0xfff0c8) }, uNightTint: { value: new THREE.Color(0x0a1330) }, uSky: { value: new THREE.Color(0xacc9d8) },
     }]),
     vertexShader, fragmentShader, fog: true,
   });

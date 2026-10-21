@@ -44,9 +44,9 @@ export async function createTrees(placements) {
     const [sx, sy, sw, sh] = SPRITES[Math.floor((Math.sin(x*12.9898+z*78.233)*43758.5453%1+1)%1*SPRITES.length)];
     rects.setXYZW(i, sx / texture.image.width, 1 - (sy + sh) / texture.image.height, sw / texture.image.width, sh / texture.image.height);
     const variation = 0.74 + (Math.sin(x * 12.9898 + z * 78.233) * 0.5 + 0.5) * 0.26;
-    const visibleHeight = Math.min(4.2, h + .65) * variation;
+    const visibleHeight = Math.min(6.2, (h + .65) * 1.2) * variation; // North Star: full street canopies, not shrubs
     const height = visibleHeight * sh / (sh - 16);
-    return { x, z, y: base + 0.02 - height * 8 / sh, width: crown*(.88+.12*variation), height };
+    return { x, z, y: base + 0.02 - height * 8 / sh, width: crown*(.95+.05*variation), height };
   });
 
   const colors=[0xffffff,0xe5f3e5,0xffead1,0xd6e4c2];

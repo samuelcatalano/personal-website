@@ -91,7 +91,7 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
     const nx = -t.z, nz = t.x;
     const local = isWembleyBenchmark({ x: p.x, z: p.z });
     add(p.x, -0.18, p.z, 8.5, 0.25, 8.5, ROAD);
-    if (i % 6 === 0) add(p.x, 0.05, p.z, 1.2, 0.03, 0.3, LINE);
+    // painted lines: roadmarks.js
     if (crossings < 2 && p.x >= (crossings ? pilotX1 - 4 : pilotX0 + 4) && p.x <= pilotX1 - 2) {
       for (let k = -2; k <= 2; k++) {
         const x = p.x + t.x * k * 0.8, z = p.z + t.z * k * 0.8;
@@ -155,6 +155,12 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
         const x = p.x + dx + (r() - 0.5) * 2, z = p.z + side * 10.2;
         const h = broadleaf(r); // always draw rng so layout stays stable
         if (free(x, z)) { drawTree(add, x, z, h); obst.push([x, z]); }
+      }
+      // North Star canopy rhythm: extra verge trees on the same grass strip, placed by stable hash (layout rng untouched)
+      for (const dx of [-11.5, -3.2, 3.2, 11.5]) {
+        const x = p.x + dx, z = p.z + side * 10.3, hsh = Math.abs(Math.sin(x * 12.9898 + z * 78.233) * 43758.5453) % 1;
+        if (!free(x, z) || obst.some(([a, b]) => Math.hypot(a - x, b - z) < 3.4)) continue;
+        drawTree(add, x, z, { h: 3 + hsh * 0.6, crown: 3 + hsh * 0.5 }); obst.push([x, z]);
       }
     }
   });

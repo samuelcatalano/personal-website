@@ -22,6 +22,19 @@ w *= 0.96;
 gl_FragColor = vec4(base.rgb + acc / 40.0 * uStrength, base.a);
 }`,
 };
+// Display-space grade after tone mapping: ACES flattens colour, the North Star look is saturated and warm.
+const Grade = {
+  uniforms: { tDiffuse: { value: null }, uSat: { value: 1.18 }, uContrast: { value: 1.07 }, uWarm: { value: new THREE.Vector3(1.03, 1.0, 0.95) } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float uSat, uContrast; uniform vec3 uWarm; varying vec2 vUv;
+void main(){
+vec4 c = texture2D(tDiffuse, vUv);
+float l = dot(c.rgb, vec3(0.2126, 0.7152, 0.0722));
+vec3 g = mix(vec3(l), c.rgb, uSat);
+g = (g - 0.5) * uContrast + 0.5;
+gl_FragColor = vec4(clamp(g * uWarm, 0.0, 1.0), c.a);
+}`,
+};
 export function createPost(renderer, scene, camera, { tier = 'high', sun } = {}) {
   const size = renderer.getSize(new THREE.Vector2());
   const composer = new EffectComposer(renderer);
@@ -38,6 +51,7 @@ export function createPost(renderer, scene, camera, { tier = 'high', sun } = {})
   }
   composer.addPass(new UnrealBloomPass(size, 0.15, 0.2, 0.95));
   composer.addPass(new OutputPass());
+  const grade = new ShaderPass(Grade); composer.addPass(grade);
   const v = new THREE.Vector3();
   const post = {
     tier,
@@ -52,6 +66,8 @@ export function createPost(renderer, scene, camera, { tier = 'high', sun } = {})
         rays.uniforms.uSun.value.set(v.x / 2 + 0.5, v.y / 2 + 0.5);
         rays.uniforms.uStrength.value = v.z < 1 ? 0.2 * Math.min(1, sun.intensity / 2.4) : 0;
       }
+      const day = sun ? Math.min(1, sun.intensity / 2.4) : 1; // night keeps its own cool palette
+      grade.uniforms.uSat.value = 1 + 0.18 * day; grade.uniforms.uWarm.value.set(1 + 0.02 * day, 1, 1 - 0.03 * day);
       composer.render(dt);
     },
   };

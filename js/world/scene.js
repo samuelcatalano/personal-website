@@ -24,6 +24,7 @@ import { SECTION_SHOT, shotFor, blendShots, spring, approach, nextTier } from '.
 import { updateBeams, addBeams } from './beams.js';
 import { createLampPools } from './lamps.js';
 import { createPost } from './post.js';
+import { createRoadMarks } from './roadmarks.js';
 const BUS_LANE = 1.75, SCROLL_SMOOTH = 0.18, ARC = 10;
 export async function createWorld(canvas, stops, { reducedMotion = false, onProgress = () => {} } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -77,7 +78,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   world.traverse((o) => { const h = o.material?.color?.getHexString(); if (o.material?.userData.glow) { if (h === WIN_L.slice(1)) o.material.userData.glowColor = new THREE.Color('#ffb04a'); if (h === RG.slice(1)) o.material.userData.glowColor = new THREE.Color('#d8e86a'); if (h === RB.slice(1)) o.material.userData.glowColor = new THREE.Color('#bcd4ff'); } });
   polishLandmarkMaterials(world,stops,pts);
   const motion = buildMotion(); scene.add(motion.group);
-  scene.add(world, eye, details, plane, bus, ...rotors);
+  const roadMarks = createRoadMarks(curve, stops);
+  scene.add(world, eye, details, plane, bus, ...rotors, roadMarks);
   const units = [createAmbient(scene, { curve, pts, stops })];
   const people = createPeople(scene, { curve, pts, stops, reducedMotion });
   const water = createWater({ x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z: RIVER_Z, width: 22 });
@@ -203,6 +205,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       observer?.disconnect();
       architecture.userData.dispose?.();
       heroRealm?.userData.dispose();
+      roadMarks.userData.dispose();
       trees?.userData.dispose?.();
       for (const name of ['wembley', 'bigben', 'masp']) details.getObjectByName(name + '-geometry')?.userData.dispose();
       details.getObjectByName('hero-background')?.userData.dispose();
