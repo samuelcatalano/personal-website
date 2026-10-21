@@ -25,6 +25,7 @@ import { updateBeams, addBeams } from './beams.js';
 import { createLampPools } from './lamps.js';
 import { createPost } from './post.js';
 import { createRoadMarks } from './roadmarks.js';
+import { createAircraft } from './aircraft.js';
 const BUS_LANE = 1.75, SCROLL_SMOOTH = 0.18, ARC = 10;
 export async function createWorld(canvas, stops, { reducedMotion = false, onProgress = () => {} } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -63,7 +64,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const g = proto.clone(); g.position.set(x, y, z); g.userData.phase = i * 1.3; return g;
   });
   const SPIN = 0.45; // rad/s
-  const { eye, details, plane, planeAt } = buildLandmarks(add, stops, pts, (x, z, shape) => treePlacements.push({ x, z, ...shape }));
+  const { eye, details, plane: planeModel } = buildLandmarks(add, stops, pts, (x, z, shape) => treePlacements.push({ x, z, ...shape }));
+  const aircraft = createAircraft(planeModel, { reducedMotion, scale: 2.3 }), plane = aircraft.object; // ponytail: old 16 m model enlarged to ~37 m so it reads at 400-550 m; phase 6 builds the real size and drops the scale
   let trees;
   try { trees = await createTrees(treePlacements); scene.add(trees); }
   catch { treePlacements.forEach(({ x, z, ...shape }) => tree(add, x, z, shape)); } // retain trees if the texture cannot load
@@ -126,11 +128,6 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   if (bar) observer?.observe(bar);
   if (panel) observer?.observe(panel);
   const busPos = { x: 0, y: 0, z: 0 };
-  const updatePlane = (p) => {
-    const d = (p - planeAt) * (n - 1);
-    plane.visible = planeAt >= 0 && Math.abs(d) < 1;
-    if (plane.visible) plane.position.set(busPos.x + 16 + d * 60, Math.max(3, 14 - d * 10), busPos.z + 8);
-  };
   let scroll = { value: 0, velocity: 0 }, target = 0, clock = 0, last = 0;
   const lateral = new THREE.Vector3();
   function frame(now) {
@@ -166,7 +163,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     sun.position.copy(sun.target.position).add(SUN);
     eye.rotation.z = clock * 0.1; motion.uT.value = clock;
     for (const g of rotors) g.rotation.z = -clock * SPIN + g.userData.phase; // clockwise seen from +z
-    updatePlane(t);
+    aircraft.update(clock, camera);
     const f = { time: clock, dt, progress: p, t, active: nearestStop(p, n, marks), bus: busPos };
     onProgress(p);
     for (const u of units) u.update(f);

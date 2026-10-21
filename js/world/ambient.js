@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { createBoat } from './landmark-geometry.js';
 import { buildBus } from './bus.js';
 import { buildCar } from './vehicles.js';
-import { RIVER_Z, LANDMARKS, stopIndex, swapAt, scotRange, riverEnd, riverStart } from './layout.js';
+import { RIVER_Z, LANDMARKS, ukStart, stopIndex, swapAt, scotRange, riverEnd, riverStart } from './layout.js';
 import { stopMarks, fineMarks, routeT } from '../scroll.js';
 import { addBeams } from './beams.js';
 const cab = () => buildCar('cab'); // London black cab
@@ -26,7 +26,7 @@ export function createAmbient(scene, { curve, pts, stops }) {
   ];
   traffic.forEach((v, i) => { addBeams(v.mesh, i === 0 ? 5.46 : 2.2, i === 0 ? 0.8 : 0.55); scene.add(v.mesh); });
   // Thames only: none on the Pinheiros
-  const bx = pts[stopIndex(stops, LANDMARKS.heathrow)].x - 15, bw = riverEnd(stops, pts) - bx;
+  const bx = pts[ukStart(stops)].x - 15, bw = riverEnd(stops, pts) - bx;
   const boats = Array.from({ length: 7 }, (_, i) => {
     const mesh = boat(...[[], ['#2b4a7a', '#f4f4f4', 1.2], ['#a8442f', '#e0c880', 0.85], ['#2f6b4a', '#f4f4f4', 1.1]][i % 4]);
     mesh.position.set(bx + bw * (i + 0.5) / 7, 0.1, RIVER_Z + ((i % 3) - 1) * 4);

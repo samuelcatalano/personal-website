@@ -233,3 +233,11 @@ test('outskirts: each former-countryside stretch is built up with houses, and no
     assert.equal(boxes.filter((b) => b.y + b.h > 0.1 && Math.abs(b.z - 10) < b.d / 2 + 4.25).length, 0, 'road band is clear');
   }
 });
+
+test('swapAt derives from the first UK stop', async () => {
+  const { swapAt, ukStart } = await import('../js/world/layout.js');
+  const { stops: STOPS } = await import('../js/content.js');
+  const i = STOPS.findIndex((s) => s.id === 'move');
+  assert.equal(ukStart(STOPS), i);
+  assert.equal(swapAt(STOPS), (i - 0.5) / (STOPS.length - 1));
+});

@@ -55,8 +55,9 @@ export function rng(seed) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-// Mini->Routemaster swap: halfway before heathrow
-export const swapAt = (stops) => (stopIndex(stops, LANDMARKS.heathrow) - 0.5) / (stops.length - 1);
+// First UK stop (country field, not an airport): Mini->Routemaster swap sits half a stop before it
+export const ukStart = (stops) => stops.findIndex((s) => s.country === 'UK');
+export const swapAt = (stops) => (ukStart(stops) - 0.5) / (stops.length - 1);
 // Glasgow livery between these route params: from mid-countryside on the way up to where the Scottish edge ends on the way back.
 export const scotRange = (stops) => {
   const pts = routePoints(stops.length), e = stopIndex(stops, LANDMARKS.eye), g = stopIndex(stops, LANDMARKS.glasgow), [out, back] = regions(stops, pts);

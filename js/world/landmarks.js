@@ -73,11 +73,9 @@ export function buildLandmarks(add, stops, pts, onTree) {
   if (control.length) details.add(createHeroBackground(control));
   const generic = backgroundPlots.filter(p => !p.id.startsWith('paulista-hero-'));
   if (generic.length) { const group=createCityRollout(generic);group.name='paulista-architecture';details.add(group); }
-  const i = stopIndex(stops, LANDMARKS.heathrow);
   return {
     eye: wheel,
     details,
     plane: createPlane(),
-    planeAt: i / (stops.length - 1),
   };
 }

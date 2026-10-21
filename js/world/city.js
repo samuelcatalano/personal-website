@@ -1,4 +1,4 @@
-import { furnitureSpots, GAPS, GAP_TOTAL, STOP_SPACING, RIVER_Z, LANDMARKS, rng, riverEnd, riverStart, stopIndex, regions, towerX, isWembleyBenchmark } from './layout.js';
+import { furnitureSpots, GAPS, GAP_TOTAL, STOP_SPACING, RIVER_Z, LANDMARKS, rng, riverEnd, riverStart, stopIndex, ukStart, regions, towerX, isWembleyBenchmark } from './layout.js';
 import { house } from './houses.js';
 import { phoneBox } from './phone.js';
 import { PALETTE as P } from './palette.js';
@@ -165,7 +165,7 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
     }
   });
   // London kiosks on the pavement (own rng: nothing else shifts)
-  const kq = rng(6403), u0 = (stopIndex(stops, LANDMARKS.heathrow) - 0.3) / (stops.length - 1), kiosks = [];
+  const kq = rng(6403), u0 = (ukStart(stops) - 0.3) / (stops.length - 1), kiosks = [];
   for (let tries = 0; kiosks.length < 15 && tries < 400; tries++) {
     const u = u0 + kq() * (1 - u0), side = kq() < 0.5 ? -1 : 1, p = curve.getPointAt(u), t = curve.getTangentAt(u);
     const x = p.x - t.z * side * 7.1, z = p.z + t.x * side * 7.1;
