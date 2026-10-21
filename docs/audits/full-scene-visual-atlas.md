@@ -107,3 +107,14 @@ Details: [asset-quality-spec](../art/asset-quality-spec.md). Plan: [north-star-f
 - M1/M2 (6e63848): lighting/atmosphere C→B+ (golden key, saturated sky, colour grade), roads C→B+ (centre/edge lines, zebras), trees C→B+ (round canopies, verge rhythm), water B→A-.
 - M3 (264ec8f): Mini D→A-, Routemaster B-→A-, ambient cars D→B+ (5 shared smooth types).
 - M4 (352990e): London Eye D→A, Estaiada D→A-, Sé D→B+, Tower Bridge C→B+, Heathrow D→B+, airplane D→B+.
+- M5 (0e30066, 1f712b2): Copan C→B+ (S-curve + brise-soleil), Riverside C→B+, University C→B+, boats C→B, George Square City Chambers + Wellington statue C→B+.
+- Technical gate (60d7670): strict coplanar guard 207 → 0 pairs via source nudges (0.01–0.04 m).
+
+## Final traversal — 2026-10-21
+
+Same 35 positions re-captured. No region of the route still reads as the old voxel generation for its dominant elements. Remaining deliberate limits (graded **C**, cheap by design): distant backdrop boxes (fog-covered), generic lamp posts/benches, legacy box detailing on a few far-side special plots. Approved building families unchanged (B).
+
+BEFORE / AFTER (left/right, 1440×900 day, UI hidden):
+
+- [Hero](captures/00.0-hero.jpg) · [São Paulo street + Sé + MASP](captures/03.5-insane.jpg) · [Copan, Estaiada, airplane, Heathrow](captures/06.5-reclame.jpg)
+- [London: Big Ben, London Eye, Thames](captures/10.0-olm.jpg) · [Glasgow George Square](captures/11.0-glasgow.jpg) · [Wembley / contact](captures/17.0-contact.jpg)

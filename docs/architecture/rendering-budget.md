@@ -134,3 +134,11 @@ Modernized landmarks: Wembley3 meshes/5,812 unique triangles/8 high submissions;
 Final checks:101/101 Node tests;31/32 browser suites. The legacy z-fighting scan initially timed out; a sorted X-interval candidate sweep retains every original face predicate and now reports327 conflicting pairs. A separate live-scene probe confirms191 pairs in production box batches, including parks.js soil/rim faces. This gate is not waived. Syntax:54 ES modules/32 Python suites; git diff --check clean. Fallback/EN-PT/navigation/reduced-motion/resize contracts pass. Five visual smoke captures show no new regression; London Eye remains segmented. Lighthouse and physical-mobile validation were not run.
 
 Evidence: machine-local artifact folder `city-final-milestone-freeze-2026-10-21` contains raw samples, suite results, coplanar diagnostic, source-preservation audit and exactly five smoke captures. Validation hooks and adaptive-tier lock exist only in the temporary snapshot, not shipped source. No commit/deploy.
+
+## North Star full-scene upgrade — 2026-10-21
+
+New resources: one display-space grade ShaderPass after OutputPass (both tiers; full-screen, no texture fetch beyond the frame); one road-marking mesh (vertex colours, 1 material); vehicle family shared per type (sedan/hatch/SUV/cab/van ≤ 3k tris each, Mini 4.5k, bus 4.2k); landmark creators reuse the shared atlas mass/trim/glass buckets (Eye 3.9k, Estaiada 0.7k, Sé 4.7k, Tower Bridge 5.7k, Heathrow 0.9k, plane 2.3k, Copan 4.0k, Riverside 0.6k, University 4.0k, City Chambers 6.9k, Wellington 1.3k tris). No new textures, lights, shadow maps or cubemaps.
+
+One sample per device, 2 s warmup + 10 s, same hero shot, Chrome (ANGLE Metal, Apple M3 Max), cache disabled: desktop 1440×900 DPR 1.5 median 8.3 ms / p95 9.3 ms; emulated mobile 375×812 DPR 1 median 8.3 ms / p95 9.3 ms (both at the 120 Hz scheduling cap). Zero console errors. Frame intervals include browser scheduling; not a calibrated A/B or physical-device result. Draw calls/triangles not re-instrumented in this pass.
+
+Gates: 101/101 Node, 32/32 browser suites including the strict coplanar guard (0 pairs). PERFORMANCE GO local; physical mobile still unvalidated.

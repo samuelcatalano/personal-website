@@ -1,5 +1,7 @@
 # 3D city art direction
 
+> **2026-10-21 update:** the user reopened the visual freeze for the North Star full-scene upgrade. Current state: [visual atlas](audits/full-scene-visual-atlas.md), [plan](plans/north-star-full-scene-upgrade.md). Vehicles, all landmarks (London Eye now continuous), lighting, roads and vegetation were upgraded; approved building families are unchanged. The coplanar-face blocker below is resolved (0 pairs).
+
 **FINAL VISUAL GO — approved and frozen2026-10-21.** Stylized realism, polished city-builder quality, low/mid-poly architecture. The user approved all five building families, citywide architecture/diversity, lighting/atmosphere, vegetation/public realm, glass/water and Wembley/Big Ben-Parliament/MASP. No further visual development is authorized. London Eye's segmented geometry is an accepted limitation and remains unchanged.
 
 Technical release is separate: [final validation](architecture/rendering-budget.md#final-milestone-validation--2026-10-21) records the unresolved coplanar-face regression; do not interpret visual approval as a passing technical gate.

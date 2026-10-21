@@ -1,5 +1,7 @@
 # 3D city architecture
 
+> **2026-10-21 update:** the user reopened the visual freeze for the North Star full-scene upgrade. Current state: [visual atlas](../audits/full-scene-visual-atlas.md), [plan](../plans/north-star-full-scene-upgrade.md). Vehicles, all landmarks (London Eye now continuous), lighting, roads and vegetation were upgraded; approved building families are unchanged. The coplanar-face blocker below is resolved (0 pairs).
+
 **TOWNHOUSE SYSTEM = ARCHITECTURALLY VALIDATED**
 
 ## Final visual freeze — 2026-10-21

@@ -7,15 +7,18 @@ result = js(r'''(async () => {
   const { stops } = await import('./js/content.js');
   const { routePoints, routeCurve, towerX, isWembleyBenchmark } = await import('./js/world/layout.js');
   const check = (ok, message) => { if (!ok) throw Error(message); };
+  const { createRoadMarks } = await import('./js/world/roadmarks.js');
   const assertPilotStreetSeparatesRoadwayFromContinuousPedestrianPaths = (additions, plots, curve, safeStart, safeEnd, bridgeX) => {
     const minX = Math.min(...plots.map(p => p.x - p.width / 2)), maxX = Math.max(...plots.map(p => p.x + p.width / 2));
     const inPilot = ([x,,z,w,,d]) => x + w / 2 >= minX && x - w / 2 <= maxX && Math.abs(z - curve.getPointAt(0.5).z) < 30;
     const local = additions.filter(inPilot).filter(([, , ,w,,d]) => w < 50 && d < 50);
     const curbs = local.filter(([,y,,w,h,d]) => h >= 0.08 && h <= 0.18 && Math.max(w,d) <= 0.8 && Math.min(w,d) >= 0.15 && y < 0.2);
-    const stripes = local.filter(([,y,,w,h,d,c]) => c === '#e6dcc4' && h <= 0.06 && w >= 0.8 && w <= 1.5 && d < 0.7);
+    // lane markings are curve-following ribbons in roadmarks.js (2026-10-21); count dash quads in the pilot span
+    const marks = window.__roadMarks, mp = marks.geometry.getAttribute('position');
+    let stripes = []; for (let i = 0; i < mp.count; i += 6) { const x = mp.getX(i), z = mp.getZ(i); if (x >= minX && x <= maxX && Math.abs(z - curve.getPointAt(0.5).z) < 30) stripes.push(i); }
     const crosses = local.filter(([,y,,w,h,d,c]) => c === '#e6dcc4' && h <= 0.06 && Math.max(w,d) > 8 && Math.min(w,d) < 0.7);
     const variationPatches = additions.filter(([,y,,w,h,d,c]) => c === '#d8cfb8' && y > 0.1 && h < 0.01 && w >= 0.4 && w <= 0.6 && d >= 0.4 && d <= 0.6);
-    const basePavement = additions.filter(([,y,,w,h,d]) => Math.abs(y+0.02)<1e-5 && Math.abs(h-0.12)<1e-5 && Math.abs(w-3.3)<1e-5 && Math.abs(d-3.3)<1e-5);
+    const basePavement = additions.filter(([,y,,w,h,d]) => Math.abs(y+0.02)<1e-5 && Math.abs(h-0.12)<1e-5 && Math.abs(w-3.34)<1e-5 && Math.abs(d-3.34)<1e-5);
     const pilotOnly = additions.filter(([,y,,w,h,d,c]) =>
       c === '#7d7468' && Math.abs(h-0.1)<1e-5 && Math.abs(Math.max(w,d)-0.72)<1e-5 && Math.abs(Math.min(w,d)-0.16)<1e-5 ||
       c === '#d8cfb8' && y > 0.1 && h < 0.01 && w >= 0.4 && w <= 0.6 && d >= 0.4 && d <= 0.6 ||
@@ -57,6 +60,7 @@ result = js(r'''(async () => {
   };
   const pts = routePoints(stops.length), plots = [], architecturePlots = [], street = [], curve = routeCurve(T,pts);
   buildCity((...box) => street.push(box), stops, pts, curve, undefined, p => plots.push(p), p => architecturePlots.push(p));
+  window.__roadMarks = createRoadMarks(curve, stops);
   const bridgeX = towerX(stops, pts), safeStart = pts[stops.findIndex(s => s.id === 'olm')].x + 12, safeEnd = bridgeX - 20;
   const streetDetails = assertPilotStreetSeparatesRoadwayFromContinuousPedestrianPaths(street, plots, curve, safeStart, safeEnd, bridgeX);
   const glbRequestsBefore = performance.getEntriesByType('resource').filter(e => /\.glb(?:$|[?#])/i.test(e.name)).length;
