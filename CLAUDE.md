@@ -12,9 +12,9 @@ For city work, start with the three current references below; consult other docu
 
 ## Model orchestration
 
-Model selection follows **Model Usage** below; previous fixed Opus/Sonnet/Haiku assignments are superseded. The primary agent owns planning, scope, architecture, integration, review and final verification; do not delegate scope or architectural decisions.
+Model selection follows **Model Usage** below. The primary agent owns planning, scope, architecture, integration, review and final verification; do not delegate scope or architectural decisions.
 
-If independent subagent work is explicitly selected, give each agent one self-contained module, named files, the relevant TRD interface and a clear completion contract. Two agents must not edit the same file concurrently. The primary agent reviews every subagent diff before integration.
+If independent subagent work is selected, give each agent one self-contained module, named files, the relevant TRD interface and a clear completion contract. Two agents must not edit the same file concurrently. The primary agent reviews every subagent diff before integration.
 
 ## Rules
 
@@ -39,9 +39,8 @@ Use **Validation Strategy** below; claim only checks actually run. At milestones
 
 ## 3D City Development Rules
 
-- Final user visual approval/freeze (2026-10-21) covers all delivered archetypes, citywide rollout/diversity, lighting/vegetation/public realm, glass/water and Wembley/Big Ben-Parliament/MASP. No further visual work without explicit authorization; segmented London Eye is accepted unchanged. Check the current architecture/rendering-budget final gate before claiming technical production readiness.
-
-- Default implementation model: GPT-6 Sol Medium. Never invoke Astra automatically; follow **Model Usage**.
+- The 2026-10-21 visual freeze was reopened by the user on 2026-10-21 for the North Star full-scene upgrade (`docs/plans/north-star-full-scene-upgrade.md`). Work inside that plan's scope; anything outside it still needs explicit authorization. Visual state per system lives in `docs/audits/full-scene-visual-atlas.md`; asset budgets in `docs/art/asset-quality-spec.md`.
+- External assets: CC0/public domain first, then clearly permissive free licences; record every one in `ASSET_SOURCES.md`. Ambiguous licence = do not use; model procedurally from reference instead. Never use Sketchfab.
 - Subagents are OFF by default. Use them only for clearly independent tasks; a smaller task alone does not justify delegation.
 - Preserve the map, lot footprints/heights, routes, landmark sightlines, pedestrians and existing logic unless explicitly in scope. Keep paths clear.
 - Keep architecture data-driven: lot data remains the source of truth. No new engine/framework without concrete need and authorization.
@@ -75,7 +74,9 @@ Avoid Lighthouse, 20+ measurements and every browser suite for small edits. Broa
 
 ## Model Usage
 
-- **Default: GPT-6 Sol Medium** for implementation and integration.
-- **Luna:** small documentation, boilerplate, mechanical refactors and simple tests, when model selection is permitted. Respect any active user model lock; do not auto-switch or spawn agents to satisfy this list.
-- **Astra:** architecture/review only, for a genuinely new major architectural decision, a subsystem conflict, a structural renderer change, or a decision risking substantial rework. Not routine implementation or already-resolved discovery.
-- Invoke Astra only with explicit user approval. If it appears necessary, report **ASTRA REVIEW RECOMMENDED**, briefly explain the new decision/conflict, and wait. A new architectural concern alone is not permission to invoke it.
+Choose by function, not by model marketing.
+
+- **Default: Claude Sonnet** — implementation, investigation, debugging, refactoring, browser/rendering work, integration, tests, tactical planning and task coordination. Sonnet does most of the work.
+- **Claude Haiku** — only cheap, independent work: file inventories, mechanical search, reference/licence tables, locating usages, renames, boilerplate, simple tests, small docs, repetitive asset classification. Never for important visual decisions.
+- **Claude Opus** — reserved for genuinely new architectural decisions, subsystem conflicts, major renderer redesign, high-risk art-direction decisions, structural problems risking significant rework, or critical review of a complex strategy. Not routine implementation.
+- If Opus seems necessary and the decision is not destructive, log `OPUS REVIEW RECOMMENDED` in the plan/ledger, use Opus only for that analysis/review, then return to Sonnet to implement. Avoid long Opus sessions. Respect any model lock the user has set; do not auto-switch to satisfy this list.

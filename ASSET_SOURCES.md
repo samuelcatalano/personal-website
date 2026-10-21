@@ -1,0 +1,12 @@
+# Asset sources
+
+Every non-code asset that ships in this repository. External assets must be CC0/public domain or clearly permissive; ambiguous licence = not used. Sketchfab is never used.
+
+| Asset | Path | Source | Author | Licence | Use |
+|---|---|---|---|---|---|
+| Park tree atlas (4 painted trees, 2 used) | `assets/trees/park-atlas.png` | Generated in-project 2026-10-19 (prompt in `assets/trees/README.md`) | project | Original, project-owned | Instanced tree billboards |
+| Avatar / memoji | `assets/avatar.png`, `assets/memoji-wave.png` | Site owner | Samuel Catalano | Owner's own | UI + in-world figure |
+| Reference photos/sheets | `assets/models/source/ref/*` | Visual reference only, not rendered | — | Reference only; never shipped in-world | Modelling reference |
+| Architecture atlas, clock faces, noise, sky discs, plaques, pedestrian atlas | generated at runtime (canvas) | Procedural, in-project code | project | Project code | Materials |
+
+North Star upgrade (2026-10-21): all vehicles and landmarks are procedural geometry built in code from public visual references (official sites/Wikimedia photos consulted only as reference). **No external 3D models, textures or HDRIs were added.**
