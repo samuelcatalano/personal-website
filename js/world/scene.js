@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
 import { routeT, nearestStop, stopMarks, fineMarks } from '../scroll.js';
-import { routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, FRAME_LIFT, swapAt } from './layout.js';
+import { routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, FRAME_LIFT, swapAt, ukStart } from './layout.js';
 import { createBoxes, buildMeshes } from './voxel.js';
 import { buildMotion } from './motion.js';
 import { buildCity, tree } from './city.js';
@@ -25,7 +25,6 @@ import { updateBeams, addBeams } from './beams.js';
 import { createLampPools } from './lamps.js';
 import { createPost } from './post.js';
 import { createRoadMarks } from './roadmarks.js';
-import { createAircraft } from './aircraft.js';
 import { createUnderpass } from './underpass.js';
 const BUS_LANE = 1.75, SCROLL_SMOOTH = 0.18, ARC = 10;
 export async function createWorld(canvas, stops, { reducedMotion = false, onProgress = () => {} } = {}) {
@@ -66,7 +65,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   });
   const SPIN = 0.45; // rad/s
   const { eye, details } = buildLandmarks(add, stops, pts, (x, z, shape) => treePlacements.push({ x, z, ...shape }));
-  const aircraft = createAircraft(buildVehicle('a330'), { reducedMotion }), plane = aircraft.object;
+  const plane = buildVehicle('a330'), planeAt = ukStart(stops) / (n - 1), { nav, strobe, shadow } = plane.userData; // flies past the bus at the first UK stop
+  plane.visible = shadow.visible = nav.visible = strobe.visible = false;
   let trees;
   try { trees = await createTrees(treePlacements); scene.add(trees); }
   catch { treePlacements.forEach(({ x, z, ...shape }) => tree(add, x, z, shape)); } // retain trees if the texture cannot load
@@ -86,7 +86,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   polishLandmarkMaterials(world,stops,pts);
   const motion = buildMotion(); scene.add(motion.group);
   const roadMarks = createRoadMarks(curve, stops);
-  scene.add(world, eye, details, plane, aircraft.shadow, bus, ...rotors, roadMarks);
+  scene.add(world, eye, details, plane, shadow, bus, ...rotors, roadMarks);
   const units = [createAmbient(scene, { curve, pts, stops, reducedMotion })];
   const people = createPeople(scene, { curve, pts, stops, reducedMotion });
   const water = createWater({ x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z: RIVER_Z, width: 22 });
@@ -133,6 +133,14 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   if (bar) observer?.observe(bar);
   if (panel) observer?.observe(panel);
   const busPos = { x: 0, y: 0, z: 0 }, prevBus = { x: null, z: 0 };
+  const updatePlane = (p) => { // the original flyover: passes beside the bus at the first UK stop, heading +x, climbing out
+    const d = (p - planeAt) * (n - 1);
+    plane.visible = planeAt >= 0 && Math.abs(d) < 1;
+    if (plane.visible) plane.position.set(busPos.x + 16 + d * 60, Math.max(3, 18 - d * 10), busPos.z - 2);
+    shadow.visible = plane.visible && night < 0.9;
+    nav.visible = plane.visible && night > 0.35; strobe.visible = nav.visible && clock % 1.3 < 0.12; // red left / green right steady, white strobe blinks
+    if (shadow.visible) { shadow.position.set(plane.position.x, 0.14, plane.position.z); shadow.scale.set(34, 1, 15); shadow.material.opacity = 0.3 * (1 - night); }
+  };
   let scroll = { value: 0, velocity: 0 }, target = 0, clock = 0, last = 0;
   const lateral = new THREE.Vector3();
   function frame(now) {
@@ -186,7 +194,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     sun.position.copy(sun.target.position).add(SUN);
     eye.rotation.z = clock * 0.1; motion.uT.value = clock;
     for (const g of rotors) g.rotation.z = -clock * SPIN + g.userData.phase; // clockwise seen from +z
-    aircraft.update(clock, camera, night);
+    updatePlane(t);
     const f = { time: clock, dt, progress: p, t, active: nearestStop(p, n, marks), bus: busPos };
     onProgress(p);
     for (const u of units) u.update(f);
