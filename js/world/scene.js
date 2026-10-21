@@ -11,7 +11,7 @@ import { createTrees } from './trees.js';
 import { buildBackdrop } from './backdrop.js';
 import { buildLandmarks } from './landmarks.js';
 import { polishLandmarkMaterials } from './landmark-materials.js';
-import { buildBus, buildMini } from './bus.js';
+import { buildVehicle } from './vehicles.js';
 import { createMood } from './mood.js';
 import { createRain } from './rain.js';
 import { createSky, EXPOSURE, SUN_DIR } from './sky.js';
@@ -70,11 +70,14 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   try { trees = await createTrees(treePlacements); scene.add(trees); }
   catch { treePlacements.forEach(({ x, z, ...shape }) => tree(add, x, z, shape)); } // retain trees if the texture cannot load
   const architecture = await realCity;scene.add(architecture);
-  const routemaster = buildBus(), mini = buildMini(), bus = new THREE.Group().add(mini, routemaster), swap = swapAt(stops);
-  // First Glasgow livery between these fractions of the olm->glasgow and glasgow->tribal segments
+  const mini = buildVehicle('mini', { hero: true }), londonBus = buildVehicle('london', { hero: true }), glasgowBus = buildVehicle('glasgow', { hero: true });
+  const bus = new THREE.Group().add(mini, londonBus, glasgowBus), swap = swapAt(stops);
+  londonBus.visible = glasgowBus.visible = false;
+  // The Glasgow bus is the logical model between these route params; its visible swap is deferred (see frame())
   const [SCOT_IN, SCOT_OUT] = scotRange(stops);
-  let scot = false;
-  addBeams(mini, 1.72, 0.55); addBeams(routemaster, 5.46, 0.8);
+  let shown = null, frameNo = 0;
+  const frustum = new THREE.Frustum(), pv = new THREE.Matrix4(), sphere = new THREE.Sphere(), ray = new THREE.Raycaster();
+  for (const v of [mini, londonBus, glasgowBus]) addBeams(v, v.userData.front, v.userData.beamY);
   const WIN_L = '#2b2621', RG = '#27394b', RB = '#c9ccd1'; // Glasgow Uni windows, Riverside glass + band
   const world = buildMeshes(list, { glow: [P.lit, '#ffd86b', '#fff7c2', P.arch, WIN_L, RG, RB], glowK: { [P.arch]: 1.1, [WIN_L]: 1.0, [RG]: 0.55, [RB]: 0.2 } });
   world.traverse((o) => { const h = o.material?.color?.getHexString(); if (o.material?.userData.glow) { if (h === WIN_L.slice(1)) o.material.userData.glowColor = new THREE.Color('#ffb04a'); if (h === RG.slice(1)) o.material.userData.glowColor = new THREE.Color('#d8e86a'); if (h === RB.slice(1)) o.material.userData.glowColor = new THREE.Color('#bcd4ff'); } });
@@ -142,10 +145,6 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const p = scroll.value, t = routeT(p, n, knots);
     const bp = curve.getPointAt(t), tan = curve.getTangentAt(t);
     lateral.set(tan.z, 0, -tan.x).normalize().multiplyScalar(BUS_LANE);
-    routemaster.visible = t >= swap;
-    mini.visible = !routemaster.visible;
-    const inScot = t >= SCOT_IN && t < SCOT_OUT;
-    if (inScot !== scot) routemaster.userData.setLivery(scot = inScot);
     bus.position.copy(bp).add(lateral);
     bus.rotation.y = Math.atan2(-tan.z, tan.x);
     Object.assign(busPos, { x: bp.x + lateral.x, y: bp.y, z: bp.z + lateral.z });
@@ -156,6 +155,23 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const shot = blendShots(shotFor(ka, busPos, { mobile, lift }), shotFor(kb, busPos, { mobile, lift }), s - i, ka === kb ? 0 : ARC);
     camera.position.fromArray(shot.position);
     camera.lookAt(shot.target[0], shot.target[1], shot.target[2]);
+    // Player model: logical state flips exactly at swap / scotRange; a London<->Glasgow change becomes visible only when hidden
+    const want = t < swap ? mini : t >= SCOT_IN && t < SCOT_OUT ? glasgowBus : londonBus;
+    frameNo++;
+    if (shown !== want) {
+      let why = !shown || shown === mini || want === mini ? 'immediate' : Math.abs(s - Math.round(s)) < 0.12 ? 'stop' : ka !== kb && s - i > 0.15 && s - i < 0.85 ? 'blend' : '';
+      if (!why) {
+        camera.updateMatrixWorld();
+        sphere.set(lateral.clone().add(bp).setY(bp.y + 2.2), 6.4);
+        if (!frustum.setFromProjectionMatrix(pv.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse)).intersectsSphere(sphere)) why = 'offscreen';
+        else if (frameNo % 4 === 0) { // occlusion: ray from the camera to the bus centre meets architecture first
+          const d = camera.position.distanceTo(sphere.center);
+          ray.set(camera.position, sphere.center.clone().sub(camera.position).normalize()); ray.far = d - 4;
+          if (ray.intersectObject(architecture, true).length) why = 'occluded';
+        }
+      }
+      if (why) { shown = want; mini.visible = want === mini; londonBus.visible = want === londonBus; glasgowBus.visible = want === glasgowBus; }
+    }
     architecture.userData.update?.(camera);
     // snap the shadow centre to whole shadow texels in light space, so shadow edges don't shimmer while moving
     const a = Math.round(bp.dot(LU) / TEXEL) * TEXEL, b = Math.round(bp.dot(LV) / TEXEL) * TEXEL;

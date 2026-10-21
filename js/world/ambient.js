@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 import { createBoat } from './landmark-geometry.js';
-import { buildBus } from './bus.js';
-import { buildCar } from './vehicles.js';
+import { buildVehicle } from './vehicles.js';
 import { RIVER_Z, LANDMARKS, ukStart, stopIndex, swapAt, scotRange, riverEnd, riverStart } from './layout.js';
 import { stopMarks, fineMarks, routeT } from '../scroll.js';
 import { addBeams } from './beams.js';
-const cab = () => buildCar('cab'); // London black cab
+const cab = () => buildVehicle('cab'); // London black cab (LEVC TX)
+const car = (type, color) => buildVehicle(type, { color });
 function boat(hull = '#6b4f3a', cabin = '#f4f4f4', sx = 1) {
   const m = createBoat(hull, cabin);
   m.scale.x = sx;
@@ -14,17 +14,18 @@ function boat(hull = '#6b4f3a', cabin = '#f4f4f4', sx = 1) {
 export function createAmbient(scene, { curve, pts, stops }) {
   const knots = fineMarks(stopMarks(pts), curve);
   const traffic = [
-    { mesh: buildBus(), lane: 1.75, offset: -0.16, relative: true, uk: true },
+    { mesh: buildVehicle('london'), lane: 1.75, offset: -0.16, relative: true, uk: true, scot: false },
+    { mesh: buildVehicle('glasgow'), lane: 1.75, offset: -0.12, relative: true, uk: true, scot: true }, // exists only inside the Scotland range, so it never swaps on screen
     { mesh: cab(), lane: 1.75, offset: 0.22, relative: true },
     { mesh: cab(), lane: -1.75, offset: 0.25, reverse: true },
     { mesh: cab(), lane: -1.75, offset: 0.75, reverse: true },
     { mesh: cab(), lane: 1.75, offset: -0.16, relative: true, uk: false },
     // deterministic fleet: [colour, route offset, uk-only flag, body type]
-    ...[['#e8c425', .08, 0, 'hatch'], ['#2f6fcf', .17, 0, 'sedan'], ['#f4f1ea', .33, 0, 'suv'], ['#3f9d4a', .42, 0, 'hatch'], ['#16181c', .5, 1, 'sedan'], ['#b9bec4', .58, 0, 'van'],
+    ...[['#e8c425', .08, 1, 'mini'], ['#2f6fcf', .17, 0, 'sedan'], ['#f4f1ea', .33, 0, 'suv'], ['#3f9d4a', .42, 1, 'mini'], ['#16181c', .5, 1, 'sedan'], ['#b9bec4', .58, 0, 'van'],
       ['#e07a1f', .67, 0, 'sedan'], ['#8b2f45', .71, 0, 'hatch'], ['#16181c', .83, 1, 'suv'], ['#4a7f9e', .92, 0, 'sedan']].map(([c, offset, uk, type]) => (
-      { mesh: buildCar(type, c), lane: -1.75, offset, reverse: true, uk: uk ? true : undefined })),
+      { mesh: car(type, c), lane: -1.75, offset, reverse: true, uk: uk ? true : undefined })),
   ];
-  traffic.forEach((v, i) => { addBeams(v.mesh, i === 0 ? 5.46 : 2.2, i === 0 ? 0.8 : 0.55); scene.add(v.mesh); });
+  traffic.forEach((v) => { addBeams(v.mesh, v.mesh.userData.front, v.mesh.userData.beamY); scene.add(v.mesh); });
   // Thames only: none on the Pinheiros
   const bx = pts[ukStart(stops)].x - 15, bw = riverEnd(stops, pts) - bx;
   const boats = Array.from({ length: 7 }, (_, i) => {
@@ -42,8 +43,7 @@ export function createAmbient(scene, { curve, pts, stops }) {
     update({ time, t: route }) {
       for (const v of traffic) {
         let t = v.relative ? route + v.offset : routeT(((v.offset - time * 0.012) % 1 + 1) % 1, pts.length, knots);
-        v.mesh.visible = t >= 0 && t <= 1 && (v.uk === undefined || (t >= swap) === v.uk);
-        if (v.mesh.userData.setLivery) { const scot = t >= scotIn && t < scotOut; if (scot !== v.scot) v.mesh.userData.setLivery(v.scot = scot); } // only the bus repaints
+        v.mesh.visible = t >= 0 && t <= 1 && (v.uk === undefined || (t >= swap) === v.uk) && (v.scot === undefined || (t >= scotIn && t < scotOut) === v.scot);
         if (!v.mesh.visible) continue;
         const p = curve.getPointAt(t), tan = curve.getTangentAt(t);
         nrm.set(tan.z, 0, -tan.x).normalize();
