@@ -1,14 +1,11 @@
 import * as THREE from 'three';
 import { createBoxes, buildMeshes } from './voxel.js';
-import { buildBus, car } from './bus.js';
+import { buildBus } from './bus.js';
+import { buildCar } from './vehicles.js';
 import { RIVER_Z, LANDMARKS, stopIndex, swapAt, scotRange, riverEnd, riverStart } from './layout.js';
 import { stopMarks, fineMarks, routeT } from '../scroll.js';
 import { addBeams } from './beams.js';
-function cab(c, sx = 1) {
-  const m = c ? car({ L: 4.4, W: 1.8, c, hl: 1, bl: 0.8, ch: 0.62 }) : car({ L: 4.4, W: 1.8, c: '#16181c', hl: 0.8, bl: 0.5, ch: 0.85, taxi: 1 }); // no colour = black cab
-  m.scale.x = sx;
-  return m;
-}
+const cab = () => buildCar('cab'); // London black cab
 function boat(hull = '#6b4f3a', cabin = '#f4f4f4', sx = 1) {
   const { add, list } = createBoxes();
   add(0, 0, 0, 6, 1, 2.2, hull);
@@ -26,8 +23,10 @@ export function createAmbient(scene, { curve, pts, stops }) {
     { mesh: cab(), lane: -1.75, offset: 0.25, reverse: true },
     { mesh: cab(), lane: -1.75, offset: 0.75, reverse: true },
     { mesh: cab(), lane: 1.75, offset: -0.16, relative: true, uk: false },
-    ...[['#e8c425', .08], ['#2f6fcf', .17], ['#3f9d4a', .42], ['#16181c', .5, 1], ['#b9bec4', .58], ['#e07a1f', .67], ['#16181c', .83, 1]].map(([c, offset, uk], i) => (
-      { mesh: cab(c, .9 + i % 2 * .1), lane: -1.75, offset, reverse: true, uk: uk && true })),
+    // deterministic fleet: [colour, route offset, uk-only flag, body type]
+    ...[['#e8c425', .08, 0, 'hatch'], ['#2f6fcf', .17, 0, 'sedan'], ['#f4f1ea', .33, 0, 'suv'], ['#3f9d4a', .42, 0, 'hatch'], ['#16181c', .5, 1, 'sedan'], ['#b9bec4', .58, 0, 'van'],
+      ['#e07a1f', .67, 0, 'sedan'], ['#8b2f45', .71, 0, 'hatch'], ['#16181c', .83, 1, 'suv'], ['#4a7f9e', .92, 0, 'sedan']].map(([c, offset, uk, type]) => (
+      { mesh: buildCar(type, c), lane: -1.75, offset, reverse: true, uk: uk ? true : undefined })),
   ];
   traffic.forEach((v, i) => { addBeams(v.mesh, i === 0 ? 5.46 : 2.2, i === 0 ? 0.8 : 0.55); scene.add(v.mesh); });
   // Thames only: none on the Pinheiros
