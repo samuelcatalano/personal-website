@@ -194,3 +194,8 @@ Exact profiles, segment counts within budget, colours within the references, tim
 2. Glasgow bus: logical state at the exact `scotRange` boundary; visible swap hidden (off-frame / occluded / camera blend), no crossfade.
 3. Landmark lighting: ≤2 emissive buckets per landmark (warm/cool), shared materials, no PointLights.
 4. Official performance baseline captured before phase 1 with the rendering-budget harness; ceilings as in E2.
+
+## Implementation rulings (during execution)
+
+- Ruling: the hidden Glasgow swap uses a natural occluder — a countryside railway embankment with a masonry arch underpass at each `scotRange` crossing (both inside the countryside); the model changes while the bus is inside the arch. Reason: the follow camera always keeps the bus in frame, so off-frame/blend/occlusion triggers never fire on their own and the stop fallback popped in frame. Cost if wrong: remove `underpass.js` and the trigger; the stop fallback still works.
+- Ruling: Heathrow's block reservation remains as a neutral rectangle (RNG preservation); the riverfront infill uses its own `rng(2019)`; frontage houses formerly hidden draw from a separate stream. Layout outside the site verified identical (485/485 plots, 22,892/22,892 boxes).
