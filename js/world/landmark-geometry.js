@@ -3,6 +3,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { SURFACE as S, townhouseMaterials } from './building-slice-materials.js';
 import { PALETTE as P } from './palette.js';
 import { blockMaterial } from './textures.js';
+import { RIVERSIDE_KNOTS, riversideRoofAt } from './riverside.js';
 
 const v=(x,y,z)=>new THREE.Vector3(x,y,z),lathe=(pts,seg=16,a=0,l=Math.PI*2)=>new THREE.LatheGeometry(pts.map(([r,y])=>new THREE.Vector2(r,y)),seg,a,l);
 function archShape(w,h){const r=w/2,sh=h-w*.85,s=new THREE.Shape();s.moveTo(-r,0);s.lineTo(r,0);s.lineTo(r,sh);s.lineTo(0,h);s.lineTo(-r,sh);s.closePath();return s;}
@@ -44,14 +45,24 @@ function landmark(name,x,z){
   function gothic(cx,cz,face,u,y,w,h,glass=[.8,.9,1],surface=S.glass,frame=true){
     const px=cx+Math.cos(face)*u-Math.sin(face)*.02,pz=cz-Math.sin(face)*u-Math.cos(face)*.02;
     if(frame){const f=new THREE.ExtrudeGeometry(archShape(w+.32,h+.22),{depth:.05,bevelEnabled:false});f.rotateY(face);add(f,px,y-.1,pz,S.trim,pale,1);}
-    const g=new THREE.ExtrudeGeometry(archShape(w,h),{depth:.08,bevelEnabled:false});g.rotateY(face);add(g,px,y,pz,surface,glass,surface===S.glass?2:0);
+    const g=new THREE.ExtrudeGeometry(archShape(w,h),{depth:.08,bevelEnabled:false});g.rotateY(face);add(g,px,y,pz,surface,glass,surface===S.glass||surface===S.litGlass?2:0);
+  }
+  // Loft a [offset,y] cross-section along a plan path(t)->[x,z]; flat quads, closed profiles must be counter-clockwise (offset right, y up) and are capped.
+  function sweep(profile,path,n,surface,tint,bucket=0,closed=true){
+    const st=[],pos=[];
+    for(let i=0;i<=n;i++){const t=i/n,[cx,cz]=path(t),[ax,az]=path(Math.min(1,t+.002)),[bx,bz]=path(Math.max(0,t-.002)),l=Math.hypot(ax-bx,az-bz);st.push([cx,cz,-(az-bz)/l,(ax-bx)/l]);}
+    const P=(i,j)=>{const [cx,cz,nx,nz]=st[i],[d,y]=profile[j%profile.length];return [cx+nx*d,y,cz+nz*d];};
+    const tri=(a,b,c)=>pos.push(...a,...b,...c),m=closed?profile.length:profile.length-1;
+    for(let i=0;i<n;i++)for(let j=0;j<m;j++){const A=P(i,j),B=P(i,j+1),C=P(i+1,j+1),D=P(i+1,j);tri(A,C,B);tri(A,D,C);}
+    if(closed)for(let j=1;j<profile.length-1;j++){tri(P(0,0),P(0,j),P(0,j+1));tri(P(n,0),P(n,j+1),P(n,j));}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(new Float32Array(pos.length/3*2),2));g.computeVertexNormals();add(g,0,0,0,surface,tint,bucket);
   }
   function finish(){
     const mats=townhouseMaterials();
     buckets.forEach((parts,i)=>{if(!parts.length)return;const g=mergeGeometries(parts,false);parts.forEach(p=>p.dispose());g.computeBoundingBox();g.computeBoundingSphere();const mesh=new THREE.Mesh(g,i===2?mats.glass:mats.architecture);mesh.name=name+'-'+['mass','trim','glass'][i];mesh.castShadow=i===0;mesh.receiveShadow=true;group.add(mesh);});
     group.userData.dispose=()=>group.children.forEach(m=>m.geometry.dispose());return group;
   }
-  return {group,box,add,beam,ring,gothic,finish,stone,pale,slate};
+  return {group,box,add,beam,ring,gothic,sweep,finish,stone,pale,slate};
 }
 
 export function createWembley(x,z){
@@ -349,4 +360,111 @@ export function createLondonEye(x,z){
   for(const sx of [-1,1]){beam(v(0,18,-3.1),v(sx*3.6,.4,-7.4),.5,pale,1,8);}
   beam(v(-2.1,9.6,-5.2),v(2.1,9.6,-5.2),.22,pale,1,6);box(0,17.2,-3.1,1.2,1.6,1.2,S.trim,pale,1);box(0,0,-7.4,10.4,.8,3,S.stone);
   return {wheel,frame:finish()};
+}
+
+// ---- Edificio Copan: S-curved slab, continuous white brise-soleil floor bands over dark glazing ----
+export function createCopan({x,z,len,amp,depth,h}){
+  const {box,add,sweep,finish,pale}=landmark('copan',x,z),D=depth/2,path=t=>[-len/2+t*len,amp*Math.sin(2*Math.PI*t)],N=32,F=3.2;
+  const rect=(d0,d1,y0,y1)=>[[d0,y0],[d1,y0],[d1,y1],[d0,y1]],white=[1.2,1.2,1.22],dark=[.5,.55,.65],glass=[.7,.82,.95];
+  sweep(rect(-D,D,0,F),path,N,S.stone,dark);                                   // commercial base
+  sweep(rect(-D+.75,D-.75,F,h-.5),path,N,S.stone,dark);                        // core behind the glazing
+  for(const k of [1,-1]){
+    sweep(k>0?[[D+.03,.5],[D+.03,F-.6]]:[[-D-.03,F-.6],[-D-.03,.5]],path,N,S.litGlass,glass,2,false); // lit shopfronts
+    sweep(k>0?[[D-.72,F],[D-.72,h-.5]]:[[-D+.72,h-.5],[-D+.72,F]],path,N,S.glass,glass,2,false);
+  }
+  for(let y=F;y<h-.5;y+=3)sweep(rect(-D,D,y,y+.65),path,N,S.plaster,white);   // one continuous projecting ribbon per floor
+  sweep(rect(-D-.3,D+.3,h-.5,h),path,N,S.plaster,white);                       // flat roof slab
+  const [ax,az]=path(.27),[bx,bz]=path(.66);
+  box(ax,h,az,3,2.2,3,S.stone,[.8,.84,.9]);box(ax,h+2.2,az,3.3,.2,3.3,S.trim,pale,1);
+  add(new THREE.CylinderGeometry(1,1,1.8,10),bx,h+.9,bz,S.trim,[.7,.74,.8],1);add(new THREE.ConeGeometry(1.1,.6,10),bx,h+2.1,bz,S.roof,[.87,.96,1.04]);
+  return finish();
+}
+
+// ---- Riverside Museum: sawtooth zinc roof, glazed front and gable ends ----
+export function createRiverside(x,z){
+  const {box,add,finish}=landmark('riverside',x,z),zinc=[.6,.64,.7],silver=[.95,.98,1.04],glass=[.7,.82,.95],T=.7,W=7.5;
+  const top=RIVERSIDE_KNOTS.map(([u,y])=>[u-16,y]),low=top.map(([px,py])=>[px,py-T]).reverse();
+  const poly=pts=>new THREE.Shape(pts.map(([px,py])=>new THREE.Vector2(px,py)));
+  add(new THREE.ExtrudeGeometry(poly([...top,...low]),{depth:2*W,bevelEnabled:false}),0,0,-W,S.trim,zinc);   // pleated roof sheet
+  const under=[[-15.7,.3],[15.7,.3],...[...RIVERSIDE_KNOTS].reverse().map(([u,y])=>[u-16,y-T+.05])];
+  add(new THREE.ExtrudeGeometry(poly(under),{depth:.25,bevelEnabled:false}),0,0,6.6,S.glass,glass,2);             // glazed front under the roof
+  add(new THREE.ExtrudeGeometry(poly(under),{depth:.2,bevelEnabled:false}),0,0,-W+.3,S.plaster,[.5,.55,.6]);
+  for(let u=-14;u<=14;u+=2)box(u,.3,6.95,.14,riversideRoofAt(u+16)-T-.35,.16,S.trim,silver,1);
+  for(const s of [-1,1]){
+    const he=riversideRoofAt(s<0?0:32)-T;
+    box(s*15.7,.3,0,.3,he-.3,13.8,S.litGlass,glass,2);
+    for(const dz of [-6.9,-3.45,0,3.45,6.9])box(s*15.85,.3,dz,.22,he-.2,.24,S.trim,silver,1);
+    box(s*15.85,he*.5,0,.22,.2,14,S.trim,silver,1);
+  }
+  return finish();
+}
+
+// ---- University of Glasgow: Gothic Revival range, steep slate roofs, turrets, tower with open-lattice spire ----
+export function createUniversity(x,z,lift=0){
+  const {group,box,add,beam,gothic,finish,pale,slate}=landmark('university',x,z),sand=[1,.9,.78],light=[1.1,1.03,.91],dark=[.6,.55,.5],gilt=[.86,.76,.52];
+  group.position.y=lift;
+  const hip=(cx,y,cz,w,h,d)=>{const g=new THREE.CylinderGeometry(0,1,1,4,1,false,Math.PI/4);g.scale(w/1.4142,h,d/1.4142);add(g,cx,y+h/2,cz,S.roof,slate);};
+  const gable=(cx,y,cz,w,h,len,alongX)=>{ // triangular prism roof: ridge along x or z
+    const g=new THREE.ExtrudeGeometry(new THREE.Shape([new THREE.Vector2(-w/2,0),new THREE.Vector2(w/2,0),new THREE.Vector2(0,h)]),{depth:len,bevelEnabled:false});
+    g.translate(0,0,-len/2);if(alongX)g.rotateY(Math.PI/2);add(g,cx,y,cz,S.roof,slate);
+  };
+  const turret=(tx,tz,hh)=>{add(new THREE.CylinderGeometry(.95,1.05,hh,8),tx,hh/2,tz,S.stone,sand);add(new THREE.CylinderGeometry(1.2,1.2,.3,8),tx,hh,tz,S.trim,pale,1);add(new THREE.ConeGeometry(1.25,3.6,8),tx,hh+2.1,tz,S.roof,slate);beam(v(tx,hh+3.8,tz),v(tx,hh+4.8,tz),.05,gilt,1,4);};
+  for(const s of [-1,1]){
+    // wing: sandstone range, string course, cornice, steep gable roof with dormers
+    box(s*17.8,0,0,25.6,10,12,S.stone,sand);box(s*17.8,5.7,0,25.9,.25,12.3,S.trim,light,1);box(s*17.8,10,0,26.2,.5,12.6,S.trim,light,1);
+    gable(s*17.8,10.5,0,12.8,6.5,26,true);
+    for(const dx of [8.5,14,19.5,25]){
+      const cx=s*dx;box(cx,10.2,4.1,2,2.9,2.2,S.stone,sand);gable(cx,13.1,4.1,2.4,1.4,2.2,false);gothic(cx,5.2,0,0,11.2,.8,1.6,dark,S.litGlass,false);
+    }
+    for(let i=0;i<9;i++){const bx=s*(5.2+i*3.1);box(bx,0,6.2,.5,10.2,.5,S.stone,light);add(new THREE.ConeGeometry(.4,1.2,4,1,false,Math.PI/4),bx,10.8,6.2,S.stone,light);}
+    for(let i=0;i<8;i++){const wx=s*(6.75+i*3.1);gothic(0,6,0,wx,1.1,1.3,4.5,dark,S.litGlass);gothic(0,6,0,wx,6.4,1.1,2.9,dark,S.litGlass);}
+    // end pavilion with cross gable and corner turrets
+    box(s*33,0,.6,4.8,13,13.2,S.stone,sand);box(s*33,13,.6,5.2,.45,13.6,S.trim,light,1);gable(s*33,13.4,.6,5.2,5.2,13.6,false);
+    gothic(s*33,7.2,0,0,2.5,1.4,5.6,dark,S.litGlass);gothic(s*33,7.2,0,0,9.2,1.2,2.6,dark,S.litGlass);
+    for(const [tx,tz,hh] of [[s*30.8,6.9,12],[s*35.2,6.9,12],[s*35.2,-5.9,12]])turret(tx,tz,hh);
+    // tower flank buttresses
+    for(const bz of [-.8,6.4])box(s*4.35,0,bz,.9,17,.9,S.stone,light);
+  }
+  // centre block beneath the tower
+  box(0,0,0,10,9,12,S.stone,sand);box(0,9,0,10.6,.5,12.6,S.trim,light,1);gable(0,9.5,0,12.8,4.5,10.6,true);
+  // tower: base, big window, belfry with lancets, cornice, pinnacles
+  const tz=3;
+  box(0,0,tz,8,17,8,S.stone,sand);box(0,17,tz,7,6,7,S.stone,light);box(0,23,tz,8.4,.6,8.4,S.trim,light,1);
+  for(const y of [7,12.5])box(0,y,tz,8.3,.3,8.3,S.trim,light,1);
+  gothic(0,7,0,0,1.2,2.4,5.2,dark,S.door);gothic(0,7,0,0,8,1.8,6,dark,S.litGlass);
+  for(const [face,cx,cz] of [[0,0,tz+3.5],[Math.PI,0,tz-3.5],[Math.PI/2,3.5,tz],[-Math.PI/2,-3.5,tz]])
+    for(const u of [-1.6,1.6])gothic(cx,cz,face,u,18.2,1.1,3.8,dark,S.litGlass);
+  for(const px of [-3.7,3.7])for(const pz of [-3.7,3.7]){box(px,23.6,tz+pz,1,2.4,1,S.stone,light);add(new THREE.ConeGeometry(.75,2.8,4,1,false,Math.PI/4),px,27.2,tz+pz,S.roof,slate);}
+  // open-lattice tapering spire: leaning posts, square rings and diagonal bracing, gilded finial
+  const levels=[[23.6,2.5],[26,2],[28.2,1.5],[30.2,1],[32,.55]],corner=(l,i)=>v([-1,1,1,-1][i]*l[1],l[0],tz+[-1,-1,1,1][i]*l[1]);
+  for(let k=0;k<levels.length;k++){
+    for(let i=0;i<4;i++){
+      beam(corner(levels[k],i),corner(levels[k],(i+1)%4),.07,slate,0,4);
+      if(k<levels.length-1){beam(corner(levels[k],i),corner(levels[k+1],i),.13,slate,0,4);beam(corner(levels[k],i),corner(levels[k+1],(i+1)%4),.06,slate,0,4);}
+    }
+  }
+  for(let i=0;i<4;i++)beam(corner(levels.at(-1),i),v(0,33.2,tz),.1,slate,0,4);
+  beam(v(0,33.2,tz),v(0,34.7,tz),.06,gilt,1,4);
+  return finish();
+}
+
+// ---- Boat: rounded hull with tapered bow, deck, windowed cabin; cached per colour pair ----
+const boatCache=new Map(),tintOf=hex=>{const c=new THREE.Color(hex),b=new THREE.Color().setRGB(.788,.745,.655,THREE.SRGBColorSpace);return [c.r/b.r,c.g/b.g,c.b/b.b].map(q=>Math.min(q,3));};
+export function createBoat(hullColor,cabinColor){
+  const key=hullColor+cabinColor,hit=boatCache.get(key);if(hit)return hit.clone();
+  const {box,add,finish,pale}=landmark('boat',0,0),hull=tintOf(hullColor),cab=tintOf(cabinColor),glass=[.7,.82,.95];
+  const plan=(k=1)=>{
+    const s=new THREE.Shape();s.moveTo(-3*k,-.7*k);s.quadraticCurveTo(-3*k,-1*k,-2.6*k,-1*k);s.lineTo(.3*k,-1*k);s.bezierCurveTo(1.7*k,-1*k,2.5*k,-.5*k,3*k,0);
+    s.bezierCurveTo(2.5*k,.5*k,1.7*k,1*k,.3*k,1*k);s.lineTo(-2.6*k,1*k);s.quadraticCurveTo(-3*k,1*k,-3*k,.7*k);return s;
+  };
+  const flat=(g,y)=>{g.rotateX(-Math.PI/2);return [g,y];};
+  let [g,y]=flat(new THREE.ExtrudeGeometry(plan(.93),{depth:.26,bevelEnabled:false,curveSegments:3}),0);add(g,0,y,0,S.plaster,hull.map(q=>q*.45));        // dark waterline
+  [g,y]=flat(new THREE.ExtrudeGeometry(plan(),{depth:.5,bevelEnabled:true,bevelThickness:.1,bevelSize:.08,bevelSegments:1,curveSegments:3}),.26);add(g,0,y+.1,0,S.plaster,hull); // rounded topsides
+  [g,y]=flat(new THREE.ExtrudeGeometry(plan(.9),{depth:.05,bevelEnabled:false}),0);add(g,0,.97,0,S.plaster,[1.1,.95,.8],1);                    // deck
+  const cabin=new THREE.Shape();cabin.moveTo(-1.7,-.8);cabin.lineTo(.5,-.8);cabin.quadraticCurveTo(.95,-.8,.95,-.35);cabin.lineTo(.95,.35);cabin.quadraticCurveTo(.95,.8,.5,.8);cabin.lineTo(-1.7,.8);cabin.closePath();
+  [g,y]=flat(new THREE.ExtrudeGeometry(cabin,{depth:.95,bevelEnabled:true,bevelThickness:.05,bevelSize:.05,bevelSegments:1,curveSegments:2}),0);add(g,0,y+1,0,S.plaster,cab);
+  for(const sz of [-1,1])box(-.5,1.4,sz*.88,2.3,.42,.06,S.glass,glass,2);
+  box(.93,1.4,0,.06,.42,1.1,S.glass,glass,2);
+  box(-.4,2.0,0,3,.12,1.9,S.trim,pale,1);
+  const out=finish();boatCache.set(key,out);return out.clone();
 }

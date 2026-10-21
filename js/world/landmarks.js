@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { LANDMARKS, stopIndex, RIVER_Z, towerX, glasgowSites } from './layout.js';
 import { PALETTE as P } from './palette.js';
-import { createWembley, createBigBen, createMasp, createSe, createEstaiada, createTowerBridge, createHeathrow, createPlane, createLondonEye } from './landmark-geometry.js';
+import { createWembley, createBigBen, createMasp, createSe, createEstaiada, createTowerBridge, createHeathrow, createPlane, createLondonEye, createCopan, createRiverside, createUniversity } from './landmark-geometry.js';
 import { buildSaoPaulo } from './saopaulo.js';
 import { createHeroBackground } from './hero-background.js';
 import { createCityRollout } from './city-rollout.js';
@@ -63,12 +63,12 @@ export function buildLandmarks(add, stops, pts, onTree) {
   details.add(createWembley(at(stops, pts, 'wembley').x, RIVER_Z - 26));
   buildGlasgow(add, at(stops, pts, 'glasgow'), onTree);
   const { museum, uni } = glasgowSites(stops, pts), hill = (dx, w, d, y, h, c) => add(uni.x + dx, y, uni.z, w, h, d, c);
-  buildRiverside(add, museum);
+  buildRiverside(add, museum, site => details.add(createRiverside(site.x, site.z)));
   hill(0, uni.w + 12, 24, 0, 1.2, P.steel); hill(0, uni.w + 6, 20, 1.2, 1.3, P.skyBlue); // blue-grey paved plaza the university stands on
-  buildUniversity((x, y, z, w, h, d, c) => add(x, y + uni.lift, z, w, h, d, c), uni);
+  buildUniversity((x, y, z, w, h, d, c) => add(x, y + uni.lift, z, w, h, d, c), uni, site => details.add(createUniversity(site.x, site.z, uni.lift)));
   flag(add, uni.x, 34.7 + uni.lift, uni.z + 3, 'saltire', 1.1); // finial top
   const backgroundPlots = [];
-  buildSaoPaulo(add, stops, pts, plot => backgroundPlots.push(plot), true, site => details.add(createMasp(site.x, RIVER_Z - 18)), site => details.add(createSe(site.x, RIVER_Z - 18)), site => details.add(createEstaiada(site.x, RIVER_Z)));
+  buildSaoPaulo(add, stops, pts, plot => backgroundPlots.push(plot), true, site => details.add(createMasp(site.x, RIVER_Z - 18)), site => details.add(createSe(site.x, RIVER_Z - 18)), site => details.add(createEstaiada(site.x, RIVER_Z)), site => details.add(createCopan(site)));
   const control = backgroundPlots.filter(p => p.id.startsWith('paulista-hero-'));
   if (control.length) details.add(createHeroBackground(control));
   const generic = backgroundPlots.filter(p => !p.id.startsWith('paulista-hero-'));

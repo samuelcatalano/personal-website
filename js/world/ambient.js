@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createBoxes, buildMeshes } from './voxel.js';
+import { createBoat } from './landmark-geometry.js';
 import { buildBus } from './bus.js';
 import { buildCar } from './vehicles.js';
 import { RIVER_Z, LANDMARKS, stopIndex, swapAt, scotRange, riverEnd, riverStart } from './layout.js';
@@ -7,11 +7,7 @@ import { stopMarks, fineMarks, routeT } from '../scroll.js';
 import { addBeams } from './beams.js';
 const cab = () => buildCar('cab'); // London black cab
 function boat(hull = '#6b4f3a', cabin = '#f4f4f4', sx = 1) {
-  const { add, list } = createBoxes();
-  add(0, 0, 0, 6, 1, 2.2, hull);
-  add(-0.5, 1, 0, 2.6, 1.2, 1.8, cabin);
-  add(-0.5, 1.4, 0.91, 2, 0.4, 0.05, '#bfe3ff');
-  const m = buildMeshes(list);
+  const m = createBoat(hull, cabin);
   m.scale.x = sx;
   return m;
 }

@@ -89,8 +89,8 @@ function paulista(add, x, i, onArchitecturePlot, rollout, stopId) {
     add(tx, h + 1, z, 0.4, 5, 0.4, P.steel);
   });
 }
-export function buildSaoPaulo(add, stops, pts, onArchitecturePlot, rollout = false, onMasp, onSe, onEstaiada) {
-  copanTower(add, copan(stops, pts));
+export function buildSaoPaulo(add, stops, pts, onArchitecturePlot, rollout = false, onMasp, onSe, onEstaiada, onCopan) {
+  if (onCopan) onCopan(copan(stops, pts)); else copanTower(add, copan(stops, pts)); // ponytail: voxel fallback kept for headless tests
   const at = (key) => pts[stopIndex(stops, LANDMARKS[key])];
   if (onMasp) onMasp(at('masp'));
   else masp(add, at('masp'));

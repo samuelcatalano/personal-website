@@ -3,8 +3,11 @@ import { PALETTE as P } from './palette.js';
 const STONE = '#b49a74', STONE_LT = '#c8b088', SLATE = '#4a4d54', SPIRE = '#2a2d34', WIN = '#2b2620', LIT_WIN = '#2b2621'; // LIT_WIN glows warm at night
 
 // University of Glasgow main building (Gilbert Scott): sandstone range, slate roofs, turrets, tall tower + spire.
-export function buildUniversity(add, { x, z }) {
+export function buildUniversity(add, { x, z }, create) {
   const fz = z + 6; // range front face
+  add(x, 0, fz + 0.1, 10, 0.5, 0.2, '#ffd86b'); // floodlight uplight band at the base
+  for (const s of [-1, 1]) add(x + s * 19.5, 0, fz + 0.1, 29, 0.5, 0.2, '#ffd86b');
+  if (create) return create({ x, z }); // ponytail: voxel body kept as the fallback for headless tests that pass no geometry callback
   // range: left/right wings and central link
   for (const s of [-1, 1]) {
     add(x + s * 19.5, 0, z, 29, 10, 12, STONE);
@@ -22,8 +25,6 @@ export function buildUniversity(add, { x, z }) {
     add(wx, 7, fz + 0.05, 1, 1.8, 0.15, LIT_WIN);
     add(wx, 1, fz + 0.12, 0.25, 3.5, 0.1, STONE_LT); // mullion hint
   }
-  add(x, 0, fz + 0.1, 10, 0.5, 0.2, '#ffd86b'); // floodlight uplight band at the base
-  for (const s of [-1, 1]) add(x + s * 19.5, 0, fz + 0.1, 29, 0.5, 0.2, '#ffd86b');
   // end pavilions with gables and corner turrets
   for (const s of [-1, 1]) {
     add(x + s * 33.2, 0, z + 2, 3.6, 13, 8, STONE);

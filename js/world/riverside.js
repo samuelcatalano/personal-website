@@ -3,16 +3,19 @@ import { PALETTE as P } from './palette.js';
 const SILVER = '#c9ccd0', GLASS = '#27394b', BAND = '#c9ccd1', ZINC = '#6e7378', T = 0.65; // T = band thickness
 // Roof knots (offset from west end, height): peaks at 3, 9, 14 (spike), 21, 28; boxy gable shoulders at the east end.
 const KNOTS = [[0, 8.5], [3, 10.5], [6, 6.5], [9, 11], [11.5, 7.5], [14, 16.6], [16.5, 7], [18, 6.5], [21, 10], [24.5, 6.5], [28, 12], [30.5, 11.5], [32, 10.5]];
+export const RIVERSIDE_KNOTS = KNOTS;
+export const riversideRoofAt = (u) => hAt(u);
 const hAt = (u) => { for (let i = 1; i < KNOTS.length; i++) if (u <= KNOTS[i][0]) { const [a, ha] = KNOTS[i - 1], [b, hb] = KNOTS[i]; return ha + ((hb - ha) * (u - a)) / (b - a); } return KNOTS.at(-1)[1]; };
 const N = 64, CW = 0.5;
 export const RIVERSIDE_PROFILE = Array.from({ length: N }, (_, i) => Math.round(hAt((i + 0.5) * CW) * 10) / 10);
 
 // Riverside Museum (Zaha Hadid): thin silver zigzag band (0.5 m steps), dark glass beneath, framed end walls.
-export function buildRiverside(add, { x, z }) {
+export function buildRiverside(add, { x, z }, create) {
   const h = RIVERSIDE_PROFILE, west = x - 16, fz = z + 7.5, bz = z - 7.5;
   const y0 = h.map((v, i) => Math.min(h[i - 1] ?? v, v, h[i + 1] ?? v) - T);
   const edge = (i) => i < 2 || i > N - 3;
   add(x, 0, z, 32, 0.3, 16, P.pave); // plinth
+  if (create) return create({ x, z }); // ponytail: voxel body kept as the fallback for headless tests that pass no geometry callback
   for (let i = 0; i < N; i++) add(west + (i + 0.5) * CW, edge(i) ? 0 : y0[i], fz, CW, h[i] - (edge(i) ? 0 : y0[i]), 0.8, BAND); // front band (cool soft glow at night); ends drop as 1 m frame posts
   for (let i = 2; i < N - 2; i += 2) { // glass under the band follows the zigzag; mullion every 2 steps
     const top = Math.max(y0[i], y0[i + 1]) + 0.3; // tucks behind the band
