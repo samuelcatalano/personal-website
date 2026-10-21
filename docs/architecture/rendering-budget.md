@@ -157,3 +157,18 @@ Captured before phase 1 at commit 0e5531b. Contract above: desktop 1440×900 DPR
 | Supplementary: mobile, London stop 10, night | 1 | 8.3 | 9.1 | 267 | 222.4k | 216 |
 
 Frame intervals sit at the 120 Hz scheduling cap, so frame-time ceilings are only meaningful if work grows past it. Ceilings for this plan: calls ≤ +5%, submitted tris ≤ +5%, desktop p95 ≤ +1 ms, mobile p95 ≤ +2 ms (vs hero baseline; the London rows are tracked as supplementary evidence). Zero console errors.
+
+## Vehicles/Heathrow/night-lighting final — 2026-10-21
+
+Same harness as the baseline above (HEAD e053b4b + near-side frontage fix). Hero shot is the official comparison.
+
+| Scenario | Repeats | Median ms | p95 ms | Calls/frame | Submitted tris/frame | vs baseline |
+|---|---:|---:|---:|---:|---:|---|
+| Desktop high, hero | 3 | 8.3 | 9.5 / 9.3 / 10.0 | 438 / 432 / 422 | 866.6k / 866.2k / 865.5k | calls −0.5%, tris +0.4%, p95 +0.7 ms ✅ |
+| Mobile medium, hero | 3 | 8.3 | 9.7 / 10.1 / 10.0 | 164 / 163 / 174 | 238.7k / 238.7k / 239.4k | calls −1.4%, tris +0.1%, p95 +0.8 ms ✅ |
+| Supplementary desktop, stop 10 day | 1 | 8.3 | 9.4 | 670 | 1,061–1,065k | calls −12%, tris **+5.4–5.8%** |
+| Supplementary mobile, stop 10 day | 1 | 8.3 | 9.9 | 171 | 244.0k | calls −7%, tris **+9.8%** |
+| Supplementary desktop, stop 10 night | 1 | 8.3 | 9.5 | 748 | 1,064k | calls −12%, tris +5.7% |
+| Supplementary mobile, stop 10 night | 1 | 8.3 | 9.8 | 234 | 244.5k | calls −12%, tris +9.9% |
+
+Bisection by commit at stop 10 (desktop/mobile tris): baseline 1,006.7k/222.2k → lighting 1,011.6k/225.1k → Heathrow removal + riverside fill 1,054.2k/240.6k → vehicle models 1,055.3k/244.0k → A330 + traffic 1,068.8k/244.6k. The London-stop triangle growth comes mainly from the requested rebuild of the old airport site (new buildings also render in the shadow pass); trimming traffic did not change it measurably. Zero console errors; 33/33 browser suites, 106/106 Node tests. Frame intervals stay at the 120 Hz cap.

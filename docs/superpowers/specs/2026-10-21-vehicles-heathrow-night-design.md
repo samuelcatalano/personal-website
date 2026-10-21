@@ -1,6 +1,6 @@
 # Vehicles, Heathrow removal and landmark night lighting — design & plan
 
-Date: 2026-10-21 · Branch `feat/site-gamefication` · Status: **APPROVED by the user 2026-10-21** with the four adjustments below.
+Date: 2026-10-21 · Branch `feat/site-gamefication` · Status: **APPROVED 2026-10-21 and IMPLEMENTED** (commits bfb029d…; final metrics in rendering-budget.md).
 
 ## Intent
 
@@ -199,3 +199,5 @@ Exact profiles, segment counts within budget, colours within the references, tim
 
 - Ruling: the hidden Glasgow swap uses a natural occluder — a countryside railway embankment with a masonry arch underpass at each `scotRange` crossing (both inside the countryside); the model changes while the bus is inside the arch. Reason: the follow camera always keeps the bus in frame, so off-frame/blend/occlusion triggers never fire on their own and the stop fallback popped in frame. Cost if wrong: remove `underpass.js` and the trigger; the stop fallback still works.
 - Ruling: Heathrow's block reservation remains as a neutral rectangle (RNG preservation); the riverfront infill uses its own `rng(2019)`; frontage houses formerly hidden draw from a separate stream. Layout outside the site verified identical (485/485 plots, 22,892/22,892 boxes).
+- Ruling: the near (camera) side frontage at the first UK stop stays open as before; only the old airport (river) side is rebuilt — the extra 6 near-side houses were not requested and cost ~7k tris at the London stop — cost if wrong: one condition in city.js.
+- Ruling: `tests/material-polish.browser.py` now polishes city + landmark voxel boxes together (as production does); the landmark-only fixture had no finish colours left after Heathrow's removal.

@@ -147,7 +147,7 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
         const x = p.x + dx, hz = p.z + side * (side === 1 ? 21 : 17);
         // MASP and Glasgow need clear far-side sightlines; townhouse still runs on a no-op so r() stays aligned.
         const glasgowSquare = side === -1 && Math.abs(p.x + dx - gl.x) < 25 && hz + 4.5 > gl.z - 43 && hz - 4.5 < gl.z - 17, tower = side === -1 && Math.abs(p.x + dx - towerX(stops, pts) + 3) < 33; // the Tower Bridge promenade loop
-        const show = !tower && Math.abs(p.x + dx - seX) >= 29.5 && !(side === -1 && (Math.abs(p.x + dx - mx) < 29.5 || glasgowSquare)) && !(side === 1 && Math.abs(p.x + dx - pts[pts.length - 1].x) < 35);
+        const show = !tower && !(side === 1 && Math.abs(x - ukX) < 23) && Math.abs(p.x + dx - seX) >= 29.5 && !(side === -1 && (Math.abs(p.x + dx - mx) < 29.5 || glasgowSquare)) && !(side === 1 && Math.abs(p.x + dx - pts[pts.length - 1].x) < 35);
         const uk = stops[i].country === 'UK', hr = Math.abs(x - ukX) < 23 ? hq2 : hq; // hr: plots the old airport hid get their own rng so every other house keeps its draws
         const id = `frontage-${filler ? 'gap' : 'stop'}-${stops[i].id}-${Math.round(p.x)}-${side}-${dx}`;
         const townhousePlot = townhouse(show && !uk && !onArchitecturePlot ? add : noop, x, hz, side, br, r, i >= 2);

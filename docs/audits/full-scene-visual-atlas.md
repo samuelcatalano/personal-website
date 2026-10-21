@@ -118,3 +118,7 @@ BEFORE / AFTER (left/right, 1440×900 day, UI hidden):
 
 - [Hero](captures/00.0-hero.jpg) · [São Paulo street + Sé + MASP](captures/03.5-insane.jpg) · [Copan, Estaiada, airplane, Heathrow](captures/06.5-reclame.jpg)
 - [London: Big Ben, London Eye, Thames](captures/10.0-olm.jpg) · [Glasgow George Square](captures/11.0-glasgow.jpg) · [Wembley / contact](captures/17.0-contact.jpg)
+
+## Vehicles / Heathrow / night lighting — 2026-10-21
+
+Heathrow removed (site rebuilt as riverside); A330 now an independent 40 m flyover (B+); Mini A-, LEVC cab B+, New Routemaster A-, Glasgow StreetDeck B+ (distinct model, swap hidden in a railway arch); traffic 20 vehicles with speed profiles. Night: Estaiada, Tower Bridge, Riverside and Wembley arch lit (B+/A-). Spec: [vehicles/Heathrow/night design](../superpowers/specs/2026-10-21-vehicles-heathrow-night-design.md).
