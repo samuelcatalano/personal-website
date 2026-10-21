@@ -31,11 +31,12 @@ test('citywide architecture migration is deterministic, batched by plot, and kee
   for (const p of plots) assert.ok([p.x, p.z, p.width, p.depth, p.height].every(Number.isFinite) && p.width > 0 && p.depth > 0 && p.height > 0);
   assert.ok(boxes.length < 10000, 'ordinary building facade boxes have been removed while street props remain');
 
+  assert.ok(plots.filter(p => p.id.startsWith('riverfront-')).length >= 3, 'old airport site is filled by the riverfront infill');
   const x = id => pts[stopIndex(stops, LANDMARKS[id] || id)].x, { museum, uni } = glasgowSites(stops, pts), cp = copan(stops, pts);
   const protectedRects = [
     [cp.x - cp.len / 2 - 3, cp.x + cp.len / 2 + 3, cp.z - cp.amp - cp.depth / 2 - 1.5, cp.z + cp.amp + cp.depth / 2 + 1.5],
     [x('taqtile') - 25, x('taqtile') + 25, -50, 12], [x('puc') - 24, x('puc') + 24, -56, 40],
-    [x('estaiada') - 16, x('estaiada') + 16, -80, -12], [x('heathrow') - 18, x('heathrow') + 18, -38, -14],
+    [x('estaiada') - 16, x('estaiada') + 16, -80, -12],
     [x('bigben') - 10, x('bigben') + 43, -76, -48], [x('wembley') - 30, x('wembley') + 30, -49, -33],
     [x('glasgow') - 20, x('glasgow') + 20, -43, -17],
     [museum.x - museum.w / 2 - 5, museum.x + museum.w / 2 + 5, museum.z - 100, museum.z - 8],

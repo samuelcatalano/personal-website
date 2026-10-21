@@ -64,9 +64,9 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
   const drawTree = onTree ? (_add, x, z, shape) => onTree(x, z, shape) : tree;
   const spots = furnitureSpots(stops, curve).map((o) => o.xz);
   const free = (x, z) => spots.every(([a, b]) => Math.hypot(a - x, b - z) > CLEAR); // ponytail: skip, not shift
-  const lamps = [], occ = [], obst = [], r = rng(2026), hq = rng(8821), noop = () => {}, mx = pts[stopIndex(stops, LANDMARKS.masp)].x, gl = pts[stopIndex(stops, LANDMARKS.glasgow)], LM = new Set(Object.values(LANDMARKS));
+  const lamps = [], occ = [], obst = [], r = rng(2026), hq = rng(8821), hq2 = rng(4417), noop = () => {}, mx = pts[stopIndex(stops, LANDMARKS.masp)].x, gl = pts[stopIndex(stops, LANDMARKS.glasgow)], ukId = stops[ukStart(stops)].id, LM = new Set([...Object.values(LANDMARKS), ukId]); // ukId: far side of the first UK stop keeps skipping frontage draws (blocks.js riverfront infill owns it)
   const span = pts.length * STOP_SPACING + GAP_TOTAL + 120, rgs = regions(stops, pts);
-  const seX = pts[stopIndex(stops, LANDMARKS.se)].x, heathrowX = pts[stopIndex(stops, LANDMARKS.heathrow)].x;
+  const seX = pts[stopIndex(stops, LANDMARKS.se)].x, ukX = pts[ukStart(stops)].x;
   add(GAP_TOTAL / 2, -1, 0, span, 1, 200, P.pave);
   // Samples along the curve every ~`step` m (curve param is per stop, so count follows each segment's length)
   const ticks = (step) => [...pts.slice(1).flatMap((q, s) => {
@@ -129,25 +129,33 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
     const q = curve.getPointAt(ticks(0.7).reduce((a, u) => Math.abs(curve.getPointAt(u).x - x) < Math.abs(curve.getPointAt(a).x - x) ? u : a, 0));
     return { p: { x, z: q.z }, i: g.after, filler: true, sparse: !!rg && (g.after === 10 ? x >= rg.sub[1] : x < rg.sub[0]) };
   }));
+  // North Star canopy rhythm: extra verge trees on the same grass strip, placed by stable hash (layout rng untouched)
+  const canopy = (p, side) => {
+    for (const dx of [-11.5, -3.2, 3.2, 11.5]) {
+      const x = p.x + dx, z = p.z + side * 10.3, hsh = Math.abs(Math.sin(x * 12.9898 + z * 78.233) * 43758.5453) % 1;
+      if (!free(x, z) || obst.some(([a, b]) => Math.hypot(a - x, b - z) < 3.4)) continue;
+      drawTree(add, x, z, { h: 3 + hsh * 0.6, crown: 3 + hsh * 0.5 }); obst.push([x, z]);
+    }
+  };
   [...pts.map((p, i) => ({ p, i })), ...filler].forEach(({ p, i, filler, sparse }) => {
     const br = stops[i].country === 'BR' && i >= 2;
     for (const side of [-1, 1]) {
       add(p.x, 0, p.z + side * 10.5, 25, 0.035, 3.2, PATCH);
-      if (side === -1 && !filler && LM.has(stops[i].id)) continue;
+      if (side === -1 && !filler && LM.has(stops[i].id)) { if (stops[i].id === ukId) canopy(p, side); continue; }
       for (const dx of sparse ? [0] : [-9, 0, 9]) { // sparse: last London houses before the fields
         if (side === 1 && stops[i].id === 'contact' && dx === 0) continue;
         const x = p.x + dx, hz = p.z + side * (side === 1 ? 21 : 17);
         // MASP and Glasgow need clear far-side sightlines; townhouse still runs on a no-op so r() stays aligned.
         const glasgowSquare = side === -1 && Math.abs(p.x + dx - gl.x) < 25 && hz + 4.5 > gl.z - 43 && hz - 4.5 < gl.z - 17, tower = side === -1 && Math.abs(p.x + dx - towerX(stops, pts) + 3) < 33; // the Tower Bridge promenade loop
-        const show = !tower && Math.abs(x - heathrowX) >= 23 && Math.abs(p.x + dx - seX) >= 29.5 && !(side === -1 && (Math.abs(p.x + dx - mx) < 29.5 || glasgowSquare)) && !(side === 1 && Math.abs(p.x + dx - pts[pts.length - 1].x) < 35);
-        const uk = stops[i].country === 'UK';
+        const show = !tower && Math.abs(p.x + dx - seX) >= 29.5 && !(side === -1 && (Math.abs(p.x + dx - mx) < 29.5 || glasgowSquare)) && !(side === 1 && Math.abs(p.x + dx - pts[pts.length - 1].x) < 35);
+        const uk = stops[i].country === 'UK', hr = Math.abs(x - ukX) < 23 ? hq2 : hq; // hr: plots the old airport hid get their own rng so every other house keeps its draws
         const id = `frontage-${filler ? 'gap' : 'stop'}-${stops[i].id}-${Math.round(p.x)}-${side}-${dx}`;
         const townhousePlot = townhouse(show && !uk && !onArchitecturePlot ? add : noop, x, hz, side, br, r, i >= 2);
         if (show && !uk && onArchitecturePlot) onArchitecturePlot({ ...townhousePlot, id });
         if (show && uk) {
-          const floors = side === 1 ? 2 : 3 + (hq() < 0.4);
+          const floors = side === 1 ? 2 : 3 + (hr() < 0.4);
           if (onArchitecturePlot) onArchitecturePlot({ id, kind: 'terrace', x, z: hz, width: 9, depth: 7, height: floors * 3.1 + (side === 1 ? 0.6 : 2.7) });
-          house(onArchitecturePlot ? noop : add, hq, x, hz, -side, 9, 7, floors, 3.1, side === 1);
+          house(onArchitecturePlot ? noop : add, hr, x, hz, -side, 9, 7, floors, 3.1, side === 1);
         }
         occ.push([p.x + dx - 5, p.x + dx + 5, hz - 4.5, hz + 4.5]);
       }
@@ -156,12 +164,7 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
         const h = broadleaf(r); // always draw rng so layout stays stable
         if (free(x, z)) { drawTree(add, x, z, h); obst.push([x, z]); }
       }
-      // North Star canopy rhythm: extra verge trees on the same grass strip, placed by stable hash (layout rng untouched)
-      for (const dx of [-11.5, -3.2, 3.2, 11.5]) {
-        const x = p.x + dx, z = p.z + side * 10.3, hsh = Math.abs(Math.sin(x * 12.9898 + z * 78.233) * 43758.5453) % 1;
-        if (!free(x, z) || obst.some(([a, b]) => Math.hypot(a - x, b - z) < 3.4)) continue;
-        drawTree(add, x, z, { h: 3 + hsh * 0.6, crown: 3 + hsh * 0.5 }); obst.push([x, z]);
-      }
+      canopy(p, side);
     }
   });
   // London kiosks on the pavement (own rng: nothing else shifts)

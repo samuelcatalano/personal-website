@@ -1,4 +1,4 @@
-import { rng, stopIndex, riverStart, riverEnd, copan, regions, inRegion, glasgowSites, LANDMARKS as L } from './layout.js';
+import { rng, stopIndex, ukStart, riverStart, riverEnd, copan, regions, inRegion, glasgowSites, LANDMARKS as L } from './layout.js';
 import { house } from './houses.js';
 import { PALETTE as P } from './palette.js';
 const { concrete: C, cream: CR, white: W, stone: S, sandstone: SS, brick: B, glass: G, terracotta: TC, ochre: OC, mint: MN, salmon: SA, skyBlue: SB, offWhite: OW, concreteDark: CD, concreteMid: CM, redBrown: RB, londonStock: LS, teal: TL, bronze: BZ } = P, AWN = [P.red, P.slate, P.sand];
@@ -43,12 +43,13 @@ export function draw(add, x, z, [w0, d, n, fh, wall, trim, kind, u], r, q, near,
 }
 // Back rows + skyline. Skips `hard` (river, landmarks + 6 m, plaza), `occ` (houses), 26 m of road; near side and Sé/MASP flanks <= 12 m.
 export function buildBlocks(add, stops, pts, curve, occ, onBuildingPlot, onArchitecturePlot) {
-  const r = rng(7311), q = rng(5521), { museum: mu, uni } = glasgowSites(stops, pts), site = (o, m) => [o.x - o.w / 2 - m, o.x + o.w / 2 + m, o.z - o.d / 2 - m, o.z + o.d / 2 + m], cp = copan(stops, pts), gl = pts[stopIndex(stops, L.glasgow)], rgs = regions(stops, pts), X = (k) => pts[stopIndex(stops, L[k])].x, mv = X('heathrow') - 15, lz = pts[pts.length - 1].z;
+  const r = rng(7311), q = rng(5521), { museum: mu, uni } = glasgowSites(stops, pts), site = (o, m) => [o.x - o.w / 2 - m, o.x + o.w / 2 + m, o.z - o.d / 2 - m, o.z + o.d / 2 + m], cp = copan(stops, pts), gl = pts[stopIndex(stops, L.glasgow)], rgs = regions(stops, pts), X = (k) => pts[stopIndex(stops, L[k])].x, ux = pts[ukStart(stops)].x, mv = ux - 15, lz = pts[pts.length - 1].z;
   const H = (k, a, b, z0, z1) => [X(k) - a, X(k) + b, z0, z1], path = Array.from({ length: 241 }, (_, i) => curve.getPointAt(i / 240));
   const zAt = (x) => path.reduce((a, p) => Math.abs(p.x - x) < Math.abs(a.x - x) ? p : a).z;
   const hard = [
     [riverStart(stops, pts) - 6, riverEnd(stops, pts) + 6, -64, -26], H('masp', 26, 26, -76, -50), H('se', 24, 24, -77, -49), H('estaiada', 16, 16, -80, -12),
-    H('heathrow', 18, 18, -38, -14), H('bigben', 10, 43, -76, -48), H('wembley', 30, 30, -92, -50), H('wembley', 14, 14, lz + 10, lz + 45),
+    [ux - 18, ux + 18, -38, -14], // ukRiverfront: only preserves the row's RNG sequence (skipped rectangles consume no r()); the infill below fills it
+    H('bigben', 10, 43, -76, -48), H('wembley', 30, 30, -92, -50), H('wembley', 14, 14, lz + 10, lz + 45),
     [gl.x - 20, gl.x + 20, gl.z - 43, gl.z - 17], site(mu, 5), site(uni, 16), // museum + university with its hill
  ...rgs.map((rg) => [rg.ctry[0], rg.ctry[1], -400, 400]), // countryside: country.js owns it
     ...pts.slice(0, 6).map((p) => [p.x - 16, p.x + 16, -80, -58]),
@@ -92,6 +93,11 @@ export function buildBlocks(add, stops, pts, curve, occ, onBuildingPlot, onArchi
   const infill = rng(1947);
   for (const [dx, z, w, floors, wall] of [[-52, -14, 10, 3, CR], [-52, 0, 10, 4, SS], [-52, 14, 10, 3, OW], [-52, -34, 10, 3, OC], [1, -36, 8, 3, MN]]) {
     draw(add, pts[0].x + dx, z, [w, 10, floors, 3, wall, W, 0, 1], infill, infill, false, false, onArchitecturePlot, `infill-${dx}-${z}`);
+  }
+  // Riverfront at the first UK stop (old airport site): a London terrace pair and a 4-floor midrise between the Thames path and the far pavement.
+  const riverfront = rng(2019); // own stream: the shared infill rng keeps feeding the Wembley flank blocks unchanged
+  for (const [x, w, d, floors, wall, kind, u] of [[ux - 8, 5.5, 6, 3, B, 3, 2], [ux + 6, 10, 6, 4, LS, 0, 1]]) {
+    draw(add, x, -26, [w, d, floors, 3, wall, W, kind, u], riverfront, riverfront, false, false, onArchitecturePlot, `riverfront-${x}`);
   }
   for (const [dx, z, floors, wall] of [[-48, -68, 10, SS], [-34, -64, 8, C]]) {
     draw(add, X('wembley') + dx, z, [10, 10, floors, 3, wall, W, 0, 1], infill, infill, false, false, onArchitecturePlot, `wembley-side-${dx}-${z}`);

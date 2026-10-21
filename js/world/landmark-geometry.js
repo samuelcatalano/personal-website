@@ -279,29 +279,6 @@ export function createTowerBridge(x,z){
   return g;
 }
 
-// ---- Heathrow: curved wave roof over a glazed terminal, tapered tower with a flared glazed cab ----
-export function createHeathrow(x,z){
-  const {box,add,beam,finish,pale}=landmark('heathrow',x,z),W=14,wave=u=>4.7+.42*Math.cos(u*Math.PI*4);
-  box(-4,0,-.2,W,.3,4.2,S.stone,[.8,.82,.86]);
-  box(-4,.3,-.2,W-.4,3.5,3.3,S.plaster,[1.05,1.1,1.2]);              // terminal body (back of the glass)
-  box(-4,.9,1.45,W-1,2.7,.08,S.glass,[.8,.92,1],2);                   // glazed concourse front
-  for(let i=0;i<=14;i++)box(-4-6.5+i*13/14,.9,1.52,.12,2.8,.1,S.trim,pale,1);
-  const top=[],bot=[];for(let i=0;i<=48;i++){const u=i/48;top.push([-W/2-.3+u*(W+.6),wave(u)]);}
-  for(let i=48;i>=0;i--)bot.push([top[i][0],top[i][1]-.38]);
-  const shape=new THREE.Shape([...top,...bot].map(([px,py])=>new THREE.Vector2(px,py)));
-  add(new THREE.ExtrudeGeometry(shape,{depth:4.6,bevelEnabled:false}),-4,0,-2.3,S.trim,[1.08,1.1,1.16],1);
-  for(let i=0;i<=6;i++){const u=(i/6*W+.3)/(W+.6),cx=-4-W/2+i/6*W,h=wave(u)-.38;box(cx,.3,1.95,.18,h-.3,.18,S.trim,pale,1);}
-  // control tower
-  add(new THREE.CylinderGeometry(.62,1.05,10,12),9,5,0,S.stone,[1.05,1.07,1.1]);
-  add(new THREE.CylinderGeometry(1.3,1.3,.3,12),9,10.1,0,S.trim,pale,1);
-  add(new THREE.CylinderGeometry(2.0,1.35,2.4,12),9,11.45,0,S.glass,[.78,.92,1],2);
-  add(new THREE.CylinderGeometry(2.15,2.15,.4,12),9,12.85,0,S.trim,pale,1);
-  add(new THREE.CylinderGeometry(.9,1.1,.3,12),9,13.2,0,S.trim,pale,1);
-  beam(v(9,13.3,0),v(9,15.4,0),.07,pale,1,5);
-  const g=finish();return g;
-}
-
-// ---- Airplane (x forward): lathe fuselage, swept wings, nacelles, tail ----
 export function createPlane(){
   const {box,add,finish}=landmark('plane',0,0),AX=1.6;
   const tab=[[.12,-8],[.34,-7.4],[.62,-6.2],[.9,-4.6],[1.08,-3],[1.12,-1.5],[1.12,4],[1.02,5.2],[.82,6.2],[.55,7.1],[.28,7.7],[0,8]];

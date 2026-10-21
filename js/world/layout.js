@@ -14,7 +14,6 @@ export const routePoints = (n) => Array.from({ length: n }, (_, i) => ({
   z: Math.round(12 * Math.sin(i * 0.7)),
 }));
 export const LANDMARKS = {
-  heathrow: 'move',
   bigben: 'xdesign',
   eye: 'olm',
   glasgow: 'glasgow',

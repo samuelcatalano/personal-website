@@ -4,6 +4,7 @@ print(js(r'''(async () => {
   const THREE = await import('three');
   const { buildLandmarks } = await import(`./js/world/landmarks.js?test=${Date.now()}`);
   const { createAmbient } = await import('./js/world/ambient.js');
+  const { buildCity } = await import('./js/world/city.js');
   const { stops } = await import('./js/content.js');
   const { PALETTE } = await import('./js/world/palette.js');
   const { routePoints, routeCurve, RIVER_Z, towerX } = await import('./js/world/layout.js');
@@ -48,13 +49,11 @@ print(js(r'''(async () => {
     'Glasgow must add the City Chambers geometry at its route stop');
   check(statue?.position.x === glasgow.x && statue.position.z === glasgow.z - 20 && statue.children.length >= 1,
     'Glasgow must add the Duke of Wellington statue geometry');
-  // Heathrow stays on the far side, clear of the street band and the Thames bank.
-  const hIdx = stops.findIndex(stop => stop.id === 'move'), hx = pts[hIdx].x, hz = pts[hIdx].z;
-  const heathrow = boxes.filter(b => Math.abs(b.x - hx) <= 13 && b.z < hz - 5 && b.z > RIVER_Z + 10);
-  check(heathrow.length >= 7, `Heathrow apron missing near x=${hx}`);
-  check(heathrow.every(b => b.z + b.d / 2 <= hz - 8.75 && b.z - b.d / 2 >= RIVER_Z + 13.1),
-    'Heathrow must sit between the far sidewalk and the Thames bank');
-  const hg = landmarkParts.details.getObjectByName('heathrow-geometry'), hb = new Box3().setFromObject(hg);
-  check(hb.min.z >= RIVER_Z + 13.1 && hb.max.z <= hz - 8.75 && hb.min.x >= hx - 13 && hb.max.x <= hx + 13, 'Heathrow terminal geometry must stay in the same footprint ' + JSON.stringify(hb));
+  // The old airport site is ordinary riverside: no heathrow-* objects, and the infill plots exist.
+  let heathrowNamed = 0; landmarkParts.details.traverse(o => { if (/^heathrow/.test(o.name)) heathrowNamed++; });
+  check(heathrowNamed === 0, 'no heathrow-* object may remain');
+  const uk = pts[stops.findIndex(s => s.country === 'UK')];
+  const sitePlots = []; buildCity(() => {}, stops, pts, curve, undefined, undefined, p => { if (Math.abs(p.x - uk.x) <= 18 && p.z >= -38 && p.z <= -14) sitePlots.push(p); });
+  check(sitePlots.length >= 2, `old airport site needs >= 2 architecture plots, got ${sitePlots.length}`);
   return { pass: true, bridgeX, riverZ: RIVER_Z, towerZ: tz, boatOpening: opening, boatBounds: boatBounds.map(b => ({ minZ: b.min.z, maxZ: b.max.z, maxY: b.max.y })), clockFaces: clock.count, bigBenX: bigBen.x };
 })()'''))

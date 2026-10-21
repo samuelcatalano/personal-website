@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { LANDMARKS, stopIndex, RIVER_Z, towerX, glasgowSites } from './layout.js';
 import { PALETTE as P } from './palette.js';
-import { createWembley, createBigBen, createMasp, createSe, createEstaiada, createTowerBridge, createHeathrow, createPlane, createLondonEye, createCopan, createRiverside, createUniversity, createChambers, createWellington } from './landmark-geometry.js';
+import { createWembley, createBigBen, createMasp, createSe, createEstaiada, createTowerBridge, createPlane, createLondonEye, createCopan, createRiverside, createUniversity, createChambers, createWellington } from './landmark-geometry.js';
 import { buildSaoPaulo } from './saopaulo.js';
 import { createHeroBackground } from './hero-background.js';
 import { createCityRollout } from './city-rollout.js';
@@ -47,15 +47,8 @@ function towerBridge(add, { x }) {
   for (const along of [-9.5, 9.5]) flag(add, x, 35.2, RIVER_Z + along, 'jack', 0.65);
   return createTowerBridge(x, RIVER_Z);
 }
-function heathrow(add, { x }) {
-  const rz = RIVER_Z + 20.5;
-  add(x, -0.15, rz, 24, 0.2, 6, P.road);
-  for (let i = -10; i <= 10; i += 4) add(x + i, 0.05, rz, 2, 0.06, 0.4, P.cream);
-  return createHeathrow(x, RIVER_Z + 15.5);
-}
 export function buildLandmarks(add, stops, pts, onTree) {
   const details = new THREE.Group(); details.name = 'landmark-details';
-  details.add(heathrow(add, at(stops, pts, 'heathrow')));
   const ben = at(stops, pts, 'bigben');
   details.add(createBigBen(ben.x, RIVER_Z - 16), clockFaces(ben.x, RIVER_Z - 16));
   details.add(towerBridge(add, { x: towerX(stops, pts) }));

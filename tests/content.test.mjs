@@ -5,7 +5,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 import { stops, SECTIONS, i18n, sectionStart } from '../js/content.js';
-import { LANDMARKS } from '../js/world/layout.js';
+import { LANDMARKS, ukStart } from '../js/world/layout.js';
 
 const keys = (o, p = '') => Object.entries(o).flatMap(([k, v]) =>
   v && typeof v === 'object' ? keys(v, `${p}${k}.`) : [`${p}${k}`]).sort();
@@ -99,6 +99,7 @@ test('OLM is split between London and Glasgow with accurate dates and residence 
   assert.match(i18n.pt.stops.glasgow.body, /na Tribal a partir de junho de 2024/i);
 });
 
-test('heathrow landmark is the move stop', () => {
-  assert.equal(LANDMARKS.heathrow, 'move');
+test('no airport landmark; the UK region starts at the move stop', () => {
+  assert.equal(LANDMARKS.heathrow, undefined);
+  assert.equal(stops[ukStart(stops)].id, 'move');
 });

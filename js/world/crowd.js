@@ -32,7 +32,7 @@ export function walkPaths(stops, pts) {
     ...LANES.map(([offset, dir]) => ({ type: 'lane', offset, dir })),
     { type: 'loop', name: 'masp', rect: rect(X('masp') - 18, X('masp') + 18, -9, 23) }, // in front of MASP (z -54..-22)
     { type: 'loop', name: 'paulista', rect: rect(cp.x - 18, cp.x + 20, 11, 18) }, // between the houses and the Copan
-    { type: 'loop', name: 'thames', rect: rect(X('bigben') - 10, X('eye') + 25, 19, 31) }, // ponytail: starts at xdesign; Heathrow and Millimetric houses block 'move'; ends before the countryside
+    { type: 'loop', name: 'thames', rect: rect(X('bigben') - 10, X('eye') + 25, 19, 31) }, // ponytail: starts at xdesign; the riverfront infill and Millimetric houses block 'move'; ends before the countryside
     { type: 'loop', name: 'tower', rect: rect(towerX(stops, pts) - 30, towerX(stops, pts) + 24, 19, 31) }, // Tower Bridge promenade, starts after the thames loop
     { type: 'loop', name: 'wembley', rect: rect(wx + 14, wx + 40, 19, 28) }, // beside the closing figure
     { type: 'loop', name: 'glasgow-uni', rect: rect(museum.x + museum.w / 2 + 2, uni.x + 30, -27, -13) }, // far-bank promenade in front of the university, from the museum's east edge; water is north of z -11, hill front at z -28
