@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { LANDMARKS, stopIndex, RIVER_Z, towerX, glasgowSites } from './layout.js';
 import { PALETTE as P } from './palette.js';
-import { createWembley, createBigBen, createMasp, createSe, createEstaiada, createTowerBridge, createPlane, createLondonEye, createCopan, createRiverside, createUniversity, createChambers, createWellington } from './landmark-geometry.js';
+import { createWembley, createBigBen, createMasp, createSe, createEstaiada, createTowerBridge, createLondonEye, createCopan, createRiverside, createUniversity, createChambers, createWellington } from './landmark-geometry.js';
 import { buildSaoPaulo } from './saopaulo.js';
 import { createHeroBackground } from './hero-background.js';
 import { createCityRollout } from './city-rollout.js';
@@ -69,6 +69,5 @@ export function buildLandmarks(add, stops, pts, onTree) {
   return {
     eye: wheel,
     details,
-    plane: createPlane(),
   };
 }

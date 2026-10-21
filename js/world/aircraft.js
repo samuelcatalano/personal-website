@@ -43,15 +43,24 @@ export function createAircraft(model, { reducedMotion = false, seed = 1, scale =
   };
   return {
     object: model,
-    update(time, camera) {
+    shadow: model.userData.shadow,
+    update(time, camera, night = 0) {
       const f = reducedMotion ? { phase: 'offscreen' } : flightPhase(time, seed);
       model.visible = f.phase === 'enter' || f.phase === 'cruise' || f.phase === 'exit';
+      const sh = model.userData.shadow;
+      if (sh) sh.visible = model.visible && night < 0.9;
       if (!model.visible) return;
       if (path?.cycle !== f.cycle) pick(f.cycle, camera);
       const d = f.u * 2 * path.half;
       model.position.set(path.ax + path.dx * d, path.y, path.az + path.dz * d);
       const bank = f.phase === 'enter' ? BANK * (1 - f.p) : f.phase === 'exit' ? -BANK * f.p : 0;
       model.rotation.set(bank, path.yaw, 0);
+      const { nav, strobe } = model.userData;
+      if (nav) { nav.visible = night > 0.35; strobe.visible = night > 0.35 && time % 1.3 < 0.12; } // red left / green right steady, white strobe blinks
+      if (sh) { // soft blob on the ground under the plane: bigger and fainter the higher it flies
+        sh.position.set(model.position.x, 0.14, model.position.z); sh.rotation.y = path.yaw;
+        sh.scale.set(34 + path.y * 0.3, 1, 15 + path.y * 0.15); sh.material.opacity = 0.3 * (1 - night) * Math.min(1, 55 / path.y) ** 2;
+      }
       model.scale.setScalar(scale * (f.phase === 'enter' ? 0.97 + 0.03 * f.p : f.phase === 'exit' ? 1 - 0.03 * f.p : 1));
     },
   };

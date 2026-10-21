@@ -17,7 +17,7 @@ print(js(r'''(async () => {
   const lists = [['world', world]];
   // buildMeshes keeps its box list on group.userData.list; each list shares one local space
   const walk = (name, o) => o.traverse(c => { if (c.userData.list) lists.push([name, c.userData.list]); });
-  walk('eye', lm.eye); walk('details', lm.details); walk('plane', lm.plane);
+  walk('eye', lm.eye); walk('details', lm.details);
   walk('mini', buildMini()); walk('bus', buildBus());
   walk('car', car({ L: 4.4, W: 1.8, c: '#336699', hl: 1, bl: 0.8, ch: 0.6 }));
   walk('taxi', car({ L: 4.6, W: 1.9, c: '#111111', hl: 1, bl: 0.8, ch: 0.6, taxi: 1 }));

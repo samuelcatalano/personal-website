@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
 import { routeT, nearestStop, stopMarks, fineMarks } from '../scroll.js';
-import { routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, FRAME_LIFT, swapAt, scotRange } from './layout.js';
+import { routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, FRAME_LIFT, swapAt } from './layout.js';
 import { createBoxes, buildMeshes } from './voxel.js';
 import { buildMotion } from './motion.js';
 import { buildCity, tree } from './city.js';
@@ -26,6 +26,7 @@ import { createLampPools } from './lamps.js';
 import { createPost } from './post.js';
 import { createRoadMarks } from './roadmarks.js';
 import { createAircraft } from './aircraft.js';
+import { createUnderpass } from './underpass.js';
 const BUS_LANE = 1.75, SCROLL_SMOOTH = 0.18, ARC = 10;
 export async function createWorld(canvas, stops, { reducedMotion = false, onProgress = () => {} } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -64,8 +65,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const g = proto.clone(); g.position.set(x, y, z); g.userData.phase = i * 1.3; return g;
   });
   const SPIN = 0.45; // rad/s
-  const { eye, details, plane: planeModel } = buildLandmarks(add, stops, pts, (x, z, shape) => treePlacements.push({ x, z, ...shape }));
-  const aircraft = createAircraft(planeModel, { reducedMotion, scale: 2.3 }), plane = aircraft.object; // ponytail: old 16 m model enlarged to ~37 m so it reads at 400-550 m; phase 6 builds the real size and drops the scale
+  const { eye, details } = buildLandmarks(add, stops, pts, (x, z, shape) => treePlacements.push({ x, z, ...shape }));
+  const aircraft = createAircraft(buildVehicle('a330'), { reducedMotion }), plane = aircraft.object;
   let trees;
   try { trees = await createTrees(treePlacements); scene.add(trees); }
   catch { treePlacements.forEach(({ x, z, ...shape }) => tree(add, x, z, shape)); } // retain trees if the texture cannot load
@@ -73,8 +74,9 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const mini = buildVehicle('mini', { hero: true }), londonBus = buildVehicle('london', { hero: true }), glasgowBus = buildVehicle('glasgow', { hero: true });
   const bus = new THREE.Group().add(mini, londonBus, glasgowBus), swap = swapAt(stops);
   londonBus.visible = glasgowBus.visible = false;
-  // The Glasgow bus is the logical model between these route params; its visible swap is deferred (see frame())
-  const [SCOT_IN, SCOT_OUT] = scotRange(stops);
+  // Glasgow livery between the two railway underpasses (each within 7 m of its scotRange boundary); the visible swap happens inside the tunnel (see frame())
+  const underpass = createUnderpass(curve, stops), [ARCH_IN, ARCH_OUT] = underpass.passes.map((a) => a.t);
+  scene.add(underpass.group);
   let shown = null, frameNo = 0;
   const frustum = new THREE.Frustum(), pv = new THREE.Matrix4(), sphere = new THREE.Sphere(), ray = new THREE.Raycaster();
   for (const v of [mini, londonBus, glasgowBus]) addBeams(v, v.userData.front, v.userData.beamY);
@@ -84,8 +86,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   polishLandmarkMaterials(world,stops,pts);
   const motion = buildMotion(); scene.add(motion.group);
   const roadMarks = createRoadMarks(curve, stops);
-  scene.add(world, eye, details, plane, bus, ...rotors, roadMarks);
-  const units = [createAmbient(scene, { curve, pts, stops })];
+  scene.add(world, eye, details, plane, aircraft.shadow, bus, ...rotors, roadMarks);
+  const units = [createAmbient(scene, { curve, pts, stops, reducedMotion })];
   const people = createPeople(scene, { curve, pts, stops, reducedMotion });
   const water = createWater({ x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z: RIVER_Z, width: 22 });
   scene.add(water.mesh);
@@ -130,7 +132,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => { if (fit()) { camera.updateProjectionMatrix(); wake(); } });
   if (bar) observer?.observe(bar);
   if (panel) observer?.observe(panel);
-  const busPos = { x: 0, y: 0, z: 0 };
+  const busPos = { x: 0, y: 0, z: 0 }, prevBus = { x: null, z: 0 };
   let scroll = { value: 0, velocity: 0 }, target = 0, clock = 0, last = 0;
   const lateral = new THREE.Vector3();
   function frame(now) {
@@ -148,6 +150,11 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     bus.position.copy(bp).add(lateral);
     bus.rotation.y = Math.atan2(-tan.z, tan.x);
     Object.assign(busPos, { x: bp.x + lateral.x, y: bp.y, z: bp.z + lateral.z });
+    if (prevBus.x !== null) { // hero wheels roll with the distance travelled along the road (signed: scrolling back unrolls them)
+      const ds = (busPos.x - prevBus.x) * tan.x + (busPos.z - prevBus.z) * tan.z;
+      for (const m of [mini, londonBus, glasgowBus]) if (m.visible) for (const w of m.userData.wheels) w.rotation.z -= ds / w.position.y;
+    }
+    prevBus.x = busPos.x; prevBus.z = busPos.z;
     const s = t * (n - 1), i = Math.min(Math.floor(s), n - 2);
     const ka = SECTION_SHOT[stops[i].section], kb = SECTION_SHOT[stops[i + 1].section];
     const la = FRAME_LIFT[stops[i].id] ?? 0, lb = FRAME_LIFT[stops[i + 1].id] ?? 0;
@@ -155,11 +162,11 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const shot = blendShots(shotFor(ka, busPos, { mobile, lift }), shotFor(kb, busPos, { mobile, lift }), s - i, ka === kb ? 0 : ARC);
     camera.position.fromArray(shot.position);
     camera.lookAt(shot.target[0], shot.target[1], shot.target[2]);
-    // Player model: logical state flips exactly at swap / scotRange; a London<->Glasgow change becomes visible only when hidden
-    const want = t < swap ? mini : t >= SCOT_IN && t < SCOT_OUT ? glasgowBus : londonBus;
+    // Player model: Mini -> London at swap; London <-> Glasgow flips at the underpass centres, but only becomes visible while the whole bus is inside a tunnel
+    const want = t < swap ? mini : t >= ARCH_IN && t < ARCH_OUT ? glasgowBus : londonBus;
     frameNo++;
     if (shown !== want) {
-      let why = !shown || shown === mini || want === mini ? 'immediate' : Math.abs(s - Math.round(s)) < 0.12 ? 'stop' : ka !== kb && s - i > 0.15 && s - i < 0.85 ? 'blend' : '';
+      let why = !shown || shown === mini || want === mini ? 'immediate' : underpass.passes.some((a) => Math.abs(underpass.offset(a, busPos.x, busPos.z)) <= a.half - 5.7) ? 'arch' : Math.abs(s - Math.round(s)) < 0.12 ? 'stop' : ka !== kb && s - i > 0.15 && s - i < 0.85 ? 'blend' : '';
       if (!why) {
         camera.updateMatrixWorld();
         sphere.set(lateral.clone().add(bp).setY(bp.y + 2.2), 6.4);
@@ -179,7 +186,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     sun.position.copy(sun.target.position).add(SUN);
     eye.rotation.z = clock * 0.1; motion.uT.value = clock;
     for (const g of rotors) g.rotation.z = -clock * SPIN + g.userData.phase; // clockwise seen from +z
-    aircraft.update(clock, camera);
+    aircraft.update(clock, camera, night);
     const f = { time: clock, dt, progress: p, t, active: nearestStop(p, n, marks), bus: busPos };
     onProgress(p);
     for (const u of units) u.update(f);
@@ -217,6 +224,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       document.removeEventListener('visibilitychange', visibility);
       observer?.disconnect();
       architecture.userData.dispose?.();
+      underpass.group.userData.dispose();
       heroRealm?.userData.dispose();
       roadMarks.userData.dispose();
       trees?.userData.dispose?.();

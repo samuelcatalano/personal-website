@@ -158,32 +158,42 @@ function miniParts(A, { hero }) {
   A('matte', plate(rect(-0.2, 0.2, 0.52, 0.64), 0.015, 1.99, 0.02, true), WHT);
 }
 
-// ---- London cab (LEVC TX): tall rounded gloss-black van-like body, upright chrome slatted grille, round lamps, lit TAXI sign ----
+// ---- London cab (LEVC TX): short sloped bonnet and rounded nose, domed roof that peaks toward the rear, big rounded glasshouse with thin pillars, flared arches, chrome belt line, upright chrome slatted grille, lit TAXI sign ----
+const CAB_ROOF = [[1.04, 1.75], [0.45, 1.865], [-0.4, 1.93], [-1.3, 1.975], [-1.97, 1.83]]; // roof crown, front to rear
+function archLip(x, wr, R, zo, t) { // raised flare around a wheel arch
+  const o = [], n = [];
+  for (let i = 0; i <= 9; i++) { const a = Math.PI * (-0.2 + 1.4 * i / 9), c = Math.cos(a), s = Math.sin(a); o.push([x + (R + 0.07) * c, Math.max(0.12, wr + (R + 0.07) * s)]); n.push([x + R * c, Math.max(0.12, wr + R * s)]); }
+  const ring = [...o, ...n.reverse()];
+  return [flat(ring, 0, zo, zo + t), flat(ring, 0, -zo - t, -zo)];
+}
 function cabParts(A, { hero }) {
-  const h = 0.95;
-  A('body', slab([[-2.42, 0.32], [2.42, 0.32], [2.47, 0.55], [2.46, 0.98], [2.3, 1.08], [1.52, 1.12], [-2.2, 1.2], [-2.4, 1.12], [-2.47, 0.75], [-2.45, 0.45]], 0.13, -h, h, 0.06, hero ? 3 : 2, hero ? 4 : 3));
+  const h = 0.95, bs = hero ? 3 : 1, cs = hero ? 4 : 2;
+  A('body', slab([[-2.42, 0.32], [2.42, 0.32], [2.49, 0.5], [2.5, 0.95], [2.38, 1.07], [1.9, 1.11], [1.45, 1.15], [-1.0, 1.2], [-2.2, 1.24], [-2.42, 1.14], [-2.48, 0.8], [-2.46, 0.45]], 0.2, -h, h, 0.06, bs, cs));
   A('matte', slab(rect(-2.2, 2.2, 0.2, 0.44), 0.04, -h + 0.12, h - 0.12, 0.03, 1, 2), DK);
-  A('glass', slab([[1.56, 1.1], [1.12, 1.72], [-2.05, 1.74], [-2.3, 1.2]], 0.08, -0.81, 0.81, 0.03, 1, 2));
-  A('body', slab(rect(-2.32, 1.22, 1.7, 1.78), 0.06, -0.88, 0.88, 0.05, 1, 2));
-  for (const q of [[[1.6, 1.08], [1.46, 1.08], [1.04, 1.74], [1.2, 1.74]], [[0.18, 1.1], [0.0, 1.1], [0.0, 1.74], [0.16, 1.74]], [[-2.34, 1.16], [-2.18, 1.16], [-1.96, 1.74], [-2.12, 1.74]]])
+  A('glass', slab([[1.58, 1.12], [1.0, 1.74], [0.45, 1.84], [-0.4, 1.9], [-1.3, 1.94], [-1.95, 1.8], [-2.25, 1.27]], 0.2, -0.81, 0.81, 0.04, bs, cs)); // one big rounded glasshouse
+  A('body', slab([...CAB_ROOF, ...CAB_ROOF.map(([x, y]) => [x, y - 0.1]).reverse()], 0.05, -0.86, 0.86, 0.05, 1, 2)); // domed roof shell
+  for (const q of [[[1.64, 1.1], [1.5, 1.1], [0.94, 1.72], [1.08, 1.74]], [[0.2, 1.12], [0.04, 1.12], [0.04, 1.87], [0.2, 1.88]], [[-2.32, 1.24], [-2.18, 1.24], [-1.84, 1.78], [-2.0, 1.81]]]) // A, B, C pillars
     for (const s of [-1, 1]) A('body', s > 0 ? flat(q, 0.015, 0.78, 0.83) : flat(q, 0.015, -0.83, -0.78));
-  for (const s of [h - 0.012, -h - 0.004]) A('trim', flat(rect(-2.2, 1.5, 1.09, 1.115), 0, s, s + 0.016), CH); // chrome belt line
-  for (const x of [1.5, -1.5]) A('matte', arch(x, 0.34, 0.42, h + 0.006, 0.018), BLK);
+  for (const s of [h - 0.012, -h - 0.004]) A('trim', flat([[1.58, 1.095], [-2.25, 1.205], [-2.25, 1.24], [1.58, 1.13]], 0, s, s + 0.016), CH); // chrome belt line follows the shoulder
+  for (const x of [1.5, -1.5]) { // pronounced arches: dark recess + body-colour flare
+    A('matte', arch(x, 0.34, 0.46, h + 0.006, 0.018), BLK);
+    A('body', archLip(x, 0.34, 0.46, h + 0.006, 0.03));
+  }
   for (const s of [-1, 1]) {
-    A('body', ell(1.42, 1.18, s * (h + 0.05), 0.06, 0.06, 0.08, 8)); // mirrors
+    A('body', ell(1.42, 1.2, s * (h + 0.05), 0.06, 0.06, 0.08, 8)); // mirrors
     lamp(A, 2.46, 0.86, s * 0.7, 0.12, hero);
     A('matte', ell(2.46, 0.6, s * 0.78, 0.04, 0.03, 0.08, 6), AMB);
     A('tail', ell(-2.47, 0.88, s * 0.82, 0.05, 0.2, 0.07, 8));
   }
   const NX = 2.52; // big upright grille: chrome surround, dark mesh, vertical chrome slats
-  A('trim', plate(rect(-0.42, 0.42, 0.5, 1.02), 0.07, NX, 0.05), CH);
-  A('matte', plate(rect(-0.37, 0.37, 0.54, 0.98), 0.05, NX + 0.005, 0.03), BLK);
-  for (let i = -4; i <= 4; i++) A('trim', plate(rect(i * 0.08 - 0.012, i * 0.08 + 0.012, 0.56, 0.96), 0, NX + 0.012, 0.012), CH);
+  A('trim', plate(rect(-0.42, 0.42, 0.5, 0.96), 0.07, NX, 0.05), CH);
+  A('matte', plate(rect(-0.37, 0.37, 0.54, 0.92), 0.05, NX + 0.005, 0.03), BLK);
+  for (let i = -4; i <= 4; i++) A('trim', plate(rect(i * 0.08 - 0.012, i * 0.08 + 0.012, 0.56, 0.9), 0, NX + 0.012, 0.012), CH);
   A('matte', plate(rect(-0.9, 0.9, 0.3, 0.5), 0.06, 2.5, 0.06), DK);
   A('matte', plate(rect(-0.26, 0.26, 0.33, 0.45), 0.015, 2.515, 0.012), WHT);
   A('matte', plate(rect(-0.9, 0.9, 0.3, 0.5), 0.06, 2.48, 0.06, true), DK);
   A('matte', plate(rect(-0.26, 0.26, 0.5, 0.62), 0.015, 2.495, 0.02, true), WHT);
-  A('lit', new THREE.BoxGeometry(0.3, 0.14, 0.66).translate(0.9, 1.85, 0).toNonIndexed()); // TAXI roof sign
+  A('lit', new THREE.BoxGeometry(0.3, 0.14, 0.66).translate(0.74, 1.92, 0).toNonIndexed()); // TAXI roof sign
 }
 
 // ---- generic cars (sedan / hatch / suv / van): side-profile extrusions, kept from the previous model set ----
@@ -388,6 +398,7 @@ function buildGeos(S, hero) {
   return { m, tris };
 }
 export function buildVehicle(type, { hero = false, color } = {}) {
+  if (type === 'a330') return buildA330();
   const S = SPECS[type];
   if (!S) throw new Error('unknown vehicle ' + type);
   const geos = GEO[type + (hero ? 'H' : 'A')] ??= buildGeos(S, hero), group = new THREE.Group();
@@ -412,6 +423,67 @@ export function buildVehicle(type, { hero = false, color } = {}) {
     }
   }
   Object.assign(group.userData, { length: S.length, front: S.front, beamY: S.beamY, wheels, tris: geos.tris });
+  return group;
+}
+
+// ---- Airbus A330 (stylised, 40.6 m nose to tail, x forward): white lathe fuselage with navy belly, swept low wings with winglets, two underwing turbofans,
+// tall fin with an abstract red/white ribbon (no logo). Night: nav lights + tail strobe (blink driven by aircraft.js) and one soft ground blob shadow.
+const FUS = [[0, 20.2], [0.7, 19.7], [1.3, 18.6], [1.8, 17], [2.1, 15], [2.3, 12.5], [2.3, -8], [2.2, -11], [1.9, -14.5], [1.4, -17.5], [0.8, -19.6], [0.15, -20.4]]; // [radius, x]
+const fusR = (x) => { for (let i = 1; i < FUS.length; i++) if (x >= FUS[i][1]) { const [r0, x0] = FUS[i - 1], [r1, x1] = FUS[i]; return r0 + (r1 - r0) * (x - x0) / (x1 - x0); } return 0.15; }; // FUS is nose-first, so x decreases along the table
+const upsweep = (y, x) => x < -10 ? y + ((-10 - x) / 10) ** 2 : y;
+const planeMat = (key, make) => cached('a330' + key, make);
+function a330Geos() {
+  const WHITE = '#f1f3f6', NAVY = '#17285a', ENG = '#c4c9d1', FAN = '#2a2e35', R_ = '#c0262d', SIL = '#dfe3e9', lathe = (pts, seg, a, l) => new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), seg, a, l);
+  const trim = [], glass = [];
+  const fus = lathe([...FUS].reverse(), 16).rotateZ(-Math.PI / 2).toNonIndexed(); // lathe axis y -> x (nose +x)
+  { const p = fus.attributes.position, c = new Float32Array(p.count * 3), col = new THREE.Color();
+    for (let i = 0; i < p.count; i++) p.setY(i, upsweep(p.getY(i), p.getX(i)));
+    for (let i = 0; i < p.count; i += 3) { // per-triangle colour: navy belly
+      const y = (p.getY(i) + p.getY(i + 1) + p.getY(i + 2)) / 3, z = (p.getZ(i) + p.getZ(i + 1) + p.getZ(i + 2)) / 3, x = (p.getX(i) + p.getX(i + 1) + p.getX(i + 2)) / 3;
+      col.set(y < -0.4 * Math.hypot(y - Math.max(0, upsweep(0, x)), z) ? NAVY : WHITE);
+      for (let k = 0; k < 3; k++) col.toArray(c, (i + k) * 3);
+    }
+    fus.setAttribute('color', new THREE.BufferAttribute(c, 3)); fus.deleteAttribute('uv'); trim.push(fus); }
+  const win = (xs, a, l) => { const g = lathe(xs.map((x) => [fusR(x) + 0.05, x]), 2, a, l).rotateZ(-Math.PI / 2).toNonIndexed(); g.deleteAttribute('uv'); const p = g.attributes.position; for (let i = 0; i < p.count; i++) p.setY(i, upsweep(p.getY(i), p.getX(i))); return g; };
+  for (const a of [-0.42, Math.PI + 0.22]) glass.push(win([-9, -8, -4, 6, 12.5, 14.5], a, 0.2)); // passenger window strip, both sides
+  glass.push(win([16.6, 17.4, 18.0, 18.6], -Math.PI / 2 - 0.8, 1.6)); // cockpit band wrapped over the nose
+  const wing = (pl, t, y0, dih, c) => [-1, 1].map((sg) => {
+    const g = new THREE.ExtrudeGeometry(new THREE.Shape(pl.map(([x, z]) => new THREE.Vector2(x, z * sg))), { depth: t, bevelEnabled: false }).rotateX(Math.PI / 2).translate(0, y0, 0), p = g.attributes.position;
+    for (let i = 0; i < p.count; i++) p.setY(i, p.getY(i) + Math.abs(p.getZ(i)) * dih);
+    return colg(bare(g), c);
+  });
+  trim.push(...wing([[3.2, 1.9], [-7.0, 18.6], [-9.2, 18.6], [-8.4, 5.0], [-5.0, 1.9]], 0.38, -0.7, 0.08, WHITE)); // main wings, swept, slight dihedral
+  trim.push(...wing([[-14.2, 1.0], [-18.6, 7.6], [-19.9, 7.6], [-18.6, 1.0]], 0.18, 0.4, 0.05, WHITE)); // horizontal stabilisers
+  for (const sg of [-1, 1]) {
+    trim.push(colg(bare(new THREE.ExtrudeGeometry(new THREE.Shape([[-7.4, 0], [-9.2, 0], [-10.5, 2.7], [-9.7, 2.7]].map(([x, y]) => new THREE.Vector2(x, y))), { depth: 0.14, bevelEnabled: false }).translate(0, 0.79, sg * 18.5 - 0.07)), SIL)); // winglet
+    const ex = 0.8, ez = sg * 6.6, ey = -1.55; // turbofan: nacelle + dark fan face
+    trim.push(colg(bare(lathe([[0.35, -2.2], [0.75, -2.0], [1.05, -1.2], [1.17, 0], [1.18, 1.4], [1.1, 2.05], [0.95, 2.15]], 14).rotateZ(-Math.PI / 2).translate(ex, ey, ez)), ENG));
+    trim.push(colg(bare(lathe([[0, 1.75], [0.4, 1.8], [0.95, 2.1]], 14).rotateZ(-Math.PI / 2).translate(ex, ey, ez)), FAN));
+  }
+  const xl = (y) => -12.6 + (-17.8 + 12.6) * (y - 0.8) / 8.4, xt = (y) => -18.5 + (-20.2 + 18.5) * (y - 0.8) / 8.4, at = (y, f) => xl(y) + (xt(y) - xl(y)) * f;
+  trim.push(colg(bare(new THREE.ExtrudeGeometry(new THREE.Shape([[xl(0.8), 0.8], [xt(0.8), 0.8], [xt(9.2), 9.2], [xl(9.2), 9.2]].map(([x, y]) => new THREE.Vector2(x, y))), { depth: 0.24, bevelEnabled: false }).translate(0, 0, -0.12)), NAVY)); // tall fin
+  for (const [f0, f1, c] of [[0.1, 0.32, R_], [0.36, 0.56, WHITE]]) { // ribbon bands, proud of the fin on both faces
+    trim.push(colg(bare(new THREE.ExtrudeGeometry(new THREE.Shape([[at(3, f0), 3], [at(3, f1), 3], [at(9, f1), 9], [at(9, f0), 9]].map(([x, y]) => new THREE.Vector2(x, y))), { depth: 0.3, bevelEnabled: false }).translate(0, 0, -0.15)), c));
+  }
+  const nav = [], strobe = [], dot = (x, y, z, c, to) => to.push(colg(bare(new THREE.SphereGeometry(0.32, 6, 4).translate(x, y, z)), c));
+  dot(-8.4, 0.8, -18.6, '#ff2a2a', nav); dot(-8.4, 0.8, 18.6, '#33ff66', nav);
+  dot(-20.3, upsweep(0.2, -20.3) + 0.2, 0, '#ffffff', strobe); dot(-8.6, 0.8, -18.6, '#ffffff', strobe); dot(-8.6, 0.8, 18.6, '#ffffff', strobe);
+  const m = { trim: mergeGeometries(trim), glass: mergeGeometries(glass), nav: mergeGeometries(nav), strobe: mergeGeometries(strobe) };
+  return { m, tris: ['trim', 'glass', 'nav', 'strobe'].reduce((n, k) => n + m[k].attributes.position.count / 3, 0) };
+}
+function buildA330() {
+  const geos = GEO.a330 ??= a330Geos(), group = new THREE.Group(), lightMat = planeMat('light', () => new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false }));
+  group.name = 'a330';
+  for (const k of ['trim', 'glass']) group.add(new THREE.Mesh(geos.m[k], k === 'trim' ? fixed('trim') : fixed('glass')));
+  const nav = new THREE.Mesh(geos.m.nav, lightMat), strobe = new THREE.Mesh(geos.m.strobe, lightMat);
+  nav.visible = strobe.visible = false; nav.name = 'nav'; strobe.name = 'strobe'; group.add(nav, strobe);
+  const shadow = new THREE.Mesh(planeMat('shadowGeo', () => new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2)), planeMat('shadow', () => {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+    const g = cv.getContext('2d'), r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, 'rgba(0,0,0,1)'); r.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = r; g.fillRect(0, 0, 64, 64);
+    return new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, opacity: 0.3, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  }));
+  shadow.name = 'a330-shadow'; shadow.visible = false; shadow.renderOrder = 4; shadow.frustumCulled = false;
+  Object.assign(group.userData, { length: 40.6, front: 20.2, beamY: 0, wheels: [], tris: geos.tris, nav, strobe, shadow });
   return group;
 }
 export const CAR_TYPES = ['sedan', 'hatch', 'suv', 'cab', 'van'];

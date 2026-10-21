@@ -279,30 +279,6 @@ export function createTowerBridge(x,z){
   return g;
 }
 
-export function createPlane(){
-  const {box,add,finish}=landmark('plane',0,0),AX=1.6;
-  const tab=[[.12,-8],[.34,-7.4],[.62,-6.2],[.9,-4.6],[1.08,-3],[1.12,-1.5],[1.12,4],[1.02,5.2],[.82,6.2],[.55,7.1],[.28,7.7],[0,8]];
-  const R=y=>{for(let i=1;i<tab.length;i++)if(y<=tab[i][1]){const[a,b]=[tab[i-1],tab[i]];return a[0]+(b[0]-a[0])*(y-a[1])/(b[1]-a[1]);}return 0;};
-  const white=[1.2,1.3,1.5],pearl=[1.15,1.26,1.46],navy=[.07,.15,.44],red=[1.03,.17,.24],ys=(a,b,n)=>Array.from({length:n+1},(_,i)=>a+(b-a)*i/n);
-  const body=(pts,a,l,surface,tint,bucket=0,dr=.03)=>{const g=lathe(pts.map(([r,y])=>[r+dr,y]),16,a,l);g.rotateZ(-Math.PI/2);add(g,0,AX,0,surface,tint,bucket);};
-  body(tab,0,Math.PI*2,S.plaster,white,0,0);
-  body(ys(-6.2,5,8).map(y=>[R(y),y]),Math.PI/2-1.15,2.3,S.plaster,navy);                    // navy belly
-  for(const [a,l] of [[-.22,.1],[Math.PI+.12,.1]])body(ys(-5.5,4.6,8).map(y=>[R(y),y]),a,l,S.plaster,red,0,.04); // livery cheatline
-  for(const [a,l] of [[-.5,.2],[Math.PI+.3,.2]])body(ys(-5,4.4,9).map(y=>[R(y),y]),a,l,S.glass,[.5,.75,.95],2); // window band
-  body(ys(5.35,6.45,3).map(y=>[R(y),y]),-Math.PI/2-.85,1.7,S.glass,[.4,.65,.9],2);          // cockpit
-  const wing=(pts,t,y,s)=>{const sh=new THREE.Shape(pts.map(([px,pz])=>new THREE.Vector2(px,pz*s)));const g=new THREE.ExtrudeGeometry(sh,{depth:t,bevelEnabled:false});g.rotateX(Math.PI/2);const p=g.attributes.position;for(let i=0;i<p.count;i++)p.setY(i,p.getY(i)+Math.abs(p.getZ(i))*.05);add(g,0,y,0,S.plaster,pearl);};
-  for(const s of [-1,1]){
-    wing([[3.2,.9],[-1.6,8.6],[-2.9,8.6],[-1.4,.9]],.22,AX-.35,s);
-    wing([[-5.6,.5],[-7.0,3.4],[-7.9,3.4],[-7.4,.5]],.14,AX+.2,s);
-    const n=lathe([[0,-1.3],[.3,-1.25],[.5,-1],[.52,0],[.46,.9],[.32,1.25],[0,1.3]],12);n.rotateZ(-Math.PI/2);add(n,1.6,AX-.8,s*3.5,S.plaster,pearl);
-    const ring=lathe([[.36,.88],[.52,1.02],[.47,1.2],[.34,1.3]],12);ring.rotateZ(-Math.PI/2);add(ring,1.64,AX-.8,s*3.5,S.plaster,navy);
-  }
-  const fin=(pts,d,tint)=>{const sh=new THREE.Shape(pts.map(([a,b])=>new THREE.Vector2(a,b)));add(new THREE.ExtrudeGeometry(sh,{depth:d,bevelEnabled:false}),0,AX+.4,-d/2,S.plaster,tint);};
-  fin([[-4.6,.2],[-6.9,3.5],[-8.1,3.5],[-7.8,.2]],.16,navy);
-  fin([[-4.6,.2],[-5.37,1.3],[-7.9,1.3],[-7.8,.2]],.2,red);
-  return finish();
-}
-
 // ---- Catedral da Se: neo-gothic nave, buttresses, green dome on a drum, two spired towers ----
 export function createSe(x,z){
   const {box,add,beam,gothic,finish,pale,slate}=landmark('se',x,z);

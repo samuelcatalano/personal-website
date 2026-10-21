@@ -16,7 +16,7 @@ result=js(r'''(async()=>{
  {const rg=parts.details.getObjectByName('riverside-geometry');check(rg,'riverside geometry');let rl=0;rg.traverse(o=>{if(o.isMesh&&o.name.includes('-lights')){rl++;check(!o.castShadow,'riverside light shadow');lightMats.add(o.material);lightMeshes++;lightTris+=o.geometry.attributes.position.count/3;}else if(o.isMesh&&o.name.endsWith('-wash')){washMats.add(o.material);lightTris+=o.geometry.attributes.position.count/3;}});check(rl>=1&&rl<=2,'riverside needs 1-2 light meshes');
   check(lightMats.size<=2&&washMats.size<=1,'light materials not shared '+lightMats.size+'/'+washMats.size);check(lightMeshes<=8,'light mesh total '+lightMeshes);check(lightTris<=6000,'light triangle budget '+lightTris);metrics.lights={meshes:lightMeshes,triangles:lightTris,materials:lightMats.size,wash:washMats.size};
   const eb=parts.eye.children.reduce((n,m)=>n+(m.geometry.index?.count??m.geometry.attributes.position.count)/3*(m.isInstancedMesh?m.count:1),0)+parts.details.getObjectByName('eyeframe-geometry').children.reduce((n,m)=>n+(m.geometry.attributes.position.count)/3,0);check(eb<=4000,'Eye triangle budget '+eb);metrics.eye={triangles:eb};
-  let pt=0;parts.plane.traverse(o=>{if(o.isMesh)pt+=o.geometry.attributes.position.count/3});check(pt<=4000,'plane triangle budget '+pt);metrics.plane={triangles:pt};}
+  }
  parts.details.updateMatrixWorld(true);
  const ray=new T.Raycaster(new T.Vector3(pts[stopIndex(stops,LANDMARKS.masp)].x,4,-50),new T.Vector3(0,0,-1));
  check(ray.intersectObject(parts.details.getObjectByName('masp-geometry'),true).length===0,'MASP central free span obstructed');
