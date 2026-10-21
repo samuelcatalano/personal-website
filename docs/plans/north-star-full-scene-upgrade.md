@@ -8,11 +8,12 @@ Ordered by visual impact / effort (evidence from the 35-capture audit):
 
 | # | Milestone | Scope | Files | Status |
 |---|---|---|---|---|
-| 1 | **Lighting & atmosphere** | Golden-hour key/fill, saturated sky, warmer/farther haze, warmer water glint | `sky.js`, `mood.js`, `scene.js` (fog/hemi only), `water.js` | pending |
-| 2 | **Roads & vegetation** | Warmer asphalt, centre/edge lines, zebra crossings at stops; larger fuller trees + street-verge trees outside paths | `city.js` (road marks), `palette.js`, `trees.js`, tree placement callers | pending |
-| 3 | **Vehicles** | Smooth Mini, polished Routemaster, shared smooth car family (sedan/hatch/cab/van), airplane rebuild | `bus.js`, `ambient.js`, new `vehicles.js`, `landmarks.js` (plane) | pending |
-| 4 | **Landmarks** | London Eye, Estaiada, Sé, Tower Bridge, Heathrow rebuild with `landmark-geometry.js` pattern | `landmark-geometry.js`, `landmarks.js`, `saopaulo.js` | pending |
-| 5 | Secondary | Copan brise-soleil, Glasgow Riverside/University polish, boats | as needed | deferred unless time |
+| 1 | **Lighting & atmosphere** | Golden-hour key/fill, saturated sky, warmer/farther haze, warmer water glint | `sky.js`, `mood.js`, `post.js` (grade pass), `water.js` | done 6e63848 |
+| 2 | **Roads & vegetation** | Warmer asphalt, centre/edge lines, zebra crossings at stops; larger fuller trees + street-verge trees outside paths | `city.js` (road marks), `palette.js`, `trees.js`, `roadmarks.js` (new) | done 6e63848 |
+| 3 | **Vehicles** | Smooth Mini, polished Routemaster, shared smooth car family (sedan/hatch/cab/van), airplane rebuild | `bus.js`, `ambient.js`, new `vehicles.js` | done 264ec8f |
+| 4 | **Landmarks** | London Eye, Estaiada, Sé, Tower Bridge, Heathrow rebuild with `landmark-geometry.js` pattern | `landmark-geometry.js`, `landmarks.js`, `saopaulo.js` (+ plane) | done 352990e |
+| 5 | Secondary | Copan brise-soleil, Glasgow Riverside/University polish, boats | `saopaulo.js`, `riverside.js`, `university.js`, `ambient.js` | in progress |
+| 5b | Technical gate | Coplanar-face (z-fight) source fixes so the strict guard passes | parks/city/blocks/country/glasgow builders | in progress |
 | 6 | Final traversal | Same 35 positions; desktop high + mobile medium; regression | — | pending |
 
 Each milestone: related tests + screenshot + console; commit per milestone (`art: …`). Milestone 6 runs full Node + relevant browser suites.

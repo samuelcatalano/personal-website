@@ -104,3 +104,6 @@ Details: [asset-quality-spec](../art/asset-quality-spec.md). Plan: [north-star-f
 ## Progress log
 
 - 2026-10-21 — audit complete (35 captures).
+- M1/M2 (6e63848): lighting/atmosphere C→B+ (golden key, saturated sky, colour grade), roads C→B+ (centre/edge lines, zebras), trees C→B+ (round canopies, verge rhythm), water B→A-.
+- M3 (264ec8f): Mini D→A-, Routemaster B-→A-, ambient cars D→B+ (5 shared smooth types).
+- M4 (352990e): London Eye D→A, Estaiada D→A-, Sé D→B+, Tower Bridge C→B+, Heathrow D→B+, airplane D→B+.
