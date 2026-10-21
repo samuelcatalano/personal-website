@@ -1,0 +1,118 @@
+import * as THREE from 'three';
+import { GLASS_REFLECTION } from './glass-reflection.js';
+
+// One metric atlas: each padded tile covers 1 x 2 metres, independent of lot size.
+export const SURFACE = Object.freeze({ plaster: 0, brick: 1, roof: 2, trim: 3, stone: 4, litGlass: 5, glass: 6, door: 7 });
+let shared;
+const hash = (x, y) => { let n = Math.imul(x + 131, 374761393) ^ Math.imul(y + 719, 668265263); n = Math.imul(n ^ n >>> 13, 1274126177); return (n >>> 0) / 4294967295; };
+const mod = (x, n) => (x % n + n) % n;
+const palette = [[201,190,167],[153,91,66],[72,82,93],[218,208,185],[181,170,149],[83,111,129],[83,111,129],[52,67,69]];
+
+// Periodic, interpolated grain avoids a visible seam or a low-frequency sine pattern.
+function grain(u,v,columns,rows) {
+  const x=u*columns,y=v*rows,ix=Math.floor(x),iy=Math.floor(y);
+  const fx=x-ix,fy=y-iy,s=fx*fx*(3-2*fx),t=fy*fy*(3-2*fy);
+  const h=(dx,dy)=>hash(mod(ix+dx,columns),mod(iy+dy,rows));
+  return (h(0,0)*(1-s)+h(1,0)*s)*(1-t)+(h(0,1)*(1-s)+h(1,1)*s)*t;
+}
+function texel(surface, x, y) {
+  const u=mod(x-4,120)/120,v=mod(y-4,248)/248;
+  const fine=hash(Math.floor(u*120),Math.floor(v*248))-.5;
+  let color=palette[surface],shade=1+fine*.012,height=fine*.00008,rough=.84,metal=0;
+  if(surface===SURFACE.brick||surface===SURFACE.stone){
+    const brick=surface===SURFACE.brick,rows=brick?24:8,columns=brick?4:2;
+    const row=Math.floor(v*rows),column=Math.floor(u*columns+(row%2)*.5);
+    const bx=mod(u*columns+(row%2)*.5,1),by=mod(v*rows,1);
+    const joint=Math.min(bx,1-bx)<.018||Math.min(by,1-by)<.045;
+    const tone=hash(mod(column,columns),row)-.5;
+    color=joint?(brick?[144,125,106]:[169,159,141]):color.map((c,i)=>c+tone*[11,7,5][i]);
+    shade=1+fine*.02; height=joint?-.0008:fine*.0002;
+    rough=joint?.94:.86+tone*.06;
+  }else if(surface===SURFACE.roof){
+    const row=Math.floor(v*6),column=Math.floor(u*4+(row%2)*.5);
+    const rx=mod(u*4+(row%2)*.5,1),ry=mod(v*6,1);
+    const tone=hash(mod(column,4),row)-.5;
+    shade=.96+tone*.09+fine*.012;
+    if(rx<.018||ry<.03)shade*=.87;
+    height=ry<.03?-.0006:.0006*(1-ry);rough=.79+tone*.06;
+  }else if(surface===SURFACE.glass||surface===SURFACE.litGlass){
+    const interior=grain(u,v,4,4),reflection=Math.pow(.5+.5*Math.cos(2*Math.PI*(u+v)),10);
+    color=[99,130,143];shade=.72+interior*.18+reflection*.12;
+    height=0;rough=.24;
+  }else if(surface===SURFACE.trim){
+    height=fine*.00004;rough=.59;metal=.015;
+  }else if(surface===SURFACE.door){
+    const edge=Math.min(mod(u*2,1),1-mod(u*2,1),mod(v*3,1),1-mod(v*3,1));
+    shade=edge<.07?.81:1+fine*.012;height=edge<.07?-.001:0;rough=.69;
+  }else{
+    const micro=grain(u,v,30,62)-.5,soft=grain(u,v,8,16)-.5;
+    shade=1+micro*.018+soft*.012+fine*.006;
+    height=micro*.00012+fine*.000035;rough=.86+soft*.045+micro*.025;
+  }
+  const emission=surface===SURFACE.litGlass?(.42+.45*grain(u,v,3,4))*(.92+.08*Math.cos(v*Math.PI*2)):0;
+  return {rgb:color.map(c=>Math.max(0,Math.min(255,c*shade))),height,rough,metal,emission};
+}
+
+function makeMaps() {
+  const data = Array.from({length:4},()=>new Uint8ClampedArray(512*512*4));
+  for (let surface=0;surface<8;surface++) for(let y=0;y<256;y++) for(let x=0;x<128;x++) {
+    const p=texel(surface,x,y), hx=texel(surface,x+1,y).height-texel(surface,x-1,y).height, hy=texel(surface,x,y+1).height-texel(surface,x,y-1).height;
+    const normal=new THREE.Vector3(-hx*60,hy*62,1).normalize();
+    const i=(((1-Math.floor(surface/4))*256+y)*512+(surface%4)*128+x)*4;
+    const emission=[162,123,77].map(c=>c*p.emission);
+    [ [...p.rgb,255],[(normal.x*.5+.5)*255,(normal.y*.5+.5)*255,(normal.z*.5+.5)*255,255],[255,p.rough*255,p.metal*255,255],[...emission,255] ].forEach((rgba,k)=>data[k].set(rgba,i));
+  }
+  return data.map((pixels,i)=>{
+    const canvas=document.createElement('canvas');canvas.width=canvas.height=512;
+    const ctx=canvas.getContext('2d');ctx.putImageData(new ImageData(pixels,512,512),0,0);
+    const image=i===3?document.createElement('canvas'):canvas;
+    if(i===3){image.width=image.height=256;image.getContext('2d').drawImage(canvas,0,0,256,256);}
+    const texture=new THREE.CanvasTexture(image);texture.name=['slice-albedo','slice-normal','slice-orm','slice-emissive'][i];
+    texture.colorSpace=i===0||i===3?THREE.SRGBColorSpace:THREE.NoColorSpace;texture.anisotropy=4;
+    return texture;
+  });
+}
+
+function metricAtlas(material) {
+  material.customProgramCacheKey=()=> material.name+'-metric-atlas-v3';
+  material.onBeforeCompile=shader=>{
+    shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nattribute float aSurface; varying float vSliceSurface;').replace('#include <begin_vertex>','#include <begin_vertex>\nvSliceSurface = aSurface;');
+    shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
+      varying float vSliceSurface;
+      vec4 sliceSample(sampler2D tex,vec2 uv){
+        vec2 tile=vec2(mod(vSliceSurface,4.0),floor(vSliceSurface/4.0));
+        vec2 scale=vec2(120.0/512.0,124.0/512.0);
+        vec2 p=(tile*vec2(128.0,256.0)+4.0+fract(uv/vec2(1.0,2.0))*vec2(120.0,248.0))/512.0;
+        return textureGrad(tex,p,dFdx(uv)*scale,dFdy(uv)*scale);
+      }`);
+    // Keep continuous metric UVs for the tangent frame; wrap only texture sampling.
+    for(const chunk of ['map_fragment','normal_fragment_maps','roughnessmap_fragment','metalnessmap_fragment','emissivemap_fragment']) {
+      const code=THREE.ShaderChunk[chunk].replace(/texture2D\(\s*(map|normalMap|roughnessMap|metalnessMap|emissiveMap)\s*,\s*(v\w+Uv)\s*\)/g,'sliceSample( $1, $2 )');
+      shader.fragmentShader=shader.fragmentShader.replace(`#include <${chunk}>`,code);
+    }
+    if(material.name==='slice-glass'){
+      shader.uniforms.uGlassNight=material.userData.uNight??(material.userData.uNight={value:0});
+      shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
+uniform float uGlassNight;
+${GLASS_REFLECTION}`);
+      shader.fragmentShader=shader.fragmentShader.replace('#include <opaque_fragment>',`
+        vec3 glassView=normalize(vViewPosition);
+        float grazing=pow(1.0-clamp(dot(normal,glassView),0.0,1.0),2.8);
+        vec3 reflected=inverseTransformDirection(reflect(-glassView,normal),viewMatrix);
+        float litWindow=1.0-step(0.25,abs(vSliceSurface-5.0));
+        float reflectionWeight=(0.38+grazing*0.36)*(1.0-uGlassNight*litWindow*0.82);
+        outgoingLight=mix(outgoingLight,glassReflection(reflected,uGlassNight),reflectionWeight);
+        #include <opaque_fragment>`);
+    }
+  };
+  return material;
+}
+
+export function townhouseMaterials() {
+  if(shared) return shared;
+  const [map,normalMap,orm,emissiveMap]=makeMaps();
+  const architecture=metricAtlas(new THREE.MeshStandardMaterial({name:'slice-architecture',vertexColors:true,map,normalMap,normalScale:new THREE.Vector2(.65,.65),roughnessMap:orm,metalnessMap:orm,roughness:1,metalness:1}));
+  const glass=metricAtlas(new THREE.MeshStandardMaterial({name:'slice-glass',vertexColors:true,map,roughness:.24,metalness:0,emissiveMap}));
+  glass.userData={analyticReflection:true,glow:true,glowColor:new THREE.Color('#fff2dc'),glowK:1.05};
+  return shared={architecture,glass};
+}

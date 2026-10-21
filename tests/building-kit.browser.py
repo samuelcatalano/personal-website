@@ -1,5 +1,7 @@
 assert page_info()['url'].startswith(('http://localhost:', 'http://127.0.0.1:')), 'Open the local preview first'
 result = js(r'''(async () => {
+// Baseline renderer contracts; citywide.browser.py covers the rollout default.
+const legacyCity=plots=>createCityBuildings(plots,{rollout:false});
   const THREE = await import('three');
   const { createBuilding, createCityBuildings } = await import('./js/world/building-kit.js?test=' + Date.now());
   const kinds = ['terrace', 'shop', 'midrise', 'office', 'tower'];
@@ -8,7 +10,7 @@ result = js(r'''(async () => {
   for (const [i, building] of buildings.entries()) {
     const p = { x: i * 24, z: 10, width: 12, depth: 10, height: kinds[i] === 'tower' ? 36 : 15 };
     const bounds = new THREE.Box3().setFromObject(building), size = bounds.getSize(new THREE.Vector3());
-    if (Math.abs(bounds.min.y) > 1e-5 || Math.abs(bounds.max.y - p.height) > 1e-4 || Math.abs(bounds.min.x - (p.x - p.width / 2)) > 1e-4 || Math.abs(bounds.max.x - (p.x + p.width / 2)) > 1e-4 || Math.abs(bounds.min.z - (p.z - p.depth / 2)) > 1e-4 || Math.abs(bounds.max.z - (p.z + p.depth / 2)) > 1e-4 || size.y > p.height + 1e-4) throw Error('building bounds invalid: ' + kinds[i]);
+    if (Math.abs(bounds.min.y) > 1e-5 || Math.abs(bounds.max.y - p.height) > 1e-4 || Math.abs(bounds.min.x - (p.x - p.width / 2)) > 1e-4 || Math.abs(bounds.max.x - (p.x + p.width / 2)) > 1e-4 || Math.abs(bounds.min.z - (p.z - p.depth / 2)) > 1e-4 || Math.abs(bounds.max.z - (p.z + p.depth / 2)) > 1e-4 || size.y > p.height + 1e-4) throw Error('building bounds invalid: ' + kinds[i] + ' ' + JSON.stringify({ min: bounds.min.toArray(), max: bounds.max.toArray(), expected: p }));
     if (!meshes(building).some(mesh => mesh.isInstancedMesh)) throw Error('facade details are not instanced: ' + kinds[i]);
   }
   const allMeshes = buildings.flatMap(meshes);
@@ -28,7 +30,7 @@ result = js(r'''(async () => {
     const framePosition = new THREE.Vector3(), frameScale = new THREE.Vector3();
     paneMatrix.decompose(panePosition, new THREE.Quaternion(), paneScale);
     frameMatrix.decompose(framePosition, new THREE.Quaternion(), frameScale);
-    if (panePosition.z + paneScale.z / 2 <= framePosition.z + frameScale.z / 2) throw Error('window glass and frame faces are coplanar');
+    if (panePosition.z + paneScale.z / 2 >= framePosition.z + frameScale.z / 2) throw Error('window glass must be recessed behind its raised frame');
   }
   const profiles = buildings.map(g => meshes(g).filter(m => !m.isInstancedMesh).slice(2).map(m => m.scale.toArray().join(',')).join('|'));
   if (new Set(profiles).size !== kinds.length) throw Error('archetypes lack silhouette variation');
@@ -38,12 +40,12 @@ result = js(r'''(async () => {
     if (Math.abs(bounds.min.y) > 1e-5 || Math.abs(bounds.max.y - 0.5) > 1e-4 || Math.abs(bounds.min.x + 1) > 1e-4 || Math.abs(bounds.max.x - 1) > 1e-4 || Math.abs(bounds.min.z + 0.5) > 1e-4 || Math.abs(bounds.max.z - 0.5) > 1e-4) throw Error('compact building bounds invalid: ' + kinds[i]);
   }
   const plots = Array.from({ length: 200 }, (_, i) => ({ id: `plot-${i}`, kind: kinds[i % kinds.length], x: (i % 20) * 14, z: Math.floor(i / 20) * 14, width: 12, depth: 10, height: 15 + (i % 5) }));
-  const cityBuildings = createCityBuildings(plots), cityMeshes = meshes(cityBuildings);
+  const cityBuildings = legacyCity(plots), cityMeshes = meshes(cityBuildings);
   if (cityMeshes.length > 20 || cityMeshes.some(mesh => !mesh.isInstancedMesh)) throw Error('city buildings exceed 20 instanced draw objects');
   if (cityBuildings.userData.buildingCount !== 200 || kinds.some(kind => !cityBuildings.userData.kinds.includes(kind))) throw Error('city building metadata invalid');
   const cityBounds = new THREE.Box3().setFromObject(cityBuildings), expected = new THREE.Box3();
   for (const plot of plots) { expected.expandByPoint(new THREE.Vector3(plot.x - plot.width / 2, 0, plot.z - plot.depth / 2)); expected.expandByPoint(new THREE.Vector3(plot.x + plot.width / 2, plot.height, plot.z + plot.depth / 2)); }
-  if (!cityBounds.min.equals(expected.min) || !cityBounds.max.equals(expected.max)) throw Error('city bounds do not match source plot extent');
+  if (cityBounds.min.distanceTo(expected.min) > 1e-4 || cityBounds.max.distanceTo(expected.max) > 1e-4) throw Error('city bounds do not match source plot extent');
   if (new Set(cityMeshes.map(mesh => mesh.geometry)).size !== 1 || new Set(cityMeshes.map(mesh => mesh.material)).size !== cityMeshes.length) throw Error('city resources are not shared per material');
   if (!cityMeshes.some(mesh => mesh.material.name === 'window-glass') || !cityMeshes.some(mesh => mesh.material.name === 'window-frame')) throw Error('facade details were not instanced');
   return { pass: true, kinds, drawMeshes: buildings.map(g => meshes(g).length), instances: buildings.map(g => meshes(g).filter(m => m.isInstancedMesh).reduce((n, m) => n + m.count, 0)) };

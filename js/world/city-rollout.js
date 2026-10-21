@@ -1,0 +1,104 @@
+import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { townhouseRecipe, createTownhouseSlice } from './building-slice.js';
+import { midriseRecipe, createMidriseSlice } from './midrise-slice.js';
+import { officeRecipe, createOfficeSlice } from './office-slice.js';
+import { towerRecipe, createTowerSlice } from './tower-slice.js';
+import { createShopSlice, shopRecipe } from './shop-slice.js';
+import { SURFACE as S, townhouseMaterials } from './building-slice-materials.js';
+
+export function classifyPlot(p) {
+  if (![p.x??0,p.z??0,p.width,p.depth,p.height].every(Number.isFinite)) return null;
+  const {kind,width:w,depth:d,height:h}=p;
+  if (kind==='terrace'&&w>=4.8&&w<=12&&d>=7&&d<=12&&h>=6&&h<=16) return 'townhouse';
+  if (kind==='shop'&&w>=5&&d>=5&&h>=5.5&&h<=12) return 'shop';
+  if (['office','tower','midrise'].includes(kind)&&w>=9.8&&d>=9.8&&h>=40) return 'tower';
+  if (kind==='office'&&w>=8&&d>=8&&h>=12) return 'office';
+  if (classifyCompletion(p)==='B') return null;
+  if (kind==='midrise'&&w>=8&&d>=8&&h>=6&&h<40) return 'midrise';
+  return null;
+}
+export function classifyCompletion(p) {
+  if(p.kind!=='midrise'||p.height>=12)return null;
+  if(p.id?.startsWith('country-flat')||p.id?.startsWith('glasgow-tenement'))return 'B';
+  if(p.width>=8&&p.depth>=8&&p.height>=6)return p.z<=-100?'C':'A';
+  return 'B';
+}
+const hash=id=>{let n=2166136261;for(const c of id)n=Math.imul(n^c.charCodeAt(0),16777619)>>>0;return n;};
+function fittedTownhouse(p,neighbors) {
+  const recipe=townhouseRecipe(p,neighbors),roof=Math.min(2.1,p.width*.32,p.height*(.15+(hash(p.id)%4)*.03));
+  const floors=p.height<8.6?2:p.height>13.4?4:3,eaves=p.height-roof;
+  const ground=Math.min(3.2,eaves/floors),upper=(eaves-ground)/(floors-1);
+  return {...recipe,bays:p.width>=8&&hash(p.id)%2?3:2,bands:hash(p.id)%3!==0,floors,ground,upper,eaves,ridge:p.height-.08,windowHeight:Math.min(1.6,upper*.56)};
+}
+function towerFamily(p,neighbors){
+  const selected=neighbors.filter(p=>['office','tower','midrise'].includes(p.kind)&&p.height>=40&&p.width>=9.8&&p.depth>=9.8).slice().sort((a,b)=>a.x-b.x||a.z-b.z||a.id.localeCompare(b.id)),assigned=[];
+  for(const q of selected){
+    const near=assigned.filter(o=>Math.hypot(q.x-o.p.x,q.z-o.p.z)<42),initial=hash(q.id)%3;
+    let family=initial,best=Infinity;
+    for(let k=0;k<3;k++){const f=(initial+k)%3,cost=near.filter(o=>o.family===f).length;if(cost<best){best=cost;family=f;}}
+    assigned.push({p:q,family});if(q.id===p.id)return ['straight','stepped','asymmetric'][family];
+  }
+  return ['straight','stepped','asymmetric'][hash(p.id)%3];
+}
+export function rolloutRecipe(p,kind,neighbors=[p]){
+  const seed=hash(p.id);
+  if(kind==='townhouse')return fittedTownhouse(p,neighbors);
+  if(kind==='shop'){const r=shopRecipe(p,neighbors);return {...r,ground:Math.min(3.4,p.height*(.40+(seed%3)*.04)),canopy:seed%3!==0,baseSurface:seed%3===0?S.stone:S.brick};}
+  if(kind==='midrise'){
+    const r=midriseRecipe(p),compact=p.height<12,floors=compact?Math.max(2,Math.round(p.height/3.3)):r.floors,ground=compact?Math.min(3.2,p.height*.45):3.4+(seed%3)*.1;
+    return {...r,compact,floors,ground,bays:Math.max(3,r.bays+(seed%3)-1),windowHeight:compact?Math.min(1.8,(p.height-1.1-ground)/(floors-1)*.56):1.8,simplified:classifyCompletion(p)==='C',emphasis:seed%2?'vertical':'horizontal',rooftop:!compact&&seed%3!==0};
+  }
+  if(kind==='office'){const r=officeRecipe(p);return {...r,bays:Math.max(2,r.bays+(seed%3)-1),lobbyHeight:3.8+(seed%3)*.2,spandrel:seed%2?.85:.36,emphasis:seed%2?'horizontal':'vertical',rooftop:seed%3!==0};}
+  const r=towerRecipe(p),silhouette=towerFamily(p,neighbors),profiles={straight:{setbacks:[.12,.82,.96],scales:[.91,.91,.91],offsets:[0,0,0]},stepped:{setbacks:[.12,.70,.88],scales:[.91,.74,.52],offsets:[0,0,0]},asymmetric:{setbacks:[.12,.62,.86],scales:[.91,.62,.42],offsets:[0,.14,.20]}};
+  return {...r,silhouette,...profiles[silhouette],chamfer:.65+(seed%3)*.12,bayWidth:seed%2?3.1:4.0};
+}
+function building(p,kind,neighbors,level=0){
+  const recipe=rolloutRecipe(p,kind,neighbors);
+  if(kind==='townhouse')return createTownhouseSlice(p,recipe,level);
+  if(kind==='shop')return createShopSlice(p,neighbors,recipe);
+  if(kind==='midrise')return createMidriseSlice(p,recipe);
+  if(kind==='office')return createOfficeSlice(p,recipe);
+  return createTowerSlice(p,recipe);
+}
+// Vertex tints vary the shared metric atlas; materials and maps are never cloned.
+const walls=[[1.12,1.14,1.16],[.55,.80,1.12],[.65,.92,.60],[1.18,.82,.45],[1.10,.65,.70],[.58,.64,.72],[1.10,1.04,.80],[.83,.75,.64]];
+const bricks=[[1.05,.70,.50],[.58,.64,.74],[1.12,1.06,.86],[.72,.85,.74],[1.20,.66,.55],[.68,.54,.47]];
+function tint(g,p) {
+  const seed=hash(p.id),wall=walls[seed%walls.length],roof=[[1,1,1],[.72,.82,.93],[1.08,.76,.62]][Math.floor(seed/5)%3];
+  for(const m of g.children){const a=m.geometry.attributes;
+    for(let i=0;i<a.position.count;i++){
+      const s=a.aSurface.getX(i),t=s===S.plaster?wall:s===S.stone?(p.kind==='office'?walls[(seed%3)*2]:[1,1,1]):s===S.brick?bricks[Math.floor(seed/3)%bricks.length]:s===S.roof?roof:s===S.glass||s===S.litGlass?walls[Math.floor(seed/7)%3]:[1,1,1];
+      a.color.setXYZ(i,a.color.getX(i)*t[0],a.color.getY(i)*t[1],a.color.getZ(i)*t[2]);
+    }
+  }
+}
+export function createCityRollout(plots,neighbors=plots) {
+  const group=new THREE.Group();group.name='citywide-architecture';
+  const cells=new Map(),counts={townhouse:0,shop:0,midrise:0,office:0,tower:0},ids=new Set();
+  for(const p of [...plots].sort((a,b)=>a.id.localeCompare(b.id))){
+    const kind=classifyPlot(p);if(!kind||ids.has(p.id))throw new TypeError('Invalid/duplicate rollout lot');ids.add(p.id);counts[kind]++;
+    const x=Math.floor(p.x/32)*32,z=Math.floor(p.z/32)*32,key=`${x}:${z}`;
+    if(!cells.has(key))cells.set(key,{x,z,plots:[]});cells.get(key).plots.push({p,kind});
+  }
+  const materials=townhouseMaterials(),start=performance.now();
+  for(const cell of cells.values()){
+    const chunk=new THREE.Group();chunk.name=`architecture-cell-${cell.x}-${cell.z}`;chunk.position.set(cell.x,0,cell.z);
+    const hasLod=cell.plots.some(({kind})=>kind==='townhouse'),houses=cell.plots.map(({p,kind})=>{
+      const levels=[building(p,kind,neighbors)];if(hasLod&&kind==='townhouse')levels.push(building(p,kind,neighbors,1));
+      for(const h of levels){tint(h,p);h.children.forEach(m=>m.geometry.translate(p.x-cell.x,0,p.z-cell.z));}return levels;
+    }),lods=[];
+    for(let level=0;level<(hasLod?2:1);level++)lods.push([0,1,2].map(k=>{
+      const geometry=mergeGeometries(houses.map(h=>(h[level]||h[0]).children[k].geometry),false);
+      if(!geometry)throw new Error('Incompatible city architecture bucket');geometry.computeBoundingBox();geometry.computeBoundingSphere();return geometry;
+    }));
+    houses.flat().forEach(h=>h.children.forEach(m=>m.geometry.dispose()));
+    lods[0].forEach((geometry,k)=>{const mesh=new THREE.Mesh(geometry,k===2?materials.glass:materials.architecture);mesh.name=['city-mass','city-trim','city-glass'][k];mesh.castShadow=k===0;mesh.receiveShadow=true;chunk.add(mesh);});
+    const bounds=new THREE.Box3();lods.flat().forEach(g=>bounds.union(g.boundingBox));bounds.translate(chunk.position);
+    chunk.userData={plotIds:cell.plots.map(({p})=>p.id),lods,bounds,level:null};group.add(chunk);
+  }
+  let disposed=false;group.userData={archetype:'citywide-architecture',plotIds:[...ids],counts,buildMs:performance.now()-start,
+    update(camera){for(const c of group.children){const d=c.userData,distance=d.bounds.distanceToPoint(camera.position);const level=d.lods.length===1?0:d.level===null?(distance<120?0:1):d.level===0?(distance>129?1:0):(distance<111?0:1);if(level!==d.level){c.children.forEach((m,k)=>m.geometry=d.lods[level][k]);d.level=level;}}},
+    dispose(){if(disposed)return;disposed=true;group.children.forEach(c=>c.userData.lods.flat().forEach(g=>g.dispose()));}};
+  return group;
+}

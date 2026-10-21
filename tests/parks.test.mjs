@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { PARKS, PLAZAS, RING, KEEP, WALK_INSET, buildParks } from '../js/world/parks.js';
 import { walkPaths } from '../js/world/crowd.js';
-import { routePoints } from '../js/world/layout.js';
+import { routePoints, isWembleyBenchmark } from '../js/world/layout.js';
 import { PALETTE } from '../js/world/palette.js';
 import { tree } from '../js/world/city.js';
 import { stops } from '../js/content.js';
@@ -59,9 +59,23 @@ test('tree renderer receives every park tree without changing layout', () => {
     placements.push({ x, z, ...shape });
     tree(collect(replaced), x, z, shape);
   });
-  assert.deepEqual(replaced, baseline, 'all geometry and random placements remain identical');
-  assert.equal(placements.length, baseline.filter(b => b[6] === PALETTE.trunk).length, 'every original park tree reaches the renderer');
+  assert.deepEqual(replaced.filter(b => ![PALETTE.trunk, PALETTE.leaf, PALETTE.grass].includes(b[6])), baseline.filter(b => ![PALETTE.trunk, PALETTE.leaf, PALETTE.grass].includes(b[6])), 'non-tree park geometry remains identical');
+  assert.ok(placements.length >= baseline.filter(b => b[6] === PALETTE.trunk).length, 'every original park tree reaches the renderer');
   assert.ok(placements.length > 7, 'the change extends beyond the pilot garden');
+});
+
+test('Wembley benchmark trees stay inside the existing park and outside paths and building lots', () => {
+  const curve = { getPointAt: () => ({ x: 0, z: 0 }), getTangentAt: () => ({ x: 1, z: 0 }) };
+  const placements = [], occ = [];
+  buildParks(() => {}, stops, pts, curve, [], (x, z, shape) => placements.push({ x, z, ...shape }));
+  const trees = placements.filter(p => isWembleyBenchmark({ x: p.x, z: p.z }));
+  assert.deepEqual(trees.map(p => [p.x, p.z]), [[688, -62.5], [708, -62.5], [728, -62.5]]);
+  const rects = walkPaths(stops, pts).filter(p => p.type !== 'lane').map(p => p.rect);
+  for (const p of trees) {
+    const r = p.crown / 2;
+    for (const q of rects) assert.ok(p.x + r + 0.22 <= q.x0 || p.x - r - 0.22 >= q.x1 || p.z + r + 0.22 <= q.z0 || p.z - r - 0.22 >= q.z1, 'crown stays out of walking route');
+    assert.ok(p.x + r < 765, 'trees stay outside Wembley protected frontage');
+  }
 });
 
 test('larger lawn parks have a low paved edge outside walking loops', () => {

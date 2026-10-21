@@ -6,9 +6,11 @@ import { createBoxes, buildMeshes } from './voxel.js';
 import { buildMotion } from './motion.js';
 import { buildCity, tree } from './city.js';
 import { buildRealCity } from './real-city.js';
+import { createHeroRealm } from './hero-realm.js';
 import { createTrees } from './trees.js';
 import { buildBackdrop } from './backdrop.js';
 import { buildLandmarks } from './landmarks.js';
+import { polishLandmarkMaterials } from './landmark-materials.js';
 import { buildBus, buildMini } from './bus.js';
 import { createMood } from './mood.js';
 import { createRain } from './rain.js';
@@ -31,7 +33,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   scene.background = new THREE.Color(0xa8d0f2);
   scene.fog = new THREE.Fog(0xa8d0f2, 240, 900);
   const camera = new THREE.PerspectiveCamera(40, 1, 1, 1400);
-  const hemi = new THREE.HemisphereLight(0xa8d4ff, 0x5fa032, 1);
+  const hemi = new THREE.HemisphereLight(0xb9d4ea, 0x8d8574, 1);
   const sun = new THREE.DirectionalLight(0xfff0d0, 2.4);
   sun.castShadow = true;
   Object.assign(sun.shadow, { bias: -0.0002, normalBias: 0.05 });
@@ -49,9 +51,11 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   backdrop.traverse(o => { o.castShadow = o.receiveShadow = false; });
   scene.add(backdrop);
   const { add, list } = createBoxes();
-  const treePlacements = [], buildingPlots = [];
-  const { rotors: hubs, lamps } = buildCity(add, stops, pts, curve, (x, z, shape) => treePlacements.push({ x, z, ...shape }), plot => buildingPlots.push(plot));
-  const realCity = buildRealCity(buildingPlots);
+  const treePlacements = [], buildingPlots = [], architecturePlots = [], publicRealmZones = [];
+  const { rotors: hubs, lamps } = buildCity(add, stops, pts, curve, (x, z, shape) => treePlacements.push({ x, z, ...shape }), plot => buildingPlots.push(plot), plot => architecturePlots.push(plot), zone => publicRealmZones.push(zone));
+  const heroRealm=publicRealmZones.length?createHeroRealm():null;
+  if(heroRealm)scene.add(heroRealm);
+  const realCity = buildRealCity(architecturePlots);
   const blade = createBoxes(); blade.add(-0.25, 0, -0.15, 0.5, 9, 0.3, P.white); blade.add(-0.5, -0.5, -0.4, 1, 1, 0.8, P.white); // blade + hub cap
   const bm = buildMeshes(blade.list), proto = new THREE.Group().add(...[0, 1, 2].map((k) => { const c = bm.clone(); c.rotation.z = k * Math.PI * 2 / 3; return c; }));
   const rotors = hubs.map(([x, y, z], i) => { // 3 blades at 120deg; clones share geometry + materials
@@ -62,7 +66,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   let trees;
   try { trees = await createTrees(treePlacements); scene.add(trees); }
   catch { treePlacements.forEach(({ x, z, ...shape }) => tree(add, x, z, shape)); } // retain trees if the texture cannot load
-  scene.add(await realCity);
+  const architecture = await realCity;scene.add(architecture);
   const routemaster = buildBus(), mini = buildMini(), bus = new THREE.Group().add(mini, routemaster), swap = swapAt(stops);
   // First Glasgow livery between these fractions of the olm->glasgow and glasgow->tribal segments
   const [SCOT_IN, SCOT_OUT] = scotRange(stops);
@@ -71,6 +75,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const WIN_L = '#2b2621', RG = '#27394b', RB = '#c9ccd1'; // Glasgow Uni windows, Riverside glass + band
   const world = buildMeshes(list, { glow: [P.lit, '#ffd86b', '#fff7c2', P.arch, WIN_L, RG, RB], glowK: { [P.arch]: 1.1, [WIN_L]: 1.0, [RG]: 0.55, [RB]: 0.2 } });
   world.traverse((o) => { const h = o.material?.color?.getHexString(); if (o.material?.userData.glow) { if (h === WIN_L.slice(1)) o.material.userData.glowColor = new THREE.Color('#ffb04a'); if (h === RG.slice(1)) o.material.userData.glowColor = new THREE.Color('#d8e86a'); if (h === RB.slice(1)) o.material.userData.glowColor = new THREE.Color('#bcd4ff'); } });
+  polishLandmarkMaterials(world,stops,pts);
   const motion = buildMotion(); scene.add(motion.group);
   scene.add(world, eye, details, plane, bus, ...rotors);
   const units = [createAmbient(scene, { curve, pts, stops })];
@@ -152,6 +157,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const shot = blendShots(shotFor(ka, busPos, { mobile, lift }), shotFor(kb, busPos, { mobile, lift }), s - i, ka === kb ? 0 : ARC);
     camera.position.fromArray(shot.position);
     camera.lookAt(shot.target[0], shot.target[1], shot.target[2]);
+    architecture.userData.update?.(camera);
     // snap the shadow centre to whole shadow texels in light space, so shadow edges don't shimmer while moving
     const a = Math.round(bp.dot(LU) / TEXEL) * TEXEL, b = Math.round(bp.dot(LV) / TEXEL) * TEXEL;
     sun.target.position.copy(LU).multiplyScalar(a).addScaledVector(LV, b).addScaledVector(LD, bp.dot(LD));
@@ -170,6 +176,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     rain.update(clock, busPos, mood.rain * (1 - 0.5 * night));
     updateBeams(night); pools.update(night);
     water.update(clock, night);
+    world.userData.updateLandmarkNight?.(night);
     if (dt > 0 && post.tier === 'high') {
       fpsT += dt; fpsN++;
       if (fpsT >= 2) { post.setTier(nextTier(post.tier, [fpsN / fpsT])); fpsT = fpsN = 0; }
@@ -194,6 +201,12 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       removeEventListener('resize', resize);
       document.removeEventListener('visibilitychange', visibility);
       observer?.disconnect();
+      architecture.userData.dispose?.();
+      heroRealm?.userData.dispose();
+      trees?.userData.dispose?.();
+      for (const name of ['wembley', 'bigben', 'masp']) details.getObjectByName(name + '-geometry')?.userData.dispose();
+      details.getObjectByName('hero-background')?.userData.dispose();
+      details.getObjectByName('paulista-architecture')?.userData.dispose();
       renderer.dispose();
     },
   };

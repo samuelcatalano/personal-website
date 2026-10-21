@@ -5,7 +5,7 @@ result = js(r'''(async () => {
   const { buildRealCity } = await import('./js/world/real-city.js?pilot='+Date.now());
   const { buildCity } = await import('./js/world/city.js?pilot-street='+Date.now());
   const { stops } = await import('./js/content.js');
-  const { routePoints, routeCurve, towerX } = await import('./js/world/layout.js');
+  const { routePoints, routeCurve, towerX, isWembleyBenchmark } = await import('./js/world/layout.js');
   const check = (ok, message) => { if (!ok) throw Error(message); };
   const assertPilotStreetSeparatesRoadwayFromContinuousPedestrianPaths = (additions, plots, curve, safeStart, safeEnd, bridgeX) => {
     const minX = Math.min(...plots.map(p => p.x - p.width / 2)), maxX = Math.max(...plots.map(p => p.x + p.width / 2));
@@ -55,8 +55,8 @@ result = js(r'''(async () => {
     check(Math.abs(c.x-p.x)<1e-5 && Math.abs(c.z-p.z)<1e-5 && Math.abs(b.min.y)<1e-5, 'model origin/grounding incorrect '+p.id);
     check(Math.abs(Math.max(s.x/p.width,s.y/p.height,s.z/p.depth)-1)<1e-5, 'model does not fill its limiting dimension');
   };
-  const pts = routePoints(stops.length), plots = [], street = [], curve = routeCurve(T,pts);
-  buildCity((...box) => street.push(box), stops, pts, curve, undefined, p => plots.push(p));
+  const pts = routePoints(stops.length), plots = [], architecturePlots = [], street = [], curve = routeCurve(T,pts);
+  buildCity((...box) => street.push(box), stops, pts, curve, undefined, p => plots.push(p), p => architecturePlots.push(p));
   const bridgeX = towerX(stops, pts), safeStart = pts[stops.findIndex(s => s.id === 'olm')].x + 12, safeEnd = bridgeX - 20;
   const streetDetails = assertPilotStreetSeparatesRoadwayFromContinuousPedestrianPaths(street, plots, curve, safeStart, safeEnd, bridgeX);
   const glbRequestsBefore = performance.getEntriesByType('resource').filter(e => /\.glb(?:$|[?#])/i.test(e.name)).length;
@@ -64,24 +64,33 @@ result = js(r'''(async () => {
   console.error = (...args) => { errors.push(args.map(String).join(' ')); originalConsoleError(...args); };
   addEventListener('error', onError);
   try {
-    const city = await buildRealCity(plots);
-    check(city.children.length === 3, 'expected three pilot buildings');
+    const city = await buildRealCity(architecturePlots,{rollout:false});
+    const benchmarkPlots = architecturePlots.filter(isWembleyBenchmark);
+    check(city.userData.buildingCount === architecturePlots.length && architecturePlots.length >= 480, `expected the citywide architecture plots: ${city.userData.buildingCount}/${architecturePlots.length}`);
+    check(city.userData.benchmarkCount === benchmarkPlots.length && benchmarkPlots.length > 20, 'Wembley benchmark must be isolated to existing lots');
+    check(['terrace','midrise','office'].every(k => city.userData.benchmarkKinds.includes(k)), 'Wembley benchmark needs three visible architecture archetypes');
     check(city.name === 'real-city-pilot', 'scene integration name changed');
-    check(city.children.map(g=>g.userData.kind).sort().join(',') === 'midrise,office,terrace', 'expected the three existing pilot plot kinds');
-    city.children.forEach((g,i) => {
-      fits(g,plots[i]);
-      check(meshes(g).some(m=>m.isInstancedMesh && m.count>0), 'facade details must use instanced geometry');
-    });
-    const repeated = await buildRealCity([...plots, ...plots]);
-    check(repeated.children.length === 5, 'pilot must cap output at five buildings');
-    check(repeated.children[0].children.some(m=>m.isInstancedMesh), 'first building lost its facade instances');
-    const original = meshes(city.children[0]), repeat = meshes(repeated.children[0]);
-    check(original.length && original.length===repeat.length && original.every((m,i) => m.geometry===repeat[i].geometry && m.material===repeat[i].material), 'procedural buildings must share geometry and materials');
-    check(meshes(city.children[0]).every(m=>m.geometry===meshes(city.children[1])[0].geometry), 'box geometry is not shared across plot kinds');
+    check(city.userData.kinds.sort().join(',') === 'midrise,office,shop,terrace', 'expected the city architecture kinds');
+    const slice = city.getObjectByName('townhouse-benchmark-chunk');
+    check(slice?.userData.plotIds.join(',') === 'block-827--54-0,block-827--54-1,block-827--54-2' && meshes(slice).length === 3 && city.userData.sliceCount === 3, 'only the three selected lots may share the three chunk renderables');
+    const batches = city.children.filter(m=>m!==slice&&m.name!=='townhouse-experiment'&&!['midrise-slice','office-slice','tower-slice','hero-zone-architecture','shop-slice','shop-integration'].includes(m.userData.archetype));
+    check(city.children.length <= 24 + (city.getObjectByName('hero-shopfronts') ? 1 : 0) + (city.getObjectByName('hero-final-frontages') ? 1 : 0) + (city.getObjectByName('hero-background-cleanup') ? 1 : 0) + (city.getObjectByName('hero-adjacent-region') ? 1 : 0) && batches.every(m=>m.isInstancedMesh || m.material.name === 'benchmark-facade-family'), 'city buildings must remain batched within the added draw-call budget');
+    batches.forEach(m => check(m.isInstancedMesh ? m.count > 0 : m.geometry.getAttribute('color'), 'empty architecture batch'));
+    let duplicateRejected=false;try{await buildRealCity([...architecturePlots,...architecturePlots],{rollout:false});}catch(e){duplicateRejected=e instanceof TypeError;}check(duplicateRejected,'duplicate benchmark lots must be rejected');
+    const original = meshes(city).filter(m=>m.parent!==slice&&!m.parent.name.startsWith('townhouse-chunk-')&&!['midrise-slice','office-slice','tower-slice','hero-zone-architecture','shop-slice','shop-integration'].includes(m.parent.userData.archetype));
+    check(original.length && original.filter(m => !m.isInstancedMesh).length === 1 && original.filter(m => !m.isInstancedMesh)[0].material.name === 'benchmark-facade-family', 'benchmark bodies must share one baked facade mesh');
+    check(new Set(original.map(m=>m.geometry)).size > 1 && new Set(original.map(m=>m.geometry)).size <= 6, 'Wembley must add only shared archetype geometries');
+    check(new Set(original.map(m=>`${m.geometry.uuid}:${m.material.uuid}`)).size === original.length, 'city does not batch by shared geometry/material');
+    const benchmarkBodies = original.filter(m => m.material.name === 'benchmark-facade-family');
+    check(benchmarkBodies.length === 1 && benchmarkBodies[0].material.vertexColors && benchmarkBodies[0].geometry.getAttribute('color') && benchmarkBodies[0].castShadow && benchmarkBodies[0].receiveShadow, 'benchmark facades must share colored geometry and cast shadows');
+    check(!original.some(m => m.material.name === 'benchmark-architectural-details'), 'benchmark details must not add a separate draw batch');
+    const colorAttr = benchmarkBodies[0].geometry.getAttribute('color');
+    const hasColor = hex => { const target = new T.Color(hex); for (let i=0;i<colorAttr.count;i++) if (Math.abs(colorAttr.getX(i)-target.r)<1e-5 && Math.abs(colorAttr.getY(i)-target.g)<1e-5 && Math.abs(colorAttr.getZ(i)-target.b)<1e-5) return true; return false; };
+    check(['#78aebf','#e5d8bd','#493d34'].every(hasColor), 'window, frame and door colors must be baked into the facade mesh');
     const assets = performance.getEntriesByType('resource').filter(e => /\.glb(?:$|[?#])/i.test(e.name));
     check(assets.length === glbRequestsBefore, 'procedural integration issued GLB requests: '+assets.slice(glbRequestsBefore).map(e=>e.name).join(', '));
     check(errors.length===0, 'uncaught browser errors: '+errors.join(', '));
-    return {pass:true, name:'procedural pilot buildings fit their plots and share instanced resources', street:streetDetails, plots:plots.length, kinds:city.children.map(g=>g.userData.kind), sharedMeshes:original.length, glbRequests:assets.length-glbRequestsBefore, errors};
+    return {pass:true, name:'procedural pilot buildings fit their plots and share instanced resources', street:streetDetails, plots:architecturePlots.length, kinds:city.userData.kinds, sharedMeshes:original.length, glbRequests:assets.length-glbRequestsBefore, errors};
   } finally {
     console.error = originalConsoleError;
     removeEventListener('error', onError);

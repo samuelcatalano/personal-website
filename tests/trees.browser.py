@@ -6,6 +6,7 @@ print(js(r'''(async () => {
   const { buildLandmarks } = await import('./js/world/landmarks.js');
   const { PALETTE: P } = await import('./js/world/palette.js');
   const { routePoints, routeCurve } = await import('./js/world/layout.js');
+  const { isWembleyBenchmark } = await import('./js/world/layout.js');
   const { stops } = await import('./js/content.js');
   const { walkPaths } = await import('./js/world/crowd.js');
   const pts = routePoints(stops.length), placements = [], boxes = [];
@@ -15,17 +16,20 @@ print(js(r'''(async () => {
   buildLandmarks(add, stops, pts, collect);
   let expected = 0;
   const countTrunk = (...b) => { if (b[6] === P.trunk) expected++; };
-  buildCity(countTrunk, stops, pts, routeCurve(T,pts)); buildLandmarks(countTrunk, stops, pts);
+  const countTree = () => expected++;
+  buildCity(countTrunk, stops, pts, routeCurve(T,pts), countTree); buildLandmarks(countTrunk, stops, pts, countTree);
   const mesh = await createTrees(placements), check = (ok, msg) => { if (!ok) throw Error(msg); };
-  check(mesh.isInstancedMesh && mesh.count === placements.length && mesh.count === expected, 'all trees must share one instanced mesh');
+  const billboards = mesh.children.find(o => o.name === 'trees-billboards');
+  const newTrees = placements.filter(p => isWembleyBenchmark({x:p.x,z:p.z,width:p.crown*2,depth:p.crown*2}));
+  check(mesh.isGroup && mesh.children.length === 2 && billboards.count === placements.length && billboards.count === expected, 'all broadleaf trees stay in one shared batch plus one understory batch');
   check(!boxes.some(b => b[6] === P.trunk), 'voxel trees remain');
-  check(mesh.castShadow && mesh.receiveShadow && mesh.customDepthMaterial.alphaTest === mesh.material.alphaTest, 'foliage shadow must use alpha');
+  check(billboards.castShadow && billboards.receiveShadow && billboards.customDepthMaterial.alphaTest === billboards.material.alphaTest, 'foliage shadows must remain enabled');
   const camera = new T.PerspectiveCamera(), m = new T.Matrix4(), p = new T.Vector3(), q = new T.Quaternion(), scale = new T.Vector3();
-  const heights = new Set(), rects = mesh.geometry.getAttribute('aRect'), variants = new Set();
+  const heights = new Set(), rects = billboards.geometry.getAttribute('aRect'), variants = new Set();
   for (const x of [-260,435,800]) {
     camera.position.set(x,35,35); mesh.userData.update(camera);
     placements.forEach((original,i) => {
-      mesh.getMatrixAt(i,m); m.decompose(p,q,scale);
+      billboards.getMatrixAt(i,m); m.decompose(p,q,scale);
       check(Math.abs(p.x-original.x)<1e-4 && Math.abs(p.z-original.z)<1e-4, 'tree position changed');
       check(scale.x <= original.crown + 1e-5, 'crown grows into paths');
       check(p.y+scale.y <= Math.min((original.base ?? .1)+4.4, original.h+1.2+(original.base ?? .1)), 'tree grows above landmark clearance');
@@ -37,7 +41,7 @@ print(js(r'''(async () => {
       check(facing.dot(target)>.9999, 'tree does not face camera');
     });
   }
-  check(heights.size>20 && variants.size===2, 'rounded trees need varied heights');
+  check(heights.size>3 && variants.size===2 && newTrees.length>=3, 'broadleaf tree sprites need varied heights and atlas variants');
   let samples = 0;
   for (const path of walkPaths(stops,pts).filter(p => p.type !== 'lane')) {
     const {x0,x1,z0,z1}=path.rect;
@@ -53,8 +57,8 @@ print(js(r'''(async () => {
       for(let z=z0+inset;z<z1-inset;z+=.4) {probe(x0+inset,z);probe(x1-inset,z);}
     }
   }
-  const texture=mesh.material.map;
+  const texture=billboards.material.map;
   check(texture.image.width===1254 && texture.image.height===1254, 'atlas layout changed; update UV rectangles');
-  mesh.geometry.dispose(); mesh.customDepthMaterial.dispose(); mesh.material.dispose(); texture.dispose();
-  return {pass:true, trees:placements.length, roundedVariants:variants.size, heights:heights.size, drawBatches:1, pathSamples:samples};
+  mesh.traverse(o=>{if(o.isMesh)o.geometry.dispose(); if(o.customDepthMaterial)o.customDepthMaterial.dispose(); o.material?.dispose();}); texture.dispose();
+  return {pass:true, trees:placements.length, benchmarkTrees:newTrees.length, atlasVariants:variants.size, heights:heights.size, drawBatches:mesh.children.length, pathSamples:samples};
 })()'''))

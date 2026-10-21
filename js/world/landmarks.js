@@ -2,12 +2,15 @@ import * as THREE from 'three';
 import { createBoxes, buildMeshes } from './voxel.js';
 import { LANDMARKS, stopIndex, RIVER_Z, towerX, glasgowSites } from './layout.js';
 import { PALETTE as P } from './palette.js';
+import { createWembley, createBigBen, createMasp } from './landmark-geometry.js';
 import { buildSaoPaulo } from './saopaulo.js';
+import { createHeroBackground } from './hero-background.js';
+import { createCityRollout } from './city-rollout.js';
 import { buildGlasgow } from './glasgow.js';
 import { buildRiverside } from './riverside.js';
 import { buildUniversity } from './university.js';
 import { flag } from './flags.js';
-const STONE = P.sand, SLATE = P.slate, WHITE = P.white, GOLD = P.gilt, STEEL = P.steel;
+const STONE = P.sand, WHITE = P.white, GOLD = P.gilt, STEEL = P.steel;
 const m = new THREE.Matrix4(), p = new THREE.Vector3(), q = new THREE.Quaternion(), s = new THREE.Vector3(1, 1, 1), UP = new THREE.Vector3(0, 1, 0);
 const PI = Math.PI, at = (stops, pts, key) => pts[stopIndex(stops, LANDMARKS[key])];
 function clockFaces(x, z) {
@@ -41,35 +44,6 @@ function clockFaces(x, z) {
   mesh.userData = { faceCount: 4 };
   const group = new THREE.Group(); group.name = 'bigben-details'; group.add(mesh);
   return group;
-}
-function bigBen(add, { x }) {
-  const z = RIVER_Z - 16;
-  add(x, 0, z, 5, 18, 5, STONE);
-  add(x, 18, z, 6, 6, 6, STONE);
-  for (const [dx, dz] of [[3.02, 0], [-3.02, 0], [0, 3.02], [0, -3.02]]) add(x + dx, 19, z + dz, dx ? 0.05 : 4, 4, dz ? 0.05 : 4, WHITE);
-  add(x, 24, z, 5, 2, 5, SLATE);
-  add(x, 26, z, 3.5, 2, 3.5, SLATE);
-  add(x, 28, z, 2, 3, 2, SLATE);
-  add(x, 31, z, 0.5, 3, 0.5, GOLD);
-  for (const side of [-1, 1]) {
-    add(x + side * 2.55, 18, z, 0.18, 5.96, 0.18, GOLD);
-    add(x, 18, z + side * 2.55, 0.18, 5.96, 0.18, GOLD);
-    for (const dx of [-2.25, 2.25]) add(x + dx, 1, z + side * 2.54, 0.28, 16, 0.28, SLATE);
-    for (const dz of [-2.25, 2.25]) add(x + side * 2.54, 1, z + dz, 0.28, 16, 0.28, SLATE);
-    for (const y of [4, 9, 14]) {
-      add(x + side * 2.54, y, z, 0.12, 1.4, 0.45, SLATE);
-      add(x, y, z + side * 2.54, 0.45, 1.4, 0.12, SLATE);
-    }
-  }
-  for (const y of [24.5, 25.3, 26.1]) {
-    for (const side of [-1, 1]) {
-      add(x + side * 2.02, y, z, 0.12, 0.22, 1.4, SLATE);
-      add(x, y, z + side * 2.02, 1.4, 0.22, 0.12, SLATE);
-    }
-  }
-  for (const y of [17.5, 22.5, 24]) add(x, y, z, 6.2, 0.35, 6.2, GOLD);
-  add(x + 20, 0, z, 34, 10, 8, P.sandd); // Parliament: x+3..x+37
-  return clockFaces(x, z);
 }
 function towerBridge(add, { x }) {
   const box = (along, y, across, length, height, width, color) =>
@@ -110,18 +84,6 @@ function towerBridge(add, { x }) {
   cables.castShadow = true;
   const details = new THREE.Group(); details.name = 'towerbridge-details'; details.add(cables);
   return details;
-}
-function wembley(add, { x }) {
-  const cz = RIVER_Z - 26;
-  for (let a = 0; a < 360; a += 15) {
-    const r = (a * PI) / 180;
-    add(x + Math.cos(r) * 16, 0, cz + Math.sin(r) * 11, 5, 9, 5, P.cream);
-  }
-  add(x, 0, cz, 22, 0.5, 14, P.patch);
-  for (let a = 0; a <= 180; a += 6) {
-    const r = (a * PI) / 180;
-    add(x + Math.cos(r) * 20, Math.sin(r) * 34, cz, 1.4, 1.4, 1.4, P.arch);
-  }
 }
 function heathrow(add, { x }) {
   const rz = RIVER_Z + 20.5, tz = RIVER_Z + 15.5;
@@ -174,16 +136,22 @@ function plane() {
 export function buildLandmarks(add, stops, pts, onTree) {
   heathrow(add, at(stops, pts, 'heathrow'));
   const details = new THREE.Group(); details.name = 'landmark-details';
-  details.add(bigBen(add, at(stops, pts, 'bigben')));
+  const ben = at(stops, pts, 'bigben');
+  details.add(createBigBen(ben.x, RIVER_Z - 16), clockFaces(ben.x, RIVER_Z - 16));
   details.add(towerBridge(add, { x: towerX(stops, pts) }));
-  wembley(add, at(stops, pts, 'wembley'));
+  details.add(createWembley(at(stops, pts, 'wembley').x, RIVER_Z - 26));
   buildGlasgow(add, at(stops, pts, 'glasgow'), onTree);
   const { museum, uni } = glasgowSites(stops, pts), hill = (dx, w, d, y, h, c) => add(uni.x + dx, y, uni.z, w, h, d, c);
   buildRiverside(add, museum);
   hill(0, uni.w + 12, 24, 0, 1.2, P.steel); hill(0, uni.w + 6, 20, 1.2, 1.3, P.skyBlue); // blue-grey paved plaza the university stands on
   buildUniversity((x, y, z, w, h, d, c) => add(x, y + uni.lift, z, w, h, d, c), uni);
   flag(add, uni.x, 34.7 + uni.lift, uni.z + 3, 'saltire', 1.1); // finial top
-  buildSaoPaulo(add, stops, pts);
+  const backgroundPlots = [];
+  buildSaoPaulo(add, stops, pts, plot => backgroundPlots.push(plot), true, site => details.add(createMasp(site.x, RIVER_Z - 18)));
+  const control = backgroundPlots.filter(p => p.id.startsWith('paulista-hero-'));
+  if (control.length) details.add(createHeroBackground(control));
+  const generic = backgroundPlots.filter(p => !p.id.startsWith('paulista-hero-'));
+  if (generic.length) { const group=createCityRollout(generic);group.name='paulista-architecture';details.add(group); }
   const i = stopIndex(stops, LANDMARKS.heathrow);
   return {
     eye: londonEye(at(stops, pts, 'eye').x),

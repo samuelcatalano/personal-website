@@ -8,7 +8,7 @@ The recorded REA of bridglabs.com described a Vite + React 19 shell, a lazy Thre
 
 - Static HTML, CSS and native ES modules; no build step or npm.
 - Three.js `0.169.0` is pinned in the import map in `index.html`, loaded from jsDelivr only when WebGL is available.
-- Inter is loaded from Google Fonts. Voxel year signs and the Big Ben clock faces are drawn to canvas textures.
+- Inter is loaded from Google Fonts. Company plaques and Big Ben clock faces use canvas textures; roadside year/section signs were removed. Current visual state and final technical gate: [3D city architecture](architecture/3d-city.md).
 - GitHub Pages serves the repository root. Site links and assets use relative paths.
 - User-facing copy and journey stop data live in `js/content.js` in English and Portuguese.
 
@@ -27,7 +27,7 @@ js/world/camera.js         shot definitions, eased shot blending, spring, approa
 js/world/voxel.js          group box data into InstancedMesh batches by material/color
 js/world/city.js           road, paving, Thames banks, street furniture, houses/trees and generation orchestration
 js/world/blocks.js         procedural city blocks, skyline and protected building regions
-js/world/real-city.js      local CC0 GLB building pilot with shared model resources and per-plot fallback
+js/world/real-city.js      data-driven procedural city buildings, batched by shared geometry/material
 js/world/backdrop.js       deterministic distant neighborhoods, hills and extended ground behind all landmarks
 js/world/parks.js          park and plaza geometry, landscaping and sign-clearance rules
 js/world/landmarks.js      London landmarks, Heathrow plane, Glasgow and São Paulo builder orchestration
@@ -53,7 +53,7 @@ tests/*.browser.py         browser checks for scene, landmarks, vehicles, people
 
 `main.js` sets the scroll track to `stops.length * 100vh`, paints the panel immediately, probes `webgl2`, then dynamically imports `world/scene.js`. A failed probe or world import adds `no-webgl`; the canvas is hidden and the CSS gradient remains behind the usable HTML panel. The fallback does not draw a static skyline.
 
-`scene.js` builds a Catmull–Rom route from one world point per stop, then assembles city, landmarks, vehicles, people, water, signs, sky and a closing figure. `voxel.js` groups generated box records by color/material into instanced meshes; landmarks may also add purpose-built meshes and sprites. There is no declared draw-call or instance-count target in the implementation.
+`scene.js` builds a Catmull–Rom route from one world point per stop and assembles the city, landmarks, vehicles, people, water, plaques, sky and closing figure. Existing lot descriptors remain source of truth. The approved five archetypes use deterministic recipes, shared atlas/materials and chunk-local mass/trim/glass merging; compatible citywide rollout is complete. Supported townhouse geometry uses cached LOD0/1 and AABB hysteresis. Standard culling remains per pass. See [current architecture](architecture/3d-city.md) and [final observed budgets](architecture/rendering-budget.md) for counts, controls, preserved lots and release status; the old16-batch pilot is no longer the production path. Landmark modernization is dedicated geometry sharing existing surfaces; map topology, route and approved lot envelopes remain preserved.
 
 The rear infill street stays behind z=-100 and clears the university, museum backdrop and countryside hills. `backdrop.js` adds six denser staggered neighborhood rows behind z=-110, with simpler muted blocks farther away, green transitions around the countryside, and ground extending beyond the fog horizon. Its separate instanced group casts no shadows; tests cap it below 2,500 boxes. Fog fades from 240 to 900 m by day and 180 to 680 m by night, scaled by the regional mood. New raised scenery stays behind the backmost landmark footprint or entirely west of all route cameras and landmark footprints. The latter fills the starting-side neighborhood and a small corner shop without intersecting any landmark sightline. Urban paving fills the distant blocks while countryside bands remain green; paving tiles meet without coplanar overlap.
 
@@ -69,7 +69,9 @@ Glasgow follows the London OLM stop and precedes Tribal. `LANDMARKS.glasgow` anc
 
 The camera continues to use the same section shots and smooth blend at the new stop. Glasgow has no special `FRAME_LIFT`, so it uses the normal follow framing. Geometry joins the existing color batches where possible; adding a stop does not add a new render pass. Keep the landmark modest and preserve instancing/clearance checks so route growth does not needlessly increase draw calls or crowd the camera. The current FPS tier mechanism can drop desktop postprocessing quality if measured performance falls below its threshold.
 
-The realistic-city pilot replaces at most three generic buildings in one London block with local CC0 Kenney GLBs (`terrace`, `midrise`, `office`), uniformly fitted to their reserved footprints and sharing cached geometry/materials. A failed or invalid asset falls back to a small procedural facade for that plot. Pilot-only curbs, lane markings, crossings and shallow paving insets end before Tower Bridge and keep the existing vehicle and pedestrian corridors clear. Other buildings, landmarks, the bus, people and the route retain their existing renderers; do not extend the pilot to other blocks until its visible result is reviewed. Ambient traffic maps elapsed time through refined route-distance marks so speed stays consistent across short and long segments.
+`building-kit.js` integrates the approved archetype builders, exact controls and compatible citywide chunks. Deterministic vertex data provides variation without per-building materials. Legacy renderer paths remain for genuine special lots and baseline tests; they are not disposable benchmark instrumentation. There are no new external assets. Existing road/path clearances remain; ambient traffic maps elapsed time through refined route-distance marks so speed stays consistent across short and long segments.
+
+This is an architectural foundation and citywide building migration, not the finished image-reference makeover. Roads/asphalt and sidewalks, plaza surfacing, landmarks, bridge/water, vehicles, and the old box-based streetscape still need dedicated visual phases. Keep the existing route and protected landmark fronts unchanged while those phases are implemented; verify their appearance in the browser after each one. The bus and people intentionally remain stylized.
 
 ## Motion and accessibility behavior
 
@@ -82,7 +84,7 @@ The realistic-city pilot replaces at most three generic buildings in one London 
 
 - `node --test tests/` checks localized content integrity, route and camera math, palette, landmark geometry, pedestrian plans, park clearance and Glasgow footprint clearance.
 - `tests/*.browser.py` exercise real WebGL rendering and browser behavior, including fallback, world assembly, camera, vehicles, people and visual regressions.
-- `tests/real-city.browser.py` checks the three local models, per-plot fallback, sidewalk details, path continuity and Tower Bridge clearance; `tests/vehicles.browser.py` checks consistent distance-mapped traffic speed.
+- `tests/building-kit.browser.py` checks five procedural archetypes, lot bounds and instancing; `tests/real-city.browser.py` checks ordinary plot integration, shared batches, road/path continuity and Tower Bridge clearance; `tests/citywide.browser.py` covers the production rollout and controls; `tests/vehicles.browser.py` checks consistent distance-mapped traffic speed.
 - The manual verification matrix is in `CLAUDE.md`: desktop and 375px mobile, day/night, EN/PT, WebGL disabled, reduced motion, no console errors and Lighthouse accessibility at least 95.
 
 ## Privacy
@@ -91,4 +93,4 @@ The contact UI exposes email, LinkedIn and GitHub only. Do not publish a home ad
 
 Public-space pedestrians reuse the existing sprite atlas and bidirectional rectangular walks: 600 original pedestrians plus 400 spread over 17 additional corridors at Sé, MASP, the Thames, George Square and Wembley. Per-person insets, starting positions and speeds vary; raised paving sets the foot height. Population stays the same day and night; reduced motion pauses walking.
 
-All 160 city, park, countryside and George Square trees use only the two rounded variants in `assets/trees/park-atlas.png`; the pine variants are unused. `trees.js` renders one instanced batch with a lit alpha-tested material and matching shadow material. An optional tree callback lets city and landmark builders preserve positions and RNG streams while collecting tree placements. Deterministic height variation stays below the old heights (also capped at 4.4 m including padding); crown width never exceeds the original footprint. If the image cannot load, scene assembly restores voxel trees.
+All 163 city, park, countryside and George Square trees use only the two rounded variants in `assets/trees/park-atlas.png`; the pine variants are unused. `trees.js` renders the rounded trees in one instanced batch with a lit alpha-tested material/matching shadow material, plus one low-understory batch (110 instances in the final art inventory). An optional tree callback lets city and landmark builders preserve positions and RNG streams while collecting tree placements. Deterministic height variation stays below the old heights (also capped at 4.4 m including padding); crown width never exceeds the original footprint. If the image cannot load, scene assembly restores voxel trees.

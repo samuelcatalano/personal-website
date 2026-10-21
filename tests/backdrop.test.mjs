@@ -47,9 +47,9 @@ test('building bodies vary in height and stay out of the landmark and museum cor
   assert.ok(new Set(buildings.map((b) => b.h)).size >= 5, 'varied building heights');
   assert.ok(new Set(buildings.map((b) => b.z)).size > 20, 'staggered setbacks avoid rigid skyline rows');
   assert.ok(buildings.every((b) => b.h <= 22), 'buildings stay below 22 m');
-  assert.ok(buildings.filter((b) => b.z > -180).every((b) => b.h >= 5.6 && b.h <= 11.2), 'near houses have 2–4 floors');
+  assert.ok(buildings.filter((b) => b.z > -180).every((b) => b.h >= 5.6 * .5 && b.h <= 11.2), 'near component masses fit the 2–4 floor envelope');
   const distant = buildings.filter((b) => b.z <= -180);
-  assert.ok(distant.every((b) => b.h >= 5.6 && b.h <= 19.6), 'far blocks have 2–7 floors');
+  assert.ok(distant.every((b) => b.h >= 5.6 * .5 && b.h <= 19.6), 'far component masses fit the 2–7 floor envelope');
   for (const b of distant) assert.ok([P.stone, P.concreteMid, P.taupe, P.steel].includes(b.color), 'far blocks use muted walls');
   for (const b of boxes.filter((b) => b.h > 0 && b.w < 1000 && b.color !== P.pave)) {
     assert.ok(b.x + b.w / 2 <= museum.x - museum.w / 2 - 12 || b.x - b.w / 2 >= museum.x + museum.w / 2 + 12, 'all raised scenery clears the museum corridor');

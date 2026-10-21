@@ -1,0 +1,136 @@
+# Rendering budget
+
+Current measurement record frozen2026-10-21. Final visual approval is recorded in [architecture](3d-city.md); technical release remains blocked by the coplanar-face regression. The final milestone below supersedes earlier operational references; dated measurements remain evidence, **not global performance guarantees**. Follow AGENTS.md validation levels.
+
+## Shared resources and scaling
+
+- Townhouse family: **2 shared materials**, **4 shared maps**, approximately **4.33 MiB** of texture payload including mipmaps. Reuse the same resources across buildings/chunks; variation does not add materials/maps.
+- Per spatial chunk: maximum **3 active architecture renderables**: mass, trim, glass.
+- Render cost should grow primarily with **visible chunks / geometry**, not individual building count. Triangles still grow with modeled geometry; batching does not make extra houses free.
+- Reuse geometry/materials, merge compatible static geometry locally, retain spatial culling, and avoid per-window meshes/draw calls or per-building dynamic lights.
+- LOD1 must significantly reduce geometry while retaining silhouette, roof, facade rhythm, doors/windows, glass and material identity. The nine-house benchmark required >=40% reduction.
+
+## Approved evidence
+
+| Benchmark | Active renderables | Materials/maps | Submissions |
+|---|---:|---:|---|
+| 3 houses / 1 chunk | 3 | 2 / 4 | Same as single polished slice: 8 desktop high, 3 mobile medium |
+| 9 houses / 2 new chunks | 6 | 2 / 4 | Up to16 desktop high; 6 mobile medium with both chunks visible |
+
+Nine-house geometry: **LOD0 6,572 triangles**, **LOD1 3,226**, **50.91% reduction**, no new lights. Twelve cached geometries (two levels × three buckets × two chunks), six active meshes. Original three-house control remains separate and shares the materials/maps.
+
+Measured desktop high submissions attributable to the nine lots:
+
+| Camera sees | Color | Normal/GTAO | Shadow/frame |
+|---|---:|---:|---:|
+| A+B | 6 | 6 | 4 |
+| A only | 3 | 3 | 4 |
+| B only | 3 | 3 | 4 |
+| Neither | 0 | 0 | 4 |
+
+Shadow rendering retained two mass submissions per pertinent execution, up to four/frame in the observed high pipeline. Off-camera casters can remain relevant to the light. Mobile medium measured six color submissions, no normal/GTAO or shadow submissions. Counts depend on tier, frustum and pipeline executions; do not assume a universal multiplier.
+
+## Local benchmark ceilings
+
+For the nine new houses only: LOD0 <=6,700 triangles; LOD1 <=3,500 and >=40% reduction; resident geometry payload <=1.5 MiB CPU and <=1.5 MiB GPU; transient construction CPU <=6 MiB; zero additional materials, maps, lights or shadow maps.
+
+Observed resident attribute payload: **1,410,912 bytes (1.346 MiB)** for both LODs. Observed construction peak after scratch reuse: **4.75 MiB** incremental heap plus backing storage at CDP checkpoints. This is sampled construction memory, not continuous allocation tracing or whole-process RSS. GPU payload is calculated buffer data, not measured physical VRAM. The experiment's guarded scratch capacity is 4096 vertices/bucket; revisit only if new recipes are authorized.
+
+## Measurement contract when a milestone needs comparison
+
+A = approved baseline; B = explicitly scoped change. Same shot/camera, scene seed, theme, resolution, DPR and tier; never count adaptive tier downgrade as a gain.
+
+- Desktop: 1440×900, DPR1.5, high; mobile emulated: 375×812, DPR1, medium.
+- Day/night; warmup2s, sample10s, three repeats per scenario. Report median, p95 and run variation; preserve outliers.
+- Approved local p95 regression ceilings: +1ms desktop, +2ms emulated mobile. They are comparison limits, not global FPS guarantees.
+- Measure initialization/prewarm separately. For LOD changes, record a moving trajectory across both hysteresis thresholds, actual swaps, intervals, culling passes and geometry identity.
+
+Final nine-house series met all paired p95 limits: maximum +0.1ms desktop, +0.2ms emulated mobile. Initial contact outliers were retained, followed by an explicit confirming series (maximum +0.3ms). Do not erase unfavorable runs or confuse off-camera shots with all-chunks-visible measurement.
+
+Detailed raw evidence remains in the local artifact folder named townhouse-nine-benchmark-2026-10-20; its RESULTADO.md documents captures, source snapshots, instrumentation, construction and limitations. That machine-local artifact is supporting evidence, not a runtime dependency or prerequisite for reading these rules.
+
+## Compatible citywide milestone — 2026-10-21
+
+New ordinary architecture:113 cells,339 active mesh objects,393,088 LOD0 triangles; cached LOD payload72.89MiB. Six decorative Paulista envelopes add4 cells,12 meshes,14,896 triangles and2.05MiB. Combined new groups:117 cells,351 renderables,407,984 LOD0 triangles, approximately74.93MiB resident attribute payload. GPU payload depends on which cached levels have been uploaded; these are calculated buffers, not physical VRAM measurements. Texture payload stays shared at4.33MiB,2 materials/4 maps, zero new lights.
+
+Milestone tests:99 Node tests plus16 architecture browser suites/contracts. One measurement per desktop/mobile day/night scenario:2s warmup,10s sample, same normal hero shot, fixed high/medium tiers and existing1440×900 DPR1.5 /375×812 DPR1 settings. Chrome headless, ANGLE Metal Apple M3 Max; emulated mobile is not physical mobile hardware.
+
+| Scenario | Median ms | p95 ms | Full-pipeline calls | Submitted triangles/frame |
+|---|---:|---:|---:|---:|
+| Desktop high day |9.3|16.0|501–544|1,008,297–1,009,869|
+| Desktop high night |9.6|13.2|542–593|1,007,847–1,009,459|
+| Mobile medium day |8.3|10.1|182–192|265,520–265,904|
+| Mobile medium night |8.3|12.2|243–259|265,838–266,238|
+
+Whole-scene resident objects:845 renderables,156 unique materials,25 referenced textures (includes landmarks, vehicles, public realm, particles and post-independent scene content). Do not confuse these counts with the new architecture's2 materials/4 maps, or submitted multi-pass triangles with unique LOD0 triangles.
+
+Baseline median16.6–16.7ms / p9517.5–17.7ms, zero console errors; final also zero errors. Browser scheduling cadence changed from approximately60Hz to approximately120Hz between series despite the same host/GPU/settings: report the raw samples, do not claim a measured2× rendering speedup or a calibrated paired p95 improvement. Counts show higher submissions but lower submitted geometry. Local performance GO reflects the observed final workload, not a guarantee on other hardware.
+
+Raw measurements, coverage, preservation audit and six captures are in the local `citywide-rollout-2026-10-21` artifact folder. No repeated A/B series, Lighthouse or additional polish was performed.
+
+## Diversity/completion measurement — 2026-10-21
+
+New citywide groups now contain148 occupied cells,444 active architecture meshes,530,826 unique LOD0 triangles and94.07MiB cached geometry attribute payload. These include the decorative groups; approved controls are additional. The81 newly completed lots add27 ordinary occupied cells. Architectural resources remain2 shared materials/4 maps/~4.33MiB; no new lights. Whole-scene counts are922 renderables,149 materials,25 referenced textures,570 geometries; those include legacy landmarks/public realm/vehicles.
+
+One day sample per scenario,2s warmup+10s sampling, fixed tiers, no adaptive downgrade. Verified dedicated Chrome155 headless/ANGLE Metal Apple M3 Max. Desktop1440×900 DPR1.5 high: median16.7ms, p9520.1ms,491–535 full-pipeline calls,855,789–857,373 submitted triangles. Emulated mobile375×812 DPR1 medium: median16.7ms, p9518.0ms,175–186 calls,229,966–230,362 triangles. Zero console errors. These are frame intervals including browser scheduling, not GPU timings or physical-phone results.
+
+The prior series used a different scheduling cadence; no calibrated paired p95 improvement/regression is claimed. PERFORMANCE GO is local/provisional for this observed workload, not a calibrated regression certificate. No broad benchmark or repeated A/B was run.
+
+Backdrop:2,129→2,303 instanced boxes (25,548→27,636 unique box triangles),21→14 existing palette colors. Added silhouette segments replace141 window boxes; the result trades a small amount of cheap geometry for better distant massing without new palette materials. Public realm still uses existing box/material batches and existing placements.
+
+Focused validation:15 Node tests,8 related browser contracts (citywide, diversity, five archetype builders, public walks), plus byte fingerprints of66 baseline mesh buffers/transforms/shadow flags unchanged. No map/layout/renderer/lighting source files changed in this pass. Raw metrics/captures and preservation audit: local artifact folder `citywide-diversity-2026-10-21`.
+
+## Hero facade diversity — 2026-10-21
+
+Nine local shops/frontages:12 renderables unchanged across four existing batches;8,874 unique triangles (before10,906,−18.63%),2 shared materials/4 maps. Desktop high observed local submissions/frame:12 color +12 normal/GTAO +8 shadow =32. No new resources/lights or renderer change.
+
+Desktop1440×900 DPR1.5 high/day,2s warmup+10s sample: initial median19.1ms/p9528.2ms exceeded the20.1ms prior reference and triggered investigation. Confirmation with one active task scene and verified GTAO high: median16.7ms/p9518.3ms, zero console errors; whole-scene calls461–523, submitted triangles848,613–850,941. Initial outlier retained; no speedup claim. An investigative BEFORE perf run reported high but had no GTAO pass (initialized at narrow viewport); it is invalid as a matched performance baseline and excluded from comparisons. Final BEFORE screenshot was recaptured with desktop size set before navigation and normal-pass execution verified.
+
+Four related browser contracts plus syntax/diff checks passed. Exact camera and476 unrelated architectural mesh fingerprints match. Evidence/raw initial and confirmation runs: local `hero-facade-diversity-2026-10-21` artifact folder. PERFORMANCE GO local/provisional; not a broad benchmark or physical-device certification.
+
+## Final art pass — 2026-10-21
+
+Architecture buffers (488 meshes), transforms and shadow flags match the BEFORE fingerprints; all building/recipe/chunk/LOD source files remain unchanged. Vegetation163 trees +110 low shrub instances uses2 batches, one additional material, no new textures. Hero realm remains3 meshes/2 shared materials/4 maps,4,688 unique triangles. No new lights/shadow maps; rounded clouds reuse the previous cloud draw structure. Whole-scene count in the final desktop sample:925 renderables,150 materials,25 textures,571 geometries; random cloud counts prevent interpreting whole-scene object deltas as architecture changes.
+
+Desktop high1440×900 DPR1.5 day: confirmed median16.7ms/p9518.7ms,492–534 calls,863,077–864,741 submitted triangles. Mobile emulated medium375×812 DPR1 day: median16.7ms/p9518.6ms,174–185 calls,235,370–235,818 triangles. Each sample uses2s warmup+10s sampling, fixed tiers, dedicated Chrome155 Headless/ANGLE Metal Apple M3 Max; zero console errors.
+
+Initial desktop p9525.4ms triggered investigation: a desktop-initialized high BEFORE gave31.9ms and a subsequent AFTER confirmation18.7ms. All raw samples are retained. Scheduling/load variation is material; no calibrated speedup or stable regression delta is claimed against the operational18.3ms reference. PERFORMANCE GO local/provisional. No wide matrix or dozens of repetitions.
+
+14 related Node tests,4 focused browser contracts, source syntax and git diff --check passed. Circulation tests cover15,650 tree/path probes and9,782 public-space collision probes. Vegetation resource disposal is idempotent and wired into world teardown; that teardown-only addition followed sampling and does not change rendering. Raw evidence and four BEFORE/AFTER camera pairs: local `final-city-art-pass-2026-10-21` folder.
+
+## Material/landmark finish — 2026-10-21
+
+Same2 shared architectural materials/4 generated maps/~4.33MiB, same opaque water plane/2 triangles, unchanged landmark instancing/matrices/material identities. No new materials/textures/lights/render passes. Reflection is analytic GLSL shared by architecture/landmark glass; landmark roughness/metalness/edge tuning uses bounded masks in existing block materials.488 architectural mesh fingerprints match BEFORE; building geometry/recipes/chunks/LOD/layout sources unchanged.
+
+One day sample each,2s warmup+10s sample, fixed tiers, dedicated Chrome155 Headless/ANGLE Metal Apple M3 Max:
+
+| Scenario | Median ms | p95 ms | Full-pipeline calls | Submitted triangles/frame |
+|---|---:|---:|---:|---:|
+| Desktop high1440×900 DPR1.5 |16.6|18.5|470–507|862,181–863,525|
+| Emulated mobile medium375×812 DPR1 |16.7|18.5|170–174|235,114–235,334|
+
+Whole-scene sample:930 renderables (random cloud count varies),150 materials,25 textures,571 geometries. Zero console errors; actual glass and landmark night uniforms reach1. Operational references18.7/18.6ms are not calibrated paired baselines; no speedup claimed. PERFORMANCE GO local/provisional, FINAL VISUAL NO-GO due remaining legacy landmark silhouettes.
+
+Three focused Node tests (Wembley/Glasgow landmark contracts),four browser contracts (material-polish/building-slice/citywide/landmarks), day/night uniform check, syntax and git diff --check passed. Three same-camera BEFORE/AFTER pairs and raw evidence: local `final-material-landmark-polish-2026-10-21` folder. No broad benchmark.
+
+
+## Final milestone validation — 2026-10-21
+
+Visual system approved/frozen; **PERFORMANCE: GO local, FUNCTIONAL: NO-GO, PRODUCTION-READY: NO** because zfight.browser.py still fails. No automatic optimization or geometry correction performed.
+
+One day sample per device in the same normal main shot;2s warmup,10s sampling, tier locked only in temporary validation snapshots. Dedicated Chrome155 Headless, ANGLE Metal/AppleM3Max. Desktop1440×900 DPR1.5/high (2160×1350 buffer); mobile emulated375×812 DPR1/medium (375×812 buffer). No CPU throttling or physical-phone measurement. No anomalous sample required an additional performance confirmation.
+
+| Scenario | Median ms | p95 ms | Full-pipeline calls/frame | Submitted triangles/frame | Resident renderables | Unique materials | Referenced textures |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Desktop high day |16.7|17.7|493–536|857,365–858,989|932|148|25|
+| Emulated mobile medium day |16.7|17.6|168–180|234,554–235,066|929|148|25|
+
+Both scenes contain294 InstancedMeshes and580 resident geometry objects. Renderables count resident scene objects, not only visible submissions. Random clouds/animated content explain some inter-run object/call variation. These are frame intervals including browser scheduling, not isolated GPU timings or a calibrated A/B speedup. Zero console errors observed. The prior18.3ms desktop value remains an operational reference only.
+
+Architectural resources remain2 materials/4 maps/~4.33MiB; scene totals above include vehicles, landscape, landmarks and sprites. Citywide groups:148 cells/444 meshes,530,826 unique LOD0 triangles/~94.07MiB cached attribute payload; all architecture including controls/special groups has488 mesh objects. Townhouse LOD and culling evidence above remains valid; the final suite reran its deterministic contracts, not an extensive moving-camera performance series.
+
+Modernized landmarks: Wembley3 meshes/5,812 unique triangles/8 high submissions; Big Ben-Parliament plus clocks4 meshes/2,496 triangles/10 submissions; MASP3 meshes/552 triangles/8 submissions. Existing pipeline counts include color/normal/shadow; no new materials/maps/lights/passes.
+
+Final checks:101/101 Node tests;31/32 browser suites. The legacy z-fighting scan initially timed out; a sorted X-interval candidate sweep retains every original face predicate and now reports327 conflicting pairs. A separate live-scene probe confirms191 pairs in production box batches, including parks.js soil/rim faces. This gate is not waived. Syntax:54 ES modules/32 Python suites; git diff --check clean. Fallback/EN-PT/navigation/reduced-motion/resize contracts pass. Five visual smoke captures show no new regression; London Eye remains segmented. Lighthouse and physical-mobile validation were not run.
+
+Evidence: machine-local artifact folder `city-final-milestone-freeze-2026-10-21` contains raw samples, suite results, coplanar diagnostic, source-preservation audit and exactly five smoke captures. Validation hooks and adaptive-tier lock exist only in the temporary snapshot, not shipped source. No commit/deploy.

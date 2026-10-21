@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-export const EXPOSURE = 1.1; // renderer.toneMappingExposure, needed to undo ACES for the sky
+export const EXPOSURE = 1.05; // renderer.toneMappingExposure, needed to undo ACES for the sky
 // Every sky colour is authored as the colour we want ON SCREEN. The composer tone-maps the whole frame in OutputPass
 // (toneMapped:false is ignored inside a render target), so we pre-invert ACES here or the sky washes out to white.
 const IN = new THREE.Matrix3().set(0.59719, 0.35458, 0.04823, 0.076, 0.90834, 0.01566, 0.0284, 0.13383, 0.83777);
@@ -16,7 +16,7 @@ export function untone(c) {
   return c.setRGB(Math.max(0, tmp.x), Math.max(0, tmp.y), Math.max(0, tmp.z));
 }
 const C = (h) => new THREE.Color(h);
-const DAY = { zen: C(0x6fb1e8), hor: C(0xb9dcf5), cloud: C(0xf4f9ff), sun: 2.4, hemi: 1.0, light: C(0xfff0d0) };
+const DAY = { zen: C(0x6fb1e8), hor: C(0xb9dcf5), cloud: C(0xf4f9ff), sun: 2.35, hemi: 1.15, light: C(0xfff0d0) };
 const NIGHT = { zen: C(0x0b1530), hor: C(0x1d2b4f), cloud: C(0x3b4668), sun: 0.34, hemi: 0.48, light: C(0xaec4ff) };
 export const SUN_DIR = new THREE.Vector3(110, 45, 40).normalize(); // directional light + sun + moon share this direction
 const DIST = 1300; // just inside camera.far (1400), beyond every building
@@ -58,9 +58,9 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
   }), 110); // moon disc ≈ sun disc (sun disc is ~0.2 of its 400 sprite)
   moonM.material.color.copy(untone(C(0xe6e9f0)));
   scene.add(dome, sunM, moonM);
-  // blocky clouds: flat-topped clusters of boxes in three layers
+  // Rounded low-poly cloud clusters keep the existing sky placement and animation.
   const cloudMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.85, depthWrite: false, fog: false, toneMapped: false });
-  const box = new THREE.BoxGeometry(1, 1, 1), clouds = new THREE.Group();
+  const box = new THREE.SphereGeometry(.5, 8, 5), clouds = new THREE.Group();
   for (let i = 0; i < 10; i++) {
     const g = new THREE.Group(), n = 4 + Math.floor(Math.random() * 4);
     for (let j = 0; j < n; j++) {
@@ -98,9 +98,9 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
       u.uHor.value.lerpColors(day(mood.hor, d1), NIGHT.hor, night); untone(u.uHor.value);
       scene.fog.color.copy(u.uHor.value); // already tone-inverted
       scene.background?.copy(scene.fog.color);
-      scene.fog.near = (240 - 60 * night) * mood.fogK; scene.fog.far = (900 - 220 * night) * mood.fogK;
+      scene.fog.near = (200 - 20 * night) * mood.fogK; scene.fog.far = (820 - 140 * night) * mood.fogK;
       cloudMat.color.lerpColors(day(mood.cloud, d1), NIGHT.cloud, night); untone(cloudMat.color);
-      cloudMat.opacity = 0.7 + mood.cloudOp - 0.2 * night;
+      cloudMat.opacity = 0.57 + mood.cloudOp - 0.2 * night;
       dome.position.copy(camPos); stars.position.copy(camPos);
       if (cam) {
         const wide = cam.aspect > 1;

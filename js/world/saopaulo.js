@@ -73,10 +73,15 @@ function copanTower(add, { x, z, len, amp, depth, h: H }) {
     if (i === 6) add(cx, H + 0.4, cz, 2, 1.4, 4, P.roof);
   }
 }
-function paulista(add, x, i) {
+function paulista(add, x, i, onArchitecturePlot, rollout, stopId) {
   const z = RIVER_Z - 22;
   [[-8, 30 + (i % 3) * 8], [9, 44 - (i % 2) * 10]].forEach(([dx, h], j) => {
     const tx = x + dx, w = 9, t = j ? 4.4 : 4.5;
+    if (onArchitecturePlot && (i === 0 || rollout)) {
+      // Preserve the existing columns/crown/antenna envelope, replacing only hero decoration.
+      onArchitecturePlot({ id: `paulista-${stopId}-${j}`, kind: h + 6 >= 40 ? 'tower' : 'office', x: tx, z, width: 2 * (t + .53), depth: 2 * (t + .53), height: h + 6 });
+      return;
+    }
     add(tx, 0, z, w, h, w, P.glass);
     for (const [cx, cz] of [[-t, -t], [-t, t], [t, -t], [t, t]]) add(tx + cx, 0, z + cz, 1.06, h + 0.5, 1.06, P.concrete);
     for (let y = 6; y < h; y += 6) add(tx, y, z, w + 0.4, 0.8, w + 0.4, P.concrete);
@@ -84,12 +89,13 @@ function paulista(add, x, i) {
     add(tx, h + 1, z, 0.4, 5, 0.4, P.steel);
   });
 }
-export function buildSaoPaulo(add, stops, pts) {
+export function buildSaoPaulo(add, stops, pts, onArchitecturePlot, rollout = false, onMasp) {
   copanTower(add, copan(stops, pts));
   const at = (key) => pts[stopIndex(stops, LANDMARKS[key])];
-  masp(add, at('masp'));
+  if (onMasp) onMasp(at('masp'));
+  else masp(add, at('masp'));
   se(add, at('se'));
   estaiada(add, at('estaiada'));
   const lm = new Set(Object.values(LANDMARKS));
-  stops.forEach((s, i) => { if (s.country === 'BR' && !lm.has(s.id) && i < 6) paulista(add, pts[i].x, i); });
+  stops.forEach((s, i) => { if (s.country === 'BR' && !lm.has(s.id) && i < 6) paulista(add, pts[i].x, i, onArchitecturePlot, rollout, s.id); });
 }

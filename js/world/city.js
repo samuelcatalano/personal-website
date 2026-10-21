@@ -1,4 +1,4 @@
-import { furnitureSpots, GAPS, GAP_TOTAL, STOP_SPACING, RIVER_Z, LANDMARKS, rng, riverEnd, riverStart, stopIndex, regions, towerX } from './layout.js';
+import { furnitureSpots, GAPS, GAP_TOTAL, STOP_SPACING, RIVER_Z, LANDMARKS, rng, riverEnd, riverStart, stopIndex, regions, towerX, isWembleyBenchmark } from './layout.js';
 import { house } from './houses.js';
 import { phoneBox } from './phone.js';
 import { PALETTE as P } from './palette.js';
@@ -51,6 +51,7 @@ function townhouse(add, x, z, side, br, r, roofStacks) {
   add(x, 1.7, face - side * 0.21, 0.18, 0.18, 0.08, WINDOW_LIT);
   add(x, 2.48, face - side * 0.12, 1.7, 0.2, 0.34, BANK);
   add(x, 0.22, face - side * 0.12, 1.72, 0.18, 0.34, BANK);
+  return { kind: 'terrace', x, z, width: w, depth: d, height: h + (stacks ? 2.2 : 1.3) };
 }
 const broadleaf = (r) => ({ h: 2.6 + r() * 0.6, crown: 1.8 + r() * 0.5 });
 export function tree(add, x, z, { h, crown, base = 0.1 }) {
@@ -59,13 +60,13 @@ export function tree(add, x, z, { h, crown, base = 0.1 }) {
   add(x - crown * 0.22, h + 0.2, z + crown * 0.16, crown * 0.52, 1, crown * 0.52, LEAF_SHADE);
   add(x + crown * 0.2, h + 0.15, z - crown * 0.2, crown * 0.48, 0.9, crown * 0.48, LEAF);
 }
-export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot) {
+export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArchitecturePlot, onPublicRealm) {
   const drawTree = onTree ? (_add, x, z, shape) => onTree(x, z, shape) : tree;
   const spots = furnitureSpots(stops, curve).map((o) => o.xz);
   const free = (x, z) => spots.every(([a, b]) => Math.hypot(a - x, b - z) > CLEAR); // ponytail: skip, not shift
   const lamps = [], occ = [], obst = [], r = rng(2026), hq = rng(8821), noop = () => {}, mx = pts[stopIndex(stops, LANDMARKS.masp)].x, gl = pts[stopIndex(stops, LANDMARKS.glasgow)], LM = new Set(Object.values(LANDMARKS));
   const span = pts.length * STOP_SPACING + GAP_TOTAL + 120, rgs = regions(stops, pts);
-  const seX = pts[stopIndex(stops, LANDMARKS.se)].x;
+  const seX = pts[stopIndex(stops, LANDMARKS.se)].x, heathrowX = pts[stopIndex(stops, LANDMARKS.heathrow)].x;
   add(GAP_TOTAL / 2, -1, 0, span, 1, 200, P.pave);
   // Samples along the curve every ~`step` m (curve param is per stop, so count follows each segment's length)
   const ticks = (step) => [...pts.slice(1).flatMap((q, s) => {
@@ -88,6 +89,7 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot) {
     if (i % 2) return;
     const p = curve.getPointAt(u), t = curve.getTangentAt(u);
     const nx = -t.z, nz = t.x;
+    const local = isWembleyBenchmark({ x: p.x, z: p.z });
     add(p.x, -0.18, p.z, 8.5, 0.25, 8.5, ROAD);
     if (i % 6 === 0) add(p.x, 0.05, p.z, 1.2, 0.03, 0.3, LINE);
     if (crossings < 2 && p.x >= (crossings ? pilotX1 - 4 : pilotX0 + 4) && p.x <= pilotX1 - 2) {
@@ -101,7 +103,8 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot) {
       for (const side of [-1, 1]) {
         const x = p.x + nx * side * 9.4, z = p.z + nz * side * 9.4;
         if (!free(x, z)) continue;
-        add(x, 0, z, 0.16, 3, 0.16, ROOF);
+      const local = isWembleyBenchmark({ x, z });
+      add(x, 0, z, 0.16, 3, 0.16, local ? P.stone : ROOF);
         add(x, 3, z, 0.7, 0.2, 0.7, WINDOW_LIT);
         obst.push([x, z]);
         lamps.push([x, z]);
@@ -113,10 +116,11 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot) {
     const nx = -t.z, nz = t.x;
     const pilot = p.x >= pilotX0 + 1.65 && p.x <= pilotX1 - 1.65;
     for (const side of [-1, 1]) {
-      const cw = pilot ? (Math.abs(t.x) >= Math.abs(t.z) ? 0.72 : 0.16) : 1.5, cd = pilot ? (Math.abs(t.x) >= Math.abs(t.z) ? 0.16 : 0.72) : 1.5;
-      add(p.x + nx * side * 4.55, 0.07, p.z + nz * side * 4.55, cw, 0.1, cd, BANK);
+      const cw = Math.abs(t.x)*.76+Math.abs(t.z)*.18, cd = Math.abs(t.z)*.76+Math.abs(t.x)*.18;
+      const curbX = p.x + nx * side * 4.55, curbZ = p.z + nz * side * 4.55;
+      add(curbX, 0.07, curbZ, cw, 0.1, cd, P.pave);
       const px = p.x + nx * side * 7.1, pz = p.z + nz * side * 7.1;
-      add(px, -0.02, pz, 3.3, 0.12, 3.3, PATH);
+      add(px, -0.02, pz, 3.3, 0.12, 3.3, P.stone);
       if (pilot && i % 9 === 0) add(px, 0.1005, pz, 0.55, 0.004, 0.55, P.gravel);
     }
   }
@@ -132,13 +136,19 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot) {
       if (side === -1 && !filler && LM.has(stops[i].id)) continue;
       for (const dx of sparse ? [0] : [-9, 0, 9]) { // sparse: last London houses before the fields
         if (side === 1 && stops[i].id === 'contact' && dx === 0) continue;
-        const hz = p.z + side * (side === 1 ? 21 : 17);
+        const x = p.x + dx, hz = p.z + side * (side === 1 ? 21 : 17);
         // MASP and Glasgow need clear far-side sightlines; townhouse still runs on a no-op so r() stays aligned.
         const glasgowSquare = side === -1 && Math.abs(p.x + dx - gl.x) < 25 && hz + 4.5 > gl.z - 43 && hz - 4.5 < gl.z - 17, tower = side === -1 && Math.abs(p.x + dx - towerX(stops, pts) + 3) < 33; // the Tower Bridge promenade loop
-        const show = !tower && Math.abs(p.x + dx - seX) >= 29.5 && !(side === -1 && (Math.abs(p.x + dx - mx) < 29.5 || glasgowSquare)) && !(side === 1 && Math.abs(p.x + dx - pts[pts.length - 1].x) < 35);
+        const show = !tower && Math.abs(x - heathrowX) >= 23 && Math.abs(p.x + dx - seX) >= 29.5 && !(side === -1 && (Math.abs(p.x + dx - mx) < 29.5 || glasgowSquare)) && !(side === 1 && Math.abs(p.x + dx - pts[pts.length - 1].x) < 35);
         const uk = stops[i].country === 'UK';
-        townhouse(show && !uk ? add : noop, p.x + dx, hz, side, br, r, i >= 2);
-        if (show && uk) house(add, hq, p.x + dx, hz, -side, 9, 7, side === 1 ? 2 : 3 + (hq() < 0.4), 3.1, side === 1);
+        const id = `frontage-${filler ? 'gap' : 'stop'}-${stops[i].id}-${Math.round(p.x)}-${side}-${dx}`;
+        const townhousePlot = townhouse(show && !uk && !onArchitecturePlot ? add : noop, x, hz, side, br, r, i >= 2);
+        if (show && !uk && onArchitecturePlot) onArchitecturePlot({ ...townhousePlot, id });
+        if (show && uk) {
+          const floors = side === 1 ? 2 : 3 + (hq() < 0.4);
+          if (onArchitecturePlot) onArchitecturePlot({ id, kind: 'terrace', x, z: hz, width: 9, depth: 7, height: floors * 3.1 + (side === 1 ? 0.6 : 2.7) });
+          house(onArchitecturePlot ? noop : add, hq, x, hz, -side, 9, 7, floors, 3.1, side === 1);
+        }
         occ.push([p.x + dx - 5, p.x + dx + 5, hz - 4.5, hz + 4.5]);
       }
       for (const dx of [-8, 8]) {
@@ -157,9 +167,9 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot) {
     phoneBox(add, x, z);
     kiosks.push([x, z]);
   }
-  const rotors = rgs.flatMap((rg, leg) => buildCountry(add, curve, drawTree, rg.ctry, leg));
-  buildGlasgowEdges(add, stops, pts, curve, drawTree);
-  buildBlocks(add, stops, pts, curve, occ, onBuildingPlot);
-  buildParks(add, stops, pts, curve, occ, onTree); // after the blocks: own rng, reads the free plazas, never shifts a block
+  const rotors = rgs.flatMap((rg, leg) => buildCountry(add, curve, drawTree, rg.ctry, leg, onArchitecturePlot));
+  buildGlasgowEdges(add, stops, pts, curve, drawTree, onArchitecturePlot);
+  buildBlocks(add, stops, pts, curve, occ, onBuildingPlot, onArchitecturePlot);
+  buildParks(add, stops, pts, curve, occ, onTree, onPublicRealm); // after the blocks: own rng, reads the free plazas, never shifts a block
   return { rotors, lamps }; // turbine hub positions [x, y, z]
 }

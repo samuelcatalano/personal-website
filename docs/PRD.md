@@ -1,5 +1,7 @@
 # PRD — London Bus Portfolio
 
+Original product brief. Its voxel/year-sign art descriptions are historical; the current approved/frozen city direction and technical release gate are in [3D City North Star PRD](product/3d-city-north-star-prd.md). Product content, privacy and accessibility requirements below remain applicable.
+
 ## Problem
 The current site (https://samuelcatalano.github.io/personal-website/) is a conventional one-page CV. It does not stand out to recruiters or engineering managers who scan dozens of portfolios.
 

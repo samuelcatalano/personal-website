@@ -52,7 +52,7 @@ print(js(r'''(async () => {
   check(darkPixel(90, 106) && darkPixel(187, 94), 'Rendered clock texture must contain the upper-left hour hand and upper-right minute hand for 10:10');
   check([darkPixel(128, 25), darkPixel(228, 128), darkPixel(128, 228), darkPixel(28, 128)].every(Boolean), 'Rendered clock texture must mark the four cardinal hours');
   const bigBen = pts[stops.findIndex(s => s.id === 'xdesign')];
-  check(boxes.some(b => b.x === bigBen.x && b.z === RIVER_Z - 16 && b.w === 5 && b.h === 18 && b.d === 5),
+  check(landmarkParts.details.getObjectByName('bigben-geometry')?.position.x === bigBen.x && landmarkParts.details.getObjectByName('bigben-geometry')?.position.z === RIVER_Z - 16,
     'Tower Bridge changes must leave Big Ben in its existing position');
   const glasgow = pts[stops.findIndex(s => s.id === 'glasgow')];
   check(boxes.some(b => b.x === glasgow.x && b.z === glasgow.z - 41 && b.w === 30 && b.h === 8 && b.d === 3 && b.color === PALETTE.sandstone),

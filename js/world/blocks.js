@@ -12,37 +12,44 @@ const ROWS = [
   [1, 29, [1, 0, 1], [4]], [1, 43, [0, 1, 0], [4]], [-1, 29, [1, 2, 2, 3, 0], [4, 5, 5]], [-1, 43, [0, 2, 3, 2], [4, 5, 6]],
   [0, -80, [0, 2, 3, 2], [4, 5, 6]], [0, -93, [3, 2, 3, 3], [6, 6, 5, 6]],
 ];
-export function draw(add, x, z, [w0, d, n, fh, wall, trim, kind, u], r, q, near, civic) {
+export function draw(add, x, z, [w0, d, n, fh, wall, trim, kind, u], r, q, near, civic, onArchitecturePlot, id = 'block') {
   const floors = civic ? Math.min(n, Math.floor(16 / fh)) : n;
   const w = w0 * u, h = floors * fh, zf = z + d / 2, nb = Math.round(w / 3.4), pw = w / nb, left = x - w / 2;
+  const render = onArchitecturePlot ? () => {} : add;
   if (kind > 2) { // London terrace: one townhouse per unit; r() drawn as before so later placements stay put
     for (let i = 0; i < n * 2 * u; i++) r();
-    for (let i = 0; i < u; i++) house(add, q, left + (i + 0.5) * w0, z, 1, w0, d, near ? Math.min(floors, 2) : floors, fh, near);
+    const floorsHere = near ? Math.min(floors, 2) : floors;
+    for (let i = 0; i < u; i++) {
+      const cx = left + (i + 0.5) * w0;
+      if (onArchitecturePlot) onArchitecturePlot({ id: `${id}-${i}`, kind: 'terrace', x: cx, z, width: w0, depth: d, height: floorsHere * fh });
+      house(render, q, cx, z, 1, w0, d, floorsHere, fh, near);
+    }
     return;
   }
-  add(x, 0, z, w, h, d, wall);
-  add(x, h, z, w + 0.4, 0.4, d + 0.4, kind === 1 ? P.steel : P.roof);
+  if (onArchitecturePlot) onArchitecturePlot({ id, kind: kind === 1 ? 'office' : kind === 2 ? 'shop' : 'midrise', x, z, width: w, depth: d, height: h });
+  render(x, 0, z, w, h, d, wall);
+  render(x, h, z, w + 0.4, 0.4, d + 0.4, kind === 1 ? P.steel : P.roof);
   for (let k = 0; k < n; k++) {
     const y = k * fh;
-    if (k && k < floors) add(x, y, z, w + 0.3, 0.3, d + 0.3, trim);
+    if (k && k < floors) render(x, y, z, w + 0.3, 0.3, d + 0.3, trim);
     for (let j = 0; j < nb; j++) {
       const wx = left + (j + 0.5) * pw, lit = r() < 0.08, wy = y + fh * 0.25, wh = fh * 0.55;
       if (k >= floors) continue; // Consume each floor's RNG so later districts keep their layout.
-      if (kind === 1) { if (lit) add(wx, wy, zf, pw * 0.7, wh, 0.14, P.lit); continue; }
-      if (kind === 2 && !k) { add(wx, 0.3, zf, pw * 0.8, 2.3, 0.14, G); add(wx, 2.6, zf + 0.5, pw * 0.9, 0.3, 1.2, AWN[r() * 3 | 0]); continue; }
-      add(wx, wy, zf, pw * 0.45, wh, 0.14, lit ? P.lit : G);
+      if (kind === 1) { if (lit) render(wx, wy, zf, pw * 0.7, wh, 0.14, P.lit); continue; }
+      if (kind === 2 && !k) { render(wx, 0.3, zf, pw * 0.8, 2.3, 0.14, G); render(wx, 2.6, zf + 0.5, pw * 0.9, 0.3, 1.2, AWN[r() * 3 | 0]); continue; }
+      render(wx, wy, zf, pw * 0.45, wh, 0.14, lit ? P.lit : G);
     }
   }
 }
 // Back rows + skyline. Skips `hard` (river, landmarks + 6 m, plaza), `occ` (houses), 26 m of road; near side and Sé/MASP flanks <= 12 m.
-export function buildBlocks(add, stops, pts, curve, occ, onBuildingPlot) {
+export function buildBlocks(add, stops, pts, curve, occ, onBuildingPlot, onArchitecturePlot) {
   const r = rng(7311), q = rng(5521), { museum: mu, uni } = glasgowSites(stops, pts), site = (o, m) => [o.x - o.w / 2 - m, o.x + o.w / 2 + m, o.z - o.d / 2 - m, o.z + o.d / 2 + m], cp = copan(stops, pts), gl = pts[stopIndex(stops, L.glasgow)], rgs = regions(stops, pts), X = (k) => pts[stopIndex(stops, L[k])].x, mv = X('heathrow') - 15, lz = pts[pts.length - 1].z;
   const H = (k, a, b, z0, z1) => [X(k) - a, X(k) + b, z0, z1], path = Array.from({ length: 241 }, (_, i) => curve.getPointAt(i / 240));
   const zAt = (x) => path.reduce((a, p) => Math.abs(p.x - x) < Math.abs(a.x - x) ? p : a).z;
   const hard = [
     [riverStart(stops, pts) - 6, riverEnd(stops, pts) + 6, -64, -26], H('masp', 26, 26, -76, -50), H('se', 24, 24, -77, -49), H('estaiada', 16, 16, -80, -12),
     H('heathrow', 18, 18, -38, -14), H('bigben', 10, 43, -76, -48), H('wembley', 30, 30, -92, -50), H('wembley', 14, 14, lz + 10, lz + 45),
-    [gl.x - 20, gl.x + 20, gl.z - 43, gl.z - 17], site(mu, 5), site({ ...uni, w: uni.w + 12, d: 30 }, 4), // museum + university with its hill
+    [gl.x - 20, gl.x + 20, gl.z - 43, gl.z - 17], site(mu, 5), site(uni, 16), // museum + university with its hill
  ...rgs.map((rg) => [rg.ctry[0], rg.ctry[1], -400, 400]), // countryside: country.js owns it
     ...pts.slice(0, 6).map((p) => [p.x - 16, p.x + 16, -80, -58]),
   ];
@@ -74,7 +81,9 @@ export function buildBlocks(add, stops, pts, curve, occ, onBuildingPlot) {
         const floors = civic ? Math.min(b[2], Math.floor(16 / b[3])) : b[2];
         onBuildingPlot({ id: `london-${kind}`, kind, x: x + w() / 2, z: z(), width: w(), depth: b[1], height: (side > 0 && kind === 'terrace' ? Math.min(floors, 2) : floors) * b[3] });
       }
-      draw(pilot || clear || cut.some((o) => hit(R, o)) ? () => {} : add, x + w() / 2, z(), b, r, q, side > 0, civic);
+      const cutOut = cut.some((o) => hit(R, o));
+      const architecture = onArchitecturePlot && !clear && !cutOut ? onArchitecturePlot : undefined;
+      draw(pilot || clear || cutOut || architecture ? () => {} : add, x + w() / 2, z(), b, r, q, side > 0, civic, architecture, `block-${Math.round(x)}-${Math.round(z())}`);
       occ.push(R);
       x += w() + 2 + r() * 3;
     } else x += 6;
@@ -82,10 +91,10 @@ export function buildBlocks(add, stops, pts, curve, occ, onBuildingPlot) {
   // Fill the three gaps beside the starting park; own RNG preserves every other district.
   const infill = rng(1947);
   for (const [dx, z, w, floors, wall] of [[-52, -14, 10, 3, CR], [-52, 0, 10, 4, SS], [-52, 14, 10, 3, OW], [-52, -34, 10, 3, OC], [1, -36, 8, 3, MN]]) {
-    draw(add, pts[0].x + dx, z, [w, 10, floors, 3, wall, W, 0, 1], infill, infill, false, false);
+    draw(add, pts[0].x + dx, z, [w, 10, floors, 3, wall, W, 0, 1], infill, infill, false, false, onArchitecturePlot, `infill-${dx}-${z}`);
   }
   for (const [dx, z, floors, wall] of [[-48, -68, 10, SS], [-34, -64, 8, C]]) {
-    draw(add, X('wembley') + dx, z, [10, 10, floors, 3, wall, W, 0, 1], infill, infill, false, false);
+    draw(add, X('wembley') + dx, z, [10, 10, floors, 3, wall, W, 0, 1], infill, infill, false, false, onArchitecturePlot, `wembley-side-${dx}-${z}`);
   }
   // A low rear street adds depth without entering any landmark's foreground.
   const rear = rng(9274);
@@ -93,7 +102,7 @@ export function buildBlocks(add, stops, pts, curve, occ, onBuildingPlot) {
     const w = 8 + rear() * 3, cx = x + w / 2, R = [x - 1, x + w + 1, -113, -103];
     if ([...hard, ...occ].some(o => hit(R, o)) || inRegion(rgs, 'ctry', cx, 30 + w / 2) || Math.abs(cx - mu.x) < (w + mu.w) / 2 + 12) continue;
     const wall = cx < mv ? [CR, OC, SS] : inRegion(rgs, 'scot', cx) ? [P.redSand, SS] : [B, LS, CR];
-    draw(add, cx, -108, [w, 8, 2 + (rear() < 0.35 ? 1 : 0), 3, wall[rear() * wall.length | 0], W, 0, 1], rear, rear, false, false);
+    draw(add, cx, -108, [w, 8, 2 + (rear() < 0.35 ? 1 : 0), 3, wall[rear() * wall.length | 0], W, 0, 1], rear, rear, false, false, onArchitecturePlot, `rear-${Math.round(cx)}`);
     occ.push(R);
   }
   // These blocks sit west of both the route cameras and every landmark.
@@ -102,7 +111,7 @@ export function buildBlocks(add, stops, pts, curve, occ, onBuildingPlot) {
   for (const z of [-83, -61]) add(sx, 0.025, z, 84, 0.015, 4.6, P.road);
   add(sx, 0.026, -72, 4.6, 0.015, 72, P.road);
   for (const dx of [-30, -10, 10, 30]) for (const z of [-94, -72, -50]) {
-    draw(add, sx + dx, z, [10, 10, 2 + (side() * 3 | 0), 3, [CR, SS, OC, OW][side() * 4 | 0], W, 0, 1], side, side, false, false);
+    draw(add, sx + dx, z, [10, 10, 2 + (side() * 3 | 0), 3, [CR, SS, OC, OW][side() * 4 | 0], W, 0, 1], side, side, false, false, onArchitecturePlot, `west-${dx}-${z}`);
   }
-  draw(add, pts[0].x - 13, -3, [5.5, 6, 2, 3, OC, W, 2, 1], side, side, false, false);
+  draw(add, pts[0].x - 13, -3, [5.5, 6, 2, 3, OC, W, 2, 1], side, side, false, false, onArchitecturePlot, 'corner-shop');
 }

@@ -1,5 +1,9 @@
 export const STOP_SPACING = 30;
 export const RIVER_Z = -45;
+export const WEMBLEY_BENCHMARK = Object.freeze({ x0: 660, x1: 880, z0: -113, z1: -25 });
+export const isWembleyBenchmark = ({ x, z, width = 0, depth = 0 }) =>
+  x - width / 2 >= WEMBLEY_BENCHMARK.x0 && x + width / 2 <= WEMBLEY_BENCHMARK.x1 &&
+  z - depth / 2 >= WEMBLEY_BENCHMARK.z0 && z + depth / 2 <= WEMBLEY_BENCHMARK.z1;
 // Extra roads: after MASP (taqtile, stop 4) for the Copan, and the London -> Glasgow run after the Eye (olm, stop 10), and the return run after Glasgow (stop 11). Every later stop shifts east by `size`.
 // ponytail: `after` are stop indices, asserted in tests/logic.test.mjs
 export const OUT_GAP = 300, LONG_GAP = 180; // olm -> glasgow = STOP_SPACING + OUT_GAP (London tail with Tower Bridge, countryside, two Glasgow landmarks); glasgow -> tribal = STOP_SPACING + LONG_GAP (the return)

@@ -26,15 +26,17 @@ print(js(r'''(async () => {
   const R = b => ({ x0: b.x - b.w / 2, x1: b.x + b.w / 2, y0: b.y, y1: b.y + b.h, z0: b.z - b.d / 2, z1: b.z + b.d / 2 });
   const bad = [];
   for (const [name, L] of lists) {
-    const rs = L.map(R);
+    // Sweep only potentially touching X intervals; retain every original face/overlap test.
+    const rs = L.map((b, i) => ({ ...R(b), i })).sort((a, b) => a.x0 - b.x0);
     for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) {
-      if (L[i].color === L[j].color) continue;
       const A = rs[i], C = rs[j];
+      if (C.x0 > A.x1 + E) break;
+      if (L[A.i].color === L[C.i].color) continue;
       const faces = [];
       if (Math.abs(A.y1 - C.y1) < E && ov(A.x0, A.x1, C.x0, C.x1) && ov(A.z0, A.z1, C.z0, C.z1)) faces.push('top');
       for (const k of ['x0', 'x1']) if (Math.abs(A[k] - C[k]) < E && ov(A.y0, A.y1, C.y0, C.y1) && ov(A.z0, A.z1, C.z0, C.z1)) faces.push(k);
       for (const k of ['z0', 'z1']) if (Math.abs(A[k] - C[k]) < E && ov(A.y0, A.y1, C.y0, C.y1) && ov(A.x0, A.x1, C.x0, C.x1)) faces.push(k);
-      for (const f of faces) bad.push(`${name} ${f} ${JSON.stringify([L[i], L[j]])}`);
+      for (const f of faces) bad.push(`${name} ${f} ${JSON.stringify([L[A.i], L[C.i]])}`);
     }
   }
   if (bad.length) throw Error(`${bad.length} z-fighting face pairs, e.g. ${bad.slice(0, 5).join('\n')}`);

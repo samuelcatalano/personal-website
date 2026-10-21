@@ -45,3 +45,28 @@ test('pilot plots clear protected landmark and route regions', () => {
     assert.ok(p.x > xs('olm') && p.x < out.ctry[0], 'pilot stays in generic London block');
   }
 });
+
+test('architecture callback replaces the city blocks while preserving safe plots', () => {
+  const collect = () => {
+    const plots = [], boxes = [];
+    buildBlocks((...b) => boxes.push(b), stops, pts, curve, [], undefined, (p) => plots.push(p));
+    return { plots, boxes };
+  };
+  const { plots, boxes } = collect();
+  assert.ok(plots.length >= 300);
+  assert.deepEqual(plots, collect().plots);
+  assert.ok(new Set(plots.map(p => p.kind)).has('shop'));
+  assert.ok(new Set(plots.map(p => p.kind)).has('office'));
+  assert.ok(new Set(plots.map(p => p.kind)).has('midrise'));
+  assert.ok(new Set(plots.map(p => p.kind)).has('terrace'));
+  assert.equal(new Set(plots.map(p => p.id)).size, plots.length, 'plot ids remain unique');
+  for (const p of plots) {
+    assert.ok([p.x, p.z, p.width, p.depth, p.height].every(Number.isFinite));
+    assert.ok(p.width > 0 && p.depth > 0 && p.height > 0);
+    for (let i = 0; i <= 240; i++) {
+      const q = curve.getPointAt(i / 240), dx = Math.max(Math.abs(q.x - p.x) - p.width / 2, 0), dz = Math.max(Math.abs(q.z - p.z) - p.depth / 2, 0);
+      assert.ok(Math.hypot(dx, dz) >= 10, `plot ${p.id} preserves a useful road/pedestrian gap`);
+    }
+  }
+  assert.ok(boxes.length < 10, 'ordinary block facades are no longer emitted as voxel boxes');
+});

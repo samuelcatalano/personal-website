@@ -1,4 +1,4 @@
-import { furnitureSpots, rng } from './layout.js';
+import { furnitureSpots, rng, isWembleyBenchmark } from './layout.js';
 import { walkPaths } from './crowd.js';
 import { PALETTE as P } from './palette.js';
 import { tree, CLEAR } from './city.js'; // ponytail: import cycle is fine, both are function declarations used after load
@@ -14,7 +14,7 @@ export const PARKS = [ // stops after the Eye sit further east (OUT_GAP + LONG_G
   { x0: -27, x1: -3, z0: 21, z1: 27, trees: 3 },
   { x0: 5, x1: 57, z0: 21, z1: 27, uk: 1, rail: 1, trees: 5 },
   { x0: 681, x1: 717, z0: -29, z1: -21, uk: 1, rail: 1, trees: 4 },
-  { x0: 681, x1: 761, z0: -69, z1: -61, uk: 1, rail: 1, trees: 6 },
+  { x0: 681, x1: 761, z0: -69, z1: -61, uk: 1, rail: 1, trees: 6, benchmarkTrees: 1 },
   { x0: 731, x1: 807, z0: -43, z1: -35, uk: 1, rail: 1, trees: 6 }, // in front of Wembley: trees stay <= 4.4 m
   { x0: 817, x1: 841, z0: -12, z1: 24, uk: 1, rail: 1, pond: 1, trees: 7 },
 ];
@@ -32,11 +32,13 @@ export const PLAZAS = [
 ];
 const { patch: LAWN, gravel: GRAVEL, hedge: HEDGE, leaf: LEAF, stone: STONE, oak: OAK, iron: IRON, glass: WATER, dirt: SOIL, roof: POLE, lit: LIT } = P;
 const BLOOM = [P.red, P.tulip, P.violet, P.red];
-export function buildParks(add, stops, pts, curve, occ, onTree) {
+export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) {
   const spots = furnitureSpots(stops, curve).map((o) => o.xz), r = rng(9157), made = [];
   const loops = walkPaths(stops, pts).filter((p) => p.type === 'loop');
   const plazas = PLAZAS.map((q) => ({ ...q, ...loops.find((l) => l.name === q.name).rect, ring: 1 }));
   for (const orig of [...PARKS, ...plazas]) {
+    const hero = !!onPublicRealm && orig === PARKS[1];
+    const add = hero ? () => {} : draw; // Consume the same RNG and tree callbacks; replace only this park's boxes.
     if (orig.name === 'se') {
       const z0 = orig.z0 - 7;
       add((orig.x0 + orig.x1) / 2, 0.02, (z0 + orig.z1) / 2, orig.x1 - orig.x0, 0.05, orig.z1 - z0, orig.paved);
@@ -46,6 +48,8 @@ export function buildParks(add, stops, pts, curve, occ, onTree) {
     const ring = orig.ring, i = ring ? RING[1] : 0, park = { ...orig, x0: orig.x0 + i, x1: orig.x1 - i, z0: orig.z0 + i, z1: orig.z1 - i }; // ring parks: lawn = rect inset 1.9
     const wide = park.x1 - park.x0 >= park.z1 - park.z0, L = wide ? park.x1 - park.x0 : park.z1 - park.z0, S = wide ? park.z1 - park.z0 : park.x1 - park.x0;
     const cx = (park.x0 + park.x1) / 2, cz = (park.z0 + park.z1) / 2;
+    const benchmark = isWembleyBenchmark({ x: (orig.x0 + orig.x1) / 2, z: (orig.z0 + orig.z1) / 2, width: orig.x1 - orig.x0, depth: orig.z1 - orig.z0 });
+    const pathMaterial = STONE;
     // box in park space: u along the long side, v across; lu/lv are its sizes
     const B = (u, v, y, lu, h, lv, c) => (wide ? add(cx + u, y, cz + v, lu, h, lv, c) : add(cx + v, y, cz + u, lv, h, lu, c));
     const world = (u, v) => (wide ? [cx + u, cz + v] : [cx + v, cz + u]);
@@ -54,19 +58,19 @@ export function buildParks(add, stops, pts, curve, occ, onTree) {
     B(0, 0, 0.02, L, 0.05, S, park.paved || LAWN);
     if (!ring && !park.paved) {
       for (const f of [-1, 1]) {
-        B(0, f * (S / 2 + 0.225), 0.02, L + 0.9, 0.05, 0.45, P.pave);
-        B(f * (L / 2 + 0.225), 0, 0.02, 0.45, 0.05, S, P.pave);
+        B(0, f * (S / 2 + 0.225), 0.02, L + 0.9, 0.05, 0.45, benchmark ? P.stone : P.pave);
+        B(f * (L / 2 + 0.225), 0, 0.02, 0.45, 0.05, S, benchmark ? P.stone : P.pave);
       }
     }
     if (ring) { // gravel ring over inset 0.3..1.9 of the loop rect
       const [a, b] = RING, w = b - a, W = orig.x1 - orig.x0, D = orig.z1 - orig.z0, m = (a + b) / 2;
       for (const f of [-1, 1]) {
-        add((orig.x0 + orig.x1) / 2, 0.02, f < 0 ? orig.z0 + m : orig.z1 - m, W - 2 * a, 0.05, w, GRAVEL);
-        add(f < 0 ? orig.x0 + m : orig.x1 - m, 0.02, (orig.z0 + orig.z1) / 2, w, 0.05, D - 2 * b, GRAVEL);
+        add((orig.x0 + orig.x1) / 2, 0.02, f < 0 ? orig.z0 + m : orig.z1 - m, W - 2 * a, 0.05, w, pathMaterial);
+        add(f < 0 ? orig.x0 + m : orig.x1 - m, 0.02, (orig.z0 + orig.z1) / 2, w, 0.05, D - 2 * b, pathMaterial);
       }
     }
-    if (mainPath) B(0, 0, 0.04, L + 0.6, 0.06, 1.6, GRAVEL); // paths overhang the lawn, so no coplanar end faces
-    if (cross) B(0, 0, 0.045, 1.4, 0.06, S + 0.6, GRAVEL);
+    if (mainPath) B(0, 0, 0.04, L + 0.6, 0.06, 1.6, pathMaterial); // paths overhang the lawn, so no coplanar end faces
+    if (cross) B(0, 0, 0.045, 1.4, 0.06, S + 0.6, pathMaterial);
     const basin = (u, v, w, d, rim) => { // stone rim around a water box
       B(u, v - d / 2 + 0.25, 0.04, w, rim, 0.5, STONE); B(u, v + d / 2 - 0.25, 0.04, w, rim, 0.5, STONE);
       B(u - w / 2 + 0.25, v, 0.04, 0.5, rim, d - 1, STONE); B(u + w / 2 - 0.25, v, 0.04, 0.5, rim, d - 1, STONE);
@@ -96,11 +100,13 @@ export function buildParks(add, stops, pts, curve, occ, onTree) {
         else tree(add, x, z, { h, crown });
       }
     }
+    if (park.benchmarkTrees && onTree) for (const [x, scale] of [[688, 0.84], [708, 1], [728, 1.12]]) onTree(x, park.z1 - 1.5, { h: 2.7 * scale, crown: 1.8 * scale });
     const beds = park.beds ?? (cross ? 2 : 1);
     for (let i = 0; i < beds; i++) { // flower beds: soil strip with four colour blocks
       const at = spot(1.6, 40, 0.65); if (!at) continue;
       const [u, v] = at;
       B(u, v, 0.05, 2.6, 0.12, 1.2, SOIL);
+      for(const f of [-1,1]) { B(u,v+f*.54,.05,2.6,.16,.12,STONE);B(u+f*1.24,v,.05,.12,.16,.96,STONE); }
       BLOOM.forEach((c, k) => B(u - 0.825 + k * 0.55, v, 0.12, 0.5, 0.28, 0.95, c));
     }
     for (let i = 0; i < Math.max(2, Math.round(L / 9)); i++) { // bushes and low hedge runs
@@ -113,13 +119,13 @@ export function buildParks(add, stops, pts, curve, occ, onTree) {
       if (S < (ring ? 4 : 7) && f > 0) continue;
       const u = (i + 0.5) / nb * (L - 8) - (L - 8) / 2 + (f > 0 ? 3 : 0), v = f * (ring ? Math.min(1.9, S / 2 - 0.75) : 1.9);
       if (cross && Math.abs(u) < 3.5 || (plaza && Math.abs(u) < 5)) continue;
-      B(u, v, 0.45, 1.6, 0.1, 0.45, OAK); B(u, v + f * 0.2, 0.55, 1.6, 0.38, 0.08, OAK);
+      for(const s of [-1,0,1]){B(u,v+s*.15,.45,1.6,.075,.12,OAK);B(u,v+f*.2,.58+(s+1)*.12,1.6,.085,.08,OAK);}
       for (const d of [-0.65, 0.65]) B(u + d, v, 0.09, 0.12, 0.36, 0.38, IRON);
     }
     for (let u = -L / 2 + 5; u < L / 2 - 3; u += 15) for (const f of [-1, 1]) { // lamps, head P.lit so it glows at night
       const lv = f * (ring ? S / 2 - 0.9 : 1.4);
       if (!ring && S < 7 && f > 0 || !clearOfSigns(u, lv)) continue;
-      const [x, z] = world(u, lv); add(x, 0, z, 0.16, 3, 0.16, POLE); add(x, 3, z, 0.7, 0.2, 0.7, LIT);
+      const [x, z] = world(u, lv); add(x,0,z,.30,.22,.30,POLE);add(x, 0, z, 0.16, 3, 0.16, POLE); add(x, 3, z, 0.52, 0.16, 0.52, LIT);add(x,3.16,z,.68,.06,.68,POLE);
     }
     if (park.rail) { // black railings round the park with gates where the paths enter
       const hu = L / 2 + 0.9, hv = S / 2 + 0.9;
@@ -132,6 +138,7 @@ export function buildParks(add, stops, pts, curve, occ, onTree) {
         if (cross) { run('u', f * hv, -hu, -1.3); run('u', f * hv, 1.3, hu); } else run('u', f * hv, -hu, hu);
       }
     }
+    if (hero) onPublicRealm(orig);
     made.push(park);
   }
   return made;

@@ -5,7 +5,7 @@ export function buildBackdrop(add, stops, pts) {
   const r = rng(90817), [out, back] = regions(stops, pts), { museum } = glasgowSites(stops, pts);
   let nearBuildings = 0;
   const x0 = pts[0].x - 230, x1 = pts.at(-1).x + 230, rows = [-130, -170, -220, -280, -350, -440];
-  const colors = [P.cream, P.stone, P.taupe, P.roof, P.brick, P.redBrown, P.londonStock, P.pinkStucco, P.blueStucco, P.mintStucco, P.lemonStucco];
+  const colors = [P.cream, P.stone, P.taupe, P.roof, P.brick, P.redBrown, P.londonStock, P.concreteMid, P.steel, P.londonStock, P.stone];
   const distantColors = [P.stone, P.concreteMid, P.taupe, P.steel];
   const museumL = museum.x - museum.w / 2 - 12, museumR = museum.x + museum.w / 2 + 12;
   const regionsCtry = [out.ctry, back.ctry], hill = (x, z, w, scale = 1) => {
@@ -33,13 +33,19 @@ export function buildBackdrop(add, stops, pts) {
         const depth = row === 0 ? 8 : 11;
         const wall = (row < 2 ? colors : distantColors)[r() * (row < 2 ? colors : distantColors).length | 0];
         const roof = row === 0 ? [P.roof, P.brick, P.ink][r() * 3 | 0] : wall, h = floors * 2.8;
-        add(xc, 0, z, w, h, depth, wall);
-        add(xc, h, z, w + 0.3, 0.35, depth + 0.4, roof);
+        // Four low-cost mass profiles; existing RNG/positions and fog remain the source of depth.
+        const family=(Math.abs(Math.round(xc*17))+row)%4;
+        let topX=xc,topW=w;
+        if(family===0)add(xc,0,z,w,h,depth,wall);
+        else if(family===1){add(xc,0,z,w,h*.62,depth,wall);topX=xc+w*.12;topW=w*.70;add(topX,h*.62,z,topW,h*.38,depth*.82,wall);}
+        else if(family===2){add(xc-w*.25,0,z,w*.5,h*.78,depth,wall);add(xc-w*.25,h*.78,z,w*.5+.1,.25,depth+.2,roof);topX=xc+w*.25;topW=w*.5;add(topX,0,z,topW,h,depth,wall);}
+        else {add(xc,0,z,w,h*.85,depth,wall);topW=w*.34;add(xc,h*.85,z,topW,h*.15,depth*.65,roof);}
+        add(topX,h,z,topW+.3,.35,depth*(family===1?.82:family===3?.65:1)+.4,roof);
         if (row === 0) {
-          add(xc, h + 0.35, z, w * 0.62, 0.75, depth * 0.62, roof);
-          if (nearBuildings++ % 3 === 0) add(xc, h + 1.1, z, w * 0.38, 0.28, depth * 0.45, roof);
-          for (let f = 0; f < floors; f += 2) add(xc + (r() - 0.5) * w * 0.45, f * 2.8 + 1.5, z + depth / 2 + 0.08, 1.1, 1.4, 0.12, r() < 0.07 ? P.lit : P.glass);
-          add(xc - w * 0.28, 0.9, z + depth / 2 + 0.09, 0.9, 1.8, 0.14, P.maroon);
+          if(family===0)add(xc, h + 0.35, z, w * 0.62, 0.75, depth * 0.62, roof);
+          if (nearBuildings++ % 3 === 0 && family===0) add(xc, h + 1.1, z, w * 0.38, 0.28, depth * 0.45, roof);
+          for (let f = 0; f < floors; f += 2) { r(); r(); } // Consume former facade draws; no distant window geometry.
+
         }
       }
       x += w + gap;

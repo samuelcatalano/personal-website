@@ -21,7 +21,7 @@ function turbine(add, x, z) {
 }
 // Outskirts between the Eye and Glasgow, and again Glasgow -> Tower Bridge (regions()[leg].ctry; leg 1 reseeds and mirrors hills/turbines): suburban streets of terraces and semis, a few 3-4 storey flats, front gardens, footpaths, side streets, greens with trees and benches; hills and wind turbines far behind.
 // Rows: A camera side (<= 2 floors, lo roofs), B road far side, B2 riverside (faces the river), C far bank facing the river + D flats behind it. Sidewalks along the road are city.js's kerbs (no longer skipped here).
-export function buildCountry(add, curve, tree, [c0, c1], leg = 0) {
+export function buildCountry(add, curve, tree, [c0, c1], leg = 0, onArchitecturePlot) {
   const r = rng(4417 + leg * 977), q = rng(6101 + leg * 31), path = Array.from({ length: 241 }, (_, i) => curve.getPointAt(i / 240));
   const zr = (x) => path.reduce((a, p) => Math.abs(p.x - x) < Math.abs(a.x - x) ? p : a).z, a = c0 + 12, b = c1 - 12; // 12 m margins: neighbours (London sub terraces, Glasgow edge) own the ends
   const oak = () => ({ h: 2.6 + r() * 1.2, crown: 1.8 + r() * 0.8 }), pick = (arr) => arr[r() * arr.length | 0];
@@ -39,7 +39,9 @@ export function buildCountry(add, curve, tree, [c0, c1], leg = 0) {
     add(s, -0.01, -80.5, 4.6, 0.12, 39, P.concreteMid);
   }
   // row: zf(x) house-centre z, o facing, floors [lo, hi], low roofs, flats probability, green-gap probability, depth
+  let rowId = 0;
   const row = (zf, o, [f0, f1], lo, blk, gap, rich, path = 1.2) => {
+    const rowKey = rowId++; let lot = 0;
     for (let x = a; x < b;) {
       const flats = r() < blk, w = flats ? 11 + r() * 5 : 6 + r() * 3.5, d = flats ? 10 : 7 + r() * 1.5, s = SX.find((v) => v + 3.5 > x && v - 3.5 < x + w);
       if (s != null) { x = s + 3.5; continue; }
@@ -50,9 +52,15 @@ export function buildCountry(add, curve, tree, [c0, c1], leg = 0) {
         x += 12; continue;
       }
       const n = f0 + (r() * (f1 - f0 + 1) | 0);
-      if (flats) draw(add, xc, z, [w, d, n, 3.2, pick(FLATS), P.white, 0, 1], r, q, false, false);
-      else if (r() < rich) house(add, q, xc, z, o, w, d, lo ? 2 : n, 3.1, lo);
-      else villa(add, r, xc, z, o, w, d, n);
+      if (flats) draw(add, xc, z, [w, d, n, 3.2, pick(FLATS), P.white, 0, 1], r, q, false, false, onArchitecturePlot, `country-flat-${leg}-${rowKey}-${lot++}`);
+      else if (r() < rich) {
+        const floors = lo ? 2 : n;
+        if (onArchitecturePlot) onArchitecturePlot({ id: `country-house-${leg}-${rowKey}-${lot++}`, kind: 'terrace', x: xc, z, width: w, depth: d, height: floors * 3.1 + (lo ? 0.6 : 2.7) });
+        house(onArchitecturePlot ? () => {} : add, q, xc, z, o, w, d, floors, 3.1, lo);
+      } else {
+        if (onArchitecturePlot) onArchitecturePlot({ id: `country-villa-${leg}-${rowKey}-${lot++}`, kind: 'terrace', x: xc, z, width: w, depth: d, height: n * 2.8 + 1.3 });
+        villa(onArchitecturePlot ? () => {} : add, r, xc, z, o, w, d, n);
+      }
       add(xc, -0.02, z + o * (d / 2 + path / 2 + 0.6), w, 0.12, path, P.stone); // footpath along the front
       if (r() < 0.5) tree(add, xc + (r() < 0.5 ? -1 : 1) * w * 0.3, z - o * (d / 2 + 2.5), oak());
       x += w + (r() < 0.5 ? 0.3 : 1.6);

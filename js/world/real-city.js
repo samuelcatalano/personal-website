@@ -1,8 +1,7 @@
-import * as THREE from 'three';
-import { createBuilding } from './building-kit.js';
+import { createCityBuildings } from './building-kit.js';
 
-export async function buildRealCity(plots) {
-  const city = new THREE.Group();
+export async function buildRealCity(plots, options) {
+  const city = createCityBuildings(plots, options);
   city.name = 'real-city-pilot';
-  return city.add(...plots.slice(0, 5).map(createBuilding));
+  return city;
 }
