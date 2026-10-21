@@ -8,9 +8,9 @@ const WALL = [P.cream, P.brick, P.redBrown, P.londonStock, P.pinkStucco, P.blueS
 function villa(add, r, x, z, o, w, d, n) {
   const h = n * 2.8, f = z + o * d / 2, wall = WALL[r() * WALL.length | 0], roof = ROOF[r() * ROOF.length | 0], nc = w > 7.4 ? 3 : 2;
   add(x, 0, z, w, h, d, wall); add(x, h, z, w + 0.3, 0.4, d + 0.8, roof); add(x, h + 0.4, z, w * 0.7, 0.9, d * 0.6, roof);
-  add(x + (r() < 0.5 ? -1 : 1) * w * 0.3, h + 0.5, z, 0.7, 1.6, 0.7, P.brick);
-  add(x + (r() < 0.5 ? -w * 0.25 : w * 0.25), 0.1, f + o * 0.07, 1.1, 2.1, 0.14, pickDoor(r));
-  for (let k = 0; k < n; k++) for (let c = 0; c < nc; c++) if (k || c !== (nc === 2 ? 0 : 1)) add(x + (c - (nc - 1) / 2) * w / nc, 0.9 + k * 2.8, f + o * 0.07, 1.1, 1.3, 0.14, r() < 0.07 ? P.lit : P.glass);
+  add(x + (r() < 0.5 ? -1 : 1) * w * 0.3, h + 0.5, z, 0.72, 1.6, 0.7, P.brick);
+  add(x + (r() < 0.5 ? -w * 0.25 : w * 0.25), 0.1, f + o * 0.07, 1.1, 2.1, 0.14, pickDoor(r)); // windows below are 0.01 proud sideways/front and 0.01 lower than the door: no shared planes
+  for (let k = 0; k < n; k++) for (let c = 0; c < nc; c++) if (k || c !== (nc === 2 ? 0 : 1)) add(x + (c - (nc - 1) / 2) * w / nc, 0.9 + k * 2.8, f + o * 0.07, 1.12, 1.29, 0.16, r() < 0.07 ? P.lit : P.glass);
 }
 const pickDoor = (r) => [P.red, P.maroon, P.navy, P.white][r() * 4 | 0];
 export const HUB_Y = 21.9, HUB_DZ = 1.4; // rotor centre above the tower, in front of the nacelle
@@ -35,8 +35,8 @@ export function buildCountry(add, curve, tree, [c0, c1], leg = 0, onArchitecture
   for (const s of SX) { // side streets, from the road pavement (ends 8.75 out) to the lawn ends
     const z = zr(s);
     add(s, -0.01, z + 24.4, 4.6, 0.12, 31.3, P.concreteMid);
-    add(s, -0.01, (z - 8.75 - 29.3) / 2, 4.6, 0.12, z - 8.75 + 29.3, P.concreteMid);
-    add(s, -0.01, -80.5, 4.6, 0.12, 39, P.concreteMid);
+    add(s, -0.01, (z - 8.75 - 29.3) / 2 + 0.01, 4.6, 0.12, z - 8.75 + 29.28, P.concreteMid); // 0.02 short of the lawn ends: no shared end planes
+    add(s, -0.01, -80.5, 4.6, 0.12, 38.96, P.concreteMid);
   }
   // row: zf(x) house-centre z, o facing, floors [lo, hi], low roofs, flats probability, green-gap probability, depth
   let rowId = 0;

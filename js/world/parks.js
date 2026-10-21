@@ -55,11 +55,12 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
     const world = (u, v) => (wide ? [cx + u, cz + v] : [cx + v, cz + u]);
     const clearOfSigns = (u, v) => { const [x, z] = world(u, v); return spots.every(([a, b]) => Math.hypot(a - x, b - z) > CLEAR); };
     const mainPath = !park.nopath && S >= 6, cross = mainPath && S >= 10 && L >= 16, plaza = park.fountain || park.pond, taken = [];
-    B(0, 0, 0.02, L, 0.05, S, park.paved || LAWN);
+    const e = !ring && !park.paved ? 0.04 : 0; // bordered lawns sit
+    B(0, 0, 0.02, L - e, 0.05, S - e, park.paved || LAWN); // 0.02 inside their border strips, so buildings that share the park edge do not share its planes
     if (!ring && !park.paved) {
       for (const f of [-1, 1]) {
-        B(0, f * (S / 2 + 0.225), 0.02, L + 0.9, 0.05, 0.45, benchmark ? P.stone : P.pave);
-        B(f * (L / 2 + 0.225), 0, 0.02, 0.45, 0.05, S, benchmark ? P.stone : P.pave);
+        B(0, f * (S / 2 + 0.205), 0.02, L + 0.86, 0.05, 0.45, benchmark ? P.stone : P.pave);
+        B(f * (L / 2 + 0.205), 0, 0.02, 0.45, 0.05, S - 0.05, benchmark ? P.stone : P.pave);
       }
     }
     if (ring) { // gravel ring over inset 0.3..1.9 of the loop rect
@@ -106,7 +107,7 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
       const at = spot(1.6, 40, 0.65); if (!at) continue;
       const [u, v] = at;
       B(u, v, 0.05, 2.6, 0.12, 1.2, SOIL);
-      for(const f of [-1,1]) { B(u,v+f*.54,.05,2.6,.16,.12,STONE);B(u+f*1.24,v,.05,.12,.16,.96,STONE); }
+      for(const f of [-1,1]) { B(u,v+f*.56,.05,2.64,.16,.12,STONE);B(u+f*1.26,v,.05,.12,.16,1,STONE); } // rims sit 0.02 proud of the soil: no shared planes
       BLOOM.forEach((c, k) => B(u - 0.825 + k * 0.55, v, 0.12, 0.5, 0.28, 0.95, c));
     }
     for (let i = 0; i < Math.max(2, Math.round(L / 9)); i++) { // bushes and low hedge runs

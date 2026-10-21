@@ -40,7 +40,7 @@ export function house(add, q, x, z, o, w, d, n, fh = 3.1, lo = false) {
         F(wx, y + 0.3, 2.4, 0.14, 0.9, W);
         F(wx, y + 1.0, 2.4, 0.08, 0.9, W, 0.82);
         for (const j of [-1.1, -0.55, 0, 0.55, 1.1]) F(wx + j, y + 0.44, 0.07, 0.56, 0.9, W, 0.83);
-      } else F(wx, y + 0.46, 1.8, 0.14, 0.4, W);
+      } else F(wx, y + 0.46, 1.8, 0.12, 0.4, W); // top 0.02 under the 0.6 lintel/roof-cap planes
       F(wx, y + 0.6, 1.5, 2.2, 0.14, W);
       F(wx, y + 0.8, 1.1, 1.8, 0.18, q() < 0.08 ? P.lit : P.glass, 0.02);
       F(wx, y + 0.83, 0.08, 1.74, 0.24, W, 0.16);

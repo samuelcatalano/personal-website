@@ -52,11 +52,11 @@ export function buildGlasgow(add, { x, z: roadZ }, onTree) {
   add(x, 4.4, sz, 4.2, 1.6, 1.3, P.bronze); // body
   add(x + 2.1, 5.5, sz, 1, 1.2, 0.8, P.bronze); // neck base
   add(x + 2.4, 6.4, sz, 0.8, 1, 0.7, P.bronze); // neck arch
-  add(x + 1.9, 6, sz, 0.35, 1.4, 0.3, BRONZE_DK); // mane
+  add(x + 1.9, 6, sz, 0.35, 1.38, 0.3, BRONZE_DK); // mane
   add(x + 2.9, 6.7, sz, 0.9, 0.8, 0.7, P.bronze); // head
   add(x + 3.45, 5.9, sz, 0.6, 1.3, 0.55, P.bronze); // muzzle
   add(x + 2.65, 7.5, sz, 0.25, 0.4, 0.5, BRONZE_DK); // ears
-  add(x - 2.3, 5.2, sz, 0.5, 0.8, 0.45, BRONZE_DK); // tail root
+  add(x - 2.3, 5.2, sz, 0.5, 0.78, 0.45, BRONZE_DK); // tail root
   add(x - 2.45, 3.5, sz, 0.4, 1.7, 0.4, BRONZE_DK); // tail
   add(x - 0.2, 6, sz, 1.8, 0.2, 1.5, BRONZE_DK); // saddle
   for (const s of [-1, 1]) {
