@@ -43,10 +43,11 @@ print(js(r'''(async () => {
   check(landmarkParts.details.getObjectByName('bigben-geometry')?.position.x === bigBen.x && landmarkParts.details.getObjectByName('bigben-geometry')?.position.z === RIVER_Z - 16,
     'Tower Bridge changes must leave Big Ben in its existing position');
   const glasgow = pts[stops.findIndex(s => s.id === 'glasgow')];
-  check(boxes.some(b => b.x === glasgow.x && b.z === glasgow.z - 41 && b.w === 30 && b.h === 8 && b.d === 3 && b.color === PALETTE.sandstone),
-    'Glasgow must add the City Chambers facade at its route stop');
-  check(boxes.some(b => b.x === glasgow.x - 0.2 && b.y >= 8 && b.z === glasgow.z - 20 && b.w === 0.9 && b.color === '#f36b21'),
-    'Glasgow must add the Duke of Wellington traffic cone');
+  const chambers = landmarkParts.details.getObjectByName('chambers-geometry'), statue = landmarkParts.details.getObjectByName('wellington-geometry');
+  check(chambers?.position.x === glasgow.x && chambers.position.z === glasgow.z - 41 && chambers.children.length >= 3,
+    'Glasgow must add the City Chambers geometry at its route stop');
+  check(statue?.position.x === glasgow.x && statue.position.z === glasgow.z - 20 && statue.children.length >= 1,
+    'Glasgow must add the Duke of Wellington statue geometry');
   // Heathrow stays on the far side, clear of the street band and the Thames bank.
   const hIdx = stops.findIndex(stop => stop.id === 'move'), hx = pts[hIdx].x, hz = pts[hIdx].z;
   const heathrow = boxes.filter(b => Math.abs(b.x - hx) <= 13 && b.z < hz - 5 && b.z > RIVER_Z + 10);

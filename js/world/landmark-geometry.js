@@ -468,3 +468,104 @@ export function createBoat(hullColor,cabinColor){
   box(-.4,2.0,0,3,.12,1.9,S.trim,pale,1);
   const out=finish();boatCache.set(key,out);return out.clone();
 }
+
+// ---- Glasgow City Chambers: Italian-Renaissance palace, sandstone, rusticated base, pedimented portico, domed tower + corner cupolas ----
+// Local frame: x along the facade, +z toward George Square, y up. Window/arch openings are rings (recessed glass) so no faces are coplanar.
+export function createChambers(x,z){
+  const {box,add,finish,pale,slate}=landmark('chambers',x,z),sand=[1.08,.97,.76],light=[1.22,1.12,.9],rust=[.98,.86,.62],joint=[.7,.6,.42],glass=[.75,.85,.95],lead=[.95,1,1.04],gilt=[1.1,.9,.45],dark=[.45,.4,.34];
+  const cyl=(rt,rb,y,h,cx,cz,seg=14,surface=S.stone,tint=sand,bucket=0)=>add(new THREE.CylinderGeometry(rt,rb,h,seg),cx,y+h/2,cz,surface,tint,bucket);
+  const dome=(r,y,h,cx,cz,seg=16)=>add(lathe([[r,0],[r*.99,h*.06],[r*.9,h*.35],[r*.7,h*.62],[r*.42,h*.84],[r*.16,h*.97],[0,h]].map(([a,b])=>[a,b]),seg),cx,y,cz,S.roof,lead);
+  const outline=(w,yb,yt,round)=>{const s=new THREE.Shape(),r=w/2;s.moveTo(-r,yb);s.lineTo(r,yb);if(round){s.lineTo(r,yt-r);s.absarc(0,yt-r,r,0,Math.PI,false);}else{s.lineTo(r,yt);s.lineTo(-r,yt);}s.closePath();return s;};
+  // Recessed opening: glass pane against the wall plane z0, framed by an extruded surround ring (+ optional pediment / lintel slab).
+  const win=(cx,y,w,h,z0,{round=false,surface=S.litGlass,tint=glass,ped=0}={})=>{
+    const outer=outline(w+.5,-.12,h+.25,round);outer.holes.push(new THREE.Path(outline(w,0,h,round).getPoints(5)));
+    add(new THREE.ExtrudeGeometry(outer,{depth:.16,bevelEnabled:false,curveSegments:5}),cx,y,z0,S.stone,light,1);
+    add(new THREE.ExtrudeGeometry(outline(w,0,h,round),{depth:.05,bevelEnabled:false,curveSegments:5}),cx,y,z0,surface,tint,surface===S.door?0:2);
+    box(cx,y-.27,z0,w+.8,.15,.3,S.stone,light,1);
+    const top=y+h+.25+(round?0:0);
+    if(ped===1){const t=new THREE.Shape([new THREE.Vector2(-w/2-.45,0),new THREE.Vector2(w/2+.45,0),new THREE.Vector2(0,.5)]);add(new THREE.ExtrudeGeometry(t,{depth:.24,bevelEnabled:false}),cx,top,z0,S.stone,light,1);}
+    else if(ped===2)box(cx,top,z0,w+.9,.18,.3,S.stone,light,1);
+  };
+  const F=2.2;
+  // main body, rusticated base with joint courses, string courses and cornice
+  box(0,0,0,30,10.2,4.4,S.stone,sand);
+  box(0,0,0,30.4,4,4.8,S.stone,rust);
+  for(let y=.7;y<4;y+=.7)box(0,y,F+.2+.03,30.4,.08,.06,S.stone,joint);
+  box(0,3.95,0,31,.3,5.2,S.stone,light,1);box(0,7.85,0,30.5,.2,4.9,S.stone,light,1);
+  box(0,10.2,0,31.4,.6,5.2,S.stone,light,1);
+  for(let cx=-15;cx<=15.01;cx+=1)box(cx,9.8,F+.15,.3,.4,.3,S.stone,light,1);
+  box(0,10.8,0,28,.5,3.2,S.roof,slate);
+  for(const s of [-1,1]){
+    // wing windows: arched ground floor, pedimented piano nobile, small attic row
+    for(const wx of [4.6,6.8,9]){
+      win(s*wx,1,1.1,2.4,F+.2,{round:true,surface:S.glass});
+      win(s*wx,4.7,1.1,2.3,F,{ped:wx===6.8?1:2});
+      win(s*wx,8.35,1.0,1.3,F,{ped:2});
+    }
+    for(let px=3.8;px<10.7;px+=.6){box(s*px,10.8,2.1,.2,.7,.2,S.stone,light,1);}
+    box(s*7.25,10.8,2.1,6.9,.14,.5,S.stone,light,1);box(s*7.25,11.55,2.1,6.9,.14,.5,S.stone,light,1);
+    // corner pavilion with its own cupola
+    const px=s*12.8;
+    box(px,0,.3,4.4,12,5,S.stone,sand);box(px,0,.3,4.8,4,5.4,S.stone,rust);
+    for(let y=.7;y<4;y+=.7)box(px,y,3.03,4.8,.08,.06,S.stone,joint);
+    box(px,3.95,.3,5,.3,5.6,S.stone,light,1);box(px,7.85,.3,4.6,.2,5.1,S.stone,light,1);box(px,12,.3,5.2,.5,5.6,S.stone,light,1);
+    win(px,1,1.4,2.4,3,{round:true,surface:S.glass});win(px,4.7,1.2,2.3,2.8,{ped:1});win(px,8.35,1.1,1.3,2.8,{ped:2});win(px,10.3,.9,1,2.8,{round:true});
+    for(const q of [-1,1])box(px+q*1.9,0,3.0,.4,12,.3,S.stone,light,1); // quoin strips
+    cyl(1.1,1.2,12.5,.9,px,.3);cyl(1.3,1.3,13.4,.2,px,.3,14,S.trim,light,1);dome(1.25,13.6,1.6,px,.3,14);cyl(.2,.2,15.2,.55,px,.3,8,S.trim,light,1);cyl(0,.3,15.75,.5,px,.3,8,S.trim,gilt,1);
+  }
+  // central pedimented portico: arched loggia below, columned piano nobile above
+  box(0,0,1.85,6.2,10.2,3.7,S.stone,sand);box(0,0,1.9,6.6,4,4.2,S.stone,rust);
+  for(let y=.7;y<4;y+=.7)box(0,y,3.93,6.6,.08,.06,S.stone,joint);
+  win(0,0,1.5,3.2,3.9,{round:true,surface:S.door,tint:dark});
+  for(const s of [-1,1])win(s*2.15,0,1.1,2.6,3.9,{round:true,surface:S.door,tint:dark});
+  box(0,0,4.7,5.4,.2,1.8,S.stone,pale);box(0,.2,4.5,4.4,.2,1.2,S.stone,pale);
+  box(0,3.95,1.9,7,.3,4.4,S.stone,light,1);
+  for(const wx of [-1.7,0,1.7])win(wx,4.7,.8,2.6,3.7,{round:true});
+  for(const wx of [-2.55,-.85,.85,2.55]){cyl(.22,.22,4.25,3.8,wx,3.95,12,S.stone,light);box(wx,4.25,3.95,.6,.15,.6,S.stone,light,1);box(wx,8.0,3.95,.6,.2,.6,S.stone,light,1);}
+  box(0,8.05,1.9,7.4,.9,4.5,S.stone,light,1);
+  for(const wx of [-1.4,1.4])win(wx,9.3,.7,.8,3.7,{ped:2});
+  box(0,9.35,3.74,.9,.9,.12,S.stone,gilt,1);
+  box(0,10.2,1.9,7.4,.6,4.6,S.stone,light,1);
+  const ped=new THREE.Shape([new THREE.Vector2(-3.9,0),new THREE.Vector2(3.9,0),new THREE.Vector2(0,1.5)]);
+  add(new THREE.ExtrudeGeometry(ped,{depth:.8,bevelEnabled:false}),0,10.8,3.4,S.stone,light,1);
+  // tower, colonnaded drum, ribbed dome and lantern; pole base lands at y=18.5
+  box(0,10.2,0,5.8,3,4,S.stone,sand);box(0,13.2,0,6.6,.3,4.8,S.stone,light,1);
+  for(const s of [-1,1])for(const q of [-1,1])box(s*2.8,10.8,q*1.9,.4,2.4,.4,S.stone,light,1);
+  cyl(1.55,1.6,13.5,1.2,0,0);
+  for(let i=0;i<8;i++){const a=i*Math.PI/4+Math.PI/8;cyl(.14,.14,13.5,1.2,Math.cos(a)*1.78,Math.sin(a)*1.78,8,S.stone,light);}
+  cyl(2.1,2.1,14.7,.3,0,0,16,S.trim,light,1);
+  dome(2.0,15,2,0,0,20);
+  cyl(.45,.5,17,.9,0,0,10,S.stone,light);cyl(.58,.58,17.85,.15,0,0,10,S.trim,light,1);cyl(0,.5,18,.5,0,0,10,S.roof,lead);
+  return finish();
+}
+
+// ---- Duke of Wellington statue: stepped plinth, bronze horse and rider, traffic cone (the Glasgow in-joke) ----
+export function createWellington(x,z){
+  const {box,add,finish,pale}=landmark('wellington',x,z),stone=[1,.96,.9],bz=tintOf(P.bronze).map((q,i)=>q*[.62,.66,.6][i]),dk=tintOf('#4a3a22').map(q=>q*.8),orange=tintOf('#f36b21'),white=[1.2,1.2,1.2];
+  const br=(g,px,py,pz,tint=bz)=>add(g,px,py,pz,S.trim,tint,0);
+  const limb=(a,b,r1,r2,tint=bz,seg=6)=>{const d=b.clone().sub(a),g=new THREE.CylinderGeometry(r2,r1,d.length(),seg);g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize()));const m=a.clone().add(b).multiplyScalar(.5);br(g,m.x,m.y,m.z,tint);};
+  const ell=(rx,ry,rz,px,py,pz,tint=bz)=>{const g=new THREE.SphereGeometry(1,9,6);g.scale(rx,ry,rz);br(g,px,py,pz,tint);};
+  // plinth: base steps, dado with moulding, cornice and cap slab
+  box(0,0,0,5.8,.5,3,S.stone,stone);box(0,.5,0,5.3,.5,2.6,S.stone,pale);box(0,1,0,4.7,1.1,2.1,S.stone,stone);box(0,1,0,4.95,.15,2.35,S.stone,pale);
+  box(0,1.5,1.08,2.2,.8,.06,S.trim,stone,1);
+  box(0,2.1,0,5.1,.25,2.6,S.stone,pale);box(0,2.35,0,5.4,.25,2.8,S.stone,stone);
+  const y0=2.6;
+  for(const [hx,hz] of [[1.4,-.45],[1.4,.45],[-1.45,-.45],[-1.45,.45]]){
+    br(new THREE.CylinderGeometry(.19,.22,.22,8),hx,y0+.11,hz,dk);
+    limb(v(hx,y0+.22,hz),v(hx+(hx<0?-.05:.05),y0+1.7,hz*.9),.12,.22);
+  }
+  ell(1.55,.78,.68,0,y0+2.05,0);ell(.85,.85,.68,1.1,y0+2.2,0);ell(.95,.82,.68,-1.2,y0+2.05,0); // barrel, chest, haunch
+  limb(v(1.55,y0+2.35,0),v(2.35,y0+3.5,0),.45,.3);                                           // neck
+  limb(v(2.2,y0+3.55,0),v(3.05,y0+3.05,0),.3,.18);ell(.33,.3,.28,2.45,y0+3.65,0);              // head, jaw
+  for(const s of [-1,1])br(new THREE.ConeGeometry(.07,.3,5),2.3,y0+3.95,s*.16,dk);            // ears
+  limb(v(1.5,y0+2.9,0),v(2.15,y0+3.8,0),.09,.09,dk,6);                                       // mane
+  limb(v(-2,y0+2.5,0),v(-2.45,y0+1.2,0),.17,.05,dk);                                         // tail
+  ell(.85,.12,.75,-.15,y0+2.78,0,dk);                                                        // saddle cloth
+  const hip=v(-.15,y0+3.05,0);
+  for(const s of [-1,1]){const k=v(.3,y0+2.55,s*.72);limb(hip.clone().setZ(s*.25),k,.2,.14);limb(k,v(.2,y0+1.95,s*.76),.13,.1);br(new THREE.BoxGeometry(.45,.12,.2),.38,y0+1.88,s*.78,dk);}
+  limb(v(-.15,y0+3.1,0),v(-.1,y0+3.85,0),.34,.3);ell(.36,.5,.34,-.12,y0+3.6,0);               // torso
+  limb(v(.0,y0+3.8,.28),v(.75,y0+3.35,.3),.1,.08);limb(v(0,y0+3.8,-.28),v(-.05,y0+3.2,-.4),.1,.08); // arms
+  ell(.24,.26,.24,-.1,y0+4.2,0);                                                              // head
+  br(new THREE.ConeGeometry(.3,.75,10),-.1,y0+4.8,0,orange);br(new THREE.CylinderGeometry(.19,.24,.14,10),-.1,y0+4.85,0,white);br(new THREE.CylinderGeometry(.34,.34,.05,10),-.1,y0+4.45,0,orange);
+  return finish();
+}

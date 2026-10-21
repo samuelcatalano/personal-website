@@ -7,7 +7,7 @@ import { flag } from './flags.js';
 const CONE_ORANGE = '#f36b21', BRONZE_DK = '#4a3a22';
 
 // z is the road centre; George Square sits on its far-side (-z) edge.
-export function buildGlasgow(add, { x, z: roadZ }, onTree) {
+export function buildGlasgow(add, { x, z: roadZ }, onTree, createChambers, createStatue) {
   const squareZ = roadZ - 28, chambersZ = roadZ - 41;
 
   add(x, 0.01, squareZ, 40, 0.14, 22, P.gravel);
@@ -26,51 +26,59 @@ export function buildGlasgow(add, { x, z: roadZ }, onTree) {
     }
   }
 
-  // City Chambers: broad sandstone civic facade, glazed bays, and a central dome.
-  add(x, 0, chambersZ, 30, 8, 3, P.sandstone);
-  add(x, 8, chambersZ, 32, 1, 3.4, P.sandstone);
-  add(x, 9, chambersZ, 26, 0.45, 3.7, P.gilt);
-  add(x, 9.45, chambersZ, 12, 3, 4, P.sandstone);
-  add(x, 12.45, chambersZ, 6, 0.5, 4.5, P.gilt);
-  for (const dx of [-12, -8, -4, 4, 8, 12]) add(x + dx, 1.6, chambersZ + 1.56, 2.1, 4.3, 0.12, P.ink);
-  for (const dx of [-5, -2.5, 2.5, 5]) add(x + dx, 1.2, chambersZ + 2.06, 0.7, 6.8, 0.35, P.cream);
-  add(x, 0, chambersZ + 2.1, 4.6, 5.2, 0.45, P.ink);
-  add(x, 13, chambersZ, 6, 1.2, 4.5, P.sandstone);
-  add(x, 14.2, chambersZ, 4, 1, 3.5, P.gilt);
-  add(x, 15.2, chambersZ, 1.3, 2.5, 1.3, P.sandstone);
-  flag(add, x, 17.7, chambersZ, 'saltire');
+  if (createChambers) { // ponytail: voxel palace + statue kept as the fallback for headless tests that pass no geometry callbacks
+    createChambers({ x, z: chambersZ });
+    flag(add, x, 18.5, chambersZ, 'saltire');
+  } else {
+    // City Chambers: broad sandstone civic facade, glazed bays, and a central dome.
+    add(x, 0, chambersZ, 30, 8, 3, P.sandstone);
+    add(x, 8, chambersZ, 32, 1, 3.4, P.sandstone);
+    add(x, 9, chambersZ, 26, 0.45, 3.7, P.gilt);
+    add(x, 9.45, chambersZ, 12, 3, 4, P.sandstone);
+    add(x, 12.45, chambersZ, 6, 0.5, 4.5, P.gilt);
+    for (const dx of [-12, -8, -4, 4, 8, 12]) add(x + dx, 1.6, chambersZ + 1.56, 2.1, 4.3, 0.12, P.ink);
+    for (const dx of [-5, -2.5, 2.5, 5]) add(x + dx, 1.2, chambersZ + 2.06, 0.7, 6.8, 0.35, P.cream);
+    add(x, 0, chambersZ + 2.1, 4.6, 5.2, 0.45, P.ink);
+    add(x, 13, chambersZ, 6, 1.2, 4.5, P.sandstone);
+    add(x, 14.2, chambersZ, 4, 1, 3.5, P.gilt);
+    add(x, 15.2, chambersZ, 1.3, 2.5, 1.3, P.sandstone);
+    flag(add, x, 17.7, chambersZ, 'saltire');
+  }
 
   // Duke of Wellington: stepped plinth, horse facing +x, rider; cone is the Glasgow in-joke.
   const sz = roadZ - 20;
-  add(x, 0, sz, 5.8, 0.8, 3, P.concrete);
-  add(x, 0.8, sz, 4.8, 1.2, 2.4, P.stone);
-  add(x, 2, sz, 5.4, 0.6, 2.8, P.concrete);
-  for (const [dx, dz] of [[1.5, -0.45], [1.5, 0.45], [-1.5, -0.45], [-1.5, 0.45]]) {
-    add(x + dx, 2.6, sz + dz, 0.5, 0.3, 0.5, BRONZE_DK); // hoof
-    add(x + dx, 2.9, sz + dz, 0.5, 1.5, 0.45, P.bronze); // leg
+  if (createStatue) createStatue({ x, z: sz });
+  else {
+    add(x, 0, sz, 5.8, 0.8, 3, P.concrete);
+    add(x, 0.8, sz, 4.8, 1.2, 2.4, P.stone);
+    add(x, 2, sz, 5.4, 0.6, 2.8, P.concrete);
+    for (const [dx, dz] of [[1.5, -0.45], [1.5, 0.45], [-1.5, -0.45], [-1.5, 0.45]]) {
+      add(x + dx, 2.6, sz + dz, 0.5, 0.3, 0.5, BRONZE_DK); // hoof
+      add(x + dx, 2.9, sz + dz, 0.5, 1.5, 0.45, P.bronze); // leg
+    }
+    add(x, 4.4, sz, 4.2, 1.6, 1.3, P.bronze); // body
+    add(x + 2.1, 5.5, sz, 1, 1.2, 0.8, P.bronze); // neck base
+    add(x + 2.4, 6.4, sz, 0.8, 1, 0.7, P.bronze); // neck arch
+    add(x + 1.9, 6, sz, 0.35, 1.38, 0.3, BRONZE_DK); // mane
+    add(x + 2.9, 6.7, sz, 0.9, 0.8, 0.7, P.bronze); // head
+    add(x + 3.45, 5.9, sz, 0.6, 1.3, 0.55, P.bronze); // muzzle
+    add(x + 2.65, 7.5, sz, 0.25, 0.4, 0.5, BRONZE_DK); // ears
+    add(x - 2.3, 5.2, sz, 0.5, 0.78, 0.45, BRONZE_DK); // tail root
+    add(x - 2.45, 3.5, sz, 0.4, 1.7, 0.4, BRONZE_DK); // tail
+    add(x - 0.2, 6, sz, 1.8, 0.2, 1.5, BRONZE_DK); // saddle
+    for (const s of [-1, 1]) {
+      add(x - 0.1, 5.1, sz + s * 0.85, 0.65, 1.4, 0.4, P.bronze); // rider leg
+      add(x + 0.15, 4.85, sz + s * 0.85, 0.95, 0.35, 0.5, BRONZE_DK); // boot in stirrup
+    }
+    add(x - 0.2, 6.2, sz, 0.9, 1.4, 1.1, P.bronze); // torso
+    add(x + 0.5, 6.7, sz + 0.65, 0.9, 0.4, 0.35, P.bronze); // reins arm
+    add(x + 1.05, 6.6, sz + 0.65, 0.4, 0.4, 0.4, BRONZE_DK); // hand
+    add(x - 0.2, 6.2, sz - 0.65, 0.35, 1, 0.35, P.bronze); // free arm
+    add(x - 0.2, 7.6, sz, 0.8, 0.8, 0.8, P.bronze); // head
+    add(x - 0.2, 8.4, sz, 0.9, 0.7, 0.9, CONE_ORANGE);
+    add(x - 0.2, 9.1, sz, 0.7, 0.3, 0.7, P.white);
+    add(x - 0.2, 9.4, sz, 0.5, 0.6, 0.5, CONE_ORANGE);
   }
-  add(x, 4.4, sz, 4.2, 1.6, 1.3, P.bronze); // body
-  add(x + 2.1, 5.5, sz, 1, 1.2, 0.8, P.bronze); // neck base
-  add(x + 2.4, 6.4, sz, 0.8, 1, 0.7, P.bronze); // neck arch
-  add(x + 1.9, 6, sz, 0.35, 1.38, 0.3, BRONZE_DK); // mane
-  add(x + 2.9, 6.7, sz, 0.9, 0.8, 0.7, P.bronze); // head
-  add(x + 3.45, 5.9, sz, 0.6, 1.3, 0.55, P.bronze); // muzzle
-  add(x + 2.65, 7.5, sz, 0.25, 0.4, 0.5, BRONZE_DK); // ears
-  add(x - 2.3, 5.2, sz, 0.5, 0.78, 0.45, BRONZE_DK); // tail root
-  add(x - 2.45, 3.5, sz, 0.4, 1.7, 0.4, BRONZE_DK); // tail
-  add(x - 0.2, 6, sz, 1.8, 0.2, 1.5, BRONZE_DK); // saddle
-  for (const s of [-1, 1]) {
-    add(x - 0.1, 5.1, sz + s * 0.85, 0.65, 1.4, 0.4, P.bronze); // rider leg
-    add(x + 0.15, 4.85, sz + s * 0.85, 0.95, 0.35, 0.5, BRONZE_DK); // boot in stirrup
-  }
-  add(x - 0.2, 6.2, sz, 0.9, 1.4, 1.1, P.bronze); // torso
-  add(x + 0.5, 6.7, sz + 0.65, 0.9, 0.4, 0.35, P.bronze); // reins arm
-  add(x + 1.05, 6.6, sz + 0.65, 0.4, 0.4, 0.4, BRONZE_DK); // hand
-  add(x - 0.2, 6.2, sz - 0.65, 0.35, 1, 0.35, P.bronze); // free arm
-  add(x - 0.2, 7.6, sz, 0.8, 0.8, 0.8, P.bronze); // head
-  add(x - 0.2, 8.4, sz, 0.9, 0.7, 0.9, CONE_ORANGE);
-  add(x - 0.2, 9.1, sz, 0.7, 0.3, 0.7, P.white);
-  add(x - 0.2, 9.4, sz, 0.5, 0.6, 0.5, CONE_ORANGE);
 }
 
 // Green, residential Glasgow edges (own rng, nothing else shifts): the approach between the countryside and George Square (low houses and sandstone flats on the near bank, leaving the museum and university sightlines open) and the Scottish edge after the square.

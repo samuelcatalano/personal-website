@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { LANDMARKS, stopIndex, RIVER_Z, towerX, glasgowSites } from './layout.js';
 import { PALETTE as P } from './palette.js';
-import { createWembley, createBigBen, createMasp, createSe, createEstaiada, createTowerBridge, createHeathrow, createPlane, createLondonEye, createCopan, createRiverside, createUniversity } from './landmark-geometry.js';
+import { createWembley, createBigBen, createMasp, createSe, createEstaiada, createTowerBridge, createHeathrow, createPlane, createLondonEye, createCopan, createRiverside, createUniversity, createChambers, createWellington } from './landmark-geometry.js';
 import { buildSaoPaulo } from './saopaulo.js';
 import { createHeroBackground } from './hero-background.js';
 import { createCityRollout } from './city-rollout.js';
@@ -61,7 +61,7 @@ export function buildLandmarks(add, stops, pts, onTree) {
   details.add(towerBridge(add, { x: towerX(stops, pts) }));
   const { wheel, frame } = createLondonEye(at(stops, pts, 'eye').x, RIVER_Z + 13); details.add(frame);
   details.add(createWembley(at(stops, pts, 'wembley').x, RIVER_Z - 26));
-  buildGlasgow(add, at(stops, pts, 'glasgow'), onTree);
+  buildGlasgow(add, at(stops, pts, 'glasgow'), onTree, site => details.add(createChambers(site.x, site.z)), site => details.add(createWellington(site.x, site.z)));
   const { museum, uni } = glasgowSites(stops, pts), hill = (dx, w, d, y, h, c) => add(uni.x + dx, y, uni.z, w, h, d, c);
   buildRiverside(add, museum, site => details.add(createRiverside(site.x, site.z)));
   hill(0, uni.w + 12, 24, 0, 1.2, P.steel); hill(0, uni.w + 6, 20, 1.2, 1.3, P.skyBlue); // blue-grey paved plaza the university stands on
