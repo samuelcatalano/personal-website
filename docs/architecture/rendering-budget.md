@@ -142,3 +142,18 @@ New resources: one display-space grade ShaderPass after OutputPass (both tiers; 
 One sample per device, 2 s warmup + 10 s, same hero shot, Chrome (ANGLE Metal, Apple M3 Max), cache disabled: desktop 1440×900 DPR 1.5 median 8.3 ms / p95 9.3 ms; emulated mobile 375×812 DPR 1 median 8.3 ms / p95 9.3 ms (both at the 120 Hz scheduling cap). Zero console errors. Frame intervals include browser scheduling; not a calibrated A/B or physical-device result. Draw calls/triangles not re-instrumented in this pass.
 
 Gates: 101/101 Node, 32/32 browser suites including the strict coplanar guard (0 pairs). PERFORMANCE GO local; physical mobile still unvalidated.
+
+## Vehicles/night baseline — 2026-10-21 (official for the vehicles/Heathrow/night-lighting plan)
+
+Captured before phase 1 at commit 0e5531b. Contract above: desktop 1440×900 DPR 1.5 high, emulated mobile 375×812 DPR 1 medium, 2 s warmup + 10 s sample, cache disabled, day, Chrome (ANGLE Metal, Apple M3 Max). Draw calls and submitted triangles are counted per frame by wrapping WebGL2 `draw*` calls in the test page only (all passes: shadow, normal/GTAO, colour, post). Calls/tris shown as median per frame (min–max). Heap = `performance.memory.usedJSHeapSize`; `renderer.info.memory` is not reachable without shipped instrumentation.
+
+| Scenario | Repeats | Median ms | p95 ms | Calls/frame | Submitted tris/frame | JS heap MiB |
+|---|---:|---:|---:|---:|---:|---:|
+| Desktop high, hero shot | 3 | 8.3 / 8.3 / 8.3 | 9.0 / 8.9 / 8.8 | 430 / 438 / 433 (429–458) | 863.1k / 863.6k / 863.3k | 226–231 |
+| Mobile medium, hero shot | 3 | 8.3 / 8.3 / 8.3 | 9.2 / 9.2 / 9.1 | 168 / 175 / 169 (166–183) | 238.7k / 239.1k / 238.7k | 185–206 |
+| Supplementary: desktop, London stop 10, day | 1 | 8.3 | 8.7 | 761 | 1,006.5k | 244 |
+| Supplementary: mobile, London stop 10, day | 1 | 8.3 | 9.1 | 183 | 222.5k | 183 |
+| Supplementary: desktop, London stop 10, night | 1 | 8.3 | 8.6 | 849 | 1,006.6k | 243 |
+| Supplementary: mobile, London stop 10, night | 1 | 8.3 | 9.1 | 267 | 222.4k | 216 |
+
+Frame intervals sit at the 120 Hz scheduling cap, so frame-time ceilings are only meaningful if work grows past it. Ceilings for this plan: calls ≤ +5%, submitted tris ≤ +5%, desktop p95 ≤ +1 ms, mobile p95 ≤ +2 ms (vs hero baseline; the London rows are tracked as supplementary evidence). Zero console errors.

@@ -1,6 +1,6 @@
 # Vehicles, Heathrow removal and landmark night lighting — design & plan
 
-Date: 2026-10-21 · Branch `feat/site-gamefication` · Status: **for user review, not implemented**.
+Date: 2026-10-21 · Branch `feat/site-gamefication` · Status: **APPROVED by the user 2026-10-21** with the four adjustments below.
 
 ## Intent
 
@@ -66,12 +66,12 @@ Make the vehicles read as the user's North Star references (Mini Cooper, London 
 - **PERF:** hero ≤8k tris, ambient ≤4k. **VISUAL:** modern London bus per reference.
 
 ### B7. Glasgow First-style bus (Wright StreetDeck) — player in Scotland + ambient
-- **APPROACH:** own shell: squarer roof line, flatter front with large two-piece windscreen, silver-white front and diagonal swoosh, purple body, lavender diagonal stripes, yellow mirror heads, orange LED destination, white roof pods. Player model swaps London↔Glasgow at the existing `scotRange` boundaries (instant swap — same moment the purple repaint happens today); ambient Glasgow traffic uses it too.
+- **APPROACH:** own shell: squarer roof line, flatter front with large two-piece windscreen, silver-white front and diagonal swoosh, purple body, lavender diagonal stripes, yellow mirror heads, orange LED destination, white roof pods. Logical state still flips at exactly the existing `scotRange` boundaries, but the **visible** geometry swap is deferred to a low-salience moment: the first frame after the boundary where the player bus is outside the camera frustum, occluded (bounding-box centre behind scene geometry along the camera ray), or during the section/camera blend arc — with a hard fallback at the next stop mark so the correct model is always shown in the stop shot. No crossfade. Ambient Glasgow buses only exist inside the Scotland range, so they never swap on screen.
 - **RISK:** low/medium (instant swap pop on camera; accepted today for the livery). **PERF:** same as B6. **VISUAL:** distinct Glasgow identity.
 
 ### B8. A330 + independent flight lifecycle
 - **CHANGE:** new `aircraft.js` owning a tiny state machine `OFFSCREEN → ENTER → CRUISE → EXIT → COOLDOWN`, independent of stops/bus. Each cycle picks a diagonal path across the current view (computed from camera position/forward at ENTER), altitude 55–70 m, speed ~14 m/s, cruise ~20–25 s, cooldown 25–45 s (deterministic seed sequence). Gentle bank in/out, extremely subtle scale ease. Hidden when `prefers-reduced-motion`.
-- **Model:** in `vehicles.js` (`buildVehicle('a330')`): lathe fuselage (16 seg) with nose/tail cones, cockpit windows, window band (dark strip), swept wings with winglets, 2 turbofans, stabilisers, tall fin; white body, navy belly, abstract red/white/blue tail ribbons. Visual length ~26 m (deliberately below real 58 m for readability at altitude).
+- **Model:** in `vehicles.js` (`buildVehicle('a330')`): lathe fuselage (16 seg) with nose/tail cones, cockpit windows, window band (dark strip), swept wings with winglets, 2 turbofans, stabilisers, tall fin; white body, navy belly, abstract red/white/blue tail ribbons. Visual length **36–42 m** (stylized, below real 58 m) at 55–70 m altitude: must read as a wide-body, never a toy.
 - **Night:** nav lights red (left wingtip) / green (right) / white strobe (tail) as tiny glow meshes, strobe blinks; one additive soft ground blob shadow scaled by altitude (real shadow map does not reach 60 m reliably).
 - **FILES:** new `aircraft.js` (why new: a self-contained ambient lifecycle with its own pure state function and test; doesn't belong to landmarks or traffic), `vehicles.js`, `scene.js`, `landmarks.js` (plane removed), `tests/aircraft.test.mjs` (pure state-machine test).
 - **RISK:** low. **PERF:** ≤4k tris, ~5 draw calls only when visible. **VISUAL:** occasional elegant flyover in every section.
@@ -86,13 +86,13 @@ Make the vehicles read as the user's North Star references (Mini Cooper, London 
 - **FILES:** `ambient.js`, `scene.js`. **RISK:** low. **PERF:** negligible CPU.
 
 ### B10–B13. Landmark night lighting (shared approach)
-Add a fourth bucket to `landmark()` in `landmark-geometry.js`: **lights** — thin emissive strips/tubes merged into one mesh per landmark with one shared glow material (`userData.glow`, per-landmark `glowK` and colour), dark-neutral by day, emissive at night through the existing `sky.update` path; bloom threshold unchanged so only the brightest lines bloom softly. Optional **wash**: a few additive vertical-gradient quads (one shared material, opacity = night) for "uplight" on big faces. **Zero point lights.**
+Add a fourth bucket to `landmark()` in `landmark-geometry.js`: **lightsWarm** and **lightsCool** — at most two emissive buckets per landmark (thin strips/tubes merged per bucket), each with one glow material shared across all landmarks (`userData.glow`, warm `#ffc27a`-ish / cool `#dfe9ff`-ish; per-strip intensity via vertex colour brightness), dark-neutral by day, emissive at night through the existing `sky.update` path; bloom threshold unchanged so only the brightest lines bloom softly. Optional **wash**: a few additive vertical-gradient quads (one shared material, opacity = night) for "uplight" on big faces. **Zero point lights.**
 
 - **B10 Ponte Estaiada:** emissive edge strips along both X pylon legs (inner edges brighter), cables themselves move to the lights bucket (thin warm-white lines), deck-edge strip both sides, pylon-base wash. Distant read: glowing X + fan.
 - **B11 Tower Bridge:** warm sodium-gold uplight wash on both stone towers, outline strips on tower corners/turret spires, upper walkways underside strips (cool white), chains as glowing lines (cool), deck-edge strip, lit gothic window recesses (existing glass → glow tint). No neon colours.
 - **B12 Riverside Museum:** zig-zag roofline edge strip (cool white), glazed gable ends warm interior glow, entrance band, faint ridge accents on folds; walls stay dark.
 - **B13 Wembley:** arch tube moved to lights bucket, strong cool-white glow (highest glowK in scene, beacon), cables faint; bowl glazing band low warm glow; stadium mass not emissive.
-- **FILES:** `landmark-geometry.js`, `sky.js` only if a per-material night curve is needed. **RISK:** low/medium (bloom balance). **PERF:** +4 draw calls (+4 in normal pass on high), ≤6k tris total, 0 textures, 0 lights. **VISUAL:** four recognizable night beacons.
+- **FILES:** `landmark-geometry.js`, `sky.js` only if a per-material night curve is needed. **RISK:** low/medium (bloom balance). **PERF:** ≤8 light meshes total (≤2 per landmark; Tower Bridge 2, others 1–2), ≤6k tris total, 2 shared materials, 0 textures, 0 lights. **VISUAL:** four recognizable night beacons.
 
 ### B14. Day/night polish
 Bus destination displays, cab sign, cabin glow, nav lights, landmark lights verified in both themes; DAY lights read as unlit fixtures (no emissive). Reduced-motion: no plane, static traffic as today.
@@ -135,13 +135,17 @@ Merged per material role (≤8 meshes per vehicle). No textures except: existing
 |---|---|---|---|
 | Ambient vehicles | 15, ~2.9k tris each, ~8 calls each | ~16, ≤3–4k tris, ≤8 calls | ~+10k tris, ~+8 calls |
 | Player vehicles | Mini 4.5k + bus 4.2k (one visible) | hero ≤6k / ≤8k (one visible) | ~+4k |
-| Plane | 2.3k, visible near one stop | ≤4k, visible ~40% of time | +2k when visible |
+| Plane | 2.3k, visible near one stop | ≤5k (36–42 m wide-body), visible ~40% of time | +3k when visible |
 | Heathrow | ~0.9k + apron boxes | removed; +2–3 buildings ~3–6k in existing batches | ~+3k, 0 calls |
-| Landmark lights | — | 4 meshes, ≤6k tris | +4 calls (+4 normal pass) |
+| Landmark lights | — | ≤8 meshes, ≤6k tris, 2 shared materials | ≤+8 calls (+≤8 normal pass) |
 | Materials / textures | — | +1 glow material per landmark (4), +2 destination canvases | small |
 | Lights / shadow maps | 0 new | 0 new | 0 |
 
 Ceiling: whole-scene draw calls +≤5%, submitted tris +≤5%, p95 within the established +1 ms desktop / +2 ms mobile limits (rendering-budget measurement contract).
+
+## E2. Official baseline (captured before phase 1)
+
+Captured with the rendering-budget measurement contract (same hero shot, desktop 1440×900 DPR 1.5 high, emulated mobile 375×812 DPR 1 medium, 2 s warmup + 10 s sample, three repeats, day, cache disabled). Draw calls and submitted triangles are counted per frame by wrapping the WebGL2 draw calls in the test page only (no shipped instrumentation). Results: see `docs/architecture/rendering-budget.md` → "Vehicles/night baseline". Ceilings vs this baseline: draw calls ≤ +5%, submitted triangles ≤ +5%, desktop p95 ≤ +1 ms, mobile p95 ≤ +2 ms.
 
 ## F. Implementation phases (adjusted order)
 
@@ -171,9 +175,7 @@ Exact profiles, segment counts within budget, colours within the references, tim
 ## Calls I made (not yet confirmed by the user)
 
 - No logos/wordmarks anywhere; abstract liveries.
-- A330 visual length ~26 m at 55–70 m altitude.
 - The Heathrow block reservation survives as a neutral RNG placeholder (renamed) to keep every other block in place; the site is filled by explicit infill.
-- Player bus swaps model instantly at the existing Scotland boundaries.
 - No runtime LOD; hero/ambient variants instead.
 - Plane hidden under reduced motion.
 
@@ -185,3 +187,10 @@ Exact profiles, segment counts within budget, colours within the references, tim
 - **Heathrow infill (my call):** river-side terrace frontage via the removed `city.js` exclusion (±23 m) plus two own-RNG blocks inside the old 36×24 m reservation — one London terrace pair and one 4–5 floor midrise, both through the citywide rollout families, with verge trees. No new landmark; the "Moved to London" stop keeps its stop sign, Thames and London frontage.
 - **Night pass bar:** user visual sign-off on same-camera night captures (05.5–06.5, 10.5, 11.0, 16.5–17.0) plus the budget ceilings in E.
 - **Test tooling:** exists — 32 `tests/*.browser.py` suites run via browser-harness and the measurement contract in `docs/architecture/rendering-budget.md`.
+
+## User adjustments (2026-10-21, approval conditions)
+
+1. A330 visual length 36–42 m at 55–70 m altitude.
+2. Glasgow bus: logical state at the exact `scotRange` boundary; visible swap hidden (off-frame / occluded / camera blend), no crossfade.
+3. Landmark lighting: ≤2 emissive buckets per landmark (warm/cool), shared materials, no PointLights.
+4. Official performance baseline captured before phase 1 with the rendering-budget harness; ceilings as in E2.
