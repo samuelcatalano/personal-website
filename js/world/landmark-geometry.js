@@ -1,7 +1,11 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { SURFACE as S, townhouseMaterials } from './building-slice-materials.js';
+import { PALETTE as P } from './palette.js';
+import { blockMaterial } from './textures.js';
 
+const v=(x,y,z)=>new THREE.Vector3(x,y,z),lathe=(pts,seg=16,a=0,l=Math.PI*2)=>new THREE.LatheGeometry(pts.map(([r,y])=>new THREE.Vector2(r,y)),seg,a,l);
+function archShape(w,h){const r=w/2,sh=h-w*.85,s=new THREE.Shape();s.moveTo(-r,0);s.lineTo(r,0);s.lineTo(r,sh);s.lineTo(0,h);s.lineTo(-r,sh);s.closePath();return s;}
 // Dedicated landmarks share the city atlas; only silhouette/depth belongs in geometry.
 function landmark(name,x,z){
   const group=new THREE.Group(),buckets=[[],[],[]];group.name=name+'-geometry';group.position.set(x,0,z);
@@ -17,8 +21,8 @@ function landmark(name,x,z){
     g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));g.setAttribute('aSurface',new THREE.Float32BufferAttribute(surfaces,1));buckets[bucket].push(g);
   }
   const box=(x,y,z,w,h,d,surface=S.stone,tint=stone,bucket=0)=>add(new THREE.BoxGeometry(w,h,d),x,y+h/2,z,surface,tint,bucket);
-  function beam(a,b,r=.06,tint=pale,bucket=1){
-    const delta=b.clone().sub(a),g=new THREE.CylinderGeometry(r,r,delta.length(),6);g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),delta.normalize()));
+  function beam(a,b,r=.06,tint=pale,bucket=1,seg=6){
+    const delta=b.clone().sub(a),g=new THREE.CylinderGeometry(r,r,delta.length(),seg);g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),delta.normalize()));
     const p=a.clone().add(b).multiplyScalar(.5);add(g,p.x,p.y,p.z,S.trim,tint,bucket);
   }
   // Closed cross-section swept around an ellipse: continuous bowl, roof and glazing bands.
@@ -36,12 +40,18 @@ function landmark(name,x,z){
     }
     const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(indices);g.computeVertexNormals();add(g,0,0,0,surface,tint,bucket);
   }
+  // Pointed-arch window on a wall through (cx,cz) whose outward normal is (sin face,cos face); u slides along the wall.
+  function gothic(cx,cz,face,u,y,w,h,glass=[.8,.9,1],surface=S.glass,frame=true){
+    const px=cx+Math.cos(face)*u-Math.sin(face)*.02,pz=cz-Math.sin(face)*u-Math.cos(face)*.02;
+    if(frame){const f=new THREE.ExtrudeGeometry(archShape(w+.32,h+.22),{depth:.05,bevelEnabled:false});f.rotateY(face);add(f,px,y-.1,pz,S.trim,pale,1);}
+    const g=new THREE.ExtrudeGeometry(archShape(w,h),{depth:.08,bevelEnabled:false});g.rotateY(face);add(g,px,y,pz,surface,glass,surface===S.glass?2:0);
+  }
   function finish(){
     const mats=townhouseMaterials();
     buckets.forEach((parts,i)=>{if(!parts.length)return;const g=mergeGeometries(parts,false);parts.forEach(p=>p.dispose());g.computeBoundingBox();g.computeBoundingSphere();const mesh=new THREE.Mesh(g,i===2?mats.glass:mats.architecture);mesh.name=name+'-'+['mass','trim','glass'][i];mesh.castShadow=i===0;mesh.receiveShadow=true;group.add(mesh);});
     group.userData.dispose=()=>group.children.forEach(m=>m.geometry.dispose());return group;
   }
-  return {group,box,add,beam,ring,finish,stone,pale,slate};
+  return {group,box,add,beam,ring,gothic,finish,stone,pale,slate};
 }
 
 export function createWembley(x,z){
@@ -131,4 +141,212 @@ export function createMasp(x,z){
     box(0,10.75,side*4.85,32.2,.10,.16,S.trim,[.55,.62,.66],1);
   }
   return finish();
+}
+
+// ---- Tower Bridge: local x across the crossing, z along it (group origin = river centreline) ----
+export function createTowerBridge(x,z){
+  const {box,add,beam,gothic,finish,pale,slate}=landmark('towerbridge',x,z);
+  const grey=[.94,.96,1],blue=[.46,.68,.95],gilt=[.86,.76,.52],dark=[.22,.25,.29],TZ=9.5;
+  for(const tz of [-TZ,TZ]){
+    box(0,-1,tz,5.2,24,4.8,S.stone,grey);
+    for(const [y,h] of [[3.2,2.6],[7.6,2.6],[11.6,2.6],[16.2,2.6],[20.3,2.2]])
+      for(const [face,cx,cz] of [[0,0,tz+2.4],[Math.PI,0,tz-2.4],[Math.PI/2,2.6,tz],[-Math.PI/2,-2.6,tz]]){
+        if(y>20&&(face===0&&tz<0||face===Math.PI&&tz>0))continue; // walkway docks on the inner faces
+        for(const u of [-.9,.9])gothic(cx,cz,face,u,y,1,h);
+      }
+    for(const y of [6.6,14.8])box(0,y,tz,5.9,.3,5.5,S.trim,pale,1);
+    box(0,22.6,tz,6,.8,5.6,S.trim,pale,1);
+    for(const sx of [-1,1])for(const sz of [-1,1]){
+      const cx=sx*2.55,cz=tz+sz*2.45;
+      box(cx,-1,cz,1.2,25.2,1.1,S.stone,pale);box(cx,24.2,cz,1.34,.3,1.24,S.trim,pale,1);
+      add(new THREE.CylinderGeometry(.05,.8,4.6,8),cx,26.8,cz,S.roof,slate);
+      box(cx,29.1,cz,.07,.9,.07,S.trim,gilt,1);
+    }
+    // steep pyramidal slate roof, dormers, finial
+    add(new THREE.CylinderGeometry(.12,3.7,10,4,1,false,Math.PI/4),0,28.4,tz,S.roof,slate);
+    for(const [face,dx,dz] of [[0,0,1],[Math.PI,0,-1],[Math.PI/2,1,0],[-Math.PI/2,-1,0]]){
+      const cx=dx*1.88,cz=tz+dz*1.88;
+      box(cx,25.3,cz,dx?.7:.95,1.3,dz?.7:.95,S.stone,grey);
+      gothic(dx*2.23,tz+dz*2.23,face,0,25.55,.5,.95,[.8,.9,1],S.glass,false);
+      add(new THREE.CylinderGeometry(.04,.75,.9,4,1,false,Math.PI/4),cx,26.85,cz,S.roof,slate);
+    }
+    beam(v(0,33.2,tz),v(0,35.2,tz),.07,gilt,1,6);
+  }
+  // abutments with chain posts, road deck on the bascule line
+  for(const az of [-16,16]){
+    box(0,0,az,6.2,4,3,S.stone,grey);
+    for(const sx of [-1,1]){box(sx*3.55,0,az+Math.sign(az)*.6,.9,10,.9,S.stone,pale);add(new THREE.ConeGeometry(.7,1.6,4,1,false,Math.PI/4),sx*3.55,10.8,az+Math.sign(az)*.6,S.roof,slate);}
+  }
+  box(0,4,0,6,1.2,34,S.trim,blue,1);
+  box(0,5.2,0,5.2,.08,34,S.plaster,dark);
+  for(const sx of [-1,1]){
+    box(sx*2.86,6.2,0,.22,.22,33.8,S.trim,pale,1);
+    for(let a=-16;a<=16;a+=2)box(sx*2.86,5.28,a,.14,.95,.14,S.trim,pale,1);
+  }
+  // blue high-level walkways with glazed sides
+  for(const wx of [-1.5,1.5]){
+    box(wx,19,0,1.2,1.5,14.5,S.trim,blue,1);box(wx,19.35,0,1.26,.8,12.4,S.glass,[.8,.92,1],2);box(wx,20.5,0,1.4,.14,14.5,S.trim,pale,1);
+    for(let a=-6;a<=6;a+=2)for(const sx of [-1,1])box(wx+sx*.63,19.1,a,.1,1.3,.14,S.trim,blue,1);
+  }
+  // suspension chains: tower flank down to the abutment posts, with hangers
+  for(const sx of [-1,1])for(const dir of [-1,1]){
+    const pts=[],y0=18.4,y1=10,z0=dir*(TZ+3.1),z1=dir*16.6;
+    for(let i=0;i<=12;i++){const u=i/12;pts.push(v(sx*3.1,y1+(y0-y1)*(1-u)**2,z0+(z1-z0)*u));}
+    add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),24,.11,5,false),0,0,0,S.trim,gilt.map(c=>c*.85),1);
+    for(const u of [.3,.5,.7,.88]){const p=pts[Math.round(u*12)];beam(v(sx*3.1,6.3,p.z),v(sx*3.1,p.y,p.z),.04,pale,1,4);}
+  }
+  const g=finish();
+  g.userData.layout={towerZ:[-TZ,TZ],towerHeight:35,deckY:4,deckTop:5.2,walkwayZ:0,walkways:2,pinnacles:8};
+  return g;
+}
+
+// ---- Heathrow: curved wave roof over a glazed terminal, tapered tower with a flared glazed cab ----
+export function createHeathrow(x,z){
+  const {box,add,beam,finish,pale}=landmark('heathrow',x,z),W=14,wave=u=>4.7+.42*Math.cos(u*Math.PI*4);
+  box(-4,0,-.2,W,.3,4.2,S.stone,[.8,.82,.86]);
+  box(-4,.3,-.2,W-.4,3.5,3.3,S.plaster,[1.05,1.1,1.2]);              // terminal body (back of the glass)
+  box(-4,.9,1.45,W-1,2.7,.08,S.glass,[.8,.92,1],2);                   // glazed concourse front
+  for(let i=0;i<=14;i++)box(-4-6.5+i*13/14,.9,1.52,.12,2.8,.1,S.trim,pale,1);
+  const top=[],bot=[];for(let i=0;i<=48;i++){const u=i/48;top.push([-W/2-.3+u*(W+.6),wave(u)]);}
+  for(let i=48;i>=0;i--)bot.push([top[i][0],top[i][1]-.38]);
+  const shape=new THREE.Shape([...top,...bot].map(([px,py])=>new THREE.Vector2(px,py)));
+  add(new THREE.ExtrudeGeometry(shape,{depth:4.6,bevelEnabled:false}),-4,0,-2.3,S.trim,[1.08,1.1,1.16],1);
+  for(let i=0;i<=6;i++){const u=(i/6*W+.3)/(W+.6),cx=-4-W/2+i/6*W,h=wave(u)-.38;box(cx,.3,1.95,.18,h-.3,.18,S.trim,pale,1);}
+  // control tower
+  add(new THREE.CylinderGeometry(.62,1.05,10,12),9,5,0,S.stone,[1.05,1.07,1.1]);
+  add(new THREE.CylinderGeometry(1.3,1.3,.3,12),9,10.1,0,S.trim,pale,1);
+  add(new THREE.CylinderGeometry(2.0,1.35,2.4,12),9,11.45,0,S.glass,[.78,.92,1],2);
+  add(new THREE.CylinderGeometry(2.15,2.15,.4,12),9,12.85,0,S.trim,pale,1);
+  add(new THREE.CylinderGeometry(.9,1.1,.3,12),9,13.2,0,S.trim,pale,1);
+  beam(v(9,13.3,0),v(9,15.4,0),.07,pale,1,5);
+  const g=finish();return g;
+}
+
+// ---- Airplane (x forward): lathe fuselage, swept wings, nacelles, tail ----
+export function createPlane(){
+  const {box,add,finish}=landmark('plane',0,0),AX=1.6;
+  const tab=[[.12,-8],[.34,-7.4],[.62,-6.2],[.9,-4.6],[1.08,-3],[1.12,-1.5],[1.12,4],[1.02,5.2],[.82,6.2],[.55,7.1],[.28,7.7],[0,8]];
+  const R=y=>{for(let i=1;i<tab.length;i++)if(y<=tab[i][1]){const[a,b]=[tab[i-1],tab[i]];return a[0]+(b[0]-a[0])*(y-a[1])/(b[1]-a[1]);}return 0;};
+  const white=[1.2,1.3,1.5],pearl=[1.15,1.26,1.46],navy=[.07,.15,.44],red=[1.03,.17,.24],ys=(a,b,n)=>Array.from({length:n+1},(_,i)=>a+(b-a)*i/n);
+  const body=(pts,a,l,surface,tint,bucket=0,dr=.03)=>{const g=lathe(pts.map(([r,y])=>[r+dr,y]),16,a,l);g.rotateZ(-Math.PI/2);add(g,0,AX,0,surface,tint,bucket);};
+  body(tab,0,Math.PI*2,S.plaster,white,0,0);
+  body(ys(-6.2,5,8).map(y=>[R(y),y]),Math.PI/2-1.15,2.3,S.plaster,navy);                    // navy belly
+  for(const [a,l] of [[-.22,.1],[Math.PI+.12,.1]])body(ys(-5.5,4.6,8).map(y=>[R(y),y]),a,l,S.plaster,red,0,.04); // livery cheatline
+  for(const [a,l] of [[-.5,.2],[Math.PI+.3,.2]])body(ys(-5,4.4,9).map(y=>[R(y),y]),a,l,S.glass,[.5,.75,.95],2); // window band
+  body(ys(5.35,6.45,3).map(y=>[R(y),y]),-Math.PI/2-.85,1.7,S.glass,[.4,.65,.9],2);          // cockpit
+  const wing=(pts,t,y,s)=>{const sh=new THREE.Shape(pts.map(([px,pz])=>new THREE.Vector2(px,pz*s)));const g=new THREE.ExtrudeGeometry(sh,{depth:t,bevelEnabled:false});g.rotateX(Math.PI/2);const p=g.attributes.position;for(let i=0;i<p.count;i++)p.setY(i,p.getY(i)+Math.abs(p.getZ(i))*.05);add(g,0,y,0,S.plaster,pearl);};
+  for(const s of [-1,1]){
+    wing([[3.2,.9],[-1.6,8.6],[-2.9,8.6],[-1.4,.9]],.22,AX-.35,s);
+    wing([[-5.6,.5],[-7.0,3.4],[-7.9,3.4],[-7.4,.5]],.14,AX+.2,s);
+    const n=lathe([[0,-1.3],[.3,-1.25],[.5,-1],[.52,0],[.46,.9],[.32,1.25],[0,1.3]],12);n.rotateZ(-Math.PI/2);add(n,1.6,AX-.8,s*3.5,S.plaster,pearl);
+    const ring=lathe([[.36,.88],[.52,1.02],[.47,1.2],[.34,1.3]],12);ring.rotateZ(-Math.PI/2);add(ring,1.64,AX-.8,s*3.5,S.plaster,navy);
+  }
+  const fin=(pts,d,tint)=>{const sh=new THREE.Shape(pts.map(([a,b])=>new THREE.Vector2(a,b)));add(new THREE.ExtrudeGeometry(sh,{depth:d,bevelEnabled:false}),0,AX+.4,-d/2,S.plaster,tint);};
+  fin([[-4.6,.2],[-6.9,3.5],[-8.1,3.5],[-7.8,.2]],.16,navy);
+  fin([[-4.6,.2],[-5.37,1.3],[-7.9,1.3],[-7.8,.2]],.2,red);
+  return finish();
+}
+
+// ---- Catedral da Se: neo-gothic nave, buttresses, green dome on a drum, two spired towers ----
+export function createSe(x,z){
+  const {box,add,beam,gothic,finish,pale,slate}=landmark('se',x,z);
+  const stoneT=[.98,.99,1.03],verd=[2.1,2.55,2.1],gilt=[.86,.76,.52],dark=[.5,.55,.62];
+  box(0,0,0,30,12,14,S.stone,stoneT);box(0,11.8,0,30.6,.35,14.6,S.trim,pale,1);
+  for(const sx of [-1,1])box(sx*11.4,12.15,-1,7.0,.12,12.8,S.roof,slate);
+  box(0,12,0,15.6,3.5,14,S.stone,stoneT);
+  const gable=new THREE.Shape([new THREE.Vector2(-8,0),new THREE.Vector2(8,0),new THREE.Vector2(0,4.1)]);
+  add(new THREE.ExtrudeGeometry(gable,{depth:13.7,bevelEnabled:false}),0,15.4,-6.85,S.roof,slate);
+  add(new THREE.ExtrudeGeometry(new THREE.Shape([new THREE.Vector2(-7.8,0),new THREE.Vector2(7.8,0),new THREE.Vector2(0,3.9)]),{depth:.22,bevelEnabled:false}),0,15.5,6.85,S.stone,stoneT);
+  // facade: portal, steps, rose window, lancets
+  gothic(0,7,0,0,1.5,3.2,6.4,dark,S.door,true);
+  for(let i=0;i<5;i++)box(0,0,7.55+i*.75-.05,10-i*.4,1.5-i*.3,.75,S.stone,pale);
+  add(new THREE.CylinderGeometry(1.5,1.5,.1,24).rotateX(Math.PI/2),0,11.4,7,S.glass,[.7,.85,1],2);
+  add(new THREE.TorusGeometry(1.6,.1,5,24),0,11.4,7.05,S.trim,pale,1);
+  for(let i=0;i<6;i++){const a=i*Math.PI/6;beam(v(Math.cos(a)*1.55,11.4+Math.sin(a)*1.55,7.05),v(-Math.cos(a)*1.55,11.4-Math.sin(a)*1.55,7.05),.045,pale,1,4);}
+  for(const u of [-5,5])gothic(0,7,0,u,3,1.3,4.8);
+  // side walls: buttress rhythm with recessed lancets, clerestory
+  for(const sx of [-1,1]){
+    for(let k=-2;k<=2;k++){const bz=k*3;box(sx*15.35,0,bz,.9,11.4,.7,S.stone,pale);add(new THREE.ConeGeometry(.5,1.7,4,1,false,Math.PI/4),sx*15.35,12.25,bz,S.stone,pale);}
+    for(const wz of [-4.5,-1.5,1.5,4.5]){gothic(sx*15,0,sx*Math.PI/2,-sx*wz,4,1.1,5);gothic(sx*7.8,0,sx*Math.PI/2,-sx*wz,12.7,1,2.4);}
+  }
+  gothic(0,-7,Math.PI,-4,3,1.3,5);gothic(0,-7,Math.PI,4,3,1.3,5);
+  // drum, windows, ribbed dome, lantern
+  const DT=Math.PI/16;
+  add(new THREE.CylinderGeometry(5.5,5.6,5.5,32),0,18.05,0,S.stone,stoneT);
+  add(new THREE.CylinderGeometry(5.9,5.9,.4,32),0,15.5,0,S.trim,pale,1);add(new THREE.CylinderGeometry(5.85,5.85,.35,32),0,20.95,0,S.trim,pale,1);
+  for(let k=0;k<8;k++){const a=(4*k+.5)*DT,r=5.5*Math.cos(DT/2);gothic(r*Math.sin(a),r*Math.cos(a),a,0,16.4,1.0,3.6);}
+  const dome=new THREE.SphereGeometry(5.5,32,10,0,Math.PI*2,0,Math.PI/2);dome.scale(1,1.15,1);add(dome,0,21.1,0,S.roof,verd);
+  for(let k=0;k<8;k++){
+    const pts=[];for(let i=0;i<=10;i++){const t=i/10*Math.PI/2;pts.push(new THREE.Vector3(5.6*Math.cos(t),21.1+6.4*Math.sin(t)*1.0,0));}
+    const t=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),12,.1,4,false);t.rotateY(k*Math.PI/4);add(t,0,0,0,S.trim,pale,1);
+  }
+  add(new THREE.CylinderGeometry(1.0,1.15,2.6,12),0,28.2,0,S.stone,stoneT);
+  add(new THREE.CylinderGeometry(1.45,1.45,.3,12),0,27.45,0,S.trim,pale,1);
+  add(new THREE.ConeGeometry(1.3,2.0,12),0,30.5,0,S.roof,verd);
+  box(0,31.4,0,.14,2.2,.14,S.trim,gilt,1);box(0,32.6,0,.9,.14,.14,S.trim,gilt,1);
+  // twin towers with pinnacles and octagonal verdigris spires
+  for(const sx of [-1,1]){
+    const tx=sx*11,tz=4;
+    box(tx,0,tz,6,26,6,S.stone,stoneT);
+    for(const px of [-1,1])for(const pz of [-1,1]){
+      const cx=tx+px*3,cz=tz+pz*3;box(cx,0,cz,1.0,24,1.0,S.stone,pale);
+      add(new THREE.ConeGeometry(.7,3.2,8),cx,25.6,cz,S.stone,pale);
+    }
+    for(const y of [8,13.5,19,26])box(tx,y,tz,7.2,.3,7.2,S.trim,pale,1);
+    for(const [face,cx,cz] of [[0,tx,tz+3],[sx*Math.PI/2,tx+sx*3,tz]]){
+      for(const [y,h,w] of [[4,3.4,1.1],[9.5,3.4,1.1],[14.8,3.4,1.1]])gothic(cx,cz,face,0,y,w,h);
+      for(const u of [-.9,.9])gothic(cx,cz,face,u,20.4,1.0,5);
+    }
+    add(new THREE.CylinderGeometry(.12,3.0,10.5,8),tx,31.8,tz,S.roof,verd);
+    beam(v(tx,36.9,tz),v(tx,39.3,tz),.08,gilt,1,6);box(tx,38.2,tz,1,.12,.12,S.trim,gilt,1);
+  }
+  return finish();
+}
+
+// ---- Ponte Estaiada: tapered X pylon, deck through it, fans of straight stays ----
+export function createEstaiada(x,z){
+  const {box,add,beam,finish,pale}=landmark('estaiada',x,z),concrete=[1.04,1.07,1.14],steel=[.9,.95,1.05];
+  const loft=(a,b,wa,da,wb,db)=>{
+    const g=new THREE.BoxGeometry(1,1,1).toNonIndexed(),p=g.attributes.position,d=b.clone().sub(a).normalize();
+    for(let i=0;i<p.count;i++){
+      const t=p.getY(i)+.5,w=wa+(wb-wa)*t,dep=da+(db-da)*t,cx=a.x+(b.x-a.x)*t,cy=a.y+(b.y-a.y)*t;
+      p.setXYZ(i,cx+d.y*p.getX(i)*w,cy-d.x*p.getX(i)*w,p.getZ(i)*dep);
+    }
+    g.computeVertexNormals();return g;
+  };
+  const slope=8/28,H=46,lx=y=>-8+y*slope;
+  for(const s of [-1,1]){
+    add(loft(v(s*lx(.5),.5,0),v(s*lx(H),H,0),3.0,2.8,1.4,1.4),0,0,0,S.plaster,concrete);
+    box(s*8,0,0,4.4,1.1,3.6,S.stone,[.9,.92,.96]);
+  }
+  box(0,3.6,0,8,1.2,56,S.plaster,concrete);box(0,4.8,0,7.2,.06,56,S.plaster,[.2,.22,.25]);
+  for(const pz of [-27.2,27.2])box(0,0,pz,6.4,3.6,2.4,S.stone,[.9,.92,.96]);
+  for(const s of [-1,1])box(s*3.9,4.8,0,.2,.7,56,S.trim,pale,1);
+  // stays: leg A (upper right) feeds the right deck edge, leg B the left
+  const ay=[45,42.4,39.8,37.2,34.6,32,29.4],run=[7,10.5,14,17.5,21,24.5,27.4];
+  for(const s of [1,-1])ay.forEach((y,k)=>{for(const d of [-1,1])beam(v(s*lx(y)*1,y,0),v(s*3.9,5.5,d*run[k]),.06,steel,1,5);});
+  return finish();
+}
+
+// ---- London Eye: rotating wheel (glowing rim + pods) and a static A-frame on the riverbank ----
+export function createLondonEye(x,z){
+  const R=16,wheel=new THREE.Group(),flat=g=>{const n=g.index?g.toNonIndexed():g;for(const k of Object.keys(n.attributes))if(!['position','normal','uv'].includes(k))n.deleteAttribute(k);return n;};
+  const cyl=(a,b,r,seg=4)=>{const d=b.clone().sub(a),g=new THREE.CylinderGeometry(r,r,d.length(),seg,1,true);g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(v(0,1,0),d.normalize()));const m=a.clone().add(b).multiplyScalar(.5);return flat(g.translate(m.x,m.y,m.z));};
+  const rim=[],frame=[];
+  for(const s of [-1,1])rim.push(flat(new THREE.TorusGeometry(R,.26,5,64).translate(0,0,s*.7)));
+  for(let i=0;i<24;i++){const a=i/24*Math.PI*2,c=Math.cos(a)*R,s=Math.sin(a)*R;rim.push(cyl(v(c,s,-.7),v(c,s,.7),.07));}
+  for(let i=0;i<16;i++)for(const sz of [-1,1]){const a=i/16*Math.PI*2+(sz>0?Math.PI/16:0);frame.push(cyl(v(Math.cos(a)*1.1,Math.sin(a)*1.1,sz*1.1),v(Math.cos(a)*R,Math.sin(a)*R,sz*.7),.05));}
+  frame.push(flat(new THREE.CylinderGeometry(1.1,1.1,2.4,12).rotateX(Math.PI/2)),flat(new THREE.CylinderGeometry(.5,1.1,.6,12).rotateX(Math.PI/2).translate(0,0,1.5)),cyl(v(0,0,-3.2),v(0,0,1.4),.4,8));
+  const mk=(parts,mat,name,cast=true)=>{const g=mergeGeometries(parts,false);parts.forEach(p=>p.dispose());const m=new THREE.Mesh(g,mat);m.name=name;m.castShadow=cast;m.receiveShadow=true;wheel.add(m);return m;};
+  mk(rim,blockMaterial(P.eyeRim,{glow:true,k:1}),'eye-rim');
+  mk(frame,new THREE.MeshStandardMaterial({color:P.white,roughness:.6}),'eye-spokes',false);
+  const podGeo=flat(new THREE.SphereGeometry(1,10,4)),pods=new THREE.InstancedMesh(podGeo,blockMaterial(P.eyePod,{glow:true,k:1.2}),32),m4=new THREE.Matrix4(),q=new THREE.Quaternion();
+  for(let i=0;i<32;i++){const a=i/32*Math.PI*2;pods.setMatrixAt(i,m4.compose(v(Math.cos(a)*(R+.5),Math.sin(a)*(R+.5),0),q.setFromAxisAngle(v(0,0,1),a+Math.PI/2),v(1.05,.62,.8)));}
+  pods.name='eye-pods';pods.castShadow=true;wheel.add(pods);
+  wheel.name='eye-wheel';wheel.position.set(x,18,z);
+  wheel.userData.dispose=()=>wheel.traverse(o=>{if(o.isMesh){o.geometry.dispose();o.material.dispose();}});
+  const {beam,box,finish,pale}=landmark('eyeframe',x,z);
+  for(const sx of [-1,1]){beam(v(0,18,-3.1),v(sx*3.6,.4,-7.4),.5,pale,1,8);}
+  beam(v(-2.1,9.6,-5.2),v(2.1,9.6,-5.2),.22,pale,1,6);box(0,17.2,-3.1,1.2,1.6,1.2,S.trim,pale,1);box(0,0,-7.4,10.4,.8,3,S.stone);
+  return {wheel,frame:finish()};
 }

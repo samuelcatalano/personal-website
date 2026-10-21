@@ -1,8 +1,7 @@
 import * as THREE from 'three';
-import { createBoxes, buildMeshes } from './voxel.js';
 import { LANDMARKS, stopIndex, RIVER_Z, towerX, glasgowSites } from './layout.js';
 import { PALETTE as P } from './palette.js';
-import { createWembley, createBigBen, createMasp } from './landmark-geometry.js';
+import { createWembley, createBigBen, createMasp, createSe, createEstaiada, createTowerBridge, createHeathrow, createPlane, createLondonEye } from './landmark-geometry.js';
 import { buildSaoPaulo } from './saopaulo.js';
 import { createHeroBackground } from './hero-background.js';
 import { createCityRollout } from './city-rollout.js';
@@ -10,7 +9,6 @@ import { buildGlasgow } from './glasgow.js';
 import { buildRiverside } from './riverside.js';
 import { buildUniversity } from './university.js';
 import { flag } from './flags.js';
-const STONE = P.sand, WHITE = P.white, GOLD = P.gilt, STEEL = P.steel;
 const m = new THREE.Matrix4(), p = new THREE.Vector3(), q = new THREE.Quaternion(), s = new THREE.Vector3(1, 1, 1), UP = new THREE.Vector3(0, 1, 0);
 const PI = Math.PI, at = (stops, pts, key) => pts[stopIndex(stops, LANDMARKS[key])];
 function clockFaces(x, z) {
@@ -46,99 +44,22 @@ function clockFaces(x, z) {
   return group;
 }
 function towerBridge(add, { x }) {
-  const box = (along, y, across, length, height, width, color) =>
-    add(x + across, y, RIVER_Z + along, width, height, length, color);
-  for (const along of [-9.5, 9.5]) {
-    box(along, -1, 0, 6, 24, 6.2, STONE);
-    box(along, 23, 0, 6.6, 3, 6.6, P.roof);
-    box(along, 25.7, 0, 6.1, 0.35, 6.1, GOLD);
-    for (const c of [-3.09, 3.09]) for (const dz of [-3.09, 3.09]) {
-      box(along + dz, 2, c, 0.22, 19, 0.22, P.roof);
-      box(along + dz, 26, c, 0.55, 3.2, 0.55, STEEL);
-      box(along + dz, 28, c, 0.18, 3, 0.18, GOLD);
-      flag(add, x + c, 31, RIVER_Z + along + dz, 'jack', 0.65);
-    }
-    for (let y = 6; y <= 18; y += 4) {
-      for (const side of [-1, 1]) {
-        box(along, y, side * 3.12, 0.7, 1.8, 0.12, P.roof);
-        box(along + side * 3.12, y, 0, 0.12, 1.8, 0.7, P.roof);
-      }
-    }
-  }
-  for (const along of [-16, 16]) box(along, 0, 0, 3, 4, 6, P.sandd);
-  box(0, 4, 0, 34, 1.2, 6, STEEL);
-  for (const across of [-1.5, 1.5]) box(0, 19, across, 13, 1.5, 1.2, STEEL);
-  for (const side of [-1, 1]) {
-    box(0, 5.2, side * 2.86, 34, 0.28, 0.28, STEEL);
-    for (let along = -16; along <= 16; along += 2) box(along, 5.2, side * 2.86, 0.18, 1.1, 0.18, STEEL);
-  }
-  const cables = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.065, 0.065, 1, 6), new THREE.MeshLambertMaterial({ color: STEEL }), 4);
-  let i = 0;
-  for (const along of [-9.5, 9.5]) for (const side of [-1, 1]) {
-    box(along, 8, side * 3.12, 0.16, 0.16, 0.16, GOLD);
-    const direction = Math.sign(along), start = new THREE.Vector3(x + side * 3.12, 8, RIVER_Z + along + direction * 3.1);
-    const end = new THREE.Vector3(start.x, 5.5, RIVER_Z + direction * 16), delta = end.clone().sub(start);
-    cables.setMatrixAt(i++, m.compose(p.copy(start).add(end).multiplyScalar(0.5), q.setFromUnitVectors(UP, delta.clone().normalize()), s.set(1, delta.length(), 1)));
-  }
-  cables.name = 'towerbridge-approach-cables';
-  cables.castShadow = true;
-  const details = new THREE.Group(); details.name = 'towerbridge-details'; details.add(cables);
-  return details;
+  for (const along of [-9.5, 9.5]) flag(add, x, 35.2, RIVER_Z + along, 'jack', 0.65);
+  return createTowerBridge(x, RIVER_Z);
 }
 function heathrow(add, { x }) {
-  const rz = RIVER_Z + 20.5, tz = RIVER_Z + 15.5;
+  const rz = RIVER_Z + 20.5;
   add(x, -0.15, rz, 24, 0.2, 6, P.road);
   for (let i = -10; i <= 10; i += 4) add(x + i, 0.05, rz, 2, 0.06, 0.4, P.cream);
-  add(x - 4, 0, tz, 14, 4, 4, P.stone);
-  add(x - 4, 1, tz + 2.05, 13, 2.4, 0.1, P.glass);
-  add(x - 4, 4, tz, 14.6, 0.35, 4.6, P.roof);
-  add(x + 9, 0, tz, 1.6, 9, 1.6, P.stone);
-  add(x + 9, 9, tz, 3.2, 1.8, 3.2, P.glass);
-  add(x + 9, 10.8, tz, 3.6, 0.3, 3.6, P.roof);
-}
-const RIM = P.eyeRim, POD = P.eyePod; // Eye: cool white rim, warm pods, both glow at night
-function londonEye(x) {
-  const { add, list } = createBoxes();
-  for (let a = 0; a < 360; a += 6) {
-    const r = (a * PI) / 180;
-    add(Math.cos(r) * 16, Math.sin(r) * 16, 0, 1, 1, 1, RIM);
-    if (a % 30 === 0) add(Math.cos(r) * 17.5, Math.sin(r) * 17.5, 0, 1.6, 1.4, 1.6, POD);
-  }
-  for (let a = 0; a < 360; a += 45) {
-    const r = (a * PI) / 180;
-    for (let k = 2; k < 16; k += 2) add(Math.cos(r) * k, Math.sin(r) * k, 0, 0.4, 0.4, 0.4, WHITE);
-  }
-  const eye = buildMeshes(list, { glow: [RIM, POD], glowK: { [RIM]: 1.0, [POD]: 1.2 } });
-  eye.position.set(x, 18, RIVER_Z + 13);
-  return eye;
-}
-function plane() {
-  const { add, list } = createBoxes(), W = P.white, R = P.red, N = P.navy, L = P.pearl;
-  add(0, 0, 0, 16, 0.9, 2.2, N);
-  add(0, 0.9, 0, 16, 1.1, 2.2, L);
-  add(0, 0.9, 0, 16.04, 0.14, 2.26, R);
-  add(1, 2, 0, 6, 0.7, 1.6, L);
-  add(8, 0.3, 0, 1.2, 1.4, 1.6, L);
-  add(5.6, 1.2, 0, 1.6, 0.6, 2.26, R);
-  add(-7.6, 1.1, 0, 2.4, 3.6, 0.36, N);
-  for (let i = 0; i < 3; i++) {
-    add(-8.3 + i * 0.7, 1.9 + i, 0, 0.7, 1, 0.4, R);
-    add(-7.6 + i * 0.7, 1.9 + i, 0, 0.7, 1, 0.4, W);
-  }
-  add(-7.2, 1, 0, 1.7, 0.25, 7, L);
-  for (const s of [-1, 1]) {
-    add(2, 0.5, s * 4, 4, 0.3, 7, L);
-    add(0.2, 0.5, s * 9, 2.4, 0.3, 4, L);
-    for (const [ex, ez] of [[2.6, 3.4], [1.4, 7]]) add(ex, -0.3, s * ez, 2.2, 1, 1, L);
-  }
-  return buildMeshes(list);
+  return createHeathrow(x, RIVER_Z + 15.5);
 }
 export function buildLandmarks(add, stops, pts, onTree) {
-  heathrow(add, at(stops, pts, 'heathrow'));
   const details = new THREE.Group(); details.name = 'landmark-details';
+  details.add(heathrow(add, at(stops, pts, 'heathrow')));
   const ben = at(stops, pts, 'bigben');
   details.add(createBigBen(ben.x, RIVER_Z - 16), clockFaces(ben.x, RIVER_Z - 16));
   details.add(towerBridge(add, { x: towerX(stops, pts) }));
+  const { wheel, frame } = createLondonEye(at(stops, pts, 'eye').x, RIVER_Z + 13); details.add(frame);
   details.add(createWembley(at(stops, pts, 'wembley').x, RIVER_Z - 26));
   buildGlasgow(add, at(stops, pts, 'glasgow'), onTree);
   const { museum, uni } = glasgowSites(stops, pts), hill = (dx, w, d, y, h, c) => add(uni.x + dx, y, uni.z, w, h, d, c);
@@ -147,16 +68,16 @@ export function buildLandmarks(add, stops, pts, onTree) {
   buildUniversity((x, y, z, w, h, d, c) => add(x, y + uni.lift, z, w, h, d, c), uni);
   flag(add, uni.x, 34.7 + uni.lift, uni.z + 3, 'saltire', 1.1); // finial top
   const backgroundPlots = [];
-  buildSaoPaulo(add, stops, pts, plot => backgroundPlots.push(plot), true, site => details.add(createMasp(site.x, RIVER_Z - 18)));
+  buildSaoPaulo(add, stops, pts, plot => backgroundPlots.push(plot), true, site => details.add(createMasp(site.x, RIVER_Z - 18)), site => details.add(createSe(site.x, RIVER_Z - 18)), site => details.add(createEstaiada(site.x, RIVER_Z)));
   const control = backgroundPlots.filter(p => p.id.startsWith('paulista-hero-'));
   if (control.length) details.add(createHeroBackground(control));
   const generic = backgroundPlots.filter(p => !p.id.startsWith('paulista-hero-'));
   if (generic.length) { const group=createCityRollout(generic);group.name='paulista-architecture';details.add(group); }
   const i = stopIndex(stops, LANDMARKS.heathrow);
   return {
-    eye: londonEye(at(stops, pts, 'eye').x),
+    eye: wheel,
     details,
-    plane: plane(),
+    plane: createPlane(),
     planeAt: i / (stops.length - 1),
   };
 }

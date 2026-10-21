@@ -16,35 +16,23 @@ print(js(r'''(async () => {
   const boxes = [];
   const landmarkParts = buildLandmarks((x, y, z, w, h, d, color) => boxes.push({ x, y, z, w, h, d, color }), stops, pts);
   const check = (ok, message) => { if (!ok) throw Error(message); };
-  const nearBridge = boxes.filter(b => Math.abs(b.x - bridgeX) < 17 && Math.abs(b.z - RIVER_Z) < 19);
-  const towers = nearBridge.filter(b => b.h >= 20 && b.w >= 5 && b.d >= 5);
-  const towerZ = towers.map(b => b.z).sort((a, b) => a - b);
-  check(towerZ.length >= 2 && towerZ[0] < RIVER_Z - 5 && towerZ.at(-1) > RIVER_Z + 5,
-    `Tower Bridge towers must stand on opposite Thames banks; found z=${towerZ.join(',')}`);
-  check(towers.every(b => Math.abs(b.x - bridgeX) < 1), 'Tower Bridge towers must share the crossing centerline');
-  const opening = [towerZ[0] + Math.max(...towers.map(b => b.d)) / 2, towerZ.at(-1) - Math.max(...towers.map(b => b.d)) / 2];
+  const tb = landmarkParts.details.getObjectByName('towerbridge-geometry'), lay = tb?.userData.layout;
+  check(tb && lay, 'Tower Bridge must be built through the geometry module');
+  tb.updateMatrixWorld(true);
+  const box = new Box3().setFromObject(tb), tz = lay.towerZ.map(z => z + RIVER_Z);
+  check(tz[0] < RIVER_Z - 5 && tz[1] > RIVER_Z + 5 && lay.towerHeight >= 20, `Tower Bridge towers must stand on opposite Thames banks; found z=${tz.join(',')}`);
+  check(Math.abs(tb.position.x - bridgeX) < 1e-6 && Math.abs(tb.position.z - RIVER_Z) < 1e-6, 'Tower Bridge must stay on the crossing centerline');
+  check(box.max.y >= 33 && box.max.y <= 36, `Tower height envelope; got ${box.max.y}`);
+  const opening = [tz[0] + 3, tz[1] - 3];
   check(boats.length === 7, `Expected seven Thames boats, all within the bridge opening in z; found ${boats.length}`);
-  const deck = nearBridge.filter(b => b.y >= 3 && b.y <= 5 && b.h < 2 && b.d > 20);
-  const roadDeck = deck.find(b => b.w === 6);
-  check(roadDeck && roadDeck.z - roadDeck.d / 2 < RIVER_Z - 11 && roadDeck.z + roadDeck.d / 2 > RIVER_Z + 11,
-    'Road deck must continuously span the river and reach both banks');
-  const abutments = nearBridge.filter(b => b.y === 0 && b.h === 4 && b.color === PALETTE.sandd && Math.abs(b.x - bridgeX) < 1);
-  check(abutments.some(b => b.z < RIVER_Z - 11) && abutments.some(b => b.z > RIVER_Z + 11),
-    'Bridge must have grounded abutments on both banks');
-  check(abutments.every(b => b.y + b.h === roadDeck.y && Math.abs(b.x - roadDeck.x) < (b.w + roadDeck.w) / 2),
-    'Grounded abutments must touch the deck underside within its footprint');
+  check(box.min.z < RIVER_Z - 15 && box.max.z > RIVER_Z + 15, 'Road deck and abutments must span the river and reach both banks');
+  const roadDeck = { y: lay.deckY };
   const boatBounds = boats.map(boat => new Box3().setFromObject(boat));
   check(boatBounds.every(b => b.min.z >= opening[0] && b.max.z <= opening[1]), 'All ambient boat hulls must fit between the towers');
   check(boatBounds.every(b => b.max.y < roadDeck.y), 'All ambient boats must clear the road deck vertically');
-  const walkways = nearBridge.filter(b => b.y === 19 && b.color === PALETTE.steel && b.h === 1.5 && b.d === 13);
-  check(walkways.length === 2 && walkways.every(b => Math.abs(b.z - RIVER_Z) <= 0.01), 'Both upper pedestrian decks must span only the 13m space between the towers');
-  check(nearBridge.filter(b => b.y === 5.2 && b.h === 0.28 && b.d === 34 && b.color === PALETTE.steel).length === 2, 'Bridge must have steel outer road railings on both sides');
-  const pinnacles = nearBridge.filter(b => b.y === 26 && b.h === 3.2 && b.color === PALETTE.steel);
-  check(pinnacles.length === 8, `Each tower must have four steel corner pinnacles; found ${pinnacles.length}`);
-  const windows = nearBridge.filter(b => b.h === 1.8 && b.color === PALETTE.roof && (Math.abs(Math.abs(b.x - bridgeX) - 3.12) < 0.01 || Math.abs(Math.abs(b.z - RIVER_Z) - 6.38) < 0.01 || Math.abs(Math.abs(b.z - RIVER_Z) - 12.62) < 0.01));
-  check(windows.length === 32, `Tower window recesses must sit on all four outer faces; found ${windows.length}`);
-  const cables = landmarkParts.details.getObjectByName('towerbridge-approach-cables');
-  check(cables?.isInstancedMesh && cables.count === 4, 'Four continuous steel cable braces must connect both towers to their bank approaches');
+  check(lay.walkways === 2 && lay.walkwayZ === 0 && lay.pinnacles === 8, 'Two walkways between the towers and eight corner pinnacles');
+  const mesh = n => tb.getObjectByName('towerbridge-' + n);
+  check(mesh('mass') && mesh('trim') && mesh('glass'), 'Tower Bridge needs mass/trim/glass buckets');
   const clock = landmarkParts.details.getObjectByName('bigben-four-clock-faces');
   check(clock?.isInstancedMesh && clock.count === 4, 'Big Ben must build four clock faces through the real landmark builder');
   const face = clock.material.map.image, pixels = face.getContext('2d').getImageData(0, 0, 256, 256).data;
@@ -62,8 +50,10 @@ print(js(r'''(async () => {
   // Heathrow stays on the far side, clear of the street band and the Thames bank.
   const hIdx = stops.findIndex(stop => stop.id === 'move'), hx = pts[hIdx].x, hz = pts[hIdx].z;
   const heathrow = boxes.filter(b => Math.abs(b.x - hx) <= 13 && b.z < hz - 5 && b.z > RIVER_Z + 10);
-  check(heathrow.length >= 8, `Heathrow vignette missing near x=${hx}`);
+  check(heathrow.length >= 7, `Heathrow apron missing near x=${hx}`);
   check(heathrow.every(b => b.z + b.d / 2 <= hz - 8.75 && b.z - b.d / 2 >= RIVER_Z + 13.1),
     'Heathrow must sit between the far sidewalk and the Thames bank');
-  return { pass: true, bridgeX, riverZ: RIVER_Z, towerZ, boatOpening: opening, boatBounds: boatBounds.map(b => ({ minZ: b.min.z, maxZ: b.max.z, maxY: b.max.y })), deck: deck.map(({ z, d }) => ({ z, d })), abutmentZ: abutments.map(b => b.z), walkwayCount: walkways.length, clockFaces: clock.count, bigBenX: bigBen.x };
+  const hg = landmarkParts.details.getObjectByName('heathrow-geometry'), hb = new Box3().setFromObject(hg);
+  check(hb.min.z >= RIVER_Z + 13.1 && hb.max.z <= hz - 8.75 && hb.min.x >= hx - 13 && hb.max.x <= hx + 13, 'Heathrow terminal geometry must stay in the same footprint ' + JSON.stringify(hb));
+  return { pass: true, bridgeX, riverZ: RIVER_Z, towerZ: tz, boatOpening: opening, boatBounds: boatBounds.map(b => ({ minZ: b.min.z, maxZ: b.max.z, maxY: b.max.y })), clockFaces: clock.count, bigBenX: bigBen.x };
 })()'''))

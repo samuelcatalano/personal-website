@@ -207,7 +207,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       heroRealm?.userData.dispose();
       roadMarks.userData.dispose();
       trees?.userData.dispose?.();
-      for (const name of ['wembley', 'bigben', 'masp']) details.getObjectByName(name + '-geometry')?.userData.dispose();
+      for (const name of ['wembley', 'bigben', 'masp', 'se', 'estaiada', 'towerbridge', 'heathrow', 'eyeframe']) details.getObjectByName(name + '-geometry')?.userData.dispose();
       details.getObjectByName('hero-background')?.userData.dispose();
       details.getObjectByName('paulista-architecture')?.userData.dispose();
       renderer.dispose();

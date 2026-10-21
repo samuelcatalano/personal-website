@@ -89,13 +89,13 @@ function paulista(add, x, i, onArchitecturePlot, rollout, stopId) {
     add(tx, h + 1, z, 0.4, 5, 0.4, P.steel);
   });
 }
-export function buildSaoPaulo(add, stops, pts, onArchitecturePlot, rollout = false, onMasp) {
+export function buildSaoPaulo(add, stops, pts, onArchitecturePlot, rollout = false, onMasp, onSe, onEstaiada) {
   copanTower(add, copan(stops, pts));
   const at = (key) => pts[stopIndex(stops, LANDMARKS[key])];
   if (onMasp) onMasp(at('masp'));
   else masp(add, at('masp'));
-  se(add, at('se'));
-  estaiada(add, at('estaiada'));
+  if (onSe) onSe(at('se')); else se(add, at('se')); // ponytail: voxel fallbacks kept for headless tests that pass no geometry callbacks
+  if (onEstaiada) onEstaiada(at('estaiada')); else estaiada(add, at('estaiada'));
   const lm = new Set(Object.values(LANDMARKS));
   stops.forEach((s, i) => { if (s.country === 'BR' && !lm.has(s.id) && i < 6) paulista(add, pts[i].x, i, onArchitecturePlot, rollout, s.id); });
 }
