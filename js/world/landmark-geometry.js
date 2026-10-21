@@ -6,10 +6,28 @@ import { blockMaterial } from './textures.js';
 import { RIVERSIDE_KNOTS, riversideRoofAt } from './riverside.js';
 
 const v=(x,y,z)=>new THREE.Vector3(x,y,z),lathe=(pts,seg=16,a=0,l=Math.PI*2)=>new THREE.LatheGeometry(pts.map(([r,y])=>new THREE.Vector2(r,y)),seg,a,l);
+// Night lighting: two shared emissive strip materials (warm/cool) + one shared additive wash. Intensity per strip = vertex-colour brightness.
+// Dark-neutral fixtures by day (diffuse ignores vertex colour); sky.js drives emissive via userData.glow (wash too, as a black Lambert).
+const WARMW=[1,.54,.2],COOLW=[.74,.81,1];
+let lightMats;
+function getLightMats(){
+  if(lightMats)return lightMats;
+  const strip=(hex,k)=>{
+    const m=new THREE.MeshStandardMaterial({color:0x8a8e95,roughness:.6,metalness:0,vertexColors:true});
+    m.userData.glow=true;m.userData.glowColor=new THREE.Color(hex);m.userData.glowK=k;
+    m.onBeforeCompile=sh=>{sh.fragmentShader=sh.fragmentShader.replace('#include <color_fragment>','').replace('vec3 totalEmissiveRadiance = emissive;','vec3 totalEmissiveRadiance = emissive * vColor;');};
+    m.customProgramCacheKey=()=>'landmark-light-strip';return m;
+  };
+  // Additive wash: Lambert with black diffuse so sky.js's glow loop (emissive = glowColor * night * glowK) drives it; zero by day.
+  const wash=new THREE.MeshLambertMaterial({color:0x000000,vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4});
+  wash.userData.glow=true;wash.userData.glowColor=new THREE.Color(1,1,1);wash.userData.glowK=.85;
+  wash.onBeforeCompile=strip(0,0).onBeforeCompile;wash.customProgramCacheKey=()=>'landmark-light-wash';
+  return lightMats={warm:strip('#ffc27a',2.4),cool:strip('#dfe9ff',3.2),wash};
+}
 function archShape(w,h){const r=w/2,sh=h-w*.85,s=new THREE.Shape();s.moveTo(-r,0);s.lineTo(r,0);s.lineTo(r,sh);s.lineTo(0,h);s.lineTo(-r,sh);s.closePath();return s;}
 // Dedicated landmarks share the city atlas; only silhouette/depth belongs in geometry.
 function landmark(name,x,z){
-  const group=new THREE.Group(),buckets=[[],[],[]];group.name=name+'-geometry';group.position.set(x,0,z);
+  const group=new THREE.Group(),buckets=[[],[],[]],L=[[],[],[]];group.name=name+'-geometry';group.position.set(x,0,z);
   const stone=[1,1,.98],pale=[1.12,1.13,1.15],slate=[.87,.96,1.04];
   function add(g,x,y,z,surface=S.stone,tint=stone,bucket=0){
     if(g.index){const source=g;g=source.toNonIndexed();source.dispose();}
@@ -57,16 +75,31 @@ function landmark(name,x,z){
     if(closed)for(let j=1;j<profile.length-1;j++){tri(P(0,0),P(0,j),P(0,j+1));tri(P(n,0),P(n,j+1),P(n,j));}
     const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(new Float32Array(pos.length/3*2),2));g.computeVertexNormals();add(g,0,0,0,surface,tint,bucket);
   }
+  // b: 0 lightsWarm strips, 1 lightsCool strips, 2 additive wash (tone = its colour). k..k1 = brightness bottom->top.
+  function lit(b,g,x,y,z,k=1,k1=k,tone=WARMW){
+    if(g.index){const src=g;g=src.toNonIndexed();src.dispose();}
+    g.translate(x,y,z);const p=g.attributes.position;let lo=1e9,hi=-1e9;
+    for(let i=0;i<p.count;i++){lo=Math.min(lo,p.getY(i));hi=Math.max(hi,p.getY(i));}
+    const c=[];for(let i=0;i<p.count;i++){const q=k+(k1-k)*(hi>lo?(p.getY(i)-lo)/(hi-lo):0),t=b===2?tone:[1,1,1];c.push(t[0]*q,t[1]*q,t[2]*q);}
+    g.setAttribute('color',new THREE.Float32BufferAttribute(c,3));L[b].push(g);
+  }
+  const lbox=(b,x,y,z,w,h,d,k=1,k1=k)=>lit(b,new THREE.BoxGeometry(w,h,d),x,y+h/2,z,k,k1);
+  function lbeam(b,a,c,r=.04,k=1,seg=4){
+    const delta=c.clone().sub(a),g=new THREE.CylinderGeometry(r,r,delta.length(),seg);g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),delta.normalize()));
+    const m=a.clone().add(c).multiplyScalar(.5);lit(b,g,m.x,m.y,m.z,k);
+  }
   function finish(){
     const mats=townhouseMaterials();
     buckets.forEach((parts,i)=>{if(!parts.length)return;const g=mergeGeometries(parts,false);parts.forEach(p=>p.dispose());g.computeBoundingBox();g.computeBoundingSphere();const mesh=new THREE.Mesh(g,i===2?mats.glass:mats.architecture);mesh.name=name+'-'+['mass','trim','glass'][i];mesh.castShadow=i===0;mesh.receiveShadow=true;group.add(mesh);});
+    const lm=getLightMats();
+    L.forEach((parts,i)=>{if(!parts.length)return;const g=mergeGeometries(parts,false);parts.forEach(p=>p.dispose());g.computeBoundingBox();g.computeBoundingSphere();const mesh=new THREE.Mesh(g,[lm.warm,lm.cool,lm.wash][i]);mesh.name=name+'-'+['lightsWarm','lightsCool','wash'][i];mesh.castShadow=false;mesh.receiveShadow=false;group.add(mesh);});
     group.userData.dispose=()=>group.children.forEach(m=>m.geometry.dispose());return group;
   }
-  return {group,box,add,beam,ring,gothic,sweep,finish,stone,pale,slate};
+  return {group,box,add,beam,ring,gothic,sweep,finish,lit,lbox,lbeam,stone,pale,slate};
 }
 
 export function createWembley(x,z){
-  const {box,add,beam,ring,finish,pale,slate}=landmark('wembley',x,z);
+  const {box,add,beam,ring,finish,lit,lbeam,pale}=landmark('wembley',x,z);
   // Tapered continuous bowl and an open roof replace the old ring of overlapping cubes.
   ring([[18,12.8,6.2],[18.3,13.1,7.8],[17.8,12.6,8.5],[13.8,8.7,8.5],[13.5,8.4,6.2]],S.stone,pale);
   ring([[18.4,13.3,8.5],[18.2,13.1,9],[11.5,6.5,8.6],[11.5,6.5,8.35]],S.trim,pale);
@@ -87,8 +120,13 @@ export function createWembley(x,z){
     const a=curve.getPoint(i/32),b=curve.getPoint((i+1)/32);a.z=-.38;b.z=.38;beam(a,b,.065,pale);
   }
   for(const t of [.22,.35,.5,.65,.78])for(const side of [-1,1]){
-    const a=curve.getPoint(t),b=new THREE.Vector3(a.x*.75,8.8,side*11.4);beam(a,b,.035,slate);
+    const a=curve.getPoint(t),b=new THREE.Vector3(a.x*.75,8.8,side*11.4);lbeam(1,a,b,.035,.12); // faint support cables
   }
+  // Beacon: cool-white tubes just proud of both arch tubes; low warm glazing band round the bowl.
+  const c48=new THREE.CatmullRomCurve3(points.filter((_,i)=>i%2===0));
+  for(const dz of [-.5,.5])lit(1,new THREE.TubeGeometry(c48,40,.13,5,false),0,0,dz,1);
+  const ell=[];for(let i=0;i<48;i++){const a=i*Math.PI/24;ell.push(new THREE.Vector3(Math.cos(a)*17.85,4.9,Math.sin(a)*12.65));}
+  lit(0,new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ell,true),48,.07,4,true),0,0,0,.4);
   return finish();
 }
 
@@ -156,7 +194,7 @@ export function createMasp(x,z){
 
 // ---- Tower Bridge: local x across the crossing, z along it (group origin = river centreline) ----
 export function createTowerBridge(x,z){
-  const {box,add,beam,gothic,finish,pale,slate}=landmark('towerbridge',x,z);
+  const {box,add,beam,gothic,finish,lit,lbox,lbeam,pale,slate}=landmark('towerbridge',x,z);
   const grey=[.94,.96,1],blue=[.46,.68,.95],gilt=[.86,.76,.52],dark=[.22,.25,.29],TZ=9.5;
   for(const tz of [-TZ,TZ]){
     box(0,-1,tz,5.2,24,4.8,S.stone,grey);
@@ -205,6 +243,36 @@ export function createTowerBridge(x,z){
     for(let i=0;i<=12;i++){const u=i/12;pts.push(v(sx*3.1,y1+(y0-y1)*(1-u)**2,z0+(z1-z0)*u));}
     add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),24,.11,5,false),0,0,0,S.trim,gilt.map(c=>c*.85),1);
     for(const u of [.3,.5,.7,.88]){const p=pts[Math.round(u*12)];beam(v(sx*3.1,6.3,p.z),v(sx*3.1,p.y,p.z),.04,pale,1,4);}
+  }
+  // Night: gold uplight + lit windows (additive wash), warm corner/spire outlines, cool walkway/chain/deck lines.
+  const arch=(w,h)=>new THREE.ShapeGeometry(archShape(w,h));
+  for(const tz of [-TZ,TZ]){
+    for(const [face,cx,cz,rows] of [[0,0,tz+2.4,5],[Math.PI,0,tz-2.4,5],[Math.PI/2,2.6,tz,5],[-Math.PI/2,-2.6,tz,5]]){
+      const sn=Math.sin(face),cs=Math.cos(face),pg=new THREE.PlaneGeometry(3.8,14);pg.rotateY(face);
+      lit(2,pg,cx+sn*.04,7,cz+cs*.04,.5,0);
+      [[3.2,2.6],[7.6,2.6],[11.6,2.6],[16.2,2.6],[20.3,2.2]].forEach(([y,h])=>{
+        if(y>20&&(face===0&&tz<0||face===Math.PI&&tz>0))return;
+        for(const u of [-.9,.9]){const g=arch(.62,h*.8);g.rotateY(face);lit(2,g,cx+cs*u+sn*.075,y+h*.1,cz-sn*u+cs*.075,.7,.4);}
+      });
+    }
+    for(const sx of [-1,1])for(const sz of [-1,1]){
+      const cx=sx*2.55,cz=tz+sz*2.45;
+      lbox(0,cx+sx*.42,3,cz+sz*.565,.07,21,.03,.55,.9);lbox(0,cx+sx*.615,3,cz+sz*.4,.03,21,.07,.55,.9);
+      lbeam(0,v(cx+sx*.57,24.5,cz+sz*.57),v(cx+sx*.04,29.1,cz+sz*.04),.03,.9,3);
+      lbeam(0,v(sx*2.64,23.4,tz+sz*2.64),v(sx*.1,33.4,tz+sz*.1),.035,.8,3);
+    }
+  }
+  for(const wx of [-1.5,1.5]){
+    lbox(1,wx,18.97,0,.5,.03,14.2,.9);
+    for(const sx of [-1,1])lbox(1,wx+sx*.615,19.12,0,.03,.07,14.2,.6);
+  }
+  for(const sx of [-1,1]){
+    lbox(1,sx*3.015,4.5,0,.03,.1,34,.65);
+    for(const dir of [-1,1]){
+      const pts=[],y0=18.4,y1=10,z0=dir*(TZ+3.1),z1=dir*16.6;
+      for(let i=0;i<=12;i++){const u=i/12;pts.push(v(sx*3.19,y1+(y0-y1)*(1-u)**2+.04,z0+(z1-z0)*u));}
+      lit(1,new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),12,.05,4,false),0,0,0,.85);
+    }
   }
   const g=finish();
   g.userData.layout={towerZ:[-TZ,TZ],towerHeight:35,deckY:4,deckTop:5.2,walkwayZ:0,walkways:2,pinnacles:8};
@@ -316,7 +384,7 @@ export function createSe(x,z){
 
 // ---- Ponte Estaiada: tapered X pylon, deck through it, fans of straight stays ----
 export function createEstaiada(x,z){
-  const {box,add,beam,finish,pale}=landmark('estaiada',x,z),concrete=[1.04,1.07,1.14],steel=[.9,.95,1.05];
+  const {box,add,finish,lit,lbox,lbeam,pale}=landmark('estaiada',x,z),concrete=[1.04,1.07,1.14],steel=[.9,.95,1.05];
   const loft=(a,b,wa,da,wb,db)=>{
     const g=new THREE.BoxGeometry(1,1,1).toNonIndexed(),p=g.attributes.position,d=b.clone().sub(a).normalize();
     for(let i=0;i<p.count;i++){
@@ -335,7 +403,16 @@ export function createEstaiada(x,z){
   for(const s of [-1,1])box(s*3.9,4.8,0,.2,.7,56,S.trim,pale,1);
   // stays: leg A (upper right) feeds the right deck edge, leg B the left
   const ay=[45,42.4,39.8,37.2,34.6,32,29.4],run=[7,10.5,14,17.5,21,24.5,27.4];
-  for(const s of [1,-1])ay.forEach((y,k)=>{for(const d of [-1,1])beam(v(s*lx(y)*1,y,0),v(s*3.9,5.5,d*run[k]),.06,steel,1,5);});
+  for(const s of [1,-1])ay.forEach((y,k)=>{for(const d of [-1,1])lbeam(1,v(s*lx(y)*1,y,0),v(s*3.9,5.5,d*run[k]),.045,.11,4);});
+  // Night: cool edge strips down both pylon legs (inner edge brighter), deck-edge strips, warm base wash.
+  for(const s of [-1,1]){
+    const a=v(s*lx(.5),.5,0),b=v(s*lx(H),H,0),d=b.clone().sub(a).normalize(),n=v(d.y,-d.x,0);
+    const at=(t,e,zs)=>{const c=a.clone().lerp(b,t),w=3+(1.4-3)*t,dep=2.8-1.4*t;return v(c.x+n.x*e*w/2,c.y+n.y*e*w/2,zs*(dep/2+.03));};
+    for(const e of [-1,1])for(const zs of [-1,1])lbeam(1,at(.08,e,zs),at(1,e,zs),.1,e===s?1:.75,4);
+    const th=-s*Math.asin(d.x);
+    for(const zs of [-1,1]){const pg=new THREE.PlaneGeometry(2.5,14);pg.rotateZ(th);lit(2,pg,s*lx(7),7.3,zs*1.34,.6,0);}
+    lbox(1,s*4.015,4.95,0,.03,.4,56,.6);
+  }
   return finish();
 }
 
@@ -382,7 +459,7 @@ export function createCopan({x,z,len,amp,depth,h}){
 
 // ---- Riverside Museum: sawtooth zinc roof, glazed front and gable ends ----
 export function createRiverside(x,z){
-  const {box,add,finish}=landmark('riverside',x,z),zinc=[.6,.64,.7],silver=[.95,.98,1.04],glass=[.7,.82,.95],T=.7,W=7.5;
+  const {box,add,finish,lit,lbox,lbeam}=landmark('riverside',x,z),zinc=[.6,.64,.7],silver=[.95,.98,1.04],glass=[.7,.82,.95],T=.7,W=7.5;
   const top=RIVERSIDE_KNOTS.map(([u,y])=>[u-16,y]),low=top.map(([px,py])=>[px,py-T]).reverse();
   const poly=pts=>new THREE.Shape(pts.map(([px,py])=>new THREE.Vector2(px,py)));
   add(new THREE.ExtrudeGeometry(poly([...top,...low]),{depth:2*W,bevelEnabled:false}),0,0,-W,S.trim,zinc);   // pleated roof sheet
@@ -395,7 +472,16 @@ export function createRiverside(x,z){
     box(s*15.7,.3,0,.3,he-.3,13.8,S.litGlass,glass,2);
     for(const dz of [-6.9,-3.45,0,3.45,6.9])box(s*15.85,.3,dz,.22,he-.2,.24,S.trim,silver,1);
     box(s*15.85,he*.5,0,.22,.2,14,S.trim,silver,1);
+    const pg=new THREE.PlaneGeometry(13.4,he-.6);pg.rotateY(s*Math.PI/2);lit(2,pg,s*15.99,.4+(he-.6)/2,0,.3,.12);
   }
+  // Night: cool zig-zag roofline strips (front/back top edge, front lower edge), warm entrance band + faint glazed-front wash, warm gable glow above.
+  for(let i=0;i<top.length-1;i++){
+    const [x0,y0]=top[i],[x1,y1]=top[i+1];
+    for(const zz of [-7.515,7.515])lbeam(1,v(x0,y0-.08,zz),v(x1,y1-.08,zz),.05,1,4);
+    lbeam(1,v(x0,y0-T+.1,7.515),v(x1,y1-T+.1,7.515),.04,.45,4);
+  }
+  lbox(0,0,.45,7.07,28,.12,.04,.6);
+  lit(2,new THREE.ShapeGeometry(poly(under)),0,0,7.08,.16,.04);
   return finish();
 }
 
