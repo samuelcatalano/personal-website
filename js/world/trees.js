@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { canopyGeometry, trunkGeometry } from './tree-mesh.js';
 
-// Three low-poly tree types (small street / medium urban / large park), one InstancedMesh per part per type per 160 m chunk (frustum-culled) + one understory batch.
+// Three tree types (small street / medium urban / large park), one InstancedMesh per part per type per 160 m chunk (frustum-culled) + one understory batch.
 // Positions and crown footprints come from placements; canopy diameter never exceeds placement.crown.
 const TYPES = ['small', 'medium', 'large'];
 const typeOf = (crown) => (crown < 2.1 ? 'small' : crown < 2.7 ? 'medium' : 'large'); // ponytail: crown is the only size signal; placements carry no type
@@ -11,7 +11,7 @@ const hsl = {};
 
 export async function createTrees(placements) {
   const group = new THREE.Group(); group.name = 'trees';
-  const canopyMat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+  const canopyMat = new THREE.MeshLambertMaterial({ vertexColors: true }); // smooth: foliage normals carry the shading
   const trunkMat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
   const geoms = [], o = new THREE.Object3D();
   // Spatial chunks along the route (CHUNK m in x) so standard frustum culling skips off-screen trees in every pass.
