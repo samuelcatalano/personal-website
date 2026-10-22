@@ -14,7 +14,7 @@ const memo = (k, f) => MEMO.get(k) ?? (MEMO.set(k, f()), MEMO.get(k));
 const BLK = '#121417', DK = '#1b1d21', WHT = '#f4f1ea', CH = '#d8dadc';
 
 // dot-matrix destination board (glows at night through the sky.update glow path, same convention as vehicles.js)
-const destMat = (key, num, text, fg, bg = '#0b0a09') => memo('busdest' + key, () => {
+export const destMat = (key, num, text, fg, bg = '#0b0a09') => memo('busdest' + key, () => {
   const cv = document.createElement('canvas'); cv.width = 320; cv.height = 104;
   const g = cv.getContext('2d');
   g.fillStyle = bg; g.fillRect(0, 0, 320, 104);
