@@ -19,7 +19,9 @@ gm.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = (.35,
 sun = bpy.data.objects.new('sun', bpy.data.lights.new('sun', 'SUN')); sun.data.energy = 3.5; sun.rotation_euler = (math.radians(40), 0, math.radians(-30)); s.collection.objects.link(sun)
 cam = bpy.data.objects.new('cam', bpy.data.cameras.new('cam')); cam.data.lens = 50; s.collection.objects.link(cam); s.camera = cam
 T = Vector((0, 0, 2.0))
-for name, az, el, r in [('front_right', -40, 20, 20), ('right', -90, 4, 24), ('rear_right', -140, 20, 20), ('front', 0, 6, 17), ('top_right', -45, 55, 22)]:
+VIEWS = [('front', 0, 6, 17), ('rear', 180, 6, 17), ('left', 90, 4, 24), ('right', -90, 4, 24), ('front_left', 40, 20, 20), ('front_right', -40, 20, 20),
+         ('rear_left', 140, 20, 20), ('rear_right', -140, 20, 20), ('top_left', 45, 55, 22), ('top_right', -45, 55, 22)]
+for name, az, el, r in VIEWS:
     A, E = math.radians(az), math.radians(el)
     cam.location = T + Vector((r * math.cos(E) * math.cos(A), r * math.cos(E) * math.sin(A), r * math.sin(E)))
     cam.rotation_euler = (T - cam.location).to_track_quat('-Z', 'Y').to_euler()

@@ -84,6 +84,7 @@ def patch(bm, path, lo, hi, z0, z1, nu, off, mi, sub=1, uv=False):
         for i in range(nu):
             try: f = bm.faces.new((a[i], a[i + 1], b[i + 1], b[i]))
             except ValueError: continue
+            f.normal_update()
             if f.normal.dot(sum((nrm[v] for v in f.verts), Vector())) < 0: f.normal_flip()
             f.material_index = mi; out.append(f)
             if uv:
@@ -135,6 +136,7 @@ for i in range(len(ST) - 1):
         f.material_index = m; hull_faces.append(f)
 bmesh.ops.remove_doubles(bm, verts=list(bm.verts), dist=1e-5)
 bmesh.ops.recalc_face_normals(bm, faces=list(bm.faces))
+HULL_NONMANIFOLD = sum(1 for e in bm.edges if not e.is_manifold)
 
 bg, bd = bmesh.new(), bmesh.new()    # glass, display
 bli = bmesh.new()
@@ -154,37 +156,46 @@ def bays(path, x_from, x_to, pitch, gap, zr, lmin=-9.0, lmax=9.0, skip=()):
             if max(ws) > (0.3 if clipped else 0.1): window(path, lo, hi, zr[0], zr[1], 1, 6 if clipped else 1)
         xa += pitch
 SR, SL = side(1), side(-1)
-LOW = (1.08, 2.05); UP = (2.78, 3.82); BANDW = 1.30; PITCH = 1.10; PW = 0.04   # ribbons, band horizontal width (~0.86 m perpendicular), pillar half-width
-fL = lambda z: -dxR(z)                                  # left rear staircase = mirror of the right front one
-def ribbon(path, lo, hi, zr, sub=6, m=0.03):
+# ---- explicit window layout constants (both sides use the same function) ----
+UPPER_Z = (3.07, 3.77); LOWER_Z = (1.20, 2.00)
+UP_X = (-4.55, 4.25)                       # upper ribbon: rear window -> red diagonal band
+LOW_X = (-3.35, 4.25)                      # lower ribbon: behind engine panel -> front door
+GRID0, PITCH, PILLAR_W = -3.30, 1.15, 0.08  # shared pillar grid (aligned deck to deck)
+STAIR_TOP, STAIR_SLOPE, STAIR_W = (3.14, 3.77), 0.9, 0.70   # RED diagonal body band: rear edge passes (x, z)=STAIR_TOP, rises FORWARD at ~42 deg, 0.7 m wide horizontally
+rear_edge = lambda z: STAIR_TOP[0] - (STAIR_TOP[1] - z) / STAIR_SLOPE
+front_edge = lambda z: rear_edge(z) + STAIR_W
+DOOR_X = (3.75, 4.15)                      # passenger door pillars, kerb (left) side only
+def pillars(path, l, h, zr, xs, w=PILLAR_W / 2):
+    for x in xs:
+        if all(l(z) + 0.12 < x < h(z) - 0.12 for z in zr): patch(bm, path, x - w, x + w, zr[0], zr[1], 1, OFF_G + 0.01, B_TRIM, 1)
+def glaze(path, lo, hi, zr, sub=1, m=0.03, grid=True):
     f_ = lambda v: v if callable(v) else (lambda z, v=v: v)
     l, h = f_(lo), f_(hi)
     if max(h(z) - l(z) for z in zr) < 0.3: return
     window(path, l, h, zr[0], zr[1], 1, sub, m)
-    x = -4.2
-    while x < 4.3:                                      # thin BusTrim pillars over the continuous glass
-        if all(l(z) + 0.12 < x < h(z) - 0.12 for z in zr): patch(bm, path, x - PW, x + PW, zr[0], zr[1], 1, OFF_G + 0.01, B_TRIM, 1)
-        x += PITCH
-# right (offside): front staircase band rising rearward
-ribbon(SR, -3.45, lambda z: dxR(z) - 0.10, LOW); ribbon(SR, -4.35, lambda z: dxR(z) - 0.10, UP)
-ribbon(SR, dxR, lambda z: min(4.25, dxR(z) + BANDW), (LOW[0], UP[1]), 8, 0.03)
-ribbon(SR, lambda z: min(4.2, dxR(z) + BANDW + 0.10), 4.25, UP)
-# left (nearside): rear staircase band (mirror)
-ribbon(SL, lambda z: fL(z) + 0.10, 4.25, LOW); ribbon(SL, -4.35, lambda z: fL(z) - BANDW - 0.10, UP)
-ribbon(SL, lambda z: max(-4.45, fL(z) - BANDW), fL, (LOW[0], UP[1]), 8, 0.03)
-ribbon(SL, lambda z: fL(z) + 0.10, 4.25, UP)
+    if grid: pillars(path, l, h, zr, [GRID0 + PITCH * k for k in range(-1, 8)])
+def side_layout(path, sg):                 # sg = +1 right / -1 left(kerb); everything except the door is symmetric
+    glaze(path, UP_X[0], rear_edge, UPPER_Z, 6)                                       # upper ribbon, front end cut by the red band's rear edge
+    glaze(path, LOW_X[0], LOW_X[1], LOWER_Z)                                          # lower ribbon
+    glaze(path, front_edge, 4.25, (LOWER_Z[1], UPPER_Z[1]), 8, 0.0, False)           # stair glass: only FORWARD of the red diagonal
+    for off in (0.75, 1.50):                                                          # slanted thin pillars parallel to the band
+        patch(bm, path, lambda z, o=off: min(front_edge(z) + o, 4.15), lambda z, o=off: min(front_edge(z) + o, 4.15) + 0.07, LOWER_Z[1] + 0.03, UPPER_Z[1] - 0.03, 1, OFF_G + 0.01, B_TRIM, 4)
+    if sg < 0:
+        for x in DOOR_X: patch(bm, path, x - 0.05, x + 0.05, LOWER_Z[0], LOWER_Z[1], 1, OFF_G + 0.01, B_TRIM, 1)
+    patch(bm, path, -4.40, -3.45, 0.72, 2.02, 1, 0.010, B_TRIM, 1)                  # rear engine louvre recess
+    for k in range(7): patch(bm, path, -4.34, -3.51, 0.80 + 0.17 * k, 0.88 + 0.17 * k, 1, 0.018, B_ACC, 1)
+    patch(bd, path, 0.05, 1.15, 2.20, 2.60, 1, 0.014, 0, 1, uv=True); patch(bm, path, 0.00, 1.20, 2.16, 2.64, 1, 0.008, B_TRIM, 1)
+for sg, sp in ((1, SR), (-1, SL)): side_layout(sp, sg)
 # front: deep curved lower + upper screens (wrap into the sides) in a black frame; display band proud in the mask
 for zr in ((1.12, 2.05), (2.92, 3.78)):
     patch(bm, PF, -0.97, 0.97, zr[0] - 0.05, zr[1] + 0.03, 16, 0.012, B_TRIM, 3)
     patch(bg, PF, -0.93, 0.93, zr[0], zr[1], 16, 0.030, 0, 3)
 patch(bd, PF, -0.72, 0.72, 2.20, 2.72, 10, 0.035, 0, 1, uv=True); patch(bm, PF, -0.76, 0.76, 2.16, 2.76, 10, 0.014, B_TRIM, 1)
-# rear: upper window, lower engine louvre recess
-patch(bg, PR, -0.72, 0.72, 2.90, 3.72, 12, 0.030, 0, 2); patch(bm, PR, -0.76, 0.76, 2.86, 3.76, 12, 0.014, B_TRIM, 2)
-patch(bm, PR, -0.58, 0.58, 0.72, 1.80, 10, 0.012, B_TRIM, 2)
-for k in range(6): patch(bm, PR, -0.52, 0.52, 0.80 + 0.16 * k, 0.88 + 0.16 * k, 10, 0.020, B_ACC, 1)
-# side destination displays (UV 0..1) with trim frames
-for sp in (SR, SL):
-    patch(bd, sp, 0.25, 1.45, 2.20, 2.60, 1, 0.014, 0, 1, uv=True); patch(bm, sp, 0.20, 1.50, 2.16, 2.64, 1, 0.008, B_TRIM, 1)
+# rear: wrap-around upper window, big lower louvre grille, number-plate recess
+patch(bg, PR, -0.95, 0.95, 2.90, 3.72, 16, 0.030, 0, 2); patch(bm, PR, -0.98, 0.98, 2.86, 3.76, 16, 0.014, B_TRIM, 2)
+patch(bm, PR, -0.68, 0.68, 0.72, 2.05, 12, 0.012, B_TRIM, 2)
+for k in range(8): patch(bm, PR, -0.62, 0.62, 0.80 + 0.16 * k, 0.88 + 0.16 * k, 12, 0.020, B_ACC, 1)
+patch(bm, PR, -0.20, 0.20, 0.50, 0.66, 4, 0.012, B_MET, 1)
 
 # lights: headlamp discs with trim bezels (front), tail lamp strips (rear)
 def disc(bmL, path, a, z, r, off, mi, segs=16, dome=0.03):
@@ -192,6 +203,7 @@ def disc(bmL, path, a, z, r, off, mi, segs=16, dome=0.03):
     ctr = bmL.verts.new(c + n * dome); ring_ = [bmL.verts.new(c + (t * math.cos(2 * math.pi * k / segs) + up * math.sin(2 * math.pi * k / segs)) * r) for k in range(segs)]
     for k in range(segs):
         f = bmL.faces.new((ctr, ring_[k], ring_[(k + 1) % segs]))
+        f.normal_update()
         if f.normal.dot(n) < 0: f.normal_flip()
         f.material_index = mi
 for a in (-0.62, 0.62):
@@ -223,7 +235,7 @@ for pi_, (a, b) in enumerate(zip(rs, rs[1:])):
     for k in range(SEG):
         try: f = bw.faces.new((a[k], a[(k + 1) % SEG], b[(k + 1) % SEG], b[k]))
         except ValueError: continue
-        f.material_index = 0 if pi_ < 6 else 1
+        f.material_index = 1 if pi_ == 6 else 0
 bmesh.ops.remove_doubles(bw, verts=list(bw.verts), dist=1e-5); bmesh.ops.recalc_face_normals(bw, faces=list(bw.faces))
 wheel_me = bpy.data.meshes.new('Wheel'); bw.to_mesh(wheel_me); bw.free(); wheel_me.materials.append(TRIM); wheel_me.materials.append(METAL)
 
@@ -245,5 +257,6 @@ bpy.ops.export_scene.gltf(filepath=out, export_format='GLB', export_apply=True, 
 ms = [o for o in bpy.context.scene.objects if o.type == 'MESH']
 tri = lambda me: sum(len(p.vertices) - 2 for p in me.polygons)
 uniq = {o.data.name: o.data for o in ms}
+print('HULL non-manifold edges', HULL_NONMANIFOLD)
 print('BUILD tris(unique)', sum(tri(m) for m in uniq.values()), 'tris(instanced)', sum(tri(o.data) for o in ms), 'verts(unique)', sum(len(m.vertices) for m in uniq.values()), 'meshes', len(uniq), 'materials', len(bpy.data.materials))
 for o in ms: print(' ', o.name, o.data.name, tri(o.data))
