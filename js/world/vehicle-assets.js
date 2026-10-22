@@ -25,7 +25,9 @@ const role = (name, v) => ({
   BusRubber: () => fixed('tyre'), BusMetal: () => fixed('chrome'), BusHeadlight: () => fixed('head'), BusTaillight: () => fixed('tail'),
   BusDisplay: () => destMat(...v.dest), BusInterior: () => fixed('cabin'),
 }[name.replace(/\.\d+$/, '')]?.());
+const BUS_GLB_ENABLED = false; // ponytail: bus GLB is NO-GO pending the geometry correction pass; procedural buses render meanwhile
 export function upgradeBus(vehicle, variant) {
+  if (!BUS_GLB_ENABLED) return Promise.resolve();
   return loadVehicleAsset('bus').then((src) => {
     if (!src) return;
     const v = BUS_VARIANTS[variant], glb = src.clone(true); // clone shares geometry; materials are swapped per variant below
