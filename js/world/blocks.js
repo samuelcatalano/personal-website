@@ -1,6 +1,8 @@
 import { rng, stopIndex, ukStart, riverStart, riverEnd, copan, regions, inRegion, glasgowSites, LANDMARKS as L } from './layout.js';
 import { house } from './houses.js';
 import { PALETTE as P } from './palette.js';
+import { PARKS } from './parks.js';
+import { walkPaths } from './crowd.js';
 const { concrete: C, cream: CR, white: W, stone: S, sandstone: SS, brick: B, glass: G, terracotta: TC, ochre: OC, mint: MN, salmon: SA, skyBlue: SB, offWhite: OW, concreteDark: CD, concreteMid: CM, redBrown: RB, londonStock: LS, teal: TL, bronze: BZ } = P, AWN = [P.red, P.slate, P.sand];
 // [unit w, depth, floors lo..hi, floor h, walls, trim, kind: 0 flats 1 glass 2 shops 3 terrace]. Walls are picked with the existing r() draw.
 const PRE = [
@@ -145,4 +147,15 @@ export function buildBlocks(add, stops, pts, curve, occ, onBuildingPlot, onArchi
     draw(add, sx + dx, z, [10, 10, 2 + (side() * 3 | 0), 3, [CR, SS, OC, OW][side() * 4 | 0], W, 0, 1], side, side, false, false, onArchitecturePlot, `west-${dx}-${z}`);
   }
   draw(add, pts[0].x - 13, -3, [5.5, 6, 2, 3, OC, W, 2, 1], side, side, false, false, onArchitecturePlot, 'corner-shop');
+  // Gap fill: last, own rng, so nothing above moves. Small footprints go into holes the main rows could not fit, plus a third row behind them.
+  // Camera side (side > 0) stays two floors so landmark views keep their foreground; parks and pedestrian loops/wanders are kept clear.
+  const gap = rng(6151), free = [...PARKS.map((o) => [o.x0, o.x1, o.z0, o.z1]), ...walkPaths(stops, pts).filter((o) => o.rect).map(({ rect: o }) => [o.x0, o.x1, o.z0, o.z1])];
+  for (const [sd, f] of [[1, 29], [1, 43], [-1, 29], [-1, 43], [-1, 57], [1, 57]]) for (let x = pts[0].x - 40; x < X('wembley') + 40; x += 3) {
+    const sc = inRegion(rgs, 'scot', x), uk = x > mv, t = uk && !sc && gap() < 0.6, w = t ? 6 : 8 + gap() * 3, u = t ? 2 + (gap() * 2 | 0) : 1, d = t ? 8 : 9;
+    const n = sd > 0 ? 2 : 3 + (gap() * 2 | 0), cx = x + w * u / 2, z = zAt(cx) + sd * (f + d / 2), R = [x - 1, x + w * u + 1, z - d / 2 - 1, z + d / 2 + 1];
+    if ([...hard, ...cut, ...occ, ...free].some((o) => hit(R, o)) || path.some((p) => hit(R, [p.x, p.x, p.z, p.z], 25))) continue;
+    const wall = sc ? [P.redSand, SS, CR] : uk ? [B, LS, CR, OW, SA, SB] : [CR, OC, SS, MN, SA, TC, OW];
+    draw(add, cx, z, [w, d, n, 3, wall[gap() * wall.length | 0], W, t ? 3 : 0, u], gap, gap, sd > 0, false, onArchitecturePlot, `gap-${Math.round(cx)}-${Math.round(z)}`);
+    occ.push(R); x += w * u + 1 + gap() * 3;
+  }
 }
