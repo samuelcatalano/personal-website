@@ -14,7 +14,7 @@ export function midriseRecipe(plot) {
 // One archetype-specific slice; integration owns the lot allowlist, not the recipe.
 export function createMidriseSlice(plot,recipe=midriseRecipe(plot)) {
   const {x,z,width,depth,height}=plot;
-  if(plot.kind!=='midrise'||![x,z,width,depth,height].every(Number.isFinite)||width<8||depth<8||(height<12&&!recipe.compact)||height<6)throw new TypeError('Invalid midrise slice plot');
+  if(plot.kind!=='midrise'||![x,z,width,depth,height].every(Number.isFinite)||width<8||depth<6||(height<12&&!recipe.compact)||height<6)throw new TypeError('Invalid midrise slice plot');
   const w=width-.4,d=depth-.4,roofY=height-1.1,upper=(roofY-recipe.ground)/(recipe.floors-1);
   const buckets=Array.from({length:3},()=>({position:[],normal:[],uv:[],aSurface:[],color:[]})),openings=[];
   const plaster=[[1,.99,.96],[.97,.99,1],[1,.98,.94]][recipe.palette];

@@ -10,12 +10,11 @@ import { SURFACE as S, townhouseMaterials } from './building-slice-materials.js'
 export function classifyPlot(p) {
   if (![p.x??0,p.z??0,p.width,p.depth,p.height].every(Number.isFinite)) return null;
   const {kind,width:w,depth:d,height:h}=p;
-  if (kind==='terrace'&&w>=4.8&&w<=12&&d>=7&&d<=12&&h>=6&&h<=16) return 'townhouse';
+  if (kind==='terrace'&&w>=4.8&&w<=12&&d>=5.5&&d<=12&&h>=6&&h<=16) return 'townhouse';
   if (kind==='shop'&&w>=5&&d>=5&&h>=5.5&&h<=12) return 'shop';
   if (['office','tower','midrise'].includes(kind)&&w>=9.8&&d>=9.8&&h>=40) return 'tower';
   if (kind==='office'&&w>=8&&d>=8&&h>=12) return 'office';
-  if (classifyCompletion(p)==='B') return null;
-  if (kind==='midrise'&&w>=8&&d>=8&&h>=6&&h<40) return 'midrise';
+  if (kind==='midrise'&&w>=8&&d>=6&&h>=6&&h<40) return 'midrise';
   return null;
 }
 export function classifyCompletion(p) {

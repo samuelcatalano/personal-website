@@ -20,7 +20,7 @@ export function townhouseRecipe(plot,neighbors=[]) {
 
 function townhouseGeometry(plot,recipe,level=0,storage=null) {
   const {x,z,width,depth,height}=plot;
-  if (![x,z,width,depth,height].every(Number.isFinite)||width<4.8||depth<7||height<recipe.ridge+.08-1e-6) throw new TypeError('Townhouse recipe does not fit plot');
+  if (![x,z,width,depth,height].every(Number.isFinite)||width<4.8||depth<5.5||height<recipe.ridge+.08-1e-6) throw new TypeError('Townhouse recipe does not fit plot');
   const w=width-.3,d=depth-.3,front=d/2,openings=[];
   const buckets=storage?storage.map(b=>{b.count=0;return b}):Array.from({length:3},()=>({position:[],normal:[],uv:[],surface:[],color:[]}));
   function quad(points,normal,surface,bucket=0,uv) {
