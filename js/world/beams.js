@@ -28,11 +28,22 @@ const cone = new THREE.BufferGeometry(); // two soft fans, one flat and one upri
 }
 const pool = new THREE.PlaneGeometry(10, 5).rotateX(-Math.PI / 2).translate(6.5, 0, 0);
 const tailPool = new THREE.PlaneGeometry(2, 1.8).rotateX(-Math.PI / 2).translate(-1.4, 0, 0);
+// One beam + one tail glow per lamp, at the lamps' lateral position (≈68 % of the half-width), not from the vehicle's centre line.
+const box = new THREE.Box3();
 export function addBeams(vehicle, front, y = 0.65) {
-  const c = new THREE.Mesh(cone, M.cone), p = new THREE.Mesh(pool, M.pool), t = new THREE.Mesh(tailPool, M.tail);
-  c.position.set(front, y, 0); c.rotation.z = -0.07;
-  p.position.set(front, 0.04, 0); t.position.set(-front, 0.04, 0);
-  for (const m of [c, p, t]) { m.name = 'beam'; m.renderOrder = 5; m.frustumCulled = false; vehicle.add(m); }
+  box.makeEmpty(); vehicle.updateMatrixWorld(true);
+  vehicle.traverse((o) => { if (o.isMesh && o.name !== 'beam') { o.geometry.computeBoundingBox(); box.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld.clone().premultiply(vehicle.matrixWorld.clone().invert()))); } });
+  const half = box.isEmpty() ? 0.9 : (box.max.z - box.min.z) / 2, lamp = Math.min(1.1, half * 0.68);
+  const tail = new THREE.Group(); tail.name = 'beam'; tail.position.set(-front, 0.04, 0);
+  for (const s of [-1, 1]) {
+    const c = new THREE.Mesh(cone, M.cone); c.position.set(front, y, s * lamp); c.rotation.z = -0.07; c.scale.z = 0.6; // narrower fan per lamp
+    const t = new THREE.Mesh(tailPool, M.tail); t.position.z = s * lamp; t.scale.z = 0.5;
+    for (const m of [c, t]) { m.name = 'beam'; m.renderOrder = 5; m.frustumCulled = false; }
+    vehicle.add(c); tail.add(t);
+  }
+  const p = new THREE.Mesh(pool, M.pool); p.position.set(front, 0.04, 0); p.name = 'beam'; p.renderOrder = 5; p.frustumCulled = false;
+  tail.userData.swell = (k) => tail.children.forEach((t) => t.scale.set(k, 1, 0.5 * k)); // brake lights grow in place
+  vehicle.add(p, tail);
 }
 export function updateBeams(night) {
   for (const k in M) { M[k].opacity = night * OP[k]; M[k].visible = night > 0.02; }

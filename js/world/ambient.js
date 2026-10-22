@@ -82,7 +82,7 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
         const yaw = Math.atan2(-tan.z, tan.x) + (v.lane < 0 ? Math.PI : 0);
         v.yaw = v.yaw === null || !move ? yaw : v.yaw + (((yaw - v.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI) * Math.min(1, dt * 8); // ease around bends
         v.mesh.rotation.y = v.yaw;
-        v.tail.scale.setScalar(1 + 1.4 * v.brake); // brake lights: the tail glow pool (night only) swells while slowing
+        v.tail.userData.swell?.(1 + 1.4 * v.brake); // brake lights: the tail glow pool (night only) swells while slowing
       }
       boats.forEach((b, i) => {
         b.position.y = 0.1 + Math.sin(time * 1.1 + i * 2) * 0.25;
