@@ -5,12 +5,12 @@ Original geometry built headlessly in Blender; the user's Mini sheet (front 3/4,
 | | |
 |---|---|
 | Generator | `build_mini.py` (`blender -b --factory-startup -P build_mini.py`), `render_mini.py` (10 views), `validate_mini.py` (face orientation per side) |
-| Approved POC | `mini-original-poc.glb` — **frozen 2026-10-22** |
+| Approved POC | `mini-original-poc.glb` — refreeze 2026-10-22 after the detail pass (see below) |
 | Production asset | `assets/vehicles/mini-cooper.glb` (byte copy) |
 | Dimensions | 3.82 m long, 1.73 m wide (mirrors extra), 1.44 m high; wheelbase 2.53 m; wheels Ø0.64 m |
 | Axes / origin | three.js forward +X, up +Y, right +Z; origin on the ground, centred |
-| Geometry | 6,012 unique tris (7,242 with 4 wheel instances), 4,110 verts, 5 meshes (Body, Roof, Glass, Lights, shared Wheel), 7 materials, 0 textures, 171 KB |
-| Hierarchy | CarRoot → Body, Roof, Glass, Lights, Wheels → FL FR RL RR (pivots at wheel centres) |
+| Geometry | 11,472 tris with 4 wheel instances, 6,897 verts, 6 meshes (Body, Roof, Glass, Lights, Interior, shared Wheel), 10 materials, 0 textures, 288 KB |
+| Hierarchy | CarRoot → Body, Roof, Glass, Lights, Interior, Wheels → FL FR RL RR (pivots at wheel centres) |
 
 Runtime (`js/world/vehicle-assets.js` → `upgradeMini`): loaded once, cloned per car with shared geometry; semantic materials (CarBody, CarRoof, CarGlass, CarTrim, CarChrome, CarHeadlight, CarTaillight) map to the shared project materials, so headlights/tail lamps glow at night via `sky.update`. Body and roof colours are per instance (player: cream + red roof; ambient London Minis: cream/red, racing green/white, red/white). Ambient Minis use one merged static wheel geometry; the player Mini's wheels spin. Only Body and Roof cast shadows. The procedural Mini remains if the GLB fails to load.
 
@@ -23,4 +23,10 @@ Runtime (`js/world/vehicle-assets.js` → `upgradeMini`): loaded once, cloned pe
 
 GLB load ≈ 16 ms (cached after first load). Zero console errors.
 
-Known limits: no interior behind the glass; rear plate recess is an outline; roof reads slightly wide straight-on; spoke definition weak (spokes and disc share CarTrim).
+Known limits: rear roof lip reads slightly wide in rear 3/4; grille honeycomb is faceted shading; ~500 tris of budget headroom left.
+
+## Detail pass — 2026-10-22
+
+Real window openings with an interior (seats, dash, RHD wheel) seen through see-through `carGlass` (opacity 0.45); 2 cm plate recess with a raised plate; roof follows the greenhouse (≤ 1.5 cm overhang, rear lip only); graphite 10-spoke rims (CarRim) with thickness, dark disc, chrome lip and red calipers; raised bonnet scoop, honeycomb grille, projector headlamps, 32–36-segment lamps, smoother arches, shaped mirrors, handles, wipers, antenna. New roles: CarInterior, CarPlate, CarRim.
+
+A/B vs the previous Mini GLB (3 runs): hero desktop calls ~445 → ~475 (+6.7%), tris 872.8k → 882.1k (+1.1%), p95 9.5–9.7 → 9.6–9.8 ms; mobile calls ~177 → ~182 (+2.8%). London stop 10 desktop calls ~688 → ~700 (+1.7%), tris +0.9%; mobile ≈ 0 calls, +1.6% tris. Zero console errors.

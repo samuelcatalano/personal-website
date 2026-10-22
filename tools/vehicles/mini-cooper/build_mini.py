@@ -27,14 +27,14 @@ HOOD_PX = [(948, 536), (990, 542), (1020, 545), (1060, 553), (1100, 565), (1140,
 ROOF_PX = [(155, 425), (190, 397), (230, 389), (270, 383), (310, 376), (350, 373), (430, 369), (470, 368), (550, 368), (630, 371), (710, 380), (750, 391), (775, 402), (795, 425)]
 # glasshouse (black pillar band) -- linear in z between belt and roof underside
 GH_Z = [0.955, 1.03, 1.32, 1.335]
-gh_hw = lambda z: 0.66 - (z - 0.96) * 0.282
+gh_hw = lambda z: 0.65 - (z - 0.96) * 0.35
 gh_xf = lambda z: 1.00 - (z - 0.96) * 1.395     # windscreen plane (rake ~54 deg)
 gh_xr = lambda z: -1.68 + (z - 0.96) * 0.725    # rear screen plane (rake ~36 deg)
 GH_RC = 0.09
 GLASS_Z = (1.03, 1.32); DOOR_X0, QUART_X1 = -0.50, -0.72
 DOOR_CUTS = (-0.63, 0.72)
-ROOF_HW, ROOF_CROWN, ROOF_T = 0.575, 0.03, 0.05
-COL = dict(CarBody='#efe7d6', CarRoof='#c9252b', CarGlass='#7e939f', CarTrim='#17191c', CarChrome='#aeb4ba', CarHeadlight='#fff6e0', CarTaillight='#c01414')
+ROOF_HW, ROOF_CROWN, ROOF_T = 0.532, 0.03, 0.055
+COL = dict(CarBody='#efe7d6', CarRoof='#c9252b', CarGlass='#7e939f', CarTrim='#17191c', CarChrome='#aeb4ba', CarHeadlight='#fff6e0', CarTaillight='#c01414', CarInterior='#2b2724', CarPlate='#f3f1ea', CarRim='#4a4e54')
 
 # ================= helpers =================
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -53,7 +53,8 @@ def mat(name, rough=0.4, metal=0.0, alpha=1.0, emit=0.0):
 M_BODY, M_ROOF, M_GLASS = mat('CarBody', 0.35), mat('CarRoof', 0.3), mat('CarGlass', 0.05, 0.0, 0.55)
 M_TRIM, M_CHROME = mat('CarTrim', 0.45), mat('CarChrome', 0.2, 0.7)
 M_HEAD, M_TAIL = mat('CarHeadlight', 0.2, 0, 1, 0.8), mat('CarTaillight', 0.3, 0, 1, 0.6)
-B_BODY, B_TRIM, B_CHR, B_ROOF = 0, 1, 2, 3          # Body mesh slots
+M_INT, M_PLATE, M_RIM = mat('CarInterior', 0.85), mat('CarPlate', 0.5), mat('CarRim', 0.35, 0.6)
+B_BODY, B_TRIM, B_CHR, B_ROOF, B_INT, B_PLATE = 0, 1, 2, 3, 4, 5          # Body mesh slots
 
 def interp(tab, x):
     if x <= tab[0][0]: return tab[0][1]
@@ -63,7 +64,7 @@ def interp(tab, x):
 TAIL = [(cx(p), cz(q)) for p, q in TAIL_PX]
 ST_TAB = [(x, min(z, BELT)) for x, z in TAIL] + [(-1.62, BELT), (0.95, BELT)] + [(cx(p), cz(q)) for p, q in HOOD_PX]
 NOSE = [(cx(p), cz(q)) for p, q in HOOD_PX if p >= 1100]
-ROOF = [(-1.52, 1.365), (-1.46, 1.372)] + [(cx(p), cz(q)) for p, q in ROOF_PX if 190 <= p <= 750] + [(0.50, 1.36), (0.56, 1.35)]   # flat-ended: slab never dips onto the screens
+ROOF = [(-1.52, 1.365), (-1.46, 1.372)] + [(cx(p), cz(q)) for p, q in ROOF_PX if 190 <= p <= 750] + [(0.40, 1.375), (0.49, 1.36)]   # flat-ended: slab never dips onto the screens
 ST = lambda x: interp(ST_TAB, x)
 D_TAB = [(-1.91, 0.14), (-1.65, 0.14), (-1.50, 0.06), (0.95, 0.06), (1.25, 0.14), (1.91, 0.16)]
 def xtop_f(z):                                         # x where the nose top silhouette passes height z (no limit above/below the nose)
@@ -97,10 +98,10 @@ def grid(bm, rows, mi, ref=Vector((0, 0, 0.4)), sign=1):   # rows: list of equal
     vr = [[bm.verts.new(p) for p in r] for r in rows]
     for a, b in zip(vr, vr[1:]):
         for i in range(len(a) - 1): addf(bm, (a[i], a[i + 1], b[i + 1], b[i]), mi, ref, sign)
-def region(bm, pt, yc, z0, z1, h, ny, nz, off, mi, ref=Vector((0, 0, 0.4))):   # surface-conforming decal: half width h(z) about yc
+def region(bm, pt, yc, z0, z1, h, ny, nz, off, mi, ref=Vector((0, 0, 0.4))):   # surface-conforming decal: half width h(z) about yc; off may be f(i,k)
     rows = []
     for k in range(nz + 1):
-        z = z0 + (z1 - z0) * k / nz; hh = max(0.004, h(z)); rows.append([pt(yc - hh + 2 * hh * i / ny, z, off) for i in range(ny + 1)])
+        z = z0 + (z1 - z0) * k / nz; hh = max(0.004, h(z)); rows.append([pt(yc - hh + 2 * hh * i / ny, z, off(i, k) if callable(off) else off) for i in range(ny + 1)])
     grid(bm, rows, mi, ref)
 def disc(bm, c, n, r, mi, dome=0.0, seg=14, ref=None):  # fan disc facing n
     u = (Vector((0, 0, 1)) - n * n.z).normalized(); v = n.cross(u); ctr = bm.verts.new(c + n * dome); ring = [bm.verts.new(c + (v * math.cos(2 * math.pi * k / seg) + u * math.sin(2 * math.pi * k / seg)) * r) for k in range(seg)]
@@ -126,6 +127,20 @@ def ellipsoid(bm, c, s, mi, us=10, vs_=6):
     fs = list({f for v in vs for f in v.link_faces})
     for f in fs: f.material_index = mi
     bmesh.ops.recalc_face_normals(bm, faces=fs)
+def torus(bm, c, n, R, r, mi, seg=14, sides=5):
+    u = (Vector((0, 0, 1)) - n * n.z).normalized(); v = n.cross(u); rings = []
+    for k in range(seg):
+        a = 2 * math.pi * k / seg; d = u * math.cos(a) + v * math.sin(a); cc = c + d * R
+        rings.append([bm.verts.new(cc + (d * math.cos(b) + n * math.sin(b)) * r) for b in (2 * math.pi * s / sides for s in range(sides))])
+    for k in range(seg):
+        A, B = rings[k], rings[(k + 1) % seg]
+        for s in range(sides): addf(bm, (A[s], A[(s + 1) % sides], B[(s + 1) % sides], B[s]), mi, lambda ctr: c + ((ctr - c) - n * (ctr - c).dot(n)).normalized() * R)
+def prism(poly, axis, a0, a1):                          # window cutter: polygon (u,v) extruded along y (poly in x,z) or x (poly in y,z)
+    bmc = bmesh.new(); P = (lambda u, v, t: Vector((u, t, v))) if axis == 'y' else (lambda u, v, t: Vector((t, u, v)))
+    lo = [bmc.verts.new(P(u, v, a0)) for u, v in poly]; hi = [bmc.verts.new(P(u, v, a1)) for u, v in poly]; n = len(poly)
+    for i in range(n): bmc.faces.new((lo[i], lo[(i + 1) % n], hi[(i + 1) % n], hi[i]))
+    bmc.faces.new(lo); bmc.faces.new(hi[::-1]); bmesh.ops.recalc_face_normals(bmc, faces=list(bmc.faces))
+    return new_obj('cutter', bmc, [])
 def new_obj(name, bm, mats):
     me = bpy.data.meshes.new(name); bm.to_mesh(me); bm.free(); ob = bpy.data.objects.new(name, me); bpy.context.collection.objects.link(ob)
     for m in mats: me.materials.append(m)
@@ -174,7 +189,17 @@ for i in range(len(R) - 1):
         shell.append((f, any(FL[i][a] or FL[i + 1][a] for a in (j, j2))))
 bmesh.ops.remove_doubles(bm, verts=list(bm.verts), dist=1e-5)
 shell = [(f, t) for f, t in shell if f.is_valid]
-# glasshouse shell: stacked rounded-rect rings (black pillar band), same tool as the body
+# cabin opening in the body top (so the interior is visible through the windows)
+cab = [f for f, t in shell if f.is_valid and f.calc_center_median().z > 0.88 and abs(f.calc_center_median().y) < 0.62 and -1.6 < f.calc_center_median().x < 0.96]
+bmesh.ops.recalc_face_normals(bm, faces=list(bm.faces))
+NONMANIFOLD = sum(1 for e in bm.edges if not e.is_manifold)      # closed shell, measured before the cabin opening is cut
+for f, trim in shell:
+    if not f.is_valid: continue
+    c = f.calc_center_median(); m = B_BODY
+    if trim or c.z < 0.215 or (abs(c.y) > 0.5 and c.z < 0.316 and WHEEL_XR + RA - 0.02 < c.x < WHEEL_XF - RA + 0.02): m = B_TRIM
+    f.material_index = m
+bmesh.ops.delete(bm, geom=[f for f in cab if f.is_valid], context='FACES')
+# glasshouse: black pillar band = open shell + boolean window cuts + solidify liner (inner faces = CarInterior)
 def gh_ring(z):
     xr, xf, hw, rc = gh_xr(z), gh_xf(z), gh_hw(z), GH_RC; pts = []
     def arc(cxx, cyy, a0, a1):
@@ -182,19 +207,29 @@ def gh_ring(z):
     arc(xf - rc, -(hw - rc), -90, 0); pts.append(Vector((xf, 0, z))); arc(xf - rc, hw - rc, 0, 90); pts.append(Vector(((xr + xf) / 2, hw, z)))
     arc(xr + rc, hw - rc, 90, 180); pts.append(Vector((xr, 0, z))); arc(xr + rc, -(hw - rc), 180, 270); pts.append(Vector(((xr + xf) / 2, -hw, z)))
     return pts
-GR = [[bm.verts.new(p) for p in gh_ring(z)] for z in GH_Z]; NG = len(GR[0]); gf = []
+bgh = bmesh.new(); GR = [[bgh.verts.new(p) for p in gh_ring(z)] for z in GH_Z]; NG = len(GR[0])
 for a, b in zip(GR, GR[1:]):
-    for j in range(NG): gf.append(bm.faces.new((a[j], a[(j + 1) % NG], b[(j + 1) % NG], b[j])))
-for ringv, up in ((GR[0], False), (GR[-1], True)):
-    cvec = sum((v.co for v in ringv), Vector()) / NG; cv = bm.verts.new(cvec)
-    for j in range(NG): gf.append(bm.faces.new((cv, ringv[j], ringv[(j + 1) % NG])))
-bmesh.ops.recalc_face_normals(bm, faces=list(bm.faces))
-NONMANIFOLD = sum(1 for e in bm.edges if not e.is_manifold)
-for f, trim in shell:
-    c = f.calc_center_median(); m = B_BODY
-    if trim or c.z < 0.215 or (abs(c.y) > 0.5 and c.z < 0.316 and WHEEL_XR + RA - 0.02 < c.x < WHEEL_XF - RA + 0.02): m = B_TRIM
-    f.material_index = m
-for f in gf: f.material_index = B_TRIM
+    for j in range(NG): bgh.faces.new((a[j], a[(j + 1) % NG], b[(j + 1) % NG], b[j]))
+cv = bgh.verts.new(sum((v.co for v in GR[-1]), Vector()) / NG)
+for j in range(NG): bgh.faces.new((cv, GR[-1][j], GR[-1][(j + 1) % NG]))
+bmesh.ops.recalc_face_normals(bgh, faces=list(bgh.faces))
+for f in bgh.faces: f.normal_update()
+if sum(f.normal.dot(f.calc_center_median() - Vector((0, 0, f.calc_center_median().z))) for f in bgh.faces if abs(f.normal.z) < 0.5) < 0: bmesh.ops.reverse_faces(bgh, faces=list(bgh.faces))
+for f in bgh.faces: f.material_index = B_TRIM
+gh_ob = new_obj('GH', bgh, [M_BODY, M_TRIM, M_CHROME, M_ROOF, M_INT])
+def apply_mod(ob, m):
+    bpy.context.view_layer.objects.active = ob; ob.select_set(True); bpy.ops.object.modifier_apply(modifier=m.name); ob.select_set(False)
+MG = 0.012                                              # glass sits MG inside the outer surface; openings are MG smaller than the panes
+z0g, z1g = GLASS_Z; X_B = lambda z: gh_xf(z) - GH_RC - 0.12; X_A = lambda z: gh_xr(z) + GH_RC + 0.05
+cuts = [prism([(DOOR_X0 + MG, z0g + MG), (X_B(z0g) - MG, z0g + MG), (X_B(z1g) - MG, z1g - MG), (DOOR_X0 + MG, z1g - MG)], 'y', -1.2, 1.2),
+        prism([(X_A(z0g) + MG, z0g + MG), (QUART_X1 - MG, z0g + MG), (QUART_X1 - MG, z1g - MG), (X_A(z1g) + MG, z1g - MG)], 'y', -1.2, 1.2)]
+zw0, zw1 = 1.0 + MG, 1.32 - MG; hs = lambda z: gh_hw(z) - GH_RC - 0.015 - MG
+cuts += [prism([(-hs(zw0), zw0), (hs(zw0), zw0), (hs(zw1), zw1), (-hs(zw1), zw1)], 'x', 0.1, 1.4), prism([(-hs(zw0), zw0), (hs(zw0), zw0), (hs(zw1), zw1), (-hs(zw1), zw1)], 'x', -1.9, -0.9)]
+for c_ in cuts:
+    m = gh_ob.modifiers.new('cut', 'BOOLEAN'); m.operation = 'DIFFERENCE'; m.solver = 'EXACT'; m.object = c_; apply_mod(gh_ob, m)
+m = gh_ob.modifiers.new('wall', 'SOLIDIFY'); m.thickness = 0.03; m.offset = -1.0; m.use_rim = True; m.material_offset = 3; apply_mod(gh_ob, m)
+for c_ in cuts: bpy.data.objects.remove(c_)
+bm.from_mesh(gh_ob.data); bpy.data.objects.remove(gh_ob)
 
 # ---------------- decals / trim: global (front, rear, hood) ----------------
 RAD = lambda c: Vector((0, 0, 0.4))
@@ -215,37 +250,47 @@ def scoop(x0a, x0b, ya, yb, nx, ny, h, mi, off):
     for i in range(nx + 1):
         x0 = x0a + (x0b - x0a) * i / nx; u = i / nx; row = []
         for j in range(ny + 1):
-            y = -ya + (ya + yb) * j / ny if False else -ya + 2 * ya * j / ny; lat = max(0.0, 1 - (y / ya) ** 2) ** 0.5
-            row.append(hood_pt(x0, y, off + h * math.sin(math.pi * u) ** 0.6 * lat))
+            y = -ya + 2 * ya * j / ny; lat = max(0.0, 1 - (y / ya) ** 2) ** 0.7
+            row.append(hood_pt(x0, y, off + h * math.sin(math.pi * u) ** 0.8 * lat))
         rows.append(row)
     grid(bm, rows, mi)
-scoop(1.30, 1.62, 0.16, 0.16, 6, 6, 0.032, B_BODY, 0.002)
-scoop(1.40, 1.55, 0.115, 0.115, 3, 4, 0.04, B_TRIM, 0.006)
+scoop(1.28, 1.64, 0.17, 0.17, 10, 10, 0.042, B_BODY, -0.004)
+scoop(1.42, 1.57, 0.115, 0.115, 5, 8, 0.043, B_TRIM, -0.001)
 # front fascia: hex "moustache" grille (chrome surround + black), lower intake, fog lamps
 def hexh(z0, z1, tip=0.54, edge=0.30, sh=0.0): zm = (z0 + z1) / 2; return lambda z: tip - sh - abs(z - zm) * (tip - edge) / ((z1 - z0) / 2)
-region(bm, FRONT, 0, 0.375, 0.625, hexh(0.375, 0.625, 0.57, 0.33), 10, 5, 0.010, B_CHR)
-region(bm, FRONT, 0, 0.418, 0.582, hexh(0.405, 0.595, 0.57, 0.33, 0.07), 10, 5, 0.015, B_TRIM)
-region(bm, FRONT, 0, 0.215, 0.335, lambda z: 0.50, 10, 3, 0.008, B_TRIM)
+region(bm, FRONT, 0, 0.375, 0.625, hexh(0.375, 0.625, 0.57, 0.33), 24, 12, 0.010, B_CHR)
+region(bm, FRONT, 0, 0.405, 0.595, hexh(0.405, 0.595, 0.57, 0.33, 0.07), 16, 8, lambda i, k: 0.012 + 0.007 * ((i + k) % 2), B_TRIM)
+region(bm, FRONT, 0, 0.215, 0.335, lambda z: 0.50, 18, 4, lambda i, k: 0.008 + 0.005 * ((i + k) % 2), B_TRIM)
+for sg in (1, -1): region(bm, FRONT, sg * 0.47, 0.225, 0.325, lambda z: 0.04, 2, 2, 0.016, B_CHR)
 for sg in (1, -1):
     c = FRONT(sg * 0.66, 0.335, 0.0); n = (FRONT(sg * 0.66 + 0.02, 0.335, 0) - FRONT(sg * 0.66 - 0.02, 0.335, 0)); n = Vector((n.y, -n.x, 0)).normalized()
     if n.x < 0: n = -n
-    disc(bm, c + n * 0.008, n, 0.058, B_CHR, 0.008); disc(bl, c + n * 0.016, n, 0.044, 0, 0.012)
+    disc(bm, c + n * 0.008, n, 0.058, B_CHR, 0.008, 32); disc(bl, c + n * 0.016, n, 0.044, 0, 0.012, 32)
 # round headlamps with chrome rings set into the wing tops
 for sg in (1, -1):
     y0 = sg * 0.63; zc = 0.64; c = FRONT(y0, zc, 0.0); t = FRONT(y0 + 0.02, zc, 0) - FRONT(y0 - 0.02, zc, 0); n = Vector((t.y, -t.x, 0)).normalized()
     if n.x < 0: n = -n
     n = (n + Vector((0, 0, 0.12))).normalized(); c = c - n * 0.02
-    tube(bm, c, n, 0.128, 0.04, B_CHR, 16); ring_disc(bm, c + n * 0.04, n, 0.108, 0.128, B_CHR, 16); ring_disc(bl, c + n * 0.037, n, 0.088, 0.108, 0, 16); disc(bm, c + n * 0.03, n, 0.09, B_TRIM, 0.02, 16)
+    tube(bm, c, n, 0.128, 0.04, B_CHR, 36); ring_disc(bm, c + n * 0.04, n, 0.108, 0.128, B_CHR, 36); ring_disc(bl, c + n * 0.037, n, 0.088, 0.108, 0, 36); disc(bm, c + n * 0.03, n, 0.09, B_TRIM, 0.02, 32); ring_disc(bm, c + n * 0.047, n, 0.045, 0.058, B_CHR, 24); disc(bl, c + n * 0.05, n, 0.03, 0, 0.012, 20)
 # rear: big vertical-oval tail lamps with chrome rings, plate recess, black diffuser, reflectors, exhaust
 def oval(a, b, yc, zc): return lambda z: a * math.sqrt(max(0.0, 1 - ((z - zc) / b) ** 2))
 for sg in (1, -1):
     yc, zc = sg * 0.60, 0.80
-    region(bm, REAR, yc, zc - 0.165, zc + 0.165, oval(0.082, 0.165, yc, zc), 8, 8, 0.008, B_CHR)
-    region(bl, REAR, yc, zc - 0.145, zc + 0.145, oval(0.064, 0.145, yc, zc), 6, 8, 0.014, 1)
-    region(bm, REAR, yc, zc - 0.08, zc + 0.08, oval(0.034, 0.08, yc, zc), 4, 4, 0.019, B_TRIM)
+    region(bm, REAR, yc, zc - 0.165, zc + 0.165, oval(0.082, 0.165, yc, zc), 6, 22, 0.008, B_CHR)
+    region(bl, REAR, yc, zc - 0.145, zc + 0.145, oval(0.064, 0.145, yc, zc), 6, 18, 0.014, 1)
+    region(bm, REAR, yc, zc - 0.08, zc + 0.08, oval(0.034, 0.08, yc, zc), 4, 10, 0.019, B_TRIM)
+    region(bm, REAR, yc, zc - 0.012, zc + 0.012, lambda z: 0.052, 3, 1, 0.021, B_CHR)
     region(bl, REAR, sg * 0.50, 0.325, 0.36, lambda z: 0.07, 3, 1, 0.012, 1)
-region(bm, REAR, 0, 0.47, 0.93, lambda z: 0.36, 10, 3, 0.006, B_TRIM); region(bm, REAR, 0, 0.485, 0.915, lambda z: 0.345, 10, 3, 0.012, B_BODY)
-region(bm, REAR, 0, 0.58, 0.79, lambda z: 0.31, 8, 3, 0.017, B_TRIM); region(bm, REAR, 0, 0.595, 0.775, lambda z: 0.295, 8, 3, 0.022, B_BODY)
+def rloop(y0, y1, z0, z1, off, n=6):
+    p = [REAR(y0 + (y1 - y0) * k / n, z0, off) for k in range(n)] + [REAR(y1, z0 + (z1 - z0) * k / n, off) for k in range(n)]
+    return p + [REAR(y1 - (y1 - y0) * k / n, z1, off) for k in range(n)] + [REAR(y0, z1 - (z1 - z0) * k / n, off) for k in range(n)]
+oh, ih, o0, i0 = [[bm.verts.new(p) for p in rloop(*r, off)] for r, off in (((-0.31, 0.31, 0.55, 0.76), 0.024), ((-0.275, 0.275, 0.585, 0.725), 0.024), ((-0.31, 0.31, 0.55, 0.76), 0.001), ((-0.275, 0.275, 0.585, 0.725), 0.001))]
+rc_ = REAR(0, 0.655, 0.0); NL = len(oh)                 # ~2 cm deep plate recess: raised body-colour frame with real walls
+for k in range(NL):
+    k2 = (k + 1) % NL
+    addf(bm, (oh[k], oh[k2], ih[k2], ih[k]), B_BODY); addf(bm, (o0[k], o0[k2], oh[k2], oh[k]), B_BODY, rc_); addf(bm, (i0[k], i0[k2], ih[k2], ih[k]), B_BODY, rc_, -1)
+region(bm, REAR, 0, 0.60, 0.71, lambda z: 0.26, 8, 1, 0.004, B_PLATE)
+region(bm, REAR, 0, 0.865, 0.885, lambda z: 0.30, 6, 1, 0.014, B_CHR)
 region(bm, REAR, 0, 0.19, 0.40, lambda z: 0.62, 12, 3, 0.006, B_TRIM)
 ex = Vector((REAR(0.42, 0.29, 0.0).x, 0.42, 0.29)); tube(bm, ex - Vector((0.02, 0, 0)), Vector((-1, 0, 0)), 0.042, 0.07, B_CHR, 12); ring_disc(bm, ex + Vector((-0.05, 0, 0)), Vector((-1, 0, 0)), 0.03, 0.042, B_CHR, 12); disc(bm, ex + Vector((-0.045, 0, 0)), Vector((-1, 0, 0)), 0.03, B_TRIM, 0.0, 12)
 
@@ -254,7 +299,7 @@ def SY(side, v): return -side * v
 def side_layout(side):
     Y = lambda v: SY(side, v)
     # glazing on the glasshouse planes (same function -> both sides identical)
-    z0, z1 = GLASS_Z; hwo = lambda z: gh_hw(z) + 0.007
+    z0, z1 = GLASS_Z; hwo = lambda z: gh_hw(z) - MG
     xb = lambda z: gh_xf(z) - GH_RC - 0.12; xa = lambda z: gh_xr(z) + GH_RC + 0.05
     for (xa_, xb_) in ((lambda z: DOOR_X0, xb), (xa, lambda z: QUART_X1)):
         grid(bg, [[Vector((xa_(z), Y(hwo(z)), z)), Vector((xb_(z), Y(hwo(z)), z))] for z in (z0, z1)], 0)
@@ -263,14 +308,16 @@ def side_layout(side):
     zr = [ZB + (BELT - 0.06 - ZB) * t for t in T_ROWS if ZB + (BELT - 0.06 - ZB) * t >= 0.31]
     for xc in DOOR_CUTS:
         grid(bm, [[Vector((xc - 0.004, Y(wall_w(z, W) + 0.003), z)), Vector((xc + 0.004, Y(wall_w(z, W) + 0.003), z))] for z in zr], B_TRIM)
-    box(bm, (-0.46, Y(wall_w(0.78, W) + 0.006), 0.78), (0.26, 0.012, 0.028), B_CHR)
+    box(bm, (-0.46, Y(wall_w(0.78, W) + 0.002), 0.78), (0.30, 0.006, 0.05), B_TRIM); box(bm, (-0.46, Y(wall_w(0.78, W) + 0.009), 0.78), (0.24, 0.014, 0.026), B_CHR)
+    box(bm, (-0.10, Y(wall_w(0.23, W) + 0.004), 0.22), (1.65, 0.05, 0.10), B_TRIM)       # side skirt
     grid(bm, [[Vector((0.80, Y(wall_w(z, W) + 0.004), z)), Vector((0.93, Y(wall_w(z, W) + 0.004), z))] for z in (0.715, 0.745)], B_CHR)
-    # mirror: red cap on a black stalk
-    ellipsoid(bm, (0.50, Y(0.88), 0.99), (0.075, 0.085, 0.065), B_ROOF); box(bm, (0.53, Y(0.79), 0.945), (0.05, 0.15, 0.03), B_TRIM)
+    # mirror: red housing + black glass face on a black stalk
+    ellipsoid(bm, (0.50, Y(0.90), 0.99), (0.075, 0.088, 0.066), B_ROOF, 12, 8); disc(bm, Vector((0.432, Y(0.90), 0.99)), Vector((-1, 0, 0)), 0.058, B_TRIM, 0.0, 12)
+    box(bm, (0.53, Y(0.79), 0.945), (0.05, 0.15, 0.03), B_TRIM); box(bm, (0.53, Y(0.84), 0.965), (0.035, 0.05, 0.04), B_TRIM)
     # chunky black wheel-arch flares (lip + outer/inner walls)
     for c in WHEELS:
         RO = RA + RF; pt = lambda th, rad, yo: (lambda x, z: Vector((x, Y(wall_w(z, plan_w(x)) + yo), z)))(c + rad * math.cos(th), WR + rad * math.sin(th))
-        ths = [math.radians(-20 + 220 * k / 14) for k in range(15)]
+        ths = [math.radians(-20 + 220 * k / 28) for k in range(29)]
         out_ref = lambda cc: Vector((cc.x, 0, cc.z))
         for a, b in zip(ths, ths[1:]):
             addf(bm, (bm.verts.new(pt(a, RA - 0.02, 0.04)), bm.verts.new(pt(a, RO, 0.04)), bm.verts.new(pt(b, RO, 0.04)), bm.verts.new(pt(b, RA - 0.02, 0.04))), B_TRIM, out_ref)
@@ -280,15 +327,31 @@ for s_ in (1, -1): side_layout(s_)
 # glasshouse screens (front / rear), symmetric by construction
 for z0_ in (1.0,):
     z1_ = 1.32
-    grid(bg, [[Vector((gh_xf(z) + 0.007, -(gh_hw(z) - GH_RC - 0.015), z)), Vector((gh_xf(z) + 0.007, gh_hw(z) - GH_RC - 0.015, z))] for z in (z0_, z1_)], 0)
-    grid(bg, [[Vector((gh_xr(z) - 0.007, -(gh_hw(z) - GH_RC - 0.015), z)), Vector((gh_xr(z) - 0.007, gh_hw(z) - GH_RC - 0.015, z))] for z in (z0_, z1_)], 0)
-bmesh.ops.recalc_face_normals(bm, faces=[f for f in bm.faces if False])
+    grid(bg, [[Vector((gh_xf(z) - MG, -(gh_hw(z) - GH_RC - 0.015), z)), Vector((gh_xf(z) - MG, gh_hw(z) - GH_RC - 0.015, z))] for z in (z0_, z1_)], 0)
+    grid(bg, [[Vector((gh_xr(z) + MG, -(gh_hw(z) - GH_RC - 0.015), z)), Vector((gh_xr(z) + MG, gh_hw(z) - GH_RC - 0.015, z))] for z in (z0_, z1_)], 0)
+# wipers (flat blades on the screen planes), antenna
+for (ya, yb) in ((-0.47, -0.06), (0.04, 0.45)): grid(bm, [[Vector((gh_xf(z) - 0.006, ya, z)), Vector((gh_xf(z) - 0.006, yb, z))] for z in (1.016, 1.034)], B_TRIM)
+grid(bm, [[Vector((gh_xr(z) + 0.004, 0.33, z)), Vector((gh_xr(z) + 0.004, 0.0, z))] for z in (1.04, 1.056)], B_TRIM)
+ax = Vector((-0.25, 0, 1.0)).normalized(); tube(bm, Vector((-1.10, 0, interp(ROOF, -1.10) - 0.005)), ax, 0.006, 0.17, B_TRIM, 6); disc(bm, Vector((-1.10, 0, interp(ROOF, -1.10) - 0.004)), Vector((0, 0, 1)), 0.016, B_TRIM, 0.01, 8)
+# ---------------- interior tub (one mesh): floor, RHD front seats (driver = -Y), rear bench, dash, wheel, shelf, door cards
+bi = bmesh.new()
+box(bi, (-0.30, 0, 0.36), (2.6, 1.24, 0.03), 0)
+for sg in (1, -1):
+    Yv = lambda v, sg=sg: -sg * v
+    box(bi, (0.05, Yv(0.60), 0.66), (1.5, 0.03, 0.62), 0); box(bi, (-1.15, Yv(0.585), 0.66), (0.9, 0.03, 0.62), 0)
+    box(bi, (-0.35, Yv(0.30), 0.47), (0.46, 0.42, 0.14), 0); box(bi, (-0.58, Yv(0.30), 0.86), (0.10, 0.42, 0.66), 0); box(bi, (-0.58, Yv(0.30), 1.23), (0.09, 0.22, 0.14), 0)
+    box(bi, (-1.40, Yv(0.30), 1.20), (0.08, 0.22, 0.14), 0)
+box(bi, (-1.12, 0, 0.47), (0.50, 1.1, 0.14), 0); box(bi, (-1.40, 0, 0.86), (0.10, 1.1, 0.66), 0); box(bi, (-1.55, 0, 0.99), (0.22, 1.1, 0.02), 0)
+box(bi, (0.80, 0, 0.82), (0.38, 1.2, 0.28), 0); box(bi, (0.70, -0.30, 1.00), (0.16, 0.34, 0.08), 0); box(bi, (0.20, 0, 0.50), (0.8, 0.18, 0.22), 0)
+torus(bi, Vector((0.50, -0.30, 0.92)), Vector((-0.80, 0, 0.6)).normalized(), 0.17, 0.014, 0); box(bi, (0.60, -0.30, 0.82), (0.22, 0.04, 0.04), 0)
+
 
 # ================= ROOF (floating slab, separate mesh) =================
-RX0, RX1, RLB, RLF = -1.52, 0.56, 0.16, 0.18
+RX0, RX1, RLB, RLF = -1.50, 0.49, 0.16, 0.14
 def roof_ring(x0, w):
-    zt = interp(ROOF, x0); ze = zt - ROOF_CROWN; lip = 0.0 * max(0.0, min(1.0, (-1.30 - x0) / 0.15)); zb = ze - ROOF_T - lip
-    half = [(0.0, zt)] + [(w * r, zt - ROOF_CROWN * r * r) for r in (0.4, 0.7, 0.88, 0.97)] + [(w, ze - 0.012), (w - 0.008, ze - 0.04), (max(0.0, w - 0.04), zb), (0.0, zb)]
+    zt = interp(ROOF, x0); ze = zt - ROOF_CROWN; zb = ze - ROOF_T
+    half = [(0.0, zt)] + [(w * r, zt - ROOF_CROWN * r * r) for r in (0.4, 0.7, 0.88, 0.95)]
+    half += [(max(0.0, w - 0.028 + 0.028 * math.cos(math.radians(t))), ze - 0.028 + 0.028 * math.sin(math.radians(t))) for t in (60, 30, 0, -30, -60)] + [(max(0.0, w - 0.03), zb), (0.0, zb)]
     H = len(half); pts = half + [(-half[k][0], half[k][1]) for k in range(H - 2, 0, -1)]
     return [Vector((x0, -y, z)) for y, z in pts]
 rst = []
@@ -306,41 +369,54 @@ ROOF_NM = sum(1 for e in br.edges if not e.is_manifold)
 for f in br.faces: f.material_index = 0
 for yy in (-0.04, 0.0, 0.04):                                                       # three thin white roof stripes
     rows = []
-    for x in [-1.40 + 1.85 * k / 9 for k in range(10)]: zt = interp(ROOF, x) - ROOF_CROWN * (yy / ROOF_HW) ** 2 + 0.003; rows.append([Vector((x, yy - 0.006, zt)), Vector((x, yy + 0.006, zt))])
+    for x in [-1.40 + 1.85 * k / 9 for k in range(10)]: zt = interp(ROOF, x) - ROOF_CROWN * (yy / ROOF_HW) ** 2 + 0.005; rows.append([Vector((x, yy - 0.0055, zt)), Vector((x, yy + 0.0055, zt))])
     grid(br, rows, 1, Vector((0, 0, 1.0)))
 
 # ================= WHEEL (one shared datablock; axis Y, outer face +Y) =================
 bw = bmesh.new(); SEG = 20
-TYRE = [(0.225, -0.09), (0.275, -0.10), (0.31, -0.075), (0.32, -0.045), (0.32, 0.045), (0.31, 0.075), (0.275, 0.10), (0.225, 0.09)]
+TYRE = [(0.225, -0.09), (0.26, -0.098), (0.295, -0.09), (0.315, -0.065), (0.32, -0.03), (0.32, 0.03), (0.315, 0.065), (0.295, 0.09), (0.26, 0.098), (0.225, 0.09)]
 P = lambda r, y, k: Vector((r * math.cos(2 * math.pi * k / SEG), y, r * math.sin(2 * math.pi * k / SEG)))
 def wring(r, y): return [bw.verts.new(P(r, y, k)) for k in range(SEG)]
 def wref(rc_, yc_=0.0): return lambda c: (lambda a: Vector((rc_ * math.cos(a), yc_, rc_ * math.sin(a))))(math.atan2(c.z, c.x))
+O = Vector((0, 0, 0))
+def band(a, b, mi, ref, sign=1):
+    for k in range(SEG): addf(bw, (a[k], a[(k + 1) % SEG], b[(k + 1) % SEG], b[k]), mi, ref, sign)
+def fan(c, a, mi):
+    h = bw.verts.new(c)
+    for k in range(SEG): addf(bw, (h, a[k], a[(k + 1) % SEG]), mi, O)
 rs = [wring(r, y) for r, y in TYRE]
-for a, b in zip(rs, rs[1:]):
-    for k in range(SEG): addf(bw, (a[k], a[(k + 1) % SEG], b[(k + 1) % SEG], b[k]), 0, wref(0.26, 0.0))
-lip_o, lip_i, disc_r = wring(0.225, 0.09), wring(0.200, 0.09), wring(0.200, 0.058)
-for k in range(SEG): addf(bw, (lip_i[k], lip_i[(k + 1) % SEG], lip_o[(k + 1) % SEG], lip_o[k]), 1, Vector((0, 0.0, 0)))
-for k in range(SEG): addf(bw, (disc_r[k], disc_r[(k + 1) % SEG], lip_i[(k + 1) % SEG], lip_i[k]), 0, wref(0.0, 0.0))
-hub = bw.verts.new((0, 0.058, 0))
-for k in range(SEG): addf(bw, (hub, disc_r[k], disc_r[(k + 1) % SEG]), 0, Vector((0, 0, 0)))
-for s in range(10):                                                                 # ten spokes proud of the dark disc
-    a = 2 * math.pi * s / 10; ca, sa = math.cos(a), math.sin(a); ta, tb = Vector((-sa, 0, ca)), Vector((ca, 0, sa))
-    p = lambda r, w: Vector((0, 0.075, 0)) + tb * r + ta * w
-    addf(bw, (bw.verts.new(p(0.04, -0.014)), bw.verts.new(p(0.04, 0.014)), bw.verts.new(p(0.20, 0.026)), bw.verts.new(p(0.20, -0.026))), 0, Vector((0, 0, 0)))
-for k in range(8):                                                                  # chrome centre cap
-    pass
-disc(bw, Vector((0, 0.08, 0)), Vector((0, 1, 0)), 0.045, 0, 0.012, 10)
+for a, b in zip(rs, rs[1:]): band(a, b, 0, wref(0.27, 0.0))                                   # rounded black tyre
+lip_o, lip_i, bar_o = wring(0.225, 0.09), wring(0.207, 0.09), wring(0.207, 0.035)
+band(lip_i, lip_o, 1, O)                                                                      # thin chrome lip
+band(lip_i, bar_o, 0, O, -1)                                                                  # dark rim barrel
+rim_o, rim_i = wring(0.207, 0.075), wring(0.185, 0.08)
+band(rim_i, rim_o, 2, O)                                                                      # graphite rim face ring
+disc_r = wring(0.207, 0.035); fan(Vector((0, 0.035, 0)), disc_r, 0)                           # recessed dark disc
+boss_o, boss_i = wring(0.055, 0.035), wring(0.055, 0.062); band(boss_o, boss_i, 0, wref(0.0, 0.0)); fan(Vector((0, 0.062, 0)), boss_i, 0)
+cap = [bw.verts.new(P(0.026, 0.066, k * 2)) for k in range(SEG // 2)]
+for k in range(SEG // 2): addf(bw, (bw.verts.new(Vector((0, 0.072, 0))), cap[k], cap[(k + 1) % (SEG // 2)]), 1, O)
+for s_ in range(10):                                                                          # ten graphite spokes from hub boss to rim ring
+    a = 2 * math.pi * s_ / 10; ca, sa = math.cos(a), math.sin(a); ta, tb = Vector((-sa, 0, ca)), Vector((ca, 0, sa))
+    p = lambda r, y, w: Vector((0, y, 0)) + tb * r + ta * w
+    T = [bw.verts.new(p(*q)) for q in ((0.055, 0.064, -0.014), (0.055, 0.064, 0.014), (0.186, 0.082, 0.026), (0.186, 0.082, -0.026))]
+    Bt = [bw.verts.new(p(r_, y_ - 0.016, w_)) for r_, y_, w_ in ((0.055, 0.064, -0.014), (0.055, 0.064, 0.014), (0.186, 0.082, 0.026), (0.186, 0.082, -0.026))]
+    addf(bw, tuple(T), 2, O); mid = p(0.12, 0.07, 0.0)
+    addf(bw, (T[1], T[2], Bt[2], Bt[1]), 2, mid); addf(bw, (T[3], T[0], Bt[0], Bt[3]), 2, mid)
+for k in range(3):                                                                            # red caliper visible between the spokes
+    a0, a1 = math.radians(-35 + 28 * k), math.radians(-35 + 28 * (k + 1)); q = lambda r, a: Vector((r * math.cos(a), 0.05, r * math.sin(a)))
+    addf(bw, (bw.verts.new(q(0.115, a0)), bw.verts.new(q(0.19, a0)), bw.verts.new(q(0.19, a1)), bw.verts.new(q(0.115, a1))), 3, O)
 bmesh.ops.remove_doubles(bw, verts=list(bw.verts), dist=1e-5)
-wheel_me = bpy.data.meshes.new('Wheel'); bw.to_mesh(wheel_me); bw.free(); wheel_me.materials.append(M_TRIM); wheel_me.materials.append(M_CHROME)
+wheel_me = bpy.data.meshes.new('Wheel'); bw.to_mesh(wheel_me); bw.free()
+for m_ in (M_TRIM, M_CHROME, M_RIM, M_ROOF): wheel_me.materials.append(m_)
 
 # ================= assemble =================
-body = new_obj('Body', bm, [M_BODY, M_TRIM, M_CHROME, M_ROOF]); roof = new_obj('Roof', br, [M_ROOF, M_BODY]); glass = new_obj('Glass', bg, [M_GLASS]); lights = new_obj('Lights', bl, [M_HEAD, M_TAIL])
-for ob in (body, roof, glass, lights):
+body = new_obj('Body', bm, [M_BODY, M_TRIM, M_CHROME, M_ROOF, M_INT, M_PLATE]); interior = new_obj('Interior', bi, [M_INT]); roof = new_obj('Roof', br, [M_ROOF, M_BODY]); glass = new_obj('Glass', bg, [M_GLASS]); lights = new_obj('Lights', bl, [M_HEAD, M_TAIL])
+for ob in (body, roof, glass, lights, interior):
     bpy.context.view_layer.objects.active = ob; ob.select_set(True); bpy.ops.object.shade_smooth_by_angle(angle=math.radians(35)); ob.select_set(False)
 bpy.context.view_layer.objects.active = None
 root = bpy.data.objects.new('CarRoot', None); bpy.context.collection.objects.link(root)
 wh = bpy.data.objects.new('Wheels', None); bpy.context.collection.objects.link(wh); wh.parent = root
-for ob in (body, roof, glass, lights): ob.parent = root
+for ob in (body, roof, glass, lights, interior): ob.parent = root
 for name, x, sg in (('FL', WHEEL_XF, -1), ('FR', WHEEL_XF, 1), ('RL', WHEEL_XR, -1), ('RR', WHEEL_XR, 1)):   # left = +Y, right = -Y
     w = bpy.data.objects.new(name, wheel_me); bpy.context.collection.objects.link(w); w.parent = wh
     w.location = (x, -sg * WY, WR); w.rotation_euler = (0, 0, 0 if sg < 0 else math.pi)

@@ -50,6 +50,9 @@ const FIXED = {
   tyre: () => std('#242629', 0.85, 0),
   alloy: () => std('#aeb3b9', 0.4, 0.25),
   plate: () => std('#f4f1ea', 0.6, 0),
+  carGlass: () => { const m = std('#1c2a36', 0.08, 0.4); m.transparent = true; m.opacity = 0.45; m.depthWrite = false; return m; }, // see-through car glazing (authored GLB cars)
+  carInterior: () => std('#2a2724', 0.85, 0),
+  rim: () => std('#4a4e54', 0.35, 0.55),
   indi: () => std('#e8892b', 0.5, 0),
   head: () => std(HEAD, 0.3, 0, true, 2.6),
   tail: () => std('#c4151c', 0.4, 0, true, 1.2),

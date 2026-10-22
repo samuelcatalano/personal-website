@@ -27,7 +27,7 @@ const ROLES = {
   BusBody: (v) => paint(v.body, true), BusAccent: (v) => paint(v.accent, true), BusTrim: () => fixed('dark'), BusGlass: () => fixed('busGlass'),
   BusRubber: () => fixed('tyre'), BusMetal: () => fixed('chrome'), BusHeadlight: () => fixed('head'), BusTaillight: () => fixed('tail'),
   BusDisplay: (v) => destMat(...v.dest), BusInterior: () => fixed('cabin'),
-  CarBody: (v) => paint(v.body, true), CarRoof: (v) => paint(v.roof, true), CarGlass: () => fixed('glass'), CarTrim: () => fixed('dark'),
+  CarBody: (v) => paint(v.body, true), CarRoof: (v) => paint(v.roof, true), CarGlass: () => fixed('carGlass'), CarInterior: () => fixed('carInterior'), CarPlate: () => fixed('plate'), CarRim: () => fixed('rim'), CarTrim: () => fixed('dark'),
   CarChrome: () => fixed('chrome'), CarHeadlight: () => fixed('head'), CarTaillight: () => fixed('tail'),
 };
 const CASTS = new Set(['BusBody', 'CarBody', 'CarRoof']); // only painted shells cast: trim/glass/wheels add shadow-pass calls for no visible gain

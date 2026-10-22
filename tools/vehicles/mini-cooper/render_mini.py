@@ -14,6 +14,8 @@ bpy.ops.mesh.primitive_plane_add(size=80); g = bpy.context.object; gm = bpy.data
 gm.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = (.36, .37, .39, 1); gm.node_tree.nodes['Principled BSDF'].inputs['Roughness'].default_value = 0.9; g.data.materials.append(gm)
 for nm, rot, en in (('key', (math.radians(50), 0, math.radians(-35)), 3.2), ('fill', (math.radians(60), 0, math.radians(150)), 1.4)):
     L = bpy.data.objects.new(nm, bpy.data.lights.new(nm, 'SUN')); L.data.energy = en; L.rotation_euler = rot; s.collection.objects.link(L)
+if os.environ.get('NOSHADOW'):
+    for L_ in bpy.data.lights: L_.use_shadow = False
 cam = bpy.data.objects.new('cam', bpy.data.cameras.new('cam')); s.collection.objects.link(cam); s.camera = cam
 T = Vector((0, 0, 0.68))
 def shot(name, az, el, r, lens=70, size=(900, 600), ortho=None, target=T):
@@ -27,6 +29,8 @@ def shot(name, az, el, r, lens=70, size=(900, 600), ortho=None, target=T):
 VIEWS = [('front', 0, 10, 9.5), ('rear', 180, 10, 9.5), ('left', 90, 8, 9.5), ('right', -90, 8, 9.5), ('front_left', 38, 25, 9.5), ('front_right', -38, 25, 9.5),
          ('rear_left', 142, 25, 9.5), ('rear_right', -142, 25, 9.5), ('top_left', 45, 55, 9.5), ('top_right', -45, 55, 9.5)]
 for n, az, el, r in VIEWS: shot(n, az, el, r)
+shot('front_right_close', -38, 18, 4.6, lens=70, target=Vector((1.2, -0.1, 0.62)))
+shot('rear_close', 160, 14, 4.4, lens=70, target=Vector((-1.5, 0.0, 0.72)))
 
 def load(path):
     im = bpy.data.images.load(path); h, w_ = im.size[1], im.size[0]
