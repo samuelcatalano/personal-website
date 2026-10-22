@@ -1,0 +1,10 @@
+Body   tris=16898 side-faces(outward,inward) LEFT=[2527, 291] RIGHT=[2818, 333] islands=1059 main-shell-islands(>150 faces)=16 non-manifold-edges-on-main-shells=[284, 40, 80, 84, 280, 68, 64, 24, 0, 0, 56, 56, 0, 0, 0, 116]
+Glass  tris=  736 side-faces(outward,inward) LEFT=[224, 0] RIGHT=[224, 0] islands=32 main-shell-islands(>150 faces)=2 non-manifold-edges-on-main-shells=[32, 32]
+Interior tris=  936 side-faces(outward,inward) LEFT=[22, 4] RIGHT=[22, 4] islands=188 main-shell-islands(>150 faces)=2 non-manifold-edges-on-main-shells=[0, 0]
+Lights tris=  818 side-faces(outward,inward) LEFT=[175, 2] RIGHT=[175, 2] islands=27 main-shell-islands(>150 faces)=2 non-manifold-edges-on-main-shells=[48, 48]
+Roof   tris= 1750 side-faces(outward,inward) LEFT=[151, 1] RIGHT=[151, 2] islands=4 main-shell-islands(>150 faces)=1 non-manifold-edges-on-main-shells=[56]
+FL     tris= 1222 side-faces(outward,inward) LEFT=[0, 0] RIGHT=[0, 0] islands=508 main-shell-islands(>150 faces)=0 non-manifold-edges-on-main-shells=[]
+FR     tris= 1222 side-faces(outward,inward) LEFT=[0, 0] RIGHT=[0, 0] islands=508 main-shell-islands(>150 faces)=0 non-manifold-edges-on-main-shells=[]
+RL     tris= 1222 side-faces(outward,inward) LEFT=[0, 0] RIGHT=[0, 0] islands=508 main-shell-islands(>150 faces)=0 non-manifold-edges-on-main-shells=[]
+RR     tris= 1222 side-faces(outward,inward) LEFT=[0, 0] RIGHT=[0, 0] islands=508 main-shell-islands(>150 faces)=0 non-manifold-edges-on-main-shells=[]
+TOTAL tris (instances counted per object): 26026
