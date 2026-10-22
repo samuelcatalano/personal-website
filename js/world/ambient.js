@@ -34,7 +34,7 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
     G(1, 0.17, { uk: false }), G(2, 0.33, { uk: false }), G(5, 0.58, { uk: false }), G(9, 0.92, { uk: false }),
   ].map((v, i) => ({ lane: -1.75, ...v, base: SPEED[v.type] * (v.type === 'car' ? 0.9 + 0.2 * ((i * 7) % 5) / 4 : 1), p: v.offset, v: 0, brake: 0, yaw: null, x: 0, z: 0, active: false }));
   traffic.forEach((v) => { v.v = v.base; v.len = v.mesh.userData.length; v.tail = null; addBeams(v.mesh, v.mesh.userData.front, v.mesh.userData.beamY); v.tail = v.mesh.children[v.mesh.children.length - 1]; scene.add(v.mesh); });
-  for (const v of traffic) if (v.type === 'london' || v.type === 'glasgow') upgradeBus(v.mesh, v.type);
+  for (const v of traffic) if (v.type === 'london' || v.type === 'glasgow') upgradeBus(v.mesh, v.type, { hero: false });
   const zebras = stops.map((_, i) => curve.getPointAt(Math.min(1, i / (stops.length - 1) + ZEBRA_AT / len)));
   const auto = traffic.filter((v) => !v.relative);
   // Thames only: none on the Pinheiros

@@ -1,4 +1,6 @@
+import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { fixed, paint } from './vehicles.js';
 import { destMat } from './buses.js';
 // Authored vehicle GLBs (tools/vehicles/*), loaded once and shared. Resolves null on failure so callers keep their procedural model.
@@ -25,12 +27,24 @@ const role = (name, v) => ({
   BusRubber: () => fixed('tyre'), BusMetal: () => fixed('chrome'), BusHeadlight: () => fixed('head'), BusTaillight: () => fixed('tail'),
   BusDisplay: () => destMat(...v.dest), BusInterior: () => fixed('cabin'),
 }[name.replace(/\.\d+$/, '')]?.());
-const BUS_GLB_ENABLED = false; // ponytail: bus GLB is NO-GO pending the geometry correction pass; procedural buses render meanwhile
-export function upgradeBus(vehicle, variant) {
+const BUS_GLB_ENABLED = true; // London master approved 2026-10-22; geometry frozen (tools/vehicles/double-decker-bus)
+const WHEELS = ['FL', 'FR', 'RL', 'RR'];
+let staticWheels; // ambient buses never spin their wheels: one merged geometry per wheel material, shared by every ambient bus
+function mergedWheels(src) {
+  if (staticWheels) return staticWheels;
+  const byMat = new Map(); src.updateMatrixWorld(true);
+  for (const n of WHEELS) src.getObjectByName(n)?.traverse((o) => { if (o.isMesh) (byMat.get(o.material.name) ?? byMat.set(o.material.name, []).get(o.material.name)).push(o.geometry.clone().applyMatrix4(o.matrixWorld)); });
+  return (staticWheels = [...byMat].map(([name, gs]) => [name, mergeGeometries(gs)]));
+}
+export function upgradeBus(vehicle, variant, { hero = true } = {}) {
   if (!BUS_GLB_ENABLED) return Promise.resolve();
   return loadVehicleAsset('bus').then((src) => {
     if (!src) return;
     const v = BUS_VARIANTS[variant], glb = src.clone(true); // clone shares geometry; materials are swapped per variant below
+    if (!hero) {
+      for (const n of WHEELS) { const w = glb.getObjectByName(n); w?.parent.remove(w); }
+      for (const [name, g] of mergedWheels(src)) glb.add(Object.assign(new THREE.Mesh(g, { name }), { name: 'Wheels-static' }));
+    }
     glb.traverse((o) => {
       if (!o.isMesh) return;
       const cast = o.material.name === 'BusBody'; // only the painted shell casts: wheels/trim/glass add shadow-pass calls for no visible gain
