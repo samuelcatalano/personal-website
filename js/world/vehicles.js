@@ -40,7 +40,7 @@ const destMaterial = (key, text, fg) => cached('dest' + key, () => {
 export const HEAD = '#fff0b5';
 const FIXED = {
   glass: () => std('#2f4558', 0.25, 0.2),
-  busGlass: () => { const m = std('#3d5262', 0.2, 0.3, true, 0.12); m.userData.glowColor = WARM; return m; },
+  busGlass: () => { const m = std('#3d5262', 0.2, 0.3, true, 0.075); m.userData.glowColor = new THREE.Color('#ffe9c8'); return m; }, // saloon light: soft neutral glow, not a flat tan panel
   heroGlass: () => { const m = std('#4f6877', 0.2, 0.3, true, 0.1); m.userData.glowColor = WARM; m.transparent = true; m.opacity = 0.5; m.depthWrite = false; return m; },
   cabin: () => { const m = std('#2a2622', 0.9, 0, true, 0.9); m.userData.glowColor = WARM; return m; }, // interior shell seen through the windows: dark by day, warm at night
   trim: () => std('#ffffff', 0.4, 0.1, false, 0, true), // vertex-coloured: chrome, alloys, accent paint
