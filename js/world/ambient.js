@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { createBoat } from './landmark-geometry.js';
 import { buildVehicle } from './vehicles.js';
-import { upgradeBus } from './vehicle-assets.js';
+import { upgradeBus, upgradeMini } from './vehicle-assets.js';
 import { RIVER_Z, LANDMARKS, ukStart, stopIndex, swapAt, scotRange, riverEnd, riverStart } from './layout.js';
 import { stopMarks, fineMarks, routeT } from '../scroll.js';
 import { addBeams } from './beams.js';
@@ -35,6 +35,8 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
   ].map((v, i) => ({ lane: -1.75, ...v, base: SPEED[v.type] * (v.type === 'car' ? 0.9 + 0.2 * ((i * 7) % 5) / 4 : 1), p: v.offset, v: 0, brake: 0, yaw: null, x: 0, z: 0, active: false }));
   traffic.forEach((v) => { v.v = v.base; v.len = v.mesh.userData.length; v.tail = null; addBeams(v.mesh, v.mesh.userData.front, v.mesh.userData.beamY); v.tail = v.mesh.children[v.mesh.children.length - 1]; scene.add(v.mesh); });
   for (const v of traffic) if (v.type === 'london' || v.type === 'glasgow') upgradeBus(v.mesh, v.type, { hero: false });
+  const MINI_PAINT = [{}, { body: '#1f4a35', roof: '#f4f1ea' }, { body: '#b3161f', roof: '#f4f1ea' }]; // cream/red, racing green, red: same shared GLB
+  traffic.filter((v) => v.type === 'mini').forEach((v, i) => upgradeMini(v.mesh, { hero: false, ...MINI_PAINT[i % MINI_PAINT.length] }));
   const zebras = stops.map((_, i) => curve.getPointAt(Math.min(1, i / (stops.length - 1) + ZEBRA_AT / len)));
   const auto = traffic.filter((v) => !v.relative);
   // Thames only: none on the Pinheiros
