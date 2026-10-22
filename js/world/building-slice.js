@@ -96,6 +96,16 @@ function townhouseGeometry(plot,recipe,level=0,storage=null) {
   if(level===0&&recipe.bands!==false)for(const y of [recipe.ground,recipe.ground+recipe.upper])box(0,y,0,w+.14,.12,d+.14,S.stone,1);
   box(0,recipe.eaves-.09,0,width-.04,.18,depth-.04,S.trim);
   const half=width/2-.02,rz=depth/2-.02,dy=recipe.ridge-recipe.eaves,slope=Math.hypot(half,dy);
+  if(recipe.roof==='side'||recipe.roof==='hip'){ // ridge parallel to the street (rollout variety); 'hip' also slopes the two ends
+    const a=recipe.roof==='hip'?Math.max(0,half-rz):half,sz=Math.hypot(rz,dy);
+    for(const side of [-1,1]){
+      const n=new THREE.Vector3(0,rz,side*dy).normalize().toArray();
+      quad([[-a,recipe.ridge,0],[-half,recipe.eaves,side*rz],[half,recipe.eaves,side*rz],[a,recipe.ridge,0]],n,S.roof,0,[[-half,0],[-half,sz],[half,sz],[half,0]]);
+      if(recipe.roof==='hip'){const m=new THREE.Vector3(side*dy,half-a,0).normalize().toArray();quad([[side*half,recipe.eaves,-rz],[side*half,recipe.eaves,rz],[side*a,recipe.ridge,0],[side*a,recipe.ridge,0]],m,S.roof,0,[[-rz,0],[rz,0],[0,sz],[0,sz]]);}
+      else{const xx=side*w/2,ge=recipe.ridge-dy*(d/2)/rz;quad([[xx,recipe.eaves,-d/2],[xx,recipe.eaves,d/2],[xx,ge,d/2],[xx,ge,-d/2]],[side,0,0],S.plaster);quad([[xx,ge,-d/2],[xx,ge,d/2],[xx,recipe.ridge,0],[xx,recipe.ridge,0]],[side,0,0],S.plaster);}
+    }
+    box(0,recipe.ridge+.02,0,Math.max(.14,2*a),.12,.14,S.roof);
+  }else{
   for(const side of [-1,1]){
     const n=new THREE.Vector3(side*dy,half,0).normalize().toArray();
     quad([[0,recipe.ridge,-rz],[side*half,recipe.eaves,-rz],[side*half,recipe.eaves,rz],[0,recipe.ridge,rz]],n,S.roof,0,[[-rz,0],[-rz,slope],[rz,slope],[rz,0]]);
@@ -107,6 +117,7 @@ function townhouseGeometry(plot,recipe,level=0,storage=null) {
     quad([[-w/2,gableEdge,zz],[w/2,gableEdge,zz],[0,recipe.ridge,zz],[0,recipe.ridge,zz]],[0,0,n],S.plaster);
   }
   box(0,recipe.ridge+.02,0,.14,.12,depth-.04,S.roof);
+  }
   const geometries=buckets.map(data=>{
     const geometry=new THREE.BufferGeometry();
     for(const [key,size] of [['position',3],['normal',3],['uv',2],['surface',1],['color',3]])geometry.setAttribute(key==='surface'?'aSurface':key,new THREE.Float32BufferAttribute(storage?data[key].subarray(0,data.count*size):data[key],size));

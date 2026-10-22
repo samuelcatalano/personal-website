@@ -28,7 +28,7 @@ function fittedTownhouse(p,neighbors) {
   const recipe=townhouseRecipe(p,neighbors),roof=Math.min(2.1,p.width*.32,p.height*(.15+(hash(p.id)%4)*.03));
   const floors=p.height<8.6?2:p.height>13.4?4:3,eaves=p.height-roof;
   const ground=Math.min(3.2,eaves/floors),upper=(eaves-ground)/(floors-1);
-  return {...recipe,bays:p.width>=8&&hash(p.id)%2?3:2,bands:hash(p.id)%3!==0,floors,ground,upper,eaves,ridge:p.height-.08,windowHeight:Math.min(1.6,upper*.56)};
+  return {...recipe,roof:['gable','side','hip','side'][Math.floor(hash(p.id)/7)%4],bays:p.width>=8&&hash(p.id)%2?3:2,bands:hash(p.id)%3!==0,floors,ground,upper,eaves,ridge:p.height-.08,windowHeight:Math.min(1.6,upper*.56)};
 }
 function towerFamily(p,neighbors){
   const selected=neighbors.filter(p=>['office','tower','midrise'].includes(p.kind)&&p.height>=40&&p.width>=9.8&&p.depth>=9.8).slice().sort((a,b)=>a.x-b.x||a.z-b.z||a.id.localeCompare(b.id)),assigned=[];
@@ -61,11 +61,11 @@ function building(p,kind,neighbors,level=0){
   return createTowerSlice(p,recipe);
 }
 // Vertex tints vary the shared metric atlas; materials and maps are never cloned.
-const walls=[[1.12,1.14,1.16],[.55,.80,1.12],[.65,.92,.60],[1.18,.82,.45],[1.10,.65,.70],[.58,.64,.72],[1.10,1.04,.80],[.83,.75,.64]];
+const walls=[[1.12,1.14,1.16],[.55,.80,1.12],[.65,.92,.60],[1.18,.82,.45],[1.10,.65,.70],[.58,.64,.72],[1.10,1.04,.80],[.83,.75,.64],[1.15,.95,.62],[.72,.95,.88],[1.05,.55,.45],[.92,.88,1.08],[1.16,1.08,.92],[.62,.72,.58]];
 const glass=[0,1,2,5,6,1];
-const bricks=[[1.05,.70,.50],[.58,.64,.74],[1.12,1.06,.86],[.72,.85,.74],[1.20,.66,.55],[.68,.54,.47]];
+const bricks=[[1.05,.70,.50],[.58,.64,.74],[1.12,1.06,.86],[.72,.85,.74],[1.20,.66,.55],[.68,.54,.47],[.92,.48,.40],[1.0,.92,.70]];
 function tint(g,p) {
-  const seed=hash(p.id),wall=walls[seed%walls.length],roof=[[1,1,1],[.72,.82,.93],[1.08,.76,.62]][Math.floor(seed/5)%3];
+  const seed=hash(p.id),wall=walls[seed%walls.length],roof=[[1,1,1],[.72,.82,.93],[1.08,.76,.62],[.58,.58,.64],[1.2,.62,.45]][Math.floor(seed/5)%5];
   for(const m of g.children){const a=m.geometry.attributes;
     for(let i=0;i<a.position.count;i++){
       const s=a.aSurface.getX(i),t=s===S.plaster?wall:s===S.stone?(p.kind==='office'?walls[(seed%3)*2]:[1,1,1]):s===S.brick?bricks[Math.floor(seed/3)%bricks.length]:s===S.roof?roof:s===S.glass||s===S.litGlass?walls[glass[Math.floor(seed/7)%(p.kind==='terrace'||p.kind==='shop'?3:glass.length)]]:[1,1,1];
