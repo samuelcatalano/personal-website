@@ -47,11 +47,11 @@ export function rolloutRecipe(p,kind,neighbors=[p]){
   if(kind==='shop'){const r=shopRecipe(p,neighbors);return {...r,ground:Math.min(3.4,p.height*(.40+(seed%3)*.04)),canopy:seed%3!==0,baseSurface:seed%3===0?S.stone:S.brick};}
   if(kind==='midrise'){
     const r=midriseRecipe(p),compact=p.height<12,floors=compact?Math.max(2,Math.round(p.height/3.3)):r.floors,ground=compact?Math.min(3.2,p.height*.45):3.4+(seed%3)*.1;
-    return {...r,compact,floors,ground,bays:Math.max(3,r.bays+(seed%3)-1),windowHeight:compact?Math.min(1.8,(p.height-1.1-ground)/(floors-1)*.56):1.8,simplified:classifyCompletion(p)==='C',emphasis:seed%2?'vertical':'horizontal',rooftop:!compact&&seed%3!==0};
+    return {...r,compact,floors,ground,bays:Math.max(3,r.bays+(seed%3)-1),windowHeight:compact?Math.min(1.8,(p.height-1.1-ground)/(floors-1)*.56):1.8,simplified:classifyCompletion(p)==='C',emphasis:seed%2?'vertical':'horizontal',rooftop:!compact&&seed%3!==0,penthouse:compact?0:Math.floor(seed/3)%3};
   }
-  if(kind==='office'){const r=officeRecipe(p);return {...r,bays:Math.max(2,r.bays+(seed%3)-1),lobbyHeight:3.8+(seed%3)*.2,spandrel:seed%2?.85:.36,emphasis:seed%2?'horizontal':'vertical',rooftop:seed%3!==0};}
+  if(kind==='office'){const r=officeRecipe(p);return {...r,bays:Math.max(2,r.bays+(seed%3)-1),lobbyHeight:3.8+(seed%3)*.2,spandrel:[.36,.85,.55,.7][Math.floor(seed/5)%4],reveal:[.32,.22,.4][Math.floor(seed/11)%3],emphasis:seed%2?'horizontal':'vertical',rooftop:seed%3!==0,crown:Math.floor(seed/7)%4};}
   const r=towerRecipe(p),silhouette=towerFamily(p,neighbors),profiles={straight:{setbacks:[.12,.82,.96],scales:[.91,.91,.91],offsets:[0,0,0]},stepped:{setbacks:[.12,.70,.88],scales:[.91,.74,.52],offsets:[0,0,0]},asymmetric:{setbacks:[.12,.62,.86],scales:[.91,.62,.42],offsets:[0,.14,.20]}};
-  return {...r,silhouette,...profiles[silhouette],chamfer:.65+(seed%3)*.12,bayWidth:seed%2?3.1:4.0};
+  return {...r,silhouette,...profiles[silhouette],chamfer:.65+(seed%3)*.12,bayWidth:[3.1,4.0,2.7,3.6,4.4][Math.floor(seed/3)%5],spandrel:[.18,.3,.5][Math.floor(seed/13)%3],reveal:[.30,.22,.38][Math.floor(seed/17)%3],crown:Math.floor(seed/11)%4};
 }
 function building(p,kind,neighbors,level=0){
   const recipe=rolloutRecipe(p,kind,neighbors);
@@ -63,12 +63,13 @@ function building(p,kind,neighbors,level=0){
 }
 // Vertex tints vary the shared metric atlas; materials and maps are never cloned.
 const walls=[[1.12,1.14,1.16],[.55,.80,1.12],[.65,.92,.60],[1.18,.82,.45],[1.10,.65,.70],[.58,.64,.72],[1.10,1.04,.80],[.83,.75,.64]];
+const glass=[0,1,2,5,6,1];
 const bricks=[[1.05,.70,.50],[.58,.64,.74],[1.12,1.06,.86],[.72,.85,.74],[1.20,.66,.55],[.68,.54,.47]];
 function tint(g,p) {
   const seed=hash(p.id),wall=walls[seed%walls.length],roof=[[1,1,1],[.72,.82,.93],[1.08,.76,.62]][Math.floor(seed/5)%3];
   for(const m of g.children){const a=m.geometry.attributes;
     for(let i=0;i<a.position.count;i++){
-      const s=a.aSurface.getX(i),t=s===S.plaster?wall:s===S.stone?(p.kind==='office'?walls[(seed%3)*2]:[1,1,1]):s===S.brick?bricks[Math.floor(seed/3)%bricks.length]:s===S.roof?roof:s===S.glass||s===S.litGlass?walls[Math.floor(seed/7)%3]:[1,1,1];
+      const s=a.aSurface.getX(i),t=s===S.plaster?wall:s===S.stone?(p.kind==='office'?walls[(seed%3)*2]:[1,1,1]):s===S.brick?bricks[Math.floor(seed/3)%bricks.length]:s===S.roof?roof:s===S.glass||s===S.litGlass?walls[glass[Math.floor(seed/7)%(p.kind==='terrace'||p.kind==='shop'?3:glass.length)]]:[1,1,1];
       a.color.setXYZ(i,a.color.getX(i)*t[0],a.color.getY(i)*t[1],a.color.getZ(i)*t[2]);
     }
   }

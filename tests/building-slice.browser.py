@@ -59,7 +59,7 @@ const legacyCity=plots=>kit.createCityBuildings(plots,{rollout:false});
   const glassMat=parts.find(p=>p.name==='slice-glass').material;
   const emission=glassMat.emissiveMap.image.getContext('2d').getImageData(0,0,256,256).data;
   const levels=new Set();for(let i=0;i<emission.length;i+=4)if(emission[i]>0)levels.add(emission[i]);
-  check(levels.size>4,'lit windows must have non-uniform interior emission');
+  check(levels.size>0&&levels.size<=4,'lit windows must glow uniformly per pane (no sub-pane grain)');
   const albedo=glassMat.map.image.getContext('2d').getImageData(0,0,512,512).data;
   for(let y=260;y<512;y+=19)for(let c=0;c<3;c++)check(albedo[(y*512+0)*4+c]===albedo[(y*512+120)*4+c],'plaster map must wrap seamlessly without a large repeating edge');
   const rebuilt=createTownhouseSlice(target);

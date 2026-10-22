@@ -42,7 +42,7 @@ export function createTowerSlice(plot,recipe=towerRecipe(plot)) {
       if(edge%2){panel(0,len,y0,y1,0,S.stone);continue;}
       const bays=lobby?3:Math.max(2,Math.round(len/(recipe.bayWidth??3.4))),bay=len/bays,step=(y1-y0)/rows;
       for(let f=0;f<rows;f++){
-        const lo=y0+f*step,hi=lo+step,lower=lo+.15,upper=hi-.18;
+        const lo=y0+f*step,hi=lo+step,lower=lo+.15,upper=hi-(recipe.spandrel??.18);
         panel(0,len,lo,lower,0,S.roof);panel(0,len,upper,hi,0,S.roof);
         for(let i=0;i<bays;i++){
           const left=i*bay+.13,right=(i+1)*bay-.13,r=lobby?.55:recipe.reveal;
@@ -71,13 +71,18 @@ export function createTowerSlice(plot,recipe=towerRecipe(plot)) {
   tier(shoulder,crown,w*scales[1],d*scales[1],Math.max(2,Math.round(recipe.floors*.15)),false,w*offsets[1]);
   // A smaller, louvered mechanical lantern terminates the skyline without an antenna.
   const cw=w*scales[2],cd=d*scales[2],shift=w*offsets[2];
-  tier(crown,height-.22,cw,cd,1,false,shift);
-  for(let i=0;i<4;i++){
-    const y=crown+.35+i*(height-.65-crown)/4;
+  const cap=recipe.crown??0,topY=height-[.22,1.3,2.9,1.3][cap]; // plant/mast variants sit between topY and height
+  tier(crown,topY,cw,cd,1,false,shift);
+  if(cap!==3)for(let i=0;i<4;i++){
+    const y=crown+.35+i*(topY-.43-crown)/4;
     for(const zz of [-cd/2+.02,cd/2-.02])box(shift,y,zz,cw-2*recipe.chamfer,.10,.08,S.roof,1);
     for(const xx of [-cw/2+.02,cw/2-.02])box(xx+shift,y,0,.08,.10,cd-2*recipe.chamfer,S.roof,1);
   }
-  ring(height-.10,cw+.10,cd+.10,recipe.chamfer,S.stone,shift);
+  // Crown variants: louvered lantern only (0), plant box on a flat cap (1), mast (2), solid cap with offset plant (3).
+  if(cap===1)box(shift,topY+.5,0,cw*.5,1.0,cd*.45,S.roof);
+  if(cap===2){box(shift,topY+1.45,0,.22,2.9,.22,S.trim,1);box(shift,topY+.25,0,cw*.4,.5,cd*.4,S.stone);}
+  if(cap===3){box(shift+cw*.15,topY+.5,-cd*.1,cw*.42,1.0,cd*.36,S.roof);box(shift-cw*.22,topY+.35,cd*.15,1.5,.7,1.5,S.stone);}
+  ring(topY+.12,cw+.10,cd+.10,recipe.chamfer,S.stone,shift);
   box(0,.15,0,w-2*recipe.chamfer,.30,d,S.stone);
   box(0,3.20,d/2-.35,3.4,.18,1,S.roof);
   for(const xx of [-.78,0,.78])box(xx,1.50,d/2-.50,.06,2.6,.06,S.trim,1);

@@ -21,7 +21,7 @@ function noiseTexture() {
   noise.colorSpace = THREE.SRGBColorSpace;
   return noise;
 }
-const EDGE_W = 0.035, EDGE_DARK = 0.035, EDGE_HI = 0.015, EDGE_MIN = 0.1, EDGE_FULL = 0.4; // metres / fractions; effect fades in for faces EDGE_MIN..EDGE_FULL m
+const EDGE_W = 0.035, EDGE_DARK = 0.02, EDGE_HI = 0.015, EDGE_MIN = 0.1, EDGE_FULL = 0.4; // metres / fractions; effect fades in for faces EDGE_MIN..EDGE_FULL m
 // Triplanar, world space: 1 tile = 1 m
 const GRASS = new Set([P.grass, P.patch]);
 export const surfaceNoiseTexture = noiseTexture;

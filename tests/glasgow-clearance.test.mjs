@@ -87,7 +87,11 @@ test('the civic skyline stays below landmark silhouettes on the London stretch a
   buildBlocks((x, y, z, w, h, d) => boxes.push({ x, y, z, w, h, d }), stops, pts, curve, []);
   const backdrop = boxes.filter((b) => (b.x >= west && b.x <= out.sub[1] || b.x >= out.scot[0] && b.x <= east) && b.z <= -65);
   assert.ok(backdrop.length > 0, 'retains a city backdrop');
-  assert.ok(backdrop.every((b) => b.y + b.h <= 16.4), 'background roofs stay below the 18m Eye hub');
+  const eye = pts[stopIndex(stops, 'olm')].x;
+  assert.ok(backdrop.filter((b) => b.z > -112 && b.x <= eye + 40).every((b) => b.y + b.h <= 16.4), 'background roofs behind the landmarks stay below the 18m Eye hub');
+  assert.ok(backdrop.every((b) => b.y + b.h <= 29), 'back-lot skyline row stays under 29 m');
+  const ben = pts[stopIndex(stops, 'xdesign')].x;
+  assert.ok(backdrop.filter((b) => Math.abs(b.x - ben) < 12).every((b) => b.y + b.h <= 24), 'clear sky window around the Big Ben tower top');
   assert.equal(boxes.filter((b) => [out, back].some((rg) => b.x > rg.ctry[0] && b.x < rg.ctry[1])).length, 0, 'no city blocks in the countryside');
   assert.ok(boxes.some((b) => (b.x < west || b.x > east) && b.h > 30), 'other skyline districts retain their towers');
 });

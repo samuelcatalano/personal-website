@@ -173,7 +173,7 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
     const u = u0 + kq() * (1 - u0), side = kq() < 0.5 ? -1 : 1, p = curve.getPointAt(u), t = curve.getTangentAt(u);
     const x = p.x - t.z * side * 7.1, z = p.z + t.x * side * 7.1;
     if (!free(x, z) || [...obst, ...kiosks].some(([a, b]) => Math.hypot(a - x, b - z) < 3.5)) continue;
-    phoneBox(add, x, z);
+    phoneBox(add, x, z, Math.atan2(t.z * side, -t.x * side)); // door faces the road
     kiosks.push([x, z]);
   }
   const rotors = rgs.flatMap((rg, leg) => buildCountry(add, curve, drawTree, rg.ctry, leg, onArchitecturePlot));

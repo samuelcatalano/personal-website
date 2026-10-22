@@ -51,6 +51,25 @@ export function buildBackdrop(add, stops, pts) {
       x += w + gap;
     }
   }
+  // Mid band between the back-lot infill (z -120) and the far rows: own rng, so every existing row keeps its place.
+  // Taller than the rows beside it, with stepped crowns, rooftop plant and the odd mast to break the box skyline.
+  const m = rng(90818);
+  for (const [mz, lo, hi, pal] of [[-150, 4, 9, colors], [-198, 4, 8, distantColors]]) {
+    for (let x = x0; x < x1;) {
+      const w = 9 + m() * 5, gap = 2 + m() * 2.5, xc = x + w / 2, z = mz + (m() - 0.5) * 6, depth = 10;
+      const skip = regionsCtry.some(([a, b]) => x + w > a - 20 && x < b + 20) || (xc - w / 2 < museumR && xc + w / 2 > museumL);
+      const floors = lo + (m() * (hi - lo + 1) | 0), h = floors * 2.8, wall = pal[m() * pal.length | 0], roof = m() < 0.5 ? P.roof : wall, kind = m(), plant = m(), crown = Math.abs(Math.round(xc * 13) + floors) % 3;
+      if (!skip) {
+        if (crown === 0) add(xc, 0, z, w, h, depth, wall);
+        else if (crown === 1) { add(xc, 0, z, w, h * 0.72, depth, wall); add(xc + w * 0.1, h * 0.72, z, w * 0.72, h * 0.28, depth * 0.8, wall); }
+        else { add(xc - w * 0.2, 0, z, w * 0.6, h, depth, wall); add(xc + w * 0.3 + 0.02, 0, z, w * 0.4 - 0.04, h * 0.66, depth, wall); }
+        add(xc, h, z, w + 0.3, 0.35, depth + 0.3, roof);
+        if (plant < 0.45) add(xc + (kind - 0.5) * w * 0.3, h + 0.35, z - 1, w * 0.36, 1 + plant * 2, depth * 0.4, roof);
+        if (kind < 0.12 && h > 18) add(xc, h + 0.35, z, 0.3, 4 + kind * 20, 0.3, P.steel);
+      }
+      x += w + gap;
+    }
+  }
   // Low stepped ridges sit beyond the neighborhoods without making a skyline wall.
   for (let x = x0; x < x1; x += 38) {
     if (regionsCtry.some(([a, b]) => x + 38 > a && x < b)) continue;

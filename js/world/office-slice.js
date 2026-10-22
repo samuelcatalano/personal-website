@@ -69,8 +69,14 @@ export function createOfficeSlice(plot,recipe=officeRecipe(plot)) {
   for(const zz of [-d/2+.10,d/2-.10])box(0,top+.36,zz,w,.60,.20,S.stone);
   for(const xx of [-w/2+.10,w/2-.10])box(xx,top+.36,0,.20,.60,d,S.stone);
   if(recipe.rooftop!==false){
-  box(0,top+.71,-d*.1,w*.56,1.02,d*.42,S.roof);
-  box(0,top+.71+.51,-d*.1,w*.58,.04,d*.44,S.trim,1);
+  const y=top+.12; // every variant stays under `height` (the plot envelope)
+  // Crown variants share the same surfaces: slab plant (0), stepped drum (1), corner plant + stair (2), low cap with a short mast (3).
+  switch(recipe.crown??0){
+    case 1:box(0,y+.3,-d*.08,w*.66,.6,d*.5,S.roof);box(w*.06,y+.8,-d*.1,w*.36,.4,d*.28,S.stone);box(w*.06,y+1.02,-d*.1,w*.38,.07,d*.30,S.trim,1);break;
+    case 2:box(w*.2,y+.5,-d*.18,w*.38,1.0,d*.34,S.roof);box(-w*.26,y+.35,d*.16,1.7,.7,1.7,S.stone);box(w*.2,y+1.03,-d*.18,w*.40,.06,d*.36,S.trim,1);break;
+    case 3:box(0,y+.3,0,w*.3,.6,d*.3,S.stone);box(w*.1,y+.85,0,.18,.5,.18,S.trim,1);break;
+    default:box(0,top+.71,-d*.1,w*.56,1.02,d*.42,S.roof);box(0,top+.71+.51,-d*.1,w*.58,.04,d*.44,S.trim,1);
+  }
   }
   box(0,3.24,d/2-.30,3.4,.18,.94,S.roof);
   box(0,.34,d/2-.26,3.3,.08,.78,S.stone);

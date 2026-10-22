@@ -19,29 +19,38 @@ print(js(r'''(async () => {
   const countTree = () => expected++;
   buildCity(countTrunk, stops, pts, routeCurve(T,pts), countTree); buildLandmarks(countTrunk, stops, pts, countTree);
   const mesh = await createTrees(placements), check = (ok, msg) => { if (!ok) throw Error(msg); };
-  const billboards = mesh.children.find(o => o.name === 'trees-billboards');
+  const canopies = mesh.children.filter(o => o.name.startsWith('trees-canopy-')), trunks = mesh.children.filter(o => o.name.startsWith('trees-trunk-'));
   const newTrees = placements.filter(p => isWembleyBenchmark({x:p.x,z:p.z,width:p.crown*2,depth:p.crown*2}));
-  check(mesh.isGroup && mesh.children.length === 2 && billboards.count === placements.length && billboards.count === expected, 'all broadleaf trees stay in one shared batch plus one understory batch');
+  const total = canopies.reduce((n,c) => n + c.count, 0);
+  check(mesh.isGroup && canopies.length >= 2 && trunks.length === canopies.length && mesh.children.length <= 64 && [...canopies, ...trunks].every(m => m.frustumCulled && m.boundingSphere), 'trees stay in few spatially chunked, frustum-culled instanced batches');
+  check(total === placements.length && total === expected, 'one canopy instance per placement');
   check(!boxes.some(b => b[6] === P.trunk), 'voxel trees remain');
-  check(billboards.castShadow && billboards.receiveShadow && billboards.customDepthMaterial.alphaTest === billboards.material.alphaTest, 'foliage shadows must remain enabled');
-  const camera = new T.PerspectiveCamera(), m = new T.Matrix4(), p = new T.Vector3(), q = new T.Quaternion(), scale = new T.Vector3();
-  const heights = new Set(), rects = billboards.geometry.getAttribute('aRect'), variants = new Set();
-  for (const x of [-260,435,800]) {
-    camera.position.set(x,35,35); mesh.userData.update(camera);
-    placements.forEach((original,i) => {
-      billboards.getMatrixAt(i,m); m.decompose(p,q,scale);
+  check(mesh.children.every(o => o.name === 'tree-understory' || (o.castShadow && o.receiveShadow)), 'foliage shadows must remain enabled');
+  const m = new T.Matrix4(), p = new T.Vector3(), q = new T.Quaternion(), scale = new T.Vector3(), heights = new Set(), tints = new Set();
+  const stats = {tris: 0};
+  for (const c of canopies) {
+    check(c.instanceColor, 'canopy leaf tint');
+    for (const a of c.instanceColor.array) tints.add(a.toFixed(2));
+    stats.tris += c.geometry.attributes.position.count / 3 * c.count;
+    const box = c.geometry.boundingBox, idx = c.userData.sourceIndices;
+    check(box.max.y <= 1 + 1e-4 && Math.max(Math.hypot(box.max.x, box.max.z), Math.hypot(box.min.x, box.min.z)) <= Math.SQRT2 + 1e-4, 'canopy unit bounds');
+    for (let k = 0; k < c.count; k++) {
+      const original = placements[idx[k]];
+      c.getMatrixAt(k, m); m.decompose(p, q, scale);
       check(Math.abs(p.x-original.x)<1e-4 && Math.abs(p.z-original.z)<1e-4, 'tree position changed');
-      check(scale.x <= original.crown + 1e-5, 'crown grows into paths');
-      check(p.y+scale.y <= Math.min((original.base ?? .1)+6.6, (original.h+.65)*1.45+.4+(original.base ?? .1)), 'tree grows above landmark clearance'); // North Star canopy cap (2026-10-21)
-      check(p.y >= 0, 'tree sinks below paving');
-      const v=rects.getY(i), vh=rects.getW(i);
-      check(v>=0 && v+vh<.5, 'a pine sprite is selected');
-      variants.add(rects.getX(i)); heights.add(scale.y.toFixed(2));
-      const facing=new T.Vector3(0,0,1).applyQuaternion(q), target=new T.Vector3(x-p.x,0,35-p.z).normalize();
-      check(facing.dot(target)>.9999, 'tree does not face camera');
-    });
+      let r = 0; const pos = c.geometry.attributes.position; // true horizontal reach under instance rotation/scale
+      const e = new T.Euler().setFromQuaternion(q);
+      for (let i = 0; i < pos.count; i += 1) { const v = new T.Vector3().fromBufferAttribute(pos, i).multiply(scale).applyQuaternion(q); r = Math.max(r, Math.hypot(v.x, v.z)); }
+      check(r <= original.crown/2 + 1e-4, 'crown grows into paths');
+      const top = p.y + scale.y * box.max.y;
+      check(top <= Math.min((original.base ?? .1)+6.6, (original.h+.65)*1.45+.4+(original.base ?? .1)), 'tree grows above landmark clearance'); // North Star canopy cap (2026-10-21)
+      check(p.y - scale.y >= 0.5 && p.y >= 0, 'canopy sinks to the ground');
+      heights.add(top.toFixed(2));
+    }
   }
-  check(heights.size>3 && variants.size===2 && newTrees.length>=3, 'broadleaf tree sprites need varied heights and atlas variants');
+  trunks.forEach((t, k) => check(t.count === canopies[k].count && t.name.split('-').pop() === canopies[k].name.split('-').pop() && t.instanceColor, 'trunk matches canopy')); // paired per type per chunk
+  check(heights.size>3 && tints.size>3 && newTrees.length>=3, 'trees need varied heights and tints');
+  check(stats.tris < 250000, 'tree triangle budget '+stats.tris);
   let samples = 0;
   for (const path of walkPaths(stops,pts).filter(p => p.type !== 'lane')) {
     const {x0,x1,z0,z1}=path.rect;
@@ -57,8 +66,6 @@ print(js(r'''(async () => {
       for(let z=z0+inset;z<z1-inset;z+=.4) {probe(x0+inset,z);probe(x1-inset,z);}
     }
   }
-  const texture=billboards.material.map;
-  check(texture.image.width===1254 && texture.image.height===1254, 'atlas layout changed; update UV rectangles');
-  mesh.traverse(o=>{if(o.isMesh)o.geometry.dispose(); if(o.customDepthMaterial)o.customDepthMaterial.dispose(); o.material?.dispose();}); texture.dispose();
-  return {pass:true, trees:placements.length, benchmarkTrees:newTrees.length, atlasVariants:variants.size, heights:heights.size, drawBatches:mesh.children.length, pathSamples:samples};
+  mesh.userData.dispose(); mesh.userData.dispose();
+  return {pass:true, trees:placements.length, benchmarkTrees:newTrees.length, heights:heights.size, drawBatches:mesh.children.length, tris:stats.tris, pathSamples:samples};
 })()'''))

@@ -111,6 +111,31 @@ export function buildBlocks(add, stops, pts, curve, occ, onBuildingPlot, onArchi
     draw(add, cx, -108, [w, 8, 2 + (rear() < 0.35 ? 1 : 0), 3, wall[rear() * wall.length | 0], W, 0, 1], rear, rear, false, false, onArchitecturePlot, `rear-${Math.round(cx)}`);
     occ.push(R);
   }
+  // London back-lots: own rng + own footprint list, so no existing row, rear house or park shifts. Rows step up with distance:
+  // behind Parliament low (the Big Ben roofline stays readable), z -93 gap behind Tower Bridge mid, z -120 skyline row tallest.
+  // Heights cap at ~70% of Big Ben (24 m) within 14 m of the tower, keeping a clear sky window around its top.
+  const lots = rng(2713), placed = [], bb = X('bigben'), walls = [CR, SS, LS, B, OW, CM, S, TC], x0 = mv + 4, x1 = rgs[0].sub[0] - 4;
+  const lot = (x, z, w, d, n, fh, kind, u, tag) => {
+    const R = [x - w * u / 2, x + w * u / 2, z - d / 2, z + d / 2], h = n * fh;
+    if (h > 24 && Math.abs(x - bb) < 14 + w * u / 2) return false;
+    if ([...hard, ...cut, ...placed].some((o) => hit(R, o)) || occ.some((o) => hit(R, o)) || path.some((p) => hit(R, [p.x, p.x, p.z, p.z], 25))) return false;
+    placed.push(R);
+    draw(add, x, z, [w, d, n, fh, walls[lots() * walls.length | 0], W, kind, u], lots, lots, false, false, onArchitecturePlot, `lot-${tag}-${Math.round(x)}-${z}`);
+    return true;
+  };
+  for (let x = x0; x < x1; x += 4) { // z -83: terrace groups / low midrise in the hard band behind Parliament
+    if (x > rgs[0].sub[0] - 30) break;
+    const t = lots() < 0.5, w = t ? 6 : 11 + lots() * 3, u = t ? 3 + (lots() * 2 | 0) : 1;
+    if (lot(x + w * u / 2, -81.5, w, 8, 4, 3, t ? 3 : 0, u, 'front')) x += w * u - 2 + lots() * 3;
+  }
+  for (let x = x0; x < x1; x += 4) { // z -93 gap (Tower Bridge side) and any other hole in that row
+    const w = 12, n = Math.min(5 + (lots() * 3 | 0), x < 150 ? 5 : 7); // <= 16 m in front of the Eye; taller on the Tower Bridge side
+    if (lot(x + w / 2, -93, w, 12, n, 3.2, lots() < 0.55 ? 1 : 0, 1, 'mid')) x += w - 2 + lots() * 3;
+  }
+  for (let x = x0; x < x1; x += 4) { // z -120 skyline row, taller with distance
+    const w = 12 + lots() * 5, n = 5 + (lots() * 5 | 0), d = 8 + (lots() * 0 | 0); // depth 8 at z -117: clears the rear houses (-112) and backdrop row 0 (near edge <= -121)
+    if (lot(x + w / 2, -117, w, d, n, 3.2, lots() < 0.45 ? 1 : 0, 1, 'back')) x += w - 2 + lots() * 4;
+  }
   // These blocks sit west of both the route cameras and every landmark.
   const side = rng(5165), sx = pts[0].x - 125;
   add(sx, -0.12, -72, 84, 0.14, 72, P.pave);

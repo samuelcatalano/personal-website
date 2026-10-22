@@ -172,3 +172,17 @@ Same harness as the baseline above (HEAD e053b4b + near-side frontage fix). Hero
 | Supplementary mobile, stop 10 night | 1 | 8.3 | 9.8 | 234 | 244.5k | calls −12%, tris +9.9% |
 
 Bisection by commit at stop 10 (desktop/mobile tris): baseline 1,006.7k/222.2k → lighting 1,011.6k/225.1k → Heathrow removal + riverside fill 1,054.2k/240.6k → vehicle models 1,055.3k/244.0k → A330 + traffic 1,068.8k/244.6k. The London-stop triangle growth comes mainly from the requested rebuild of the old airport site (new buildings also render in the shadow pass); trimming traffic did not change it measurably. Zero console errors; 33/33 browser suites, 106/106 Node tests. Frame intervals stay at the 120 Hz cap.
+
+## City density / environment pass — 2026-10-23
+
+Changes: 21 own-RNG plots filling the band behind Parliament/Big Ben (Big Ben sky window kept ≤ 24 m within ±14 m), behind Tower Bridge and a London back row; denser mid-band backdrop (2,303 → 2,812 instanced boxes); more tower/office/midrise crown, spandrel, reveal and glass-tint variety; facade material fix (no baked window glare band, metre-scale plaster/brick variation, stronger bump, ground grime, uniform per-pane night windows); 3D low-poly tree family (3 types, spatially chunked + frustum-culled instancing); instanced K6 telephone kiosks facing the road. Existing 500 plot descriptors unchanged.
+
+A/B vs HEAD (3 runs each, same harness):
+
+| Scene | Desktop calls | Desktop tris | Desktop p95 | Mobile calls | Mobile tris | Mobile p95 |
+|---|---|---|---|---|---|---|
+| Hero | ~485 → ~508 (+5%) | 919.6k → 1,049.5k (+14%) | 9.3–9.7 → 9.3–9.7 ms | ~183 → ~196 | 259.7k → 292.1k (+12%) | 9.6–9.8 → 9.7–9.9 ms |
+| London stop 10 | ~699 → ~750 (+7%) | 1,132.4k → 1,407.2k (+24%) | 9.1–9.6 → 8.5–8.7 ms | ~194 → ~195 | 266.7k → 327.4k (+23%) | 9.5–10.0 → 9.7–9.9 ms |
+| Stack 13.5 | ~622 → ~690 (+11%) | 1,028.4k → 1,242.0k (+21%) | 9.2–9.6 → 8.4–9.6 ms | ~190 → ~201 | 269.5k → 313.5k (+16%) | 9.8–10.0 → 9.6–10.0 ms |
+
+Medians stay at 8.3 ms (120 Hz cap); p95 within ±1 ms desktop / ±2 ms mobile. Most of the triangle growth is the 3D trees across colour/normal/shadow passes (chunking cut it from +50 % to +24 % at stop 10). 102/102 Node tests, 34/34 browser suites, zero console errors.

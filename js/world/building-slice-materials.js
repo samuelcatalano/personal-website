@@ -6,7 +6,7 @@ export const SURFACE = Object.freeze({ plaster: 0, brick: 1, roof: 2, trim: 3, s
 let shared;
 const hash = (x, y) => { let n = Math.imul(x + 131, 374761393) ^ Math.imul(y + 719, 668265263); n = Math.imul(n ^ n >>> 13, 1274126177); return (n >>> 0) / 4294967295; };
 const mod = (x, n) => (x % n + n) % n;
-const palette = [[201,190,167],[153,91,66],[72,82,93],[218,208,185],[181,170,149],[83,111,129],[83,111,129],[52,67,69]];
+const palette = [[201,190,167],[153,91,66],[72,82,93],[205,196,174],[181,170,149],[62,86,100],[62,86,100],[52,67,69]];
 
 // Periodic, interpolated grain avoids a visible seam or a low-frequency sine pattern.
 function grain(u,v,columns,rows) {
@@ -25,9 +25,9 @@ function texel(surface, x, y) {
     const bx=mod(u*columns+(row%2)*.5,1),by=mod(v*rows,1);
     const joint=Math.min(bx,1-bx)<.018||Math.min(by,1-by)<.045;
     const tone=hash(mod(column,columns),row)-.5;
-    color=joint?(brick?[144,125,106]:[169,159,141]):color.map((c,i)=>c+tone*[11,7,5][i]);
+    color=joint?(brick?[168,150,128]:[169,159,141]):color.map((c,i)=>c+tone*(brick?[26,16,12]:[12,10,8])[i]);
     shade=1+fine*.02; height=joint?-.0008:fine*.0002;
-    rough=joint?.94:.86+tone*.06;
+    rough=joint?.95:(brick?.9:.75)+tone*.05;
   }else if(surface===SURFACE.roof){
     const row=Math.floor(v*6),column=Math.floor(u*4+(row%2)*.5);
     const rx=mod(u*4+(row%2)*.5,1),ry=mod(v*6,1);
@@ -36,20 +36,21 @@ function texel(surface, x, y) {
     if(rx<.018||ry<.03)shade*=.87;
     height=ry<.03?-.0006:.0006*(1-ry);rough=.79+tone*.06;
   }else if(surface===SURFACE.glass||surface===SURFACE.litGlass){
-    const interior=grain(u,v,4,4),reflection=Math.pow(.5+.5*Math.cos(2*Math.PI*(u+v)),10);
-    color=[99,130,143];shade=.72+interior*.18+reflection*.12;
+    // flat, dark, cool pane: sky reflection comes from glass-reflection.js, not baked gradients
+    color=[62,86,100];shade=.95+(hash(Math.floor(u*8),Math.floor(v*16))-.5)*.04;
     height=0;rough=.24;
   }else if(surface===SURFACE.trim){
-    height=fine*.00004;rough=.59;metal=.015;
+    height=fine*.00004;rough=.6;metal=0;shade=1+fine*.01;
   }else if(surface===SURFACE.door){
     const edge=Math.min(mod(u*2,1),1-mod(u*2,1),mod(v*3,1),1-mod(v*3,1));
     shade=edge<.07?.81:1+fine*.012;height=edge<.07?-.001:0;rough=.69;
   }else{
-    const micro=grain(u,v,30,62)-.5,soft=grain(u,v,8,16)-.5;
-    shade=1+micro*.018+soft*.012+fine*.006;
-    height=micro*.00012+fine*.000035;rough=.86+soft*.045+micro*.025;
+    // plaster: metre-scale tone drift (+-2.5%), fine trowel grain, slight roughness variation
+    const micro=grain(u,v,30,62)-.5,soft=grain(u,v,2,4)-.5;
+    shade=1+soft*.05+micro*.02+fine*.008;
+    height=micro*.00015+fine*.00004;rough=.85+soft*.06+micro*.03;
   }
-  const emission=surface===SURFACE.litGlass?(.42+.45*grain(u,v,3,4))*(.92+.08*Math.cos(v*Math.PI*2)):0;
+  const emission=surface===SURFACE.litGlass?.78:0;
   return {rgb:color.map(c=>Math.max(0,Math.min(255,c*shade))),height,rough,metal,emission};
 }
 
@@ -57,7 +58,7 @@ function makeMaps() {
   const data = Array.from({length:4},()=>new Uint8ClampedArray(512*512*4));
   for (let surface=0;surface<8;surface++) for(let y=0;y<256;y++) for(let x=0;x<128;x++) {
     const p=texel(surface,x,y), hx=texel(surface,x+1,y).height-texel(surface,x-1,y).height, hy=texel(surface,x,y+1).height-texel(surface,x,y-1).height;
-    const normal=new THREE.Vector3(-hx*60,hy*62,1).normalize();
+    const normal=new THREE.Vector3(-hx*220,hy*220,1).normalize();
     const i=(((1-Math.floor(surface/4))*256+y)*512+(surface%4)*128+x)*4;
     const emission=[162,123,77].map(c=>c*p.emission);
     [ [...p.rgb,255],[(normal.x*.5+.5)*255,(normal.y*.5+.5)*255,(normal.z*.5+.5)*255,255],[255,p.rough*255,p.metal*255,255],[...emission,255] ].forEach((rgba,k)=>data[k].set(rgba,i));
@@ -74,11 +75,11 @@ function makeMaps() {
 }
 
 function metricAtlas(material) {
-  material.customProgramCacheKey=()=> material.name+'-metric-atlas-v3';
+  material.customProgramCacheKey=()=> material.name+'-metric-atlas-v5';
   material.onBeforeCompile=shader=>{
-    shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nattribute float aSurface; varying float vSliceSurface;').replace('#include <begin_vertex>','#include <begin_vertex>\nvSliceSurface = aSurface;');
+    shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nattribute float aSurface; varying float vSliceSurface; varying float vSliceY;').replace('#include <begin_vertex>','#include <begin_vertex>\nvSliceSurface = aSurface; vSliceY = (modelMatrix * vec4(position,1.0)).y;');
     shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
-      varying float vSliceSurface;
+      varying float vSliceSurface; varying float vSliceY;
       vec4 sliceSample(sampler2D tex,vec2 uv){
         vec2 tile=vec2(mod(vSliceSurface,4.0),floor(vSliceSurface/4.0));
         vec2 scale=vec2(120.0/512.0,124.0/512.0);
@@ -90,7 +91,14 @@ function metricAtlas(material) {
       const code=THREE.ShaderChunk[chunk].replace(/texture2D\(\s*(map|normalMap|roughnessMap|metalnessMap|emissiveMap)\s*,\s*(v\w+Uv)\s*\)/g,'sliceSample( $1, $2 )');
       shader.fragmentShader=shader.fragmentShader.replace(`#include <${chunk}>`,code);
     }
+    // subtle ground grime: <=7% darkening on walls, fading over 1.5 m
+    shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`#include <map_fragment>
+      if(vSliceSurface<4.5&&vSliceSurface!=2.0) diffuseColor.rgb*=1.0-0.07*(1.0-smoothstep(0.0,1.5,vSliceY));`);
     if(material.name==='slice-glass'){
+      // lit panes: whole-pane warm glow with slight per-cell tone shift (no sub-pane grain)
+      shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
+        { vec2 c=floor(vMapUv/vec2(1.0,2.0)); float h=fract(sin(dot(c,vec2(12.9898,78.233)))*43758.5453);
+          totalEmissiveRadiance*=(0.88+0.24*h)*vec3(1.0,0.97+0.06*h,0.92+0.14*h); }`);
       shader.uniforms.uGlassNight=material.userData.uNight??(material.userData.uNight={value:0});
       shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
 uniform float uGlassNight;

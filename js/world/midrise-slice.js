@@ -87,6 +87,9 @@ export function createMidriseSlice(plot,recipe=midriseRecipe(plot)) {
   box(-w*.20,roofY+.83,-d*.18,w*.28,.06,d*.26,S.roof);
   box(w*.23,roofY+.26,-d*.22,1.25,.52,1.7,S.roof);
   }
+  // Roof silhouette variants: setback penthouse (1), tank + stair pair (2); 0 keeps the plain parapet roof.
+  if(recipe.penthouse===1){box(w*.08,roofY+.55,-d*.12,w*.58,1.0,d*.46,S.plaster);box(w*.08,roofY+1.03,-d*.12,w*.62,.07,d*.5,S.stone,1);}
+  else if(recipe.penthouse===2){box(-w*.24,roofY+.5,d*.1,1.9,1.0,1.9,S.roof);box(w*.22,roofY+.4,-d*.1,2.2,.8,1.6,S.stone);}
   // Recessed human-scale entrance and canopy stay inside the source footprint.
   const entrance=(Math.floor(recipe.bays/2)-(recipe.bays-1)/2)*w/recipe.bays;
   box(entrance,2.92,d/2-.27,2.65,.14,.82,S.roof);

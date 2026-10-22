@@ -16,19 +16,19 @@ const overlaps = (a, b) => a.x - a.w / 2 < b.x + b.w / 2 && a.x + a.w / 2 > b.x 
 test('backdrop is deterministic and stays within the box budget', () => {
   const a = make(), b = make();
   assert.deepEqual(a, b);
-  assert.ok(a.length <= 2500, `${a.length} boxes`);
+  assert.ok(a.length <= 3500, `${a.length} boxes`);
 });
 
 test('near backdrop has an extra stepped roof tier while far rows stay muted', () => {
   const a = make(), b = make();
   assert.deepEqual(a, b);
-  assert.ok(a.length <= 2500, `${a.length} boxes`);
+  assert.ok(a.length <= 3500, `${a.length} boxes`);
   const walls = a.filter((box) => box.y === 0 && box.z < -110 && box.z > -150 && box.h >= 5.6 && box.h <= 11.2);
   const tiers = a.filter((box) => box.h === 0.28 && walls.some((wall) =>
     box.x === wall.x && box.z === wall.z && box.y === wall.h + 1.1 &&
     Math.abs(box.w - wall.w * 0.38) < 1e-9 && Math.abs(box.d - wall.d * 0.45) < 1e-9));
   assert.ok(tiers.length > 0, 'near houses have the extra 0.38 × stepped roof tier');
-  const farWalls = a.filter((box) => box.y === 0 && box.z <= -180 && box.h >= 5.6 && box.h <= 19.6);
+  const farWalls = a.filter((box) => box.y === 0 && box.z <= -180 && box.h >= 5.6 && box.h <= 22.4);
   assert.ok(farWalls.every((box) => [P.stone, P.concreteMid, P.taupe, P.steel].includes(box.color)));
 });
 
@@ -46,10 +46,10 @@ test('building bodies vary in height and stay out of the landmark and museum cor
   assert.ok(buildings.length > 169, `${buildings.length} buildings: denser neighborhoods than the old backdrop`);
   assert.ok(new Set(buildings.map((b) => b.h)).size >= 5, 'varied building heights');
   assert.ok(new Set(buildings.map((b) => b.z)).size > 20, 'staggered setbacks avoid rigid skyline rows');
-  assert.ok(buildings.every((b) => b.h <= 22), 'buildings stay below 22 m');
-  assert.ok(buildings.filter((b) => b.z > -180).every((b) => b.h >= 5.6 * .5 && b.h <= 11.2), 'near component masses fit the 2–4 floor envelope');
+  assert.ok(buildings.every((b) => b.h <= 25.2), 'buildings stay below 25.2 m (9-floor mid band)');
+  assert.ok(buildings.filter((b) => b.z > -140).every((b) => b.h >= 5.6 * .5 && b.h <= 11.2), 'near component masses fit the 2–4 floor envelope');
   const distant = buildings.filter((b) => b.z <= -180);
-  assert.ok(distant.every((b) => b.h >= 5.6 * .5 && b.h <= 19.6), 'far component masses fit the 2–7 floor envelope');
+  assert.ok(distant.every((b) => b.h >= 5.6 * .5 && b.h <= 22.4), 'far component masses fit the 2–8 floor envelope');
   for (const b of distant) assert.ok([P.stone, P.concreteMid, P.taupe, P.steel].includes(b.color), 'far blocks use muted walls');
   for (const b of boxes.filter((b) => b.h > 0 && b.w < 1000 && b.color !== P.pave)) {
     assert.ok(b.x + b.w / 2 <= museum.x - museum.w / 2 - 12 || b.x - b.w / 2 >= museum.x + museum.w / 2 + 12, 'all raised scenery clears the museum corridor');
