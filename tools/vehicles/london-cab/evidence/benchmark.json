@@ -1,0 +1,235 @@
+{
+  "baselineCommit": "151918601b4a27bb0a84c02ecd88ccc550b4b8cb",
+  "candidateAssetSHA256": "a7e51439f33888c01ae80891fec47400692d57da87ae08857886d8cfd2cb9c0a",
+  "protocol": "Headless Chrome156, same browser. Desktop1440x900 DPR1.5 high; mobile375x812 DPR1 medium.2s warmup/10s sample. Identical temporary snapshots, adaptive tier downgrade disabled. Existing normal camera follows selected oncoming cab. Two existing ambient cabs initialized at route progress.45/.47 for a controlled realistic same-lane headway fixture; other traffic unchanged; no extra cab spawned. Measured minimum physical separation8.19m versus4.95m movement envelope. Each sample confirms two cabs submitted. Day A/B, night visual validation separately. Cab submission counters count onBeforeRender (color/normal, not shadow); full renderer.info calls include complete pipeline.",
+  "geometryRebuild": "All exported vertex attributes exactly equal and all9546 oriented triangles equal as a multiset. Blender exporter reordered298 body index records; GLB export is not byte-deterministic. Frozen POC/production are byte-identical.",
+  "limits": [
+    "rAF/post-render frame intervals, not isolated CPU/GPU timing",
+    "one accepted sample per variant/device; moving traffic, frame boundary and loaded scene resources vary",
+    "mobile emulated, not physical hardware",
+    "preliminary protocols without visible cabs or with too-tight fixture were rejected, not used for GO",
+    "no full regression or Lighthouse"
+  ],
+  "results": {
+    "a-desktop": {
+      "variant": "a",
+      "device": "desktop",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "dpr": 1.5
+      },
+      "tier": "high",
+      "route": {
+        "id": "existing-London-traffic",
+        "normalCamera": true,
+        "follow": "existing cab; controlled two-cab London headway fixture",
+        "initialProgress": 0.45
+      },
+      "warmupMs": 2000,
+      "sampleMs": 10000,
+      "frameCount": 601,
+      "rafIntervalMs": {
+        "median": 16.69999998807907,
+        "p95": 17.599999964237213
+      },
+      "simulationProgress": 0.33285220615098776,
+      "drawCalls": {
+        "median": 741,
+        "p95": 761
+      },
+      "triangles": {
+        "median": 1149376,
+        "p95": 1163580
+      },
+      "cabHeadwayMetres": {
+        "min": 8.192294820498407,
+        "max": 22.84057695166042
+      },
+      "cabSubmissions": {
+        "median": 28,
+        "p95": 28
+      },
+      "cabInstancesDrawn": {
+        "median": 2,
+        "p95": 2
+      },
+      "memory": {
+        "geometries": 356,
+        "textures": 38
+      },
+      "scene": {
+        "meshes": 1087,
+        "uniqueMaterials": 129
+      },
+      "naturalVisibleCabs": 3,
+      "upgradedCabs": 0,
+      "consoleErrors": []
+    },
+    "a-mobile": {
+      "variant": "a",
+      "device": "mobile",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "dpr": 1
+      },
+      "tier": "medium",
+      "route": {
+        "id": "existing-London-traffic",
+        "normalCamera": true,
+        "follow": "existing cab; controlled two-cab London headway fixture",
+        "initialProgress": 0.45
+      },
+      "warmupMs": 2000,
+      "sampleMs": 10000,
+      "frameCount": 601,
+      "rafIntervalMs": {
+        "median": 16.600000023841858,
+        "p95": 20.400000035762787
+      },
+      "simulationProgress": 0.33306406750440587,
+      "drawCalls": {
+        "median": 217,
+        "p95": 223
+      },
+      "triangles": {
+        "median": 279475,
+        "p95": 287981
+      },
+      "cabHeadwayMetres": {
+        "min": 8.192325741352638,
+        "max": 22.842608153783388
+      },
+      "cabSubmissions": {
+        "median": 14,
+        "p95": 14
+      },
+      "cabInstancesDrawn": {
+        "median": 2,
+        "p95": 2
+      },
+      "memory": {
+        "geometries": 243,
+        "textures": 29
+      },
+      "scene": {
+        "meshes": 1081,
+        "uniqueMaterials": 129
+      },
+      "naturalVisibleCabs": 3,
+      "upgradedCabs": 0,
+      "consoleErrors": []
+    },
+    "b-desktop": {
+      "variant": "b",
+      "device": "desktop",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "dpr": 1.5
+      },
+      "tier": "high",
+      "route": {
+        "id": "existing-London-traffic",
+        "normalCamera": true,
+        "follow": "existing cab; controlled two-cab London headway fixture",
+        "initialProgress": 0.45
+      },
+      "warmupMs": 2000,
+      "sampleMs": 10000,
+      "frameCount": 600,
+      "rafIntervalMs": {
+        "median": 16.69999998807907,
+        "p95": 17.5
+      },
+      "simulationProgress": 0.3330655495486594,
+      "drawCalls": {
+        "median": 731,
+        "p95": 750
+      },
+      "triangles": {
+        "median": 1175968,
+        "p95": 1190140
+      },
+      "cabHeadwayMetres": {
+        "min": 8.192346950772215,
+        "max": 22.841328352344775
+      },
+      "cabSubmissions": {
+        "median": 22,
+        "p95": 22
+      },
+      "cabInstancesDrawn": {
+        "median": 2,
+        "p95": 2
+      },
+      "memory": {
+        "geometries": 355,
+        "textures": 37
+      },
+      "scene": {
+        "meshes": 1085,
+        "uniqueMaterials": 132
+      },
+      "naturalVisibleCabs": 3,
+      "upgradedCabs": 3,
+      "consoleErrors": []
+    },
+    "b-mobile": {
+      "variant": "b",
+      "device": "mobile",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "dpr": 1
+      },
+      "tier": "medium",
+      "route": {
+        "id": "existing-London-traffic",
+        "normalCamera": true,
+        "follow": "existing cab; controlled two-cab London headway fixture",
+        "initialProgress": 0.45
+      },
+      "warmupMs": 2000,
+      "sampleMs": 10000,
+      "frameCount": 601,
+      "rafIntervalMs": {
+        "median": 16.600000023841858,
+        "p95": 19.80000001192093
+      },
+      "simulationProgress": 0.3330654727735818,
+      "drawCalls": {
+        "median": 213,
+        "p95": 219
+      },
+      "triangles": {
+        "median": 291095,
+        "p95": 299537
+      },
+      "cabHeadwayMetres": {
+        "min": 8.192348473122626,
+        "max": 22.841536783904623
+      },
+      "cabSubmissions": {
+        "median": 12,
+        "p95": 12
+      },
+      "cabInstancesDrawn": {
+        "median": 2,
+        "p95": 2
+      },
+      "memory": {
+        "geometries": 242,
+        "textures": 28
+      },
+      "scene": {
+        "meshes": 1085,
+        "uniqueMaterials": 132
+      },
+      "naturalVisibleCabs": 3,
+      "upgradedCabs": 3,
+      "consoleErrors": []
+    }
+  }
+}

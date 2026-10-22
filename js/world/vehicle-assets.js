@@ -5,7 +5,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { fixed, paint } from './vehicles.js';
 import { destMat } from './buses.js';
 // Authored vehicle GLBs (tools/vehicles/*), loaded once and shared. Resolves null on failure so callers keep their procedural model.
-const URLS = { a330: 'a330.glb', bus: 'double-decker-bus.glb', mini: 'mini-cooper.glb' };
+const URLS = { a330: 'a330.glb', bus: 'double-decker-bus.glb', mini: 'mini-cooper.glb', cab: 'london-cab.glb' };
 const cache = new Map();
 export function loadVehicleAsset(type) {
   if (!cache.has(type)) cache.set(type, new GLTFLoader().loadAsync(new URL('../../assets/vehicles/' + URLS[type], import.meta.url).href).then((g) => g.scene).catch(() => null));
@@ -28,12 +28,19 @@ export const BUS_VARIANTS = {
 // prefiltered studio environment generated in-browser (no texture download). Only these materials get it, so the rest of
 // the scene keeps its approved look; intensity follows day/night (updateVehicleEnv).
 let envTex = null; const envMats = new Set(), physCache = new Map();
+const CAB_ENV_NIGHT = [['cabBody', 0.16], ['cabGlass', 0.28], ['cabTrim', 0.18]];
 export function initVehicleEnv(renderer) {
   if (envTex) return;
   const pm = new THREE.PMREMGenerator(renderer); envTex = pm.fromScene(new RoomEnvironment(), 0.04).texture; pm.dispose();
   for (const m of envMats) { m.envMap = envTex; m.needsUpdate = true; }
 }
-export function updateVehicleEnv(night) { for (const m of envMats) m.envMapIntensity = m.userData.envDay * (1 - 0.94 * night); }
+export function updateVehicleEnv(night) {
+  for (const m of envMats) m.envMapIntensity = m.userData.envDay * (1 - 0.94 * night);
+  for (const [key, floor] of CAB_ENV_NIGHT) {
+    const m = physCache.get(key); if (m) m.envMapIntensity = m.userData.envDay * (1 - night) + floor * night;
+  }
+  const lights = physCache.get('cabLights'); if (lights) lights.emissiveIntensity = 0.9 * night;
+}
 const phys = (key, make) => physCache.get(key) ?? physCache.set(key, (() => {
   const m = make(); m.userData.envDay = m.envMapIntensity; if (envTex) m.envMap = envTex; envMats.add(m); return m;
 })()).get(key);
@@ -44,14 +51,28 @@ const CAR_FINISH = {
   CarGlass: () => phys('glass', () => { const m = new THREE.MeshPhysicalMaterial({ color: '#1c2a36', roughness: 0.04, metalness: 0.1, envMapIntensity: 0.6, transparent: true, opacity: 0.42, depthWrite: false }); return m; }),
   CarTrim: () => phys('trim', () => new THREE.MeshPhysicalMaterial({ color: '#16181b', roughness: 0.55, metalness: 0, clearcoat: 0.3, envMapIntensity: 0.25 })),
 };
+const CAB_FINISH = {
+  CabBody: () => phys('cabBody', () => new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.008, 0.009, 0.011), vertexColors: true, roughness: 0.29, metalness: 0.12, clearcoat: 1, clearcoatRoughness: 0.06, envMapIntensity: 0.28 })),
+  CabGlass: () => phys('cabGlass', () => new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.055, 0.085, 0.10), vertexColors: true, roughness: 0.12, metalness: 0.05, envMapIntensity: 0.6, transparent: true, opacity: 0.32, depthWrite: false })),
+  CabRubber: () => phys('cabRubber', () => new THREE.MeshStandardMaterial({ color: new THREE.Color(0.015, 0.018, 0.021), vertexColors: true, roughness: 0.8, envMapIntensity: 0.1 })),
+  CabTrim: () => phys('cabTrim', () => new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.53, 0.57, 0.61), vertexColors: true, roughness: 0.23, metalness: 0.8, envMapIntensity: 0.7 })),
+  CabInterior: () => phys('cabInterior', () => new THREE.MeshStandardMaterial({ color: new THREE.Color(0.075, 0.081, 0.088), vertexColors: true, roughness: 0.85, envMapIntensity: 0.1 })),
+  CabLights: () => phys('cabLights', () => {
+    const m = new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.22, emissive: 0xffffff, emissiveIntensity: 0, envMapIntensity: 0.15 });
+    // Three's vertex colors tint diffuse only; keep the shared lamp emission red/amber/white too.
+    m.onBeforeCompile = (shader) => { shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n totalEmissiveRadiance *= vColor.rgb;'); };
+    return m;
+  }),
+};
 const ROLES = {
+  ...CAB_FINISH,
   BusBody: (v) => paint(v.body, true), BusAccent: (v) => paint(v.accent, true), BusTrim: () => fixed('dark'), BusGlass: () => fixed('busGlass'),
   BusRubber: () => fixed('tyre'), BusMetal: () => fixed('chrome'), BusHeadlight: () => fixed('head'), BusTaillight: () => fixed('tail'),
   BusDisplay: (v) => destMat(...v.dest), BusInterior: () => fixed('cabin'),
   CarBody: (v) => carPaint(v.body), CarRoof: (v) => carPaint(v.roof), CarGlass: CAR_FINISH.CarGlass, CarTrim: CAR_FINISH.CarTrim, CarInterior: () => fixed('carInterior'), CarPlate: () => fixed('plate'), CarRim: CAR_FINISH.CarRim,
   CarChrome: CAR_FINISH.CarChrome, CarHeadlight: () => fixed('head'), CarTaillight: () => fixed('tail'),
 };
-const CASTS = new Set(['BusBody', 'CarBody', 'CarRoof']); // only painted shells cast: trim/glass/wheels add shadow-pass calls for no visible gain
+const CASTS = new Set(['BusBody', 'CarBody', 'CarRoof', 'CabBody']); // only painted shells cast: trim/glass/wheels add shadow-pass calls for no visible gain
 const WHEELS = ['FL', 'FR', 'RL', 'RR'];
 const staticWheels = new Map(); // ambient vehicles never spin their wheels: one merged geometry per wheel material per asset, shared
 function mergedWheels(key, src) {
@@ -81,3 +102,4 @@ function upgrade(vehicle, key, v, hero) {
 export const upgradeBus = (vehicle, variant, { hero = true } = {}) => upgrade(vehicle, 'bus', BUS_VARIANTS[variant], hero);
 // London master approved 2026-10-22; geometry frozen (tools/vehicles/double-decker-bus)
 export const upgradeMini = (vehicle, { hero = true, body = '#efe7d6', roof = '#c9252b' } = {}) => upgrade(vehicle, 'mini', { body, roof }, hero);
+export const upgradeCab = (vehicle) => upgrade(vehicle, 'cab', {}, false);

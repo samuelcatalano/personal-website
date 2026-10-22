@@ -1,0 +1,18 @@
+22:15:10 | INFO: Data are loaded, start creating Blender stuff
+22:15:10 | INFO: Blender create Mesh node CabBody
+22:15:10 | INFO: Blender create Mesh node CabGlass
+22:15:10 | INFO: Blender create Mesh node CabInterior
+22:15:10 | INFO: Blender create Mesh node CabLights
+22:15:10 | INFO: Blender create Mesh node CabRubber
+22:15:10 | INFO: Blender create Mesh node CabTrim
+22:15:10 | INFO: glTF import finished in 0.02s
+CAB TOPOLOGY {"closed_components": 14, "degenerate_faces": 0, "inward_components": 0, "loose_vertices": 0, "mesh": "CabBody", "nonmanifold_edges": 0, "triangles": 2782}
+CAB TOPOLOGY {"closed_components": 10, "degenerate_faces": 0, "inward_components": 0, "loose_vertices": 0, "mesh": "CabGlass", "nonmanifold_edges": 0, "triangles": 432}
+CAB TOPOLOGY {"closed_components": 20, "degenerate_faces": 0, "inward_components": 0, "loose_vertices": 0, "mesh": "CabInterior", "nonmanifold_edges": 0, "triangles": 468}
+CAB TOPOLOGY {"closed_components": 13, "degenerate_faces": 0, "inward_components": 0, "loose_vertices": 0, "mesh": "CabLights", "nonmanifold_edges": 0, "triangles": 732}
+CAB TOPOLOGY {"closed_components": 67, "degenerate_faces": 0, "inward_components": 0, "loose_vertices": 0, "mesh": "CabRubber", "nonmanifold_edges": 0, "triangles": 3120}
+CAB TOPOLOGY {"closed_components": 47, "degenerate_faces": 0, "inward_components": 0, "loose_vertices": 0, "mesh": "CabTrim", "nonmanifold_edges": 0, "triangles": 2012}
+CAB VALIDATION {"closed_components": true, "dimensions_xyz": [4.85699987411499, 2.0360000133514404, 1.8880000412464142], "glb_bytes": 432496, "materials": 6, "meshes": 6, "origin_ground": true, "textures": 0, "triangles": 9546}
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:49:19)
+
+Blender quit
