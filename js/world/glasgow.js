@@ -3,6 +3,7 @@ import { rng, stopIndex, LANDMARKS } from './layout.js';
 import { house } from './houses.js';
 import { draw } from './blocks.js';
 import { flag } from './flags.js';
+import { lampPost } from './street-lamp.js';
 
 const CONE_ORANGE = '#f36b21', BRONZE_DK = '#4a3a22';
 
@@ -102,7 +103,7 @@ export function buildGlasgowEdges(add, stops, pts, curve, tree, onArchitecturePl
   }
   for (const dx of [-100, -86, -72, -58, -44, -30, 26, 40, 52]) { // lamps on the near-bank path and benches facing the road
     const x = g + dx, z = zr(x) - 10.5;
-    add(x, 0, z, 0.16, 3, 0.16, P.roof); add(x, 3, z, 0.7, 0.2, 0.7, P.lit);
+    lampPost(x, z, 0, 'uk');
     if (dx % 4 === 0) { add(x + 3, 0.45, z, 1.6, 0.1, 0.45, P.oak); add(x + 3, 0.55, z - 0.2, 1.6, 0.38, 0.08, P.oak); }
   }
 }

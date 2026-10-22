@@ -9,6 +9,7 @@ import { buildRealCity } from './real-city.js';
 import { createHeroRealm } from './hero-realm.js';
 import { createTrees } from './trees.js';
 import { buildPhoneBoxes } from './phone.js';
+import { buildLampPosts } from './street-lamp.js';
 import { buildBackdrop } from './backdrop.js';
 import { buildLandmarks } from './landmarks.js';
 import { polishLandmarkMaterials } from './landmark-materials.js';
@@ -73,6 +74,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   try { trees = await createTrees(treePlacements); scene.add(trees); }
   catch { treePlacements.forEach(({ x, z, ...shape }) => tree(add, x, z, shape)); } // retain trees if the texture cannot load
   const phones = await buildPhoneBoxes(); if (phones) scene.add(phones);
+  const lampPosts = await buildLampPosts(); if (lampPosts) scene.add(lampPosts);
   const architecture = await realCity;scene.add(architecture);
   const mini = buildVehicle('mini', { hero: true }), londonBus = buildVehicle('london', { hero: true }), glasgowBus = buildVehicle('glasgow', { hero: true });
   const bus = new THREE.Group().add(mini, londonBus, glasgowBus), swap = swapAt(stops);
@@ -242,7 +244,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       heroRealm?.userData.dispose();
       roadMarks.userData.dispose();
       trees?.userData.dispose?.();
-      phones?.userData.dispose();
+      phones?.userData.dispose(); lampPosts?.userData.dispose();
       for (const name of ['wembley', 'bigben', 'masp', 'se', 'estaiada', 'towerbridge', 'eyeframe', 'copan', 'riverside', 'university', 'chambers', 'wellington']) details.getObjectByName(name + '-geometry')?.userData.dispose();
       details.getObjectByName('hero-background')?.userData.dispose();
       details.getObjectByName('paulista-architecture')?.userData.dispose();

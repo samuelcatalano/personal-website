@@ -1,7 +1,8 @@
 import { furnitureSpots, rng, isWembleyBenchmark } from './layout.js';
 import { walkPaths } from './crowd.js';
 import { PALETTE as P } from './palette.js';
-import { tree, CLEAR } from './city.js'; // ponytail: import cycle is fine, both are function declarations used after load
+import { tree, CLEAR } from './city.js';
+import { lampPost } from './street-lamp.js'; // ponytail: import cycle is fine, both are function declarations used after load
 // Parks on the big bare paving. Rects were found with an occupancy grid of city + landmarks (tests/parks.test.mjs re-checks the plaza loops);
 // x/z are world metres. Axis u = longer side. uk: black railings + K6-free London look; pond/fountain: centre piece.
 export const PARKS = [ // stops after the Eye sit further east (OUT_GAP + LONG_GAP): the last four parks moved with them
@@ -30,7 +31,7 @@ export const PLAZAS = [
   { name: 'glasgow-uni', trees: 0, quiet: 1, nopath: 1, paved: P.pave }, // far-bank promenade: paved, not a lawn; keeps the gravel ring
   { name: 'se', paved: P.stone },
 ];
-const { patch: LAWN, gravel: GRAVEL, hedge: HEDGE, leaf: LEAF, stone: STONE, oak: OAK, iron: IRON, glass: WATER, dirt: SOIL, roof: POLE, lit: LIT } = P;
+const { patch: LAWN, gravel: GRAVEL, hedge: HEDGE, leaf: LEAF, stone: STONE, oak: OAK, iron: IRON, glass: WATER, dirt: SOIL } = P;
 const BLOOM = [P.red, P.tulip, P.violet, P.red];
 export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) {
   const spots = furnitureSpots(stops, curve).map((o) => o.xz), r = rng(9157), made = [];
@@ -126,7 +127,7 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
     for (let u = -L / 2 + 5; u < L / 2 - 3; u += 15) for (const f of [-1, 1]) { // lamps, head P.lit so it glows at night
       const lv = f * (ring ? S / 2 - 0.9 : 1.4);
       if (!ring && S < 7 && f > 0 || !clearOfSigns(u, lv)) continue;
-      const [x, z] = world(u, lv); add(x,0,z,.30,.22,.30,POLE);add(x, 0, z, 0.16, 3, 0.16, POLE); add(x, 3, z, 0.52, 0.16, 0.52, LIT);add(x,3.16,z,.68,.06,.68,POLE);
+      const [x, z] = world(u, lv); lampPost(x, z, 0, park.uk ? 'uk' : 'br');
     }
     if (park.rail) { // black railings round the park with gates where the paths enter
       const hu = L / 2 + 0.9, hv = S / 2 + 0.9;

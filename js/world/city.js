@@ -1,6 +1,7 @@
 import { furnitureSpots, GAPS, GAP_TOTAL, STOP_SPACING, RIVER_Z, LANDMARKS, rng, riverEnd, riverStart, stopIndex, ukStart, regions, towerX, isWembleyBenchmark } from './layout.js';
 import { house } from './houses.js';
 import { phoneBox } from './phone.js';
+import { lampPost } from './street-lamp.js';
 import { PALETTE as P } from './palette.js';
 import { buildBlocks } from './blocks.js';
 import { buildParks } from './parks.js';
@@ -103,9 +104,7 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
       for (const side of [-1, 1]) {
         const x = p.x + nx * side * 9.4, z = p.z + nz * side * 9.4;
         if (!free(x, z)) continue;
-      const local = isWembleyBenchmark({ x, z });
-      add(x, 0, z, 0.16, 3, 0.16, local ? P.stone : ROOF);
-        add(x, 3, z, 0.7, 0.2, 0.7, WINDOW_LIT);
+        lampPost(x, z, Math.atan2(nz * side, -nx * side), x >= ukX - 15 ? 'uk' : 'br'); // arm (local +x) reaches over the road
         obst.push([x, z]);
         lamps.push([x, z]);
       }
