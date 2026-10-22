@@ -25,7 +25,7 @@ import { updateBeams, addBeams } from './beams.js';
 import { createLampPools } from './lamps.js';
 import { createPost } from './post.js';
 import { createRoadMarks } from './roadmarks.js';
-import { loadVehicleAsset, adoptVisual, upgradeBus, upgradeMini } from './vehicle-assets.js';
+import { loadVehicleAsset, adoptVisual, upgradeBus, upgradeMini, initVehicleEnv, updateVehicleEnv } from './vehicle-assets.js';
 import { createUnderpass } from './underpass.js';
 const BUS_LANE = 1.75, SCROLL_SMOOTH = 0.18, ARC = 10;
 export async function createWorld(canvas, stops, { reducedMotion = false, onProgress = () => {} } = {}) {
@@ -94,7 +94,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   scene.add(water.mesh);
   units.push(await createSigns(scene, { stops, curve }));
   let disposed = false, raf = 0;
-  upgradeMini(mini);   upgradeBus(londonBus, 'london'); upgradeBus(glasgowBus, 'glasgow'); // one authored bus GLB, two palettes (tools/vehicles/double-decker-bus)
+  initVehicleEnv(renderer);   upgradeMini(mini);   upgradeBus(londonBus, 'london'); upgradeBus(glasgowBus, 'glasgow'); // one authored bus GLB, two palettes (tools/vehicles/double-decker-bus)
   loadVehicleAsset('a330').then((glb) => { if (glb && !disposed) adoptVisual(plane, glb, ['nav', 'strobe']); }); // authored A330 (tools/vehicles/a330); procedural stays on failure
   const wake = () => { if (!disposed && !raf && !document.hidden) raf = requestAnimationFrame(frame); };
   const figure = buildFigure(wake);
@@ -210,6 +210,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     updateBeams(night); pools.update(night);
     water.update(clock, night);
     world.userData.updateLandmarkNight?.(night);
+    updateVehicleEnv(night);
     if (dt > 0 && post.tier === 'high') {
       fpsT += dt; fpsN++;
       if (fpsT >= 2) { post.setTier(nextTier(post.tier, [fpsN / fpsT])); fpsT = fpsN = 0; }

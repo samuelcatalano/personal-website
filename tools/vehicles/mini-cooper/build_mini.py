@@ -16,7 +16,7 @@ W = 0.865                      # max half width of body (width 1.73)
 ZB = 0.17                      # sill / underside height
 BELT = 0.96                    # beltline (top of body under the glasshouse)
 TUMBLE = 0.12                  # wall tumblehome between z=0.45 and z=0.85
-WR, WY, RA, RF = 0.32, 0.70, 0.37, 0.075   # wheel radius, wheel y, arch opening radius, flare width
+WR, WY, RA, RF = 0.32, 0.685, 0.37, 0.075   # wheel radius, wheel y, arch opening radius, flare width
 WHEEL_XF, WHEEL_XR = 1.17, -1.36          # wheel centres (wheelbase 2.53, overhang 0.74 / 0.55)
 INSET = 0.28                   # arch cavity depth
 XFS, LF, NF = 1.29, 0.62, 2.4  # plan: front arc start / length / superellipse exponent
@@ -64,7 +64,7 @@ def interp(tab, x):
 TAIL = [(cx(p), cz(q)) for p, q in TAIL_PX]
 ST_TAB = [(x, min(z, BELT)) for x, z in TAIL] + [(-1.62, BELT), (0.95, BELT)] + [(cx(p), cz(q)) for p, q in HOOD_PX]
 NOSE = [(cx(p), cz(q)) for p, q in HOOD_PX if p >= 1100]
-ROOF = [(-1.52, 1.365), (-1.46, 1.372)] + [(cx(p), cz(q)) for p, q in ROOF_PX if 190 <= p <= 750] + [(0.40, 1.375), (0.49, 1.36)]   # flat-ended: slab never dips onto the screens
+ROOF = [(-1.47, 1.350), (-1.40, 1.372)] + [(cx(p), cz(q)) for p, q in ROOF_PX if 190 <= p <= 750] + [(0.40, 1.375), (0.49, 1.36)]   # flat-ended: slab never dips onto the screens
 ST = lambda x: interp(ST_TAB, x)
 D_TAB = [(-1.91, 0.14), (-1.65, 0.14), (-1.50, 0.06), (0.95, 0.06), (1.25, 0.14), (1.91, 0.16)]
 def xtop_f(z):                                         # x where the nose top silhouette passes height z (no limit above/below the nose)
@@ -141,14 +141,46 @@ def prism(poly, axis, a0, a1):                          # window cutter: polygon
     for i in range(n): bmc.faces.new((lo[i], lo[(i + 1) % n], hi[(i + 1) % n], hi[i]))
     bmc.faces.new(lo); bmc.faces.new(hi[::-1]); bmesh.ops.recalc_face_normals(bmc, faces=list(bmc.faces))
     return new_obj('cutter', bmc, [])
+def groove(bm, pts, nrm, closed=False):                  # shallow panel gap: dark floor between two soft raised lips (reads as a groove under reflections)
+    sec = [(-0.0065, 0.0), (-0.0045, 0.0016), (-0.0028, 0.0013), (-0.0016, 0.0001), (0.0016, 0.0001), (0.0028, 0.0013), (0.0045, 0.0016), (0.0065, 0.0)]
+    mats = [B_BODY, B_BODY, B_BODY, B_TRIM, B_BODY, B_BODY, B_BODY]; n = len(pts); rows = []
+    for i, p in enumerate(pts):
+        a = pts[(i - 1) % n] if (closed or i > 0) else p; b = pts[(i + 1) % n] if (closed or i < n - 1) else p
+        t = (b - a).normalized(); nn = nrm(p); l = t.cross(nn).normalized(); rows.append([bm.verts.new(p + l * la + nn * h) for la, h in sec])
+    for i in range(n if closed else n - 1):
+        A, B = rows[i], rows[(i + 1) % n]
+        for k in range(len(sec) - 1): addf(bm, (A[k], A[k + 1], B[k + 1], B[k]), mats[k])
+def tube_path(bm, pts, nrm, r, sides, mi):               # smooth round-section tube swept along a closed polyline (chrome surrounds)
+    n = len(pts); rows = []
+    for i, p in enumerate(pts):
+        t = (pts[(i + 1) % n] - pts[i - 1]).normalized(); nn = nrm(p); l = t.cross(nn).normalized(); m = t.cross(l).normalized()
+        rows.append([bm.verts.new(p + (l * math.cos(2 * math.pi * k / sides) + m * math.sin(2 * math.pi * k / sides)) * r) for k in range(sides)])
+    for i in range(n):
+        A, B = rows[i], rows[(i + 1) % n]
+        for k in range(sides): addf(bm, (A[k], A[(k + 1) % sides], B[(k + 1) % sides], B[k]), mi, lambda ctr, p=pts[i]: p)
+def cap_dome(bm, c, n, r, h, seg, rings, mi):            # shallow spherical cap facing n (clear lens dome)
+    u = (Vector((0, 0, 1)) - n * n.z).normalized(); v = n.cross(u); rs = []
+    for j in range(rings):
+        ph = math.pi / 2 * j / rings; rr, hh = r * math.cos(ph), h * math.sin(ph)
+        rs.append([bm.verts.new(c + (v * math.cos(2 * math.pi * k / seg) + u * math.sin(2 * math.pi * k / seg)) * rr + n * hh) for k in range(seg)])
+    top = bm.verts.new(c + n * h)
+    for A, B in zip(rs, rs[1:]):
+        for k in range(seg): addf(bm, (A[k], A[(k + 1) % seg], B[(k + 1) % seg], B[k]), mi, c - n * r)
+    for k in range(seg): addf(bm, (rs[-1][k], rs[-1][(k + 1) % seg], top), mi, c - n * r)
+def pane(bg, c00, c10, c11, c01, nout, bow, nu=6, nv=3, w=0.022):   # slightly bowed glass + black ceramic border band (CarTrim slot 1)
+    rows = [[c00 * (1 - i / nu) * (1 - j / nv) + c10 * (i / nu) * (1 - j / nv) + c11 * (i / nu) * (j / nv) + c01 * (1 - i / nu) * (j / nv) + nout * bow * math.sin(math.pi * i / nu) * math.sin(math.pi * j / nv) for i in range(nu + 1)] for j in range(nv + 1)]
+    grid(bg, rows, 0); cs = [c00, c10, c11, c01]
+    ic = [cs[i] + (cs[(i + 1) % 4] - cs[i]).normalized() * w + (cs[i - 1] - cs[i]).normalized() * w for i in range(4)]
+    for i in range(4):
+        k = (i + 1) % 4; addf(bg, tuple(bg.verts.new(p + nout * 0.003) for p in (cs[i], cs[k], ic[k], ic[i])), 1)
 def new_obj(name, bm, mats):
     me = bpy.data.meshes.new(name); bm.to_mesh(me); bm.free(); ob = bpy.data.objects.new(name, me); bpy.context.collection.objects.link(ob)
     for m in mats: me.materials.append(m)
     return ob
 
 # ================= BODY SHELL (lofted rings along x) =================
-T_ROWS = [k / 10 for k in range(11)]
-R_TOP = [0.97, 0.92, 0.84, 0.72, 0.55, 0.30, 0.0]
+T_ROWS = [0, 0.015, 0.04, 0.08, 0.13, 0.19, 0.26, 0.33, 0.40, 0.48, 0.56, 0.64, 0.72, 0.80, 0.90, 1.0]
+R_TOP = [0.99, 0.97, 0.94, 0.90, 0.84, 0.76, 0.66, 0.54, 0.40, 0.22, 0.0]
 WHEELS = (WHEEL_XF, WHEEL_XR)
 def za(x0): return max([WR + math.sqrt(RA ** 2 - (x0 - c) ** 2) for c in WHEELS if abs(x0 - c) < RA] or [-1])
 def top_z(x0, y, Wp):                                  # hood/deck surface height at lateral y (matches the ring top points)
@@ -168,12 +200,12 @@ def ring(x0, Wp):
     return [Vector((x0, -y, z)) for y, z in pts], fl, H
 def stations():
     st = []
-    for k in range(10): ph = math.pi / 2 * (1 - k / 9); st.append((XRS - LR * math.sin(ph) ** (2 / NR), W * math.cos(ph) ** (2 / NR)))
-    mid = {-0.65, -0.2, 0.25, 0.6}
+    for k in range(13): ph = math.pi / 2 * (1 - k / 12); st.append((XRS - LR * math.sin(ph) ** (2 / NR), W * math.cos(ph) ** (2 / NR)))
+    mid = {-0.9, -0.65, -0.4, -0.2, 0.0, 0.25, 0.45, 0.6}
     for c in WHEELS:
-        for d in (0, 0.13, 0.25, 0.33, 0.37, 0.41): mid |= {round(c + d, 3), round(c - d, 3)}
+        for d in (0, 0.1, 0.2, 0.28, 0.33, 0.36, 0.38, 0.40, 0.42): mid |= {round(c + d, 3), round(c - d, 3)}
     st += [(x, W) for x in sorted(mid) if XRS + 0.01 < x < XFS - 0.01]
-    for k in range(12): ph = math.pi / 2 * (1 - k / 11); st.append((XFS + LF * math.sin(ph) ** (2 / NF), W * math.cos(ph) ** (2 / NF)))
+    for k in range(17): ph = math.pi / 2 * (1 - k / 16); st.append((XFS + LF * math.sin(ph) ** (2 / NF), W * math.cos(ph) ** (2 / NF)))
     # rear arc was built tip->XRS, mid ascending, front arc built XFS->tip: put front in ascending x order
     return st
 ST_ = stations(); ST_.sort(key=lambda s: s[0])
@@ -254,30 +286,52 @@ def scoop(x0a, x0b, ya, yb, nx, ny, h, mi, off):
             row.append(hood_pt(x0, y, off + h * math.sin(math.pi * u) ** 0.8 * lat))
         rows.append(row)
     grid(bm, rows, mi)
+for sg in (1, -1): groove(bm, [hood_pt(1.0 + 0.62 * k / 14, sg * 0.665, 0.0) for k in range(15)], lambda p: Vector((0, 0, 1)))        # bonnet clamshell gaps
+for sg in (1, -1): disc(bm, hood_pt(1.07, sg * 0.25, 0.0), Vector((0, 0, 1)), 0.009, B_TRIM, 0.004, 8)                    # washer jets
 scoop(1.28, 1.64, 0.17, 0.17, 10, 10, 0.042, B_BODY, -0.004)
 scoop(1.42, 1.57, 0.115, 0.115, 5, 8, 0.043, B_TRIM, -0.001)
 # front fascia: hex "moustache" grille (chrome surround + black), lower intake, fog lamps
 def hexh(z0, z1, tip=0.54, edge=0.30, sh=0.0): zm = (z0 + z1) / 2; return lambda z: tip - sh - abs(z - zm) * (tip - edge) / ((z1 - z0) / 2)
-region(bm, FRONT, 0, 0.375, 0.625, hexh(0.375, 0.625, 0.57, 0.33), 24, 12, 0.010, B_CHR)
-region(bm, FRONT, 0, 0.405, 0.595, hexh(0.405, 0.595, 0.57, 0.33, 0.07), 16, 8, lambda i, k: 0.012 + 0.007 * ((i + k) % 2), B_TRIM)
+GR_OUT = [(0.33, 0.625), (0.57, 0.50), (0.33, 0.375), (-0.33, 0.375), (-0.57, 0.50), (-0.33, 0.625)]
+gp = [(GR_OUT[k][0] + (GR_OUT[(k + 1) % 6][0] - GR_OUT[k][0]) * t / 9, GR_OUT[k][1] + (GR_OUT[(k + 1) % 6][1] - GR_OUT[k][1]) * t / 9) for k in range(6) for t in range(9)]
+tube_path(bm, [FRONT(y, z, 0.017) for y, z in gp], lambda p: Vector((1, 0, 0.0)), 0.011, 8, B_CHR)          # smooth round-section chrome surround
+region(bm, FRONT, 0, 0.378, 0.622, hexh(0.378, 0.622, 0.565, 0.335), 24, 8, 0.008, B_TRIM)
+CR = 0.0185; hin = hexh(0.395, 0.605, 0.545, 0.325)
+for ki in range(8):                                                                                 # honeycomb: hex cell frames, geometry not texture
+    zc_ = 0.403 + 0.0278 * ki
+    if zc_ > 0.597: break
+    for j_ in range(-18, 19):
+        yc_ = 0.032 * j_ + 0.016 * (ki % 2)
+        if abs(yc_) + CR > hin(zc_) - 0.006: continue
+        co = [(yc_ + CR * math.cos(math.radians(90 + 60 * q)), zc_ + CR * math.sin(math.radians(90 + 60 * q))) for q in range(6)]
+        ci = [(yc_ + (CR - 0.0035) * math.cos(math.radians(90 + 60 * q)), zc_ + (CR - 0.0035) * math.sin(math.radians(90 + 60 * q))) for q in range(6)]
+        vo = [bm.verts.new(FRONT(a, b, 0.0135)) for a, b in co]; vi = [bm.verts.new(FRONT(a, b, 0.0135)) for a, b in ci]
+        for q in range(6): addf(bm, (vo[q], vo[(q + 1) % 6], vi[(q + 1) % 6], vi[q]), B_TRIM)
 region(bm, FRONT, 0, 0.215, 0.335, lambda z: 0.50, 18, 4, lambda i, k: 0.008 + 0.005 * ((i + k) % 2), B_TRIM)
 for sg in (1, -1): region(bm, FRONT, sg * 0.47, 0.225, 0.325, lambda z: 0.04, 2, 2, 0.016, B_CHR)
 for sg in (1, -1):
     c = FRONT(sg * 0.66, 0.335, 0.0); n = (FRONT(sg * 0.66 + 0.02, 0.335, 0) - FRONT(sg * 0.66 - 0.02, 0.335, 0)); n = Vector((n.y, -n.x, 0)).normalized()
     if n.x < 0: n = -n
-    disc(bm, c + n * 0.008, n, 0.058, B_CHR, 0.008, 32); disc(bl, c + n * 0.016, n, 0.044, 0, 0.012, 32)
+    disc(bm, c + n * 0.008, n, 0.052, B_TRIM, 0.004, 32); torus(bm, c + n * 0.012, n, 0.058, 0.0075, B_CHR, 32, 6); ring_disc(bm, c + n * 0.014, n, 0.032, 0.05, B_CHR, 24); disc(bl, c + n * 0.016, n, 0.032, 0, 0.014, 24)
 # round headlamps with chrome rings set into the wing tops
 for sg in (1, -1):
     y0 = sg * 0.63; zc = 0.64; c = FRONT(y0, zc, 0.0); t = FRONT(y0 + 0.02, zc, 0) - FRONT(y0 - 0.02, zc, 0); n = Vector((t.y, -t.x, 0)).normalized()
     if n.x < 0: n = -n
     n = (n + Vector((0, 0, 0.12))).normalized(); c = c - n * 0.02
-    tube(bm, c, n, 0.128, 0.04, B_CHR, 36); ring_disc(bm, c + n * 0.04, n, 0.108, 0.128, B_CHR, 36); ring_disc(bl, c + n * 0.037, n, 0.088, 0.108, 0, 36); disc(bm, c + n * 0.03, n, 0.09, B_TRIM, 0.02, 32); ring_disc(bm, c + n * 0.047, n, 0.045, 0.058, B_CHR, 24); disc(bl, c + n * 0.05, n, 0.03, 0, 0.012, 20)
+    tube(bm, c, n, 0.128, 0.04, B_CHR, 36); ring_disc(bm, c + n * 0.04, n, 0.108, 0.128, B_CHR, 36); ring_disc(bl, c + n * 0.037, n, 0.088, 0.108, 0, 36)   # bezel + white LED halo
+    disc(bm, c + n * 0.012, n, 0.088, B_TRIM, 0.0, 32)                                                  # lamp housing floor
+    for k in range(32):                                                                                 # chrome reflector bowl (cone)
+        a0, a1 = 2 * math.pi * k / 32, 2 * math.pi * (k + 1) / 32; uu = (Vector((0, 0, 1)) - n * n.z).normalized(); vv = n.cross(uu)
+        P_ = lambda r_, d_, a_: c + (vv * math.cos(a_) + uu * math.sin(a_)) * r_ + n * d_
+        addf(bm, (bm.verts.new(P_(0.088, 0.030, a0)), bm.verts.new(P_(0.088, 0.030, a1)), bm.verts.new(P_(0.046, 0.016, a1)), bm.verts.new(P_(0.046, 0.016, a0))), B_CHR, c + n * 0.06, -1)
+    tube(bm, c + n * 0.014, n, 0.036, 0.02, B_TRIM, 24); disc(bl, c + n * 0.036, n, 0.03, 0, 0.012, 24)   # projector barrel + lens
+    cap_dome(bg, c + n * 0.034, n, 0.105, 0.03, 32, 4, 0)                                               # clear outer lens dome
 # rear: big vertical-oval tail lamps with chrome rings, plate recess, black diffuser, reflectors, exhaust
 def oval(a, b, yc, zc): return lambda z: a * math.sqrt(max(0.0, 1 - ((z - zc) / b) ** 2))
 for sg in (1, -1):
     yc, zc = sg * 0.60, 0.80
     region(bm, REAR, yc, zc - 0.165, zc + 0.165, oval(0.082, 0.165, yc, zc), 6, 22, 0.008, B_CHR)
-    region(bl, REAR, yc, zc - 0.145, zc + 0.145, oval(0.064, 0.145, yc, zc), 6, 18, 0.014, 1)
+    region(bl, REAR, yc, zc - 0.145, zc + 0.145, oval(0.064, 0.145, yc, zc), 6, 18, lambda i, k: 0.012 + 0.012 * (1 - (i / 3 - 1) ** 2) * (1 - (k / 9 - 1) ** 2), 1)
     region(bm, REAR, yc, zc - 0.08, zc + 0.08, oval(0.034, 0.08, yc, zc), 4, 10, 0.019, B_TRIM)
     region(bm, REAR, yc, zc - 0.012, zc + 0.012, lambda z: 0.052, 3, 1, 0.021, B_CHR)
     region(bl, REAR, sg * 0.50, 0.325, 0.36, lambda z: 0.07, 3, 1, 0.012, 1)
@@ -292,7 +346,11 @@ for k in range(NL):
 region(bm, REAR, 0, 0.60, 0.71, lambda z: 0.26, 8, 1, 0.004, B_PLATE)
 region(bm, REAR, 0, 0.865, 0.885, lambda z: 0.30, 6, 1, 0.014, B_CHR)
 region(bm, REAR, 0, 0.19, 0.40, lambda z: 0.62, 12, 3, 0.006, B_TRIM)
-ex = Vector((REAR(0.42, 0.29, 0.0).x, 0.42, 0.29)); tube(bm, ex - Vector((0.02, 0, 0)), Vector((-1, 0, 0)), 0.042, 0.07, B_CHR, 12); ring_disc(bm, ex + Vector((-0.05, 0, 0)), Vector((-1, 0, 0)), 0.03, 0.042, B_CHR, 12); disc(bm, ex + Vector((-0.045, 0, 0)), Vector((-1, 0, 0)), 0.03, B_TRIM, 0.0, 12)
+ex = Vector((REAR(0.42, 0.29, 0.0).x, 0.42, 0.29)); tube(bm, ex - Vector((0.02, 0, 0)), Vector((-1, 0, 0)), 0.042, 0.07, B_CHR, 24); ring_disc(bm, ex + Vector((-0.05, 0, 0)), Vector((-1, 0, 0)), 0.03, 0.042, B_CHR, 24); disc(bm, ex + Vector((0.0, 0, 0)), Vector((-1, 0, 0)), 0.034, B_TRIM, 0.0, 16)
+for yy in (-0.30, -0.15, 0.15, 0.30): box(bm, (REAR(yy, 0.28, 0.0).x - 0.012, yy, 0.28), (0.04, 0.012, 0.15), B_TRIM)                    # diffuser fins
+for sg in (1, -1): region(bl, REAR, sg * 0.15, 0.737, 0.75, lambda z: 0.022, 3, 1, 0.03, 0)                                       # number-plate lamps
+tc = REAR(-0.47, 0.48, 0.003); disc(bm, tc, Vector((-1, 0, 0)), 0.03, B_BODY, 0.003, 16); ring_disc(bm, tc, Vector((-1, 0, 0)), 0.03, 0.037, B_TRIM, 16)   # tow-eye cover
+groove(bm, [pt_ for k_ in range(0, 1) for pt_ in [REAR(y_, z_, 0.0) for y_, z_ in ([(-0.40 + 0.8 * t / 10, 0.50) for t in range(10)] + [(0.40, 0.50 + 0.43 * t / 10) for t in range(10)] + [(0.40 - 0.8 * t / 10, 0.93) for t in range(10)] + [(-0.40, 0.93 - 0.43 * t / 10) for t in range(10)])]], lambda p: Vector((-1, 0, 0.25)).normalized(), True)   # hatch gap
 
 # ---------------- ONE side layout, called for both sides (+1 right = -Y, -1 left = +Y) ----------------
 def SY(side, v): return -side * v
@@ -301,38 +359,52 @@ def side_layout(side):
     # glazing on the glasshouse planes (same function -> both sides identical)
     z0, z1 = GLASS_Z; hwo = lambda z: gh_hw(z) - MG
     xb = lambda z: gh_xf(z) - GH_RC - 0.12; xa = lambda z: gh_xr(z) + GH_RC + 0.05
+    nout = Vector((0, -side, 0))
     for (xa_, xb_) in ((lambda z: DOOR_X0, xb), (xa, lambda z: QUART_X1)):
-        grid(bg, [[Vector((xa_(z), Y(hwo(z)), z)), Vector((xb_(z), Y(hwo(z)), z))] for z in (z0, z1)], 0)
+        pane(bg, Vector((xa_(z0), Y(hwo(z0)), z0)), Vector((xb_(z0), Y(hwo(z0)), z0)), Vector((xb_(z1), Y(hwo(z1)), z1)), Vector((xa_(z1), Y(hwo(z1)), z1)), nout, 0.006)
     grid(bm, [[Vector((gh_xr(z) + GH_RC + 0.03, Y(gh_hw(z) + 0.006), z)), Vector((gh_xf(z) - GH_RC - 0.015, Y(gh_hw(z) + 0.006), z))] for z in (0.985, 1.003)], B_CHR)   # chrome belt strip
     # door cut lines, handle, repeater (conform to the wall rows)
     zr = [ZB + (BELT - 0.06 - ZB) * t for t in T_ROWS if ZB + (BELT - 0.06 - ZB) * t >= 0.31]
-    for xc in DOOR_CUTS:
-        grid(bm, [[Vector((xc - 0.004, Y(wall_w(z, W) + 0.003), z)), Vector((xc + 0.004, Y(wall_w(z, W) + 0.003), z))] for z in zr], B_TRIM)
+    for xc in DOOR_CUTS: groove(bm, [Vector((xc, Y(wall_w(z, W)), z)) for z in [0.31 + (0.90 - 0.31) * k / 12 for k in range(13)]], lambda p: Vector((0, -side, 0)))
+    if side == 1:                                                                  # fuel flap on the right quarter only
+        groove(bm, [Vector((-1.29 + 0.075 * math.cos(a), Y(wall_w(0.80 + 0.075 * math.sin(a), plan_w(-1.29 + 0.075 * math.cos(a)))), 0.80 + 0.075 * math.sin(a))) for a in [2 * math.pi * k / 24 for k in range(24)]], lambda p: Vector((0, -side, 0)), True)
     box(bm, (-0.46, Y(wall_w(0.78, W) + 0.002), 0.78), (0.30, 0.006, 0.05), B_TRIM); box(bm, (-0.46, Y(wall_w(0.78, W) + 0.009), 0.78), (0.24, 0.014, 0.026), B_CHR)
     box(bm, (-0.10, Y(wall_w(0.23, W) + 0.004), 0.22), (1.65, 0.05, 0.10), B_TRIM)       # side skirt
-    grid(bm, [[Vector((0.80, Y(wall_w(z, W) + 0.004), z)), Vector((0.93, Y(wall_w(z, W) + 0.004), z))] for z in (0.715, 0.745)], B_CHR)
+    for rr_, mm_, bb_, of_ in ((0.062, B_CHR, bm, 0.0015), (0.052, 0, bl, 0.0035)):                       # side repeater on the wing
+        rows = []
+        for k in range(7):
+            z = 0.73 + 0.019 * (k / 3 - 1); hw_ = rr_ * math.sqrt(max(0.02, 1 - ((z - 0.73) / 0.019) ** 2)); rows.append([Vector((0.865 - hw_ + 2 * hw_ * i / 4, Y(wall_w(z, W) + of_ + 0.0015), z)) for i in range(5)])
+        grid(bb_, rows, mm_)
+    box(bl, (0.575, Y(0.93), 0.945), (0.02, 0.07, 0.012), 0)                          # mirror indicator strip
     # mirror: red housing + black glass face on a black stalk
     ellipsoid(bm, (0.50, Y(0.90), 0.99), (0.075, 0.088, 0.066), B_ROOF, 12, 8); disc(bm, Vector((0.432, Y(0.90), 0.99)), Vector((-1, 0, 0)), 0.058, B_TRIM, 0.0, 12)
     box(bm, (0.53, Y(0.79), 0.945), (0.05, 0.15, 0.03), B_TRIM); box(bm, (0.53, Y(0.84), 0.965), (0.035, 0.05, 0.04), B_TRIM)
     # chunky black wheel-arch flares (lip + outer/inner walls)
     for c in WHEELS:
         RO = RA + RF; pt = lambda th, rad, yo: (lambda x, z: Vector((x, Y(wall_w(z, plan_w(x)) + yo), z)))(c + rad * math.cos(th), WR + rad * math.sin(th))
-        ths = [math.radians(-20 + 220 * k / 28) for k in range(29)]
+        ths = [math.radians(-20 + 220 * k / 36) for k in range(37)]
         out_ref = lambda cc: Vector((cc.x, 0, cc.z))
+        for a, b in zip(ths, ths[1:]):                                         # arch liner: dark half-cylinder inside the cavity
+            ln = lambda th: (lambda x, z: (Vector((x, Y(wall_w(z, plan_w(x)) - INSET + 0.01), z)), Vector((x, Y(wall_w(z, plan_w(x)) - 0.02), z))))(c + 0.352 * math.cos(th), WR + 0.352 * math.sin(th))
+            (a0_, a1_), (b0_, b1_) = ln(a), ln(b)
+            addf(bm, (bm.verts.new(a0_), bm.verts.new(a1_), bm.verts.new(b1_), bm.verts.new(b0_)), B_TRIM, lambda cc, c=c: Vector((c, cc.y, WR)), -1)
         for a, b in zip(ths, ths[1:]):
             addf(bm, (bm.verts.new(pt(a, RA - 0.02, 0.04)), bm.verts.new(pt(a, RO, 0.04)), bm.verts.new(pt(b, RO, 0.04)), bm.verts.new(pt(b, RA - 0.02, 0.04))), B_TRIM, out_ref)
             addf(bm, (bm.verts.new(pt(a, RO, 0.0)), bm.verts.new(pt(a, RO, 0.04)), bm.verts.new(pt(b, RO, 0.04)), bm.verts.new(pt(b, RO, 0.0))), B_TRIM, lambda cc, c=c: Vector((c, cc.y, WR)))
             addf(bm, (bm.verts.new(pt(a, RA - 0.02, 0.0)), bm.verts.new(pt(a, RA - 0.02, 0.04)), bm.verts.new(pt(b, RA - 0.02, 0.04)), bm.verts.new(pt(b, RA - 0.02, 0.0))), B_TRIM, lambda cc, c=c: Vector((c, cc.y, WR)), -1)
 for s_ in (1, -1): side_layout(s_)
 # glasshouse screens (front / rear), symmetric by construction
-for z0_ in (1.0,):
-    z1_ = 1.32
-    grid(bg, [[Vector((gh_xf(z) - MG, -(gh_hw(z) - GH_RC - 0.015), z)), Vector((gh_xf(z) - MG, gh_hw(z) - GH_RC - 0.015, z))] for z in (z0_, z1_)], 0)
-    grid(bg, [[Vector((gh_xr(z) + MG, -(gh_hw(z) - GH_RC - 0.015), z)), Vector((gh_xr(z) + MG, gh_hw(z) - GH_RC - 0.015, z))] for z in (z0_, z1_)], 0)
+zA, zB = 1.0, 1.32; hsw = lambda z: gh_hw(z) - GH_RC - 0.015
+pane(bg, Vector((gh_xf(zA) - MG, -hsw(zA), zA)), Vector((gh_xf(zA) - MG, hsw(zA), zA)), Vector((gh_xf(zB) - MG, hsw(zB), zB)), Vector((gh_xf(zB) - MG, -hsw(zB), zB)), Vector((1, 0, 0.7)).normalized(), 0.012, 8, 3, 0.024)
+pane(bg, Vector((gh_xr(zA) + MG, -hsw(zA), zA)), Vector((gh_xr(zA) + MG, hsw(zA), zA)), Vector((gh_xr(zB) + MG, hsw(zB), zB)), Vector((gh_xr(zB) + MG, -hsw(zB), zB)), Vector((-1, 0, 0.55)).normalized(), 0.012, 8, 3, 0.024)
+grid(bl, [[Vector((gh_xr(z) + 0.008, -0.17, z)), Vector((gh_xr(z) + 0.008, 0.17, z))] for z in (1.255, 1.275)], 1)      # third brake light under the spoiler lip
 # wipers (flat blades on the screen planes), antenna
 for (ya, yb) in ((-0.47, -0.06), (0.04, 0.45)): grid(bm, [[Vector((gh_xf(z) - 0.006, ya, z)), Vector((gh_xf(z) - 0.006, yb, z))] for z in (1.016, 1.034)], B_TRIM)
 grid(bm, [[Vector((gh_xr(z) + 0.004, 0.33, z)), Vector((gh_xr(z) + 0.004, 0.0, z))] for z in (1.04, 1.056)], B_TRIM)
+ellipsoid(bm, (-1.10, 0, interp(ROOF, -1.10) + 0.005), (0.06, 0.014, 0.02), B_TRIM, 10, 6)
 ax = Vector((-0.25, 0, 1.0)).normalized(); tube(bm, Vector((-1.10, 0, interp(ROOF, -1.10) - 0.005)), ax, 0.006, 0.17, B_TRIM, 6); disc(bm, Vector((-1.10, 0, interp(ROOF, -1.10) - 0.004)), Vector((0, 0, 1)), 0.016, B_TRIM, 0.01, 8)
+tc = FRONT(0.55, 0.28, 0.004); disc(bm, tc, Vector((1, 0, 0)), 0.03, B_BODY, 0.003, 16); ring_disc(bm, tc, Vector((1, 0, 0)), 0.03, 0.037, B_TRIM, 16)
+for (y0_, y1_) in ((-0.44, -0.22), (0.44, 0.26)): grid(bm, [[Vector((gh_xf(z) - 0.006, y0_ - 0.005, z)), Vector((gh_xf(z) - 0.006, y0_ + 0.005, z))] if False else [Vector((gh_xf(zz) - 0.006, yy - 0.005, zz)), Vector((gh_xf(zz) - 0.006, yy + 0.005, zz))] for yy, zz in ((y0_, 0.99), (y1_, 1.026))], B_TRIM)
 # ---------------- interior tub (one mesh): floor, RHD front seats (driver = -Y), rear bench, dash, wheel, shelf, door cards
 bi = bmesh.new()
 box(bi, (-0.30, 0, 0.36), (2.6, 1.24, 0.03), 0)
@@ -343,21 +415,28 @@ for sg in (1, -1):
     box(bi, (-1.40, Yv(0.30), 1.20), (0.08, 0.22, 0.14), 0)
 box(bi, (-1.12, 0, 0.47), (0.50, 1.1, 0.14), 0); box(bi, (-1.40, 0, 0.86), (0.10, 1.1, 0.66), 0); box(bi, (-1.55, 0, 0.99), (0.22, 1.1, 0.02), 0)
 box(bi, (0.80, 0, 0.82), (0.38, 1.2, 0.28), 0); box(bi, (0.70, -0.30, 1.00), (0.16, 0.34, 0.08), 0); box(bi, (0.20, 0, 0.50), (0.8, 0.18, 0.22), 0)
+for sg in (1, -1):
+    Yv = lambda v, sg=sg: -sg * v
+    box(bi, (-0.35, Yv(0.30 + 0.20), 0.53), (0.44, 0.05, 0.10), 0); box(bi, (-0.35, Yv(0.30 - 0.20), 0.53), (0.44, 0.05, 0.10), 0)
+    box(bi, (-0.58, Yv(0.30 + 0.18), 0.90), (0.11, 0.05, 0.52), 0); box(bi, (-0.58, Yv(0.30 - 0.18), 0.90), (0.11, 0.05, 0.52), 0)
+    ellipsoid(bi, (-0.58, Yv(0.30), 1.245), (0.06, 0.13, 0.09), 0, 12, 8)
+box(bi, (-0.05, 0, 0.64), (0.34, 0.17, 0.08), 0); box(bi, (0.30, 0, 0.74), (0.03, 0.03, 0.22), 0); ellipsoid(bi, (0.30, 0, 0.87), (0.032, 0.032, 0.032), 0, 10, 6)
+c_ = Vector((0.655, 0, 1.03)); n_ = Vector((-1, 0, 0.25)).normalized(); torus(bm, c_, n_, 0.07, 0.006, B_CHR, 28, 6); disc(bm, c_, n_, 0.066, B_TRIM, 0.004, 28)   # round centre display
 torus(bi, Vector((0.50, -0.30, 0.92)), Vector((-0.80, 0, 0.6)).normalized(), 0.17, 0.014, 0); box(bi, (0.60, -0.30, 0.82), (0.22, 0.04, 0.04), 0)
 
 
 # ================= ROOF (floating slab, separate mesh) =================
-RX0, RX1, RLB, RLF = -1.50, 0.49, 0.16, 0.14
+RX0, RX1, RLB, RLF = -1.47, 0.49, 0.16, 0.14
 def roof_ring(x0, w):
-    zt = interp(ROOF, x0); ze = zt - ROOF_CROWN; zb = ze - ROOF_T
-    half = [(0.0, zt)] + [(w * r, zt - ROOF_CROWN * r * r) for r in (0.4, 0.7, 0.88, 0.95)]
-    half += [(max(0.0, w - 0.028 + 0.028 * math.cos(math.radians(t))), ze - 0.028 + 0.028 * math.sin(math.radians(t))) for t in (60, 30, 0, -30, -60)] + [(max(0.0, w - 0.03), zb), (0.0, zb)]
+    zt = interp(ROOF, x0); ze = zt - ROOF_CROWN; zb = ze - ROOF_T * (1 - 0.4 * max(0.0, min(1.0, (-1.30 - x0) / 0.12)))
+    half = [(0.0, zt)] + [(w * r, zt - ROOF_CROWN * r * r) for r in (0.2, 0.4, 0.55, 0.7, 0.82, 0.9, 0.95)]
+    half += [(max(0.0, w - 0.028 + 0.028 * math.cos(math.radians(t))), ze - 0.028 + 0.028 * math.sin(math.radians(t))) for t in (70, 50, 30, 10, -10, -30, -50, -65)] + [(max(0.0, w - 0.03), zb), (0.0, zb)]
     H = len(half); pts = half + [(-half[k][0], half[k][1]) for k in range(H - 2, 0, -1)]
     return [Vector((x0, -y, z)) for y, z in pts]
 rst = []
-for k in range(7): ph = math.pi / 2 * (1 - k / 6); rst.append((RX0 + RLB - RLB * math.sin(ph) ** (2 / 4.0), ROOF_HW * math.cos(ph) ** (2 / 4.0)))
-rst += [(x, ROOF_HW) for x in (-0.95, -0.4, 0.05)]
-for k in range(5, -1, -1): ph = math.pi / 2 * (1 - k / 5); rst.append((RX1 - RLF + RLF * math.sin(ph) ** (2 / 4.0), ROOF_HW * math.cos(ph) ** (2 / 4.0)))
+for k in range(10): ph = math.pi / 2 * (1 - k / 9); rst.append((RX0 + RLB - RLB * math.sin(ph) ** (2 / 4.0), ROOF_HW * math.cos(ph) ** (2 / 4.0)))
+rst += [(x, ROOF_HW) for x in (-1.2, -0.95, -0.7, -0.4, -0.15, 0.1, 0.3)]
+for k in range(8, -1, -1): ph = math.pi / 2 * (1 - k / 8); rst.append((RX1 - RLF + RLF * math.sin(ph) ** (2 / 4.0), ROOF_HW * math.cos(ph) ** (2 / 4.0)))
 rst = sorted(set((round(x, 5), w) for x, w in rst))
 br = bmesh.new(); RR = [[br.verts.new(p) for p in roof_ring(x, w)] for x, w in rst]; NR_ = len(RR[0])
 for a, b in zip(RR, RR[1:]):
@@ -373,8 +452,8 @@ for yy in (-0.04, 0.0, 0.04):                                                   
     grid(br, rows, 1, Vector((0, 0, 1.0)))
 
 # ================= WHEEL (one shared datablock; axis Y, outer face +Y) =================
-bw = bmesh.new(); SEG = 20
-TYRE = [(0.225, -0.09), (0.26, -0.098), (0.295, -0.09), (0.315, -0.065), (0.32, -0.03), (0.32, 0.03), (0.315, 0.065), (0.295, 0.09), (0.26, 0.098), (0.225, 0.09)]
+bw = bmesh.new(); SEG = 24
+TYRE = [(0.225, -0.09), (0.24, -0.099), (0.27, -0.106), (0.296, -0.098), (0.314, -0.076), (0.321, -0.05), (0.3225, -0.03), (0.3205, -0.012), (0.3205, 0.012), (0.3225, 0.03), (0.321, 0.05), (0.314, 0.076), (0.296, 0.098), (0.27, 0.106), (0.24, 0.099), (0.225, 0.09)]
 P = lambda r, y, k: Vector((r * math.cos(2 * math.pi * k / SEG), y, r * math.sin(2 * math.pi * k / SEG)))
 def wring(r, y): return [bw.verts.new(P(r, y, k)) for k in range(SEG)]
 def wref(rc_, yc_=0.0): return lambda c: (lambda a: Vector((rc_ * math.cos(a), yc_, rc_ * math.sin(a))))(math.atan2(c.z, c.x))
@@ -385,7 +464,7 @@ def fan(c, a, mi):
     h = bw.verts.new(c)
     for k in range(SEG): addf(bw, (h, a[k], a[(k + 1) % SEG]), mi, O)
 rs = [wring(r, y) for r, y in TYRE]
-for a, b in zip(rs, rs[1:]): band(a, b, 0, wref(0.27, 0.0))                                   # rounded black tyre
+for a, b in zip(rs, rs[1:]): band(a, b, 0, wref(0.27, 0.0))                                   # rounded tyre: bulged sidewall + shallow tread band
 lip_o, lip_i, bar_o = wring(0.225, 0.09), wring(0.207, 0.09), wring(0.207, 0.035)
 band(lip_i, lip_o, 1, O)                                                                      # thin chrome lip
 band(lip_i, bar_o, 0, O, -1)                                                                  # dark rim barrel
@@ -394,25 +473,27 @@ band(rim_i, rim_o, 2, O)                                                        
 disc_r = wring(0.207, 0.035); fan(Vector((0, 0.035, 0)), disc_r, 0)                           # recessed dark disc
 boss_o, boss_i = wring(0.055, 0.035), wring(0.055, 0.062); band(boss_o, boss_i, 0, wref(0.0, 0.0)); fan(Vector((0, 0.062, 0)), boss_i, 0)
 cap = [bw.verts.new(P(0.026, 0.066, k * 2)) for k in range(SEG // 2)]
-for k in range(SEG // 2): addf(bw, (bw.verts.new(Vector((0, 0.072, 0))), cap[k], cap[(k + 1) % (SEG // 2)]), 1, O)
-for s_ in range(10):                                                                          # ten graphite spokes from hub boss to rim ring
+for k in range(SEG // 2): addf(bw, (bw.verts.new(Vector((0, 0.074, 0))), cap[k], cap[(k + 1) % (SEG // 2)]), 1, O)
+SP_R = [0.055, 0.09, 0.125, 0.16, 0.186]; sp_y = lambda r: 0.064 + 0.018 * ((r - 0.055) / 0.131) ** 0.65; sp_w = lambda r: 0.013 + 0.013 * (r - 0.055) / 0.131
+for s_ in range(10):                                                                          # ten graphite spokes, concave dish, 16 mm thick
     a = 2 * math.pi * s_ / 10; ca, sa = math.cos(a), math.sin(a); ta, tb = Vector((-sa, 0, ca)), Vector((ca, 0, sa))
     p = lambda r, y, w: Vector((0, y, 0)) + tb * r + ta * w
-    T = [bw.verts.new(p(*q)) for q in ((0.055, 0.064, -0.014), (0.055, 0.064, 0.014), (0.186, 0.082, 0.026), (0.186, 0.082, -0.026))]
-    Bt = [bw.verts.new(p(r_, y_ - 0.016, w_)) for r_, y_, w_ in ((0.055, 0.064, -0.014), (0.055, 0.064, 0.014), (0.186, 0.082, 0.026), (0.186, 0.082, -0.026))]
-    addf(bw, tuple(T), 2, O); mid = p(0.12, 0.07, 0.0)
-    addf(bw, (T[1], T[2], Bt[2], Bt[1]), 2, mid); addf(bw, (T[3], T[0], Bt[0], Bt[3]), 2, mid)
-for k in range(3):                                                                            # red caliper visible between the spokes
-    a0, a1 = math.radians(-35 + 28 * k), math.radians(-35 + 28 * (k + 1)); q = lambda r, a: Vector((r * math.cos(a), 0.05, r * math.sin(a)))
+    mid = p(0.12, 0.07, 0.0)
+    L_ = [bw.verts.new(p(r, sp_y(r), -sp_w(r))) for r in SP_R]; R_ = [bw.verts.new(p(r, sp_y(r), sp_w(r))) for r in SP_R]
+    Lb = [bw.verts.new(p(r, sp_y(r) - 0.016, -sp_w(r))) for r in SP_R]; Rb = [bw.verts.new(p(r, sp_y(r) - 0.016, sp_w(r))) for r in SP_R]
+    for k in range(len(SP_R) - 1):
+        addf(bw, (L_[k], R_[k], R_[k + 1], L_[k + 1]), 2, O); addf(bw, (R_[k], Rb[k], Rb[k + 1], R_[k + 1]), 2, mid); addf(bw, (Lb[k], L_[k], L_[k + 1], Lb[k + 1]), 2, mid)
+for k in range(5):                                                                            # red caliper visible between the spokes
+    a0, a1 = math.radians(-35 + 17 * k), math.radians(-35 + 17 * (k + 1)); q = lambda r, a: Vector((r * math.cos(a), 0.05, r * math.sin(a)))
     addf(bw, (bw.verts.new(q(0.115, a0)), bw.verts.new(q(0.19, a0)), bw.verts.new(q(0.19, a1)), bw.verts.new(q(0.115, a1))), 3, O)
 bmesh.ops.remove_doubles(bw, verts=list(bw.verts), dist=1e-5)
 wheel_me = bpy.data.meshes.new('Wheel'); bw.to_mesh(wheel_me); bw.free()
 for m_ in (M_TRIM, M_CHROME, M_RIM, M_ROOF): wheel_me.materials.append(m_)
 
 # ================= assemble =================
-body = new_obj('Body', bm, [M_BODY, M_TRIM, M_CHROME, M_ROOF, M_INT, M_PLATE]); interior = new_obj('Interior', bi, [M_INT]); roof = new_obj('Roof', br, [M_ROOF, M_BODY]); glass = new_obj('Glass', bg, [M_GLASS]); lights = new_obj('Lights', bl, [M_HEAD, M_TAIL])
+body = new_obj('Body', bm, [M_BODY, M_TRIM, M_CHROME, M_ROOF, M_INT, M_PLATE]); interior = new_obj('Interior', bi, [M_INT]); roof = new_obj('Roof', br, [M_ROOF, M_BODY]); glass = new_obj('Glass', bg, [M_GLASS, M_TRIM]); lights = new_obj('Lights', bl, [M_HEAD, M_TAIL])
 for ob in (body, roof, glass, lights, interior):
-    bpy.context.view_layer.objects.active = ob; ob.select_set(True); bpy.ops.object.shade_smooth_by_angle(angle=math.radians(35)); ob.select_set(False)
+    bpy.context.view_layer.objects.active = ob; ob.select_set(True); bpy.ops.object.shade_smooth_by_angle(angle=math.radians(66)); ob.select_set(False)
 bpy.context.view_layer.objects.active = None
 root = bpy.data.objects.new('CarRoot', None); bpy.context.collection.objects.link(root)
 wh = bpy.data.objects.new('Wheels', None); bpy.context.collection.objects.link(wh); wh.parent = root

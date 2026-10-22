@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { fixed, paint } from './vehicles.js';
 import { destMat } from './buses.js';
 // Authored vehicle GLBs (tools/vehicles/*), loaded once and shared. Resolves null on failure so callers keep their procedural model.
@@ -23,12 +24,32 @@ export const BUS_VARIANTS = {
   glasgow: { body: '#8a36ae', accent: '#c9cdd2', dest: ['glasgow', '6', 'Renfrew Street', '#ff7a1a'] },
 };
 // GLB material names are semantic; each maps to a shared project material (night glow keeps working through sky.update).
+// Realistic finish for the authored cars: clear-coated paint, metal chrome and reflective glass, all lit by one small
+// prefiltered studio environment generated in-browser (no texture download). Only these materials get it, so the rest of
+// the scene keeps its approved look; intensity follows day/night (updateVehicleEnv).
+let envTex = null; const envMats = new Set(), physCache = new Map();
+export function initVehicleEnv(renderer) {
+  if (envTex) return;
+  const pm = new THREE.PMREMGenerator(renderer); envTex = pm.fromScene(new RoomEnvironment(), 0.04).texture; pm.dispose();
+  for (const m of envMats) { m.envMap = envTex; m.needsUpdate = true; }
+}
+export function updateVehicleEnv(night) { for (const m of envMats) m.envMapIntensity = m.userData.envDay * (1 - 0.94 * night); }
+const phys = (key, make) => physCache.get(key) ?? physCache.set(key, (() => {
+  const m = make(); m.userData.envDay = m.envMapIntensity; if (envTex) m.envMap = envTex; envMats.add(m); return m;
+})()).get(key);
+const carPaint = (c) => phys('paint' + c, () => new THREE.MeshPhysicalMaterial({ color: c, roughness: 0.32, metalness: 0.05, clearcoat: 1, clearcoatRoughness: 0.06, envMapIntensity: 0.28 }));
+const CAR_FINISH = {
+  CarChrome: () => phys('chrome', () => new THREE.MeshPhysicalMaterial({ color: '#e4e6e8', roughness: 0.14, metalness: 1, envMapIntensity: 0.7 })),
+  CarRim: () => phys('rim', () => new THREE.MeshPhysicalMaterial({ color: '#4a4e54', roughness: 0.28, metalness: 0.85, clearcoat: 0.6, envMapIntensity: 0.5 })),
+  CarGlass: () => phys('glass', () => { const m = new THREE.MeshPhysicalMaterial({ color: '#1c2a36', roughness: 0.04, metalness: 0.1, envMapIntensity: 0.6, transparent: true, opacity: 0.42, depthWrite: false }); return m; }),
+  CarTrim: () => phys('trim', () => new THREE.MeshPhysicalMaterial({ color: '#16181b', roughness: 0.55, metalness: 0, clearcoat: 0.3, envMapIntensity: 0.25 })),
+};
 const ROLES = {
   BusBody: (v) => paint(v.body, true), BusAccent: (v) => paint(v.accent, true), BusTrim: () => fixed('dark'), BusGlass: () => fixed('busGlass'),
   BusRubber: () => fixed('tyre'), BusMetal: () => fixed('chrome'), BusHeadlight: () => fixed('head'), BusTaillight: () => fixed('tail'),
   BusDisplay: (v) => destMat(...v.dest), BusInterior: () => fixed('cabin'),
-  CarBody: (v) => paint(v.body, true), CarRoof: (v) => paint(v.roof, true), CarGlass: () => fixed('carGlass'), CarInterior: () => fixed('carInterior'), CarPlate: () => fixed('plate'), CarRim: () => fixed('rim'), CarTrim: () => fixed('dark'),
-  CarChrome: () => fixed('chrome'), CarHeadlight: () => fixed('head'), CarTaillight: () => fixed('tail'),
+  CarBody: (v) => carPaint(v.body), CarRoof: (v) => carPaint(v.roof), CarGlass: CAR_FINISH.CarGlass, CarTrim: CAR_FINISH.CarTrim, CarInterior: () => fixed('carInterior'), CarPlate: () => fixed('plate'), CarRim: CAR_FINISH.CarRim,
+  CarChrome: CAR_FINISH.CarChrome, CarHeadlight: () => fixed('head'), CarTaillight: () => fixed('tail'),
 };
 const CASTS = new Set(['BusBody', 'CarBody', 'CarRoof']); // only painted shells cast: trim/glass/wheels add shadow-pass calls for no visible gain
 const WHEELS = ['FL', 'FR', 'RL', 'RR'];

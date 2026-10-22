@@ -31,6 +31,7 @@ VIEWS = [('front', 0, 10, 9.5), ('rear', 180, 10, 9.5), ('left', 90, 8, 9.5), ('
 for n, az, el, r in VIEWS: shot(n, az, el, r)
 shot('front_right_close', -38, 18, 4.6, lens=70, target=Vector((1.2, -0.1, 0.62)))
 shot('rear_close', 160, 14, 4.4, lens=70, target=Vector((-1.5, 0.0, 0.72)))
+shot('hero_low_close', -32, 7, 4.2, lens=60, target=Vector((1.0, -0.2, 0.5)))
 
 def load(path):
     im = bpy.data.images.load(path); h, w_ = im.size[1], im.size[0]
