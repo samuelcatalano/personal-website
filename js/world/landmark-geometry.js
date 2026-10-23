@@ -115,19 +115,24 @@ export function createWembley(x,z){
     beam(new THREE.Vector3(Math.cos(a)*17.8,3.1,Math.sin(a)*12.7),new THREE.Vector3(Math.cos(a)*18.35,8.5,Math.sin(a)*13.2),.085,pale);
   }
   box(0,0,0,22,.35,12,S.plaster,[.35,.61,.24]);
-  for(const dx of [-20,20])box(dx,0,0,1,.55,1,S.stone,pale);
-  const points=[];for(let i=0;i<=64;i++){const a=i*Math.PI/64;points.push(new THREE.Vector3(-20*Math.cos(a),.4+34*Math.sin(a),0));}
-  const curve=new THREE.CatmullRomCurve3(points);
-  for(const dz of [-.38,.38])add(new THREE.TubeGeometry(curve,64,.22,6,false),0,0,dz,S.trim,pale);
-  for(let i=0;i<32;i++){
-    const a=curve.getPoint(i/32),b=curve.getPoint((i+1)/32);a.z=-.38;b.z=.38;beam(a,b,.065,pale);
+  // Glazed concourse wall behind the piers: the bowl reads closed at street level (no pitch seen through the gaps).
+  ring([[16.55,11.45,0],[16.55,11.45,3.15],[16.25,11.15,3.15],[16.25,11.15,0]],S.glass,[.42,.5,.58],2);
+  for(const dx of [-20,20])box(dx,0,0,1.2,.7,1.6,S.stone,pale);
+  // Flattened arch (rise ~0.45 x span, like the real 133 m / 315 m) built as a laced lattice: three chords in a triangular
+  // section, tied by hoops and zig-zag diagonals.
+  const RISE=18,points=[];for(let i=0;i<=64;i++){const a=i*Math.PI/64;points.push(new THREE.Vector3(-19.4*Math.cos(a),.6+RISE*Math.sin(a),0));}
+  const curve=new THREE.CatmullRomCurve3(points),N=28,frame=t=>{const p=curve.getPoint(t),tg=curve.getTangent(t),n=new THREE.Vector3(-tg.y,tg.x,0);return {p,n};};
+  const chord=(t,k)=>{const {p,n}=frame(t);return k===2?p.clone().addScaledVector(n,.62):p.clone().addScaledVector(n,-.18).add(new THREE.Vector3(0,0,k?.5:-.5));};
+  for(let k=0;k<3;k++){const c=new THREE.CatmullRomCurve3(Array.from({length:N+1},(_,i)=>chord(i/N,k)));add(new THREE.TubeGeometry(c,N*2,.13,5,false),0,0,0,S.trim,pale,1);}
+  for(let i=0;i<N;i++){
+    const t0=i/N,t1=(i+1)/N;
+    for(let k=0;k<3;k++){beam(chord(t0,k),chord(t0,(k+1)%3),.045,pale,1,3);beam(chord(t0,k),chord(t1,(k+1)%3),.04,pale,1,3);} // hoop + diagonal lacing
   }
   for(const t of [.22,.35,.5,.65,.78])for(const side of [-1,1]){
     const a=curve.getPoint(t),b=new THREE.Vector3(a.x*.75,8.8,side*11.4);lbeam(1,a,b,.035,.12); // faint support cables
   }
-  // Beacon: cool-white tubes just proud of both arch tubes; low warm glazing band round the bowl.
-  const c48=new THREE.CatmullRomCurve3(points.filter((_,i)=>i%2===0));
-  for(const dz of [-.5,.5])lit(1,new THREE.TubeGeometry(c48,40,.13,5,false),0,0,dz,1);
+  // Beacon: warm-white light along the three chords; low warm glazing band round the bowl.
+  for(let k=0;k<3;k++){const c=new THREE.CatmullRomCurve3(Array.from({length:25},(_,i)=>chord(i/24,k).add(new THREE.Vector3(0,k===2?.16:-.1,k===2?0:(k?.1:-.1)))));lit(0,new THREE.TubeGeometry(c,40,.09,4,false),0,0,0,1.1);}
   const ell=[];for(let i=0;i<48;i++){const a=i*Math.PI/24;ell.push(new THREE.Vector3(Math.cos(a)*17.85,4.9,Math.sin(a)*12.65));}
   lit(0,new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ell,true),48,.07,4,true),0,0,0,.4);
   return finish();
