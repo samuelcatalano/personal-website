@@ -1,0 +1,116 @@
+[
+  {
+    "name": "sao-paulo-day-bounded.png",
+    "state": {
+      "active": [
+        {
+          "index": "6",
+          "text": "\n          2017 RA \ud83c\udde7\ud83c\uddf7 Reclame AQUI"
+        }
+      ],
+      "night": "false",
+      "visibility": "visible",
+      "viewport": [
+        1440,
+        900,
+        1.5
+      ],
+      "progress": 0.22955776741839956
+    }
+  },
+  {
+    "name": "sao-paulo-night-bounded.png",
+    "state": {
+      "active": [
+        {
+          "index": "6",
+          "text": "\n          2017 RA \ud83c\udde7\ud83c\uddf7 Reclame AQUI"
+        }
+      ],
+      "night": "true",
+      "visibility": "visible",
+      "viewport": [
+        1440,
+        900,
+        1.5
+      ],
+      "progress": 0.22955776741841996
+    }
+  },
+  {
+    "name": "london-day-bounded.png",
+    "state": {
+      "active": [
+        {
+          "index": "10",
+          "text": "\n          2021 OLM \ud83c\uddec\ud83c\udde7 OLM Systems \u2014 London"
+        }
+      ],
+      "night": "false",
+      "visibility": "visible",
+      "viewport": [
+        1440,
+        900,
+        1.5
+      ],
+      "progress": 0.3452500944941412
+    }
+  },
+  {
+    "name": "london-night-bounded.png",
+    "state": {
+      "active": [
+        {
+          "index": "10",
+          "text": "\n          2021 OLM \ud83c\uddec\ud83c\udde7 OLM Systems \u2014 London"
+        }
+      ],
+      "night": "true",
+      "visibility": "visible",
+      "viewport": [
+        1440,
+        900,
+        1.5
+      ],
+      "progress": 0.34525009449414124
+    }
+  },
+  {
+    "name": "glasgow-day-bounded.png",
+    "state": {
+      "active": [
+        {
+          "index": "11",
+          "text": "\n          2023 OLM \ud83c\uddec\ud83c\udde7 OLM Systems \u2014 Glasgow"
+        }
+      ],
+      "night": "false",
+      "visibility": "visible",
+      "viewport": [
+        1440,
+        900,
+        1.5
+      ],
+      "progress": 0.6570807609928181
+    }
+  },
+  {
+    "name": "glasgow-night-bounded.png",
+    "state": {
+      "active": [
+        {
+          "index": "11",
+          "text": "\n          2023 OLM \ud83c\uddec\ud83c\udde7 OLM Systems \u2014 Glasgow"
+        }
+      ],
+      "night": "true",
+      "visibility": "visible",
+      "viewport": [
+        1440,
+        900,
+        1.5
+      ],
+      "progress": 0.6570807609928182
+    }
+  }
+]

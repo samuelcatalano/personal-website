@@ -100,7 +100,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   scene.add(water.mesh);
   units.push(await createSigns(scene, { stops, curve }));
   let disposed = false, raf = 0;
-  initVehicleEnv(renderer);   upgradeMini(mini);   upgradeBus(londonBus, 'london'); upgradeBus(glasgowBus, 'glasgow'); // one authored bus GLB, two palettes (tools/vehicles/double-decker-bus)
+  initVehicleEnv(renderer);   upgradeMini(mini, { isDisposed: () => disposed });   upgradeBus(londonBus, 'london', { isDisposed: () => disposed }); upgradeBus(glasgowBus, 'glasgow', { isDisposed: () => disposed }); // one authored bus GLB, two palettes (tools/vehicles/double-decker-bus)
   loadVehicleAsset('a330').then((glb) => { if (glb && !disposed) adoptVisual(plane, glb, ['nav', 'strobe']); }); // authored A330 (tools/vehicles/a330); procedural stays on failure
   const wake = () => { if (!disposed && !raf && !document.hidden) raf = requestAnimationFrame(frame); };
   const figure = buildFigure(wake);
@@ -237,6 +237,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     },
     dispose() {
       disposed = true;
+      for (const u of units) u.dispose?.();
       cancelAnimationFrame(raf); raf = 0;
       removeEventListener('resize', resize);
       document.removeEventListener('visibilitychange', visibility);

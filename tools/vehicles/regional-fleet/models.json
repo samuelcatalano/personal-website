@@ -1,0 +1,688 @@
+{
+  "schemaVersion": 1,
+  "units": "metres",
+  "coordinates": "+X forward, +Y up, centered ground origin",
+  "models": [
+    {
+      "id": "chevrolet-onix",
+      "name": "Chevrolet Onix",
+      "generation": "Second generation hatch, MY2020",
+      "region": "br",
+      "path": "assets/vehicles/chevrolet-onix.glb",
+      "dimensions": {
+        "length": 4.163,
+        "bodyWidth": 1.731,
+        "height": 1.476,
+        "wheelbase": 2.551,
+        "sourceWheelbase": 2.551,
+        "widthIncludingMirrors": 2.04
+      },
+      "axles": {
+        "front": 1.1995,
+        "rear": -1.3515,
+        "height": 0.310416,
+        "halfTrack": 0.7555000000000001,
+        "wheelRadius": 0.310416
+      },
+      "beamAnchors": {
+        "front": [
+          [
+            1.90585,
+            0.776539,
+            -0.585
+          ],
+          [
+            1.90585,
+            0.776539,
+            0.585
+          ]
+        ],
+        "rear": [
+          [
+            -2.0815,
+            0.988142,
+            -0.60585
+          ],
+          [
+            -2.0815,
+            0.988142,
+            0.60585
+          ]
+        ]
+      },
+      "materials": [
+        "FleetBody",
+        "FleetGlass",
+        "FleetTrim",
+        "FleetRubber",
+        "FleetLights",
+        "FleetInterior"
+      ],
+      "meshCount": 6,
+      "triangles": 38274,
+      "vertices": 19877,
+      "bytes": 1361104,
+      "sha256": "791a79006c0188e3ff9cec1d7f5afadbcde28435e5c2e8e1f08b9b5f4c01ed1f",
+      "signature": "Split Chevrolet grille; swept headlamps; separate red hook tail lamps; climbing rear quarter glass",
+      "sources": [
+        "https://meu.chevrolet.com.br/content/dam/gmownercenter/gmsa/gmbr/dynamic/manuals/2020/chevrolet/OnixPlus/pt/om_ng-chevrolet_Onix%20Plus_my20-pt_BR.pdf.pdf",
+        "https://media.gmc.com/Pages/galleries/br/pt/vehicles/chevrolet/onix/2020-onix-hatch.html"
+      ],
+      "referenceLimit": "Manufacturer dimensions; contours and detailed lamp/axle locations interpreted from visual references, not CAD measurements.",
+      "author": "Original procedural Blender geometry; no external meshes or photographic textures"
+    },
+    {
+      "id": "hyundai-hb20",
+      "name": "Hyundai HB20",
+      "generation": "Second generation hatch, MY2023 facelift",
+      "region": "br",
+      "path": "assets/vehicles/hyundai-hb20.glb",
+      "dimensions": {
+        "length": 4.015,
+        "bodyWidth": 1.72,
+        "height": 1.47,
+        "wheelbase": 2.53,
+        "sourceWheelbase": 2.53,
+        "widthIncludingMirrors": 1.994
+      },
+      "axles": {
+        "front": 1.1875,
+        "rear": -1.3425,
+        "height": 0.308084,
+        "halfTrack": 0.75,
+        "wheelRadius": 0.308084
+      },
+      "beamAnchors": {
+        "front": [
+          [
+            1.967124,
+            0.802508,
+            0.55685
+          ],
+          [
+            1.967111,
+            0.802508,
+            -0.55685
+          ]
+        ],
+        "rear": [
+          [
+            -2.0075,
+            0.854683,
+            -0.602
+          ],
+          [
+            -2.0075,
+            0.854683,
+            0.602
+          ]
+        ]
+      },
+      "materials": [
+        "FleetBody",
+        "FleetGlass",
+        "FleetTrim",
+        "FleetRubber",
+        "FleetLights",
+        "FleetInterior"
+      ],
+      "meshCount": 6,
+      "triangles": 26892,
+      "vertices": 14118,
+      "bytes": 1049860,
+      "sha256": "7aaa00b71b1a7ce61aaf9b196ea2f6dab8d92213d18257739b3ce6759f7a68e8",
+      "signature": "Wide black cascading lower grille; angular upper lamps; full-width H-shaped rear light graphic; upswept quarter",
+      "sources": [
+        "https://www.hyundai.com.br/content/dam/hmb/cars/hb20/2023/catalogos/Catalogo_Digital_Novo_HB20_2023.pdf"
+      ],
+      "referenceLimit": "Manufacturer dimensions; contours and detailed lamp/axle locations interpreted from visual references, not CAD measurements.",
+      "author": "Original procedural Blender geometry; no external meshes or photographic textures"
+    },
+    {
+      "id": "toyota-corolla",
+      "name": "Toyota Corolla",
+      "generation": "Twelfth generation sedan, MY2020 Brazil",
+      "region": "br",
+      "path": "assets/vehicles/toyota-corolla.glb",
+      "dimensions": {
+        "length": 4.63,
+        "bodyWidth": 1.78,
+        "height": 1.455,
+        "wheelbase": 2.7,
+        "sourceWheelbase": 2.7,
+        "widthIncludingMirrors": 2.054
+      },
+      "axles": {
+        "front": 1.38,
+        "rear": -1.32,
+        "height": 0.317566,
+        "halfTrack": 0.78,
+        "wheelRadius": 0.317566
+      },
+      "beamAnchors": {
+        "front": [
+          [
+            2.255066,
+            0.75546,
+            0.554025
+          ],
+          [
+            2.255335,
+            0.75546,
+            -0.554025
+          ]
+        ],
+        "rear": [
+          [
+            -2.315,
+            0.815417,
+            -0.623
+          ],
+          [
+            -2.315,
+            0.815417,
+            0.623
+          ]
+        ]
+      },
+      "materials": [
+        "FleetBody",
+        "FleetGlass",
+        "FleetTrim",
+        "FleetRubber",
+        "FleetLights",
+        "FleetInterior"
+      ],
+      "meshCount": 6,
+      "triangles": 28404,
+      "vertices": 14980,
+      "bytes": 1137972,
+      "sha256": "40887c6b5618d187547f8356b233757365cbc50fa7165e81af1e70c78b738fa1",
+      "signature": "Long low sedan bonnet and separate boot; narrow J headlamps; broad trapezoidal intake; stretched rear lamps",
+      "sources": [
+        "https://www.toyotacomunica.com.br/toyota-apresenta-o-novo-corolla-2020/",
+        "https://www.toyotaoman.com/wp-content/uploads/2020/05/Corolla-2020.pdf"
+      ],
+      "referenceLimit": "Manufacturer dimensions; contours and detailed lamp/axle locations interpreted from visual references, not CAD measurements.",
+      "author": "Original procedural Blender geometry; no external meshes or photographic textures"
+    },
+    {
+      "id": "vw-t-cross",
+      "name": "Volkswagen T-Cross",
+      "generation": "First generation, MY2020 Brazilian long-wheelbase",
+      "region": "br",
+      "path": "assets/vehicles/vw-t-cross.glb",
+      "dimensions": {
+        "length": 4.199,
+        "bodyWidth": 1.76,
+        "height": 1.568,
+        "wheelbase": 2.651,
+        "sourceWheelbase": 2.651,
+        "widthIncludingMirrors": 2.034
+      },
+      "axles": {
+        "front": 1.2525,
+        "rear": -1.3985,
+        "height": 0.320985,
+        "halfTrack": 0.77,
+        "wheelRadius": 0.320985
+      },
+      "beamAnchors": {
+        "front": [
+          [
+            2.075243,
+            0.876308,
+            0.5676
+          ],
+          [
+            2.075089,
+            0.876308,
+            -0.5676
+          ]
+        ],
+        "rear": [
+          [
+            -2.0995,
+            0.984615,
+            -0.616
+          ],
+          [
+            -2.0995,
+            0.984615,
+            0.616
+          ]
+        ]
+      },
+      "materials": [
+        "FleetBody",
+        "FleetGlass",
+        "FleetTrim",
+        "FleetRubber",
+        "FleetLights",
+        "FleetInterior"
+      ],
+      "meshCount": 6,
+      "triangles": 25846,
+      "vertices": 13517,
+      "bytes": 966844,
+      "sha256": "1f1db105f15a8b8cfba575da6049fc0335c668cf6387f37653ea6b26d1ca13f8",
+      "signature": "Square upright SUV greenhouse; strong wheel cladding; wide VW grille; linked rear lamps in black crossbar",
+      "sources": [
+        "https://www.volkswagen.com.ar/idhub/content/dam/onehub_pkw/importers/ar/modelos/t-cross/flyer-especificaciones-t%C3%A9cnicas/Flyer%20T-Cross%20TSI%20MY21%20-%20Mayo%202021.pdf",
+        "https://www.volkswagen.com.pe/idhub/content/dam/onehub_pkw/importers/pe/ficha_tecnica/01-2024/VWPer%C3%BA_FichaT%C3%A9cnica_%20T-CrossMY2023-2024.pdf",
+        "https://www.volkswagen-newsroom.com/en/welcome-to-the-family-the-new-t-cross-4306/the-exterior-4311"
+      ],
+      "referenceLimit": "Manufacturer dimensions; contours and detailed lamp/axle locations interpreted from visual references, not CAD measurements.",
+      "author": "Original procedural Blender geometry; no external meshes or photographic textures"
+    },
+    {
+      "id": "fiat-fiorino",
+      "name": "Fiat Fiorino",
+      "generation": "Brazilian second generation, MY2022 Endurance facelift",
+      "region": "br",
+      "path": "assets/vehicles/fiat-fiorino.glb",
+      "dimensions": {
+        "length": 4.407,
+        "bodyWidth": 1.643,
+        "height": 1.899,
+        "wheelbase": 2.716,
+        "sourceWheelbase": 2.716,
+        "widthIncludingMirrors": 1.917
+      },
+      "axles": {
+        "front": 1.3475,
+        "rear": -1.3685,
+        "height": 0.306,
+        "halfTrack": 0.7115,
+        "wheelRadius": 0.306
+      },
+      "beamAnchors": {
+        "front": [
+          [
+            2.176829,
+            0.7775,
+            0.497007
+          ],
+          [
+            2.176296,
+            0.7775,
+            -0.497007
+          ]
+        ],
+        "rear": [
+          [
+            -2.2035,
+            1.055,
+            -0.7105975
+          ],
+          [
+            -2.2035,
+            1.055,
+            0.7105975
+          ]
+        ]
+      },
+      "materials": [
+        "FleetBody",
+        "FleetGlass",
+        "FleetTrim",
+        "FleetRubber",
+        "FleetLights",
+        "FleetInterior"
+      ],
+      "meshCount": 6,
+      "triangles": 22674,
+      "vertices": 11967,
+      "bytes": 952040,
+      "sha256": "e0a5bd485855197c0803d81f17000396f55ae49116d05d589c1d050b9c71d50f",
+      "signature": "Low Uno-derived cab ahead of taller rectangular cargo box; narrow facelift lamps; tall rear corner lamps; split cargo doors",
+      "sources": [
+        "https://www.media.stellantis.com/br-pt/fiat/nova-fiorino-my-2022",
+        "https://www.media.stellantis.com/br-pt/download-model-document/168"
+      ],
+      "referenceLimit": "Manufacturer dimensions; contours and detailed lamp/axle locations interpreted from visual references, not CAD measurements.",
+      "author": "Original procedural Blender geometry; no external meshes or photographic textures"
+    },
+    {
+      "id": "ford-fiesta",
+      "name": "Ford Fiesta",
+      "generation": "Mk8 five-door Titanium, circa 2018",
+      "region": "uk",
+      "path": "assets/vehicles/ford-fiesta.glb",
+      "dimensions": {
+        "length": 4.04,
+        "bodyWidth": 1.735,
+        "height": 1.476,
+        "wheelbase": 2.493,
+        "sourceWheelbase": 2.493,
+        "widthIncludingMirrors": 2.009
+      },
+      "axles": {
+        "front": 1.185,
+        "rear": -1.308,
+        "height": 0.300289,
+        "halfTrack": 0.7575000000000001,
+        "wheelRadius": 0.300289
+      },
+      "beamAnchors": {
+        "front": [
+          [
+            1.782067,
+            0.76303,
+            0.60725
+          ],
+          [
+            1.782053,
+            0.76303,
+            -0.60725
+          ]
+        ],
+        "rear": [
+          [
+            -2.02,
+            0.836871,
+            -0.60725
+          ],
+          [
+            -2.02,
+            0.836871,
+            0.60725
+          ]
+        ]
+      },
+      "materials": [
+        "FleetBody",
+        "FleetGlass",
+        "FleetTrim",
+        "FleetRubber",
+        "FleetLights",
+        "FleetInterior"
+      ],
+      "meshCount": 6,
+      "triangles": 28170,
+      "vertices": 14735,
+      "bytes": 1127380,
+      "sha256": "37d025d582f703b7baffbb3401d6a74338eef0b8d58f067700bc6374184d4502",
+      "signature": "Low oval-trapezoid Ford upper grille; long teardrop lamps; domed roof; horizontal Mk8 rear lights",
+      "sources": [
+        "https://media.ford.com/content/dam/fordmedia/Europe/documents/productReleases/Fiesta/FordFiesta2017_FiestaDrive_TechSpecs_EU.pdf",
+        "https://media.ford.com/content/dam/fordmedia/Europe/en/2016/11/GF3/NEXT_GEN_FIESTA_TECH_SPEC.pdf",
+        "https://www.fr.ford.ch/content/dam/guxeu/ch/fr_ch/documents/feature-pdfs/FT-Fiesta_17.5.pdf"
+      ],
+      "referenceLimit": "Manufacturer dimensions; contours and detailed lamp/axle locations interpreted from visual references, not CAD measurements.",
+      "author": "Original procedural Blender geometry; no external meshes or photographic textures"
+    },
+    {
+      "id": "vw-golf",
+      "name": "Volkswagen Golf",
+      "generation": "Mk7 facelift five-door, circa 2017",
+      "region": "uk",
+      "path": "assets/vehicles/vw-golf.glb",
+      "dimensions": {
+        "length": 4.258,
+        "bodyWidth": 1.799,
+        "height": 1.452,
+        "wheelbase": 2.637,
+        "sourceWheelbase": 2.637,
+        "widthIncludingMirrors": 2.073
+      },
+      "axles": {
+        "front": 1.249,
+        "rear": -1.388,
+        "height": 0.316188,
+        "halfTrack": 0.7895,
+        "wheelRadius": 0.316188
+      },
+      "beamAnchors": {
+        "front": [
+          [
+            2.107824,
+            0.760452,
+            0.55769
+          ],
+          [
+            2.107824,
+            0.760452,
+            -0.55769
+          ]
+        ],
+        "rear": [
+          [
+            -2.129,
+            0.825491,
+            -0.6296499999999999
+          ],
+          [
+            -2.129,
+            0.825491,
+            0.6296499999999999
+          ]
+        ]
+      },
+      "materials": [
+        "FleetBody",
+        "FleetGlass",
+        "FleetTrim",
+        "FleetRubber",
+        "FleetLights",
+        "FleetInterior"
+      ],
+      "meshCount": 6,
+      "triangles": 25238,
+      "vertices": 13255,
+      "bytes": 961816,
+      "sha256": "f01dd881a6335df6220485da863b6ca54634c8ceb0022ccb8d3693b33714526c",
+      "signature": "Broad C-pillar, straight shoulder, upright hatch; thin grille with twin rectangular lamp units; angular two-piece tail lamps",
+      "sources": [
+        "https://www.volkswagen-newsroom.com/en/vehicle-data-golf-7-profile-20039",
+        "https://www.volkswagen.se/idhub/content/dam/onehub_pkw/importers/se/hjalp-och-support/broschyrer/golf/tidigare-golf/002.1648_golf_s18_w1.download.pdf"
+      ],
+      "referenceLimit": "Manufacturer dimensions; contours and detailed lamp/axle locations interpreted from visual references, not CAD measurements.",
+      "author": "Original procedural Blender geometry; no external meshes or photographic textures"
+    },
+    {
+      "id": "vauxhall-corsa",
+      "name": "Vauxhall Corsa",
+      "generation": "Corsa F five-door, circa 2020 (pre-Vizor)",
+      "region": "uk",
+      "path": "assets/vehicles/vauxhall-corsa.glb",
+      "dimensions": {
+        "length": 4.06,
+        "bodyWidth": 1.765,
+        "height": 1.433,
+        "wheelbase": 2.538,
+        "sourceWheelbase": 2.538,
+        "widthIncludingMirrors": 2.039
+      },
+      "axles": {
+        "front": 1.199,
+        "rear": -1.339,
+        "height": 0.305411,
+        "halfTrack": 0.7725,
+        "wheelRadius": 0.305411
+      },
+      "beamAnchors": {
+        "front": [
+          [
+            1.922234,
+            0.761049,
+            0.573625
+          ],
+          [
+            1.922103,
+            0.761049,
+            -0.573625
+          ]
+        ],
+        "rear": [
+          [
+            -2.03,
+            0.803192,
+            -0.6177499999999999
+          ],
+          [
+            -2.03,
+            0.803192,
+            0.6177499999999999
+          ]
+        ]
+      },
+      "materials": [
+        "FleetBody",
+        "FleetGlass",
+        "FleetTrim",
+        "FleetRubber",
+        "FleetLights",
+        "FleetInterior"
+      ],
+      "meshCount": 6,
+      "triangles": 26730,
+      "vertices": 14039,
+      "bytes": 1056684,
+      "sha256": "d32daa59e3b3f03d93b026f14f670368d1f37f41e90c417d98457a732efd5e3d",
+      "signature": "Low CMP-platform five-door; narrow wing grille predating Vizor; long blade lamps; contrasting roof and rising rear quarter",
+      "sources": [
+        "https://media-psa.groupe-psa.com/pm_1_2853_2853737-yp47k772vh.pdf",
+        "https://www.media.stellantis.com/uk-en/vauxhall/media-library/press-images/509038",
+        "https://www.vauxhall.co.uk/content/dam/vauxhall/Home/e-brochures/range/cars/20my/brochures/4_October_2019.pdf"
+      ],
+      "referenceLimit": "Manufacturer dimensions; contours and detailed lamp/axle locations interpreted from visual references, not CAD measurements.",
+      "author": "Original procedural Blender geometry; no external meshes or photographic textures"
+    },
+    {
+      "id": "nissan-qashqai",
+      "name": "Nissan Qashqai",
+      "generation": "J11 facelift, circa 2017",
+      "region": "uk",
+      "path": "assets/vehicles/nissan-qashqai.glb",
+      "dimensions": {
+        "length": 4.394,
+        "bodyWidth": 1.806,
+        "height": 1.59,
+        "wheelbase": 2.646,
+        "sourceWheelbase": 2.646,
+        "widthIncludingMirrors": 2.08
+      },
+      "axles": {
+        "front": 1.272,
+        "rear": -1.374,
+        "height": 0.337795,
+        "halfTrack": 0.793,
+        "wheelRadius": 0.337795
+      },
+      "beamAnchors": {
+        "front": [
+          [
+            2.130435,
+            0.881418,
+            0.62307
+          ],
+          [
+            2.130606,
+            0.881418,
+            -0.62307
+          ]
+        ],
+        "rear": [
+          [
+            -2.197,
+            0.949653,
+            -0.6321
+          ],
+          [
+            -2.197,
+            0.949653,
+            0.6321
+          ]
+        ]
+      },
+      "materials": [
+        "FleetBody",
+        "FleetGlass",
+        "FleetTrim",
+        "FleetRubber",
+        "FleetLights",
+        "FleetInterior"
+      ],
+      "meshCount": 6,
+      "triangles": 28864,
+      "vertices": 15084,
+      "bytes": 1147164,
+      "sha256": "f75c9932897fc91785b3307629e6c7b60908b88d552d40e2ccc45712c2e1d093",
+      "signature": "Swept SUV roof, pinched rear quarter, V-motion grille; boomerang headlight and rear-lamp signatures; deep lower cladding",
+      "sources": [
+        "https://www.nissan-cdn.net/content/dam/Nissan/ch/fr/brochures/pkw/qashqai-2017-ebrochure-listedeprix.pdf",
+        "https://europe.nissannews.com/en-GB/releases/the-new-nissan-qashqai-premium-enhancements-reinforcing-10-years-of-crossover-leadership"
+      ],
+      "referenceLimit": "Manufacturer dimensions; contours and detailed lamp/axle locations interpreted from visual references, not CAD measurements.",
+      "author": "Original procedural Blender geometry; no external meshes or photographic textures"
+    },
+    {
+      "id": "ford-transit-custom",
+      "name": "Ford Transit Custom",
+      "generation": "First generation facelift L1H1 panel van, circa 2018",
+      "region": "uk",
+      "path": "assets/vehicles/ford-transit-custom.glb",
+      "dimensions": {
+        "length": 4.973,
+        "bodyWidth": 1.986,
+        "height": 1.964,
+        "wheelbase": 2.933,
+        "sourceWheelbase": 2.933,
+        "widthIncludingMirrors": 2.26
+      },
+      "axles": {
+        "front": 1.4745,
+        "rear": -1.4585,
+        "height": 0.337681,
+        "halfTrack": 0.883,
+        "wheelRadius": 0.337681
+      },
+      "beamAnchors": {
+        "front": [
+          [
+            2.456264,
+            1.105092,
+            0.697582
+          ],
+          [
+            2.456217,
+            1.105092,
+            -0.697582
+          ]
+        ],
+        "rear": [
+          [
+            -2.4865,
+            1.092786,
+            -0.858945
+          ],
+          [
+            -2.4865,
+            1.092786,
+            0.858945
+          ]
+        ]
+      },
+      "materials": [
+        "FleetBody",
+        "FleetGlass",
+        "FleetTrim",
+        "FleetRubber",
+        "FleetLights",
+        "FleetInterior"
+      ],
+      "meshCount": 6,
+      "triangles": 23190,
+      "vertices": 12095,
+      "bytes": 927296,
+      "sha256": "287d1f3fab7000b0585271b7736d81a0291591a1231b7878b4764830076828f7",
+      "signature": "Full-length low-roof van with steep cab screen, large hexagonal facelift grille; slim upper lamps; vertical rear lamps and split doors",
+      "sources": [
+        "https://www.ford.ie/content/dam/guxeu/ie/Documents/Brochures/CVs/BRO-New_transit_custom.pdf"
+      ],
+      "referenceLimit": "Manufacturer dimensions; contours and detailed lamp/axle locations interpreted from visual references, not CAD measurements.",
+      "author": "Original procedural Blender geometry; no external meshes or photographic textures"
+    }
+  ]
+}

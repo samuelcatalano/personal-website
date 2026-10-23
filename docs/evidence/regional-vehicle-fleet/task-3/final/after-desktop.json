@@ -1,0 +1,133 @@
+{
+  "calls": {
+    "median": 722.0,
+    "p95": 725.0
+  },
+  "triangles": {
+    "median": 5932250.0,
+    "p95": 5950882.0
+  },
+  "geometries": {
+    "median": 486.0,
+    "p95": 487.0
+  },
+  "textures": {
+    "median": 44.0,
+    "p95": 44.0
+  },
+  "renderables": {
+    "median": 1172.0,
+    "p95": 1172.0
+  },
+  "materials": {
+    "median": 127.0,
+    "p95": 127.0
+  },
+  "frameCount": 750,
+  "sampleDurationMs": 9990.900000000001,
+  "viewport": {
+    "width": 1440,
+    "height": 900,
+    "dpr": 1.5
+  },
+  "tier": "high",
+  "progress": 0.3799924404686908,
+  "visibility": "visible",
+  "frameIntervalMs": {
+    "median": 13.300000000001091,
+    "p95": 14.899999999999636
+  },
+  "audit": {
+    "errors": [],
+    "console": [],
+    "resources": []
+  },
+  "httpErrors": [],
+  "glbs": [
+    {
+      "name": "double-decker-bus.glb",
+      "status": 200
+    },
+    {
+      "name": "london-cab.glb",
+      "status": 200
+    },
+    {
+      "name": "mini-cooper.glb",
+      "status": 200
+    },
+    {
+      "name": "a330.glb",
+      "status": 200
+    },
+    {
+      "name": "wellington.glb",
+      "status": 200
+    },
+    {
+      "name": "ford-fiesta.glb",
+      "status": 200
+    },
+    {
+      "name": "vw-golf.glb",
+      "status": 200
+    },
+    {
+      "name": "vauxhall-corsa.glb",
+      "status": 200
+    },
+    {
+      "name": "nissan-qashqai.glb",
+      "status": 200
+    },
+    {
+      "name": "ford-transit-custom.glb",
+      "status": 200
+    },
+    {
+      "name": "chevrolet-onix.glb",
+      "status": 200
+    },
+    {
+      "name": "hyundai-hb20.glb",
+      "status": 200
+    },
+    {
+      "name": "toyota-corolla.glb",
+      "status": 200
+    },
+    {
+      "name": "vw-t-cross.glb",
+      "status": 200
+    }
+  ],
+  "fleetInView": {
+    "count": 1,
+    "cars": [
+      {
+        "model": "ford-fiesta",
+        "meshBoundsInFrustum": 6
+      }
+    ]
+  },
+  "active": [
+    {
+      "index": 9,
+      "text": "2021\nOLM\n\ud83c\uddec\ud83c\udde7\nOLM Systems \u2014 London\nSoftware Developer III\nJul 2021 \u2013 Dec 2022 \u00b7 London\n\nLondon phase of CP-IS: secure information sharing that helps health and social care protect vulnerable children. Quarkus, Kafka, Debezium."
+    }
+  ],
+  "panelSection": "journey",
+  "theme": "false",
+  "tab": "C93ECC82727B4EADC21CE0CBA6702023",
+  "regionalGLBIds": [
+    "chevrolet-onix",
+    "ford-fiesta",
+    "ford-transit-custom",
+    "hyundai-hb20",
+    "nissan-qashqai",
+    "toyota-corolla",
+    "vauxhall-corsa",
+    "vw-golf",
+    "vw-t-cross"
+  ]
+}

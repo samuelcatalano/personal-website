@@ -1,0 +1,85 @@
+{
+  "calls": {
+    "median": 723.0,
+    "p95": 727.0
+  },
+  "triangles": {
+    "median": 5869242.0,
+    "p95": 5871554.0
+  },
+  "geometries": {
+    "median": 479.0,
+    "p95": 481.0
+  },
+  "textures": {
+    "median": 44.0,
+    "p95": 44.0
+  },
+  "renderables": {
+    "median": 1162.0,
+    "p95": 1163.0
+  },
+  "materials": {
+    "median": 122.0,
+    "p95": 123.0
+  },
+  "frameCount": 750,
+  "sampleDurationMs": 9990.900000000001,
+  "viewport": {
+    "width": 1440,
+    "height": 900,
+    "dpr": 1.5
+  },
+  "tier": "high",
+  "progress": 0.3799924404686908,
+  "visibility": "visible",
+  "frameIntervalMs": {
+    "median": 13.300000000001091,
+    "p95": 15.0
+  },
+  "audit": {
+    "errors": [],
+    "console": []
+  },
+  "httpErrors": [
+    {
+      "name": "http://localhost:9343/baseline-snapshot/apple-touch-icon.png",
+      "status": 404
+    }
+  ],
+  "glbs": [
+    {
+      "name": "double-decker-bus.glb",
+      "status": 200
+    },
+    {
+      "name": "london-cab.glb",
+      "status": 200
+    },
+    {
+      "name": "mini-cooper.glb",
+      "status": 200
+    },
+    {
+      "name": "wellington.glb",
+      "status": 200
+    },
+    {
+      "name": "a330.glb",
+      "status": 200
+    }
+  ],
+  "fleetInView": {
+    "count": 0,
+    "cars": []
+  },
+  "active": [
+    {
+      "index": 9,
+      "text": "2021\nOLM\n\ud83c\uddec\ud83c\udde7\nOLM Systems \u2014 London\nSoftware Developer III\nJul 2021 \u2013 Dec 2022 \u00b7 London\n\nLondon phase of CP-IS: secure information sharing that helps health and social care protect vulnerable children. Quarkus, Kafka, Debezium."
+    }
+  ],
+  "panelSection": "journey",
+  "theme": "false",
+  "tab": "C93ECC82727B4EADC21CE0CBA6702023"
+}

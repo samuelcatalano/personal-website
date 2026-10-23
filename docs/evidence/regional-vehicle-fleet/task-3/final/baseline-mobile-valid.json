@@ -1,0 +1,56 @@
+{
+  "calls": {
+    "median": 198,
+    "p95": 204
+  },
+  "triangles": {
+    "median": 2362913,
+    "p95": 2365757
+  },
+  "geometries": {
+    "median": 206,
+    "p95": 206
+  },
+  "textures": {
+    "median": 29,
+    "p95": 29
+  },
+  "renderables": {
+    "median": 1173,
+    "p95": 1174
+  },
+  "materials": {
+    "median": 122,
+    "p95": 123
+  },
+  "frameIntervalMs": {
+    "median": 13.300000000001091,
+    "p95": 14.200000000000728
+  },
+  "frames": 751,
+  "durationMs": 10004.400000000001,
+  "tier": "medium",
+  "progress": 0.11999022482893447,
+  "viewport": [
+    375,
+    812,
+    1
+  ],
+  "audit": {
+    "errors": [],
+    "console": []
+  },
+  "http": [
+    [
+      "http://localhost:9343/baseline-snapshot/apple-touch-icon.png",
+      404
+    ]
+  ],
+  "visible": "visible",
+  "actualFleetSubmission": {
+    "frames": 0,
+    "framesWithFleet": 0,
+    "fraction": null,
+    "models": []
+  }
+}

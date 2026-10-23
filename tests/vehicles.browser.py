@@ -31,6 +31,22 @@ print(js(r'''(async () => {
   check(Math.abs(miniBox.min.y) < 1e-6, 'mini wheels must rest on the road');
   check(miniSize.x > 3.6 && miniSize.x < 4.0 && miniSize.y < 1.8 && miniSize.z < 2, `mini must be ~3.85m long (${miniSize.x.toFixed(2)})`);
   check(tris(mini) <= 10000, `hero mini ≤ 10k tris (${tris(mini)})`);
+  const assets = await import('./js/world/vehicle-assets.js');
+  const authoredMini = await assets.loadVehicleAsset('mini');
+  check(authoredMini, 'authored Mini GLB loads');
+  const miniA = new THREE.Group(), miniB = new THREE.Group();
+  await Promise.all([assets.upgradeMini(miniA), assets.upgradeMini(miniB)]);
+  const glassOf = (root) => { const found = []; root.traverse(o => { if (o.isMesh && o.material?.transparent) found.push(o.material); }); return found; };
+  const glass = glassOf(miniA), glassB = glassOf(miniB);
+  check(glass.length > 0 && glassB.length > 0 && glass.every(m => m === glass[0]) && glassB.every(m => m === glass[0]), 'Mini glass uses one shared runtime material');
+  check(glass[0].transparent && glass[0].opacity > 0.5 && glass[0].opacity < 0.65 && glass[0].color.b > glass[0].color.r, 'Mini glass has a readable smoky tint and visible cabin');
+  const priorNight = document.body.classList.contains('theme-night');
+  assets.updateVehicleEnv(0);
+  const dayReflection = glass[0].envMapIntensity;
+  check(dayReflection === glass[0].userData.envDay, 'Mini glass starts reflection check in day state');
+  assets.updateVehicleEnv(1);
+  check(glass[0].envMapIntensity >= 0.12 && glass[0].envMapIntensity < dayReflection, 'Mini glass reflections dim with night environment');
+  assets.updateVehicleEnv(priorNight ? 1 : 0);
   const { buildVehicle } = await import('./js/world/vehicles.js');
   const cabBox = bounds(buildVehicle('cab')).getSize(new THREE.Vector3());
   check(cabBox.x > 4.6 && cabBox.x < 5.2 && cabBox.y > 1.7 && cabBox.y < 2.05 && cabBox.z < 2.3, `cab must be an LEVC-sized van (${cabBox.toArray().map(v => v.toFixed(2))})`);
@@ -49,20 +65,24 @@ print(js(r'''(async () => {
   check(count('london') === 2 && count('glasgow') === 2 && count('cab') === 4 && count('mini') === 3, 'fleet: 2 London buses, 2 Glasgow buses, 4 cabs, 3 Minis');
   const fleetBusSize = bounds(traffic[0]).getSize(new THREE.Vector3());
   check(Math.abs(fleetBusSize.x - busSize.x) < 0.05 && Math.abs(fleetBusSize.y - busSize.y) < 0.05, 'ambient London bus must keep the physical bus dimensions');
+  await ambient.ready; // spacing must use adopted regional dimensions, not the smaller fallback
   const radii = traffic.map(v => { const s = bounds(v).getSize(new THREE.Vector3()); return Math.hypot(s.x, s.z) / 2; });
   const knots = fineMarks(stopMarks(pts), curve), routeSamples = Array.from({ length: 4001 }, (_, i) => curve.getPointAt(routeT(i / 4000, pts.length, knots)));
   // simulate 150 s at 30 fps: lanes, footprints, speed profile (zebra slow-down), finite positions
   const prev = traffic.map(v => v.position.clone()), prevVis = traffic.map(() => false), minD = [], maxD = [];
   traffic.forEach(() => { minD.push(1e9); maxD.push(0); });
-  let frames = 0, overlap = 0;
+  let frames = 0, overlap = 0, safetyCorrections = 0;
   for (let k = 0; k < 4500; k++) {
     ambient.update({ time: k / 30, t: 0.5, dt: 1 / 30 }); frames++;
     traffic.forEach((v, i) => {
       if (v.visible) {
         check([v.position.x, v.position.y, v.position.z].every(Number.isFinite), 'traffic positions must remain finite');
         if (k % 30 === 0) { const lateral = Math.min(...routeSamples.map(p => Math.hypot(v.position.x - p.x, v.position.z - p.z))); check(lateral > 1.4 && lateral < 2.1, `traffic must remain in its assigned road lane (${i} ${v.name} ${lateral.toFixed(2)} k=${k})`); }
-        const step = v.position.distanceTo(prev[i]) * 30;
-        if (prevVis[i] && step < 40 && !(i === 0 || i === 2 || i === 12)) { minD[i] = Math.min(minD[i], step); maxD[i] = Math.max(maxD[i], step); } // relative vehicles are glued to the player
+        const delta = v.position.clone().sub(prev[i]), step = delta.length() * 30;
+        const forward = delta.x * Math.cos(v.rotation.y) - delta.z * Math.sin(v.rotation.y);
+        // Existing following-distance clamp can move a car backward when another car becomes active.
+        if (prevVis[i] && forward < -1e-6) { check(-forward <= 3.5, 'backward safety correction stays within the following gap'); safetyCorrections++; }
+        if (prevVis[i] && forward >= 0 && step < 40 && !(i === 0 || i === 2 || i === 12)) { minD[i] = Math.min(minD[i], step); maxD[i] = Math.max(maxD[i], step); } // relative vehicles are glued to the player
       }
       prev[i].copy(v.position); prevVis[i] = v.visible;
     });
@@ -82,5 +102,5 @@ print(js(r'''(async () => {
   check(before.every((p, i) => p.distanceTo(sceneR.children[i].position) < 1e-9), 'reduced motion keeps traffic static');
   const a330 = buildVehicle('a330'), ab = bounds(a330).getSize(new THREE.Vector3());
   check(ab.x > 36 && ab.x < 42 && tris(a330) <= 5000 && a330.userData.shadow && a330.userData.nav && a330.userData.strobe, `A330 36-42 m, <=5k tris (${ab.x.toFixed(1)}, ${tris(a330)})`);
-  return { pass: true, bus: [Number(busSize.x.toFixed(2)), Number(busSize.y.toFixed(2))], traffic: traffic.length, frames };
+  return { pass: true, bus: [Number(busSize.x.toFixed(2)), Number(busSize.y.toFixed(2))], traffic: traffic.length, frames, safetyCorrections };
 })()'''))

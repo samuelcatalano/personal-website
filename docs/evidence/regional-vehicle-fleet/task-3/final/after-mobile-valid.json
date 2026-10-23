@@ -1,0 +1,53 @@
+{
+  "calls": {
+    "median": 200.0,
+    "p95": 206
+  },
+  "triangles": {
+    "median": 2363041.0,
+    "p95": 2401315
+  },
+  "geometries": {
+    "median": 207.0,
+    "p95": 207
+  },
+  "textures": {
+    "median": 29.0,
+    "p95": 29
+  },
+  "renderables": {
+    "median": 1176.0,
+    "p95": 1177
+  },
+  "materials": {
+    "median": 126.0,
+    "p95": 127
+  },
+  "frameIntervalMs": {
+    "median": 13.300000000001091,
+    "p95": 14.299999999999272
+  },
+  "frames": 750,
+  "durationMs": 9990.7,
+  "tier": "medium",
+  "progress": 0.11999022482893448,
+  "viewport": [
+    375,
+    812,
+    1
+  ],
+  "audit": {
+    "errors": [],
+    "console": []
+  },
+  "http": [],
+  "visible": "visible",
+  "actualFleetSubmission": {
+    "frames": 750,
+    "framesWithFleet": 305,
+    "fraction": 0.4066666666666667,
+    "models": [
+      "chevrolet-onix"
+    ]
+  }
+}

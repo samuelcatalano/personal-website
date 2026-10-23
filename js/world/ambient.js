@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { createBoat } from './landmark-geometry.js';
 import { buildVehicle } from './vehicles.js';
-import { upgradeBus, upgradeMini, upgradeCab } from './vehicle-assets.js';
+import { upgradeBus, upgradeMini, upgradeCab, loadFleetCatalog, regionalFleetModel, upgradeFleet } from './vehicle-assets.js';
 import { RIVER_Z, LANDMARKS, ukStart, stopIndex, swapAt, scotRange, riverEnd, riverStart } from './layout.js';
 import { stopMarks, fineMarks, routeT } from '../scroll.js';
 import { addBeams } from './beams.js';
@@ -19,8 +19,13 @@ const ACC = 3, DEC = 6, GAP = 3.5, ZEBRA_AT = 9, SLOW = 24; // m/s^2 up, m/s^2 d
 const CARS = [['#e8c425', 'mini'], ['#2f6fcf', 'sedan'], ['#f4f1ea', 'suv'], ['#3f9d4a', 'mini'], ['#16181c', 'sedan'], ['#b9bec4', 'van'], ['#e07a1f', 'sedan'], ['#8b2f45', 'hatch'], ['#16181c', 'suv'], ['#4a7f9e', 'sedan']];
 export function createAmbient(scene, { curve, pts, stops, reducedMotion = false }) {
   const knots = fineMarks(stopMarks(pts), curve), len = curve.getLength();
-  const D = (type, offset, extra = {}) => ({ mesh: buildVehicle(type), type, offset, uk: true, scot: false, ...extra });
-  const G = (i, offset, extra) => ({ mesh: car(CARS[i][1], CARS[i][0]), type: 'car', offset, ...extra });
+  let disposed = false, miniIndex = 0;
+  const MINI_PAINT = [{ body: '#285b8f', roof: '#f4f1ea' }, { body: '#1f4a35', roof: '#f4f1ea' }, { body: '#b3161f', roof: '#f4f1ea' }];
+  const D = (type, offset, extra = {}) => {
+    const palette = type === 'mini' ? MINI_PAINT[miniIndex++ % MINI_PAINT.length] : undefined;
+    return { mesh: buildVehicle(type, { color: palette?.body }), palette, type, offset, uk: true, scot: false, ...extra };
+  };
+  const G = (i, offset, extra) => ({ mesh: car(CARS[i][1], CARS[i][0]), body: CARS[i][0], type: 'car', offset, ...extra });
   const traffic = [
     // London: 2 buses, 4 cabs, 3 Minis, 3 generic cars
     D('london', -0.16, { lane: 1.75, relative: true }), D('london', 0.35),
@@ -34,10 +39,24 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
     G(1, 0.17, { uk: false }), G(2, 0.33, { uk: false }), G(5, 0.58, { uk: false }), G(9, 0.92, { uk: false }),
   ].map((v, i) => ({ lane: -1.75, ...v, base: SPEED[v.type] * (v.type === 'car' ? 0.9 + 0.2 * ((i * 7) % 5) / 4 : 1), p: v.offset, v: 0, brake: 0, yaw: null, x: 0, z: 0, active: false }));
   traffic.forEach((v) => { v.v = v.base; v.len = v.mesh.userData.length; v.tail = null; addBeams(v.mesh, v.mesh.userData.front, v.mesh.userData.beamY); v.tail = v.mesh.children[v.mesh.children.length - 1]; scene.add(v.mesh); });
-  for (const v of traffic) if (v.type === 'london' || v.type === 'glasgow') upgradeBus(v.mesh, v.type, { hero: false });
-  for (const v of traffic) if (v.type === 'cab') upgradeCab(v.mesh);
-  const MINI_PAINT = [{}, { body: '#1f4a35', roof: '#f4f1ea' }, { body: '#b3161f', roof: '#f4f1ea' }]; // cream/red, racing green, red: same shared GLB
-  traffic.filter((v) => v.type === 'mini').forEach((v, i) => upgradeMini(v.mesh, { hero: false, ...MINI_PAINT[i % MINI_PAINT.length] }));
+  const isDisposed = () => disposed;
+  const ready = Promise.all(traffic.map(async (v, i) => {
+    if (v.type === 'london' || v.type === 'glasgow') await upgradeBus(v.mesh, v.type, { hero: false, isDisposed });
+    else if (v.type === 'cab') await upgradeCab(v.mesh, { isDisposed });
+    else if (v.type === 'mini') await upgradeMini(v.mesh, { hero: false, ...v.palette, isDisposed });
+    else {
+      const catalog = await loadFleetCatalog(), slot = traffic.slice(0, i).filter((p) => p.type === 'car' && p.uk === v.uk).length;
+      const model = regionalFleetModel(catalog, v.uk ? 'uk' : 'br', slot);
+      if (!model || disposed) return;
+      await upgradeFleet(v.mesh, model, { body: v.body, isDisposed });
+      if (disposed || !v.mesh.userData.fleetModel) return;
+      v.len = v.mesh.userData.length;
+      const [pool, tail] = v.mesh.children.filter((c) => c.name === 'beam');
+      pool.position.x = v.mesh.userData.front - 0.3;
+      tail.position.x = model.beamAnchors.rear[0][0];
+      tail.children.forEach((lamp, j) => { lamp.position.z = model.beamAnchors.rear[j][2]; });
+    }
+  }));
   const zebras = stops.map((_, i) => curve.getPointAt(Math.min(1, i / (stops.length - 1) + ZEBRA_AT / len)));
   const auto = traffic.filter((v) => !v.relative);
   // Thames only: none on the Pinheiros
@@ -54,6 +73,8 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
   scene.add(blink);
   const nrm = new THREE.Vector3(), swap = swapAt(stops), [scotIn, scotOut] = scotRange(stops), wrap = (p) => ((p % 1) + 1) % 1;
   return {
+    ready,
+    dispose() { disposed = true; },
     update({ time, t: route, dt = 0 }) {
       const move = !reducedMotion && dt > 0;
       if (move) {

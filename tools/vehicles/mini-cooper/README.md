@@ -38,3 +38,10 @@ Geometry: dense smooth body/roof (no faceting at close range), real panel-gap gr
 Runtime finish (`vehicle-assets.js`): authored cars use `MeshPhysicalMaterial` — clear-coated paint, metal chrome/rims, reflective see-through glass — lit by one in-browser PMREM of three's `RoomEnvironment` (no texture download), applied only to these materials; reflection intensity drops 94 % at night (`updateVehicleEnv`).
 
 Measured after the pass (3 runs, same harness): hero desktop median 8.3 ms, p95 8.7–9.1 ms, ~474 calls, 919.7k tris; mobile p95 9.1–9.3 ms, ~185 calls; London stop 10 desktop p95 8.6–9.0 ms, ~697 calls, 1,131k tris; mobile p95 9.0–9.2 ms. Zero console errors. Frame time stays at the 120 Hz cap.
+
+
+## Glazing contrast refinement — 2026-10-23
+
+The GLB and generator are unchanged: review found no demonstrated pane-fit, curvature, border or normal defect. The Mini-specific runtime glass now uses neutral smoky `#809096`, opacity `.58`, and a `.13` reflection floor at night; cabin surfaces use warm graphite `#655d51`. Existing paint, opening geometry and ceramic borders remain. The windshield and rear quarter glass read brighter in matched normal-camera day/night captures; side panes remain relatively dark at this view. Ambient Minis receive blue/green/red bodies before fallback construction; the player's cream/red identity is exclusive in pending, loaded and failure states.
+
+Evidence: `/private/tmp/regional-fleet-pass/runtime-evidence/mini-{before,after}-{day,night}.png`, with identical 1440×900 viewport/DPR 1.5, and `mini-comparison.png` (enlarged crops of those original captures). No performance claim is made for this finish-only change; the regional-fleet milestone measures that separately.
