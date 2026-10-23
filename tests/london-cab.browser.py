@@ -40,7 +40,7 @@ print(js(r'''(async () => {
   check(visuals.every(Boolean), 'all four cab bodies upgraded');
   for (const [i, c] of cabs.entries()) {
     check(c.userData.length === 4.95 && c.userData.front === 2.55 && c.userData.wheels.length === 0, 'legacy movement envelope preserved');
-    check(beams[i].every(b => b.parent === c) && c.children.length === 5, 'original beams and brake glow survive adoption');
+    check(beams[i].every(b => b.parent === c) && c.children.length === 3, 'original beams and brake glow survive adoption');
     check(visuals[i].scale.equals(new THREE.Vector3(1, 1, 1)), 'no cab scale correction');
     for (const m of meshes(visuals[i])) {
       const original = source.find(o => o.name === m.name), first = visuals[0].getObjectByName(m.name);

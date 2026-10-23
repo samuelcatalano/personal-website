@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-// Headlamp lens glows + baked road light + tail glow, shared geometry/materials, children of each vehicle. x = forward.
+// Baked headlamp road light + tail glow, shared geometry/materials, children of each vehicle. x = forward.
 const tex = (w, h, draw) => {
   const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
   draw(cv.getContext('2d'));
@@ -21,11 +21,11 @@ const lit = tex(128, 64, (g) => {
   g.putImageData(im, 0, 0);
 });
 const blob = tex(64, 64, (g) => { const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(0.18, 'rgba(255,255,255,0.55)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, 64, 64); });
-const M = { pool: mat(lit, 0xfff0dc), tail: mat(blob, 0xff2a1a), glow: new THREE.SpriteMaterial({ map: blob, color: 0xfff4dc, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }), red: new THREE.SpriteMaterial({ map: blob, color: 0xff3020, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }) };
-const OP = { pool: 0.24, tail: 0.1, glow: 0.75, red: 0.6 };
+const M = { pool: mat(lit, 0xfff0dc), tail: mat(blob, 0xff2a1a) };
+const OP = { pool: 0.24, tail: 0.1 };
 const pool = new THREE.PlaneGeometry(L, W).rotateX(-Math.PI / 2).translate(L / 2, 0, 0);
 const tailPool = new THREE.PlaneGeometry(2, 1.8).rotateX(-Math.PI / 2).translate(-1.4, 0, 0);
-// One beam + one tail glow per lamp, at the lamps' lateral position (≈68 % of the half-width), not from the vehicle's centre line.
+// One road pool per vehicle, one tail glow per lamp, at the lamps' lateral position (≈68 % of the half-width), not from the vehicle's centre line.
 const box = new THREE.Box3();
 export function addBeams(vehicle, front, y = 0.65) {
   box.makeEmpty(); vehicle.updateMatrixWorld(true);
@@ -33,14 +33,11 @@ export function addBeams(vehicle, front, y = 0.65) {
   const half = box.isEmpty() ? 0.9 : (box.max.z - box.min.z) / 2, lamp = Math.min(1.1, half * 0.68);
   const tail = new THREE.Group(); tail.name = 'beam'; tail.position.set(-front, 0.04, 0);
   for (const s of [-1, 1]) {
-    const c = new THREE.Sprite(M.glow); c.position.set(front + 0.06, y, s * lamp); c.scale.setScalar(0.55); // lens bloom, occluded by depth
-    const r = new THREE.Sprite(M.red); r.position.set(0, y + 0.1 - 0.04, s * lamp); r.scale.setScalar(0.38);
-    const t = new THREE.Mesh(tailPool, M.tail); t.position.z = s * lamp; t.scale.z = 0.5;
-    for (const m of [c, r, t]) { m.name = 'beam'; m.renderOrder = 5; m.frustumCulled = false; }
-    vehicle.add(c); tail.add(t, r);
+    const t = new THREE.Mesh(tailPool, M.tail); t.position.z = s * lamp; t.scale.z = 0.5; // lamp lenses glow on the model itself
+    t.name = 'beam'; t.renderOrder = 5; t.frustumCulled = false; tail.add(t);
   }
   const p = new THREE.Mesh(pool, M.pool); p.position.set(front - 0.3, 0.04, 0); p.scale.z = Math.max(0.75, lamp / LAMP) ** 0.5; p.name = 'beam'; p.renderOrder = 5; p.frustumCulled = false;
-  tail.userData.swell = (k) => tail.children.forEach((t) => (t.isSprite ? t.scale.setScalar(0.38 * k) : t.scale.set(k, 1, 0.5 * k))); // brake lights grow in place
+  tail.userData.swell = (k) => tail.children.forEach((t) => t.scale.set(k, 1, 0.5 * k)); // brake lights grow in place
   vehicle.add(p, tail);
 }
 export function updateBeams(night) {
