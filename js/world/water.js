@@ -17,24 +17,50 @@ uniform vec3 uSun;
 uniform vec3 uDeep, uShallow, uGlint, uNightTint, uSky;
 varying vec3 vPos;
 #include <fog_pars_fragment>
+// Sum of travelling sine waves (several directions/scales, no cells): slope -> normal; a cheap stand-in for a normal map.
+vec2 waveSlope(vec2 p, float t, float dist) {
+  vec2 s = vec2(0.0);
+  p += 1.4 * vec2(sin(p.y * 0.37 + t * 0.13 + sin(p.x * 0.11)), sin(p.x * 0.29 - t * 0.11 + sin(p.y * 0.17))); // domain warp: breaks the regular sine lattice
+  const int N = 8;
+  for (int i = 0; i < N; i++) {
+    float fi = float(i), a = fi * 2.399 + 0.6, k = 0.32 * pow(1.4, fi), w = sqrt(9.8 * k) * 0.5;
+    vec2 d = vec2(cos(a), sin(a));
+    float amp = 0.085 / (1.0 + fi * 0.6) / (1.0 + dist * k * 0.02); // short waves fade first with distance: no moire
+    s += d * amp * k * cos(dot(d, p) * k - t * w + fi * 1.7 + sin(dot(p, d.yx) * 0.21 + fi));
+  }
+  return s;
+}
 void main() {
-float shore=clamp(1.0-abs(vPos.z-uRiverCenter)/uHalfWidth,0.0,1.0);
-float depth=smoothstep(0.0,0.55,shore);
-float ripple=sin(vPos.x*0.65+vPos.z*1.4+uTime*0.48)*sin(vPos.z*0.9-uTime*0.32);
-vec3 c=mix(uShallow,uDeep,0.24+depth*0.76)*(1.0+ripple*0.045);
-c=mix(c,uNightTint,uNight*0.82);
-vec2 q = vPos.xz;
-vec2 g = vec2(cos(q.x * 0.35 + uTime * 0.9) * 0.5 + cos(q.x * 0.9 - q.y * 0.6 - uTime * 1.3) * 0.25,
-cos(q.y * 0.4 - uTime * 0.7) * 0.5 + cos(q.y * 1.1 + q.x * 0.5 + uTime * 1.1) * 0.25) * 0.12;
-vec3 n = normalize(vec3(-g.x, 1.0, -g.y));
+float across = (vPos.z - uRiverCenter) / uHalfWidth, shore = clamp(1.0 - abs(across), 0.0, 1.0);
+float depth = smoothstep(0.0, 0.6, shore);
 vec3 v = normalize(cameraPosition - vPos);
-float fres = 0.04 + 0.96 * pow(1.0 - max(dot(n, v), 0.0), 3.0);
-c = mix(c, uSky, fres * 0.9);
-vec3 r = reflect(-v, n); // Continuous sun highlight follows the existing small wave normals.
-float sp=pow(max(dot(r,uSun),0.0),48.0)*(0.7+0.3*ripple);
-c+=uGlint*sp*1.3*(1.0-uNight);
-// A restrained edge sheen joins the shallow tint to existing embankments.
-c=mix(c,uShallow,0.10*(1.0-depth)*(1.0-uNight));
+float dist = length(cameraPosition - vPos), fade = 1.0 / (1.0 + dist * 0.012); // calm the waves with distance (no shimmer aliasing)
+vec2 g = waveSlope(vPos.xz, uTime, dist);
+vec3 n = normalize(vec3(-g.x, 1.0, -g.y));
+// Body: deep green-blue in the channel, lighter and murkier at the banks.
+vec3 body = mix(uShallow, uDeep, 0.2 + depth * 0.8);
+body = mix(body, uNightTint, uNight * 0.85);
+// Reflection: sky gradient (pale horizon -> deeper zenith), embankments/buildings reflected dark along both banks.
+vec3 r = reflect(-v, n);
+vec3 zenith = mix(uSky * vec3(0.62, 0.78, 1.0), uSky * 0.55, uNight);
+vec3 sky = mix(uSky * 1.08, zenith, smoothstep(0.02, 0.6, r.y));
+float bankRefl = smoothstep(0.55, 1.0, abs(across + g.y * 0.6)) * (1.0 - uNight * 0.4);
+sky = mix(sky, sky * 0.42, bankRefl);
+sky = mix(sky, vec3(dot(sky, vec3(0.3, 0.45, 0.25))), 0.35); // river reflections read greyer than the sky itself
+float fres = 0.02 + 0.98 * pow(1.0 - max(dot(n, v), 0.0), 5.0);
+vec3 c = mix(body, sky, clamp(fres * 1.1 + 0.05, 0.0, 0.85));
+// Sun: broad sheen + tight sparkles on the steeper facets.
+float sd = max(dot(r, uSun), 0.0);
+c += uGlint * (pow(sd, 40.0) * 0.45 + pow(sd, 380.0) * 2.4) * (1.0 - uNight);
+// Night: warm streaks of the city's lights stretched across the water from both banks.
+// Irregular columns (three incommensurate sines), wobbling with the waves, fading from the banks towards the channel.
+float wx = vPos.x + g.x * 9.0 + g.y * 4.0;
+float cols = max(0.0, sin(wx * 1.31) * sin(wx * 0.377 + 1.3) * sin(wx * 0.161 + 4.1));
+float streak = pow(cols, 5.0) * smoothstep(0.1, 0.95, abs(across)) * (0.7 + 0.3 * sin(vPos.z * 0.8 + g.x * 8.0 + uTime * 0.5));
+c += vec3(1.0, 0.74, 0.42) * streak * uNight * (0.35 + 0.65 * fade) * 1.1;
+// Soft foam/wet line where the water meets the embankment.
+float foam = smoothstep(0.9, 0.985, abs(across)) * (0.55 + 0.45 * sin(vPos.x * 2.1 + uTime * 0.8 + g.x * 9.0));
+c = mix(c, vec3(0.86, 0.9, 0.9) * (1.0 - uNight * 0.75), foam * 0.28);
 gl_FragColor = vec4(c, 1.0);
 #include <tonemapping_fragment>
 #include <colorspace_fragment>
@@ -45,7 +71,7 @@ export function createWater({ x0, x1, z, width }) {
   const mat = new THREE.ShaderMaterial({
     uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
       uTime: { value: 0 }, uRiverCenter:{value:z},uHalfWidth:{value:width/2}, uSun: { value: SUN_DIR }, uNight: { value: 0 },
-      uDeep: { value: new THREE.Color(0x1d5a86) }, uShallow: { value: new THREE.Color(0x3f8fae) },
+      uDeep: { value: new THREE.Color(0x214a52) }, uShallow: { value: new THREE.Color(0x4d706c) },
       uGlint: { value: new THREE.Color(0xfff0c8) }, uNightTint: { value: new THREE.Color(0x0a1330) }, uSky: { value: new THREE.Color(0xacc9d8) },
     }]),
     vertexShader, fragmentShader, fog: true,
