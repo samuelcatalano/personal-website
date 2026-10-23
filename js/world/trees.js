@@ -12,6 +12,15 @@ const hsl = {};
 export async function createTrees(placements) {
   const group = new THREE.Group(); group.name = 'trees';
   const leaves = leafTexture(), canopyMat = new THREE.MeshLambertMaterial({ vertexColors: true, map: leaves, alphaTest: 0.5, side: THREE.DoubleSide }); // leaf cards: alpha-tested, shadows cut out too
+  const wind = { value: 0 }; // gentle crown sway: tops move most, phase from instance position; the clock is frozen under reduced motion
+  canopyMat.onBeforeCompile = (sh) => {
+    sh.uniforms.uWind = wind;
+    sh.vertexShader = 'uniform float uWind;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+      vec3 ip = instanceMatrix[3].xyz; float ph = ip.x * 0.37 + ip.z * 0.23, top = clamp(position.y * 0.5 + 0.5, 0.0, 1.0);
+      transformed.xz += vec2(sin(uWind * 1.3 + ph), cos(uWind * 1.1 + ph * 1.7)) * 0.035 * top * top;
+      transformed += normal * 0.02 * sin(uWind * 3.1 + ph + position.x * 4.0) * top;`);
+  };
+  canopyMat.customProgramCacheKey = () => 'tree-wind-1';
   const trunkMat = new THREE.MeshLambertMaterial({ vertexColors: true });
   const geoms = [], o = new THREE.Object3D();
   // Spatial chunks along the route (CHUNK m in x) so standard frustum culling skips off-screen trees in every pass.
@@ -50,7 +59,7 @@ export async function createTrees(placements) {
     });
     shrubs.userData.sourceIndices = low.map((e) => e.i); shrubs.computeBoundingBox(); shrubs.computeBoundingSphere(); group.add(shrubs);
   }
-  group.userData.update = () => {}; // static meshes; kept for the scene frame loop
+  group.userData.update = (_camera, time = 0) => { wind.value = time; };
   let disposed = false;
   group.userData.dispose = () => {
     if (disposed) return; disposed = true;

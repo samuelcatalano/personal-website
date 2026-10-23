@@ -10,11 +10,13 @@ const hash = (x, y, z) => { const s = Math.sin(x * 127.1 + y * 311.7 + z * 74.7)
 export function leafTexture() {
   const cv = document.createElement('canvas'); cv.width = 256; cv.height = 128;
   const g = cv.getContext('2d'); g.fillStyle = '#ffffff'; g.fillRect(192, 0, 64, 128);
-  for (let i = 0; i < 70; i++) {
-    const x = 12 + hash(i, 1, 2) * 168, y = 10 + hash(i, 3, 4) * 108, a = hash(i, 5, 6) * Math.PI * 2, l = 9 + hash(i, 7, 8) * 7, k = 195 + hash(i, 9, 1) * 60;
+  for (let i = 0; i < 80; i++) { // back leaves first (darker), front leaves last (lighter): depth inside each card
+    const x = 10 + hash(i, 1, 2) * 172, y = 8 + hash(i, 3, 4) * 112, a = hash(i, 5, 6) * Math.PI * 2, l = 9 + hash(i, 7, 8) * 6, k = 180 + i / 80 * 50 + hash(i, 9, 1) * 25;
+    const w = hash(i, 2, 9) - 0.5; // slight warm/cool shift per leaf
     g.save(); g.translate(x, y); g.rotate(a);
-    g.fillStyle = `rgb(${k},${k},${k})`; g.beginPath(); g.ellipse(0, 0, l, l * 0.45, 0, 0, Math.PI * 2); g.fill();
-    g.strokeStyle = `rgba(0,0,0,0.12)`; g.lineWidth = 1; g.beginPath(); g.moveTo(-l, 0); g.lineTo(l, 0); g.stroke(); // midrib
+    g.fillStyle = `rgb(${k + w * 18 | 0},${k | 0},${k - w * 22 | 0})`; g.beginPath(); g.moveTo(-l, 0); g.quadraticCurveTo(0, -l * 0.62, l, 0); g.quadraticCurveTo(0, l * 0.62, -l, 0); g.fill(); // pointed leaf
+    g.strokeStyle = 'rgba(0,0,0,0.16)'; g.lineWidth = 0.8; g.stroke(); // edge: leaves read separately
+    g.strokeStyle = 'rgba(255,255,255,0.18)'; g.beginPath(); g.moveTo(-l * 0.8, 0); g.lineTo(l * 0.8, 0); g.stroke(); // midrib catches the light
     g.restore();
   }
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
@@ -26,14 +28,14 @@ const CROWN = { small: [5, 1, 110], medium: [6, 2, 150], large: [8, 3, 200] }; /
 // Crown = a few solid inner masses (shade + volume) covered with alpha-tested leaf cards (fringed silhouette, small-leaf detail).
 // Normals point out of the crown ("foliage normals") so light wraps it softly; colour darkens towards the inside/underside.
 export function canopyGeometry(type) {
-  const [count, seed, cards] = CROWN[type], masses = [], pos = [], uv = [];
+  const [count, seed, cards] = CROWN[type], masses = [], pos = [], uv = [], jit = [], ctr = [];
   for (let k = 0; k < count; k++) {
     const th = (k + hash(k, seed, 1) * 0.6) / count * Math.PI * 2, ph = Math.acos(1 - 2 * (0.15 + hash(seed, k, 2) * 0.7)), shell = k ? 0.42 + 0.2 * hash(k, k, seed) : 0;
     masses.push([Math.sin(ph) * Math.cos(th) * shell, Math.cos(ph) * shell * 0.8 + (k ? 0 : 0.05), Math.sin(ph) * Math.sin(th) * shell, k ? 0.42 + hash(k, 3, seed) * 0.14 : 0.58]);
   }
   for (const [cx, cy, cz, r] of masses) { // inner masses: low-poly, solid texel
     const g = new THREE.IcosahedronGeometry(r * 0.92, 1).toNonIndexed(), p = g.attributes.position;
-    for (let i = 0; i < p.count; i++) { pos.push(cx + p.getX(i), cy + p.getY(i) * (p.getY(i) < 0 ? 0.75 : 1), cz + p.getZ(i)); uv.push(0.88, 0.5); }
+    for (let i = 0; i < p.count; i++) { pos.push(cx + p.getX(i), cy + p.getY(i) * (p.getY(i) < 0 ? 0.75 : 1), cz + p.getZ(i)); uv.push(0.88, 0.5); jit.push(0.8 + 0.2 * (p.getY(i) / r * 0.5 + 0.5)); ctr.push(cx, cy, cz); }
     g.dispose();
   }
   const d = new THREE.Vector3(), t1 = new THREE.Vector3(), t2 = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
@@ -46,7 +48,8 @@ export function canopyGeometry(type) {
     const roll = hash(c, 17, seed) * Math.PI * 2, a = t1.clone().multiplyScalar(Math.cos(roll)).addScaledVector(t2, Math.sin(roll)).multiplyScalar(size), b = n.clone().cross(a);
     const u0 = Math.floor(hash(c, 18, seed) * 3) * 0.25; // one of three tiles in the leaf area
     const q = [o.clone().sub(a).sub(b), o.clone().add(a).sub(b), o.clone().add(a).add(b), o.clone().sub(a).add(b)], quv = [[u0, 0], [u0 + 0.25, 0], [u0 + 0.25, 1], [u0, 1]];
-    for (const i of [0, 1, 2, 0, 2, 3]) { pos.push(q[i].x, q[i].y, q[i].z); uv.push(...quv[i]); }
+    const j = (0.92 + hash(c, 19, seed) * 0.22) * (0.8 + 0.2 * (d.y * 0.5 + 0.5)); // per-card jitter x mild clump shade
+    for (const i of [0, 1, 2, 0, 2, 3]) { pos.push(q[i].x, q[i].y, q[i].z); uv.push(...quv[i]); jit.push(j); ctr.push(cx, cy, cz); }
   }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   const p = g.attributes.position; let rad = 0, ymin = 1e9, ymax = -1e9; // normalise: radius 1, y in [-1, 1]
@@ -56,9 +59,11 @@ export function canopyGeometry(type) {
   const nrm = new Float32Array(p.count * 3), col = new Float32Array(p.count * 3), v = new THREE.Vector3();
   for (let i = 0; i < p.count; i++) {
     v.fromBufferAttribute(p, i); const out = Math.min(1, v.length()), y = v.y;
-    v.set(v.x, v.y * 0.8 + 0.3, v.z).normalize().toArray(nrm, i * 3); // foliage normal, tilted up so tops catch the sky
-    const k = (0.62 + 0.38 * out ** 1.5) * (0.85 + 0.35 * THREE.MathUtils.clamp((y + 1) / 2, 0, 1)); // inner/underside shade, sunlit top
-    col.set([k * 0.96, k, k * 0.88], i * 3);
+    const m = new THREE.Vector3(ctr[i * 3] / rad, (ctr[i * 3 + 1] - yc) * ys, ctr[i * 3 + 2] / rad), cl = v.clone().sub(m).normalize(); // out of this vertex's clump
+    v.normalize().multiplyScalar(0.25).addScaledVector(cl, 0.75); // clump + crown normal: the sun models each lump, the crown stays one volume
+    v.set(v.x, v.y * 0.8 + 0.25, v.z).normalize().toArray(nrm, i * 3); // tilted up so tops catch the sky
+    const k = 1.12 * jit[i] * (0.42 + 0.66 * out ** 2) * (0.85 + 0.35 * THREE.MathUtils.clamp((y + 1) / 2, 0, 1)); // inner/underside shade, sunlit top
+    col.set([k * 0.95, k, k * (0.86 + 0.06 * (1 - out))], i * 3); // inner shade slightly cooler
   }
   g.setAttribute('normal', new THREE.BufferAttribute(nrm, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3));
   g.computeBoundingBox(); g.computeBoundingSphere(); return g;
