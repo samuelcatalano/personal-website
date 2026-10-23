@@ -146,16 +146,27 @@ export function buildBlocks(add, stops, pts, curve, occ, onBuildingPlot, onArchi
   for (const dx of [-30, -10, 10, 30]) for (const z of [-94, -72, -50]) {
     draw(add, sx + dx, z, [10, 10, 2 + (side() * 3 | 0), 3, [CR, SS, OC, OW][side() * 4 | 0], W, 0, 1], side, side, false, false, onArchitecturePlot, `west-${dx}-${z}`);
   }
+  occ.push([sx - 42, sx + 42, -108, -36]); // the west district and its street grid
   draw(add, pts[0].x - 13, -3, [5.5, 6, 2, 3, OC, W, 2, 1], side, side, false, false, onArchitecturePlot, 'corner-shop');
   // Gap fill: last, own rng, so nothing above moves. Small footprints go into holes the main rows could not fit, plus a third row behind them.
   // Camera side (side > 0) stays two floors so landmark views keep their foreground; parks and pedestrian loops/wanders are kept clear.
   const gap = rng(6151), free = [...PARKS.map((o) => [o.x0, o.x1, o.z0, o.z1]), ...walkPaths(stops, pts).filter((o) => o.rect).map(({ rect: o }) => [o.x0, o.x1, o.z0, o.z1])];
-  for (const [sd, f] of [[1, 29], [1, 43], [-1, 29], [-1, 43], [-1, 57], [1, 57]]) for (let x = pts[0].x - 40; x < X('wembley') + 40; x += 3) {
+  for (const [sd, f] of [[1, 29], [1, 43], [-1, 29], [-1, 43], [-1, 57], [1, 57], [-1, 71], [-1, 86]]) for (let x = pts[0].x - 40; x < X('wembley') + 40; x += 3) {
     const sc = inRegion(rgs, 'scot', x), uk = x > mv, t = uk && !sc && gap() < 0.6, w = t ? 6 : 8 + gap() * 3, u = t ? 2 + (gap() * 2 | 0) : 1, d = t ? 8 : 9;
-    const n = sd > 0 ? 2 : 3 + (gap() * 2 | 0), cx = x + w * u / 2, z = zAt(cx) + sd * (f + d / 2), R = [x - 1, x + w * u + 1, z - d / 2 - 1, z + d / 2 + 1];
+    const n = sd > 0 ? 2 : f > 60 ? 3 + (gap() * 4 | 0) : 3 + (gap() * 2 | 0), cx = x + w * u / 2, z = zAt(cx) + sd * (f + d / 2), R = [x - 1, x + w * u + 1, z - d / 2 - 1, z + d / 2 + 1];
     if ([...hard, ...cut, ...occ, ...free].some((o) => hit(R, o)) || path.some((p) => hit(R, [p.x, p.x, p.z, p.z], 25))) continue;
     const wall = sc ? [P.redSand, SS, CR] : uk ? [B, LS, CR, OW, SA, SB] : [CR, OC, SS, MN, SA, TC, OW];
     draw(add, cx, z, [w, d, n, 3, wall[gap() * wall.length | 0], W, t ? 3 : 0, u], gap, gap, sd > 0, false, onArchitecturePlot, `gap-${Math.round(cx)}-${Math.round(z)}`);
     occ.push(R); x += w * u + 1 + gap() * 3;
+  }
+  // São Paulo mid-ground grid (far side, own rng, last): fills the open lots between the route rows and the skyline band.
+  // Every rejection list above applies, so landmark envelopes, plazas, parks and walk loops stay clear; taller with distance.
+  const sp = rng(7741), spWalls = [CR, OC, SS, MN, SA, TC, OW, C, CM];
+  for (const z of [-44, -64, -86]) for (let x = pts[0].x - 240; x < mv - 20;) {
+    const w = 12 + sp() * 5, d = 10, n = (z < -70 ? 4 : 3) + (sp() * (z < -70 ? 5 : 3) | 0), cx = x + w / 2, cz = z + (sp() - 0.5) * 2, R = [x - 1, x + w + 1, cz - d / 2 - 1, cz + d / 2 + 1];
+    x += w + 2 + sp() * 3;
+    if (inRegion(rgs, 'ctry', cx, 30 + w / 2) || [...hard, ...cut, ...occ, ...free, ...placed].some((o) => hit(R, o)) || path.some((p) => hit(R, [p.x, p.x, p.z, p.z], 25))) continue;
+    draw(add, cx, cz, [w, d, n, 3, spWalls[sp() * spWalls.length | 0], W, 0, 1], sp, sp, false, false, onArchitecturePlot, `sp-${Math.round(cx)}-${Math.round(cz)}`);
+    occ.push(R);
   }
 }

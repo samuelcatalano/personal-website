@@ -70,6 +70,18 @@ export function buildBackdrop(add, stops, pts) {
       x += w + gap;
     }
   }
+  // Infill rows between the far rows (own rng, so nothing above moves): no open ground shows between skyline bands.
+  const f = rng(90819);
+  for (const fz of [-245, -318, -395]) {
+    for (let x = x0; x < x1;) {
+      const w = 8 + f() * 5, gap = 1.5 + f() * 2, xc = x + w / 2, z = fz + (f() - 0.5) * 8, h = (2 + (f() * 7 | 0)) * 2.8, wall = distantColors[f() * distantColors.length | 0];
+      if (!regionsCtry.some(([a, b]) => x + w > a - 20 && x < b + 20) && !(xc - w / 2 < museumR && xc + w / 2 > museumL)) {
+        add(xc, 0, z, w, h, 12, wall);
+        add(xc, h, z, w + 0.3, 0.35, 12.3, P.roof);
+      }
+      x += w + gap;
+    }
+  }
   // Low stepped ridges sit beyond the neighborhoods without making a skyline wall.
   for (let x = x0; x < x1; x += 38) {
     if (regionsCtry.some(([a, b]) => x + 38 > a && x < b)) continue;
