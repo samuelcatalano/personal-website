@@ -1,18 +1,18 @@
 import * as THREE from 'three';
-import { canopyGeometry, trunkGeometry } from './tree-mesh.js';
+import { canopyGeometry, trunkGeometry, leafTexture } from './tree-mesh.js';
 
 // Three tree types (small street / medium urban / large park), one InstancedMesh per part per type per 160 m chunk (frustum-culled) + one understory batch.
 // Positions and crown footprints come from placements; canopy diameter never exceeds placement.crown.
 const TYPES = ['small', 'medium', 'large'];
 const typeOf = (crown) => (crown < 2.1 ? 'small' : crown < 2.7 ? 'medium' : 'large'); // ponytail: crown is the only size signal; placements carry no type
 const rnd = (x, z, k) => { const s = Math.sin(x * 12.9898 + z * 78.233 + k * 37.719) * 43758.5453; return s - Math.floor(s); };
-const TINTS = [0x4f7a34, 0x3f6a2e, 0x5d8a3a, 0x7a8a3a, 0x4f7a34, 0x3f6a2e]; // deep natural greens + one autumn-ish
+const TINTS = [0x63a03c, 0x52903a, 0x74ad46, 0x8fa84a, 0x5f9a40, 0x4d8634]; // vivid leaf greens + one olive (leaf texture and inner shade darken them)
 const hsl = {};
 
 export async function createTrees(placements) {
   const group = new THREE.Group(); group.name = 'trees';
-  const canopyMat = new THREE.MeshLambertMaterial({ vertexColors: true }); // smooth: foliage normals carry the shading
-  const trunkMat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+  const leaves = leafTexture(), canopyMat = new THREE.MeshLambertMaterial({ vertexColors: true, map: leaves, alphaTest: 0.5, side: THREE.DoubleSide }); // leaf cards: alpha-tested, shadows cut out too
+  const trunkMat = new THREE.MeshLambertMaterial({ vertexColors: true });
   const geoms = [], o = new THREE.Object3D();
   // Spatial chunks along the route (CHUNK m in x) so standard frustum culling skips off-screen trees in every pass.
   const CHUNK = 160, chunkOf = (x) => Math.floor(x / CHUNK);
@@ -54,7 +54,7 @@ export async function createTrees(placements) {
   let disposed = false;
   group.userData.dispose = () => {
     if (disposed) return; disposed = true;
-    geoms.forEach((g) => g.dispose()); canopyMat.dispose(); trunkMat.dispose();
+    geoms.forEach((g) => g.dispose()); leaves.dispose(); canopyMat.dispose(); trunkMat.dispose();
     if (shrubs) { shrubs.geometry.dispose(); shrubs.material.dispose(); }
   };
   return group;

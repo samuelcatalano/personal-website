@@ -4,59 +4,86 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 // Tree family. Unit conventions (scaled per instance in trees.js):
 //  canopy: horizontal radius <= 1, y in [-1, 1] (centre 0); trunk: y in [0, 1] (1 = canopy centre), radii in canopy-radius units.
 const hash = (x, y, z) => { const s = Math.sin(x * 127.1 + y * 311.7 + z * 74.7) * 43758.5453; return s - Math.floor(s); };
-const flat = (g, color) => { // non-indexed, flat normals, constant colour attr, no uv
-  g = g.index ? g.toNonIndexed() : g; g.deleteAttribute('uv'); g.computeVertexNormals();
-  const n = g.attributes.position.count, c = new Float32Array(n * 3);
-  for (let i = 0; i < n; i++) color(g.attributes.position, i).toArray(c, i * 3);
-  g.setAttribute('color', new THREE.BufferAttribute(c, 3)); return g;
-};
 
-// Per type: many small leaf clumps scattered inside an ellipsoid shell (count, seed). Shape variants come from per-instance aspect in trees.js.
-const CLUMPS = { small: [9, 1], medium: [12, 2], large: [16, 3] }; // ponytail: capped by the 250k tree triangle budget (tests/trees.browser.py)
-
-// Natural crown: lots of small noisy clumps instead of a few big faceted lumps. Normals point away from the crown centre
-// ("foliage normals") so light wraps the whole crown softly; colour darkens towards the inside/underside (cheap AO).
-export function canopyGeometry(type) {
-  const [count, seed] = CLUMPS[type], tmp = new THREE.Color(), parts = [];
-  for (let k = 0; k < count; k++) {
-    const u = (k + hash(k, seed, 1) * 0.6) / count, v = hash(seed, k, 2), shell = 0.42 + 0.3 * Math.sqrt(hash(k, k, seed)); // even azimuths, outer-shell bias
-    const th = u * Math.PI * 2, ph = Math.acos(1 - 2 * (0.08 + v * 0.8)), r = 0.4 + hash(k, 3, seed) * 0.16; // overlapping clumps: a full crown with a broken silhouette
-    const cx = Math.sin(ph) * Math.cos(th) * shell, cy = Math.cos(ph) * shell * 0.85, cz = Math.sin(ph) * Math.sin(th) * shell;
-    const g = new THREE.IcosahedronGeometry(r, 1), p = g.attributes.position;
-    for (let i = 0; i < p.count; i++) { // noise-displace along the radial direction, flatten the underside
-      const x = p.getX(i) / r, y = p.getY(i) / r, z = p.getZ(i) / r, d = 1 + (hash(x + k, y + seed, z) - 0.5) * 0.5;
-      p.setXYZ(i, cx + x * r * d, cy + y * r * d * (y < 0 ? 0.7 : 1), cz + z * r * d);
-    }
-    parts.push(g.toNonIndexed());
+// Leaf atlas (procedural, no external asset): left 3/4 = a cluster of small leaves with alpha cut-outs, right 1/4 = solid
+// (the inner foliage masses sample it). Grey values are shade only; hue comes from the instance tint.
+export function leafTexture() {
+  const cv = document.createElement('canvas'); cv.width = 256; cv.height = 128;
+  const g = cv.getContext('2d'); g.fillStyle = '#ffffff'; g.fillRect(192, 0, 64, 128);
+  for (let i = 0; i < 70; i++) {
+    const x = 12 + hash(i, 1, 2) * 168, y = 10 + hash(i, 3, 4) * 108, a = hash(i, 5, 6) * Math.PI * 2, l = 9 + hash(i, 7, 8) * 7, k = 195 + hash(i, 9, 1) * 60;
+    g.save(); g.translate(x, y); g.rotate(a);
+    g.fillStyle = `rgb(${k},${k},${k})`; g.beginPath(); g.ellipse(0, 0, l, l * 0.45, 0, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = `rgba(0,0,0,0.12)`; g.lineWidth = 1; g.beginPath(); g.moveTo(-l, 0); g.lineTo(l, 0); g.stroke(); // midrib
+    g.restore();
   }
-  const g = mergeGeometries(parts); g.deleteAttribute('uv');
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+}
+
+// Per type: inner masses [count, seed] + leaf cards per tree. Shape variants come from per-instance aspect in trees.js.
+const CROWN = { small: [5, 1, 110], medium: [6, 2, 150], large: [8, 3, 200] }; // ponytail: card counts capped by the 250k tree triangle budget (tests/trees.browser.py)
+
+// Crown = a few solid inner masses (shade + volume) covered with alpha-tested leaf cards (fringed silhouette, small-leaf detail).
+// Normals point out of the crown ("foliage normals") so light wraps it softly; colour darkens towards the inside/underside.
+export function canopyGeometry(type) {
+  const [count, seed, cards] = CROWN[type], masses = [], pos = [], uv = [];
+  for (let k = 0; k < count; k++) {
+    const th = (k + hash(k, seed, 1) * 0.6) / count * Math.PI * 2, ph = Math.acos(1 - 2 * (0.15 + hash(seed, k, 2) * 0.7)), shell = k ? 0.42 + 0.2 * hash(k, k, seed) : 0;
+    masses.push([Math.sin(ph) * Math.cos(th) * shell, Math.cos(ph) * shell * 0.8 + (k ? 0 : 0.05), Math.sin(ph) * Math.sin(th) * shell, k ? 0.42 + hash(k, 3, seed) * 0.14 : 0.58]);
+  }
+  for (const [cx, cy, cz, r] of masses) { // inner masses: low-poly, solid texel
+    const g = new THREE.IcosahedronGeometry(r * 0.92, 1).toNonIndexed(), p = g.attributes.position;
+    for (let i = 0; i < p.count; i++) { pos.push(cx + p.getX(i), cy + p.getY(i) * (p.getY(i) < 0 ? 0.75 : 1), cz + p.getZ(i)); uv.push(0.88, 0.5); }
+    g.dispose();
+  }
+  const d = new THREE.Vector3(), t1 = new THREE.Vector3(), t2 = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  for (let c = 0; c < cards; c++) { // leaf cards on the mass surfaces, biased upward and outward, random roll and tilt
+    const [cx, cy, cz, r] = masses[Math.floor(hash(c, seed, 11) * masses.length)], th = hash(c, 12, seed) * Math.PI * 2, y = -0.55 + hash(seed, c, 13) * 1.5;
+    d.set(Math.cos(th) * Math.sqrt(1 - Math.min(1, y * y)), Math.min(1, y), Math.sin(th) * Math.sqrt(1 - Math.min(1, y * y))).normalize();
+    const o = new THREE.Vector3(cx, cy, cz).addScaledVector(d, r * (0.8 + hash(c, 14, seed) * 0.3)), size = 0.4 + hash(c, seed, 15) * 0.16;
+    const n = d.clone().add(new THREE.Vector3(hash(c, 1, 16) - 0.5, hash(c, 2, 16) - 0.5, hash(c, 3, 16) - 0.5).multiplyScalar(1.1)).normalize();
+    t1.crossVectors(Math.abs(n.y) > 0.95 ? new THREE.Vector3(1, 0, 0) : up, n).normalize(); t2.crossVectors(n, t1);
+    const roll = hash(c, 17, seed) * Math.PI * 2, a = t1.clone().multiplyScalar(Math.cos(roll)).addScaledVector(t2, Math.sin(roll)).multiplyScalar(size), b = n.clone().cross(a);
+    const u0 = Math.floor(hash(c, 18, seed) * 3) * 0.25; // one of three tiles in the leaf area
+    const q = [o.clone().sub(a).sub(b), o.clone().add(a).sub(b), o.clone().add(a).add(b), o.clone().sub(a).add(b)], quv = [[u0, 0], [u0 + 0.25, 0], [u0 + 0.25, 1], [u0, 1]];
+    for (const i of [0, 1, 2, 0, 2, 3]) { pos.push(q[i].x, q[i].y, q[i].z); uv.push(...quv[i]); }
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   const p = g.attributes.position; let rad = 0, ymin = 1e9, ymax = -1e9; // normalise: radius 1, y in [-1, 1]
   for (let i = 0; i < p.count; i++) { rad = Math.max(rad, Math.hypot(p.getX(i), p.getZ(i))); ymin = Math.min(ymin, p.getY(i)); ymax = Math.max(ymax, p.getY(i)); }
   const yc = (ymin + ymax) / 2, ys = 2 / (ymax - ymin);
   for (let i = 0; i < p.count; i++) p.setXYZ(i, p.getX(i) / rad, (p.getY(i) - yc) * ys, p.getZ(i) / rad);
-  const n = new Float32Array(p.count * 3), c = new Float32Array(p.count * 3), v = new THREE.Vector3();
+  const nrm = new Float32Array(p.count * 3), col = new Float32Array(p.count * 3), v = new THREE.Vector3();
   for (let i = 0; i < p.count; i++) {
-    v.fromBufferAttribute(p, i); const out = v.length(), y = v.y;
-    v.set(v.x, v.y * 0.8 + 0.25, v.z).normalize().toArray(n, i * 3); // foliage normal, tilted up so tops catch the sky
-    const ao = THREE.MathUtils.clamp(0.62 + out * 0.4, 0.62, 1), top = THREE.MathUtils.clamp((y + 1) / 2, 0, 1), grain = 0.9 + hash(v.x * 9, y * 9, v.z * 9) * 0.2;
-    const k = ao * (0.85 + 0.35 * top) * grain; tmp.setRGB(k * 0.97, k, k * 0.9).toArray(c, i * 3); // hue comes from instance tint
+    v.fromBufferAttribute(p, i); const out = Math.min(1, v.length()), y = v.y;
+    v.set(v.x, v.y * 0.8 + 0.3, v.z).normalize().toArray(nrm, i * 3); // foliage normal, tilted up so tops catch the sky
+    const k = (0.62 + 0.38 * out ** 1.5) * (0.85 + 0.35 * THREE.MathUtils.clamp((y + 1) / 2, 0, 1)); // inner/underside shade, sunlit top
+    col.set([k * 0.96, k, k * 0.88], i * 3);
   }
-  g.setAttribute('normal', new THREE.BufferAttribute(n, 3)); g.setAttribute('color', new THREE.BufferAttribute(c, 3));
+  g.setAttribute('normal', new THREE.BufferAttribute(nrm, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3));
   g.computeBoundingBox(); g.computeBoundingSphere(); return g;
 }
 
+// Trunk: flared base with surface roots, a slight lean/twist, and 3-5 branches reaching into the crown (y = 1 is the crown centre).
 export function trunkGeometry(type) {
-  const bark = new THREE.Color('#5d4a3a'), dark = new THREE.Color('#463a30'), tip = new THREE.Color();
-  const limb = (r0, r1, from, to, seg) => { // tapered cylinder between two points
-    const a = new THREE.Vector3(...from), b = new THREE.Vector3(...to), g = new THREE.CylinderGeometry(r1, r0, a.distanceTo(b), seg, 1, true);
+  const bark = new THREE.Color('#4b3c33'), dark = new THREE.Color('#2f2621'), tip = new THREE.Color();
+  const limb = (r0, r1, from, to, seg) => { // tapered cylinder between two points, smooth normals
+    const a = new THREE.Vector3(...from), b = new THREE.Vector3(...to), g = new THREE.CylinderGeometry(r1, r0, a.distanceTo(b), seg, 2, true);
     g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize()));
-    return g.translate(...a.add(b).multiplyScalar(0.5).toArray());
+    g.translate(...a.add(b).multiplyScalar(0.5).toArray()); const n = g.toNonIndexed(); g.dispose(); return n;
   };
-  const R = { small: 0.075, medium: 0.09, large: 0.11 }[type], forks = type === 'small' ? 2 : 3, parts = [limb(R * 1.35, R * 0.8, [0, 0, 0], [0, 0.55, 0], 6)];
-  for (let i = 0; i < forks; i++) { // 2-3 forks leaning outward into the canopy
-    const a = i * Math.PI * 2 / forks + 0.6 + (type === 'large' ? 0.4 : 0);
-    parts.push(limb(R * 0.8, R * 0.38, [0, 0.5, 0], [Math.cos(a) * 0.36, 1.0 + 0.1 * i, Math.sin(a) * 0.36], 5));
+  const R = { small: 0.1, medium: 0.12, large: 0.14 }[type], forks = { small: 3, medium: 4, large: 5 }[type], s = { small: 1, medium: 2, large: 3 }[type];
+  const parts = [limb(R * 1.45, R * 1.05, [0, 0, 0], [0.03, 0.3, 0.02], 8), limb(R * 1.05, R * 0.8, [0.03, 0.3, 0.02], [-0.02, 0.58, 0.04], 8)];
+  for (let i = 0; i < 5; i++) { // surface roots
+    const a = i * Math.PI * 2 / 5 + hash(i, s, 1) * 0.6, l = 0.32 + hash(i, s, 2) * 0.14;
+    parts.push(limb(R * 0.75, R * 0.12, [Math.cos(a) * R * 0.6, 0.14, Math.sin(a) * R * 0.6], [Math.cos(a) * l, -0.01, Math.sin(a) * l], 5));
   }
-  const g = flat(mergeGeometries(parts.map((q) => (q.index ? q.toNonIndexed() : q))), (p, i) => tip.copy(bark).lerp(dark, THREE.MathUtils.clamp(1 - p.getY(i), 0, 1) * 0.5));
-  g.computeBoundingBox(); g.computeBoundingSphere(); return g;
+  for (let i = 0; i < forks; i++) { // branches lean outward into the crown
+    const a = i * Math.PI * 2 / forks + 0.5 + hash(i, s, 3) * 0.5, out = 0.32 + hash(i, s, 4) * 0.2, top = 0.92 + hash(i, s, 5) * 0.3;
+    parts.push(limb(R * 0.62, R * 0.22, [-0.02, 0.52, 0.04], [Math.cos(a) * out, top, Math.sin(a) * out], 6));
+  }
+  const g = mergeGeometries(parts); g.deleteAttribute('uv'); g.computeVertexNormals();
+  const p = g.attributes.position, c = new Float32Array(p.count * 3);
+  for (let i = 0; i < p.count; i++) tip.copy(dark).lerp(bark, THREE.MathUtils.clamp(p.getY(i) * 1.6 + 0.25, 0, 1)).toArray(c, i * 3);
+  g.setAttribute('color', new THREE.BufferAttribute(c, 3)); g.computeBoundingBox(); g.computeBoundingSphere(); return g;
 }
