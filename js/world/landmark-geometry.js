@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { SURFACE as S, townhouseMaterials } from './building-slice-materials.js';
+import { SURFACE as S, townhouseMaterials, addFloodlight } from './building-slice-materials.js';
 import { PALETTE as P } from './palette.js';
 import { blockMaterial } from './textures.js';
 import { RIVERSIDE_KNOTS, riversideRoofAt } from './riverside.js';
@@ -24,6 +24,8 @@ function getLightMats(){
   wash.onBeforeCompile=strip(0,0).onBeforeCompile;wash.customProgramCacheKey=()=>'landmark-light-wash';
   return lightMats={warm:strip('#ffc27a',2.4),cool:strip('#dfe9ff',3.2),wash};
 }
+// Night floodlight per landmark (reference photos): sodium-gold wash on the Se and Westminster, cool white on Wembley, lit windows on the Copan.
+const FLOOD={se:['#ffa63d',0,.8],bigben:['#ffb44f',0,.75],wembley:['#e8f2ff',0,.5],copan:['#ffab52',1,1]};
 function archShape(w,h){const r=w/2,sh=h-w*.85,s=new THREE.Shape();s.moveTo(-r,0);s.lineTo(r,0);s.lineTo(r,sh);s.lineTo(0,h);s.lineTo(-r,sh);s.closePath();return s;}
 // Dedicated landmarks share the city atlas; only silhouette/depth belongs in geometry.
 function landmark(name,x,z){
@@ -93,6 +95,7 @@ function landmark(name,x,z){
     buckets.forEach((parts,i)=>{if(!parts.length)return;const g=mergeGeometries(parts,false);parts.forEach(p=>p.dispose());g.computeBoundingBox();g.computeBoundingSphere();const mesh=new THREE.Mesh(g,i===2?mats.glass:mats.architecture);mesh.name=name+'-'+['mass','trim','glass'][i];mesh.castShadow=i===0;mesh.receiveShadow=true;group.add(mesh);});
     const lm=getLightMats();
     L.forEach((parts,i)=>{if(!parts.length)return;const g=mergeGeometries(parts,false);parts.forEach(p=>p.dispose());g.computeBoundingBox();g.computeBoundingSphere();const mesh=new THREE.Mesh(g,[lm.warm,lm.cool,lm.wash][i]);mesh.name=name+'-'+['lightsWarm','lightsCool','wash'][i];mesh.castShadow=false;mesh.receiveShadow=false;group.add(mesh);});
+    if(FLOOD[name]){const b=new THREE.Box3();group.children.forEach(m=>{if(!m.name.endsWith('wash'))b.union(m.geometry.boundingBox)});b.translate(group.position);addFloodlight(b,...FLOOD[name]);}
     group.userData.dispose=()=>group.children.forEach(m=>m.geometry.dispose());return group;
   }
   return {group,box,add,beam,ring,gothic,sweep,finish,lit,lbox,lbeam,stone,pale,slate};

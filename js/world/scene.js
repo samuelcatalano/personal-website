@@ -12,6 +12,7 @@ import { buildPhoneBoxes } from './phone.js';
 import { buildLampPosts } from './street-lamp.js';
 import { buildBackdrop } from './backdrop.js';
 import { buildLandmarks } from './landmarks.js';
+import { resetFloodlights } from './building-slice-materials.js';
 import { polishLandmarkMaterials } from './landmark-materials.js';
 import { buildVehicle } from './vehicles.js';
 import { createMood } from './mood.js';
@@ -67,6 +68,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const g = proto.clone(); g.position.set(x, y, z); g.userData.phase = i * 1.3; return g;
   });
   const SPIN = 0.45; // rad/s
+  resetFloodlights(); // landmark builders re-register their night floodlight boxes
   const { eye, details } = buildLandmarks(add, stops, pts, (x, z, shape) => treePlacements.push({ x, z, ...shape }));
   const plane = buildVehicle('a330'), planeAt = ukStart(stops) / (n - 1), { nav, strobe, shadow } = plane.userData; // flies past the bus at the first UK stop
   plane.visible = shadow.visible = nav.visible = strobe.visible = false;

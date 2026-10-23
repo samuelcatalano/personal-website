@@ -74,8 +74,41 @@ function makeMaps() {
   });
 }
 
+// Night floodlights for landmarks (world-space boxes, so the shared materials stay shared). mode 0: warm/cool wash brightest at
+// the base, fading up the facade, walls more than roofs. mode 1: scattered lit window cells (Copan). Driven by the glass uNight.
+const FLOOD_MAX = 8, flood = { count: { value: 0 }, box: { value: Array.from({ length: FLOOD_MAX }, () => new THREE.Vector4()) }, y: { value: Array.from({ length: FLOOD_MAX }, () => new THREE.Vector2()) }, tone: { value: Array.from({ length: FLOOD_MAX }, () => new THREE.Vector4()) } };
+export function addFloodlight(bounds, color, mode = 0, gain = 1) {
+  const i = flood.count.value; if (i >= FLOOD_MAX) return;
+  flood.box.value[i].set(bounds.min.x - 0.3, bounds.max.x + 0.3, bounds.min.z - 0.3, bounds.max.z + 0.3); flood.y.value[i].set(bounds.min.y, bounds.max.y);
+  const c = new THREE.Color(color).multiplyScalar(gain); flood.tone.value[i].set(c.r, c.g, c.b, mode); flood.count.value = i + 1;
+}
+export function resetFloodlights() { flood.count.value = 0; }
+const FLOOD_GLSL = `uniform int uFloodCount; uniform vec4 uFloodBox[${FLOOD_MAX}]; uniform vec2 uFloodY[${FLOOD_MAX}]; uniform vec4 uFloodTone[${FLOOD_MAX}]; uniform float uFloodNight; varying vec3 vFloodP;
+  float floodHash(vec3 c){ return fract(sin(dot(c, vec3(12.9898, 78.233, 37.719))) * 43758.5453); }
+  vec3 floodlight(vec3 albedo, vec3 n, bool glass){
+    vec3 e = vec3(0.0);
+    for (int i = 0; i < ${FLOOD_MAX}; i++) {
+      if (i >= uFloodCount) break;
+      vec4 b = uFloodBox[i]; if (vFloodP.x < b.x || vFloodP.x > b.y || vFloodP.z < b.z || vFloodP.z > b.w || vFloodP.y > uFloodY[i].y + 0.5) continue;
+      vec4 t = uFloodTone[i]; float h = clamp((vFloodP.y - uFloodY[i].x) / max(1.0, uFloodY[i].y - uFloodY[i].x), 0.0, 1.0);
+      if (t.w < 0.5) { float face = 0.22 + 0.78 * pow(max(0.0, dot(n, normalize(vec3(0.25, 0.25, 1.0)))), 1.3); // lamps on the street side, below
+        e += albedo * t.rgb * (1.0 - 0.8 * smoothstep(0.0, 1.0, h)) * (1.0 + 0.8 * (1.0 - smoothstep(0.0, 0.12, h))) * face * (glass ? 0.3 : 1.0); }
+      else if (glass) { vec3 c = floor(vec3(vFloodP.x / 1.3, vFloodP.y / 3.0, vFloodP.z / 1.3)); float r = floodHash(c);
+        e += step(0.64, r) * mix(t.rgb, vec3(0.95, 0.97, 1.0), step(0.95, r)) * (0.55 + 0.6 * floodHash(c + 7.0)); }
+      else e += albedo * t.rgb * 0.18 * (1.0 - h); // warm spill on the ribbons
+    }
+    return e * uFloodNight;
+  }`;
+function floodShader(shader, glass) {
+  Object.assign(shader.uniforms, { uFloodCount: flood.count, uFloodBox: flood.box, uFloodY: flood.y, uFloodTone: flood.tone, uFloodNight: night });
+  shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vFloodP;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvFloodP = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+  shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\n' + FLOOD_GLSL)
+    .replace('#include <opaque_fragment>', `outgoingLight += floodlight(diffuseColor.rgb, inverseTransformDirection(normal, viewMatrix), ${glass});\n#include <opaque_fragment>`);
+}
+const night = { value: 0 };
+
 function metricAtlas(material) {
-  material.customProgramCacheKey=()=> material.name+'-metric-atlas-v5';
+  material.customProgramCacheKey=()=> material.name+'-metric-atlas-v6';
   material.onBeforeCompile=shader=>{
     shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nattribute float aSurface; varying float vSliceSurface; varying float vSliceY;').replace('#include <begin_vertex>','#include <begin_vertex>\nvSliceSurface = aSurface; vSliceY = (modelMatrix * vec4(position,1.0)).y;');
     shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
@@ -99,7 +132,7 @@ function metricAtlas(material) {
       shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
         { vec2 c=floor(vMapUv/vec2(1.0,2.0)); float h=fract(sin(dot(c,vec2(12.9898,78.233)))*43758.5453);
           totalEmissiveRadiance*=(0.88+0.24*h)*vec3(1.0,0.97+0.06*h,0.92+0.14*h); }`);
-      shader.uniforms.uGlassNight=material.userData.uNight??(material.userData.uNight={value:0});
+      shader.uniforms.uGlassNight=night;
       shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
 uniform float uGlassNight;
 ${GLASS_REFLECTION}`);
@@ -112,6 +145,7 @@ ${GLASS_REFLECTION}`);
         outgoingLight=mix(outgoingLight,glassReflection(reflected,uGlassNight),reflectionWeight);
         #include <opaque_fragment>`);
     }
+    floodShader(shader, material.name==='slice-glass');
   };
   return material;
 }
@@ -121,6 +155,6 @@ export function townhouseMaterials() {
   const [map,normalMap,orm,emissiveMap]=makeMaps();
   const architecture=metricAtlas(new THREE.MeshStandardMaterial({name:'slice-architecture',vertexColors:true,map,normalMap,normalScale:new THREE.Vector2(.65,.65),roughnessMap:orm,metalnessMap:orm,roughness:1,metalness:1}));
   const glass=metricAtlas(new THREE.MeshStandardMaterial({name:'slice-glass',vertexColors:true,map,roughness:.24,metalness:0,emissiveMap}));
-  glass.userData={analyticReflection:true,glow:true,glowColor:new THREE.Color('#fff2dc'),glowK:1.05};
+  glass.userData={analyticReflection:true,glow:true,glowColor:new THREE.Color('#fff2dc'),glowK:1.05,uNight:night}; // sky.js drives night for glass + floodlights
   return shared={architecture,glass};
 }
