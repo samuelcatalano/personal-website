@@ -50,7 +50,7 @@ function towerBridge(add, { x }) {
 export function buildLandmarks(add, stops, pts, onTree) {
   const details = new THREE.Group(); details.name = 'landmark-details';
   const ben = at(stops, pts, 'bigben');
-  details.add(createBigBen(ben.x, RIVER_Z - 16), clockFaces(ben.x, RIVER_Z - 16));
+  details.add(createBigBen(ben.x, RIVER_Z - 16), clockFaces(ben.x, RIVER_Z - 14.5)); // faces follow the tower (TZ in createBigBen)
   details.add(towerBridge(add, { x: towerX(stops, pts) }));
   const { wheel, frame } = createLondonEye(at(stops, pts, 'eye').x, RIVER_Z + 13); details.add(frame);
   details.add(createWembley(at(stops, pts, 'wembley').x, RIVER_Z - 26));

@@ -135,24 +135,25 @@ export function createWembley(x,z){
 
 export function createBigBen(x,z){
   const {box,add,finish,stone,pale,slate}=landmark('bigben',x,z);
-  box(0,0,0,5,.8,5);box(0,.8,0,4.5,17.2,4.5);
-  for(const dx of [-2.28,2.28])for(const dz of [-2.28,2.28])box(dx,.8,dz,.44,17,.44,S.stone,pale);
+  const TZ=1.5,tb=(x,y,z,...r)=>box(x,y,z+TZ,...r),ta=(g,x,y,z,...r)=>add(g,x,y,z+TZ,...r); // tower front flush with the Parliament river frontage
+  tb(0,0,0,5,.8,5);tb(0,.8,0,4.5,17.2,4.5);
+  for(const dx of [-2.28,2.28])for(const dz of [-2.28,2.28])tb(dx,.8,dz,.44,17,.44,S.stone,pale);
   for(const y of [3.2,8,12.8])for(const side of [-1,1]){
-    box(0,y,side*2.27,.9,3.2,.07,S.door,[.66,.74,.80],2);
-    box(side*2.27,y,0,.07,3.2,.9,S.door,[.66,.74,.80],2);
-    for(const dx of [-.56,.56]){box(dx,y-.12,side*2.42,.18,3.45,.3,S.trim,pale,1);box(side*2.42,y-.12,dx,.3,3.45,.18,S.trim,pale,1);}
+    tb(0,y,side*2.27,.9,3.2,.07,S.door,[.66,.74,.80],2);
+    tb(side*2.27,y,0,.07,3.2,.9,S.door,[.66,.74,.80],2);
+    for(const dx of [-.56,.56]){tb(dx,y-.12,side*2.42,.18,3.45,.3,S.trim,pale,1);tb(side*2.42,y-.12,dx,.3,3.45,.18,S.trim,pale,1);}
   }
-  for(const y of [.75,7.6,12.4,17.5])box(0,y,0,5.1,.22,5.1,S.trim,pale,1);
-  box(0,18,0,6,6,6);
-  for(const dx of [-2.78,2.78])for(const dz of [-2.78,2.78])box(dx,18,dz,.42,6.5,.42,S.trim,pale,1);
-  for(const y of [17.8,23.5,24.2])box(0,y,0,6.2,.3,6.2,S.trim,pale,1);
+  for(const y of [.75,7.6,12.4,17.5])tb(0,y,0,5.1,.22,5.1,S.trim,pale,1);
+  tb(0,18,0,6,6,6);
+  for(const dx of [-2.78,2.78])for(const dz of [-2.78,2.78])tb(dx,18,dz,.42,6.5,.42,S.trim,pale,1);
+  for(const y of [17.8,23.5,24.2])tb(0,y,0,6.2,.3,6.2,S.trim,pale,1);
   // A tapered four-sided roof and corner pinnacles give the clock chamber a hierarchy.
-  add(new THREE.CylinderGeometry(1.25,3.4,5.8,4,1,false,Math.PI/4),0,27.5,0,S.roof,slate);
-  box(0,30.4,0,1.65,1,1.65,S.stone,stone);
-  add(new THREE.ConeGeometry(1.18,2,4,1,false,Math.PI/4),0,32.4,0,S.roof,slate);
-  box(0,33.4,0,.18,.6,.18,S.trim,pale,1);
+  ta(new THREE.CylinderGeometry(1.25,3.4,5.8,4,1,false,Math.PI/4),0,27.5,0,S.roof,slate);
+  tb(0,30.4,0,1.65,1,1.65,S.stone,stone);
+  ta(new THREE.ConeGeometry(1.18,2,4,1,false,Math.PI/4),0,32.4,0,S.roof,slate);
+  tb(0,33.4,0,.18,.6,.18,S.trim,pale,1);
   for(const dx of [-2.55,2.55])for(const dz of [-2.55,2.55]){
-    box(dx,24.5,dz,.42,1.2,.42);add(new THREE.ConeGeometry(.38,1.8,4,1,false,Math.PI/4),dx,26.6,dz,S.roof,slate);
+    tb(dx,24.5,dz,.42,1.2,.42);ta(new THREE.ConeGeometry(.38,1.8,4,1,false,Math.PI/4),dx,26.6,dz,S.roof,slate);
   }
   // Parliament uses a recessed arcade, buttress rhythm and a continuous pitched roof.
   box(20,0,0,34,.65,8);box(20,.65,0,33,6.75,5.8);
