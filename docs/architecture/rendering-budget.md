@@ -186,3 +186,15 @@ A/B vs HEAD (3 runs each, same harness):
 | Stack 13.5 | ~622 → ~690 (+11%) | 1,028.4k → 1,242.0k (+21%) | 9.2–9.6 → 8.4–9.6 ms | ~190 → ~201 | 269.5k → 313.5k (+16%) | 9.8–10.0 → 9.6–10.0 ms |
 
 Medians stay at 8.3 ms (120 Hz cap); p95 within ±1 ms desktop / ±2 ms mobile. Most of the triangle growth is the 3D trees across colour/normal/shadow passes (chunking cut it from +50 % to +24 % at stop 10). 102/102 Node tests, 34/34 browser suites, zero console errors.
+
+## Scene polish pass — 2026-10-23
+
+Legacy lots → rollout recipes, gap-fill lots (+106), roof/palette variety, instanced lamp posts, clustered tree crowns, lens-glow headlamps. A/B against 173a2f9 (perf3, REPS 2, desktop 1440×900 DPR 1.5 / mobile 375×812):
+
+| View | Calls (base → new) | Tris (base → new) | Frame median / p95 |
+|---|---|---|---|
+| São Paulo 1.5 desktop | ~620 → ~640 | 1.18 M → 1.35 M | 8.3 / 8.7–9.0 ms (both) |
+| London 13.2 desktop | ~680 → ~675 | 1.23 M → 1.59 M | 8.3 / 8.7–9.2 ms (both) |
+| London 13.2 mobile | ~197 → ~198 | 313 k → 383 k | 8.3 / 9.0–9.2 ms (both) |
+
+Frame time sits at the 120 Hz cap on this machine, so the triangle increase is not yet visible in timing; heap +30–40 MiB. Tree triangles stay under the 250 k test budget (235 k).
