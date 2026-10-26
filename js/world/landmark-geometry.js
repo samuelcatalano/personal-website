@@ -201,10 +201,10 @@ export function createMasp(x,z){
   // Night (reference photos): uplit red portals (additive wash hugging each column, brightest at the foot; the body stays dark), a few gallery windows lit.
   const glow=[1,.03,.02]; // pure red: any green in an additive wash over the red paint reads orange
   for(const dx of [-17,17]){
-    for(const dz of [-5.5,5.5])lit(2,new THREE.BoxGeometry(1.9,14.1,1.7),dx,7.05,dz,.6,.38,glow);
-    lit(2,new THREE.BoxGeometry(2.1,1.48,12.98),dx,14.85,0,.4,.4,glow);
+    for(const dz of [-5.5,5.5])lit(2,new THREE.BoxGeometry(1.9,14.1,1.7),dx,7.05,dz,.09,0,glow);
+    lit(2,new THREE.BoxGeometry(2.1,1.48,12.98),dx,14.85,0,.025,.025,glow);
   }
-  for(const dz of [-5.55,5.55])lit(2,new THREE.BoxGeometry(40,1.53,1.43),0,14.375,dz,.4,.4,glow); // the long top beams glow too
+  for(const dz of [-5.55,5.55])lit(2,new THREE.BoxGeometry(40,1.53,1.43),0,14.375,dz,.025,.025,glow); // the long top beams glow too
   const group=finish();
   addFloodlight(new THREE.Box3(v(x-16.1,5.35,z-6),v(x+16.1,13.1,z+6)),'#ffe1b5',1,1); // glass only; window grid starts 3.2 m above the box: one gallery floor in the band
   return group;
