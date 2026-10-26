@@ -84,7 +84,7 @@ export function buildGlasgow(add, { x, z: roadZ }, onTree, createChambers, creat
 
 // Green, residential Glasgow edges (own rng, nothing else shifts): the approach between the countryside and George Square (low houses and sandstone flats on the near bank, leaving the museum and university sightlines open) and the Scottish edge after the square.
 // [dx from the square, kind (h house, t tenement), setback from the road centre]; the square itself spans dx +-20, so nothing sits there.
-const EDGE = [[-104, 'h', 16], [-93, 't', 27], [-82, 'h', 19], [-71, 't', 25], [-60, 'h', 21], [-49, 't', 28], [-38, 'h', 17], [28, 'h', 17], [39, 't', 26], [49, 'h', 20]];
+const EDGE = [[-104, 'h', 16], [-93, 't', 27], [-82, 'h', 19], [-71, 't', 25], [-60, 'h', 21], [-49, 't', 28], [-38, 'h', 17], [28, 'h', 17], [39, 't', 26], [49, 'h', 20], [62, 'h', 19], [74, 't', 27], [86, 'h', 17]];
 export function buildGlasgowEdges(add, stops, pts, curve, tree, onArchitecturePlot) {
   const r = rng(3319), q = rng(4421), g = pts[stopIndex(stops, LANDMARKS.glasgow)].x, path = Array.from({ length: 241 }, (_, i) => curve.getPointAt(i / 240));
   const zr = (x) => path.reduce((a, p) => Math.abs(p.x - x) < Math.abs(a.x - x) ? p : a).z, taken = [], free = (x, z, d) => taken.every(([a, b, c]) => Math.hypot(a - x, b - z) > d + c);
@@ -94,7 +94,7 @@ export function buildGlasgowEdges(add, stops, pts, curve, tree, onArchitecturePl
     if (kind === 'h') {
       if (onArchitecturePlot) onArchitecturePlot({ id: `glasgow-house-${dx}`, kind: 'terrace', x, z, width: w, depth: d, height: 2 * 3.1 + (back > 20 ? 0.6 : 2.7) });
       house(onArchitecturePlot ? () => {} : add, q, x, z, 1, w, d, 2, 3.1, back > 20);
-    } else draw(add, x, z, [w, d, 2 + (r() < 0.4), 3.4, r() < 0.7 ? P.redSand : P.sandstone, P.white, 0, 1], r, q, false, false, onArchitecturePlot, `glasgow-tenement-${dx}`);
+    } else draw(add, x, z, [w, d, 2 + (r() < 0.4) + (back > 20 && r() < 0.25), 3.4, r() < 0.7 ? P.redSand : P.sandstone, P.white, 0, 1], r, q, false, false, onArchitecturePlot, `glasgow-tenement-${dx}`);
     taken.push([x, z, w / 2 + 2.5]);
   }
   for (let i = 0; i < 46; i++) { // trees: near-bank strip and a few on the camera side (low, <= 4.8 m)

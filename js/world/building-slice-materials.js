@@ -93,9 +93,10 @@ const FLOOD_GLSL = `uniform int uFloodCount; uniform vec4 uFloodBox[${FLOOD_MAX}
       vec4 t = uFloodTone[i]; float h = clamp((vFloodP.y - uFloodY[i].x) / max(1.0, uFloodY[i].y - uFloodY[i].x), 0.0, 1.0);
       if (t.w < 0.5) { float face = 0.22 + 0.78 * pow(max(0.0, dot(n, normalize(vec3(0.25, 0.25, 1.0)))), 1.3); // lamps on the street side, below
         e += albedo * t.rgb * (1.0 - 0.8 * smoothstep(0.0, 1.0, h)) * (1.0 + 0.8 * (1.0 - smoothstep(0.0, 0.12, h))) * face * (glass ? 0.3 : 1.0); }
-      else if (glass) { vec3 c = floor(vec3(vFloodP.x / 1.3, vFloodP.y / 3.0, vFloodP.z / 1.3)); float r = floodHash(c);
-        e += step(0.7, r) * mix(t.rgb, vec3(0.95, 0.97, 1.0), step(0.96, r)) * (0.22 + 0.24 * floodHash(c + 7.0)); } // as soft as the city's lit panes
-      else e += albedo * t.rgb * 0.06 * (1.0 - h); // faint warm spill on the ribbons
+      else if (glass) { float y = vFloodP.y - uFloodY[i].x, base = 1.0 - step(3.2, y), gridY = y - 3.2 * (1.0 - base);
+        vec2 bay = vec2(floor((vFloodP.x - b.x) / 1.5), floor(gridY / 3.0)), pane = vec2(fract((vFloodP.x - b.x) / 1.5), fract(gridY / 3.0));
+        float side = step(0.0, n.z), r = floodHash(vec3(bay, side)), window = step(0.14, pane.x) * (1.0 - step(0.86, pane.x)) * step(0.18, pane.y) * (1.0 - step(0.78, pane.y));
+        e += t.rgb * (window * step(3.2, y) * step(0.72, r) * (0.2 + 0.12 * floodHash(vec3(bay + 7.0, side))) + window * base * step(0.98, r) * 0.08); }
     }
     return e * uFloodNight;
   }`;

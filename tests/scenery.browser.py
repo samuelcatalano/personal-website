@@ -3,17 +3,23 @@ assert page_info()['url'].startswith(('http://localhost:', 'http://127.0.0.1:'))
 print(js("""(async () => {
   const T = await import('three');
   const { stops } = await import('./js/content.js');
-  const { routePoints, routeCurve } = await import('./js/world/layout.js');
+  const { routePoints, routeCurve, regions } = await import('./js/world/layout.js');
   const { buildCity } = await import('./js/world/city.js');
   const { buildLandmarks } = await import('./js/world/landmarks.js');
   const { buildBackdrop } = await import('./js/world/backdrop.js?qa=' + Date.now());
   const { shotFor, SECTION_SHOT } = await import('./js/world/camera.js');
   const { PALETTE: P } = await import('./js/world/palette.js');
-  const pts = routePoints(stops.length), curve = routeCurve(T, pts), city = [], landmarks = [], distant = [];
+  const pts = routePoints(stops.length), curve = routeCurve(T, pts), city = [], landmarks = [], distant = [], rgs = regions(stops, pts);
   const collect = out => (x,y,z,w,h,d,color) => out.push({x,y,z,w,h,d,color});
   buildCity(collect(city), stops, pts, curve);
   buildLandmarks(collect(landmarks), stops, pts);
   buildBackdrop(collect(distant), stops, pts);
+  for (const { ctry: [x0, x1] } of rgs) {
+    const country = city.filter(b => b.x >= x0 && b.x < x1), buildings = country.filter(b => b.y === 0 && b.h >= 5 && b.w >= 6);
+    if (buildings.length < 25) throw Error('Country region lacks urban buildings '+x0+'–'+x1);
+    if (country.some(b => [P.field, P.field2, P.hill].includes(b.color))) throw Error('Rural field or hill ground remains in country region '+x0+'–'+x1);
+    if (country.some(b => b.h >= 20 && b.w < 3 && b.d < 3)) throw Error('Tall turbine-like structure remains in country region '+x0+'–'+x1);
+  }
   const rear = city.filter(b => b.z === -108 && b.y === 0 && b.h >= 3);
   const side = city.filter(b => b.y === 0 && b.h >= 3 && b.w >= 5 && (b.x <= pts[0].x - 90 && b.z >= -99 || b.x === pts[0].x - 13 && b.z === -3));
   const greens = [P.field, P.field2, P.hill];

@@ -2,6 +2,10 @@
 
 Current measurement record frozen2026-10-21. Final visual approval is recorded in [architecture](3d-city.md); technical release remains blocked by the coplanar-face regression. The final milestone below supersedes earlier operational references; dated measurements remain evidence, **not global performance guarantees**. Follow AGENTS.md validation levels.
 
+## 2026-10-23 scope update
+
+The user reopened the Glasgow/country and distant-horizon art for an urban replacement: remove turbine and rural-field scenery, use varied residential buildings and midrise flats with bounded gardens, and keep the existing map, roads, routes, landmarks and roof forms. The former citywide aggregate triangle ceiling is removed; report measured triangle counts as workload evidence, not a pass/fail gate. Per-building geometry limits, shared-resource/batching rules, culling, and memory budgets remain applicable. No performance or release GO is implied before scoped browser measurements.
+
 ## Shared resources and scaling
 
 - Townhouse family: **2 shared materials**, **4 shared maps**, approximately **4.33 MiB** of texture payload including mipmaps. Reuse the same resources across buildings/chunks; variation does not add materials/maps.

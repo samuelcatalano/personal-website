@@ -175,9 +175,9 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
     phoneBox(add, x, z, Math.atan2(t.z * side, -t.x * side)); // door faces the road
     kiosks.push([x, z]);
   }
-  const rotors = rgs.flatMap((rg, leg) => buildCountry(add, curve, drawTree, rg.ctry, leg, onArchitecturePlot));
+  rgs.forEach((rg, leg) => buildCountry(add, curve, drawTree, rg.ctry, leg, onArchitecturePlot));
   buildGlasgowEdges(add, stops, pts, curve, drawTree, onArchitecturePlot);
   buildBlocks(add, stops, pts, curve, occ, onBuildingPlot, onArchitecturePlot);
   buildParks(add, stops, pts, curve, occ, onTree, onPublicRealm); // after the blocks: own rng, reads the free plazas, never shifts a block
-  return { rotors, lamps }; // turbine hub positions [x, y, z]
+  return { lamps };
 }

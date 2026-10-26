@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { buildGlasgow } from '../js/world/glasgow.js';
+import { buildGlasgowEdges } from '../js/world/glasgow.js';
+import { stops } from '../js/content.js';
+import { buildCity } from '../js/world/city.js';
+import { routePoints, stopIndex } from '../js/world/layout.js';
 import { PALETTE as P } from '../js/world/palette.js';
 
 const BRONZE_DK = '#4a3a22';
@@ -31,4 +35,32 @@ test('Glasgow includes the Duke of Wellington horse, rider, and traffic cone', (
   assert.ok(at(-0.2, 6.2, -20, P.bronze) && at(-0.2, 7.6, -20, P.bronze), 'rider torso and head');
   assert.ok(boxes.some((b) => b.color === '#f36b21' && near(b.x, -0.2) && b.y >= 8 && b.h >= 0.6 && b.z > -25 && b.z < -12), 'orange cone sits on the rider');
   assert.ok(boxes.some((b) => b.color === P.white && near(b.x, -0.2) && b.y >= 9 && b.z > -25 && b.z < -12), 'cone has its white band');
+});
+
+test('Glasgow exit keeps a varied row of houses and midrise tenements', () => {
+  const pts = routePoints(stops.length), plots = [], curve = { getPointAt(u) {
+    const f = u * (pts.length - 1), i = Math.min(Math.floor(f), pts.length - 2), t = f - i;
+    return { x: pts[i].x + (pts[i + 1].x - pts[i].x) * t, z: pts[i].z + (pts[i + 1].z - pts[i].z) * t };
+  } };
+  buildGlasgowEdges(() => {}, stops, pts, curve, () => {}, (plot) => plots.push(plot));
+  assert.ok(plots.some((p) => p.id === 'glasgow-house-86'), 'houses reach the Glasgow exit');
+  assert.ok(plots.some((p) => p.kind === 'midrise' && p.height >= 10), 'sandstone tenements rise above the houses');
+  assert.ok(plots.every((p) => p.x < pts.at(-1).x + 100), 'edge plots stay within the Glasgow neighborhood');
+});
+
+test('Glasgow edge lots do not overlap country street lots', () => {
+  const pts = routePoints(stops.length), plots = [], curve = { getPointAt(u) {
+    const f = u * (pts.length - 1), i = Math.min(Math.floor(f), pts.length - 2), t = f - i;
+    return { x: pts[i].x + (pts[i + 1].x - pts[i].x) * t, z: pts[i].z + (pts[i + 1].z - pts[i].z) * t };
+  }, getTangentAt(u) {
+    const i = Math.min(Math.floor(u * (pts.length - 1)), pts.length - 2), x = pts[i + 1].x - pts[i].x, z = pts[i + 1].z - pts[i].z, l = Math.hypot(x, z);
+    return { x: x / l, z: z / l };
+  } };
+  const g = pts[stopIndex(stops, 'glasgow')].x;
+  buildCity(() => {}, stops, pts, curve, undefined, undefined, (plot) => plots.push(plot));
+  const edges = plots.filter((p) => p.id.startsWith('glasgow-') && p.x > g + 45), country = plots.filter((p) => p.id.startsWith('country-'));
+  assert.ok(edges.length > 0 && country.length > 0, 'both Glasgow edge and country lots are generated');
+  for (const a of edges) for (const b of country) {
+    assert.ok(Math.abs(a.x - b.x) >= (a.width + b.width) / 2 || Math.abs(a.z - b.z) >= (a.depth + b.depth) / 2, `${a.id} overlaps ${b.id}`);
+  }
 });

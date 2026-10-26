@@ -1,0 +1,183 @@
+{
+  "source": {
+    "before": "git archive HEAD",
+    "after": "candidate snapshot of working tree at validation time"
+  },
+  "runtime": {
+    "browser": "Chrome 156",
+    "gpu": "ANGLE Metal, Apple M3 Max",
+    "measurement": "2 s warmup then 10 s of renderer.info per post.render; final post-clearance sample counts 601 frames; snapshot-only instrumentation disabled adaptive tier downgrades"
+  },
+  "devices": {
+    "desktop": {
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "dpr": 1.5
+      },
+      "tier": "high",
+      "camera": "normal route camera, stop 11 (Glasgow)",
+      "frames": {
+        "before": 601,
+        "after": 600
+      },
+      "rafIntervalMs": {
+        "median": {
+          "before": 16.5,
+          "after": 16.69999998807907
+        },
+        "p95": {
+          "before": 18.600000023841858,
+          "after": 18.30000001192093
+        }
+      },
+      "drawCalls": {
+        "median": {
+          "before": 563,
+          "after": 546
+        },
+        "p95": {
+          "before": 571,
+          "after": 558
+        }
+      },
+      "trianglesPerPostRender": {
+        "median": {
+          "before": 1403757,
+          "after": 5496641
+        },
+        "p95": {
+          "before": 1417793,
+          "after": 5518161
+        }
+      },
+      "memory": {
+        "geometries": {
+          "before": 511,
+          "after": 294
+        },
+        "textures": {
+          "before": 40,
+          "after": 34
+        }
+      },
+      "consoleErrors": {
+        "before": [],
+        "after": []
+      },
+      "afterSample": "post-clearance fix"
+    },
+    "mobile": {
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "dpr": 1
+      },
+      "tier": "medium",
+      "camera": "normal route camera, stop 11 (Glasgow)",
+      "frames": {
+        "before": 601,
+        "after": 601
+      },
+      "rafIntervalMs": {
+        "median": {
+          "before": 16.69999998807907,
+          "after": 16.69999998807907
+        },
+        "p95": {
+          "before": 18.30000001192093,
+          "after": 18.69999998807907
+        }
+      },
+      "drawCalls": {
+        "median": {
+          "before": 172,
+          "after": 172
+        },
+        "p95": {
+          "before": 172,
+          "after": 173
+        }
+      },
+      "trianglesPerPostRender": {
+        "median": {
+          "before": 302932,
+          "after": 2311456
+        },
+        "p95": {
+          "before": 302932,
+          "after": 2311520
+        }
+      },
+      "memory": {
+        "geometries": {
+          "before": 168,
+          "after": 173
+        },
+        "textures": {
+          "before": 27,
+          "after": 27
+        }
+      },
+      "consoleErrors": {
+        "before": [],
+        "after": []
+      },
+      "afterSample": "post-clearance fix"
+    }
+  },
+  "checks": {
+    "sceneryBrowser": {
+      "pass": true,
+      "url": "http://127.0.0.1:8000/",
+      "rearBuildings": 56,
+      "sideBuildings": 24,
+      "distantBuildings": 1375,
+      "backdropBoxes": 169754,
+      "errors": [],
+      "state": "post-clearance fix"
+    },
+    "citywideBrowser": {
+      "pass": true,
+      "url": "http://127.0.0.1:8000/",
+      "lots": 619,
+      "chunks": 182,
+      "renderables": 546,
+      "triangles": 775282,
+      "materials": 2,
+      "maps": 4,
+      "geometryMiB": 140.27316284179688,
+      "state": "post-clearance fix"
+    },
+    "zfightBrowser": {
+      "baseline": {
+        "pass": true,
+        "source": "saved git HEAD snapshot",
+        "url": "http://127.0.0.1:8071/",
+        "lists": [
+          "world:26272"
+        ]
+      },
+      "initialCandidateBeforeClearance": {
+        "pass": false,
+        "findingCount": 1,
+        "finding": "world top-face overlap between new Glasgow exits (houses 62/74/86) and country leg1 B/B2 start"
+      },
+      "finalCandidate": {
+        "pass": true,
+        "url": "http://127.0.0.1:8000/",
+        "lists": [
+          "world:26743"
+        ]
+      },
+      "classification": "initial candidate regression resolved by narrowing B/B2 country leg1 start to a+24m in js/world/country.js"
+    },
+    "nodeSuites": {
+      "pass": true,
+      "passed": 48,
+      "failed": 0,
+      "suites": 7,
+      "source": "parent-reported targeted Node run after clearance fix"
+    }
+  }
+}

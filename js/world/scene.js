@@ -30,6 +30,7 @@ import { createPost } from './post.js';
 import { createRoadMarks } from './roadmarks.js';
 import { loadVehicleAsset, adoptVisual, upgradeBus, upgradeMini, initVehicleEnv, updateVehicleEnv } from './vehicle-assets.js';
 import { createUnderpass } from './underpass.js';
+import { upgradeWellington } from './wellington-asset.js';
 const BUS_LANE = 1.75, SCROLL_SMOOTH = 0.18, ARC = 10;
 export async function createWorld(canvas, stops, { reducedMotion = false, onProgress = () => {} } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -58,16 +59,10 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   scene.add(backdrop);
   const { add, list } = createBoxes();
   const treePlacements = [], buildingPlots = [], architecturePlots = [], publicRealmZones = [];
-  const { rotors: hubs, lamps } = buildCity(add, stops, pts, curve, (x, z, shape) => treePlacements.push({ x, z, ...shape }), plot => buildingPlots.push(plot), plot => architecturePlots.push(plot), zone => publicRealmZones.push(zone));
+  const { lamps } = buildCity(add, stops, pts, curve, (x, z, shape) => treePlacements.push({ x, z, ...shape }), plot => buildingPlots.push(plot), plot => architecturePlots.push(plot), zone => publicRealmZones.push(zone));
   const heroRealm=publicRealmZones.length?createHeroRealm():null;
   if(heroRealm)scene.add(heroRealm);
   const realCity = buildRealCity(architecturePlots);
-  const blade = createBoxes(); blade.add(-0.25, 0, -0.15, 0.5, 9, 0.3, P.white); blade.add(-0.5, -0.5, -0.4, 1, 1, 0.8, P.white); // blade + hub cap
-  const bm = buildMeshes(blade.list), proto = new THREE.Group().add(...[0, 1, 2].map((k) => { const c = bm.clone(); c.rotation.z = k * Math.PI * 2 / 3; return c; }));
-  const rotors = hubs.map(([x, y, z], i) => { // 3 blades at 120deg; clones share geometry + materials
-    const g = proto.clone(); g.position.set(x, y, z); g.userData.phase = i * 1.3; return g;
-  });
-  const SPIN = 0.45; // rad/s
   resetFloodlights(); // landmark builders re-register their night floodlight boxes
   const { eye, details } = buildLandmarks(add, stops, pts, (x, z, shape) => treePlacements.push({ x, z, ...shape }));
   const plane = buildVehicle('a330'), planeAt = ukStart(stops) / (n - 1), { nav, strobe, shadow } = plane.userData; // flies past the bus at the first UK stop
@@ -93,7 +88,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   polishLandmarkMaterials(world,stops,pts);
   const motion = buildMotion(); scene.add(motion.group);
   const roadMarks = createRoadMarks(curve, stops);
-  scene.add(world, eye, details, plane, shadow, bus, ...rotors, roadMarks);
+  scene.add(world, eye, details, plane, shadow, bus, roadMarks);
   const units = [createAmbient(scene, { curve, pts, stops, reducedMotion })];
   const people = createPeople(scene, { curve, pts, stops, reducedMotion });
   const water = createWater({ x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z: RIVER_Z, width: 22 });
@@ -103,6 +98,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   initVehicleEnv(renderer);   upgradeMini(mini, { isDisposed: () => disposed });   upgradeBus(londonBus, 'london', { isDisposed: () => disposed }); upgradeBus(glasgowBus, 'glasgow', { isDisposed: () => disposed }); // one authored bus GLB, two palettes (tools/vehicles/double-decker-bus)
   loadVehicleAsset('a330').then((glb) => { if (glb && !disposed) adoptVisual(plane, glb, ['nav', 'strobe']); }); // authored A330 (tools/vehicles/a330); procedural stays on failure
   const wake = () => { if (!disposed && !raf && !document.hidden) raf = requestAnimationFrame(frame); };
+  const wellington = details.getObjectByName('wellington-geometry');
+  if (wellington) upgradeWellington(wellington, () => disposed).then(wake);
   const figure = buildFigure(wake);
   const end = curve.getPointAt(1), endTan = curve.getTangentAt(1), near = new THREE.Vector3(-endTan.z, 0, endTan.x).normalize();
   figure.position.set(end.x + endTan.x * 9 + near.x * 2, 0, end.z + endTan.z * 9 + near.z * 2);
@@ -202,7 +199,6 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     sun.target.position.copy(LU).multiplyScalar(a).addScaledVector(LV, b).addScaledVector(LD, bp.dot(LD));
     sun.position.copy(sun.target.position).add(SUN);
     eye.rotation.z = clock * 0.1; motion.uT.value = clock;
-    for (const g of rotors) g.rotation.z = -clock * SPIN + g.userData.phase; // clockwise seen from +z
     updatePlane(t);
     const f = { time: clock, dt, progress: p, t, active: nearestStop(p, n, marks), bus: busPos };
     onProgress(p);

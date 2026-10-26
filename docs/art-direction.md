@@ -46,3 +46,7 @@ Historical material-only result: landmark silhouettes were still NO-GO at this s
 Wembley uses a continuous tapered bowl, open elliptical roof, recessed glazing/ground entrances and continuous tubular arch with structural supports. Big Ben retains four clock faces and gains a tapered roof/pinnacle hierarchy; Parliament has articulated major masses, recessed pointed openings and roof rhythm. MASP retains its suspended volume/free span, with two red portals and longitudinal edge girders. All preserve anchors/envelopes and reuse the existing shared atlas without another material polish, external assets or new lights.
 
 The final five normal/diagnostic smoke views (main, skyline, Wembley, London, MASP) preserve the approved result. No new polish or rollout occurred during the final milestone. Physical mobile remains unvalidated; runtime-dependent metrics and the concrete technical blocker are tracked in the rendering budget.
+
+## Glasgow and horizon update — 2026-10-23
+
+The user reopened the rural Glasgow/country fill and distant horizon: replace farms, wind turbines and broad green backdrops with varied urban houses, sandstone tenements and midrise flats, paved streets and small bounded gardens. Preserve the route, roads, lot footprints, landmark sightlines, walking paths and roof shapes. The aggregate triangle-count ceiling was removed, so it is no longer a pass/fail gate; roof geometry remains unchanged. No GO is declared before root validation.

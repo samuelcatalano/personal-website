@@ -25,11 +25,11 @@ function getLightMats(){
   return lightMats={warm:strip('#ffc27a',2.4),cool:strip('#dfe9ff',3.2),wash};
 }
 // Night floodlight per landmark (reference photos): sodium-gold wash on the Se and Westminster, cool white on Wembley, lit windows on the Copan.
-const FLOOD={se:['#ffa63d',0,.8],bigben:['#ffb44f',0,.75],wembley:['#e8f2ff',0,.5],copan:['#ffab52',1,1]};
+const FLOOD={se:['#ffa63d',0,.8],bigben:['#ffb44f',0,.75],wembley:['#e8f2ff',0,.5],copan:['#ffe1b5',1,.75]};
 function archShape(w,h){const r=w/2,sh=h-w*.85,s=new THREE.Shape();s.moveTo(-r,0);s.lineTo(r,0);s.lineTo(r,sh);s.lineTo(0,h);s.lineTo(-r,sh);s.closePath();return s;}
 // Dedicated landmarks share the city atlas; only silhouette/depth belongs in geometry.
-function landmark(name,x,z){
-  const group=new THREE.Group(),buckets=[[],[],[]],L=[[],[],[]];group.name=name+'-geometry';group.position.set(x,0,z);
+function landmark(name,x,z,scale=1){
+  const group=new THREE.Group(),buckets=[[],[],[]],L=[[],[],[]];group.name=name+'-geometry';group.position.set(x,0,z);group.scale.setScalar(scale);
   const stone=[1,1,.98],pale=[1.12,1.13,1.15],slate=[.87,.96,1.04];
   function add(g,x,y,z,surface=S.stone,tint=stone,bucket=0){
     if(g.index){const source=g;g=source.toNonIndexed();source.dispose();}
@@ -95,14 +95,14 @@ function landmark(name,x,z){
     buckets.forEach((parts,i)=>{if(!parts.length)return;const g=mergeGeometries(parts,false);parts.forEach(p=>p.dispose());g.computeBoundingBox();g.computeBoundingSphere();const mesh=new THREE.Mesh(g,i===2?mats.glass:mats.architecture);mesh.name=name+'-'+['mass','trim','glass'][i];mesh.castShadow=i===0;mesh.receiveShadow=true;group.add(mesh);});
     const lm=getLightMats();
     L.forEach((parts,i)=>{if(!parts.length)return;const g=mergeGeometries(parts,false);parts.forEach(p=>p.dispose());g.computeBoundingBox();g.computeBoundingSphere();const mesh=new THREE.Mesh(g,[lm.warm,lm.cool,lm.wash][i]);mesh.name=name+'-'+['lightsWarm','lightsCool','wash'][i];mesh.castShadow=false;mesh.receiveShadow=false;group.add(mesh);});
-    if(FLOOD[name]){const b=new THREE.Box3();group.children.forEach(m=>{if(!m.name.endsWith('wash'))b.union(m.geometry.boundingBox)});b.translate(group.position);addFloodlight(b,...FLOOD[name]);}
+    if(FLOOD[name]){const b=new THREE.Box3();group.children.forEach(m=>{if(!m.name.endsWith('wash'))b.union(m.geometry.boundingBox)});b.min.multiply(group.scale);b.max.multiply(group.scale);b.translate(group.position);addFloodlight(b,...FLOOD[name]);}
     group.userData.dispose=()=>group.children.forEach(m=>m.geometry.dispose());return group;
   }
   return {group,box,add,beam,ring,gothic,sweep,finish,lit,lbox,lbeam,stone,pale,slate};
 }
 
 export function createWembley(x,z){
-  const {box,add,beam,ring,finish,lit,lbeam,pale}=landmark('wembley',x,z);
+  const {box,add,beam,ring,finish,lit,lbeam,pale}=landmark('wembley',x,z,1.25);
   // Tapered continuous bowl and an open roof replace the old ring of overlapping cubes.
   ring([[18,12.8,6.2],[18.3,13.1,7.8],[17.8,12.6,8.5],[13.8,8.7,8.5],[13.5,8.4,6.2]],S.stone,pale);
   ring([[18.4,13.3,8.5],[18.2,13.1,9],[11.5,6.5,8.6],[11.5,6.5,8.35]],S.trim,pale);
@@ -408,7 +408,7 @@ export function createCopan({x,z,len,amp,depth,h}){
   sweep(rect(-D,D,0,F),path,N,S.stone,dark);                                   // commercial base
   sweep(rect(-D+.75,D-.75,F,h-.5),path,N,S.stone,dark);                        // core behind the glazing
   for(const k of [1,-1]){
-    sweep(k>0?[[D+.03,.5],[D+.03,F-.6]]:[[-D-.03,F-.6],[-D-.03,.5]],path,N,S.litGlass,glass,2,false); // lit shopfronts
+    sweep(k>0?[[D+.03,.5],[D+.03,F-.6]]:[[-D-.03,F-.6],[-D-.03,.5]],path,N,S.glass,glass,2,false); // restrained lobby panes are selected by the night mask
     sweep(k>0?[[D-.72,F],[D-.72,h-.5]]:[[-D+.72,h-.5],[-D+.72,F]],path,N,S.glass,glass,2,false);
   }
   for(let y=F;y<h-.5;y+=3)sweep(rect(-D,D,y,y+.65),path,N,S.plaster,white);   // one continuous projecting ribbon per floor

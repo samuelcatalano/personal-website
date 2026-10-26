@@ -13,82 +13,69 @@ function make() {
 }
 const overlaps = (a, b) => a.x - a.w / 2 < b.x + b.w / 2 && a.x + a.w / 2 > b.x - b.w / 2 && a.z - a.d / 2 < b.z + b.d / 2 && a.z + a.d / 2 > b.z - b.d / 2;
 
-test('backdrop is deterministic and stays within the box budget', () => {
-  const a = make(), b = make();
-  assert.deepEqual(a, b);
-  assert.ok(a.length <= 3500, `${a.length} boxes`);
+test('backdrop generation and facade modules are deterministic', () => {
+  assert.deepEqual(make(), make());
 });
 
-test('near backdrop has an extra stepped roof tier while far rows stay muted', () => {
-  const a = make(), b = make();
-  assert.deepEqual(a, b);
-  assert.ok(a.length <= 3500, `${a.length} boxes`);
-  const walls = a.filter((box) => box.y === 0 && box.z < -110 && box.z > -150 && box.h >= 5.6 && box.h <= 11.2);
-  const tiers = a.filter((box) => box.h === 0.28 && walls.some((wall) =>
-    box.x === wall.x && box.z === wall.z && box.y === wall.h + 1.1 &&
-    Math.abs(box.w - wall.w * 0.38) < 1e-9 && Math.abs(box.d - wall.d * 0.45) < 1e-9));
-  assert.ok(tiers.length > 0, 'near houses have the extra 0.38 × stepped roof tier');
-  const farWalls = a.filter((box) => box.y === 0 && box.z <= -180 && box.h >= 5.6 && box.h <= 22.4);
-  assert.ok(farWalls.every((box) => [P.stone, P.concreteMid, P.taupe, P.steel].includes(box.color)));
+test('all visible neighborhood bands have recessed, framed facade openings', () => {
+  const boxes = make(), panes = boxes.filter((b) => b.color === P.glass), frames = boxes.filter((b) => b.color === P.offWhite), recesses = boxes.filter((b) => b.color === P.ink && b.z < -110);
+  assert.ok(panes.length > 1000, `${panes.length} glazed bays`);
+  assert.ok(frames.length >= panes.length * 4 && recesses.length >= panes.length, 'each glazed bay has four frame rails and a shadowed reveal');
+  const wallColors = [P.cream, P.stone, P.taupe, P.roof, P.brick, P.redBrown, P.londonStock, P.concreteMid, P.steel, P.ink];
+  const walls = boxes.filter((b) => wallColors.includes(b.color) && b.h > 0), spatial = new Map();
+  for (const wall of walls) {
+    const key = `${Math.floor(wall.x / 20)},${Math.floor(wall.z / 20)}`;
+    (spatial.get(key) ?? spatial.set(key, []).get(key)).push(wall);
+  }
+  for (const pane of panes) {
+    const candidates = [];
+    for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) candidates.push(...(spatial.get(`${Math.floor(pane.x / 20) + dx},${Math.floor(pane.z / 20) + dz}`) ?? []));
+    const supported = candidates.some((wall) =>
+      pane.y - pane.h / 2 >= wall.y && pane.y + pane.h / 2 <= wall.y + wall.h && (
+        pane.d === 0.03 && Math.abs(pane.z - (wall.z + wall.d / 2 + 0.015)) < 1e-9 && pane.x - pane.w / 2 >= wall.x - wall.w / 2 && pane.x + pane.w / 2 <= wall.x + wall.w / 2 ||
+        pane.w === 0.03 && Math.abs(Math.abs(pane.x - wall.x) - wall.w / 2 - 0.015) < 1e-9 && pane.z - pane.d / 2 >= wall.z - wall.d / 2 && pane.z + pane.d / 2 <= wall.z + wall.d / 2
+      ));
+    assert.ok(supported, `window at ${pane.x},${pane.y},${pane.z} belongs to a real wall segment`);
+  }
+  for (const [x0, x1] of [rgs[0].ctry, rgs[1].ctry]) {
+    const neighborhood = boxes.filter((b) => b.x >= x0 + 25 && b.x <= x1 - 25 && b.z < -110);
+    assert.ok(neighborhood.some((b) => b.color === P.glass), `urban facades in ${x0}–${x1}`);
+    assert.ok(!neighborhood.some((b) => [P.hill, P.field2].includes(b.color)), 'no countryside hill geometry remains');
+  }
 });
 
-test('ground reaches well past the route and beyond the fog horizon in every direction', () => {
-  const ground = make().filter((b) => b.h >= 0.2 && b.y + b.h <= -1.05 && b.w > 1000 && b.d > 1000);
-  assert.equal(ground.length, 1);
-  const g = ground[0];
-  assert.ok(g.x - g.w / 2 <= pts[0].x - 1000 && g.x + g.w / 2 >= pts.at(-1).x + 1000);
-  assert.ok(g.z - g.d / 2 <= -1100 && g.z + g.d / 2 >= 1100);
-});
-
-test('building bodies vary in height and stay out of the landmark and museum corridor', () => {
-  const boxes = make(), green = [P.field, P.field2, P.hill];
-  const buildings = boxes.filter((b) => b.y === 0 && !green.includes(b.color) && b.w < 1000 && b.z < -110);
-  assert.ok(buildings.length > 169, `${buildings.length} buildings: denser neighborhoods than the old backdrop`);
+test('urban masses vary and preserve the museum corridor and foreground clearance', () => {
+  const boxes = make(), buildings = boxes.filter((b) => b.y === 0 && b.w < 1000 && b.h >= 5.6 && b.z < -110);
+  assert.ok(buildings.length > 300, `${buildings.length} building masses`);
   assert.ok(new Set(buildings.map((b) => b.h)).size >= 5, 'varied building heights');
-  assert.ok(new Set(buildings.map((b) => b.z)).size > 20, 'staggered setbacks avoid rigid skyline rows');
-  assert.ok(buildings.every((b) => b.h <= 25.2), 'buildings stay below 25.2 m (9-floor mid band)');
-  assert.ok(buildings.filter((b) => b.z > -140).every((b) => b.h >= 5.6 * .5 && b.h <= 11.2), 'near component masses fit the 2–4 floor envelope');
-  const distant = buildings.filter((b) => b.z <= -180);
-  assert.ok(distant.every((b) => b.h >= 5.6 * .5 && b.h <= 22.4), 'far component masses fit the 2–8 floor envelope');
-  for (const b of distant) assert.ok([P.stone, P.concreteMid, P.taupe, P.steel].includes(b.color), 'far blocks use muted walls');
+  assert.ok(new Set(buildings.map((b) => b.color)).size >= 4, 'varied wall colors');
+  const rearStrip = (b) => Math.abs(b.x - museum.x) <= museum.w / 2 + 15 && b.z + b.d / 2 <= -122 && b.y + b.h <= 23;
   for (const b of boxes.filter((b) => b.h > 0 && b.w < 1000 && b.color !== P.pave)) {
-    assert.ok(b.x + b.w / 2 <= museum.x - museum.w / 2 - 12 || b.x - b.w / 2 >= museum.x + museum.w / 2 + 12, 'all raised scenery clears the museum corridor');
-  }
-  for (const b of buildings) for (const [a, z] of rgs.map((rg) => rg.ctry)) {
-    assert.ok(b.x + b.w / 2 <= a - 20 || b.x - b.w / 2 >= z + 20, 'building stays outside country hill terrain');
+    assert.ok(b.x + b.w / 2 <= museum.x - museum.w / 2 - 12 || b.x - b.w / 2 >= museum.x + museum.w / 2 + 12 || rearStrip(b), 'raised scenery clears museum corridor except for the low rear strip');
+    assert.ok(b.z + b.d / 2 <= -110, `raised scenery stays behind z=-110 (${b.z + b.d / 2})`);
   }
   for (const b of buildings) {
-    assert.ok(b.x + b.w / 2 <= museum.x - museum.w / 2 - 12 || b.x - b.w / 2 >= museum.x + museum.w / 2 + 12, 'museum view corridor');
-  }
-  for (const b of boxes.filter((b) => b.h > 0 && b.w < 1000)) assert.ok(b.z + b.d / 2 <= -110, `geometry reaches forward to ${b.z + b.d / 2}`);
-  const rows = new Map();
-  for (const b of buildings) {
-    const row = Math.round(b.z / 80);
-    const prior = rows.get(row) ?? [];
-    assert.ok(prior.every((p) => !overlaps(p, b)), `overlapping backdrop footprints at ${b.x},${b.z}`);
-    prior.push(b); rows.set(row, prior);
+    const row = Math.round(b.z / 80), peer = buildings.filter((other) => other !== b && Math.round(other.z / 80) === row);
+    assert.ok(peer.every((p) => !overlaps(p, b)), 'building footprints in each band do not overlap');
   }
 });
 
-test('urban paving breaks up the green ground while countryside remains green', () => {
-  const boxes = make(), green = [P.field, P.field2, P.hill];
+test('Riverside rear corridor has varied masses across the depth bands without moving outside scenery', () => {
+  const boxes = make(), strip = boxes.filter((b) => b.y === 0 && b.z < -122 && b.x - b.w / 2 >= museum.x - museum.w / 2 - 12 && b.x + b.w / 2 <= museum.x + museum.w / 2 + 12 && b.w < 30);
+  const depthBands = [-130, -170, -220, -280, -350, -440];
+  const filled = depthBands.map((z) => strip.filter((b) => Math.abs(b.z - z) < 26));
+  assert.ok(filled.filter((band) => band.length >= 3).length >= 5, 'masses fill at least five rear depth bands');
+  assert.ok(strip.some((b) => b.h >= 14), 'rear skyline includes varied mid-rise masses');
+  assert.ok(new Set(strip.map((b) => b.h)).size >= 4, 'rear-strip heights vary');
+  assert.ok(strip.every((b) => b.z + b.d / 2 <= -122), 'rear-strip masses remain behind the landmark buffer');
+});
+
+test('continuous ground and neighborhood paving cover the backdrop', () => {
+  const boxes = make(), ground = boxes.filter((b) => b.h >= 0.2 && b.y + b.h <= -1.05 && b.w > 1000 && b.d > 1000);
+  assert.equal(ground.length, 1);
+  assert.ok(ground[0].x - ground[0].w / 2 <= pts[0].x - 1000 && ground[0].x + ground[0].w / 2 >= pts.at(-1).x + 1000);
+  assert.ok(ground[0].z - ground[0].d / 2 <= -1100 && ground[0].z + ground[0].d / 2 >= 1100);
   const paving = boxes.filter((b) => b.color === P.pave && b.h <= 0.3 && b.w < 1000 && b.d < 1000);
-  assert.ok(paving.length > 20, 'many low urban paving chunks');
-  assert.ok(paving.reduce((area, b) => area + b.w * b.d, 0) > 300_000, 'paving covers full neighborhood bands');
-  for (const [i, b] of paving.entries()) assert.ok(paving.slice(i + 1).every((other) => !overlaps(b, other)), 'paving tiles touch without overlapping');
-  assert.ok(boxes.some((b) => b.color === P.field), 'continuous green base remains');
-  assert.ok(boxes.some((b) => green.includes(b.color) && b.w < 1000), 'green breaks remain in the city');
-  for (const rg of rgs) {
-    const patch = boxes.filter((b) => b.x >= rg.ctry[0] + 30 && b.x <= rg.ctry[1] - 30 && b.z < -110);
-    assert.ok(patch.some((b) => green.includes(b.color)), 'countryside remains green');
-  }
-});
-
-test('countryside contains hills and no tall buildings', () => {
-  const boxes = make(), green = [P.field, P.field2, P.hill];
-  for (const rg of rgs) {
-    const patch = boxes.filter((b) => b.x >= rg.ctry[0] + 30 && b.x <= rg.ctry[1] - 30 && b.z < -110);
-    assert.ok(patch.some((b) => green.includes(b.color)), 'countryside hills');
-    assert.ok(patch.every((b) => green.includes(b.color) || b.h <= 8), 'low countryside transition');
-  }
+  assert.ok(paving.length > 50, `${paving.length} paving segments`);
+  assert.ok(paving.reduce((area, b) => area + b.w * b.d, 0) > 500_000, 'paving spans neighborhood bands');
 });

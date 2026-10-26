@@ -16,12 +16,12 @@ export function createRoadMarks(curve, stops) {
     const at = (F, s) => [F.p.x + F.nx * (o + s * w / 2), F.p.z + F.nz * (o + s * w / 2)];
     quad(at(A, 1), at(B, 1), at(B, -1), at(A, -1), color);
   };
-  const zebras = stops.map((_, i) => curve.getPointAt(Math.min(1, i / (stops.length - 1) + 9 / len))), ZEBRA_CLEAR = 3.4; // m from a crossing's centre (1.4 m half-length + 2 m): no centre line through it
+  const zebras = stops.map((_, i) => curve.getPointAt(Math.min(1, i / (stops.length - 1) + 9 / len))), ZEBRA_CLEAR = 3.4, FIRST_ZEBRA_END = 9 + ZEBRA_CLEAR; // m from a crossing's centre (1.4 m half-length + 2 m): no centre line through it
   for (let k = 0; k < n; k++) {
     const u0 = k / n, u1 = (k + 1) / n, br = (u0 + u1) / 2 < swap;
     const mid = curve.getPointAt((u0 + u1) / 2), atZebra = zebras.some((z) => Math.hypot(z.x - mid.x, z.z - mid.z) < ZEBRA_CLEAR);
     for (const o of [-HALF, HALF]) strip(u0, u1, o, 0.12, WHITE);
-    if (atZebra) continue;
+    if (atZebra || (br && u0 * len < FIRST_ZEBRA_END)) continue;
     if (br) for (const o of [-0.11, 0.11]) strip(u0, u1, o, 0.1, YELLOW);
     else if (k % 5 < 2) strip(u0, u1, 0, 0.12, WHITE); // 2.4 m dash, 3.6 m gap
   }

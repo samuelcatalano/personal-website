@@ -15,6 +15,11 @@ result = js(r'''(async () => {
     const curbs = local.filter(([,y,,w,h,d]) => h >= 0.08 && h <= 0.18 && Math.max(w,d) <= 0.8 && Math.min(w,d) >= 0.15 && y < 0.2);
     // lane markings are curve-following ribbons in roadmarks.js (2026-10-21); count dash quads in the pilot span
     const marks = window.__roadMarks, mp = marks.geometry.getAttribute('position');
+    const mc = marks.geometry.getAttribute('color'), yellow = new T.Color('#e9b93a'), initialClearEnd = curve.getPointAt(12.4 / curve.getLength()).x - 0.2;
+    for (let i = 0; i < mp.count; i++) {
+      if (Math.abs(mc.getX(i) - yellow.r) + Math.abs(mc.getY(i) - yellow.g) + Math.abs(mc.getZ(i) - yellow.b) > 1e-5) continue;
+      check(mp.getX(i) >= initialClearEnd, 'yellow centre marks must start after the initial zebra buffer');
+    }
     let stripes = []; for (let i = 0; i < mp.count; i += 6) { const x = mp.getX(i), z = mp.getZ(i); if (x >= minX && x <= maxX && Math.abs(z - curve.getPointAt(0.5).z) < 30) stripes.push(i); }
     const crosses = local.filter(([,y,,w,h,d,c]) => c === '#e6dcc4' && h <= 0.06 && Math.max(w,d) > 8 && Math.min(w,d) < 0.7);
     const variationPatches = additions.filter(([,y,,w,h,d,c]) => c === '#d8cfb8' && y > 0.1 && h < 0.01 && w >= 0.4 && w <= 0.6 && d >= 0.4 && d <= 0.6);

@@ -217,11 +217,25 @@ test('nextTier drops high to medium on low fps and never climbs', () => {
   assert.equal(nextTier('medium', [120]), 'medium');
 });
 
-test('buildCountry returns 3 turbine hubs per leg', async () => {
-  const { buildCountry, HUB_Y } = await import('../js/world/country.js');
-  const curve = { getPointAt: (t) => ({ x: t * 1000, z: 0 }) }, hubs = buildCountry(() => {}, curve, () => {}, [0, 1000], 0);
-  assert.equal(hubs.length, 3);
-  assert.ok(hubs.every(([, y]) => y === HUB_Y));
+test('former Glasgow countryside is paved and urban, with no turbines or field hills', async () => {
+  const { buildCountry } = await import('../js/world/country.js'), { PALETTE: P } = await import('../js/world/palette.js');
+  const curve = { getPointAt: (t) => ({ x: t * 1000, z: 0 }) };
+  for (const leg of [0, 1]) {
+    const boxes = [], plots = [];
+    const hubs = buildCountry((x, y, z, w, h, d, color) => boxes.push({ x, y, z, w, h, d, color }), curve, () => {}, [0, 1000], leg, (p) => plots.push(p));
+    assert.deepEqual(hubs, []);
+    assert.ok(!boxes.some((b) => [P.field, P.field2, P.hill].includes(b.color)), 'no rural field or hill ground');
+    assert.ok(plots.length >= 100, `dense lots on leg ${leg}`);
+    assert.ok(plots.some((p) => p.kind === 'midrise' && p.height >= 12), 'midrise flats punctuate the houses');
+    assert.ok(plots.some((p) => p.kind === 'terrace'), 'detailed terraces remain in the urban mix');
+    const masses = boxes.filter((b) => b.y === 0 && b.h > 3);
+    assert.ok(masses.every((b) => b.z + b.d / 2 <= -60 || b.z - b.d / 2 >= -30), 'country buildings stay outside the river and bank path');
+    assert.ok(masses.every((b) => b.z - b.d / 2 >= -121), 'country buildings stop before the distant horizon');
+    for (let i = 0; i < masses.length; i++) for (let j = i + 1; j < masses.length; j++) {
+      const a = masses[i], b = masses[j];
+      assert.ok(Math.abs(a.x - b.x) >= (a.w + b.w) / 2 || Math.abs(a.z - b.z) >= (a.d + b.d) / 2, 'country building footprints do not overlap');
+    }
+  }
 });
 
 test('outskirts: each former-countryside stretch is built up with houses, and nothing sits on the road band', async () => {
