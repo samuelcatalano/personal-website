@@ -1,6 +1,6 @@
 # Prompt: sky, clouds, sun, moon and rain upgrade
 
-> Hand this whole file to the implementing agent. Part 1 of 4 in the graphics upgrade
+> Written for OpenAI Codex (also works for any coding agent). Hand this whole file over as the task. Part 1 of 4 in the graphics upgrade
 > (sky/weather → background → more buildings → pedestrians). "Owner decision" items are fixed;
 > "agent's call" items are defaults you may tune after captures.
 
@@ -12,7 +12,7 @@ to make the **sky and weather** look rich and believable in a stylized way, with
 hero feature**. Every capture of the site shows the sky, so this pass changes the mood of every
 scene. Make it feel like a hand-art-directed game sky, not a two-colour gradient with stickers.
 
-Read first: `CLAUDE.md`, `docs/art-direction.md`, `docs/architecture/rendering-budget.md`,
+Read first: `AGENTS.md` (project rules; same file as `CLAUDE.md`), `docs/art-direction.md`, `docs/architecture/rendering-budget.md`,
 `docs/plans/north-star-full-scene-upgrade.md` (North Star = stylized golden-hour city,
 saturated blue sky, sparkling water).
 
@@ -176,8 +176,15 @@ Update `docs/art-direction.md` (sky/weather section) and `docs/audits/full-scene
 - `node --test tests/` (mood tests must stay green; add a small test if you add mood fields
   such as `wet` or `storm`).
 - Captures, same shots every time: SP stop 5, London stop 9.5, Glasgow stop 11, each in day and
-  night, plus one mid-transition (sunset) and one mobile 375 px. The repo scratchpad tool
-  `live.py` (env `OUT`, `POS`, `THEME`, `WAIT`) via `browser-harness` does this.
+  night, plus one mid-transition (sunset) and one mobile 375 px. Serve with
+  `python3 -m http.server 8000`, open `http://localhost:8000/`, set the theme with
+  `localStorage.setItem('theme','night'|'day')` and reload, wait for `body.world-ready`, then
+  scroll to a stop: `const s=await import('/js/scroll.js'),c=await import('/js/content.js'),
+  L=await import('/js/world/layout.js'); const n=c.stops.length,m=s.stopMarks(L.routePoints(n));
+  scrollTo({top:s.scrollYForStop(i,n,document.documentElement.scrollHeight,innerHeight,m)})`
+  (stop ids: 5 = São Paulo, 9/10 = London, 11 = Glasgow). Use whatever headless browser your
+  environment provides; if you have none, say so and list the shots for the owner to check.
+  Do not install npm packages to get one.
 - Reduced motion: rain static/off, no drift, no twinkle, no lightning. WebGL off: site usable.
 - Zero console errors.
 - Performance A/B only at slice 4/5 and the end (paired p95 per `rendering-budget.md`), not for
