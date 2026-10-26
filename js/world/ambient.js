@@ -116,12 +116,14 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
         }
         // still in (or already back in) the lane while turning: fixed leaders for the spacing, so nobody drives through them
         const turning = bridge.filter((b) => b.phase === 'path' && (b.kind === 'in' ? b.s < sIn : b.s > sOut))
-          .map((b) => ({ p: invP(b.kind === 'in' ? uIn - b.s / len : uOut + (paths.out.plen - b.s) / len), len: b.len, v: b.v, fixed: true }));
-        const act = auto.filter((v) => v.active).concat(road, turning).sort((a, b) => a.p - b.p); // spacing: clamp behind the leader (next lower progress, wrapping)
+          .map((b) => ({ tt: b.kind === 'in' ? uIn - b.s / len : uOut + (paths.out.plen - b.s) / len, at: b.mesh.position, len: b.len, v: b.v, fixed: true }));
+        // spacing on real distance: curve t (getPointAt) is only roughly arc length (coarse three.js table: 12 'm' of t can be 6 m), progress p even less
+        const act = auto.filter((v) => v.active).concat(road).map((v) => Object.assign(v, { tt: tOf(v), at: null })).concat(turning).sort((a, b) => a.tt - b.tt);
+        const where = (v) => v.at ?? laneAt(v.tt, new THREE.Vector3()); // lane points, like the turning cars' real positions
         for (let pass = 0; pass < 2; pass++) act.forEach((v, i) => {
-          if (act.length < 2 || v.fixed) return;
-          const lead = act[(i + act.length - 1) % act.length], lp = i ? lead.p : lead.p - 1, min = ((v.len + lead.len) / 2 + GAP) / len;
-          if (v.p - lp < min) { v.p = wrap(lp + min); v.v = Math.min(v.v, lead.v); }
+          if (!i || v.fixed) return; // ponytail: no wrap pair (route ends are never both in view)
+          const lead = act[i - 1], min = (v.len + lead.len) / 2 + GAP, d = where(v).distanceTo(where(lead));
+          if (d < min) { v.tt = Math.min(v.tt + 1.5 / len, lead.tt + (v.tt - lead.tt) * min / Math.max(d, 0.1) + (d < 0.1 ? min / len : 0)); v.p = invP(Math.min(1, v.tt)); v.v = Math.min(v.v, lead.v); } // at most ~1.5 m back per pass (two passes)
         });
       }
       here.copy(curve.getPointAt(Math.min(1, Math.max(0, route))));
@@ -152,7 +154,11 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
           b.v += Math.max(-DEC * dt, Math.min(ACC * dt, b.base - b.v));
           let s1 = b.s + b.v * dt;
           if (kind === 'out' && b.s <= sOut - b.len / 2 - 0.5 && s1 > sOut - b.len / 2 - 0.5 && (lane.some((v) => { const t = tOf(v); return t > merge[0] && t < merge[1]; }) || bridge.some((o) => o.kind === 'in' && o.phase === 'path' && o.s < sIn + 6))) { s1 = b.s; b.v = 0; } // give way to the avenue (and to a car turning in) before pulling out
-          if (i) { const lead = onPath[i - 1], max = lead.s - (lead.len + b.len) / 2 - GAP; if (s1 > max) { s1 = Math.max(b.s, max); b.v = Math.min(b.v, lead.v); } }
+          const at = paths[kind].getPointAt(Math.min(1, Math.max(0, s1 / paths[kind].plen))), clear = (v) => at.distanceTo(v.mesh.position) >= (v.len + b.len) / 2 + GAP; // real distance: path s shortens nothing on the bend
+          if (i) { const lead = onPath[i - 1]; if (lead.s - s1 < (lead.len + b.len) / 2 + GAP || !clear(lead)) { s1 = b.s; b.v = Math.min(b.v, lead.v); } }
+          const inLane = kind === 'in' ? s1 < sIn : s1 > sOut - b.len / 2, t1 = kind === 'in' ? uIn - s1 / len : uOut + (paths.out.plen - s1) / len;
+          if (kind === 'in' && s1 < sIn && bridge.some((o) => o.kind === 'out' && o.phase === 'path' && o.s > sOut - o.len / 2 - 0.3)) { s1 = b.s; b.v = 0; } // a car already pulling out (not one waiting at the line) has the junction: wait before turning in
+          if (inLane) for (const v of lane) if (tOf(v) < t1 && !clear(v)) { s1 = b.s; b.v = Math.min(b.v, v.v); } // in the lane: also queue behind the avenue car ahead (incl. the bridge car that just merged)
           b.s = s1;
         });
       }
@@ -165,7 +171,7 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
         } else if (b.s >= path.plen) {
           b.phase = 'road';
           if (b.kind === 'out') b.p = invP(uOut - (b.s - path.plen) / len);
-          else { let D = 25; const busy = (t) => lane.some((v) => v !== b && Math.abs(tOf(v) - t) * len < 10); while (D < 400 && (laneAt(uIn + D / len, tmp).distanceTo(here) < BRIDGE_FAR || busy(uIn + D / len))) D += 5; b.p = invP(uIn + D / len); b.v = b.base; } // next 'in' car starts out of sight, in a free gap
+          else { let D = 25; const busy = (t) => lane.some((v) => v !== b && laneAt(t, tmp).distanceTo(v.mesh.position) < (v.len + b.len) / 2 + GAP + 4); while (D < 400 && (curve.getPointAt(Math.min(1, uIn + D / len)).distanceTo(here) < BRIDGE_FAR || busy(uIn + D / len))) D += 5; b.p = invP(uIn + D / len); b.v = b.base; } // next 'in' car starts out of sight, in a free gap
         }
         const m = b.mesh, x0 = m.position.x, z0 = m.position.z;
         if (b.phase === 'road') { const t = tOf(b), tg = curve.getTangentAt(Math.min(1, Math.max(0, t))); laneAt(t, m.position); m.rotation.set(0, Math.atan2(-tg.z, tg.x) + Math.PI, 0); }
