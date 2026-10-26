@@ -15,8 +15,8 @@ export function leafTexture() {
     const w = hash(i, 2, 9) - 0.5; // slight warm/cool shift per leaf
     g.save(); g.translate(x, y); g.rotate(a);
     g.fillStyle = `rgb(${k + w * 18 | 0},${k | 0},${k - w * 22 | 0})`; g.beginPath(); g.moveTo(-l, 0); g.quadraticCurveTo(0, -l * 0.62, l, 0); g.quadraticCurveTo(0, l * 0.62, -l, 0); g.fill(); // pointed leaf
-    g.strokeStyle = 'rgba(0,0,0,0.16)'; g.lineWidth = 0.8; g.stroke(); // edge: leaves read separately
-    g.strokeStyle = 'rgba(255,255,255,0.18)'; g.beginPath(); g.moveTo(-l * 0.8, 0); g.lineTo(l * 0.8, 0); g.stroke(); // midrib catches the light
+    g.strokeStyle = 'rgba(0,0,0,0.08)'; g.lineWidth = 0.8; g.stroke(); // edge: leaves read separately
+    g.strokeStyle = 'rgba(255,255,255,0.10)'; g.beginPath(); g.moveTo(-l * 0.8, 0); g.lineTo(l * 0.8, 0); g.stroke(); // midrib catches the light
     g.restore();
   }
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
@@ -62,7 +62,7 @@ export function canopyGeometry(type) {
     const m = new THREE.Vector3(ctr[i * 3] / rad, (ctr[i * 3 + 1] - yc) * ys, ctr[i * 3 + 2] / rad), cl = v.clone().sub(m).normalize(); // out of this vertex's clump
     v.normalize().multiplyScalar(0.25).addScaledVector(cl, 0.75); // clump + crown normal: the sun models each lump, the crown stays one volume
     v.set(v.x, v.y * 0.8 + 0.25, v.z).normalize().toArray(nrm, i * 3); // tilted up so tops catch the sky
-    const k = 1.12 * jit[i] * (0.42 + 0.66 * out ** 2) * (0.85 + 0.35 * THREE.MathUtils.clamp((y + 1) / 2, 0, 1)); // inner/underside shade, sunlit top
+    const k = 1.08 * jit[i] * (0.55 + 0.48 * out ** 2) * (0.90 + 0.24 * THREE.MathUtils.clamp((y + 1) / 2, 0, 1)); // inner/underside shade, sunlit top
     col.set([k * 0.95, k, k * (0.86 + 0.06 * (1 - out))], i * 3); // inner shade slightly cooler
   }
   g.setAttribute('normal', new THREE.BufferAttribute(nrm, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3));

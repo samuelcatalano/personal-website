@@ -6,7 +6,7 @@ import { canopyGeometry, trunkGeometry, leafTexture } from './tree-mesh.js';
 const TYPES = ['small', 'medium', 'large'];
 const typeOf = (crown) => (crown < 2.1 ? 'small' : crown < 2.7 ? 'medium' : 'large'); // ponytail: crown is the only size signal; placements carry no type
 const rnd = (x, z, k) => { const s = Math.sin(x * 12.9898 + z * 78.233 + k * 37.719) * 43758.5453; return s - Math.floor(s); };
-const TINTS = [0x63a03c, 0x52903a, 0x74ad46, 0x8fa84a, 0x5f9a40, 0x4d8634]; // vivid leaf greens + one olive (leaf texture and inner shade darken them)
+const TINTS = [0x73934e, 0x638652, 0x879f58, 0x9a9c57, 0x6e915b, 0x597c4b];
 const hsl = {};
 
 export async function createTrees(placements) {
