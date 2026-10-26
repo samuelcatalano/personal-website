@@ -352,20 +352,42 @@ export function createSe(x,z){
   return finish();
 }
 
-// Estaiada carriageway (relative to the bridge site): deck top y, z span, lane offset. Shared with the bridge traffic (ambient.js).
-export const ESTAIADA_DECK={y:4.8,z0:-28,z1:22,lane:1.75};
+// Estaiada carriageway: centreline from the far-bank ground over the river (deck y at the crest) down an S-ramp to a T-junction on the
+// avenue 8 m before the RA stop, clear of the parked bus. World-space stations, shared with the bridge traffic (ambient.js).
+export const ESTAIADA_DECK={y:4.8,lane:1.75,half:3.6};
+export function estaiadaRoute(ex,curve,z=-45){
+  const xj=ex-8;let uj=0;
+  for(let i=0;i<=2000;i++)if(Math.abs(curve.getPointAt(i/2000).x-xj)<Math.abs(curve.getPointAt(uj).x-xj))uj=i/2000;
+  const c=curve.getPointAt(uj),t=curve.getTangentAt(uj),nb=v(t.z,0,-t.x).normalize(),J=c.clone().addScaledVector(nb,4.25).setY(0); // nb: towards the bridge side
+  const A=v(ex,0,z+15.5),F=v(ex,0,z-35),path=new THREE.CurvePath();
+  path.add(new THREE.LineCurve3(F,A));path.add(new THREE.CubicBezierCurve3(A,v(ex,0,z+21.5),J.clone().addScaledVector(nb,6),J));
+  const N=64,len=path.getLength(),c1=29,c2=35,stations=[]; // crest between the far bank (c1 m from the far end) and mid-river (c2)
+  for(let i=0;i<=N;i++){
+    const s=i/N*len,p=path.getPointAt(i/N),tg=path.getTangentAt(i/N),ss=k=>{k=Math.min(1,Math.max(0,k));return k*k*(3-2*k);};
+    const y=Math.max(.075+(ESTAIADA_DECK.y-.075)*(s<c1?ss(s/c1):s<=c2?1:ss((len-s)/(len-c2))),.075+.125*Math.min(1,(len-s)/.3)); // lifts over the kerb
+    stations.push({x:p.x,y,z:p.z,tx:tg.x/Math.hypot(tg.x,tg.z),tz:tg.z/Math.hypot(tg.x,tg.z)});
+  }
+  return {stations,uj,len};
+}
 let deckMats;
-// Main-road asphalt and paint on the deck (São Paulo style: white edges, double yellow centre, no zebra); outside the landmark's three architecture buckets.
-export function estaiadaDeck(x,z){
-  const {y,z0,z1}=ESTAIADA_DECK,L=z1-z0,c=(z0+z1)/2,yellow=new THREE.Color('#e9b93a'),white=new THREE.Color('#ece8de');
-  deckMats??={road:blockMaterial(P.road),paint:new THREE.MeshStandardMaterial({vertexColors:true,roughness:.85,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2})};
-  const road=new THREE.Mesh(new THREE.BoxGeometry(7.2,.06,L).translate(0,y+.03,c),deckMats.road);road.receiveShadow=true;road.name='estaiada-deck';
-  const lines=[[-3.35,.12,white],[3.35,.12,white],[-.11,.1,yellow],[.11,.1,yellow]].map(([o,w,col])=>{const g=new THREE.PlaneGeometry(w,L).rotateX(-Math.PI/2).translate(o,y+.065,c),n=g.attributes.position.count;g.setAttribute('color',new THREE.Float32BufferAttribute(Array.from({length:n},()=>col.toArray()).flat(),3));return g;});
-  const paint=new THREE.Mesh(mergeGeometries(lines),deckMats.paint);paint.receiveShadow=true;paint.name='estaiada-deck-paint';
+// Main-road asphalt and paint (São Paulo style: white edges, double yellow centre, no zebra); outside the landmark's three architecture buckets.
+export function estaiadaDeck(x,z,route){
+  const yellow=new THREE.Color('#e9b93a'),white=new THREE.Color('#ece8de'),st=route.stations;
+  deckMats??={road:Object.assign(blockMaterial(P.road),{polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}),paint:new THREE.MeshStandardMaterial({vertexColors:true,roughness:.85,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2})};
+  const ribbon=(o0,o1,dy,col)=>{ // flat strip between lateral offsets o0..o1 (right of travel far -> near), dy above the deck
+    const pos=[],at=(q,o)=>[q.x-q.tz*o-x,q.y+dy,q.z+q.tx*o-z];
+    for(let i=0;i<st.length-1;i++){const a0=at(st[i],o0),a1=at(st[i],o1),b0=at(st[i+1],o0),b1=at(st[i+1],o1);pos.push(...a0,...a1,...b1,...a0,...b1,...b0);}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(new Float32Array(pos.length/3*2),2));
+    if(col)g.setAttribute('color',new THREE.Float32BufferAttribute(Array.from({length:pos.length/3},()=>col.toArray()).flat(),3));
+    g.computeVertexNormals();return g;
+  };
+  const road=new THREE.Mesh(ribbon(-ESTAIADA_DECK.half,ESTAIADA_DECK.half,.12),deckMats.road);road.receiveShadow=true;road.name='estaiada-deck';
+  const paint=new THREE.Mesh(mergeGeometries([[-3.35,.12,white],[3.35,.12,white],[-.11,.1,yellow],[.11,.1,yellow]].map(([o,w,col])=>ribbon(o-w/2,o+w/2,.15,col))),deckMats.paint);
+  paint.receiveShadow=true;paint.name='estaiada-deck-paint';
   const group=new THREE.Group();group.position.set(x,0,z);group.add(road,paint);return group;
 }
 // ---- Ponte Estaiada: tapered X pylon, deck through it, fans of straight stays ----
-export function createEstaiada(x,z){
+export function createEstaiada(x,z,route){
   const {box,add,finish,lit,lbox,lbeam,pale}=landmark('estaiada',x,z),concrete=[1.04,1.07,1.14],steel=[.9,.95,1.05];
   const loft=(a,b,wa,da,wb,db)=>{
     const g=new THREE.BoxGeometry(1,1,1).toNonIndexed(),p=g.attributes.position,d=b.clone().sub(a).normalize();
@@ -376,17 +398,24 @@ export function createEstaiada(x,z){
     g.computeVertexNormals();return g;
   };
   // Like the real bridge the X pylon stands on the bank (P: 2.5 m past the near bank of the 22 m river), the deck spans the water.
-  const slope=8/28,H=46,lx=y=>-8+y*slope,P=13.5,{z0:Z0,z1:Z1}=ESTAIADA_DECK,DZ=(Z0+Z1)/2,DL=Z1-Z0;
+  const slope=8/28,H=46,lx=y=>-8+y*slope,P=13.5,st=route.stations.map(q=>({...q,x:q.x-x,z:q.z-z}));
   for(const s of [-1,1]){
     add(loft(v(s*lx(.5),.5,0),v(s*lx(H),H,0),3.0,2.8,1.4,1.4),0,0,P,S.plaster,concrete);
     box(s*8,0,P,4.4,1.1,3.6,S.stone,[.9,.92,.96]);
   }
-  box(0,3.6,DZ,8,1.2,DL,S.plaster,concrete); // carriageway: estaiadaDeck
-  for(const pz of [Z0+1.2,Z1-1.2])box(0,0,pz,6.4,3.6,2.4,S.stone,[.9,.92,.96]);
-  for(const s of [-1,1])box(s*3.9,4.8,DZ,.2,.7,DL,S.trim,pale,1);
+  // deck slab + parapets swept along the carriageway stations (asphalt: estaiadaDeck); right of travel far -> near = (-tz, tx)
+  const deck=(profile,surface,tint,bucket=0)=>{
+    const pos=[],P_=(i,j)=>{const q=st[i],[d,y]=profile[j%profile.length];return [q.x-q.tz*d,Math.max(0,q.y+y),q.z+q.tx*d];},tri=(a,b,c)=>pos.push(...a,...b,...c),n=st.length-1;
+    for(let i=0;i<n;i++)for(let j=0;j<profile.length;j++){const A=P_(i,j),B=P_(i,j+1),C=P_(i+1,j+1),D=P_(i+1,j);tri(A,C,B);tri(A,D,C);}
+    for(let j=1;j<profile.length-1;j++){tri(P_(0,0),P_(0,j),P_(0,j+1));tri(P_(n,0),P_(n,j+1),P_(n,j));}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(new Float32Array(pos.length/3*2),2));g.computeVertexNormals();add(g,0,0,0,surface,tint,bucket);
+  };
+  deck([[-4,-1.2],[4,-1.2],[4,0],[-4,0]],S.plaster,concrete);
+  for(const s of [-1,1])deck(s>0?[[3.8,0],[4,0],[4,.7],[3.8,.7]]:[[-4,0],[-3.8,0],[-3.8,.7],[-4,.7]],S.trim,pale,1);
+  const edge=(z,s)=>{const q=st.reduce((a,b)=>Math.abs(b.z-z)<Math.abs(a.z-z)?b:a);return v(q.x+q.tz*s*3.9,q.y+.7,q.z-q.tx*s*3.9);}; // deck edge on the +x (s=1) / -x side nearest z
   // stays: leg A (upper right) feeds the right deck edge, leg B the left
   const ay=[45,42.4,39.8,37.2,34.6,32,29.4],run=[7,10.5,14,17.5,21,24.5,27.4];
-  for(const s of [1,-1])ay.forEach((y,k)=>{for(const d of [-1,1])lbeam(1,v(s*lx(y)*1,y,P),v(s*3.9,5.5,P+(d<0?-run[k]*1.5:run[k]*.3)),.045,.11,4);}); // long stays over the river, short back-stays to land
+  for(const s of [1,-1])ay.forEach((y,k)=>{for(const d of [-1,1])lbeam(1,v(s*lx(y)*1,y,P),edge(P+(d<0?-run[k]*1.5:run[k]*.3),s),.045,.11,4);}); // long stays over the river, short back-stays to land
   // Night: cool edge strips down both pylon legs (inner edge brighter), deck-edge strips, warm base wash.
   for(const s of [-1,1]){
     const a=v(s*lx(.5),.5,0),b=v(s*lx(H),H,0),d=b.clone().sub(a).normalize(),n=v(d.y,-d.x,0);
@@ -394,7 +423,7 @@ export function createEstaiada(x,z){
     for(const e of [-1,1])for(const zs of [-1,1])lbeam(1,at(.08,e,zs),at(1,e,zs),.1,e===s?1:.75,4);
     const th=-s*Math.asin(d.x);
     for(const zs of [-1,1]){const pg=new THREE.PlaneGeometry(2.5,14);pg.rotateZ(th);lit(2,pg,s*lx(7),7.3,P+zs*1.34,.6,0);}
-    lbox(1,s*4.015,4.95,DZ,.03,.4,DL,.6);
+    for(let i=0;i<st.length-1;i++){const e=(q)=>v(q.x+q.tz*s*4.03,q.y+.35,q.z-q.tx*s*4.03);lbeam(1,e(st[i]),e(st[i+1]),.03,.6,4);} // deck-edge strips follow the ramp
   }
   return finish();
 }

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { LANDMARKS, stopIndex, RIVER_Z, towerX, glasgowSites } from './layout.js';
+import { LANDMARKS, stopIndex, RIVER_Z, towerX, glasgowSites, routeCurve } from './layout.js';
 import { PALETTE as P } from './palette.js';
-import { createWembley, createBigBen, createMasp, createSe, createEstaiada, estaiadaDeck, createTowerBridge, createLondonEye, createCopan, createRiverside, createUniversity, createChambers, createWellington } from './landmark-geometry.js';
+import { createWembley, createBigBen, createMasp, createSe, createEstaiada, estaiadaDeck, estaiadaRoute, createTowerBridge, createLondonEye, createCopan, createRiverside, createUniversity, createChambers, createWellington } from './landmark-geometry.js';
 import { buildSaoPaulo } from './saopaulo.js';
 import { createHeroBackground } from './hero-background.js';
 import { createCityRollout } from './city-rollout.js';
@@ -61,7 +61,7 @@ export function buildLandmarks(add, stops, pts, onTree) {
   buildUniversity((x, y, z, w, h, d, c) => add(x, y + uni.lift, z, w, h, d, c), uni, site => details.add(createUniversity(site.x, site.z, uni.lift)));
   flag(add, uni.x, 34.7 + uni.lift, uni.z + 3, 'saltire', 1.1); // finial top
   const backgroundPlots = [];
-  buildSaoPaulo(add, stops, pts, plot => backgroundPlots.push(plot), true, site => details.add(createMasp(site.x, RIVER_Z - 18)), site => details.add(createSe(site.x, RIVER_Z - 18)), site => details.add(createEstaiada(site.x, RIVER_Z), estaiadaDeck(site.x, RIVER_Z)), site => details.add(createCopan(site)));
+  buildSaoPaulo(add, stops, pts, plot => backgroundPlots.push(plot), true, site => details.add(createMasp(site.x, RIVER_Z - 18)), site => details.add(createSe(site.x, RIVER_Z - 18)), site => { const r = estaiadaRoute(site.x, routeCurve(THREE, pts), RIVER_Z); details.add(createEstaiada(site.x, RIVER_Z, r), estaiadaDeck(site.x, RIVER_Z, r)); }, site => details.add(createCopan(site)));
   const control = backgroundPlots.filter(p => p.id.startsWith('paulista-hero-'));
   if (control.length) details.add(createHeroBackground(control));
   const generic = backgroundPlots.filter(p => !p.id.startsWith('paulista-hero-'));
