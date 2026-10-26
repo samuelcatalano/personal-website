@@ -665,6 +665,11 @@ export function createWellington(x,z){
   limb(v(-.15,y0+3.1,0),v(-.1,y0+3.85,0),.34,.3);ell(.36,.5,.34,-.12,y0+3.6,0);               // torso
   limb(v(.0,y0+3.8,.28),v(.75,y0+3.35,.3),.1,.08);limb(v(0,y0+3.8,-.28),v(-.05,y0+3.2,-.4),.1,.08); // arms
   ell(.24,.26,.24,-.1,y0+4.2,0);                                                              // head
-  br(new THREE.ConeGeometry(.3,.75,10),-.1,y0+4.8,0,orange);br(new THREE.CylinderGeometry(.19,.24,.14,10),-.1,y0+4.85,0,white);br(new THREE.CylinderGeometry(.34,.34,.05,10),-.1,y0+4.45,0,orange);
+  // ponytail: fallback omits collar bevels; the GLB carries the chamfered rubber foot.
+  br(new THREE.BoxGeometry(.54,.05,.54),-.1,y0+4.45,0,dk);
+  br(new THREE.CylinderGeometry(.153,.21,.275,12),-.1,y0+4.6125,0,orange);
+  br(new THREE.CylinderGeometry(.105,.153,.23,12),-.1,y0+4.865,0,white);
+  br(new THREE.CylinderGeometry(.043,.105,.30,12),-.1,y0+5.13,0,orange);
+  br(new THREE.CylinderGeometry(.047,.043,.02,12),-.1,y0+5.29,0,orange);
   return finish();
 }

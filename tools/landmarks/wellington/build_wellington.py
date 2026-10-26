@@ -9,7 +9,7 @@ def material(name,color,rough,metal=0):
  return m
 bronze=material('WellingtonBronze',(.105,.125,.105),.64,.28)
 stone=material('WellingtonStone',(.56,.52,.43),.88)
-cone=material('WellingtonCone',(1,1,1),.7)
+cone=material('WellingtonCone',(1,1,1),.48)
 def mesh(name,verts,faces,mat=bronze):
  d=bpy.data.meshes.new(name);d.from_pydata(verts,[],faces);d.update();o=bpy.data.objects.new(name,d);bpy.context.collection.objects.link(o);o.data.materials.append(mat)
  for p in d.polygons:p.use_smooth=True
@@ -109,20 +109,27 @@ bicorne=ell('Bicorne',(-.37,0,7.08),(.30,.44,.095));details.append(bicorne)
 details.append(sweep('Bicorne crown',[(-.63,0,7.10,.12,.06),(-.39,0,7.19,.33,.10),(-.12,0,7.10,.14,.06)],16))
 body=join(details,'WellingtonBronze')
 # One vertex-colored cone: bands use the same material and renderable.
-verts=[];faces=[];colors=[];rings=[(7.28,.31),(7.32,.31),(7.32,.255),(7.43,.205),(7.58,.125),(7.66,.08),(7.775,.025)]
+verts=[];faces=[];rings=[(7.32,.22),(7.345,.22),(7.355,.205),(7.52,.15),(7.69,.095),(7.855,.04),(7.885,.04),(7.90,.046)]
 for z,r in rings:
  for i in range(24):a=i*math.tau/24;verts.append((-.37+r*math.cos(a),r*math.sin(a),z))
 for j in range(len(rings)-1):
  for i in range(24):faces.append((j*24+i,j*24+(i+1)%24,(j+1)*24+(i+1)%24,(j+1)*24+i))
 faces.extend([tuple(reversed(range(24))),tuple((len(rings)-1)*24+i for i in range(24))])
+# Chamfered square rubber foot and a truncated neck distinguish road equipment from a pointed hat.
+foot=[(-.215,-.27),(.215,-.27),(.27,-.215),(.27,.215),(.215,.27),(-.215,.27),(-.27,.215),(-.27,-.215)]
+offset=len(verts)
+for z in [7.28,7.32]:
+ for x,y in foot:verts.append((-.37+x,y,z))
+for i in range(8):faces.append((offset+i,offset+(i+1)%8,offset+8+(i+1)%8,offset+8+i))
+faces.extend([tuple(offset+i for i in reversed(range(8))),tuple(offset+8+i for i in range(8))])
 c=mesh('WellingtonCone',verts,faces,cone);attr=c.data.color_attributes.new(name='Color',type='FLOAT_COLOR',domain='CORNER')
 for p in c.data.polygons:
- z=sum(c.data.vertices[v].co.z for v in p.vertices)/len(p.vertices);col=(.94,.96,.91,1) if 7.43<z<7.66 else (.94,.065,.004,1)
+ z=sum(c.data.vertices[v].co.z for v in p.vertices)/len(p.vertices);col=(.025,.028,.03,1) if z<7.321 else (.94,.96,.91,1) if 7.52<z<7.69 else (.94,.065,.004,1)
  for li in p.loop_indices:attr.data[li].color=col
 p=cone.node_tree.nodes['Principled BSDF'];v=cone.node_tree.nodes.new('ShaderNodeVertexColor');v.layer_name='Color';cone.node_tree.links.new(v.outputs['Color'],p.inputs['Base Color'])
 for o in [plinth,body,c]:
  bpy.context.view_layer.objects.active=o;o.select_set(True)
- for p in o.data.polygons:p.use_smooth=o!=plinth
+ for p in o.data.polygons:p.use_smooth=o!=plinth and (o!=c or p.center.z>7.321)
  o.data.calc_loop_triangles()
 assert sum(len(o.data.loop_triangles) for o in [plinth,body,c])<18000
 out=os.path.join(ROOT,'wellington-original-poc.glb')

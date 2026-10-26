@@ -10,14 +10,18 @@ print(js(r'''(async () => {
  const meshes = []; src.traverse(o => { if(o.isMesh) meshes.push(o); });
  check(meshes.length === 3, 'three semantic renderables');
  const b = new T.Box3().setFromObject(src), size = b.getSize(new T.Vector3());
- check(Math.abs(b.min.y) < .005 && Math.abs(size.z - 3) < .01 && Math.abs(b.min.x + 2.9) < .01 && b.max.x > 2.9 && b.max.x < 3.25 && Math.abs(b.max.y - 7.775) < .04, `preserved ground and envelope ${size.toArray()}`);
+ check(Math.abs(b.min.y) < .005 && Math.abs(size.z - 3) < .01 && Math.abs(b.min.x + 2.9) < .01 && b.max.x > 2.9 && b.max.x < 3.25 && Math.abs(b.max.y - 7.90) < .04, `preserved footprint and taller traffic cone ${size.toArray()}`);
  const triangles = meshes.reduce((n,m) => n+(m.geometry.index?.count ?? m.geometry.attributes.position.count)/3,0);
  check(triangles < 18000, `controlled silhouette budget: ${triangles}`);
  for(const m of meshes) {
   const {position,normal}=m.geometry.attributes; check(normal?.count===position.count && m.material.emissive.getHex()===0,'normals and no emission');
   for(let i=0;i<normal.count;i++) check(Math.abs(Math.hypot(normal.getX(i),normal.getY(i),normal.getZ(i))-1)<.01, 'unit normals');
  }
- check(src.getObjectByName('WellingtonCone').geometry.attributes.color, 'cone vertex bands preserved');
+ const cone=src.getObjectByName('WellingtonCone'),coneBounds=new T.Box3().setFromObject(cone),coneSize=coneBounds.getSize(new T.Vector3()),colors=cone.geometry.attributes.color;
+ check(colors, 'cone vertex bands preserved');
+ check(coneSize.y>coneSize.x*1.1&&coneSize.y<coneSize.x*1.3,'restrained taller, narrower traffic cone');
+ let rubber=false,white=false;for(let i=0;i<colors.count;i++){rubber ||= colors.getX(i)<.05&&colors.getY(i)<.05&&colors.getZ(i)<.05;white ||= colors.getX(i)>.8&&colors.getY(i)>.8&&colors.getZ(i)>.8;}
+ check(rubber&&white,'rubber foot and reflective band');
  const {createWellington} = await import('./js/world/landmark-geometry.js');
  const first=createWellington(12,34), second=createWellington(22,44);
  const fallback=[...first.children]; let disposed=0; fallback.forEach(m=>m.geometry.addEventListener('dispose',()=>disposed++));
