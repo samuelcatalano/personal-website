@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { crowdPlan, chooseVariants } from './crowd.js';
 import * as SP from './sprites.js';
+import { estaiadaRoute } from './landmark-geometry.js';
+import { LANDMARKS, RIVER_Z, stopIndex } from './layout.js';
 const { FRAMES, COLS, FB_COLS, ROWS, strideOf } = SP;
 // Walking-emoji pedestrians: canvas-drawn sprites (side, front and back views) in two atlas textures, ONE InstancedMesh of cylindrical billboards (+ one for soft shadows). Paths come from crowd.js (pure data).
 const NEAR = 140, INSET = 0.6, FEET = 0.02, SEED = 1017, VARIANTS = 28, STAND = 2, LOCK = 0.6; // sprite looks; the standing frame (legs passing)
@@ -19,12 +21,18 @@ export function createPeople(scene, { curve, pts, stops, reducedMotion = false, 
     const f = (m - cum[k]) / (cum[k + 1] - cum[k] || 1);
     PX.push(fine[k].x + (fine[k + 1].x - fine[k].x) * f); PZ.push(fine[k].z + (fine[k + 1].z - fine[k].z) * f);
   }
+  // Estaiada ramp mouth: the bridge-side pavement lanes (offset < 0) stop at it and walkers turn back there instead of crossing the carriageway
+  const J = estaiadaRoute(pts[stopIndex(stops, LANDMARKS.estaiada)].x, curve, RIVER_Z).stations.at(-1), dj = (m) => Math.hypot(PX[m] - J.x, PZ[m] - J.z);
+  let mj = 0; for (let m = 1; m <= M; m++) if (dj(m) < dj(mj)) mj = m;
+  const MOUTH = 5.5, G0 = mj + MOUTH, SPAN = L - 2 * MOUTH; // walkable run: from the mouth's far edge all the way round to its near edge
   const out = { x: 0, z: 0, fx: 0, fz: 1 };
   const lane = (p, s) => { // same side convention as furnitureSpots/city.js: normal = (-t.z, t.x), offset > 0 on that side
+    let turn = 1;
+    if (p.offset < 0) { const u = ((s % (2 * SPAN)) + 2 * SPAN) % (2 * SPAN); turn = u < SPAN ? 1 : -1; s = G0 + (u < SPAN ? u : 2 * SPAN - u); } // ping-pong between the mouth edges
     const w = ((s % L) + L) % L, i = Math.min(Math.floor(w), M - 1), f = w - i;
     let tx = PX[i + 1] - PX[i], tz = PZ[i + 1] - PZ[i]; const l = Math.hypot(tx, tz) || 1; tx /= l; tz /= l;
     out.x = PX[i] + (PX[i + 1] - PX[i]) * f - tz * p.offset; out.z = PZ[i] + (PZ[i + 1] - PZ[i]) * f + tx * p.offset;
-    out.fx = tx * p.dir; out.fz = tz * p.dir;
+    out.fx = tx * p.dir * turn; out.fz = tz * p.dir * turn;
   };
   const loop = (p, s) => {
     const { x0, x1, z0, z1 } = p.rect, i0 = p.inset ?? INSET, a = x0 + i0, b = x1 - i0, c = z0 + i0, d = z1 - i0, w = b - a, h = d - c;

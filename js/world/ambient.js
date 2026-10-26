@@ -51,9 +51,12 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
     out: new THREE.CatmullRomCurve3(er.stations.map((q) => side(q, 1.75)).concat([1, 2, 3].map((k) => laneAt(er.uj - k * 3 / len)))),
   };
   for (const c of Object.values(paths)) c.plen = c.getLength();
+  const atJ = (c, q) => { let best = 0; for (let k = 1; k <= 400; k++) if (c.getPointAt(k / 400).distanceTo(q) < c.getPointAt(best / 400).distanceTo(q)) best = k; return best / 400 * c.plen; };
+  const sIn = atJ(paths.in, side(er.stations.at(-1), -1.75)), sOut = atJ(paths.out, side(er.stations.at(-1), 1.75)); // path distance where each lane meets the kerb line
   const bridge = [[3, 'in', 'road', 25], [7, 'in', 'path', 0.55], [2, 'out', 'path', 0.2], [9, 'out', 'path', 0.75]].map(([c, kind, phase, at], k) => {
     const mesh = car(CARS[c][1], CARS[c][0]); addBeams(mesh, mesh.userData.front, mesh.userData.beamY); mesh.rotation.order = 'YZX'; scene.add(mesh);
-    return { mesh, kind, phase, u: uIn + at / len, s: at * paths[kind].plen, body: CARS[c][0], slot: 4 + k, v: kind === 'in' ? 11.5 : 12.5 };
+    const tail = mesh.children[mesh.children.length - 1], base = kind === 'in' ? 11.5 : 12.5;
+    return { mesh, kind, phase, p: 0, t0: uIn + at / len, s: at * paths[kind].plen, body: CARS[c][0], slot: 4 + k, tail, base, v: base, brake: 0, x: 0, z: 0, len: mesh.userData.length };
   });
   const isDisposed = () => disposed;
   const ready = Promise.all(traffic.map(async (v, i) => {
@@ -76,6 +79,7 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
   const bridgeReady = Promise.all(bridge.map(async (b) => {
     const catalog = await loadFleetCatalog(), model = regionalFleetModel(catalog, 'br', b.slot);
     if (model && !disposed) await upgradeFleet(b.mesh, model, { body: b.body, isDisposed });
+    if (!disposed && b.mesh.userData.fleetModel) b.len = b.mesh.userData.length;
   }));
   const zebras = stops.map((_, i) => curve.getPointAt(Math.min(1, i / (stops.length - 1) + ZEBRA_AT / len)));
   const auto = traffic.filter((v) => !v.relative);
@@ -91,6 +95,9 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
   const blink = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), new THREE.MeshBasicMaterial({ color: 0xff2a2a }));
   blink.position.set(bb.x, 34.4, RIVER_Z - 16);
   scene.add(blink);
+  const invP = (t) => { let a = 0, b = 1; for (let i = 0; i < 30; i++) { const m = (a + b) / 2; if (routeT(m, pts.length, knots) < t) a = m; else b = m; } return (a + b) / 2; }; // route progress for a curve t
+  bridge.forEach((b) => { if (b.phase === 'road') b.p = invP(b.t0); });
+  const tOf = (v) => routeT(v.p, pts.length, knots);
   let lastRoute = null;
   const tmp = new THREE.Vector3(), here = new THREE.Vector3(), nrm = new THREE.Vector3(), swap = swapAt(stops), [scotIn, scotOut] = scotRange(stops), wrap = (p) => ((p % 1) + 1) % 1;
   return {
@@ -99,16 +106,20 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
     update({ time, t: route, dt = 0 }) {
       const move = !reducedMotion && dt > 0;
       if (move) {
-        for (const v of auto) { // speed profile: ease toward the target, slower near a zebra crossing
+        const road = bridge.filter((b) => b.phase === 'road'); // bridge cars on the avenue share the oncoming lane: same speed profile and spacing
+        for (const v of auto.concat(road)) { // speed profile: ease toward the target, slower near a zebra crossing
           let near = SLOW; for (const z of zebras) near = Math.min(near, Math.hypot(v.x - z.x, v.z - z.z));
           const target = v.base * (0.3 + 0.7 * Math.min(1, Math.max(0, (near - 3) / (SLOW - 3))) ** 2), prev = v.v;
           v.v += Math.max(-DEC * dt, Math.min(ACC * dt, target - v.v));
           v.brake += (Math.min(1, Math.max(0, (prev - v.v) / dt / 2)) - v.brake) * Math.min(1, dt * 8);
           v.p = wrap(v.p - v.v * dt / len); // oncoming: against the route
         }
-        const act = auto.filter((v) => v.active).sort((a, b) => a.p - b.p); // spacing: clamp behind the leader (next lower progress, wrapping)
+        // still in (or already back in) the lane while turning: fixed leaders for the spacing, so nobody drives through them
+        const turning = bridge.filter((b) => b.phase === 'path' && (b.kind === 'in' ? b.s < sIn : b.s > sOut))
+          .map((b) => ({ p: invP(b.kind === 'in' ? uIn - b.s / len : uOut + (paths.out.plen - b.s) / len), len: b.len, v: b.v, fixed: true }));
+        const act = auto.filter((v) => v.active).concat(road, turning).sort((a, b) => a.p - b.p); // spacing: clamp behind the leader (next lower progress, wrapping)
         for (let pass = 0; pass < 2; pass++) act.forEach((v, i) => {
-          if (act.length < 2) return;
+          if (act.length < 2 || v.fixed) return;
           const lead = act[(i + act.length - 1) % act.length], lp = i ? lead.p : lead.p - 1, min = ((v.len + lead.len) / 2 + GAP) / len;
           if (v.p - lp < min) { v.p = wrap(lp + min); v.v = Math.min(v.v, lead.v); }
         });
@@ -133,21 +144,35 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
         v.mesh.rotation.y = v.yaw;
         v.tail.userData.swell?.(1 + 1.4 * v.brake); // brake lights: the tail glow pool (night only) swells while slowing
       }
+      const lane = auto.filter((v) => v.active).concat(bridge.filter((b) => b.phase === 'road')), merge = [uOut - 8 / len, er.uj + 35 / len];
+      for (const kind of ['in', 'out']) { // ramp/deck: same-direction cars keep their gap (a car held at the junction queues the next)
+        const onPath = bridge.filter((b) => b.kind === kind && b.phase === 'path').sort((a, b) => b.s - a.s);
+        onPath.forEach((b, i) => {
+          if (!move) return;
+          b.v += Math.max(-DEC * dt, Math.min(ACC * dt, b.base - b.v));
+          let s1 = b.s + b.v * dt;
+          if (kind === 'out' && b.s <= sOut - b.len / 2 - 0.5 && s1 > sOut - b.len / 2 - 0.5 && (lane.some((v) => { const t = tOf(v); return t > merge[0] && t < merge[1]; }) || bridge.some((o) => o.kind === 'in' && o.phase === 'path' && o.s < sIn + 6))) { s1 = b.s; b.v = 0; } // give way to the avenue (and to a car turning in) before pulling out
+          if (i) { const lead = onPath[i - 1], max = lead.s - (lead.len + b.len) / 2 - GAP; if (s1 > max) { s1 = Math.max(b.s, max); b.v = Math.min(b.v, lead.v); } }
+          b.s = s1;
+        });
+      }
       for (const b of bridge) {
-        const d = move ? b.v * dt : 0, path = paths[b.kind];
+        const path = paths[b.kind];
         if (b.phase === 'road') {
-          b.u -= d / len;
-          if (b.kind === 'in' && b.u <= uIn) { b.phase = 'path'; b.s = 0; }
-          else if (b.kind === 'out' && b.u < uOut - 10 / len && laneAt(b.u, tmp).distanceTo(here) > BRIDGE_FAR) { b.phase = 'path'; b.s = 0; } // respawn on the far bank (always > BRIDGE_FAR away)
-        } else if ((b.s += d) >= path.plen) {
+          const t = tOf(b);
+          if (b.kind === 'in' && t <= uIn) { b.phase = 'path'; b.s = (uIn - t) * len; }
+          else if (b.kind === 'out' && t < uOut - 10 / len && laneAt(t, tmp).distanceTo(here) > BRIDGE_FAR && bridge.every((o) => o === b || o.kind !== 'out' || o.phase !== 'path' || o.s > o.len + GAP + b.len)) { b.phase = 'path'; b.s = 0; b.v = b.base; } // respawn on the far bank (always > BRIDGE_FAR away)
+        } else if (b.s >= path.plen) {
           b.phase = 'road';
-          if (b.kind === 'out') b.u = uOut;
-          else { let D = 25; while (D < 400 && laneAt(uIn + D / len, tmp).distanceTo(here) < BRIDGE_FAR) D += 10; b.u = uIn + D / len; } // next 'in' car starts out of sight
+          if (b.kind === 'out') b.p = invP(uOut - (b.s - path.plen) / len);
+          else { let D = 25; const busy = (t) => lane.some((v) => v !== b && Math.abs(tOf(v) - t) * len < 10); while (D < 400 && (laneAt(uIn + D / len, tmp).distanceTo(here) < BRIDGE_FAR || busy(uIn + D / len))) D += 5; b.p = invP(uIn + D / len); b.v = b.base; } // next 'in' car starts out of sight, in a free gap
         }
-        const m = b.mesh;
-        if (b.phase === 'road') { const t = curve.getTangentAt(Math.min(1, Math.max(0, b.u))); laneAt(b.u, m.position); m.rotation.set(0, Math.atan2(-t.z, t.x) + Math.PI, 0); }
-        else { const k = Math.min(1, b.s / path.plen), t = path.getTangentAt(k); m.position.copy(path.getPointAt(k)); m.rotation.set(0, Math.atan2(-t.z, t.x), Math.atan2(t.y, Math.hypot(t.x, t.z))); } // pitch with the ramp
-        for (const w of m.userData.wheels ?? []) w.rotation.z -= d / w.position.y;
+        const m = b.mesh, x0 = m.position.x, z0 = m.position.z;
+        if (b.phase === 'road') { const t = tOf(b), tg = curve.getTangentAt(Math.min(1, Math.max(0, t))); laneAt(t, m.position); m.rotation.set(0, Math.atan2(-tg.z, tg.x) + Math.PI, 0); }
+        else { const k = Math.min(1, Math.max(0, b.s / path.plen)), tg = path.getTangentAt(k); m.position.copy(path.getPointAt(k)); m.rotation.set(0, Math.atan2(-tg.z, tg.x), Math.atan2(tg.y, Math.hypot(tg.x, tg.z))); } // pitch with the ramp
+        const ds = Math.hypot(m.position.x - x0, m.position.z - z0); b.x = m.position.x; b.z = m.position.z;
+        if (move && ds < 5) for (const w of m.userData.wheels ?? []) w.rotation.z -= ds / w.position.y; // skip respawn jumps
+        b.tail.userData.swell?.(1 + 1.4 * b.brake);
       }
       boats.forEach((b, i) => {
         b.position.y = 0.1 + Math.sin(time * 1.1 + i * 2) * 0.25;
