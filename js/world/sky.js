@@ -57,18 +57,31 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
   const sunsetZen = C(0x67558b), sunsetHor = C(0xe6a68e), warmGlow = C(0xf7dfbd), coolGlow = C(0x7c9ddc);
   const authoredZen = new THREE.Color(), authoredHor = new THREE.Color(), authoredMid = new THREE.Color();
   const sunM = sprite(disc((g) => {
-    const r = g.createRadialGradient(128, 128, 0, 128, 128, 128);
-    r.addColorStop(0, '#fff'); r.addColorStop(0.2, '#fff'); r.addColorStop(0.24, 'rgba(255,255,255,0.12)'); r.addColorStop(1, 'rgba(255,255,255,0)');
-    g.fillStyle = r; g.fillRect(0, 0, 256, 256);
-  }), 400);
-  sunM.material.color.copy(untone(C(0xfff0b8)));
-  const moonM = sprite(disc((g) => {
-    g.fillStyle = '#fff'; g.beginPath(); g.arc(128, 128, 100, 0, 7); g.fill();
-    g.fillStyle = 'rgba(150,160,185,0.55)';
-    for (const [x, y, r] of [[100, 105, 18], [150, 95, 11], [140, 150, 22], [95, 155, 9], [170, 130, 7]]) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }
-  }), 110); // moon disc ≈ sun disc (sun disc is ~0.2 of its 400 sprite)
-  moonM.material.color.copy(untone(C(0xe6e9f0)));
-  scene.add(dome, sunM, moonM);
+    const r=g.createRadialGradient(128,128,0,128,128,128);
+    r.addColorStop(0,'#fff');r.addColorStop(.49,'#fff');r.addColorStop(.52,'rgba(255,255,255,.2)');r.addColorStop(1,'rgba(255,255,255,0)');
+    g.fillStyle=r;g.fillRect(0,0,256,256);
+  }),150);
+  sunM.name='weather-sun';
+  const halo=sprite(disc(g=>{
+    const r=g.createRadialGradient(128,128,0,128,128,128);
+    r.addColorStop(0,'rgba(255,255,255,.25)');r.addColorStop(.14,'rgba(255,255,255,.13)');r.addColorStop(.4,'rgba(255,255,255,.035)');r.addColorStop(1,'rgba(255,255,255,0)');
+    g.fillStyle=r;g.fillRect(0,0,256,256);
+  }),500);halo.material.blending=THREE.AdditiveBlending;halo.renderOrder=997;
+  // Smooth broad maria and limb shading, always a full disc; no discrete crater dots.
+  const moonM=sprite(disc(g=>{
+    const im=g.createImageData(256,256),maria=[[-.25,.22,.38,.28],[.18,.4,.3,.3],[.34,-.12,.31,.4],[-.31,-.35,.28,.22]];
+    for(let y=0;y<256;y++)for(let x=0;x<256;x++){
+      const px=(x-128)/100,py=(y-128)/100,r=Math.hypot(px,py),k=(y*256+x)*4;
+      let shade=0;for(const [mx,my,rx,ry] of maria)shade+=Math.exp(-((px-mx)**2/rx**2+(py-my)**2/ry**2)*2)*.26;
+      const grain=(Math.sin(px*27+Math.sin(py*19))*Math.sin(py*31+px*9))*.016;
+      const v=Math.max(0,(1-shade+grain)*(.70+.30*Math.sqrt(Math.max(0,1-r*r))));
+      im.data[k]=im.data[k+1]=im.data[k+2]=Math.round(v*255);im.data[k+3]=Math.round(Math.min(1,Math.max(0,(1-r)*90))*255);
+    }g.putImageData(im,0,0);
+  }),100);
+  moonM.name='weather-moon';
+  const sunDay=C(0xfff0d1),sunSet=C(0xf69350),moonTint=C(0xe1eaff);
+  moonM.material.color.copy(untone(moonTint.clone()));
+  scene.add(dome,sunM,moonM,halo);
   // Feathered density billboards preserve the upper-frame composition with far fewer draws than sphere clusters.
   const cloudMat = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, fog: false, toneMapped: false,
@@ -100,7 +113,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
   });
   const cirrusMat=cloudMat.clone(), deckMat=cloudMat.clone();
   cirrusMat.uniforms.uLayer.value=1; deckMat.uniforms.uLayer.value=2;
-  const cloudGeo=new THREE.PlaneGeometry(1,1), clouds=new THREE.Group();
+  const cloudGeo=new THREE.PlaneGeometry(1,1), clouds=new THREE.Group();clouds.name='weather-clouds';
   for(let i=0;i<14;i++){
     const high=i>=10, c=new THREE.Mesh(cloudGeo,high?cirrusMat:cloudMat);
     c.scale.set(high?440:220+(i%3)*38,high?65:90+(i%4)*12,1);
@@ -115,22 +128,34 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
   const at = (cam, x, y, d, out) => out.set(x, y, 0.5).unproject(cam).sub(cam.position).normalize().multiplyScalar(d).add(cam.position);
   const glow = [];
   scene.traverse((o) => { if (o.material?.userData?.glow) glow.push(o.material); });
-  const pos = [];
-  for (let i = 0; i < 500; i++) { // upper hemisphere around the camera
-    const a = Math.random() * Math.PI * 2, e = (0.12 + Math.random() * 0.88) * Math.PI / 2;
-    pos.push(Math.cos(a) * Math.cos(e) * 1000, Math.sin(e) * 1000, Math.sin(a) * Math.cos(e) * 1000);
+  const pos=[],sizes=[],phases=[],tints=[];
+  const hash=i=>{const n=Math.sin(i*127.1+311.7)*43758.5453;return n-Math.floor(n);};
+  for(let i=0;i<420;i++){
+    pos.push(hash(i*4)*2-1,.36+hash(i*4+1)*.64,0);
+    sizes.push(.7+hash(i*4+2)**5*2.0);phases.push(hash(i*4+3)*Math.PI*2);
+    const tint=untone(C(i%13===0?0xdcb9a0:i%7===0?0xb4d0f4:0xd1d8e7));tints.push(tint.r,tint.g,tint.b);
   }
-  const stars = new THREE.Points(
-    new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)),
-    new THREE.PointsMaterial({ color: untone(C(0xdde6ff)), size: 2, sizeAttenuation: false, transparent: true, fog: false, depthWrite: false, toneMapped: false }),
-  );
-  stars.renderOrder = -9; stars.frustumCulled = false;
-  scene.add(stars);
+  const stars=new THREE.Points(new THREE.BufferGeometry()
+    .setAttribute('position',new THREE.Float32BufferAttribute(pos,3))
+    .setAttribute('aSize',new THREE.Float32BufferAttribute(sizes,1))
+    .setAttribute('aPhase',new THREE.Float32BufferAttribute(phases,1))
+    .setAttribute('aTint',new THREE.Float32BufferAttribute(tints,3)),new THREE.ShaderMaterial({
+      transparent:true,depthWrite:false,fog:false,toneMapped:false,
+      uniforms:{uTime:{value:0},uOp:{value:0},uTwinkle:{value:reducedMotion?0:1},uDpr:{value:1}},
+      vertexShader:`attribute float aSize,aPhase;attribute vec3 aTint;uniform float uDpr;varying float vPhase,vHeight;varying vec3 vTint;
+        void main(){vPhase=aPhase;vTint=aTint;vHeight=position.y;gl_Position=vec4(position.xy,.99999,1.0);gl_PointSize=aSize*uDpr;}`,
+      fragmentShader:`uniform float uTime,uOp,uTwinkle;varying float vPhase,vHeight;varying vec3 vTint;
+        void main(){float r=length(gl_PointCoord-.5)*2.0;float a=(1.0-smoothstep(.15,1.0,r))*uOp*smoothstep(.36,.72,vHeight);a*=.80+.20*sin(uTime*.65+vPhase)*uTwinkle;gl_FragColor=vec4(vTint,a);}`,
+    }));stars.name='weather-stars';
+  stars.renderOrder=-9;stars.frustumCulled=false;scene.add(stars);
+  let starTime=0;
   const place = (m, cam, x, y) => { at(cam, x, y, DIST, m.position); m.lookAt(cam.position); };
   return {
     update(night, dt = 0, camPos = new THREE.Vector3(), cam, mood = LON) {
       cam?.updateMatrixWorld();
-      const sunset = Math.sin(Math.PI * night) ** 3, clear = 1 - Math.min(1, mood.rain ?? 0);
+      const cover=mood.cover ?? Math.min(1,.18+mood.cloudOp+(mood.rain??0)*.8);
+      const veil=1-THREE.MathUtils.smoothstep(cover,.48,.98),clear=veil*(1-Math.min(1,(mood.rain??0)*2));
+      const sunset = Math.sin(Math.PI * night) ** 3;
       authoredZen.lerpColors(day(mood.zen, d1), NIGHT.zen, night).lerp(sunsetZen, sunset * .65 * clear);
       authoredHor.lerpColors(day(mood.hor, d1), NIGHT.hor, night).lerp(sunsetHor, sunset * .75 * clear);
       authoredMid.lerpColors(authoredHor, authoredZen, .58);
@@ -142,7 +167,6 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
       scene.fog.color.copy(u.uHor.value); // already tone-inverted
       scene.background?.copy(scene.fog.color);
       scene.fog.near = (200 - 20 * night) * mood.fogK; scene.fog.far = (820 - 140 * night) * mood.fogK;
-      const cover=mood.cover ?? Math.min(1,.18+mood.cloudOp+(mood.rain??0)*.8);
       for(const mat of [cloudMat,cirrusMat,deckMat]){
         const cu=mat.uniforms;
         cu.uTop.value.lerpColors(day(mood.cloud,d1),NIGHT.cloud,night);untone(cu.uTop.value);
@@ -164,15 +188,22 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
         place(sunM, cam, wide ? 0.66 : 0.6, wide ? 0.8 : 0.78); place(moonM, cam, wide ? 0.66 : 0.6, wide ? 0.8 : 0.78);
         u.uSunDir.value.copy(sunM.position).sub(camPos).normalize();
         at(cam,0,.90,1200,deck.position);deck.lookAt(cam.position);
+        halo.position.copy(night>.5?moonM.position:sunM.position);halo.lookAt(cam.position);
       }
-      sunM.visible = night < 0.98; sunM.material.opacity = (1 - night) * Math.min(1, mood.sun) ** 2; // veiled by overcast
-      moonM.visible = night > 0.02; moonM.material.opacity = night;
+      sunM.material.color.lerpColors(sunDay,sunSet,sunset);untone(sunM.material.color);
+      sunM.material.opacity=(1-night)*clear;sunM.visible=sunM.material.opacity>.005;
+      moonM.material.opacity=night*clear;moonM.visible=moonM.material.opacity>.005;
+      halo.material.color.lerpColors(sunM.material.color,moonM.material.color,night);
+      halo.material.opacity=clear*(1-night*.75);halo.visible=clear>.005;
       const ds = DAY.sun * mood.sun, dh = DAY.hemi * mood.hemi;
       sun.intensity = ds + (NIGHT.sun - ds) * night;
       sun.color.lerpColors(day(mood.light, d1), NIGHT.light, night);
       hemi.intensity = dh + (NIGHT.hemi - dh) * night;
-      stars.material.opacity = Math.max(0, night * 1.4 - 0.4);
-      stars.visible = night > 0.3;
+      if(!reducedMotion)starTime+=dt;
+      stars.material.uniforms.uTime.value=starTime;
+      stars.material.uniforms.uOp.value=Math.max(0,night*1.4-.4)*clear;
+      stars.material.uniforms.uDpr.value=Math.min(globalThis.devicePixelRatio||1,cam?.aspect>1?1.5:1);
+      stars.visible=stars.material.uniforms.uOp.value>.005;
       for (const m of glow) { if (m.userData.uNight) m.userData.uNight.value = night; m.emissive.copy(m.userData.glowColor ?? m.color).multiplyScalar(night * (m.userData.glowK ?? 2.2)); } // each light glows in its own colour, bright enough to bloom
     },
   };
