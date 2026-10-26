@@ -1,5 +1,6 @@
 import { hairShape } from './crowd.js';
 // Walking-emoji people drawn with canvas 2D: smooth outline-free shapes, soft gradients, 6 walk frames per look, side view facing right.
+// ponytail: billboard figures retain simplified depth at oblique views; upgrade when true 3D figures are justified.
 // Unit space while drawing: x forward, y up, 1 = body height, origin = feet centre.
 // Two atlas textures, rows top-down: side cells (16 x 14, 28 looks x 8 frames) and narrow front/back cells (32 x 14, 28 looks x 2 views x 8 frames).
 // setScale(k) sizes them: k = 1 is 1920 x 2464 + 2176 x 2464 (mobile), k = 1.4 is the sharp desktop atlas. The live bindings below are read after setScale.
@@ -43,7 +44,7 @@ function tube(ctx, a, ra, b, rb) { // tapered capsule
 
 function dims(look) { // body proportions shared by the side, front and back drawings
   const kid = /boy|girl/.test(look.kind), girl = look.kind === 'woman' || look.kind === 'girl', woman = look.kind === 'woman', shape = hairShape(look);
-  const hd = kid ? 0.21 : 0.15, hy = 1 - (shape === 'afro' && kid ? 0.84 : RES[shape] || 0.7) * hd - 0.005, hip = kid ? 0.43 : girl ? 0.49 : 0.5;
+  const hd = kid ? 0.185 : 0.135, hy = 1 - (shape === 'afro' && kid ? 0.84 : RES[shape] || 0.7) * hd - 0.005, hip = kid ? 0.43 : girl ? 0.49 : 0.5;
   return { kid, girl, woman, ks: kid ? 0.84 : 1, shape, hd, hy, hip, sh: hy - 0.5 * hd - (kid ? 0.04 : 0.035), tw: kid ? 0.078 : woman ? 0.08 : 0.095, thigh: (hip - 0.05) / 2, afroS: kid ? 0.72 : 1, lean: 0.03 + 0.045 * ((Math.floor(look.height * 7919) % 97) / 97), armAmp: 0.7 * (0.8 + 0.4 * ((Math.floor(look.height * 104729) % 89) / 89)), band: BANDS[Math.floor(look.height * 1000) % 4] };
 }
 // Gait: 60% stance (the planted foot moves back relative to the hip at a constant rate, so it stays put on the ground when the sprite advances by CYCLE per walk cycle), 40% swing.
@@ -150,7 +151,7 @@ export function drawFigure(ctx, look, frame) {
     // hair on top
     if (shape !== 'bald') { blob(ctx, H({ quiff: QUIFF, curly: CURLY, tousled: CAP, afro: CAP, short: CAP }[shape] || SOFT)); hg(0.8, -0.3); }
     if (shape === 'tousled') for (const t of TUFTS) { blob(ctx, H(t)); hg(0.9, 0.5); }
-    if (shape !== 'bald') for (const [a, b, c, d, e, f] of [[-0.28, 0.5, 0.02, 0.74, 0.36, 0.46], [-0.42, 0.26, -0.22, 0.6, 0.1, 0.6]]) { ctx.save(); ctx.globalAlpha = 0.4; ctx.strokeStyle = tone(look.hair, 0.5); ctx.lineWidth = 0.016 * hd; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(hx + a * hd, hy + b * hd); ctx.quadraticCurveTo(hx + c * hd, hy + d * hd, hx + e * hd, hy + f * hd); ctx.stroke(); ctx.restore(); } // glossy strands
+    if (shape !== 'bald') for (const [a, b, c, d, e, f] of [[-0.28, 0.5, 0.02, 0.74, 0.36, 0.46], [-0.42, 0.26, -0.22, 0.6, 0.1, 0.6]]) { ctx.save(); ctx.globalAlpha = 0.28; ctx.strokeStyle = tone(look.hair, 0.5); ctx.lineWidth = 0.016 * hd; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(hx + a * hd, hy + b * hd); ctx.quadraticCurveTo(hx + c * hd, hy + d * hd, hx + e * hd, hy + f * hd); ctx.stroke(); ctx.restore(); } // glossy strands
     if (shape === 'bun') { ctx.beginPath(); ctx.arc(hx - 0.4 * hd, hy + 0.68 * hd, 0.3 * hd, 0, 7); hg(1, 0.4); }
     if (shape === 'ponytail' || shape === 'pigtails' || shape === 'bun') for (const [bx, by] of shape === 'pigtails' ? [[-0.45, 0.05]] : shape === 'bun' ? [[-0.36, 0.5]] : [[-0.45, 0.4]]) { ctx.beginPath(); ctx.arc(hx + bx * hd, hy + by * hd, 0.075 * hd, 0, 7); ctx.fillStyle = band; ctx.fill(); }
     ctx.restore();
@@ -269,7 +270,7 @@ export function drawFront(ctx, look, frame, back) {
     if (shape === 'curly') for (const [x, y] of [[-0.34, 0.5], [-0.12, 0.64], [0.14, 0.64], [0.36, 0.5], [-0.5, 0.2], [0.5, 0.2]]) { ctx.beginPath(); ctx.arc(x * hd, hy + y * hd, 0.13 * hd, 0, 7); hg(0.8, 0.3); }
     if (shape === 'long') for (const sd of side) hairBlob([[sd * 0.46, 0.15], [sd * 0.56, -0.4], [sd * 0.6, -1.05], [sd * 0.42, -1.15], [sd * 0.38, -0.4]], 0.1, -1);
   }
-  if (shape !== 'bald') for (const sd of side) { ctx.save(); ctx.globalAlpha = 0.38; ctx.strokeStyle = tone(look.hair, 0.5); ctx.lineWidth = 0.016 * hd; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(sd * 0.36 * hd, hy + (back ? 0.2 : 0.4) * hd); ctx.quadraticCurveTo(sd * 0.2 * hd, hy + 0.62 * hd, -sd * 0.08 * hd, hy + 0.58 * hd); ctx.stroke(); ctx.restore(); }
+  if (shape !== 'bald') for (const sd of side) { ctx.save(); ctx.globalAlpha = back ? 0.38 : 0.28; ctx.strokeStyle = tone(look.hair, 0.5); ctx.lineWidth = 0.016 * hd; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(sd * 0.36 * hd, hy + (back ? 0.2 : 0.4) * hd); ctx.quadraticCurveTo(sd * 0.2 * hd, hy + 0.62 * hd, -sd * 0.08 * hd, hy + 0.58 * hd); ctx.stroke(); ctx.restore(); }
   if (shape === 'bun') { ctx.beginPath(); ctx.arc(0, hy + 0.78 * hd, 0.28 * hd, 0, 7); hg(1, 0.4); ctx.beginPath(); ctx.arc(0, hy + 0.55 * hd, 0.07 * hd, 0, 7); ctx.fillStyle = band; ctx.fill(); }
   if (shape === 'ponytail' && back) { ctx.beginPath(); ctx.arc(0, hy + 0.38 * hd, 0.08 * hd, 0, 7); ctx.fillStyle = band; ctx.fill(); }
   if (shape === 'pigtails') for (const sd of side) {

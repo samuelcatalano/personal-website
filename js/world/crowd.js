@@ -2,7 +2,7 @@ import { rng, stopIndex, towerX, copan, glasgowSites, RIVER_Z, LANDMARKS as L } 
 // Pure data (no three): people looks and where they walk. Rendering lives in people.js / sprites.js.
 export const SKIN = ['#f6d9c4', '#efc3a0', '#d9a579', '#b9824f', '#8a5a35', '#5e3a22', '#3d2517'];
 const HAIR = ['#1b1714', '#3a2415', '#6b4328', '#d9b86a'], GREY = '#b5b5b0';
-const TOPS = ['#c0392b', '#2e6fb7', '#2f8f5b', '#e8b930', '#f2f2ee', '#222831', '#8e5ab8', '#e87d3e', '#d96a8c', '#5a6b3a', '#4a90a4'];
+const TOPS = ['#a75b49', '#597994', '#71876a', '#b59653', '#f2f2ee', '#222831', '#80667e', '#e87d3e', '#d96a8c', '#5a6b3a', '#4a90a4'];
 const BOTTOMS = ['#2b3a55', '#1f2328', '#4a5a78', '#7a6a55', '#3d3d3d', '#6b4f3a', '#a89c86', '#5b3a5e'];
 const SHOES = ['#1a1a1a', '#f2f2ee', '#5a3a22', '#c0392b', '#2e6fb7'];
 const pick = (r, a) => a[r() * a.length | 0], between = (r, a, b) => a + r() * (b - a);
