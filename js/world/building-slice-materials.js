@@ -6,7 +6,7 @@ export const SURFACE = Object.freeze({ plaster: 0, brick: 1, roof: 2, trim: 3, s
 let shared;
 const hash = (x, y) => { let n = Math.imul(x + 131, 374761393) ^ Math.imul(y + 719, 668265263); n = Math.imul(n ^ n >>> 13, 1274126177); return (n >>> 0) / 4294967295; };
 const mod = (x, n) => (x % n + n) % n;
-const palette = [[201,190,167],[153,91,66],[72,82,93],[205,196,174],[181,170,149],[62,86,100],[62,86,100],[52,67,69]];
+const palette = [[220,211,191],[160,96,73],[68,80,94],[230,221,201],[196,186,164],[65,94,112],[65,94,112],[52,67,69]];
 
 // Periodic, interpolated grain avoids a visible seam or a low-frequency sine pattern.
 function grain(u,v,columns,rows) {
@@ -27,7 +27,7 @@ function texel(surface, x, y) {
     const tone=hash(mod(column,columns),row)-.5;
     color=joint?(brick?[168,150,128]:[169,159,141]):color.map((c,i)=>c+tone*(brick?[26,16,12]:[12,10,8])[i]);
     shade=1+fine*.02; height=joint?-.0008:fine*.0002;
-    rough=joint?.95:(brick?.9:.75)+tone*.05;
+    rough=joint?.95:(brick?.86:.78)+tone*.05;
   }else if(surface===SURFACE.roof){
     const row=Math.floor(v*6),column=Math.floor(u*4+(row%2)*.5);
     const rx=mod(u*4+(row%2)*.5,1),ry=mod(v*6,1);
@@ -37,10 +37,10 @@ function texel(surface, x, y) {
     height=ry<.03?-.0006:.0006*(1-ry);rough=.79+tone*.06;
   }else if(surface===SURFACE.glass||surface===SURFACE.litGlass){
     // flat, dark, cool pane: sky reflection comes from glass-reflection.js, not baked gradients
-    color=[62,86,100];shade=.95+(hash(Math.floor(u*8),Math.floor(v*16))-.5)*.04;
+    color=[65,94,112];shade=.95+(hash(Math.floor(u*8),Math.floor(v*16))-.5)*.04;
     height=0;rough=.24;
   }else if(surface===SURFACE.trim){
-    height=fine*.00004;rough=.6;metal=0;shade=1+fine*.01;
+    height=fine*.00004;rough=.64;metal=0;shade=1+fine*.01;
   }else if(surface===SURFACE.door){
     const edge=Math.min(mod(u*2,1),1-mod(u*2,1),mod(v*3,1),1-mod(v*3,1));
     shade=edge<.07?.81:1+fine*.012;height=edge<.07?-.001:0;rough=.69;
@@ -48,7 +48,7 @@ function texel(surface, x, y) {
     // plaster: metre-scale tone drift (+-2.5%), fine trowel grain, slight roughness variation
     const micro=grain(u,v,30,62)-.5,soft=grain(u,v,2,4)-.5;
     shade=1+soft*.05+micro*.02+fine*.008;
-    height=micro*.00015+fine*.00004;rough=.85+soft*.06+micro*.03;
+    height=micro*.00015+fine*.00004;rough=.83+soft*.06+micro*.03;
   }
   const emission=surface===SURFACE.litGlass?.78:0;
   return {rgb:color.map(c=>Math.max(0,Math.min(255,c*shade))),height,rough,metal,emission};

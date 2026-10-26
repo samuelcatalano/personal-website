@@ -66,9 +66,13 @@ const glass=[0,1,2,5,6,1];
 const bricks=[[1.05,.70,.50],[.58,.64,.74],[1.12,1.06,.86],[.72,.85,.74],[1.20,.66,.55],[.68,.54,.47],[.92,.48,.40],[1.0,.92,.70]];
 function tint(g,p) {
   const seed=hash(p.id),wall=walls[seed%walls.length],roof=[[1,1,1],[.72,.82,.93],[1.08,.76,.62],[.58,.58,.64],[1.2,.62,.45]][Math.floor(seed/5)%5];
+  // ponytail: Prefix-only regional approximation; use explicit lot metadata if coverage expands.
+  const region=p.id.startsWith('glasgow-house-')||p.id.startsWith('glasgow-tenement-')?'glasgow':p.id.startsWith('paulista-')?'paulista':p.id.startsWith('london-')?'london':null;
+  const regionalWall=region==='glasgow'?walls[[6,8,12][seed%3]]:region==='paulista'?walls[[0,6,12][seed%3]]:region==='london'?walls[[6,7,12][seed%3]]:wall;
+  const regionalBrick=region==='glasgow'?bricks[[2,5,7][Math.floor(seed/3)%3]]:region==='london'?bricks[[0,5,7][Math.floor(seed/3)%3]]:bricks[Math.floor(seed/3)%bricks.length];
   for(const m of g.children){const a=m.geometry.attributes;
     for(let i=0;i<a.position.count;i++){
-      const s=a.aSurface.getX(i),t=s===S.plaster?wall:s===S.stone?(p.kind==='office'?walls[(seed%3)*2]:[1,1,1]):s===S.brick?bricks[Math.floor(seed/3)%bricks.length]:s===S.roof?roof:s===S.glass||s===S.litGlass?walls[glass[Math.floor(seed/7)%(p.kind==='terrace'||p.kind==='shop'?3:glass.length)]]:[1,1,1];
+      const s=a.aSurface.getX(i),t=s===S.plaster?regionalWall:s===S.stone?(region?regionalWall:p.kind==='office'?walls[(seed%3)*2]:[1,1,1]):s===S.brick?regionalBrick:s===S.roof?(region==='glasgow'?walls[5]:roof):s===S.glass||s===S.litGlass?(region==='paulista'?walls[1]:walls[glass[Math.floor(seed/7)%(p.kind==='terrace'||p.kind==='shop'?3:glass.length)]]):[1,1,1];
       a.color.setXYZ(i,a.color.getX(i)*t[0],a.color.getY(i)*t[1],a.color.getZ(i)*t[2]);
     }
   }
