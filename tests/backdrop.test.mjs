@@ -18,11 +18,10 @@ test('backdrop generation and facade modules are deterministic', () => {
 });
 
 test('all visible neighborhood bands have recessed, framed facade openings', () => {
-  const boxes = make(), panes = boxes.filter((b) => b.color === P.glass), frames = boxes.filter((b) => b.color === P.offWhite), recesses = boxes.filter((b) => b.color === P.ink && b.z < -110);
+  const boxes = make(), panes = boxes.filter((b) => b.d === 0.03 || b.w === 0.03), frames = boxes.filter((b) => (b.d === 0.08 && (b.w === 0.07 || b.h === 0.07)) || (b.w === 0.08 && (b.d === 0.07 || b.h === 0.07))), recesses = boxes.filter((b) => b.d === 0.04 || b.w === 0.04);
   assert.ok(panes.length > 1000, `${panes.length} glazed bays`);
   assert.ok(frames.length >= panes.length * 4 && recesses.length >= panes.length, 'each glazed bay has four frame rails and a shadowed reveal');
-  const wallColors = [P.cream, P.stone, P.taupe, P.roof, P.brick, P.redBrown, P.londonStock, P.concreteMid, P.steel, P.ink];
-  const walls = boxes.filter((b) => wallColors.includes(b.color) && b.h > 0), spatial = new Map();
+  const walls = boxes.filter((b) => b.y >= 0 && b.w > 1 && b.d > 1 && b.h > 0.2), spatial = new Map();
   for (const wall of walls) {
     const key = `${Math.floor(wall.x / 20)},${Math.floor(wall.z / 20)}`;
     (spatial.get(key) ?? spatial.set(key, []).get(key)).push(wall);
@@ -39,7 +38,7 @@ test('all visible neighborhood bands have recessed, framed facade openings', () 
   }
   for (const [x0, x1] of [rgs[0].ctry, rgs[1].ctry]) {
     const neighborhood = boxes.filter((b) => b.x >= x0 + 25 && b.x <= x1 - 25 && b.z < -110);
-    assert.ok(neighborhood.some((b) => b.color === P.glass), `urban facades in ${x0}–${x1}`);
+    assert.ok(neighborhood.some((b) => b.d === 0.03 || b.w === 0.03), `urban facades in ${x0}–${x1}`);
     assert.ok(!neighborhood.some((b) => [P.hill, P.field2].includes(b.color)), 'no countryside hill geometry remains');
   }
 });

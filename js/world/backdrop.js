@@ -8,7 +8,10 @@ export function buildBackdrop(add, stops, pts) {
   const colors = [P.cream, P.stone, P.taupe, P.roof, P.brick, P.redBrown, P.londonStock, P.concreteMid, P.steel, P.londonStock, P.stone];
   const distantColors = [P.stone, P.concreteMid, P.taupe, P.steel];
   const museumL = museum.x - museum.w / 2 - 12, museumR = museum.x + museum.w / 2 + 12;
-  const facade = (x, y, z, w, h, depth, seed, coverage) => {
+  const facade = (x, y, z, w, h, depth, seed, coverage, wall) => {
+    // ponytail: distance bands approximate atmospheric contrast, not true scattering.
+    const near = z > -145, far = z < -200;
+    const recess = near ? P.ink : far ? wall : P.steel, frame = near ? P.offWhite : wall, window = far ? P.steel : P.glass;
     const detail = rng(seed), floors = Math.max(1, Math.floor(h / 2.8));
     const face = (span, center, axis, surface, outward) => {
       const bays = Math.max(1, Math.min(5, Math.floor(span / 2.1))), cell = span / bays;
@@ -20,13 +23,13 @@ export function buildBackdrop(add, stops, pts) {
           ? add(alongPos, yPos, facePos, aw, ah, ad, color)
           : add(facePos, yPos, alongPos, ad, ah, aw, color);
         const paneW = bw - 0.12, paneH = bh - 0.12;
-        pane(along, by, surface + outward * 0.015, paneW, paneH, 0.04, P.ink);
+        pane(along, by, surface + outward * 0.015, paneW, paneH, 0.04, recess);
         // Four narrow rails frame a recessed pane without covering its face.
-        pane(along - paneW / 2 + 0.035, by, surface + outward * 0.075, 0.07, bh, 0.08, P.offWhite);
-        pane(along + paneW / 2 - 0.035, by, surface + outward * 0.075, 0.07, bh, 0.08, P.offWhite);
-        pane(along, by - paneH / 2 + 0.035, surface + outward * 0.075, paneW, 0.07, 0.08, P.offWhite);
-        pane(along, by + paneH / 2 - 0.035, surface + outward * 0.075, paneW, 0.07, 0.08, P.offWhite);
-        pane(along, by, surface + outward * 0.015, paneW - 0.1, paneH - 0.1, 0.03, P.glass);
+        pane(along - paneW / 2 + 0.035, by, surface + outward * 0.075, 0.07, bh, 0.08, frame);
+        pane(along + paneW / 2 - 0.035, by, surface + outward * 0.075, 0.07, bh, 0.08, frame);
+        pane(along, by - paneH / 2 + 0.035, surface + outward * 0.075, paneW, 0.07, 0.08, frame);
+        pane(along, by + paneH / 2 - 0.035, surface + outward * 0.075, paneW, 0.07, 0.08, frame);
+        pane(along, by, surface + outward * 0.015, paneW - 0.1, paneH - 0.1, 0.03, window);
       }
     };
     face(w, x, 'z', z + depth / 2, 1);
@@ -35,11 +38,11 @@ export function buildBackdrop(add, stops, pts) {
   };
   const body = (x, y, z, w, h, d, color, seed, trim = false, coverage = 0.78) => {
     add(x, y, z, w, h, d, color);
-    facade(x, y, z, w, h, d, seed, coverage);
+    facade(x, y, z, w, h, d, seed, coverage, color);
     if (trim) {
       const bandY = y + Math.min(2.85, h * 0.28);
-      add(x, bandY, z, w + 0.08, 0.14, d + 0.08, P.offWhite);
-      add(x, y + 0.35, z, w + 0.12, 0.18, d + 0.12, P.roof);
+      add(x, bandY, z, w + 0.08, 0.14, d + 0.08, z > -145 ? P.offWhite : color);
+      add(x, y + 0.35, z, w + 0.12, 0.18, d + 0.12, z > -145 ? P.roof : color);
     }
   };
   // Continuous low ground lets the existing fog hide the finite world edge.
@@ -85,7 +88,7 @@ export function buildBackdrop(add, stops, pts) {
     for (let x = x0; x < x1;) {
       const w = 9 + m() * 5, gap = 2 + m() * 2.5, xc = x + w / 2, z = mz + (m() - 0.5) * 6, depth = 10;
       const skip = xc - w / 2 < museumR && xc + w / 2 > museumL;
-      const floors = lo + (m() * (hi - lo + 1) | 0), h = floors * 2.8, wall = pal[m() * pal.length | 0], roof = m() < 0.5 ? P.roof : wall, kind = m(), plant = m(), crown = Math.abs(Math.round(xc * 13) + floors) % 3;
+      const floors = lo + (m() * (hi - lo + 1) | 0), h = floors * 2.8, wall = pal[m() * pal.length | 0], roof = m() < 0.5 && mz > -190 ? P.roof : wall, kind = m(), plant = m(), crown = Math.abs(Math.round(xc * 13) + floors) % 3;
       if (!skip) {
         if (crown === 0) body(xc, 0, z, w, h, depth, wall, (Math.round(xc * 73) ^ Math.round(mz * 19)) | 0, true, .55);
         else if (crown === 1) { body(xc, 0, z, w, h * 0.72, depth, wall, (Math.round(xc * 73) ^ Math.round(mz * 19)) | 0, true, .55); body(xc + w * 0.1, h * 0.72, z, w * 0.72, h * 0.28, depth * 0.8, wall, (Math.round(xc * 79) ^ Math.round(mz * 23)) | 0, false, .55); }
@@ -104,7 +107,7 @@ export function buildBackdrop(add, stops, pts) {
       const w = 8 + f() * 5, gap = 1.5 + f() * 2, xc = x + w / 2, z = fz + (f() - 0.5) * 8, h = (2 + (f() * 7 | 0)) * 2.8, wall = distantColors[f() * distantColors.length | 0];
       if (!(xc - w / 2 < museumR && xc + w / 2 > museumL)) {
         body(xc, 0, z, w, h, 12, wall, (Math.round(xc * 53) ^ Math.round(fz * 11)) | 0, false, .2);
-        add(xc, h, z, w + 0.3, 0.35, 12.3, P.roof);
+        add(xc, h, z, w + 0.3, 0.35, 12.3, wall);
       }
       x += w + gap;
     }
