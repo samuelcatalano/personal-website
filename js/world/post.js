@@ -69,7 +69,9 @@ export function createPost(renderer, scene, camera, { tier = 'high', sun } = {})
         rays.uniforms.uStrength.value = v.z < 1 ? 0.2 * Math.min(1, sun.intensity / 2.4) : 0;
       }
       const day = sun ? Math.min(1, sun.intensity / 2.4) : 1; // night keeps its own cool palette
-      grade.uniforms.uSat.value = 1 + 0.18 * day; grade.uniforms.uWarm.value.set(1 + 0.02 * day, 1, 1 - 0.03 * day);
+      // ponytail: key intensity approximates time of day; no additional exposure pass.
+      grade.uniforms.uContrast.value = 1.025 + 0.045 * day;
+      grade.uniforms.uSat.value = 1 + 0.14 * day; grade.uniforms.uWarm.value.set(1 + 0.02 * day, 1, 1 - 0.03 * day);
       composer.render(dt);
     },
   };
