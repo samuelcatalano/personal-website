@@ -50,7 +50,7 @@ function texel(surface, x, y) {
     shade=1+soft*.05+micro*.02+fine*.008;
     height=micro*.00015+fine*.00004;rough=.83+soft*.06+micro*.03;
   }
-  const emission=surface===SURFACE.litGlass?.78:0;
+  const emission=surface===SURFACE.litGlass?.68:0;
   return {rgb:color.map(c=>Math.max(0,Math.min(255,c*shade))),height,rough,metal,emission};
 }
 
