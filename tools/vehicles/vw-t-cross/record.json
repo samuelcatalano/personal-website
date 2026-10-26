@@ -1,0 +1,66 @@
+{
+ "id": "vw-t-cross",
+ "name": "Volkswagen T-Cross",
+ "generation": "First generation, MY2020 Brazilian long-wheelbase",
+ "region": "br",
+ "path": "assets/vehicles/vw-t-cross.glb",
+ "dimensions": {
+  "length": 4.214,
+  "bodyWidth": 1.76,
+  "height": 1.567,
+  "wheelbase": 2.651,
+  "sourceWheelbase": 2.651,
+  "widthIncludingMirrors": 1.876
+ },
+ "axles": {
+  "front": 1.2447,
+  "rear": -1.4063,
+  "height": 0.325792,
+  "halfTrack": 0.77,
+  "wheelRadius": 0.325792
+ },
+ "beamAnchors": {
+  "front": [
+   [
+    2.001,
+    0.735,
+    0.66
+   ],
+   [
+    2.001,
+    0.735,
+    -0.66
+   ]
+  ],
+  "rear": [
+   [
+    -1.922,
+    0.97,
+    -0.68985
+   ],
+   [
+    -1.922,
+    0.97,
+    0.68985
+   ]
+  ]
+ },
+ "triangles": 19713,
+ "vertices": 12164,
+ "bytes": 677752,
+ "sha256": "4310d2b5480e06664ff0ff535cf995e83f4788bbbccc5f828996f0715ccfe1b0",
+ "meshes": [
+  "FleetBody",
+  "FleetGlass",
+  "FleetTrim",
+  "FleetRubber",
+  "FleetLights",
+  "FleetInterior"
+ ],
+ "sources": [
+  "https://getoutlines.com/blueprints/car/volkswagen/volkswagen-t-cross-2018.png (visual reference only)",
+  "https://www.volkswagen.com.pe/idhub/content/dam/onehub_pkw/importers/pe/ficha_tecnica/01-2024/VWPer%C3%BA_FichaT%C3%A9cnica_%20T-CrossMY2023-2024.pdf",
+  "https://www.volkswagen-newsroom.com/en/welcome-to-the-family-the-new-t-cross-4306/the-exterior-4311"
+ ],
+ "author": "Original Blender geometry; references visual only"
+}

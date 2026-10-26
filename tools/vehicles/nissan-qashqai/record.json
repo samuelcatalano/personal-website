@@ -1,0 +1,57 @@
+{
+  "id": "nissan-qashqai",
+  "name": "Nissan Qashqai",
+  "generation": "J11 facelift, circa 2017",
+  "region": "uk",
+  "path": "assets/vehicles/nissan-qashqai.glb",
+  "dimensions": {
+    "length": 4.394,
+    "bodyWidth": 1.806,
+    "height": 1.59,
+    "wheelbase": 2.646,
+    "sourceWheelbase": 2.646,
+    "widthIncludingMirrors": 2.074
+  },
+  "axles": {
+    "front": 1.272,
+    "rear": -1.374,
+    "height": 0.343,
+    "halfTrack": 0.793,
+    "wheelRadius": 0.343
+  },
+  "beamAnchors": {
+    "front": [
+      [
+        2.119,
+        0.855,
+        0.62
+      ],
+      [
+        2.119,
+        0.855,
+        -0.62
+      ]
+    ],
+    "rear": [
+      [
+        -2.197,
+        1.06,
+        0.62
+      ],
+      [
+        -2.197,
+        1.06,
+        -0.62
+      ]
+    ]
+  },
+  "triangles": 19290,
+  "vertices": 12119,
+  "bytes": 635804,
+  "sha256": "b219747cbce889ac17bc98cabe2e94dc3daa8f99195a5bbd116e4fa28a4625a4",
+  "sources": [
+    "https://www.nissan-cdn.net/content/dam/Nissan/ch/fr/brochures/pkw/qashqai-2017-ebrochure-listedeprix.pdf",
+    "https://europe.nissannews.com/en-GB/releases/the-new-nissan-qashqai-premium-enhancements-reinforcing-10-years-of-crossover-leadership"
+  ],
+  "author": "Original Blender geometry; references visual only"
+}

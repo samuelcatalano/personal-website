@@ -14,7 +14,7 @@ export function loadFleetCatalog() {
     .then((data) => data.models).catch(() => []);
 }
 export function regionalFleetModel(catalog, region, slot) {
-  const pool = catalog.filter((m) => m.region === region);
+  const pool = catalog.filter((m) => [].concat(m.region).includes(region)); // region: "uk" | "br" | ["uk","br"]
   return pool[slot % pool.length];
 }
 export function loadVehicleAsset(type) {

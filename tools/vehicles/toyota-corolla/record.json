@@ -1,0 +1,68 @@
+{
+  "id": "toyota-corolla",
+  "name": "Toyota Corolla",
+  "generation": "Twelfth generation sedan, MY2020 Brazil",
+  "region": "br",
+  "path": "assets/vehicles/toyota-corolla.glb",
+  "dimensions": {
+    "length": 4.63,
+    "bodyWidth": 1.78,
+    "height": 1.455,
+    "wheelbase": 2.7,
+    "sourceWheelbase": 2.7,
+    "widthIncludingMirrors": 2.018
+  },
+  "axles": {
+    "front": 1.38,
+    "rear": -1.32,
+    "height": 0.325822,
+    "halfTrack": 0.78,
+    "wheelRadius": 0.325822
+  },
+  "beamAnchors": {
+    "front": [
+      [
+        2.270504,
+        0.688379,
+        0.6
+      ],
+      [
+        2.270504,
+        0.688379,
+        -0.6
+      ]
+    ],
+    "rear": [
+      [
+        -2.281911,
+        0.898904,
+        0.55
+      ],
+      [
+        -2.281911,
+        0.898904,
+        -0.55
+      ]
+    ]
+  },
+  "materials": [
+    "FleetBody",
+    "FleetGlass",
+    "FleetTrim",
+    "FleetRubber",
+    "FleetLights",
+    "FleetInterior"
+  ],
+  "meshCount": 6,
+  "triangles": 17780,
+  "vertices": 13936,
+  "bytes": 558576,
+  "sha256": "123b29884b88813e5e0e96f02a4847161c017154abe73bb6e4460b3885e643de",
+  "sources": [
+    "https://getoutlines.com/blueprints/car/toyota/toyota-corolla-e120-2019.png",
+    "https://getoutlines.com/vectors/car/toyota/large/Toyota-Corolla-12-Gen-E210-Sporty-2019-blueprint-large.png",
+    "https://www.toyotacomunica.com.br/toyota-apresenta-o-novo-corolla-2020/",
+    "https://www.toyotaoman.com/wp-content/uploads/2020/05/Corolla-2020.pdf"
+  ],
+  "author": "Original Blender geometry; references visual only"
+}

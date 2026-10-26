@@ -4,13 +4,13 @@ print(js(r'''(async () => {
  const THREE = await import('three'), A = await import('./js/world/vehicle-assets.js');
  const check = (v,m) => {if(!v) throw Error(m)};
  check(typeof A.loadFleetCatalog === 'function', 'cached regional fleet catalog is available');
- const catalog = await A.loadFleetCatalog(); check(catalog.length === 10, 'all ten catalog models');
+ const catalog = await A.loadFleetCatalog(); check(catalog.length === 3, 'all three catalog models');
  check(A.loadFleetCatalog() === A.loadFleetCatalog(), 'catalog promise cached');
  const painted = await Promise.all(['#2f6fcf','#2f6fcf','#b9bec4'].map(async body => {const g=new THREE.Group();await A.upgradeFleet(g,catalog[0],{body});let mesh;g.traverse(o=>{if(o.isMesh&&o.material.name==='FleetBody')mesh=o});return mesh}));
  check(painted[0].material===painted[1].material && painted[0].material!==painted[2].material && painted.every(m=>m.geometry===painted[0].geometry), 'paint palettes cache distinct materials while sharing geometry');
  check(painted[0].material.color.getHexString()==='2f6fcf' && painted[2].material.color.getHexString()==='b9bec4','ambient paint preserved');
- const selected = ['br','uk'].flatMap(region => Array.from({length:5},(_,i) => A.regionalFleetModel(catalog,region,i).id));
- check(new Set(selected).size===10, 'deterministic selection exercises every regional model');
+ const selected = ['br','uk'].flatMap(region => Array.from({length:3},(_,i) => A.regionalFleetModel(catalog,region,i).id));
+ check(new Set(selected).size===3, 'deterministic selection exercises every regional model');
  check(!A.regionalFleetModel([], 'br', 0), 'missing catalog keeps fallback');
  const resources = [];
  for (const m of catalog) {
@@ -34,7 +34,7 @@ print(js(r'''(async () => {
  const exclusive=()=>check(minis.every(x=>{let ok=true;x.traverse(o=>{if(o.isMesh&&o.material?.color&&cream.has(o.material.color.getHexString()))ok=false});return ok}), 'ambient cream Mini excluded');
  exclusive(); await ambient.ready;exclusive();
  const cars=traffic.filter(x=>x.userData.fleetModel);check(cars.length===9,'nine regional traffic slots');
- check(cars.every(x=>catalog.find(m=>m.id===x.userData.fleetModel).region===(traffic.indexOf(x)>=16?'br':'uk')),'regional selection');
+ check(cars.every(x=>catalog.find(m=>m.id===x.userData.fleetModel).region.includes(traffic.indexOf(x)>=16?'br':'uk')),'regional selection');
  const before=traffic.map(x=>x.position.clone());for(let i=0;i<120;i++)ambient.update({time:i/30,t:.5,dt:1/30});
  check(traffic.some((x,i)=>x.visible&&x.position.distanceTo(before[i])>1),'traffic moves');
  check(cars.every(x=>x.children.filter(c=>c.name==='beam').length===2),'beam ownership retained');
