@@ -38,13 +38,24 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
     new THREE.SphereGeometry(1100, 24, 12),
     new THREE.ShaderMaterial({
       side: THREE.BackSide, depthWrite: false, fog: false, toneMapped: false,
-      uniforms: { uZen: { value: new THREE.Color() }, uHor: { value: new THREE.Color() } },
-      vertexShader: 'varying float vY; void main(){ vY = normalize(position).y; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-      fragmentShader: 'uniform vec3 uZen; uniform vec3 uHor; varying float vY; void main(){ gl_FragColor = vec4(mix(uHor, uZen, smoothstep(-0.02, 0.2, vY)), 1.0); }',
+      uniforms: { uZen: { value: new THREE.Color() }, uMid: { value: new THREE.Color() }, uHor: { value: new THREE.Color() }, uGlow: { value: new THREE.Color() }, uSunDir: { value: SUN_DIR.clone() }, uClear: { value: 1 }, uNight: { value: 0 } },
+      vertexShader: 'varying vec3 vDir; varying vec4 vClip; void main(){ vDir = position; vClip = projectionMatrix * modelViewMatrix * vec4(position, 1.0); gl_Position=vClip; }',
+      fragmentShader: `uniform vec3 uZen,uMid,uHor,uGlow,uSunDir; uniform float uClear,uNight; varying vec3 vDir; varying vec4 vClip;
+        void main(){
+          vec3 d=normalize(vDir); float h=max(0.0,(vClip.y/vClip.w-.18)*.4);
+          vec3 c=mix(uHor,uMid,smoothstep(0.0,0.07,h));
+          c=mix(c,uZen,smoothstep(0.025,0.24,h));
+          float sd=max(dot(d,uSunDir),0.0);
+          float lobe=pow(sd,12.0)*0.25+pow(sd,96.0)*0.48;
+          c=mix(c,uGlow,lobe*uClear*smoothstep(0.0,0.07,h));
+          gl_FragColor=vec4(c,1.0);
+        }`,
     }),
   );
   dome.renderOrder = -10; dome.frustumCulled = false;
   const u = dome.material.uniforms;
+  const sunsetZen = C(0x67558b), sunsetHor = C(0xe6a68e), warmGlow = C(0xf7dfbd), coolGlow = C(0x7c9ddc);
+  const authoredZen = new THREE.Color(), authoredHor = new THREE.Color(), authoredMid = new THREE.Color();
   const sunM = sprite(disc((g) => {
     const r = g.createRadialGradient(128, 128, 0, 128, 128, 128);
     r.addColorStop(0, '#fff'); r.addColorStop(0.2, '#fff'); r.addColorStop(0.24, 'rgba(255,255,255,0.12)'); r.addColorStop(1, 'rgba(255,255,255,0)');
@@ -94,8 +105,15 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
   return {
     update(night, dt = 0, camPos = new THREE.Vector3(), cam, mood = LON) {
       cam?.updateMatrixWorld();
-      u.uZen.value.lerpColors(day(mood.zen, d1), NIGHT.zen, night); untone(u.uZen.value);
-      u.uHor.value.lerpColors(day(mood.hor, d1), NIGHT.hor, night); untone(u.uHor.value);
+      const sunset = Math.sin(Math.PI * night) ** 3, clear = 1 - Math.min(1, mood.rain ?? 0);
+      authoredZen.lerpColors(day(mood.zen, d1), NIGHT.zen, night).lerp(sunsetZen, sunset * .65 * clear);
+      authoredHor.lerpColors(day(mood.hor, d1), NIGHT.hor, night).lerp(sunsetHor, sunset * .75 * clear);
+      authoredMid.lerpColors(authoredHor, authoredZen, .58);
+      untone(u.uZen.value.copy(authoredZen));
+      untone(u.uHor.value.copy(authoredHor));
+      u.uMid.value.copy(untone(authoredMid));
+      u.uGlow.value.lerpColors(warmGlow, coolGlow, night); untone(u.uGlow.value);
+      u.uClear.value = clear; u.uNight.value = night;
       scene.fog.color.copy(u.uHor.value); // already tone-inverted
       scene.background?.copy(scene.fog.color);
       scene.fog.near = (200 - 20 * night) * mood.fogK; scene.fog.far = (820 - 140 * night) * mood.fogK;
@@ -111,6 +129,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
           c.lookAt(cam.position);
         }
         place(sunM, cam, wide ? 0.66 : 0.6, wide ? 0.8 : 0.78); place(moonM, cam, wide ? 0.66 : 0.6, wide ? 0.8 : 0.78);
+        u.uSunDir.value.copy(sunM.position).sub(camPos).normalize();
       }
       sunM.visible = night < 0.98; sunM.material.opacity = (1 - night) * Math.min(1, mood.sun) ** 2; // veiled by overcast
       moonM.visible = night > 0.02; moonM.material.opacity = night;
