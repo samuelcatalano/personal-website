@@ -85,10 +85,10 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
   // Feathered density billboards preserve the upper-frame composition with far fewer draws than sphere clusters.
   const cloudMat = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, fog: false, toneMapped: false,
-    uniforms: { uTop: { value: new THREE.Color() }, uBase: { value: new THREE.Color() }, uRim: { value: new THREE.Color() }, uOp: { value: .8 }, uLayer: { value: 0 }, uCover: { value: 0 } },
+    uniforms: { uTop: { value: new THREE.Color() }, uBase: { value: new THREE.Color() }, uRim: { value: new THREE.Color() }, uOp: { value: .8 }, uLayer: { value: 0 }, uCover: { value: 0 }, uFlash: { value: 0 } },
     vertexShader: 'varying vec2 vUv; void main(){vUv=uv*2.0-1.0;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
     fragmentShader: `
-      uniform vec3 uTop,uBase,uRim; uniform float uOp,uLayer,uCover; varying vec2 vUv;
+      uniform vec3 uTop,uBase,uRim; uniform float uOp,uLayer,uCover,uFlash; varying vec2 vUv;
       float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
       float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+1.0),f.x),f.y);}
       float fbm(vec2 p){return noise(p)*.57+noise(p*2.07+7.0)*.28+noise(p*4.13+19.0)*.15;}
@@ -107,7 +107,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
           a=smoothstep(.45,.75,streak)*pow(max(0.0,1.0-p.x*p.x),.7)*(1.0-smoothstep(.3,1.0,abs(p.y)));
           c=mix(uBase,uTop,.8);
         }
-        if(uLayer>1.5){a=mix(.20,.98,smoothstep(.16,.78,n))*uCover;c=mix(uBase,uTop,n*.65);}
+        if(uLayer>1.5){a=mix(.72,.98,smoothstep(.16,.78,n))*uCover;c=mix(uBase,uTop,n*.65);c+=uTop*uFlash*exp(-dot(p-vec2(.28,.2),p-vec2(.28,.2))*12.0);}
         gl_FragColor=vec4(c,a*uOp);
       }`,
   });
@@ -151,13 +151,15 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
   let starTime=0;
   const place = (m, cam, x, y) => { at(cam, x, y, DIST, m.position); m.lookAt(cam.position); };
   return {
-    update(night, dt = 0, camPos = new THREE.Vector3(), cam, mood = LON) {
+    update(night, dt = 0, camPos = new THREE.Vector3(), cam, mood = LON, flash = 0) {
       cam?.updateMatrixWorld();
       const cover=mood.cover ?? Math.min(1,.18+mood.cloudOp+(mood.rain??0)*.8);
       const veil=1-THREE.MathUtils.smoothstep(cover,.48,.98),clear=veil*(1-Math.min(1,(mood.rain??0)*2));
       const sunset = Math.sin(Math.PI * night) ** 3;
       authoredZen.lerpColors(day(mood.zen, d1), NIGHT.zen, night).lerp(sunsetZen, sunset * .65 * clear);
       authoredHor.lerpColors(day(mood.hor, d1), NIGHT.hor, night).lerp(sunsetHor, sunset * .75 * clear);
+      authoredZen.multiplyScalar(1-night*(mood.rain??0)*.22);
+      authoredHor.multiplyScalar(1-night*(mood.rain??0)*.18);
       authoredMid.lerpColors(authoredHor, authoredZen, .58);
       untone(u.uZen.value.copy(authoredZen));
       untone(u.uHor.value.copy(authoredHor));
@@ -174,6 +176,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
         cu.uRim.value.lerpColors(cloudRim,coolGlow,night);untone(cu.uRim.value);
         cu.uOp.value=mat===cirrusMat?.32*(1-cover):.58+cover*.3;
         cu.uCover.value=smoothCover(cover);
+        cu.uFlash.value=reducedMotion?0:flash;
       }
       deck.visible=cover>.65;
       dome.position.copy(camPos); stars.position.copy(camPos);
@@ -196,9 +199,9 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
       halo.material.color.lerpColors(sunM.material.color,moonM.material.color,night);
       halo.material.opacity=clear*(1-night*.75);halo.visible=clear>.005;
       const ds = DAY.sun * mood.sun, dh = DAY.hemi * mood.hemi;
-      sun.intensity = ds + (NIGHT.sun - ds) * night;
+      sun.intensity = ds + (NIGHT.sun * (1-cover*.78) - ds) * night;
       sun.color.lerpColors(day(mood.light, d1), NIGHT.light, night);
-      hemi.intensity = dh + (NIGHT.hemi - dh) * night;
+      hemi.intensity = dh + (NIGHT.hemi + (mood.rain??0)*.16 - dh) * night + (reducedMotion?0:flash);
       if(!reducedMotion)starTime+=dt;
       stars.material.uniforms.uTime.value=starTime;
       stars.material.uniforms.uOp.value=Math.max(0,night*1.4-.4)*clear;

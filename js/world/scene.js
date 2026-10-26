@@ -105,7 +105,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   figure.position.set(end.x + endTan.x * 9 + near.x * 2, 0, end.z + endTan.z * 9 + near.z * 2);
   scene.add(figure);
   const pools = createLampPools(scene, lamps);
-  const sky = createSky(scene, { hemi, sun, reducedMotion }), moodAt = createMood(stops), rain = createRain(scene, { reducedMotion });
+  const sky = createSky(scene, { hemi, sun, reducedMotion }), moodAt = createMood(stops), rain = createRain(scene, { reducedMotion, lamps });
   const post = createPost(renderer, scene, camera, { sun, tier: reducedMotion || matchMedia('(max-width: 767px)').matches ? 'medium' : 'high' });
   let fpsT = 0, fpsN = 0, night = 0, nightTarget = 0, mobile = false;
   const bar = document.querySelector('.bar'), panel = document.querySelector('#panel');
@@ -207,8 +207,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     trees?.userData.update(camera, clock);
     night = reducedMotion || dt === 0 ? nightTarget : approach(night, nightTarget, dt, 1.4);
     const mood = moodAt(t);
-    sky.update(night, dt, camera.position, camera, mood);
-    rain.update(clock, busPos, mood.rain * (1 - 0.5 * night));
+    const flash = rain.update(clock, camera, mood, night, post.tier, busPos, bus.rotation.y);
+    sky.update(night, dt, camera.position, camera, mood, flash);
     updateBeams(night); pools.update(night);
     water.update(clock, night);
     world.userData.updateLandmarkNight?.(night);
@@ -242,6 +242,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       underpass.group.userData.dispose();
       heroRealm?.userData.dispose();
       roadMarks.userData.dispose();
+      rain.dispose?.();
       trees?.userData.dispose?.();
       phones?.userData.dispose(); lampPosts?.userData.dispose();
       for (const name of ['wembley', 'bigben', 'masp', 'se', 'estaiada', 'towerbridge', 'eyeframe', 'copan', 'riverside', 'university', 'chambers', 'wellington']) details.getObjectByName(name + '-geometry')?.userData.dispose();

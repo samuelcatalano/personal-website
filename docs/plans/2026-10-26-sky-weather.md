@@ -14,10 +14,10 @@ Weather lives in `weather.js`: roll once per region/page, independently, with `?
 
 ## Tasks / ledger
 
-- [ ] 1. `sky.js`: analytic zenith/mid/horizon haze, sunset, warm directional halo. Node regression + same eight captures.
-- [ ] 2. `sky.js`: soft shaded cumulus, high cirrus, low overcast. Node regression + eight captures.
-- [ ] 3. `sky.js`: sun/full moon/varied stars, overcast occlusion. Node regression + eight captures.
-- [ ] 4. `weather.js`, `mood.js`, `rain.js`, `scene.js`: stable regional weather, storm lighting/fog, tiered layered rain, subtle lightning. Test deterministic overrides, independent rolls, continuity and reduced motion. Captures + paired performance.
+- [x] 1. `sky.js`: analytic zenith/mid/horizon haze, sunset, warm directional halo. Node regression + same eight captures.
+- [x] 2. `sky.js`: soft shaded cumulus, high cirrus, low overcast. Node regression + eight captures.
+- [x] 3. `sky.js`: sun/full moon/varied stars, overcast occlusion. Node regression + eight captures.
+- [x] 4. `weather.js`, `mood.js`, `rain.js`, `scene.js`: stable regional weather, storm lighting/fog, tiered layered rain, subtle lightning. Test deterministic overrides, independent rolls, continuity and reduced motion. Captures + paired performance.
 - [ ] 5. `wet-surfaces.js`, `water.js`, `lamps.js`, `scene.js`: lagging wetness, shared material wet response/puddles, nearest light reflections, ground/river rings and splashes, wet-air halos. Browser shader checks, product matrix, paired performance. Update art direction and atlas with evidence and limitations.
 
 ## Review focus
@@ -28,3 +28,7 @@ Invalid weather override falls back to one stable roll. Rapid scroll never rerol
 
 - Baseline: clean working tree on `feat/site-gamefication`; full Node regression passes. Baseline snapshot preserved in `/tmp/sky-weather-baseline` for A/B.
 - Tools: browser-harness installed and CDP connects; chrome-devtools-mcp and Serena unavailable. RTK 1.0.1 available. Sol owns integration; Luna handles isolated deterministic weather data/tests. Terra is not exposed by the subagent tool.
+
+- Slices 1–3: local commits b6bf620, ce8aee8, 4618d04; Node regression and regional captures. Review corrected world-elevation clipping in the hero sky.
+- Slice 4: 115 Node tests; real rain pixels/shader, tier, long-visit displacement, celestial and static-motion checks pass. Paired A/B: max p95 delta +0.2 ms desktop / +0.5 ms mobile, three repeats day/night each. Initial multi-tab contaminated samples retained separately; CDP timeouts resumed without dropping completed samples.
+- Slice 5: shader ownership and palette review clean after making puddles/river consume the exact final dome colours. Browser/visual/performance gates pending.
