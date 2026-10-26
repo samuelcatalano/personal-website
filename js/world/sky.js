@@ -69,23 +69,48 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
   }), 110); // moon disc ≈ sun disc (sun disc is ~0.2 of its 400 sprite)
   moonM.material.color.copy(untone(C(0xe6e9f0)));
   scene.add(dome, sunM, moonM);
-  // Rounded low-poly cloud clusters keep the existing sky placement and animation.
-  const cloudMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.85, depthWrite: false, fog: false, toneMapped: false });
-  const box = new THREE.SphereGeometry(.5, 8, 5), clouds = new THREE.Group();
-  for (let i = 0; i < 10; i++) {
-    const g = new THREE.Group(), n = 4 + Math.floor(Math.random() * 4);
-    for (let j = 0; j < n; j++) {
-      const m = new THREE.Mesh(box, cloudMat);
-      m.scale.set(30 + Math.random() * 40, 8 + Math.random() * 6, 22 + Math.random() * 26);
-      m.position.set(j * 36 - n * 18, Math.random() * 5, (Math.random() - 0.5) * 40);
-      g.add(m);
-    }
-    g.userData = { x: Math.random() * 2.8 - 1.4, y: 0.6 + Math.random() * 0.38, k: 1.3 + Math.random() * 1.1 };
-    g.scale.setScalar(g.userData.k);
-    clouds.add(g);
+  // Feathered density billboards preserve the upper-frame composition with far fewer draws than sphere clusters.
+  const cloudMat = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, fog: false, toneMapped: false,
+    uniforms: { uTop: { value: new THREE.Color() }, uBase: { value: new THREE.Color() }, uRim: { value: new THREE.Color() }, uOp: { value: .8 }, uLayer: { value: 0 }, uCover: { value: 0 } },
+    vertexShader: 'varying vec2 vUv; void main(){vUv=uv*2.0-1.0;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+    fragmentShader: `
+      uniform vec3 uTop,uBase,uRim; uniform float uOp,uLayer,uCover; varying vec2 vUv;
+      float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+      float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+1.0),f.x),f.y);}
+      float fbm(vec2 p){return noise(p)*.57+noise(p*2.07+7.0)*.28+noise(p*4.13+19.0)*.15;}
+      void main(){
+        vec2 p=vUv;float n=fbm(p*5.0+vec2(3.0,7.0));
+        float shape=1.0-length(vec2(p.x/.93,(p.y+.22)/.42));
+        shape=max(shape,1.0-length((p-vec2(-.42,.02))/vec2(.34,.58)));
+        shape=max(shape,1.0-length((p-vec2(.02,.18))/vec2(.42,.69)));
+        shape=max(shape,1.0-length((p-vec2(.47,.02))/vec2(.33,.50)));
+        float a=smoothstep(-.08,.23,shape+(n-.5)*.24);
+        float light=smoothstep(-.50,.65,p.y+(n-.5)*.5);
+        vec3 c=mix(uBase,uTop,light);
+        c=mix(c,uRim,smoothstep(.65,.98,light)*.28);
+        if(uLayer>0.5){
+          float streak=fbm(vec2(p.x*3.0,p.y*17.0+p.x*2.0));
+          a=smoothstep(.45,.75,streak)*pow(max(0.0,1.0-p.x*p.x),.7)*(1.0-smoothstep(.3,1.0,abs(p.y)));
+          c=mix(uBase,uTop,.8);
+        }
+        if(uLayer>1.5){a=mix(.20,.98,smoothstep(.16,.78,n))*uCover;c=mix(uBase,uTop,n*.65);}
+        gl_FragColor=vec4(c,a*uOp);
+      }`,
+  });
+  const cirrusMat=cloudMat.clone(), deckMat=cloudMat.clone();
+  cirrusMat.uniforms.uLayer.value=1; deckMat.uniforms.uLayer.value=2;
+  const cloudGeo=new THREE.PlaneGeometry(1,1), clouds=new THREE.Group();
+  for(let i=0;i<14;i++){
+    const high=i>=10, c=new THREE.Mesh(cloudGeo,high?cirrusMat:cloudMat);
+    c.scale.set(high?440:220+(i%3)*38,high?65:90+(i%4)*12,1);
+    c.userData={x:((i*.61803398875)%1)*2.8-1.4,y:high?.92+(i%2)*.10:.57+((i*.381966)%1)*.37};
+    c.renderOrder=high?-8:-7;c.frustumCulled=false;clouds.add(c);
   }
-  clouds.children.forEach((c) => c.children.forEach((m) => { m.renderOrder = 999; }));
-  scene.add(clouds);
+  const deck=new THREE.Mesh(cloudGeo,deckMat);deck.scale.set(3200,650,1);deck.renderOrder=-6;deck.frustumCulled=false;
+  scene.add(clouds,deck);
+  const smoothCover=c=>THREE.MathUtils.smoothstep(c,.65,1);
+  const cloudBase=C(0x7e99b5),nightBase=C(0x1b2941),cloudRim=C(0xfed29a);
   // sky band: the follow camera looks down, so the sun/moon/clouds are pinned to NDC points of the upper frame
   const at = (cam, x, y, d, out) => out.set(x, y, 0.5).unproject(cam).sub(cam.position).normalize().multiplyScalar(d).add(cam.position);
   const glow = [];
@@ -117,8 +142,16 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
       scene.fog.color.copy(u.uHor.value); // already tone-inverted
       scene.background?.copy(scene.fog.color);
       scene.fog.near = (200 - 20 * night) * mood.fogK; scene.fog.far = (820 - 140 * night) * mood.fogK;
-      cloudMat.color.lerpColors(day(mood.cloud, d1), NIGHT.cloud, night); untone(cloudMat.color);
-      cloudMat.opacity = 0.57 + mood.cloudOp - 0.2 * night;
+      const cover=mood.cover ?? Math.min(1,.18+mood.cloudOp+(mood.rain??0)*.8);
+      for(const mat of [cloudMat,cirrusMat,deckMat]){
+        const cu=mat.uniforms;
+        cu.uTop.value.lerpColors(day(mood.cloud,d1),NIGHT.cloud,night);untone(cu.uTop.value);
+        cu.uBase.value.lerpColors(cloudBase,nightBase,night);untone(cu.uBase.value);
+        cu.uRim.value.lerpColors(cloudRim,coolGlow,night);untone(cu.uRim.value);
+        cu.uOp.value=mat===cirrusMat?.32*(1-cover):.58+cover*.3;
+        cu.uCover.value=smoothCover(cover);
+      }
+      deck.visible=cover>.65;
       dome.position.copy(camPos); stars.position.copy(camPos);
       if (cam) {
         const wide = cam.aspect > 1;
@@ -130,6 +163,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
         }
         place(sunM, cam, wide ? 0.66 : 0.6, wide ? 0.8 : 0.78); place(moonM, cam, wide ? 0.66 : 0.6, wide ? 0.8 : 0.78);
         u.uSunDir.value.copy(sunM.position).sub(camPos).normalize();
+        at(cam,0,.90,1200,deck.position);deck.lookAt(cam.position);
       }
       sunM.visible = night < 0.98; sunM.material.opacity = (1 - night) * Math.min(1, mood.sun) ** 2; // veiled by overcast
       moonM.visible = night > 0.02; moonM.material.opacity = night;
