@@ -406,7 +406,7 @@ export function createCopan({x,z,len,amp,depth,h}){
   const {box,add,sweep,finish,pale}=landmark('copan',x,z),D=depth/2,path=t=>[-len/2+t*len,amp*Math.sin(2*Math.PI*t)],N=32,F=3.2;
   const rect=(d0,d1,y0,y1)=>[[d0,y0],[d1,y0],[d1,y1],[d0,y1]],white=[1.2,1.2,1.22],dark=[.5,.55,.65],glass=[.7,.82,.95];
   sweep(rect(-D,D,0,F),path,N,S.stone,dark);                                   // commercial base
-  sweep(rect(-D+.75,D-.75,F,h-.5),path,N,S.stone,dark);                        // core behind the glazing
+  sweep(rect(-D+.75,D-.75,F,h-.5),t=>path(.003+t*.994),N,S.stone,dark);         // core behind the glazing; ends ~10 cm inside the band caps (coplanar caps z-fought)
   for(const k of [1,-1]){
     sweep(k>0?[[D+.03,.5],[D+.03,F-.6]]:[[-D-.03,F-.6],[-D-.03,.5]],path,N,S.glass,glass,2,false); // restrained lobby panes are selected by the night mask
     sweep(k>0?[[D-.72,F],[D-.72,h-.5]]:[[-D+.72,h-.5],[-D+.72,F]],path,N,S.glass,glass,2,false);
