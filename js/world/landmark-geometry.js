@@ -352,6 +352,18 @@ export function createSe(x,z){
   return finish();
 }
 
+// Estaiada carriageway (relative to the bridge site): deck top y, z span, lane offset. Shared with the bridge traffic (ambient.js).
+export const ESTAIADA_DECK={y:4.8,z0:-28,z1:22,lane:1.75};
+let deckMats;
+// Main-road asphalt and paint on the deck (São Paulo style: white edges, double yellow centre, no zebra); outside the landmark's three architecture buckets.
+export function estaiadaDeck(x,z){
+  const {y,z0,z1}=ESTAIADA_DECK,L=z1-z0,c=(z0+z1)/2,yellow=new THREE.Color('#e9b93a'),white=new THREE.Color('#ece8de');
+  deckMats??={road:blockMaterial(P.road),paint:new THREE.MeshStandardMaterial({vertexColors:true,roughness:.85,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2})};
+  const road=new THREE.Mesh(new THREE.BoxGeometry(7.2,.06,L).translate(0,y+.03,c),deckMats.road);road.receiveShadow=true;road.name='estaiada-deck';
+  const lines=[[-3.35,.12,white],[3.35,.12,white],[-.11,.1,yellow],[.11,.1,yellow]].map(([o,w,col])=>{const g=new THREE.PlaneGeometry(w,L).rotateX(-Math.PI/2).translate(o,y+.065,c),n=g.attributes.position.count;g.setAttribute('color',new THREE.Float32BufferAttribute(Array.from({length:n},()=>col.toArray()).flat(),3));return g;});
+  const paint=new THREE.Mesh(mergeGeometries(lines),deckMats.paint);paint.receiveShadow=true;paint.name='estaiada-deck-paint';
+  const group=new THREE.Group();group.position.set(x,0,z);group.add(road,paint);return group;
+}
 // ---- Ponte Estaiada: tapered X pylon, deck through it, fans of straight stays ----
 export function createEstaiada(x,z){
   const {box,add,finish,lit,lbox,lbeam,pale}=landmark('estaiada',x,z),concrete=[1.04,1.07,1.14],steel=[.9,.95,1.05];
@@ -364,12 +376,12 @@ export function createEstaiada(x,z){
     g.computeVertexNormals();return g;
   };
   // Like the real bridge the X pylon stands on the bank (P: 2.5 m past the near bank of the 22 m river), the deck spans the water.
-  const slope=8/28,H=46,lx=y=>-8+y*slope,P=13.5,Z0=-28,Z1=22,DZ=(Z0+Z1)/2,DL=Z1-Z0;
+  const slope=8/28,H=46,lx=y=>-8+y*slope,P=13.5,{z0:Z0,z1:Z1}=ESTAIADA_DECK,DZ=(Z0+Z1)/2,DL=Z1-Z0;
   for(const s of [-1,1]){
     add(loft(v(s*lx(.5),.5,0),v(s*lx(H),H,0),3.0,2.8,1.4,1.4),0,0,P,S.plaster,concrete);
     box(s*8,0,P,4.4,1.1,3.6,S.stone,[.9,.92,.96]);
   }
-  box(0,3.6,DZ,8,1.2,DL,S.plaster,concrete);box(0,4.8,DZ,7.2,.06,DL,S.plaster,[.2,.22,.25]);
+  box(0,3.6,DZ,8,1.2,DL,S.plaster,concrete); // carriageway: estaiadaDeck
   for(const pz of [Z0+1.2,Z1-1.2])box(0,0,pz,6.4,3.6,2.4,S.stone,[.9,.92,.96]);
   for(const s of [-1,1])box(s*3.9,4.8,DZ,.2,.7,DL,S.trim,pale,1);
   // stays: leg A (upper right) feeds the right deck edge, leg B the left

@@ -6,7 +6,7 @@ Original geometry, no third-party mesh or texture.
 |---|---|
 | Generator | `build_a330.py` (`blender -b --factory-startup -P build_a330.py -- a330-original-poc.glb`) |
 | Approved POC (immutable) | `a330-original-poc.glb` |
-| Production asset | `assets/vehicles/a330.glb` (rebuilt from `build_a330.py`: POC plus cabin windows as single flat quads lifted 6 cm, which no longer z-fight the hull) |
+| Production asset | `assets/vehicles/a330.glb` (rebuilt from `build_a330.py`: POC plus cabin windows as single flat quads lifted 6 cm on a level line, windscreen lowered onto the nose slope) |
 | Runtime loader | `js/world/vehicle-assets.js` → `loadVehicleAsset('a330')`; `scene.js` swaps the procedural A330 body for it, keeping `nav`/`strobe`; the procedural model stays if loading fails |
 | Axes / origin / scale | three.js forward +X, up +Y, right wing +Z; origin at fuselage centre; 40.1 m long, 38.2 m span, scene units = metres, runtime scale 1 |
 | Geometry | 14,608 tris, 8,476 verts, 6 objects (12 glTF primitives), 6 materials, 0 textures, 312 KB |

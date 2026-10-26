@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createBoat } from './landmark-geometry.js';
+import { createBoat, ESTAIADA_DECK } from './landmark-geometry.js';
 import { buildVehicle } from './vehicles.js';
 import { upgradeBus, upgradeMini, upgradeCab, loadFleetCatalog, regionalFleetModel, upgradeFleet } from './vehicle-assets.js';
 import { RIVER_Z, LANDMARKS, ukStart, stopIndex, swapAt, scotRange, riverEnd, riverStart } from './layout.js';
@@ -40,6 +40,13 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
     G(1, 0.17, { uk: false }), G(2, 0.33, { uk: false }), G(5, 0.58, { uk: false }), G(9, 0.92, { uk: false }),
   ].map((v, i) => ({ lane: -1.75, ...v, base: SPEED[v.type] * (v.type === 'car' ? 0.9 + 0.2 * ((i * 7) % 5) / 4 : 1), p: v.offset, v: 0, brake: 0, yaw: null, x: 0, z: 0, active: false }));
   traffic.forEach((v) => { v.v = v.base; v.len = v.mesh.userData.length; v.tail = null; addBeams(v.mesh, v.mesh.userData.front, v.mesh.userData.beamY); v.tail = v.mesh.children[v.mesh.children.length - 1]; scene.add(v.mesh); });
+  // Ponte Estaiada: two cars each way on the deck, right-hand traffic; they fade in/out at the deck ends (no approach roads modelled)
+  const ex = pts[stopIndex(stops, LANDMARKS.estaiada)].x, { y: DY, z0: BZ0, z1: BZ1, lane: BL } = ESTAIADA_DECK;
+  const bridge = [[3, 1, 0.1], [7, 1, 0.6], [2, -1, 0.3], [9, -1, 0.85]].map(([c, dir, f], k) => {
+    const mesh = car(CARS[c][1], CARS[c][0]); addBeams(mesh, mesh.userData.front, mesh.userData.beamY); scene.add(mesh);
+    mesh.rotation.y = Math.atan2(-dir, 0); mesh.position.set(ex - dir * BL, DY, RIVER_Z + BZ0 + (BZ1 - BZ0) * f);
+    return { mesh, dir, body: CARS[c][0], slot: 4 + k, v: 11 + k };
+  });
   const isDisposed = () => disposed;
   const ready = Promise.all(traffic.map(async (v, i) => {
     if (v.type === 'london' || v.type === 'glasgow') await upgradeBus(v.mesh, v.type, { hero: false, isDisposed });
@@ -58,6 +65,12 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
       tail.children.forEach((lamp, j) => { lamp.position.z = model.beamAnchors.rear[j][2]; });
     }
   }));
+  const bridgeReady = Promise.all(bridge.map(async (b) => {
+    const catalog = await loadFleetCatalog(), model = regionalFleetModel(catalog, 'br', b.slot);
+    if (model && !disposed) await upgradeFleet(b.mesh, model, { body: b.body, isDisposed });
+    if (disposed) return;
+    b.mats = []; b.mesh.traverse((o) => { if (o.material) { o.material = o.material.clone(); b.mats.push([o.material, o.material.opacity, o.material.transparent]); } }); // own materials so each car fades alone
+  }));
   const zebras = stops.map((_, i) => curve.getPointAt(Math.min(1, i / (stops.length - 1) + ZEBRA_AT / len)));
   const auto = traffic.filter((v) => !v.relative);
   // Thames only: none on the Pinheiros
@@ -75,7 +88,7 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
   let lastRoute = null;
   const here = new THREE.Vector3(), nrm = new THREE.Vector3(), swap = swapAt(stops), [scotIn, scotOut] = scotRange(stops), wrap = (p) => ((p % 1) + 1) % 1;
   return {
-    ready,
+    ready: Promise.all([ready, bridgeReady]),
     dispose() { disposed = true; },
     update({ time, t: route, dt = 0 }) {
       const move = !reducedMotion && dt > 0;
@@ -113,6 +126,14 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
         v.yaw = v.yaw === null || !move ? yaw : v.yaw + (((yaw - v.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI) * Math.min(1, dt * 8); // ease around bends
         v.mesh.rotation.y = v.yaw;
         v.tail.userData.swell?.(1 + 1.4 * v.brake); // brake lights: the tail glow pool (night only) swells while slowing
+      }
+      for (const b of bridge) {
+        const m = b.mesh, z0 = RIVER_Z + BZ0, span = BZ1 - BZ0, d = move ? b.dir * b.v * dt : 0;
+        m.position.z = z0 + ((((m.position.z - z0 + d) % span) + span) % span);
+        for (const w of m.userData.wheels ?? []) w.rotation.z -= Math.abs(d) / w.position.y;
+        const fade = Math.min(1, Math.min(m.position.z - z0, z0 + span - m.position.z) / 5);
+        for (const [mat, o, tr] of b.mats ?? []) { mat.opacity = o * fade; mat.transparent = tr || fade < 1; } // opaque again mid-deck: no sorting artefacts
+        m.visible = fade > 0.02;
       }
       boats.forEach((b, i) => {
         b.position.y = 0.1 + Math.sin(time * 1.1 + i * 2) * 0.25;

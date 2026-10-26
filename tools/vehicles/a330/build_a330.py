@@ -75,10 +75,11 @@ DOORS, PITCH = (9.6, 18.6, 41.2, 51.0), 0.62
 for side in (1, -1):                  # individual passenger windows, A330-like pitch, gaps at the doors
     s_ = 10.4
     while s_ < 52.2:
-        if all(abs(s_ - d) > 0.85 for d in DOORS): decal(s_ - 0.15, s_ + 0.15, side * math.acos(0.46), side * math.acos(0.27), 1, 1)   # one flat quad: straight edges (rows aliased into a kink); 1.2 cm chord sag < 6 cm lift
+        top, bot, _ = profile(s_); zc, hz = (top + bot) / 2, (top - bot) / 2; c0, c1 = (R * 0.46 - zc) / hz, (R * 0.27 - zc) / hz   # fixed cabin-floor height: the line stays level as the tail sweeps up
+        if c0 < 0.97 and all(abs(s_ - d) > 0.85 for d in DOORS): decal(s_ - 0.15, s_ + 0.15, side * math.acos(c0), side * math.acos(c1), 1, 1)   # one flat quad: straight edges; 1.2 cm chord sag < 6 cm lift
         s_ += PITCH
-def ws(phi): k = min(1.0, abs(phi) / 1.25); s0 = 3.55 + 0.95 * k ** 1.5; return s0, s0 + 1.05 - 0.3 * k
-for p0, p1 in [(0.03, 0.47), (0.53, 0.92), (0.98, 1.25)]:   # continuous six-pane windscreen band; gaps = body-colour mullions
+def ws(phi): k = min(1.0, abs(phi) / 1.58); s0 = 2.0 + 1.2 * k ** 1.5; return s0, s0 + 1.0 - 0.3 * k   # forward on the nose slope: the glazing sits low, just above the nose tip line
+for p0, p1 in [(0.04, 0.7), (0.76, 1.17), (1.23, 1.58)]:   # continuous six-pane windscreen band; gaps = body-colour mullions
     for side in (1, -1):
         cols = [p0 + (p1 - p0) * j / 5 for j in range(6)]
         vs = [[bm.verts.new(hull(ws(p)[0] + (ws(p)[1] - ws(p)[0]) * i / 3, side * p)) for p in cols] for i in range(4)]
