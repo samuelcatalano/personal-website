@@ -20,7 +20,7 @@ export function createRain(scene, { reducedMotion = false, lamps = [] } = {}) {
     uLamps:{value:Array.from({length:4},()=>new THREE.Vector3(0,-1000,0))},uResolution:{value:900},
   };
   const material = new THREE.ShaderMaterial({
-    transparent:true,depthWrite:false,fog:false,side:THREE.DoubleSide,
+    transparent:true,depthWrite:false,fog:false,side:THREE.DoubleSide,forceSinglePass:true,
     uniforms,
     vertexShader: `attribute vec2 aCorner,aSeed;uniform float uTime,uFall,uWind,uResolution;uniform vec3 uTravel,uCenter,uForward;varying vec3 vWorld;varying vec2 vCorner;varying float vSeed,vDepth;
       void main(){
@@ -44,11 +44,12 @@ export function createRain(scene, { reducedMotion = false, lamps = [] } = {}) {
         vec2 toDrop=vWorld.xz-uBus.xz;float beam=pow(max(dot(normalize(toDrop+vec2(.001)),uHeading),0.0),16.0)*exp(-length(toDrop)*.10);
         float light=uNight*(lamp*.7+beam*.7);
         float a=(.20+vSeed*.22+light*.30)*uRain;
-        a*=pow(1.0-vCorner.y,1.2)*(1.0-smoothstep(.4,1.0,abs(vCorner.x)));
+        // MSAA can extrapolate varyings past the covered samples: negative fractional powers poison bloom.
+        a*=pow(clamp(1.0-vCorner.y,0.0,1.0),1.2)*(1.0-smoothstep(.4,1.0,abs(vCorner.x)));
         a*=smoothstep(.1,1.8,vWorld.y)*(1.0-smoothstep(70.0,135.0,vDepth));
         // ponytail: background brightness is approximated by drop elevation, upgrade only with an already available depth/colour buffer.
         a*=mix(1.0,.25,smoothstep(uCenter.y+4.0,uCenter.y+20.0,vWorld.y));
-        gl_FragColor=vec4(mix(vec3(.34,.46,.58),vec3(.95,.79,.52),clamp(light,0.0,1.0)),a);
+        gl_FragColor=vec4(mix(vec3(.34,.46,.58),vec3(.95,.79,.52),clamp(light,0.0,1.0)),clamp(a,0.0,1.0));
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }`,

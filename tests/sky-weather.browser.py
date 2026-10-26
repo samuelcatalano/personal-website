@@ -12,6 +12,7 @@ print(js("""(async()=>{
  const sunDisc=scene.getObjectByName('weather-sun'),moon=scene.getObjectByName('weather-moon');
  if(!sunDisc||!moon)throw Error('Missing celestial state');
  for(const night of [0,.5,1]){sky.update(night,0,cam.position,cam,rainy);if(sunDisc.visible||moon.visible)throw Error('Rain exposes sun/moon');}
+ const cloudLayers=scene.getObjectByName('weather-clouds');if(cloudLayers.children.some(c=>c.material.uniforms.uLayer.value===1&&c.visible))throw Error('Overcast submits fully transparent cirrus');
  const stars=scene.getObjectByName('weather-stars');if(stars.visible)throw Error('Stars visible under overcast');
  const renderer=new THREE.WebGLRenderer();renderer.setSize(400,250);renderer.render(scene,cam);
  if(renderer.info.programs.some(p=>p.diagnostics?.runnable===false))throw Error('Sky shader failed');

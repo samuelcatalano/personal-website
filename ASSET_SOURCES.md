@@ -25,3 +25,7 @@ Three original in-project Blender models, each built by a dedicated script in `t
 | Toyota Corolla (E210 sedan) | `assets/vehicles/toyota-corolla.glb` | BR, UK |
 | Volkswagen T-Cross | `assets/vehicles/vw-t-cross.glb` | BR, UK |
 | Nissan Qashqai (J11 facelift) | `assets/vehicles/nissan-qashqai.glb` | UK |
+
+## Sky and weather — 2026-10-26
+
+Sun/halo/full-moon maps are original runtime canvas generation in `js/world/sky.js`; clouds, stars, layered rain, puddles and ripple masks are original procedural shaders in `sky.js`, `rain.js`, `wet-surfaces.js` and `water.js`. Project-owned code; no external textures, geometry, HDRIs or reference pixels.

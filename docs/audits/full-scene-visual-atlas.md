@@ -79,7 +79,8 @@ Recommendation: KEEP / POLISH / REBUILD / REPLACE. Cost: S < 1h, M few h, L day+
 | System | Grade | State | Crit. | Gain | Cost | Rec. |
 |---|---|---|---|---|---|---|
 | **Lighting / atmosphere** | **C** | Flat, pale, desaturated; fog washes everything grey-white; sun weak vs hemi | **Highest** (every pixel) | **Highest** | S | **POLISH**: golden-hour key, warmer/stronger sun, lower hemi, saturated sky gradient, warmer haze |
-| Sky / clouds | B- | Rounded clouds, pale gradient | High | High | S | deeper zenith blue, warm horizon |
+| Sky / clouds | B+ | Analytic bands/haze/glow, shaded cumulus + cirrus/deck, full moon and varied stars; 2026-10-26 agent assessment | High | High | — | KEEP; [validation](2026-10-26-sky-weather.md) |
+| Rain / wet weather | B+ | Stable regional storms, layered drops, wet surfaces/puddles, light reflections and impact rings; no scene reflection capture | High | High | — | KEEP; local gate passed; [validation](2026-10-26-sky-weather.md) |
 | Shadows | B | PCF soft 1024 | Med | Med | — | contrast via key/fill ratio |
 | Glass | B | Analytic sky reflection | Med | Med | — | inherits sky |
 | Ground materials | B | Triplanar noise | Low | Low | — | KEEP |

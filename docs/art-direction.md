@@ -1,5 +1,17 @@
 # 3D city art direction
 
+## Sky and weather — 2026-10-26
+
+The owner reopened sky/weather in the [five-slice brief](prompts/2026-10-26-sky-weather-upgrade.md). Sky uses an art-directed zenith/mid/haze gradient aligned to the visible upper frame, warm directional glow and purple/orange theme transitions. Horizon and fog share the exact colour. All authored sky colours pass through the existing ACES inverse; puddles and river consume the dome's final palette, including sunset and storm-night dimming.
+
+Feathered procedural density billboards replace flattened sphere clusters: blue-grey bases, illuminated tops/rims, high cirrus and a continuous low overcast layer. Sun has a restrained soft halo; the always-full moon has smooth maria and limb shading. Stars vary in brightness, size and tint. Overcast veils celestial objects; rain completely hides them.
+
+Weather rolls independently once per page: São Paulo 25%, London 45%, Glasgow 70%. Clear rolls retain regional cloud variety. São Paulo gets warmer, heavier/faster rain; London steady grey drizzle; Glasgow cold persistent drizzle. `?weather=rain` and `?weather=clear` override all regions. Rain darkens the sky/key and shortens fog while keeping cool fill and bus readability. Three depth layers use camera-following ribbons, bounded gust motion and actual nearby lamp/headlight influence. Distant sheet lightning is a single restrained 0.45-second cloud patch at intervals of at least 20 seconds, gated by regional storm strength.
+
+Shared upward-facing ground/roof materials darken and become smoother when wet. World-space puddle masks reflect the current analytic sky and nearby lamp/bus highlights. Exponential wetting/drying time constants are 1.2 / 7 seconds. Ground impact rings/splash glints and river rings run only on high. High uses four reflected lamps; lower tiers use two and fewer drops. Wet air broadens existing lamp pools; no new lights, passes, external assets or dependencies. Reflections approximate sky/lights and cannot reflect scene geometry or model occlusion.
+
+Reduced motion keeps the regional roll and static wet/storm appearance, with no falling drops, drifting clouds, twinkle, lightning or rain ripples. [Validation record](audits/2026-10-26-sky-weather.md) tracks measured gates separately from art direction.
+
 > **2026-10-21 update:** the user reopened the visual freeze for the North Star full-scene upgrade. Current state: [visual atlas](audits/full-scene-visual-atlas.md), [plan](plans/north-star-full-scene-upgrade.md). Vehicles, all landmarks (London Eye now continuous), lighting, roads and vegetation were upgraded; approved building families are unchanged. The coplanar-face blocker below is resolved (0 pairs).
 
 **FINAL VISUAL GO — approved and frozen2026-10-21.** Stylized realism, polished city-builder quality, low/mid-poly architecture. The user approved all five building families, citywide architecture/diversity, lighting/atmosphere, vegetation/public realm, glass/water and Wembley/Big Ben-Parliament/MASP. No further visual development is authorized. London Eye's segmented geometry is an accepted limitation and remains unchanged.

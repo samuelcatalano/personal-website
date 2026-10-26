@@ -54,7 +54,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
   );
   dome.renderOrder = -10; dome.frustumCulled = false;
   const u = dome.material.uniforms;
-  const sunsetZen = C(0x67558b), sunsetHor = C(0xe6a68e), warmGlow = C(0xf7dfbd), coolGlow = C(0x7c9ddc);
+  const sunsetZen = C(0x67558b), sunsetHor = C(0xe6a68e), warmGlow = C(0xf7dfbd), coolGlow = C(0x7c9ddc), cityHaze = C(0x584247);
   const authoredZen = new THREE.Color(), authoredHor = new THREE.Color(), authoredMid = new THREE.Color();
   const sunM = sprite(disc((g) => {
     const r=g.createRadialGradient(128,128,0,128,128,128);
@@ -93,21 +93,25 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
       float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+1.0),f.x),f.y);}
       float fbm(vec2 p){return noise(p)*.57+noise(p*2.07+7.0)*.28+noise(p*4.13+19.0)*.15;}
       void main(){
-        vec2 p=vUv;float n=fbm(p*5.0+vec2(3.0,7.0));
-        float shape=1.0-length(vec2(p.x/.93,(p.y+.22)/.42));
-        shape=max(shape,1.0-length((p-vec2(-.42,.02))/vec2(.34,.58)));
-        shape=max(shape,1.0-length((p-vec2(.02,.18))/vec2(.42,.69)));
-        shape=max(shape,1.0-length((p-vec2(.47,.02))/vec2(.33,.50)));
-        float a=smoothstep(-.08,.23,shape+(n-.5)*.24);
-        float light=smoothstep(-.50,.65,p.y+(n-.5)*.5);
-        vec3 c=mix(uBase,uTop,light);
-        c=mix(c,uRim,smoothstep(.65,.98,light)*.28);
-        if(uLayer>0.5){
+        vec2 p=vUv;float a;vec3 c;
+        if(uLayer>1.5){
+          float n=fbm(p*5.0+vec2(3.0,7.0));
+          a=mix(.72,.98,smoothstep(.16,.78,n))*uCover;c=mix(uBase,uTop,n*.65);
+          c+=uTop*uFlash*exp(-dot(p-vec2(.28,.2),p-vec2(.28,.2))*12.0);
+        }else if(uLayer>0.5){
           float streak=fbm(vec2(p.x*3.0,p.y*17.0+p.x*2.0));
           a=smoothstep(.45,.75,streak)*pow(max(0.0,1.0-p.x*p.x),.7)*(1.0-smoothstep(.3,1.0,abs(p.y)));
           c=mix(uBase,uTop,.8);
+        }else{
+          float n=fbm(p*5.0+vec2(3.0,7.0));
+          float shape=1.0-length(vec2(p.x/.93,(p.y+.22)/.42));
+          shape=max(shape,1.0-length((p-vec2(-.42,.02))/vec2(.34,.58)));
+          shape=max(shape,1.0-length((p-vec2(.02,.18))/vec2(.42,.69)));
+          shape=max(shape,1.0-length((p-vec2(.47,.02))/vec2(.33,.50)));
+          a=smoothstep(-.08,.23,shape+(n-.5)*.24);
+          float light=smoothstep(-.50,.65,p.y+(n-.5)*.5);
+          c=mix(uBase,uTop,light);c=mix(c,uRim,smoothstep(.65,.98,light)*.28);
         }
-        if(uLayer>1.5){a=mix(.72,.98,smoothstep(.16,.78,n))*uCover;c=mix(uBase,uTop,n*.65);c+=uTop*uFlash*exp(-dot(p-vec2(.28,.2),p-vec2(.28,.2))*12.0);}
         gl_FragColor=vec4(c,a*uOp);
       }`,
   });
@@ -148,9 +152,11 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
         void main(){float r=length(gl_PointCoord-.5)*2.0;float a=(1.0-smoothstep(.15,1.0,r))*uOp*smoothstep(.36,.72,vHeight);a*=.80+.20*sin(uTime*.65+vPhase)*uTwinkle;gl_FragColor=vec4(vTint,a);}`,
     }));stars.name='weather-stars';
   stars.renderOrder=-9;stars.frustumCulled=false;scene.add(stars);
+  const owned=[dome,sunM,moonM,halo,clouds,deck,stars];
   let starTime=0;
   const place = (m, cam, x, y) => { at(cam, x, y, DIST, m.position); m.lookAt(cam.position); };
   return {
+    colors:{zen:u.uZen.value,hor:u.uHor.value},
     update(night, dt = 0, camPos = new THREE.Vector3(), cam, mood = LON, flash = 0) {
       cam?.updateMatrixWorld();
       const cover=mood.cover ?? Math.min(1,.18+mood.cloudOp+(mood.rain??0)*.8);
@@ -158,6 +164,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
       const sunset = Math.sin(Math.PI * night) ** 3;
       authoredZen.lerpColors(day(mood.zen, d1), NIGHT.zen, night).lerp(sunsetZen, sunset * .65 * clear);
       authoredHor.lerpColors(day(mood.hor, d1), NIGHT.hor, night).lerp(sunsetHor, sunset * .75 * clear);
+      authoredHor.lerp(cityHaze,night*Math.max(0,mood.light[0]-mood.light[2])*(1-cover)*.5);
       authoredZen.multiplyScalar(1-night*(mood.rain??0)*.22);
       authoredHor.multiplyScalar(1-night*(mood.rain??0)*.18);
       authoredMid.lerpColors(authoredHor, authoredZen, .58);
@@ -183,6 +190,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
       if (cam) {
         const wide = cam.aspect > 1;
         for (const c of clouds.children) {
+          c.visible=c.material!==cirrusMat||cirrusMat.uniforms.uOp.value>.001;
           const d = c.userData;
           if (!reducedMotion) d.x = d.x > 1.4 ? -1.4 : d.x + dt * 0.012;
           at(cam, d.x, d.y, 1250, c.position);
@@ -208,6 +216,11 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
       stars.material.uniforms.uDpr.value=Math.min(globalThis.devicePixelRatio||1,cam?.aspect>1?1.5:1);
       stars.visible=stars.material.uniforms.uOp.value>.005;
       for (const m of glow) { if (m.userData.uNight) m.userData.uNight.value = night; m.emissive.copy(m.userData.glowColor ?? m.color).multiplyScalar(night * (m.userData.glowK ?? 2.2)); } // each light glows in its own colour, bright enough to bloom
+    },
+    dispose(){
+      const geometries=new Set(),materials=new Set(),maps=new Set();
+      for(const root of owned){root.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material){materials.add(o.material);if(o.material.map)maps.add(o.material.map);}});scene.remove(root);}
+      for(const resource of [...geometries,...materials,...maps])resource.dispose();
     },
   };
 }

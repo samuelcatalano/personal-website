@@ -11,5 +11,13 @@ export function createLampPools(scene, lamps, size = 4) {
   lamps.forEach(([x, z], i) => mesh.setMatrixAt(i, m.makeTranslation(x, 0.08, z)));
   mesh.frustumCulled = false; mesh.renderOrder = 2;
   scene.add(mesh);
-  return { update(night) { mat.opacity = night * 0.7; mesh.visible = night > 0.01; } };
+  let lastWet=-1;
+  return { update(night, wet = 0) {
+    if(Math.abs(wet-lastWet)>.005){
+      const spread=1+wet*.35;
+      lamps.forEach(([x,z],i)=>{m.makeScale(spread,1,spread).setPosition(x,.08,z);mesh.setMatrixAt(i,m);});
+      mesh.instanceMatrix.needsUpdate=true;lastWet=wet;
+    }
+    mat.opacity = night * (0.7 + wet*.12); mesh.visible = night > 0.01;
+  } };
 }

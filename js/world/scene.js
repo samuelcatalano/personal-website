@@ -17,6 +17,8 @@ import { polishLandmarkMaterials } from './landmark-materials.js';
 import { buildVehicle } from './vehicles.js';
 import { createMood } from './mood.js';
 import { createRain } from './rain.js';
+import { lagWetness } from './weather.js';
+import { createWetSurfaces } from './wet-surfaces.js';
 import { createSky, EXPOSURE, SUN_DIR } from './sky.js';
 import { createWater } from './water.js';
 import { createAmbient } from './ambient.js';
@@ -91,7 +93,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   scene.add(world, eye, details, plane, shadow, bus, roadMarks);
   const units = [createAmbient(scene, { curve, pts, stops, reducedMotion })];
   const people = createPeople(scene, { curve, pts, stops, reducedMotion });
-  const water = createWater({ x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z: RIVER_Z, width: 22 });
+  const water = createWater({ x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z: RIVER_Z, width: 22, reducedMotion });
   scene.add(water.mesh);
   units.push(await createSigns(scene, { stops, curve }));
   let disposed = false, raf = 0;
@@ -106,6 +108,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   scene.add(figure);
   const pools = createLampPools(scene, lamps);
   const sky = createSky(scene, { hemi, sun, reducedMotion }), moodAt = createMood(stops), rain = createRain(scene, { reducedMotion, lamps });
+  const wetSurfaces = createWetSurfaces(scene, { lamps, reducedMotion });
+  let wet = 0;
   const post = createPost(renderer, scene, camera, { sun, tier: reducedMotion || matchMedia('(max-width: 767px)').matches ? 'medium' : 'high' });
   let fpsT = 0, fpsN = 0, night = 0, nightTarget = 0, mobile = false;
   const bar = document.querySelector('.bar'), panel = document.querySelector('#panel');
@@ -207,10 +211,12 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     trees?.userData.update(camera, clock);
     night = reducedMotion || dt === 0 ? nightTarget : approach(night, nightTarget, dt, 1.4);
     const mood = moodAt(t);
+    wet = lagWetness(wet, mood.wet, dt);
     const flash = rain.update(clock, camera, mood, night, post.tier, busPos, bus.rotation.y);
     sky.update(night, dt, camera.position, camera, mood, flash);
-    updateBeams(night); pools.update(night);
-    water.update(clock, night);
+    wetSurfaces.update(clock, wet, mood.rain, night, camera.position, sky.colors, bus.position, bus.rotation.y, post.tier);
+    updateBeams(night); pools.update(night, wet);
+    water.update(clock, night, mood, post.tier, sky.colors);
     world.userData.updateLandmarkNight?.(night);
     updateVehicleEnv(night);
     if (dt > 0 && post.tier === 'high') {
@@ -243,6 +249,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       heroRealm?.userData.dispose();
       roadMarks.userData.dispose();
       rain.dispose?.();
+      wetSurfaces.dispose();
+      sky.dispose();
       trees?.userData.dispose?.();
       phones?.userData.dispose(); lampPosts?.userData.dispose();
       for (const name of ['wembley', 'bigben', 'masp', 'se', 'estaiada', 'towerbridge', 'eyeframe', 'copan', 'riverside', 'university', 'chambers', 'wellington']) details.getObjectByName(name + '-geometry')?.userData.dispose();
