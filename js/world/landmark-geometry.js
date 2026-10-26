@@ -183,7 +183,7 @@ export function createBigBen(x,z){
 }
 
 export function createMasp(x,z){
-  const {box,finish}=landmark('masp',x,z),red=[1.35,.12,.08],concrete=[1.05,1.08,1.10];
+  const {box,finish,lit}=landmark('masp',x,z),red=[1.35,.12,.08],concrete=[1.05,1.08,1.10];
   box(0,0,0,36,.3,12,S.stone,concrete);
   // Two deep transverse portals support the suspended body; the central ground stays free.
   for(const dx of [-17,17]){
@@ -198,7 +198,15 @@ export function createMasp(x,z){
     for(let i=-7;i<=7;i++)box(i*2.1,8.55,side*4.85,.075,4.55,.16,S.trim,[.55,.62,.66],1);
     box(0,10.75,side*4.85,32.2,.10,.16,S.trim,[.55,.62,.66],1);
   }
-  return finish();
+  // Night (reference photos): uplit red portals (additive wash hugging each column, brightest at the foot; the body stays dark), a few gallery windows lit.
+  const glow=[1,.16,.05];
+  for(const dx of [-17,17]){
+    for(const dz of [-5.5,5.5])lit(2,new THREE.BoxGeometry(1.9,14.1,1.7),dx,7.05,dz,.75,.25,glow);
+    lit(2,new THREE.BoxGeometry(2.1,1.48,12.98),dx,14.85,0,.28,.22,glow);
+  }
+  const group=finish();
+  addFloodlight(new THREE.Box3(v(x-16.1,5.35,z-6),v(x+16.1,13.1,z+6)),'#ffe1b5',1,1); // glass only; window grid starts 3.2 m above the box: one gallery floor in the band
+  return group;
 }
 
 // ---- Tower Bridge: local x across the crossing, z along it (group origin = river centreline) ----
@@ -355,25 +363,26 @@ export function createEstaiada(x,z){
     }
     g.computeVertexNormals();return g;
   };
-  const slope=8/28,H=46,lx=y=>-8+y*slope;
+  // Like the real bridge the X pylon stands on the bank (P: 2.5 m past the near bank of the 22 m river), the deck spans the water.
+  const slope=8/28,H=46,lx=y=>-8+y*slope,P=13.5,Z0=-28,Z1=22,DZ=(Z0+Z1)/2,DL=Z1-Z0;
   for(const s of [-1,1]){
-    add(loft(v(s*lx(.5),.5,0),v(s*lx(H),H,0),3.0,2.8,1.4,1.4),0,0,0,S.plaster,concrete);
-    box(s*8,0,0,4.4,1.1,3.6,S.stone,[.9,.92,.96]);
+    add(loft(v(s*lx(.5),.5,0),v(s*lx(H),H,0),3.0,2.8,1.4,1.4),0,0,P,S.plaster,concrete);
+    box(s*8,0,P,4.4,1.1,3.6,S.stone,[.9,.92,.96]);
   }
-  box(0,3.6,0,8,1.2,56,S.plaster,concrete);box(0,4.8,0,7.2,.06,56,S.plaster,[.2,.22,.25]);
-  for(const pz of [-27.2,27.2])box(0,0,pz,6.4,3.6,2.4,S.stone,[.9,.92,.96]);
-  for(const s of [-1,1])box(s*3.9,4.8,0,.2,.7,56,S.trim,pale,1);
+  box(0,3.6,DZ,8,1.2,DL,S.plaster,concrete);box(0,4.8,DZ,7.2,.06,DL,S.plaster,[.2,.22,.25]);
+  for(const pz of [Z0+1.2,Z1-1.2])box(0,0,pz,6.4,3.6,2.4,S.stone,[.9,.92,.96]);
+  for(const s of [-1,1])box(s*3.9,4.8,DZ,.2,.7,DL,S.trim,pale,1);
   // stays: leg A (upper right) feeds the right deck edge, leg B the left
   const ay=[45,42.4,39.8,37.2,34.6,32,29.4],run=[7,10.5,14,17.5,21,24.5,27.4];
-  for(const s of [1,-1])ay.forEach((y,k)=>{for(const d of [-1,1])lbeam(1,v(s*lx(y)*1,y,0),v(s*3.9,5.5,d*run[k]),.045,.11,4);});
+  for(const s of [1,-1])ay.forEach((y,k)=>{for(const d of [-1,1])lbeam(1,v(s*lx(y)*1,y,P),v(s*3.9,5.5,P+(d<0?-run[k]*1.5:run[k]*.3)),.045,.11,4);}); // long stays over the river, short back-stays to land
   // Night: cool edge strips down both pylon legs (inner edge brighter), deck-edge strips, warm base wash.
   for(const s of [-1,1]){
     const a=v(s*lx(.5),.5,0),b=v(s*lx(H),H,0),d=b.clone().sub(a).normalize(),n=v(d.y,-d.x,0);
-    const at=(t,e,zs)=>{const c=a.clone().lerp(b,t),w=3+(1.4-3)*t,dep=2.8-1.4*t;return v(c.x+n.x*e*w/2,c.y+n.y*e*w/2,zs*(dep/2+.03));};
+    const at=(t,e,zs)=>{const c=a.clone().lerp(b,t),w=3+(1.4-3)*t,dep=2.8-1.4*t;return v(c.x+n.x*e*w/2,c.y+n.y*e*w/2,P+zs*(dep/2+.03));};
     for(const e of [-1,1])for(const zs of [-1,1])lbeam(1,at(.08,e,zs),at(1,e,zs),.1,e===s?1:.75,4);
     const th=-s*Math.asin(d.x);
-    for(const zs of [-1,1]){const pg=new THREE.PlaneGeometry(2.5,14);pg.rotateZ(th);lit(2,pg,s*lx(7),7.3,zs*1.34,.6,0);}
-    lbox(1,s*4.015,4.95,0,.03,.4,56,.6);
+    for(const zs of [-1,1]){const pg=new THREE.PlaneGeometry(2.5,14);pg.rotateZ(th);lit(2,pg,s*lx(7),7.3,P+zs*1.34,.6,0);}
+    lbox(1,s*4.015,4.95,DZ,.03,.4,DL,.6);
   }
   return finish();
 }
