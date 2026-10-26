@@ -39,7 +39,7 @@ print(js(r'''(async () => {
   const glassOf = (root) => { const found = []; root.traverse(o => { if (o.isMesh && o.material?.transparent) found.push(o.material); }); return found; };
   const glass = glassOf(miniA), glassB = glassOf(miniB);
   check(glass.length > 0 && glassB.length > 0 && glass.every(m => m === glass[0]) && glassB.every(m => m === glass[0]), 'Mini glass uses one shared runtime material');
-  check(glass[0].transparent && glass[0].opacity > 0.5 && glass[0].opacity < 0.65 && glass[0].color.b > glass[0].color.r, 'Mini glass has a readable smoky tint and visible cabin');
+  check(glass[0].transparent && glass[0].opacity > 0.65 && glass[0].opacity < 0.8 && glass[0].color.b > glass[0].color.r, 'Mini glass has a dark smoky tint and visible cabin');
   const priorNight = document.body.classList.contains('theme-night');
   assets.updateVehicleEnv(0);
   const dayReflection = glass[0].envMapIntensity;

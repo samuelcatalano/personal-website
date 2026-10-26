@@ -39,12 +39,12 @@ print(js(r'''(async () => {
   const visuals = cabs.map(c => c.getObjectByName('cab-glb'));
   check(visuals.every(Boolean), 'all four cab bodies upgraded');
   for (const [i, c] of cabs.entries()) {
-    check(c.userData.length === 4.95 && c.userData.front === 2.55 && c.userData.wheels.length === 0, 'legacy movement envelope preserved');
+    check(c.userData.length === 4.95 && c.userData.front === 2.55 && c.userData.wheels.length === 2 && c.userData.wheels.every(w => w.name === 'wheel'), 'legacy movement envelope preserved, two spinning axles');
     check(beams[i].every(b => b.parent === c) && c.children.length === 3, 'original beams and brake glow survive adoption');
     check(visuals[i].scale.equals(new THREE.Vector3(1, 1, 1)), 'no cab scale correction');
-    for (const m of meshes(visuals[i])) {
+    for (const m of meshes(visuals[i]).filter(m => m.parent.name !== 'wheel')) {
       const original = source.find(o => o.name === m.name), first = visuals[0].getObjectByName(m.name);
-      check(m.geometry === original.geometry && m.material === first.material, 'clones share source geometry and cached role materials');
+      check((m.geometry === original.geometry || /Rubber|Trim/.test(m.name)) && m.geometry === first.geometry && m.material === first.material, 'clones share source (or wheel-split) geometry and cached role materials');
       check(m.material.vertexColors && m.material.side === THREE.FrontSide && m.frustumCulled && m.receiveShadow, 'vertex colors, front sides and culling preserved');
       check(m.castShadow === (m.name === 'CabBody'), 'only cab shell casts shadows');
     }
@@ -67,7 +67,7 @@ print(js(r'''(async () => {
   try {
     renderer.render(cullScene, camera); const inside = renderer.info.render.calls;
     cullCab.position.x = 1000; renderer.render(cullScene, camera);
-    check(inside === 6 && renderer.info.render.calls === 0, `actual cab culling: ${inside} inside / ${renderer.info.render.calls} outside`);
+    check(inside === 10 && renderer.info.render.calls === 0, `actual cab culling: ${inside} inside / ${renderer.info.render.calls} outside`);
   } finally { renderer.dispose(); }
   const { createAmbient } = await import('./js/world/ambient.js');
   const { stops } = await import('./js/content.js');

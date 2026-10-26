@@ -18,7 +18,7 @@ print(js(r'''(async () => {
   const a = new THREE.Group(), b = new THREE.Group();
   await Promise.all([A.upgradeFleet(a,m), A.upgradeFleet(b,m)]);
   const meshes = o => {const r=[];o.traverse(x=>{if(x.isMesh)r.push(x)});return r};
-  const am=meshes(a), bm=meshes(b); check(am.length===6, m.id+' six meshes');
+  const am=meshes(a), bm=meshes(b); check(new Set(am.map(x=>x.material.name)).size===6 && a.userData.wheels.length===2 && a.userData.wheels.every(w=>w.children.length===2), m.id+' six finishes, two spinning axles');
   check(am.every((x,i)=>x.geometry===bm[i].geometry && x.material===bm[i].material && x.material.vertexColors), 'shared semantic resources '+m.id);
   const box=new THREE.Box3().setFromObject(a), size=box.getSize(new THREE.Vector3());
   check(Math.abs(size.x-m.dimensions.length)<.03 && Math.abs(box.min.y)<.02 && Math.abs(size.y-m.dimensions.height)<.04, 'metre bounds '+m.id);
@@ -37,6 +37,7 @@ print(js(r'''(async () => {
  check(cars.every(x=>catalog.find(m=>m.id===x.userData.fleetModel).region.includes(traffic.indexOf(x)>=16?'br':'uk')),'regional selection');
  const before=traffic.map(x=>x.position.clone());for(let i=0;i<120;i++)ambient.update({time:i/30,t:.5,dt:1/30});
  check(traffic.some((x,i)=>x.visible&&x.position.distanceTo(before[i])>1),'traffic moves');
+ {const roll=x=>x.userData.wheels?.length===2&&x.userData.wheels.every(w=>Math.abs(w.rotation.z)>0.5),moved=traffic.filter((x,i)=>x.visible&&x.position.distanceTo(before[i])>1);check(moved.filter(x=>x.userData.fleetModel).every(roll)&&['london','mini'].every(n=>moved.some(x=>x.name===n&&roll(x))),'ambient vehicles roll their wheels');}
  check(cars.every(x=>x.children.filter(c=>c.name==='beam').length===2),'beam ownership retained');
  check(cars.every(x=>{const model=catalog.find(m=>m.id===x.userData.fleetModel),[pool,tail]=x.children.filter(c=>c.name==='beam');return Math.abs(pool.position.x-(x.userData.front-.3))<1e-6&&tail.position.x===model.beamAnchors.rear[0][0]&&tail.children.every((lamp,j)=>lamp.position.z===model.beamAnchors.rear[j][2])&&typeof tail.userData.swell==='function'}),'measured beam anchors and brake behavior retained');
  check(traffic.some(x=>!x.visible)&&traffic.some(x=>x.visible),'regional visibility rules retained');

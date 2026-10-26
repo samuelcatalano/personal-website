@@ -12,7 +12,7 @@ Original geometry built headlessly in Blender; the user's Mini sheet (front 3/4,
 | Geometry | 26,026 tris with 4 wheel instances, 15,867 verts, 6 meshes (Body, Roof, Glass, Lights, Interior, shared Wheel), 10 materials, 0 textures, 611 KB |
 | Hierarchy | CarRoot → Body, Roof, Glass, Lights, Interior, Wheels → FL FR RL RR (pivots at wheel centres) |
 
-Runtime (`js/world/vehicle-assets.js` → `upgradeMini`): loaded once, cloned per car with shared geometry; semantic materials (CarBody, CarRoof, CarGlass, CarTrim, CarChrome, CarHeadlight, CarTaillight) map to the shared project materials, so headlights/tail lamps glow at night via `sky.update`. Body and roof colours are per instance (player: cream + red roof; ambient London Minis: cream/red, racing green/white, red/white). Ambient Minis use one merged static wheel geometry; the player Mini's wheels spin. Only Body and Roof cast shadows. The procedural Mini remains if the GLB fails to load.
+Runtime (`js/world/vehicle-assets.js` → `upgradeMini`): loaded once, cloned per car with shared geometry; semantic materials (CarBody, CarRoof, CarGlass, CarTrim, CarChrome, CarHeadlight, CarTaillight) map to the shared project materials, so headlights/tail lamps glow at night via `sky.update`. Body and roof colours are per instance (player: cream + red roof; ambient London Minis: cream/red, racing green/white, red/white). Every Mini's wheels spin: the player's per wheel, ambient Minis per axle (one merged geometry per wheel material per axle). Only Body and Roof cast shadows. The procedural Mini remains if the GLB fails to load.
 
 ## A/B vs procedural Mini (3 runs each, rendering-budget contract)
 
@@ -45,3 +45,7 @@ Measured after the pass (3 runs, same harness): hero desktop median 8.3 ms, p95 
 The GLB and generator are unchanged: review found no demonstrated pane-fit, curvature, border or normal defect. The Mini-specific runtime glass now uses neutral smoky `#809096`, opacity `.58`, and a `.13` reflection floor at night; cabin surfaces use warm graphite `#655d51`. Existing paint, opening geometry and ceramic borders remain. The windshield and rear quarter glass read brighter in matched normal-camera day/night captures; side panes remain relatively dark at this view. Ambient Minis receive blue/green/red bodies before fallback construction; the player's cream/red identity is exclusive in pending, loaded and failure states.
 
 Evidence: `/private/tmp/regional-fleet-pass/runtime-evidence/mini-{before,after}-{day,night}.png`, with identical 1440×900 viewport/DPR 1.5, and `mini-comparison.png` (enlarged crops of those original captures). No performance claim is made for this finish-only change; the regional-fleet milestone measures that separately.
+
+## Glazing rebuild — 2026-10-26
+
+Glass was a pale translucent grey-blue (`#7e939f`, alpha .55) with a 22 mm border, and boolean window-cut walls inherited the cutter's slot 0 (body paint), leaving cream slivers/hairlines around every pane. Now: deep smoky tint (`#1b2830`, alpha .78, roughness .04), 42/50 mm ceramic borders, panes 7 mm inside the surface (was 12), cut walls black. Tris 26,026 → 26,030. Before/after: `renders/glass-{before,after}.png` (+ `-zoom`). Suggested runtime `CarGlass`: colour `#2a3b44`, opacity `.80`, roughness `.06`, envMapIntensity `.45`.

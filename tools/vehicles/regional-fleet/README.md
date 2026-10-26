@@ -16,4 +16,4 @@ python3 tools/vehicles/regional-fleet/catalog.py
 
 ## Contract
 
-Metres; GLB +X forward, +Y up; centred ground origin. Six meshes, one primitive/material each: FleetBody, FleetGlass, FleetTrim, FleetRubber, FleetLights, FleetInterior, each with POSITION, NORMAL and COLOR_0; backface culling; merged static wheels; ≤ 20k triangles. Body vertex colour is white (runtime paint multiplies it). `region` is `"uk"`, `"br"` or a list. Blueprints and brochures are visual references only; none is shipped.
+Metres; GLB +X forward, +Y up; centred ground origin. Six meshes, one primitive/material each: FleetBody, FleetGlass, FleetTrim, FleetRubber, FleetLights, FleetInterior, each with POSITION, NORMAL and COLOR_0; backface culling; wheels merged into FleetRubber/FleetTrim (≤ 20k triangles). At runtime ambient cars split each axle's wheel triangles out of those meshes by `axles` (tyre-radius cylinder test) and spin them; keep wheel geometry inside the tyre radius and arch liners outside it. Body vertex colour is white (runtime paint multiplies it). `region` is `"uk"`, `"br"` or a list. Blueprints and brochures are visual references only; none is shipped.

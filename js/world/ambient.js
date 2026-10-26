@@ -16,7 +16,7 @@ function boat(hull = '#6b4f3a', cabin = '#f4f4f4', sx = 1) {
 // a base speed by type, eased down toward a zebra crossing (and back up) by integrating acceleration each frame, a minimum gap to the vehicle ahead, yaw eased toward the road tangent.
 const SPEED = { london: 10, glasgow: 10, cab: 13, mini: 13, car: 13.5 }; // m/s
 const ACC = 3, DEC = 6, GAP = 3.5, ZEBRA_AT = 9, SLOW = 24; // m/s^2 up, m/s^2 down, bumper gap (m), zebra offset past a stop (roadmarks.js), slow-down radius (m)
-const CARS = [['#e8c425', 'mini'], ['#2f6fcf', 'sedan'], ['#f4f1ea', 'suv'], ['#3f9d4a', 'mini'], ['#16181c', 'sedan'], ['#b9bec4', 'van'], ['#e07a1f', 'sedan'], ['#8b2f45', 'hatch'], ['#16181c', 'suv'], ['#4a7f9e', 'sedan']];
+const CARS = [['#e8c425', 'mini'], ['#2f6fcf', 'sedan'], ['#c8102e', 'suv'], ['#3f9d4a', 'mini'], ['#16181c', 'sedan'], ['#1f6b3a', 'van'], ['#f2b705', 'sedan'], ['#b3161f', 'hatch'], ['#2e7d32', 'suv'], ['#e8c425', 'sedan']]; // saturated paints only: no white/grey
 export function createAmbient(scene, { curve, pts, stops, reducedMotion = false }) {
   const knots = fineMarks(stopMarks(pts), curve), len = curve.getLength();
   let disposed = false, miniIndex = 0;
@@ -100,6 +100,8 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
         const p = curve.getPointAt(t), tan = curve.getTangentAt(t);
         nrm.set(tan.z, 0, -tan.x).normalize();
         v.mesh.position.copy(p).addScaledVector(nrm, v.lane);
+        const ds = (v.mesh.position.x - v.x) * Math.cos(v.mesh.rotation.y) - (v.mesh.position.z - v.z) * Math.sin(v.mesh.rotation.y); // signed travel along the heading
+        if (Math.abs(ds) < 5) for (const w of v.mesh.userData.wheels ?? []) w.rotation.z -= ds / w.position.y; // wheels roll; skip respawn jumps
         v.x = v.mesh.position.x; v.z = v.mesh.position.z;
         const yaw = Math.atan2(-tan.z, tan.x) + (v.lane < 0 ? Math.PI : 0);
         v.yaw = v.yaw === null || !move ? yaw : v.yaw + (((yaw - v.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI) * Math.min(1, dt * 8); // ease around bends

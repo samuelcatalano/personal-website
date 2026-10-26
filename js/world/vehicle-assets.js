@@ -64,7 +64,7 @@ const carPaint = (c) => phys('paint' + c, () => new THREE.MeshPhysicalMaterial({
 const CAR_FINISH = {
   CarChrome: () => phys('chrome', () => new THREE.MeshPhysicalMaterial({ color: '#e4e6e8', roughness: 0.14, metalness: 1, envMapIntensity: 0.7 })),
   CarRim: () => phys('rim', () => new THREE.MeshPhysicalMaterial({ color: '#4a4e54', roughness: 0.28, metalness: 0.85, clearcoat: 0.6, envMapIntensity: 0.5 })),
-  CarGlass: () => phys('glass', () => { const m = new THREE.MeshPhysicalMaterial({ color: '#809096', roughness: 0.08, metalness: 0.05, envMapIntensity: 0.24, transparent: true, opacity: 0.58, depthWrite: false }); return m; }),
+  CarGlass: () => phys('glass', () => { const m = new THREE.MeshPhysicalMaterial({ color: '#2a3b44', roughness: 0.06, metalness: 0.05, envMapIntensity: 0.45, transparent: true, opacity: 0.72, depthWrite: false }); return m; }),
   CarTrim: () => phys('trim', () => new THREE.MeshPhysicalMaterial({ color: '#16181b', roughness: 0.55, metalness: 0, clearcoat: 0.3, envMapIntensity: 0.25 })),
 };
 const CAB_FINISH = {
@@ -102,21 +102,69 @@ const FLEET_FINISH = {
 };
 const CASTS = new Set(['BusBody', 'CarBody', 'CarRoof', 'CabBody']); // only painted shells cast: trim/glass/wheels add shadow-pass calls for no visible gain
 const WHEELS = ['FL', 'FR', 'RL', 'RR'];
-const staticWheels = new Map(); // ambient vehicles never spin their wheels: one merged geometry per wheel material per asset, shared
-function mergedWheels(key, src) {
-  if (staticWheels.has(key)) return staticWheels.get(key);
-  const byMat = new Map(); src.updateMatrixWorld(true);
-  for (const n of WHEELS) src.getObjectByName(n)?.traverse((o) => { if (o.isMesh) (byMat.get(o.material.name) ?? byMat.set(o.material.name, []).get(o.material.name)).push(o.geometry.clone().applyMatrix4(o.matrixWorld)); });
-  return staticWheels.set(key, [...byMat].map(([name, gs]) => [name, mergeGeometries(gs)])).get(key);
+const CAB_AXLES = { front: 1.493, rear: -1.493, height: 0.35, halfTrack: 0.86 }; // measured from london-cab.glb tyre contact/rim bounds
+// Dark static disc behind each wheel, appended to the body's rubber (no extra call): hides the authored tyre/rim gap that would flicker once spinning.
+function withDiscs(g, keep, xs, r, half, seg = 20) {
+  const base = g.attributes.position.count, n = base + xs.length * 2 * (seg + 1), out = new THREE.BufferGeometry(), index = [...keep];
+  for (const k in g.attributes) { const a = g.attributes[k], b = new a.array.constructor(n * a.itemSize); b.set(a.array); out.setAttribute(k, new THREE.BufferAttribute(b, a.itemSize, a.normalized)); }
+  const P = out.attributes.position, N = out.attributes.normal, C = out.attributes.color; let i = base;
+  for (const x of xs) for (const sz of [-1, 1]) {
+    const c = i;
+    for (let k = -1; k < seg; k++, i++) {
+      const t = k / seg * Math.PI * 2, rr = k < 0 ? 0 : r * 0.9;
+      P.setXYZ(i, x + rr * Math.cos(t), r + rr * Math.sin(t), sz * (half - 0.05)); N?.setXYZ(i, 0, 0, sz); C?.setXYZ(i, 0.02, 0.02, 0.02); if (C?.itemSize === 4) C.setW(i, 1);
+      if (k >= 0) index.push(...(sz > 0 ? [c, c + 1 + k, c + 1 + (k + 1) % seg] : [c, c + 1 + (k + 1) % seg, c + 1 + k]));
+    }
+  }
+  out.setIndex(index); out.computeBoundingSphere(); return out;
+}
+// Ambient wheels spin per axle: both wheels of an axle share its line, so each axle is one geometry per wheel material pivoted on
+// that line (two calls per material per car, vs one when static). Built once per asset and shared by every clone.
+const axleCache = new Map();
+function axleWheels(key, src, axles) {
+  if (axleCache.has(key)) return axleCache.get(key);
+  src.updateMatrixWorld(true);
+  const res = { axles: [], body: new Map() }, push = (m, k, g) => (m.get(k) ?? m.set(k, []).get(k)).push(g);
+  if (src.getObjectByName('FL')) { // authored wheel nodes (Mini, bus): merge each axle's pair
+    for (const pair of [['FL', 'FR'], ['RL', 'RR']]) {
+      const c = src.getObjectByName(pair[0]).getWorldPosition(new THREE.Vector3()), byMat = new Map();
+      for (const n of pair) src.getObjectByName(n).traverse((o) => { if (o.isMesh) push(byMat, o.material.name, o.geometry.clone().applyMatrix4(o.matrixWorld).translate(-c.x, -c.y, 0)); });
+      res.axles.push({ x: c.x, y: c.y, parts: [...byMat].map(([n, gs]) => [n, mergeGeometries(gs), 0]) });
+    }
+  } else if (axles) { // wheels merged into the rubber/trim meshes (fleet, cab): split their triangles inside the tyre cylinders by index
+    const r = axles.height, xs = [axles.front, axles.rear], parts = [[], []], v = new THREE.Vector3();
+    src.traverse((o) => {
+      if (!o.isMesh || !/Rubber|Trim/.test(o.material.name) || !o.geometry.index) return;
+      const g = o.geometry, p = g.attributes.position, idx = g.index.array, keep = [], wheel = [[], []];
+      for (let t = 0; t < idx.length; t += 3) {
+        v.set(0, 0, 0); for (let k = 0; k < 3; k++) v.x += p.getX(idx[t + k]) / 3, v.y += p.getY(idx[t + k]) / 3, v.z += p.getZ(idx[t + k]) / 3;
+        const a = Math.abs(v.z) > axles.halfTrack - 0.28 ? xs.findIndex((x) => Math.hypot(v.x - x, v.y - r) < r + 0.005) : -1; // ponytail: centroid-in-cylinder test, assumes nothing but the wheel sits inside the tyre radius
+        (a < 0 ? keep : wheel[a]).push(idx[t], idx[t + 1], idx[t + 2]);
+      }
+      if (keep.length === idx.length) return;
+      const sub = (list) => { const s = new THREE.BufferGeometry(); for (const n in g.attributes) s.setAttribute(n, g.attributes[n]); s.setIndex(list); return s; };
+      res.body.set(o.material.name, /Rubber/.test(o.material.name) ? withDiscs(g, keep, xs, r, axles.halfTrack) : sub(keep));
+      wheel.forEach((list, a) => list.length && parts[a].push([o.material.name, sub(list), 1]));
+    });
+    xs.forEach((x, a) => res.axles.push({ x, y: r, parts: parts[a] }));
+  }
+  return axleCache.set(key, res).get(key);
 }
 // Swap a procedural vehicle's body for a shared authored GLB (geometry shared, materials per palette). Procedural stays on failure.
-function upgrade(vehicle, key, v, hero, isDisposed = () => false) {
+function upgrade(vehicle, key, v, hero, isDisposed = () => false, axles) {
   return loadVehicleAsset(key).then((src) => {
     if (!src || isDisposed()) return;
     const glb = src.clone(true);
+    let wheels = [];
     if (!hero) {
       for (const n of WHEELS) { const w = glb.getObjectByName(n); w?.parent.remove(w); }
-      for (const [name, g] of mergedWheels(key, src)) glb.add(Object.assign(new THREE.Mesh(g, { name }), { name: 'Wheels-static' }));
+      const split = axleWheels(key, src, axles);
+      glb.traverse((o) => { if (o.isMesh && split.body.has(o.material.name)) o.geometry = split.body.get(o.material.name); });
+      wheels = split.axles.map(({ x, y, parts }) => {
+        const w = new THREE.Group(); w.name = 'wheel'; w.position.set(x, y, 0);
+        for (const [name, g, shared] of parts) { const m = new THREE.Mesh(g, { name }); if (shared) m.position.set(-x, -y, 0); w.add(m); } // shared: indexes the car-space buffer
+        glb.add(w); return w;
+      });
     }
     glb.traverse((o) => {
       if (!o.isMesh) return;
@@ -126,15 +174,15 @@ function upgrade(vehicle, key, v, hero, isDisposed = () => false) {
       o.castShadow = CASTS.has(name) || name === 'FleetBody'; o.receiveShadow = true;
     });
     adoptVisual(vehicle, glb, ['beam']);
-    vehicle.userData.wheels = WHEELS.map((n) => glb.getObjectByName(n)).filter(Boolean);
+    vehicle.userData.wheels = hero ? WHEELS.map((n) => glb.getObjectByName(n)).filter(Boolean) : wheels;
   });
 }
 export const upgradeBus = (vehicle, variant, { hero = true, isDisposed } = {}) => upgrade(vehicle, 'bus', BUS_VARIANTS[variant], hero, isDisposed);
 // London master approved 2026-10-22; geometry frozen (tools/vehicles/double-decker-bus)
 export const upgradeMini = (vehicle, { hero = true, body = '#efe7d6', roof = '#c9252b', isDisposed } = {}) => upgrade(vehicle, 'mini', { body, roof }, hero, isDisposed);
-export const upgradeCab = (vehicle, { isDisposed } = {}) => upgrade(vehicle, 'cab', {}, false, isDisposed);
+export const upgradeCab = (vehicle, { isDisposed } = {}) => upgrade(vehicle, 'cab', {}, false, isDisposed, CAB_AXLES);
 export async function upgradeFleet(vehicle, model, { body = '#2f6fcf', isDisposed } = {}) {
-  await upgrade(vehicle, model.id, { body }, false, isDisposed);
+  await upgrade(vehicle, model.id, { body }, false, isDisposed, model.axles);
   if (isDisposed?.() || !vehicle.children.some((c) => c.name === vehicle.name + '-glb')) return;
   Object.assign(vehicle.userData, { fleetModel: model.id, length: model.dimensions.length,
     front: Math.max(...model.beamAnchors.front.map((p) => p[0])), beamY: model.beamAnchors.front[0][1], beamAnchors: model.beamAnchors });

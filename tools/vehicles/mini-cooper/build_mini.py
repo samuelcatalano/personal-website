@@ -34,7 +34,7 @@ GH_RC = 0.09
 GLASS_Z = (1.03, 1.32); DOOR_X0, QUART_X1 = -0.50, -0.72
 DOOR_CUTS = (-0.63, 0.72)
 ROOF_HW, ROOF_CROWN, ROOF_T = 0.532, 0.03, 0.055
-COL = dict(CarBody='#efe7d6', CarRoof='#c9252b', CarGlass='#7e939f', CarTrim='#17191c', CarChrome='#aeb4ba', CarHeadlight='#fff6e0', CarTaillight='#c01414', CarInterior='#2b2724', CarPlate='#f3f1ea', CarRim='#4a4e54')
+COL = dict(CarBody='#efe7d6', CarRoof='#c9252b', CarGlass='#1b2830', CarTrim='#17191c', CarChrome='#aeb4ba', CarHeadlight='#fff6e0', CarTaillight='#c01414', CarInterior='#2b2724', CarPlate='#f3f1ea', CarRim='#4a4e54')
 
 # ================= helpers =================
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -50,7 +50,7 @@ def mat(name, rough=0.4, metal=0.0, alpha=1.0, emit=0.0):
         except Exception: pass
     if emit: b.inputs['Emission Color'].default_value = (*lin(COL[name]), 1); b.inputs['Emission Strength'].default_value = emit
     return m
-M_BODY, M_ROOF, M_GLASS = mat('CarBody', 0.35), mat('CarRoof', 0.3), mat('CarGlass', 0.05, 0.0, 0.55)
+M_BODY, M_ROOF, M_GLASS = mat('CarBody', 0.35), mat('CarRoof', 0.3), mat('CarGlass', 0.04, 0.0, 0.78)
 M_TRIM, M_CHROME = mat('CarTrim', 0.45), mat('CarChrome', 0.2, 0.7)
 M_HEAD, M_TAIL = mat('CarHeadlight', 0.2, 0, 1, 0.8), mat('CarTaillight', 0.3, 0, 1, 0.6)
 M_INT, M_PLATE, M_RIM = mat('CarInterior', 0.85), mat('CarPlate', 0.5), mat('CarRim', 0.35, 0.6)
@@ -167,7 +167,7 @@ def cap_dome(bm, c, n, r, h, seg, rings, mi):            # shallow spherical cap
     for A, B in zip(rs, rs[1:]):
         for k in range(seg): addf(bm, (A[k], A[(k + 1) % seg], B[(k + 1) % seg], B[k]), mi, c - n * r)
     for k in range(seg): addf(bm, (rs[-1][k], rs[-1][(k + 1) % seg], top), mi, c - n * r)
-def pane(bg, c00, c10, c11, c01, nout, bow, nu=6, nv=3, w=0.022):   # slightly bowed glass + black ceramic border band (CarTrim slot 1)
+def pane(bg, c00, c10, c11, c01, nout, bow, nu=6, nv=3, w=0.042):   # slightly bowed glass + black ceramic border band (CarTrim slot 1)
     rows = [[c00 * (1 - i / nu) * (1 - j / nv) + c10 * (i / nu) * (1 - j / nv) + c11 * (i / nu) * (j / nv) + c01 * (1 - i / nu) * (j / nv) + nout * bow * math.sin(math.pi * i / nu) * math.sin(math.pi * j / nv) for i in range(nu + 1)] for j in range(nv + 1)]
     grid(bg, rows, 0); cs = [c00, c10, c11, c01]
     ic = [cs[i] + (cs[(i + 1) % 4] - cs[i]).normalized() * w + (cs[i - 1] - cs[i]).normalized() * w for i in range(4)]
@@ -251,7 +251,7 @@ for f in bgh.faces: f.material_index = B_TRIM
 gh_ob = new_obj('GH', bgh, [M_BODY, M_TRIM, M_CHROME, M_ROOF, M_INT])
 def apply_mod(ob, m):
     bpy.context.view_layer.objects.active = ob; ob.select_set(True); bpy.ops.object.modifier_apply(modifier=m.name); ob.select_set(False)
-MG = 0.012                                              # glass sits MG inside the outer surface; openings are MG smaller than the panes
+MG = 0.007                                              # glass sits MG inside the outer surface; openings are MG smaller than the panes
 z0g, z1g = GLASS_Z; X_B = lambda z: gh_xf(z) - GH_RC - 0.12; X_A = lambda z: gh_xr(z) + GH_RC + 0.05
 cuts = [prism([(DOOR_X0 + MG, z0g + MG), (X_B(z0g) - MG, z0g + MG), (X_B(z1g) - MG, z1g - MG), (DOOR_X0 + MG, z1g - MG)], 'y', -1.2, 1.2),
         prism([(X_A(z0g) + MG, z0g + MG), (QUART_X1 - MG, z0g + MG), (QUART_X1 - MG, z1g - MG), (X_A(z1g) + MG, z1g - MG)], 'y', -1.2, 1.2)]
@@ -259,6 +259,7 @@ zw0, zw1 = 1.0 + MG, 1.32 - MG; hs = lambda z: gh_hw(z) - GH_RC - 0.015 - MG
 cuts += [prism([(-hs(zw0), zw0), (hs(zw0), zw0), (hs(zw1), zw1), (-hs(zw1), zw1)], 'x', 0.1, 1.4), prism([(-hs(zw0), zw0), (hs(zw0), zw0), (hs(zw1), zw1), (-hs(zw1), zw1)], 'x', -1.9, -0.9)]
 for c_ in cuts:
     m = gh_ob.modifiers.new('cut', 'BOOLEAN'); m.operation = 'DIFFERENCE'; m.solver = 'EXACT'; m.object = c_; apply_mod(gh_ob, m)
+for p_ in gh_ob.data.polygons: p_.material_index = B_TRIM if p_.material_index == 0 else p_.material_index   # boolean cut walls inherit the cutter's slot 0 (body paint) -> black
 m = gh_ob.modifiers.new('wall', 'SOLIDIFY'); m.thickness = 0.03; m.offset = -1.0; m.use_rim = True; m.material_offset = 3; apply_mod(gh_ob, m)
 for c_ in cuts: bpy.data.objects.remove(c_)
 bm.from_mesh(gh_ob.data); bpy.data.objects.remove(gh_ob)
@@ -395,8 +396,8 @@ def side_layout(side):
 for s_ in (1, -1): side_layout(s_)
 # glasshouse screens (front / rear), symmetric by construction
 zA, zB = 1.0, 1.32; hsw = lambda z: gh_hw(z) - GH_RC - 0.015
-pane(bg, Vector((gh_xf(zA) - MG, -hsw(zA), zA)), Vector((gh_xf(zA) - MG, hsw(zA), zA)), Vector((gh_xf(zB) - MG, hsw(zB), zB)), Vector((gh_xf(zB) - MG, -hsw(zB), zB)), Vector((1, 0, 0.7)).normalized(), 0.012, 8, 3, 0.024)
-pane(bg, Vector((gh_xr(zA) + MG, -hsw(zA), zA)), Vector((gh_xr(zA) + MG, hsw(zA), zA)), Vector((gh_xr(zB) + MG, hsw(zB), zB)), Vector((gh_xr(zB) + MG, -hsw(zB), zB)), Vector((-1, 0, 0.55)).normalized(), 0.012, 8, 3, 0.024)
+pane(bg, Vector((gh_xf(zA) - MG, -hsw(zA), zA)), Vector((gh_xf(zA) - MG, hsw(zA), zA)), Vector((gh_xf(zB) - MG, hsw(zB), zB)), Vector((gh_xf(zB) - MG, -hsw(zB), zB)), Vector((1, 0, 0.7)).normalized(), 0.012, 8, 3, 0.05)
+pane(bg, Vector((gh_xr(zA) + MG, -hsw(zA), zA)), Vector((gh_xr(zA) + MG, hsw(zA), zA)), Vector((gh_xr(zB) + MG, hsw(zB), zB)), Vector((gh_xr(zB) + MG, -hsw(zB), zB)), Vector((-1, 0, 0.55)).normalized(), 0.012, 8, 3, 0.05)
 grid(bl, [[Vector((gh_xr(z) + 0.008, -0.17, z)), Vector((gh_xr(z) + 0.008, 0.17, z))] for z in (1.255, 1.275)], 1)      # third brake light under the spoiler lip
 # wipers (flat blades on the screen planes), antenna
 for (ya, yb) in ((-0.47, -0.06), (0.04, 0.45)): grid(bm, [[Vector((gh_xf(z) - 0.006, ya, z)), Vector((gh_xf(z) - 0.006, yb, z))] for z in (1.016, 1.034)], B_TRIM)
