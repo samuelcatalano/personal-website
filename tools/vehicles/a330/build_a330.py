@@ -63,8 +63,8 @@ def hull(s, phi, off=0.02):            # point on the fuselage at station s, ang
     top, bot, w = profile(s); zc, hz = (top + bot) / 2, (top - bot) / 2
     n = Vector((0, -math.sin(phi) * hz, math.cos(phi) * w)).normalized()
     return Vector((L / 2 - s, -w * math.sin(phi), zc + hz * math.cos(phi))) + n * off
-def decal(s0, s1, p0, p1, ns=4, npz=4, chamfer=0.0):   # conforming dark patch (windows, windscreen) sharing the fuselage mesh
-    vs = [[bm.verts.new(hull(s0 + (s1 - s0) * i / ns, p0 + (p1 - p0) * j / npz)) for j in range(npz + 1)] for i in range(ns + 1)]
+def decal(s0, s1, p0, p1, ns=4, npz=4, chamfer=0.0, off=0.06):   # conforming dark patch (windows) sharing the fuselage mesh; 6 cm proud (3.8 cm exported) or it z-fights the hull at flyover distance
+    vs = [[bm.verts.new(hull(s0 + (s1 - s0) * i / ns, p0 + (p1 - p0) * j / npz, off)) for j in range(npz + 1)] for i in range(ns + 1)]
     for i in range(ns):
         for j in range(npz):
             if chamfer and (i in (0, ns - 1)) and (j in (0, npz - 1)): continue   # knock off corners: rounded window
@@ -75,7 +75,7 @@ DOORS, PITCH = (9.6, 18.6, 41.2, 51.0), 0.62
 for side in (1, -1):                  # individual passenger windows, A330-like pitch, gaps at the doors
     s_ = 10.4
     while s_ < 52.2:
-        if all(abs(s_ - d) > 0.85 for d in DOORS): decal(s_ - 0.15, s_ + 0.15, side * math.acos(0.46), side * math.acos(0.27), 1, 1)
+        if all(abs(s_ - d) > 0.85 for d in DOORS): decal(s_ - 0.15, s_ + 0.15, side * math.acos(0.46), side * math.acos(0.27), 1, 1)   # one flat quad: straight edges (rows aliased into a kink); 1.2 cm chord sag < 6 cm lift
         s_ += PITCH
 def ws(phi): k = min(1.0, abs(phi) / 1.25); s0 = 3.55 + 0.95 * k ** 1.5; return s0, s0 + 1.05 - 0.3 * k
 for p0, p1 in [(0.03, 0.47), (0.53, 0.92), (0.98, 1.25)]:   # continuous six-pane windscreen band; gaps = body-colour mullions

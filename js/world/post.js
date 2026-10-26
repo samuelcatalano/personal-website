@@ -37,7 +37,8 @@ gl_FragColor = vec4(clamp(g * uWarm, 0.0, 1.0), c.a);
 };
 export function createPost(renderer, scene, camera, { tier = 'high', sun } = {}) {
   const size = renderer.getSize(new THREE.Vector2());
-  const composer = new EffectComposer(renderer);
+  const pr = renderer.getPixelRatio(), msaa = (t) => (t === 'high' ? 4 : 0); // the default composer target drops the canvas antialias, so thin detail (A330 windows, railings) stair-steps; MSAA rides the high tier (desktop p95 9 -> 17 ms at 120 Hz, the fps governor demotes it)
+  const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(size.x * pr, size.y * pr, { type: THREE.HalfFloatType, samples: msaa(tier) }));
   composer.addPass(new RenderPass(scene, camera));
   const heavy = [];
   let rays = null;
@@ -59,6 +60,7 @@ export function createPost(renderer, scene, camera, { tier = 'high', sun } = {})
     setTier(t) {
       post.tier = t;
       heavy.forEach((p) => { p.enabled = t === 'high'; });
+      for (const rt of [composer.renderTarget1, composer.renderTarget2]) if (rt.samples !== msaa(t)) { rt.samples = msaa(t); rt.dispose(); }
     },
     render(dt) {
       if (rays && post.tier === 'high' && sun) {

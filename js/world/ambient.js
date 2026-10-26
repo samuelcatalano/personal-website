@@ -14,6 +14,7 @@ function boat(hull = '#6b4f3a', cabin = '#f4f4f4', sx = 1) {
 }
 // Traffic. `relative` vehicles keep a fixed offset from the player (same lane, glued to the scroll position); the rest drive the oncoming lane on their own:
 // a base speed by type, eased down toward a zebra crossing (and back up) by integrating acceleration each frame, a minimum gap to the vehicle ahead, yaw eased toward the road tangent.
+const HIDE = 110; // m from the player beyond which an ambient vehicle may appear/vanish at a region border
 const SPEED = { london: 10, glasgow: 10, cab: 13, mini: 13, car: 13.5 }; // m/s
 const ACC = 3, DEC = 6, GAP = 3.5, ZEBRA_AT = 9, SLOW = 24; // m/s^2 up, m/s^2 down, bumper gap (m), zebra offset past a stop (roadmarks.js), slow-down radius (m)
 const CARS = [['#e8c425', 'mini'], ['#2f6fcf', 'sedan'], ['#c8102e', 'suv'], ['#3f9d4a', 'mini'], ['#16181c', 'sedan'], ['#1f6b3a', 'van'], ['#f2b705', 'sedan'], ['#b3161f', 'hatch'], ['#2e7d32', 'suv'], ['#e8c425', 'sedan']]; // saturated paints only: no white/grey
@@ -71,7 +72,8 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
   const blink = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), new THREE.MeshBasicMaterial({ color: 0xff2a2a }));
   blink.position.set(bb.x, 34.4, RIVER_Z - 16);
   scene.add(blink);
-  const nrm = new THREE.Vector3(), swap = swapAt(stops), [scotIn, scotOut] = scotRange(stops), wrap = (p) => ((p % 1) + 1) % 1;
+  let lastRoute = null;
+  const here = new THREE.Vector3(), nrm = new THREE.Vector3(), swap = swapAt(stops), [scotIn, scotOut] = scotRange(stops), wrap = (p) => ((p % 1) + 1) % 1;
   return {
     ready,
     dispose() { disposed = true; },
@@ -92,9 +94,13 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
           if (v.p - lp < min) { v.p = wrap(lp + min); v.v = Math.min(v.v, lead.v); }
         });
       }
+      here.copy(curve.getPointAt(Math.min(1, Math.max(0, route))));
+      const jump = lastRoute === null || Math.abs(route - lastRoute) > 0.02; lastRoute = route; // first frame or a nav jump: settle every vehicle at once
       for (const v of traffic) {
         const t = v.relative ? route + v.offset : routeT(v.p, pts.length, knots);
-        v.active = t >= 0 && t <= 1 && (v.uk === undefined || (t >= swap) === v.uk) && (v.scot === undefined || (t >= scotIn && t < scotOut) === v.scot);
+        const inside = t >= 0 && t <= 1, want = inside && (v.uk === undefined || (t >= swap) === v.uk) && (v.scot === undefined || (t >= scotIn && t < scotOut) === v.scot);
+        // region borders sit in view (SP and London share a frame): a vehicle only switches city once it is far from the player, so it drives off instead of popping
+        if (jump || !inside || v.relative || want === v.active || curve.getPointAt(t).distanceTo(here) > HIDE) v.active = want; // ponytail: player distance, not a camera frustum test
         v.mesh.visible = v.active;
         if (!v.active) continue;
         const p = curve.getPointAt(t), tan = curve.getTangentAt(t);
