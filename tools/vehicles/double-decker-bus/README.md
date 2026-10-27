@@ -1,5 +1,7 @@
 # Double-decker bus asset (London + Glasgow)
 
+> Superseded 2026-10-27 by `tools/vehicles/double-decker-bus-dd/` (Sketchfab "London DD Bus" derivative, McGill's Glasgow livery); this procedural generator is kept as the fallback reference.
+
 One original geometry, two palettes. No third-party mesh or texture; `refs/` images were visual reference only.
 
 | | |

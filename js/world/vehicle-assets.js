@@ -34,8 +34,8 @@ export function adoptVisual(vehicle, visual, keep) {
 // One double-decker geometry; London/Glasgow differ only by palette. GLB material names are semantic and are replaced by the
 // project's shared materials (so night glow, cabin light and destination displays keep working through sky.update).
 export const BUS_VARIANTS = {
-  london: { body: '#c9252b', accent: '#8f171d', dest: ['london', '19', 'Finsbury Park', '#ffb347'] },
-  glasgow: { body: '#8a36ae', accent: '#c9cdd2', dest: ['glasgow', '6', 'Renfrew Street', '#ff7a1a'] },
+  london: { body: '#c9252b', accent: '#8f171d', dest: ['london', '19', 'Finsbury Park', '#ffb347'] }, // no stripe: BusStripe falls back to the body red
+  glasgow: { body: '#f2f4f7', accent: '#1f3fa8', stripe: '#e0337a', dest: ['glasgow', '6', 'Renfrew Street', '#ff7a1a'] }, // stylised McGill's-style repaint, no logos
 };
 // GLB material names are semantic; each maps to a shared project material (night glow keeps working through sky.update).
 // Realistic finish for the authored cars: clear-coated paint, metal chrome and reflective glass, all lit by one small
@@ -82,7 +82,7 @@ const CAB_FINISH = {
 };
 const ROLES = {
   ...CAB_FINISH,
-  BusBody: (v) => paint(v.body, true), BusAccent: (v) => paint(v.accent, true), BusTrim: () => fixed('dark'), BusGlass: () => fixed('busGlass'),
+  BusBody: (v) => paint(v.body, true), BusAccent: (v) => paint(v.accent, true), BusStripe: (v) => paint(v.stripe ?? v.body, true), BusTrim: () => fixed('dark'), BusGlass: () => fixed('busGlass'),
   BusRubber: () => fixed('tyre'), BusMetal: () => fixed('chrome'), BusHeadlight: () => fixed('head'), BusTaillight: () => fixed('tail'),
   BusDisplay: (v) => destMat(...v.dest), BusInterior: () => fixed('cabin'),
   CarBody: (v) => carPaint(v.body), CarRoof: (v) => carPaint(v.roof), CarGlass: CAR_FINISH.CarGlass, CarTrim: CAR_FINISH.CarTrim, CarInterior: () => phys('miniInterior', () => new THREE.MeshStandardMaterial({ color: '#655d51', roughness: 0.85, envMapIntensity: 0.18 })), CarPlate: () => fixed('plate'), CarRim: CAR_FINISH.CarRim,
@@ -177,7 +177,7 @@ function upgrade(vehicle, key, v, hero, isDisposed = () => false, axles) {
   });
 }
 export const upgradeBus = (vehicle, variant, { hero = true, isDisposed } = {}) => upgrade(vehicle, 'bus', BUS_VARIANTS[variant], hero, isDisposed);
-// London master approved 2026-10-22; geometry frozen (tools/vehicles/double-decker-bus)
+// bus geometry: tools/vehicles/double-decker-bus-dd (supersedes the procedural tools/vehicles/double-decker-bus)
 export const upgradeMini = (vehicle, { hero = true, body = '#efe7d6', roof = '#c9252b', isDisposed } = {}) => upgrade(vehicle, 'mini', { body, roof }, hero, isDisposed);
 export const upgradeCab = (vehicle, { isDisposed } = {}) => upgrade(vehicle, 'cab', {}, false, isDisposed);
 export async function upgradeFleet(vehicle, model, { body = '#2f6fcf', isDisposed } = {}) {
