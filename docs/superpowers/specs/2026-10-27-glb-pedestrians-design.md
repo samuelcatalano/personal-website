@@ -1,6 +1,6 @@
 # Pedestres genéricos derivados dos quatro GLBs
 
-Status: abordagem aprovada em conversa; desenho aguardando aprovação.
+Status: desenho aprovado em conversa em 2026-10-27; implementação autorizada com agentes, na branch atual por escolha do usuário.
 
 ## Intenção e escopo
 
