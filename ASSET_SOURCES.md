@@ -1,6 +1,6 @@
 # Asset sources
 
-Every non-code asset that ships in this repository. External assets must be CC0/public domain or clearly permissive; ambiguous licence = not used. Sketchfab is never used.
+Every non-code asset that ships in this repository. External assets must be CC0/public domain or clearly permissive; ambiguous licence = not used. Since 2026-10-27, Sketchfab and NC/SA-licensed assets are allowed when the owner approves the specific asset; record the licence obligations (attribution, share-alike) in its row.
 
 | Asset | Path | Source | Author | Licence | Use |
 |---|---|---|---|---|---|

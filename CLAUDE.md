@@ -43,7 +43,7 @@ Use **Validation Strategy** below; claim only checks actually run. At milestones
 ## 3D City Development Rules
 
 - The 2026-10-21 visual freeze was reopened by the user on 2026-10-21 for the North Star full-scene upgrade (`docs/plans/north-star-full-scene-upgrade.md`). Work inside that plan's scope; anything outside it still needs explicit authorization. Visual state per system lives in `docs/audits/full-scene-visual-atlas.md`; asset budgets in `docs/art/asset-quality-spec.md`.
-- External assets: CC0/public domain first, then clearly permissive free licences; record every one in `ASSET_SOURCES.md`. Ambiguous licence = do not use; model procedurally from reference instead. Never use Sketchfab.
+- External assets: CC0/public domain first, then clearly permissive free licences; Sketchfab and NC/SA licences are allowed when the owner approves the specific asset (owner decision 2026-10-27); honour their attribution/share-alike terms. Record every asset, its licence and the approval in `ASSET_SOURCES.md`. Ambiguous licence = do not use; model procedurally from reference instead.
 - Subagents are OFF by default. Use them only for clearly independent tasks; a smaller task alone does not justify delegation.
 - Preserve the map, lot footprints/heights, routes, landmark sightlines, pedestrians and existing logic unless explicitly in scope. Keep paths clear.
 - Keep architecture data-driven: lot data remains the source of truth. No new engine/framework without concrete need and authorization.

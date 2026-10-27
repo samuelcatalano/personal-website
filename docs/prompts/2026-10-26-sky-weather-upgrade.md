@@ -22,7 +22,7 @@ saturated blue sky, sparkling water).
   Three's own `examples/jsm` addons (e.g. `objects/Sky.js`, `objects/Lensflare.js`) are allowed
   because they ship with the pinned version. Any other dependency: ask first.
 - No external textures unless CC0 / clearly permissive, logged in `ASSET_SOURCES.md`. Prefer
-  procedural (canvas or shader noise). Never Sketchfab.
+  procedural (canvas or shader noise).
 - Do not touch the map, routes, stops, landmarks, buildings, lot data, cameras, UI or copy.
 - `prefers-reduced-motion`: no animated rain, no cloud drift, no lightning, no twinkle. A static,
   still-rainy look (darker sky, wet ground) is fine.

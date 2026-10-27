@@ -2,7 +2,7 @@
 
 Authorized by the user 2026-10-21 (reopens the visual freeze for this scope). Audit: [visual atlas](../audits/full-scene-visual-atlas.md). Budgets: [asset spec](../art/asset-quality-spec.md).
 
-**Global constraints:** preserve map, routes, stops, landmark anchors/positions, lot footprints/heights, UI/content/accessibility, WebGL-off and reduced-motion behaviour. No engine change, no npm/build, no SSR/cubemaps/extra shadow lights. Approved building families (townhouse/shop/midrise/office/tower) keep their geometry. Shared materials; deterministic variation. Do not use Sketchfab; external assets only CC0/clearly permissive and logged in `ASSET_SOURCES.md`.
+**Global constraints:** preserve map, routes, stops, landmark anchors/positions, lot footprints/heights, UI/content/accessibility, WebGL-off and reduced-motion behaviour. No engine change, no npm/build, no SSR/cubemaps/extra shadow lights. Approved building families (townhouse/shop/midrise/office/tower) keep their geometry. Shared materials; deterministic variation. External assets follow `CLAUDE.md` (Sketchfab/NC allowed per asset with owner approval since 2026-10-27) and are logged in `ASSET_SOURCES.md`.
 
 Ordered by visual impact / effort (evidence from the 35-capture audit):
 
