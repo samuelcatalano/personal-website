@@ -144,6 +144,11 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
         if (cross) { run('u', f * hv, -hu, -1.3); run('u', f * hv, 1.3, hu); } else run('u', f * hv, -hu, hu);
       }
     }
+    if (park.trees > 0 && onTree) for (let u = -L / 2 + 4; u <= L / 2 - 3.5; u += 8) for (const f of [-1, 1]) { // edge rows along both long sides of planted parks/plazas (hash jitter: park rng untouched)
+      const v = f * (S / 2 - 1.3), hs = Math.abs(Math.sin(u * 12.9898 + v * 78.233 + park.x0) * 43758.5453) % 1, [x, z] = world(u, v);
+      if (S < 7 || (mainPath && Math.abs(v) < 3.2) || (cross && Math.abs(u) < 3.2) || !clearOfSigns(u, v) || taken.some(([a, b, d]) => Math.hypot(a - u, b - v) < d + 1.6)) continue;
+      taken.push([u, v, 1.6]); onTree(x, z, { h: 2.7 + hs * 0.5, crown: 2 + hs * 0.4 });
+    }
     if (hero) onPublicRealm(orig);
     made.push(park);
   }

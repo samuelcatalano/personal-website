@@ -36,7 +36,7 @@ export async function createTrees(placements) {
     list.forEach(({ p: { x, z, h, crown, base = 0.1 } }, k) => {
       const r = (n) => rnd(x, z, n), wide = r(1) < 0.5; // shape variant: broad & low vs narrow & tall
       const H = Math.min(6.2, (h + 0.65) * 1.2) * (0.8 + r(2) * 0.25);
-      const rw = crown / 2 * (0.94 + r(3) * 0.06) * (wide ? 1 : 0.93), ry = Math.min(H * (wide ? 0.36 : 0.4), rw * (wide ? 1.1 : 1.25)), yc = Math.min(H - ry, ry + 1.6 + r(10) * 0.5), yaw = r(4) * Math.PI * 2; // full rounded crowns: fill the placement footprint
+      const rw = crown / 2 * (0.96 + r(3) * 0.04) * (wide ? 1 : 0.94), ry = Math.min(H * 0.44, rw * (wide ? 1.0 : 1.14)), yc = ry + 0.95 + r(10) * 0.35, yaw = r(4) * Math.PI * 2; // round crown filling the footprint; trunk only ~1 m clear under it (was a 1.6 m bare lollipop stem)
       o.position.set(x, base + 0.02 + yc, z); o.rotation.set(0, yaw, 0); o.scale.set(rw, ry, rw); o.updateMatrix(); canopy.setMatrixAt(k, o.matrix);
       const t = 0.8 + r(5) * 0.45; // trunk thickness
       o.position.set(x, base + 0.02, z); o.scale.set(rw * t, yc, rw * t); o.updateMatrix(); trunk.setMatrixAt(k, o.matrix);

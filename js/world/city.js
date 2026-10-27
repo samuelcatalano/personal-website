@@ -177,6 +177,17 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
     phoneBox(add, x, z, Math.atan2(t.z * side, -t.x * side)); // door faces the road
     kiosks.push([x, z]);
   }
+  // North Star avenue rows: dense street trees on the verge strip every ~7 m, same frontage exclusions as the houses (MASP/Sé/Glasgow/Tower sightlines, Wembley); own hash, layout rng untouched
+  const lastX = pts[pts.length - 1].x, towX = towerX(stops, pts), bbX = pts[stopIndex(stops, LANDMARKS.bigben)].x, eyeX = pts[stopIndex(stops, LANDMARKS.eye)].x;
+  const blocked = (x, side) => side < 0 ? (x > bbX - 15 && x < eyeX + 17) || Math.abs(x - mx) < 29.5 || Math.abs(x - seX) < 29.5 || Math.abs(x - gl.x) < 25 || Math.abs(x - towX + 3) < 33 : Math.abs(x - seX) < 29.5 || Math.abs(x - ukX) < 23 || Math.abs(x - lastX) < 35; // ponytail: x-only test, mirrors the frontage rules above
+  for (const u of ticks(7)) {
+    const p = curve.getPointAt(u), t = curve.getTangentAt(u);
+    for (const side of [-1, 1]) {
+      const x = p.x - t.z * side * 10.3, z = p.z + t.x * side * 10.3, hsh = Math.abs(Math.sin(x * 12.9898 + z * 78.233 + 5) * 43758.5453) % 1;
+      if (blocked(p.x, side) || !free(x, z) || [...obst, ...kiosks].some(([a, b]) => Math.hypot(a - x, b - z) < 4.2)) continue;
+      drawTree(add, x, z, { h: 3 + hsh * 0.6, crown: 3.1 + hsh * 0.5 }); obst.push([x, z]);
+    }
+  }
   rgs.forEach((rg, leg) => buildCountry(add, curve, drawTree, rg.ctry, leg, onArchitecturePlot));
   buildGlasgowEdges(add, stops, pts, curve, drawTree, onArchitecturePlot);
   buildBlocks(add, stops, pts, curve, occ, onBuildingPlot, onArchitecturePlot);
