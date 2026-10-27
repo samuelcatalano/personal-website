@@ -34,6 +34,25 @@ export const PLAZAS = [
   { name: 'glasgow-uni', trees: 0, quiet: 1, nopath: 1, paved: P.pave }, // far-bank promenade: paved, not a lawn; keeps the gravel ring
   { name: 'se', paved: P.stone },
 ];
+// Open paved lots outside every park/plaza (found with an occupancy grid of city boxes + roads; tests/squares.test.mjs re-checks them).
+// x0..x1 along the road; mix = one letter per 8 m slot: B flowerbed, T two planted trees, U umbrella cluster, S striped stall, P pergola, F tiered fountain.
+// low: inside a landmark sightline, so only flat paving and beds under 1 m.
+export const SQUARES = [
+  { x0: -236, x1: -213, z0: 23, z1: 46, mix: 'FTBU' }, // south of the Sé side park
+  { x0: -150, x1: -113, z0: 30, z1: 44, mix: 'BUSTBU' },
+  { x0: -7, x1: 27, z0: 3, z1: 19, mix: 'UBTSBU' }, // behind the London verge at stops 6-7
+  { x0: 59, x1: 90, z0: 26, z1: 33, mix: 'BUSB' },
+  { x0: 190, x1: 230, z0: -30, z1: -13, mix: 'FBUSTP' }, // east of the Tower promenade
+  { x0: 459, x1: 525, z0: -30, z1: -22, mix: 'UBSTBUSB' }, // Glasgow, east of the square
+  { x0: 515, x1: 561, z0: -18, z1: -11, mix: 'BUSB' },
+  { x0: 414, x1: 454, z0: -10, z1: -4, mix: 'BBBB', low: 1 },
+  { x0: -238, x1: -201, z0: -10, z1: -5, mix: 'BBBB', low: 1 }, // Sé front strip between the park and the road: flat paving and low beds only
+  { x0: -159, x1: -111, z0: -14, z1: -8, mix: 'BBBBBB', low: 1 }, // MASP front (quiet)
+  { x0: 66, x1: 118, z0: -9.3, z1: -5, mix: 'BTBSBTBU' }, // London riverside, in front of the Thames plaza
+  { x0: 132, x1: 189, z0: -9, z1: -2, mix: 'BTSBTUBS' }, // London riverside, east of the Eye
+  { x0: 231, x1: 288, z0: -19, z1: -12, mix: 'BTBSBT' }, // in front of the Glasgow square view
+];
+const TILE = [P.tileCream, P.tileTerra], BED = [P.red, P.tulip, P.white, P.violet, P.bloomPink], AWN = [[P.red, P.white], [P.teal, P.white], [P.tulip, P.white], [P.violet, P.white]], UMB = [P.red, P.tulip, P.violet, P.white, P.teal];
 const { patch: LAWN, gravel: GRAVEL, hedge: HEDGE, leaf: LEAF, stone: STONE, oak: OAK, iron: IRON, glass: WATER, dirt: SOIL } = P;
 const BLOOM = [P.red, P.tulip, P.violet, P.red], FRESH = P.gravel;
 export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) {
@@ -188,6 +207,49 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
     }
     if (hero) onPublicRealm(orig);
     made.push(park);
+  }
+
+  // Squares: two-tone large-format paving plus slot furniture; deterministic, drawn last so nothing above shifts.
+  const walks = walkPaths(stops, pts).filter((w) => w.rect).map((w) => w.rect);
+  for (const q of SQUARES) {
+    const W = q.x1 - q.x0, D = q.z1 - q.z0, cx = (q.x0 + q.x1) / 2, cz = (q.z0 + q.z1) / 2, ix = 1.4, iz = D < 8 ? 0.6 : 1.4, L = W - 2 * ix;
+    for (let u = 0; u < W; u += 4) for (let v = 0; v < D; v += 4) { // checker, 4 m tiles, last row/column trimmed
+      const w = Math.min(4, W - u), d = Math.min(4, D - v); draw(q.x0 + u + w / 2, 0.02, q.z0 + v + d / 2, w - 0.06, 0.05, d - 0.06, TILE[(u / 4 + v / 4) & 1]);
+    }
+    const n = Math.floor(L / 8), rows = D - 2 * iz >= 11 ? [-0.25, 0.25] : [0];
+    rows.forEach((rf, ri) => {
+      for (let i = 0; i < n; i++) {
+        const c = q.mix[(i + ri * 3) % q.mix.length], x = q.x0 + ix + (i + 0.5) * (L / n), z = cz + rf * (D - 2 * iz), k = i + ri;
+        const tall = !q.low && c !== 'B';
+        const hit = (hx, hz) => walks.some((r) => x - hx < r.x1 + 0.5 && x + hx > r.x0 - 0.5 && z - hz < r.z1 + 0.5 && z + hz > r.z0 - 0.5) || (tall && !spots.every(([a, b]) => Math.hypot(a - x, b - z) > CLEAR));
+        const fit = (hx, hz) => hz <= (D - 2 * iz) / 2 + 0.01 && !hit(hx, hz);
+        if (c === 'B' && fit(2.6, 1) && !(rows.length === 1 && D < 5)) { // raised bed, five saturated colour blocks
+          draw(x, 0.05, z, 5.2, 0.55, 1.8, STONE); draw(x, 0.55, z, 5, 0.06, 1.6, SOIL);
+          for (let b = 0; b < 5; b++) draw(x - 2 + b, 0.6, z, 0.96, 0.5, 1.5, BED[(b + k) % 5]);
+        } else if (c === 'T' && tall && fit(3.4, 1)) for (const s of [-1, 1]) { // planted tree in a square planter
+          const tx = x + s * 2.2; draw(tx, 0.05, z, 1.5, 0.45, 1.5, STONE); draw(tx, 0.45, z, 1.3, 0.05, 1.3, SOIL);
+          const sh = { h: 2.9 + ((k * 7 + s) & 3) * 0.12, crown: 2.1 };
+          if (onTree) onTree(tx, z, sh); else tree(draw, tx, z, sh);
+        } else if (c === 'U' && tall && fit(3.4, 2.4)) { // café cluster: three umbrellas, colours by slot
+          [[-2, -0.7], [0, 0.9], [2, -0.5]].forEach(([dx, dz], j) => { const px = x + dx, pz = z + dz;
+            draw(px, 0.05, pz, 0.12, 2.5, 0.12, IRON); draw(px, 2.45, pz, 2.5, 0.12, 2.5, UMB[(k + j) % 5]); draw(px, 0.05, pz, 0.9, 0.75, 0.9, P.white); });
+        } else if (c === 'S' && tall && fit(2.2, 1.6)) { // market stall: striped awning, counter, crates
+          const [a, b] = AWN[k % 4];
+          draw(x, 0.05, z - 0.7, 3.8, 1, 0.9, P.oak); draw(x, 0.05, z - 1.0, 3.8, 2.5, 0.12, P.cream);
+          for (let t = 0; t < 7; t++) draw(x - 1.8 + t * 0.6, 2.45, z - 0.2, 0.6, 0.1, 2.4, t & 1 ? b : a);
+          for (const s of [-1, 1]) draw(x + s * 1.85, 0.05, z + 0.85, 0.1, 2.4, 0.1, IRON);
+          draw(x - 1, 0.05, z + 0.5, 0.8, 0.5, 0.6, P.terracotta); draw(x + 1, 0.05, z + 0.5, 0.8, 0.5, 0.6, LEAF);
+        } else if (c === 'P' && tall && D - 2 * iz >= 4 && fit(3.2, 1.7)) { // pergola with a bench under it
+          for (const sx of [-1, 1]) for (const sz of [-1, 1]) draw(x + sx * 2.8, 0.05, z + sz * 1.3, 0.22, 2.8, 0.22, P.white);
+          for (const sz of [-1, 1]) draw(x, 2.8, z + sz * 1.3, 6.2, 0.2, 0.22, P.white);
+          for (let t = 0; t < 8; t++) draw(x - 2.8 + t * 0.8, 3.0, z, 0.14, 0.1, 3.2, P.oak);
+          draw(x, 0.45, z, 2, 0.08, 0.5, OAK); draw(x, 0.09, z, 1.8, 0.36, 0.3, IRON);
+        } else if (c === 'F' && D - 2 * iz >= 8 && fit(3.6, 3.6)) { // tiered fountain, 3 basins
+          draw(x, 0.05, z, 7, 0.07, 7, GRAVEL); draw(x, 0.05, z, 6, 0.6, 6, STONE); draw(x, 0.55, z, 5.2, 0.1, 5.2, WATER);
+          draw(x, 0.65, z, 3, 0.6, 3, STONE); draw(x, 1.2, z, 2.6, 0.1, 2.6, WATER); draw(x, 1.3, z, 1.4, 0.55, 1.4, STONE); draw(x, 1.8, z, 1.0, 0.1, 1.0, WATER); draw(x, 1.85, z, 0.25, 1.0, 0.25, WATER);
+        }
+      }
+    });
   }
   return made;
 }
