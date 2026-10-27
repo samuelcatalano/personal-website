@@ -9,7 +9,7 @@ OUT = os.environ['OUT']; os.makedirs(OUT, exist_ok=True)
 URL = os.environ.get('URL', 'http://localhost:8000/') + (('?' + os.environ['QUERY']) if os.environ.get('QUERY') else '')
 WAIT, MOBILE = float(os.environ.get('WAIT', 7)), os.environ.get('MOBILE') == '1'
 shots = [(s.split(':') + ['day'])[:2] for s in os.environ.get('SHOTS', '5:day').split(',')]
-t = new_tab('about:blank'); activate_tab(t if isinstance(t, str) else t.get('targetId', t))  # background tabs do not render
+t = new_tab('about:blank'); TAB = t if isinstance(t, str) else t.get('targetId', t); activate_tab(TAB)  # background tabs do not render
 cdp('Network.enable'); cdp('Network.setCacheDisabled', cacheDisabled=True)
 if MOBILE: cdp('Emulation.setDeviceMetricsOverride', width=375, height=812, deviceScaleFactor=2, mobile=True)
 goto_url(URL); wait_for_load()
@@ -21,7 +21,7 @@ for stop, theme in shots:
         time.sleep(.5)
     js("const st=document.createElement('style');st.textContent='#panel,.bar,header,nav{visibility:hidden!important}';document.head.append(st)")
     js("(async()=>{const s=await import('/js/scroll.js'),c=await import('/js/content.js'),L=await import('/js/world/layout.js');const n=c.stops.length,m=s.stopMarks(L.routePoints(n)),H=document.documentElement.scrollHeight,p=%s,i=Math.floor(p),f=p-i,a=s.scrollYForStop(i,n,H,innerHeight,m),b=s.scrollYForStop(Math.min(n-1,i+1),n,H,innerHeight,m);scrollTo({top:a+(b-a)*f,behavior:'instant'})})()" % float(stop))
-    time.sleep(WAIT)
+    activate_tab(TAB); time.sleep(WAIT)  # re-front: another window/agent can hide the tab, and hidden tabs screenshot blank
     f = os.path.join(OUT, '%s-%s%s.png' % (stop, theme, '-m' if MOBILE else '')); capture_screenshot(f); files.append(f); print('ok', f)
 if MOBILE: cdp('Emulation.clearDeviceMetricsOverride')
 if os.environ.get('GRID') == '1' and len(files) > 1:
