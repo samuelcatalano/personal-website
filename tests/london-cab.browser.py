@@ -77,7 +77,7 @@ print(js(r'''(async () => {
   const ambient = createAmbient(scene, { curve: routeCurve(THREE, pts), pts, stops });
   await new Promise(resolve => setTimeout(resolve, 0));
   const natural = scene.children.filter(c => c.name === 'cab');
-  check(natural.length === 4 && natural.every(c => c.getObjectByName('cab-glb')), 'four natural ambient cabs upgraded');
+  check(natural.length === 7 && natural.every(c => c.getObjectByName('cab-glb')), 'seven natural ambient cabs upgraded');
   ambient.update({ time: 1, t: 0.5, dt: 1 / 30 });
   check(natural.every(c => Number.isFinite(c.position.x) && Number.isFinite(c.rotation.y)), 'ambient movement remains finite');
   const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');

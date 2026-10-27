@@ -94,7 +94,7 @@ const FLEET_FINISH = {
   FleetTrim: () => phys('fleetTrim', () => new THREE.MeshPhysicalMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.3, metalness: 0.45, envMapIntensity: 0.35 })),
   FleetRubber: () => phys('fleetRubber', () => new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.8, envMapIntensity: 0.1 })),
   FleetInterior: () => phys('fleetInterior', () => new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.85, envMapIntensity: 0.1 })),
-  FleetLights: () => phys('fleetLights', () => {
+  FleetLights: (v) => phys(v.parked ? 'fleetLightsOff' : 'fleetLights', () => { // parked cars own an unlit copy: updateVehicleEnv only drives 'fleetLights'
     const m = new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.22, emissive: 0xffffff, emissiveIntensity: 0, envMapIntensity: 0.15 });
     m.onBeforeCompile = (shader) => { shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n totalEmissiveRadiance *= vColor.rgb;'); };
     return m;
@@ -180,8 +180,9 @@ export const upgradeBus = (vehicle, variant, { hero = true, isDisposed } = {}) =
 // bus geometry: tools/vehicles/double-decker-bus-dd (supersedes the procedural tools/vehicles/double-decker-bus)
 export const upgradeMini = (vehicle, { hero = true, body = '#efe7d6', roof = '#c9252b', isDisposed } = {}) => upgrade(vehicle, 'mini', { body, roof }, hero, isDisposed);
 export const upgradeCab = (vehicle, { isDisposed } = {}) => upgrade(vehicle, 'cab', {}, false, isDisposed);
-export async function upgradeFleet(vehicle, model, { body = '#2f6fcf', isDisposed } = {}) {
-  await upgrade(vehicle, model.id, { body }, false, isDisposed, model.axles);
+// parked: static kerbside car (hero path keeps the authored wheels, no spinning axles) with unlit lamps
+export async function upgradeFleet(vehicle, model, { body = '#2f6fcf', isDisposed, parked = false } = {}) {
+  await upgrade(vehicle, model.id, { body, parked }, parked, isDisposed, model.axles);
   if (isDisposed?.() || !vehicle.children.some((c) => c.name === vehicle.name + '-glb')) return;
   Object.assign(vehicle.userData, { fleetModel: model.id, length: model.dimensions.length,
     front: Math.max(...model.beamAnchors.front.map((p) => p[0])), beamY: model.beamAnchors.front[0][1], beamAnchors: model.beamAnchors });

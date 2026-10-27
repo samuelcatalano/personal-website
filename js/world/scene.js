@@ -22,6 +22,7 @@ import { createWetSurfaces } from './wet-surfaces.js';
 import { createSky, EXPOSURE, SUN_DIR } from './sky.js';
 import { createWater } from './water.js';
 import { createAmbient } from './ambient.js';
+import { createParked } from './parked.js';
 import { createPeople } from './people.js';
 import { createSigns } from './signs.js';
 import { buildFigure } from './figure.js';
@@ -97,7 +98,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const motion = buildMotion(); scene.add(motion.group);
   const roadMarks = createRoadMarks(curve, stops);
   scene.add(world, eye, details, plane, shadow, bus, roadMarks);
-  const units = [createAmbient(scene, { curve, pts, stops, reducedMotion })];
+  const units = [createAmbient(scene, { curve, pts, stops, reducedMotion }), createParked(scene, { curve, pts, stops })];
   const people = createPeople(scene, { curve, pts, stops, reducedMotion });
   const water = createWater({ x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z: RIVER_Z, width: 22, reducedMotion });
   scene.add(water.mesh);
