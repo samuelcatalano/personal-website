@@ -148,7 +148,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => { if (fit()) { camera.updateProjectionMatrix(); wake(); } });
   if (bar) observer?.observe(bar);
   if (panel) observer?.observe(panel);
-  const busPos = { x: 0, y: 0, z: 0 }, prevBus = { x: null, z: 0 };
+  const busPos = { x: 0, y: 0, z: 0 }, prevBus = { x: null, z: 0, h: 0 }, MINI_WHEELBASE = 2.5, MAX_STEER = 0.5;
+  let steer = 0;
   const updatePlane = (p) => { // the original flyover: passes beside the bus at the first UK stop, heading +x, climbing out
     const d = (p - planeAt) * (n - 1);
     plane.visible = planeAt >= 0 && Math.abs(d) < 1;
@@ -177,8 +178,13 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     if (prevBus.x !== null) { // hero wheels roll with the distance travelled along the road (signed: scrolling back unrolls them)
       const ds = (busPos.x - prevBus.x) * tan.x + (busPos.z - prevBus.z) * tan.z;
       for (const m of [mini, londonBus, glasgowBus]) if (m.visible) for (const w of m.userData.wheels) w.rotation.z -= ds / w.position.y;
+      // Mini front wheels steer into curves: bicycle model on the heading change per metre, smoothed; still / jumps (respawn, reduced-motion stop hops) straighten
+      // ponytail: hero Mini only; ambient Minis (axle-merged wheels) and buses do not steer
+      const dh = Math.atan2(Math.sin(bus.rotation.y - prevBus.h), Math.cos(bus.rotation.y - prevBus.h)), still = reducedMotion || Math.abs(ds) < 1e-3 || Math.abs(ds) > 2;
+      steer += ((still ? 0 : Math.max(-MAX_STEER, Math.min(MAX_STEER, Math.atan(MINI_WHEELBASE * dh / ds)))) - steer) * Math.min(1, dt * 10);
+      if (mini.visible) for (const w of mini.userData.wheels) if (w.name === 'FL' || w.name === 'FR') { w.rotation.order = 'YXZ'; w.rotation.y = steer; }
     }
-    prevBus.x = busPos.x; prevBus.z = busPos.z;
+    prevBus.x = busPos.x; prevBus.z = busPos.z; prevBus.h = bus.rotation.y;
     const s = t * (n - 1), i = Math.min(Math.floor(s), n - 2);
     const ka = SECTION_SHOT[stops[i].section], kb = SECTION_SHOT[stops[i + 1].section];
     const la = FRAME_LIFT[stops[i].id] ?? 0, lb = FRAME_LIFT[stops[i + 1].id] ?? 0;

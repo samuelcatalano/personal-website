@@ -1,5 +1,7 @@
 # Mini Cooper asset
 
+> Superseded 2026-10-27: `assets/vehicles/mini-cooper.glb` is now built from the owner-approved F56 source by `tools/vehicles/mini-cooper-f56/`; this procedural generator is kept as history.
+
 Original geometry built headlessly in Blender; the user's Mini sheet (front 3/4, front, side, rear) was visual reference only. External geometry: none.
 
 | | |
