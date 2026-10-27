@@ -13,13 +13,14 @@ print(js(r'''(async () => {
   check(src, 'authored cab GLB loads');
   const roles = ['CabBody', 'CabGlass', 'CabRubber', 'CabTrim', 'CabInterior', 'CabLights'];
   const meshes = (root) => { const out = []; root.traverse(o => { if (o.isMesh) out.push(o); }); return out; };
-  const source = meshes(src), bounds = new THREE.Box3().setFromObject(src), size = bounds.getSize(new THREE.Vector3());
+  const WHEELS = ['FL', 'FR', 'RL', 'RR'], inWheel = (m) => { for (let o = m; o; o = o.parent) if (WHEELS.includes(o.name)) return true; return false; };
+  const all = meshes(src), source = all.filter(m => !inWheel(m)), bounds = new THREE.Box3().setFromObject(src), size = bounds.getSize(new THREE.Vector3());
   check(source.length === 6 && roles.every(n => source.some(m => m.name === n && m.material.name === n)), 'six semantic static cab meshes/materials');
-  check(!['FL', 'FR', 'RL', 'RR'].some(n => src.getObjectByName(n)), 'cab has no animated wheel nodes');
-  check(Math.abs(size.x - 4.857) < 0.025 && Math.abs(size.y - 1.888) < 0.025 && Math.abs(size.z - 2.036) < 0.025 && Math.abs(bounds.min.y) < 0.005, `cab real dimensions/ground origin: ${size.toArray()}`);
-  const triangles = source.reduce((n, m) => n + (m.geometry.index?.count ?? m.geometry.attributes.position.count) / 3, 0);
+  check(WHEELS.every(n => src.getObjectByName(n) && Math.abs(src.getObjectByName(n).position.y - 0.35) < 0.01), 'cab has authored FL FR RL RR wheel nodes at axle height');
+  check(Math.abs(size.x - 4.572) < 0.025 && Math.abs(size.y - 1.932) < 0.025 && Math.abs(size.z - 2.211) < 0.025 && Math.abs(bounds.min.y) < 0.005, `cab real dimensions/ground origin: ${size.toArray()}`);
+  const triangles = all.reduce((n, m) => n + (m.geometry.index?.count ?? m.geometry.attributes.position.count) / 3, 0);
   check(triangles <= 10000, `cab triangle ceiling: ${triangles}`);
-  for (const m of source) {
+  for (const m of all) {
     const { position, normal, color } = m.geometry.attributes;
     check(normal?.count === position.count && color?.count === position.count, `${m.name}: normals and vertex colors preserved`);
     for (let i = 0; i < normal.count; i++) check(Math.abs(Math.hypot(normal.getX(i), normal.getY(i), normal.getZ(i)) - 1) < 0.01, `${m.name}: unit normals`);

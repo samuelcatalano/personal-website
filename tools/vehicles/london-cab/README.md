@@ -1,5 +1,7 @@
 # London Black Cab — LEVC TX
 
+> Superseded: `assets/vehicles/london-cab.glb` is now the TX4 derivative built by [`../london-cab-tx4/`](../london-cab-tx4/README.md). This document describes the retired procedural cab.
+
 Original deterministic procedural geometry, modeled from the three supplied visual references. External geometry/textures: none. See [reference analysis](REFERENCE-ANALYSIS.md) for recognition cues, dimensional source and left/right differences.
 
 ## Asset contract

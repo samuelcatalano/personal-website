@@ -102,7 +102,6 @@ const FLEET_FINISH = {
 };
 const CASTS = new Set(['BusBody', 'CarBody', 'CarRoof', 'CabBody']); // only painted shells cast: trim/glass/wheels add shadow-pass calls for no visible gain
 const WHEELS = ['FL', 'FR', 'RL', 'RR'];
-const CAB_AXLES = { front: 1.493, rear: -1.493, height: 0.35, halfTrack: 0.86 }; // measured from london-cab.glb tyre contact/rim bounds
 // Dark static disc behind each wheel, appended to the body's rubber (no extra call): hides the authored tyre/rim gap that would flicker once spinning.
 function withDiscs(g, keep, xs, r, half, seg = 20) {
   const base = g.attributes.position.count, n = base + xs.length * 2 * (seg + 1), out = new THREE.BufferGeometry(), index = [...keep];
@@ -180,7 +179,7 @@ function upgrade(vehicle, key, v, hero, isDisposed = () => false, axles) {
 export const upgradeBus = (vehicle, variant, { hero = true, isDisposed } = {}) => upgrade(vehicle, 'bus', BUS_VARIANTS[variant], hero, isDisposed);
 // London master approved 2026-10-22; geometry frozen (tools/vehicles/double-decker-bus)
 export const upgradeMini = (vehicle, { hero = true, body = '#efe7d6', roof = '#c9252b', isDisposed } = {}) => upgrade(vehicle, 'mini', { body, roof }, hero, isDisposed);
-export const upgradeCab = (vehicle, { isDisposed } = {}) => upgrade(vehicle, 'cab', {}, false, isDisposed, CAB_AXLES);
+export const upgradeCab = (vehicle, { isDisposed } = {}) => upgrade(vehicle, 'cab', {}, false, isDisposed);
 export async function upgradeFleet(vehicle, model, { body = '#2f6fcf', isDisposed } = {}) {
   await upgrade(vehicle, model.id, { body }, false, isDisposed, model.axles);
   if (isDisposed?.() || !vehicle.children.some((c) => c.name === vehicle.name + '-glb')) return;
