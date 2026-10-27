@@ -34,7 +34,7 @@ export function adoptVisual(vehicle, visual, keep) {
 // One double-decker geometry; London/Glasgow differ only by palette. GLB material names are semantic and are replaced by the
 // project's shared materials (so night glow, cabin light and destination displays keep working through sky.update).
 export const BUS_VARIANTS = {
-  london: { body: '#c9252b', accent: '#8f171d', dest: ['london', '19', 'Finsbury Park', '#ffb347'] }, // no stripe: BusStripe falls back to the body red
+  london: { body: '#b52a2d', accent: '#7e1c20', dest: ['london', '19', 'Finsbury Park', '#ffb347'] }, // no stripe: BusStripe falls back to the body red
   glasgow: { body: '#f2f4f7', accent: '#1f3fa8', stripe: '#e0337a', dest: ['glasgow', '6', 'Renfrew Street', '#ff7a1a'] }, // stylised McGill's-style repaint, no logos
 };
 // GLB material names are semantic; each maps to a shared project material (night glow keeps working through sky.update).
@@ -100,7 +100,7 @@ const FLEET_FINISH = {
     return m;
   }),
 };
-const CASTS = new Set(['BusBody', 'CarBody', 'CarRoof', 'CabBody']); // only painted shells cast: trim/glass/wheels add shadow-pass calls for no visible gain
+const CASTS = new Set(['BusBody', 'BusAccent', 'BusStripe', 'CarBody', 'CarRoof', 'CabBody']); // only painted shells cast: trim/glass/wheels add shadow-pass calls for no visible gain
 const WHEELS = ['FL', 'FR', 'RL', 'RR'];
 // Dark static disc behind each wheel, appended to the body's rubber (no extra call): hides the authored tyre/rim gap that would flicker once spinning.
 function withDiscs(g, keep, xs, r, half, seg = 20) {

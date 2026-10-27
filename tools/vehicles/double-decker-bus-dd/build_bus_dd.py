@@ -79,6 +79,8 @@ def glass_panes():
         elif mx[0] - mn[0] < 0.3 and abs(mn[0]) > 5: out[('end', round(mn[1], 2), round(mx[1], 2), round(mn[2], 2), round(mx[2], 2), 1 if mn[0] > 0 else -1)] = ('end', mn[1], mx[1], mn[2], mx[2], 1 if mn[0] > 0 else -1)
     bm.free(); return list(out.values())
 PANES = glass_panes(); print('glass panes', len(PANES))
+for q in PANES:
+    if os.environ.get('DBG') and q[0] == 'side' and q[3] < 0.6: print('DOORPANE', [round(v, 2) if isinstance(v, float) else v for v in q])
 def in_frame(p):
     x, y, z = p.center; m = FRAME_W
     for kind, a0, a1, z0, z1, sg in PANES:
@@ -93,11 +95,11 @@ line_hi = lambda x: SW_HI + max(0.0, x - SW_KINK_HI) * SW_SLOPE_HI
 def diag(x, z0, slope):   # plane through (x, z0) with z - z0 = slope (x' - x)
     return Vector((x, 0, z0)), Vector((-slope, 0, 1)).normalized()
 # the swoosh ends in a thin diagonal kick at the rear: two parallel strokes rising towards the tail (pink then blue)
-KICK_Z = (SW_LO, 1.95); KICK_SLOPE = 0.55   # x shifts back 0.55 m per metre of height
-kick_x = lambda z, x0_: x0_ - KICK_SLOPE * (z - SW_LO)
-KICK = ((-3.80, -4.05, 'BusStripe'), (-4.12, -4.30, 'BusAccent'))   # (x_front, x_back, bucket) at z = SW_LO
+KICK_Z = (SKIRT_Z + 0.04, 1.20); KICK_SLOPE = 0.55   # x shifts back 0.55 m per metre of height; ends below the rear window sill (1.30 - frame), never on glass
+kick_x = lambda z, x0_: x0_ - KICK_SLOPE * (z - KICK_Z[0])
+KICK = ((-3.80, -4.05, 'BusStripe'), (-4.12, -4.30, 'BusStripe'))   # (x_front, x_back, bucket) at z = KICK_Z[0]; both pink on Glasgow, body colour on London
 CUTS = [(Vector((0, 0, z)), Vector((0, 0, 1))) for z in (SKIRT_Z, SW_LO, SW_HI, *FRONT_LINE, KICK_Z[1])] + [diag(SW_KINK_LO, SW_LO, SW_SLOPE_LO), diag(SW_KINK_HI, SW_HI, SW_SLOPE_HI), (Vector((SW_X1, 0, 0)), Vector((1, 0, 0)))]
-CUTS += [(Vector((xs, 0, SW_LO)), Vector((1, 0, KICK_SLOPE)).normalized()) for xs in sorted({k[0] for k in KICK} | {k[1] for k in KICK})]
+CUTS += [(Vector((xs, 0, KICK_Z[0])), Vector((1, 0, KICK_SLOPE)).normalized()) for xs in sorted({k[0] for k in KICK} | {k[1] for k in KICK})]
 for kind, a0, a1, z0, z1, sg in PANES:
     ax = Vector((1, 0, 0)) if kind == 'side' else Vector((0, 1, 0))
     for a_ in (a0 - FRAME_W, a1 + FRAME_W): CUTS.append((ax * a_, ax))
@@ -204,6 +206,17 @@ for sg in (1, -1):         # side blinds in the red band between the decks, text
         right = UPV.cross(n)
         decal('BusDisplay', h, n, right, UPV, 0.60, 0.21, 0.012, uv=True)
         decal('BusTrim', h, n, right, UPV, 0.66, 0.26, 0.006)
+# kerb-side (left, +Y; UK traffic) doors: the source glass already forms two leaves per door, recessed behind the skin; add a trim surround, header and
+# centre seam so they read as folding doors. Paint cuts stop at the frames (in_frame has priority over skirt / swoosh).
+DOORS = ((3.79, 5.05), (-1.84, -0.59))   # x ranges of the front entrance and the centre exit door (from the glass panes)
+def strip(xc, zc, w, h):
+    hit, n = on_shell(xc, 3, zc, Vector((0, 1, 0)), rad=0.03)
+    if hit is not None: decal('BusTrim', hit, n, UPV.cross(n), UPV, w / 2, h / 2, 0.012)
+for xa, xb in DOORS:
+    z0, z1, t = 0.27, 2.30, 0.07
+    strip((xa + xb) / 2, z1 - t / 2, xb - xa + 2 * t, t); strip((xa + xb) / 2, z0 + t / 2, xb - xa + 2 * t, t)   # header, sill
+    strip(xa - t / 2, (z0 + z1) / 2, t, z1 - z0); strip(xb + t / 2, (z0 + z1) / 2, t, z1 - z0)                   # jambs
+    strip((xa + xb) / 2, (z0 + z1) / 2, 0.05, z1 - z0)                                                          # centre seam between the leaves
 # lamps: discs flush on the skin (positions measured from the source's lamp texels)
 for sg in (1, -1):
     h, n = on_shell(5.9, sg * 0.83, 0.86, Vector((1, 0, 0)))

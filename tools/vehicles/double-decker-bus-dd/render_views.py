@@ -4,7 +4,7 @@ from mathutils import Vector
 src, out, pre = sys.argv[sys.argv.index('--') + 1:][:3]; variant = (sys.argv[sys.argv.index('--') + 1:] + ['london'])[3]; os.makedirs(out, exist_ok=True)
 bpy.ops.wm.read_factory_settings(use_empty=True); bpy.ops.import_scene.gltf(filepath=src)
 s = bpy.context.scene
-PAL = dict(london=dict(body='#c9252b', accent='#8f171d', stripe=None), glasgow=dict(body='#f2f4f7', accent='#1f3fa8', stripe='#e0337a'), glasgow_old=dict(body='#8a36ae', accent='#c9cdd2', stripe=None))[variant]
+PAL = dict(london=dict(body='#b52a2d', accent='#7e1c20', stripe=None), glasgow=dict(body='#f2f4f7', accent='#1f3fa8', stripe='#e0337a'), london_old=dict(body='#c9252b', accent='#8f171d', stripe=None), glasgow_old=dict(body='#8a36ae', accent='#c9cdd2', stripe=None))[variant]
 def lin(h): c = [int(h[i:i + 2], 16) / 255 for i in (1, 3, 5)]; return (*[((x + .055) / 1.055) ** 2.4 if x > .04045 else x / 12.92 for x in c], 1)
 # approximate runtime finishes: paint = glossy standard, trim/tyre dark, glass bluish translucent, chrome, lamps and blind emissive
 FIN = dict(BusBody=(PAL['body'], .28, .1, 1), BusAccent=(PAL['accent'], .28, .1, 1), BusStripe=(PAL['stripe'] or PAL['body'], .28, .1, 1), BusTrim=('#1b1d21', .7, 0, 1), BusGlass=('#3d5262', .2, .3, .55),
@@ -28,8 +28,8 @@ for nm, rot, en in (('key', (math.radians(50), 0, math.radians(-35)), 3.2), ('fi
 cam = bpy.data.objects.new('cam', bpy.data.cameras.new('cam')); s.collection.objects.link(cam); s.camera = cam; cam.data.lens = 60
 s.render.resolution_x, s.render.resolution_y = 1000, 640
 T = Vector((0, 0, 2.0))
-VIEWS = (('front34', -38, 14, 21), ('side', -90, 4, 23), ('rear34', -142, 14, 21)) if not os.environ.get('CLOSE') else (('cfront', -25, 8, 9), ('crear', -155, 8, 9), ('cfrontR', 30, 8, 9), ('cdoor', -60, 5, 9))
-TGT = {'cfront': (5, 0, 1.6), 'crear': (-5, 0, 1.8), 'cfrontR': (5, 0, 1.6), 'cdoor': (4, 0, 1.4)}
+VIEWS = (('front34', -38, 14, 21), ('side', -90, 4, 23), ('rear34', -142, 14, 21)) if not os.environ.get('CLOSE') else (('cfront', -25, 8, 9), ('crear', -155, 8, 9), ('cfrontR', 30, 8, 9), ('cdoor', -60, 5, 9), ('kerb', 90, 4, 23), ('kerbfront', 60, 6, 11), ('kerbrear', 125, 6, 11))
+TGT = {'cfront': (5, 0, 1.6), 'crear': (-5, 0, 1.8), 'cfrontR': (5, 0, 1.6), 'cdoor': (4, 0, 1.4), 'kerbfront': (3, 0, 1.5), 'kerbrear': (-3, 0, 1.8)}
 for n, az, el, r in VIEWS:
     T = Vector(TGT.get(n, (0, 0, 2.0)))
     A, E = math.radians(az), math.radians(el)
