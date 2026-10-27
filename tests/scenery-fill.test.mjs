@@ -24,15 +24,14 @@ test('rear infill adds varied low buildings behind every landmark and clears the
   }
 });
 
-test('start-side neighborhood and corner shop fill marked gaps away from landmark views', () => {
+test('start-side neighborhood fills marked gaps while the park-side shop stays removed', () => {
   const boxes = [];
   buildBlocks((x, y, z, w, h, d) => boxes.push({ x, y, z, w, h, d }), stops, pts, curve, []);
   const side = boxes.filter(b => b.y === 0 && b.w >= 5 && b.h >= 3 && b.x <= pts[0].x - 90 && b.z >= -99);
   assert.ok(side.length >= 12, 'lateral neighborhood fills the green gap');
   const corner = boxes.find(b => b.x === pts[0].x - 13 && b.z === -3 && b.y === 0 && b.h >= 3);
-  assert.ok(corner, 'corner shop beside the starting park');
-  assert.ok(corner.w <= 6 && corner.d <= 6 && corner.h <= 6, 'shop fits the small paved gap');
-  for (const b of [...side, corner]) assert.ok(b.x + b.w / 2 < pts[1].x - 30, 'entire footprint stays west of every landmark view');
+  assert.equal(corner, undefined, 'owner-marked shop beside the fountain is removed');
+  for (const b of side) assert.ok(b.x + b.w / 2 < pts[1].x - 30, 'entire footprint stays west of every landmark view');
   const bodies = boxes.filter(b => b.y === 0 && b.w >= 5 && b.h >= 3);
-  for (const b of [...side, corner]) assert.ok(bodies.every(o => o === b || Math.abs(o.x-b.x) >= (o.w+b.w)/2 || Math.abs(o.z-b.z) >= (o.d+b.d)/2), 'new footprint does not overlap another building');
+  for (const b of side) assert.ok(bodies.every(o => o === b || Math.abs(o.x-b.x) >= (o.w+b.w)/2 || Math.abs(o.z-b.z) >= (o.d+b.d)/2), 'new footprint does not overlap another building');
 });

@@ -82,7 +82,7 @@ test('generated city buildings stay out of the Glasgow landmark footprint', () =
   assert.equal(boxes.filter((b) => b.w >= 5 && b.h >= 3 && overlap(b)).length, 0);
 });
 
-test('the civic skyline stays below landmark silhouettes on the London stretch and around Glasgow, and the countryside is empty of blocks', () => {
+test('the civic skyline stays below landmark silhouettes on the London stretch and around Glasgow, and only owner-marked infill occupies the former country gaps', () => {
   const boxes = [], west = pts[stopIndex(stops, 'xdesign')].x - 20, [out, back] = regions(stops, pts), east = back.scot[1];
   buildBlocks((x, y, z, w, h, d) => boxes.push({ x, y, z, w, h, d }), stops, pts, curve, []);
   const backdrop = boxes.filter((b) => (b.x >= west && b.x <= out.sub[1] || b.x >= out.scot[0] && b.x <= east) && b.z <= -65);
@@ -92,7 +92,11 @@ test('the civic skyline stays below landmark silhouettes on the London stretch a
   assert.ok(backdrop.every((b) => b.y + b.h <= 29), 'back-lot skyline row stays under 29 m');
   const ben = pts[stopIndex(stops, 'xdesign')].x;
   assert.ok(backdrop.filter((b) => Math.abs(b.x - ben) < 12).every((b) => b.y + b.h <= 24), 'clear sky window around the Big Ben tower top');
-  assert.equal(boxes.filter((b) => [out, back].some((rg) => b.x > rg.ctry[0] && b.x < rg.ctry[1])).length, 0, 'no city blocks in the countryside');
+  const approved = [];
+  buildBlocks(() => {}, stops, pts, curve, [], undefined, p => { if (p.replaceGarden) approved.push(p); });
+  const country = boxes.filter(b => [out, back].some(rg => b.x > rg.ctry[0] && b.x < rg.ctry[1]));
+  assert.ok(country.length > 0, 'marked gaps receive existing building families');
+  assert.ok(country.every(b => approved.some(p => Math.abs(b.x-p.x) <= p.width/2+1 && Math.abs(b.z-p.z) <= p.depth/2+1)), 'country infill stays within the owner-marked lots including balcony trim');
   assert.ok(boxes.some((b) => (b.x < west || b.x > east) && b.h > 30), 'other skyline districts retain their towers');
 });
 

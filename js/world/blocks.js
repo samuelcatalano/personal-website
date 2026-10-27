@@ -147,7 +147,7 @@ export function buildBlocks(add, stops, pts, curve, occ, onBuildingPlot, onArchi
     draw(add, sx + dx, z, [10, 10, 2 + (side() * 3 | 0), 3, [CR, SS, OC, OW][side() * 4 | 0], W, 0, 1], side, side, false, false, onArchitecturePlot, `west-${dx}-${z}`);
   }
   occ.push([sx - 42, sx + 42, -108, -36]); // the west district and its street grid
-  draw(add, pts[0].x - 13, -3, [5.5, 6, 2, 3, OC, W, 2, 1], side, side, false, false, onArchitecturePlot, 'corner-shop');
+
   // Gap fill: last, own rng, so nothing above moves. Small footprints go into holes the main rows could not fit, plus a third row behind them.
   // Camera side (side > 0) stays two floors so landmark views keep their foreground; parks and pedestrian loops/wanders are kept clear.
   const gap = rng(6151), free = [...PARKS.map((o) => [o.x0, o.x1, o.z0, o.z1]), ...walkPaths(stops, pts).filter((o) => o.rect).map(({ rect: o }) => [o.x0, o.x1, o.z0, o.z1])];
@@ -168,5 +168,37 @@ export function buildBlocks(add, stops, pts, curve, occ, onBuildingPlot, onArchi
     if (inRegion(rgs, 'ctry', cx, 30 + w / 2) || [...hard, ...cut, ...occ, ...free, ...placed].some((o) => hit(R, o)) || path.some((p) => hit(R, [p.x, p.x, p.z, p.z], 25))) continue;
     draw(add, cx, cz, [w, d, n, 3, spWalls[sp() * spWalls.length | 0], W, 0, 1], sp, sp, false, false, onArchitecturePlot, `sp-${Math.round(cx)}-${Math.round(cz)}`);
     occ.push(R);
+  }
+
+  // Owner-marked vacant lots: reuse existing house/midrise families without moving neighboring streets.
+  const markedLots = [
+    [-370,-30,9,8,9.6,"midrise"],
+    [-357,-30,8,8,9.7,"terrace"],
+    [-344,-30,9,8,12.8,"midrise"],
+    [225,-75,8,8,9.6,"midrise"],
+    [225,-88,8,8,12.8,"midrise"],
+    [282,-70,7,8,9.7,"terrace"],
+    [282,-86,9,9,12.8,"midrise"],
+    [322,-70,6,8,9.7,"terrace"],
+    [317,-101,7,8,9.7,"terrace"],
+    [248.5,-25,6,7,6.8,"terrace"],
+    [268,-24,7,7,6.8,"terrace"],
+    [278,-24,8,7,9.7,"terrace"],
+    [286,-24,5.5,7,6.8,"terrace"],
+    [269,-4,8,7,6.8,"terrace"],
+    [286,-4,5,7,6.8,"terrace"],
+    [321,-4,6.5,7,6.8,"terrace"],
+    [491,-78,12,9,12.8,"midrise"],
+    [491,-92,10,9,12.8,"midrise"],
+    [519,-101,10,9,12.8,"midrise"],
+    [522,-70,6,8,9.7,"terrace"],
+  ];
+  for (const [i, [x, z, width, depth, height, kind]] of markedLots.entries()) {
+    const plot = { id: `marked-infill-${i}`, kind, x, z, width, depth, height, replaceGarden: true };
+    if (onArchitecturePlot) onArchitecturePlot(plot);
+    else {
+      const r = rng(10262026 + i);
+      draw(add, x, z, [width, depth, Math.floor(height / 3.1), 3.1, [CR, SS, B, LS][i % 4], W, kind === 'terrace' ? 3 : 0, 1], r, r, height < 7, false);
+    }
   }
 }

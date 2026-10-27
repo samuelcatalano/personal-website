@@ -8,7 +8,7 @@ const descriptors=[['frontage-stop-hero--255--1--9','terrace',9,7,9.7],['frontag
   ['frontage-stop-hero--255-1--9','terrace',9,7,6.9],['frontage-stop-hero--255-1-0','terrace',9,7,6.9],
   ['infill--52--34','midrise',10,10,9],
   ['infill--52--14','midrise',10,10,9],['infill--52-14','midrise',10,10,9]];
-export const SHOP_LOT_IDS=Object.freeze(descriptors.slice(0,3).map(p=>p[0]));
+export const SHOP_LOT_IDS=Object.freeze(descriptors.slice(0,2).map(p=>p[0]));
 export const SHOP_INTEGRATION_IDS=Object.freeze(descriptors.slice(3,9).map(p=>p[0]));
 export const HERO_CLEANUP_IDS=Object.freeze(descriptors.slice(9,10).map(p=>p[0]));
 export const HERO_REGION_IDS=Object.freeze(descriptors.slice(10,12).map(p=>p[0]));

@@ -69,6 +69,12 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const { eye, details } = buildLandmarks(add, stops, pts, (x, z, shape) => treePlacements.push({ x, z, ...shape }));
   const plane = buildVehicle('a330'), planeAt = ukStart(stops) / (n - 1), { nav, strobe, shadow } = plane.userData; // flies past the bus at the first UK stop
   plane.visible = shadow.visible = nav.visible = strobe.visible = false;
+  // Only the explicitly marked garden lots give way to new buildings.
+  const infill = architecturePlots.filter(p => p.replaceGarden);
+  for (let i = treePlacements.length - 1; i >= 0; i--) {
+    const t = treePlacements[i], radius = t.crown / 2;
+    if (infill.some(p => Math.abs(t.x - p.x) < p.width / 2 + radius && Math.abs(t.z - p.z) < p.depth / 2 + radius)) treePlacements.splice(i, 1);
+  }
   let trees;
   try { trees = await createTrees(treePlacements); scene.add(trees); }
   catch { treePlacements.forEach(({ x, z, ...shape }) => tree(add, x, z, shape)); } // retain trees if the texture cannot load
