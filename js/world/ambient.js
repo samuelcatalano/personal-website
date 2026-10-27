@@ -17,8 +17,9 @@ function boat(hull = '#6b4f3a', cabin = '#f4f4f4', sx = 1) {
 const HIDE = 110; // m from the player beyond which an ambient vehicle may appear/vanish at a region border
 const BRIDGE_FAR = 80; // m: Estaiada cars only appear/vanish beyond this from the player
 const SPEED = { london: 10, glasgow: 10, cab: 13, mini: 13, car: 13.5 }; // m/s
+const SP_RANGE = 0.062, MIN_SPAWN = 110; // Sao Paulo cars loop inside [route start, swap + SP_RANGE] (curve t) instead of the whole route: respawn at the east end only when >= MIN_SPAWN m from the player
 const ACC = 3, DEC = 6, GAP = 3.5, ZEBRA_AT = 9, SLOW = 24; // m/s^2 up, m/s^2 down, bumper gap (m), zebra offset past a stop (roadmarks.js), slow-down radius (m)
-const CARS = [['#e8c425', 'mini'], ['#2f6fcf', 'sedan'], ['#c8102e', 'suv'], ['#3f9d4a', 'mini'], ['#16181c', 'sedan'], ['#1f6b3a', 'van'], ['#f2b705', 'sedan'], ['#b3161f', 'hatch'], ['#2e7d32', 'suv'], ['#e8c425', 'sedan']]; // saturated paints only: no white/grey
+const CARS = [['#e8c425', 'mini'], ['#2f6fcf', 'sedan'], ['#c8102e', 'suv'], ['#3f9d4a', 'mini'], ['#16181c', 'sedan'], ['#1f6b3a', 'van'], ['#f2b705', 'sedan'], ['#b3161f', 'hatch'], ['#2e7d32', 'suv'], ['#e8c425', 'sedan'], ['#e07a1f', 'hatch'], ['#0e8a8a', 'suv'], ['#8a1c4a', 'sedan'], ['#2a4fa8', 'hatch'], ['#d94f2b', 'suv'], ['#6d8f1f', 'sedan']]; // saturated paints only: no white/grey
 export function createAmbient(scene, { curve, pts, stops, reducedMotion = false }) {
   const knots = fineMarks(stopMarks(pts), curve), len = curve.getLength();
   let disposed = false, miniIndex = 0;
@@ -38,7 +39,12 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
     D('glasgow', -0.12, { lane: 1.75, relative: true, scot: true }), D('glasgow', 0.4, { scot: true }),
     G(1, 0.3, { uk: true, scot: true }), G(7, 0.6, { uk: true, scot: true }),
     // Sao Paulo: generic cars only (the player there is the Mini)
-    G(1, 0.17, { uk: false }), G(2, 0.33, { uk: false }), G(5, 0.58, { uk: false }), G(9, 0.92, { uk: false }),
+    G(1, 0.17, { uk: false }), G(2, 0.33, { uk: false }), G(5, 0.06, { uk: false }), G(9, 0.27, { uk: false }),
+    // Extra density (appended: the first 20 keep their slots). Sao Paulo: ten more cars on the same short loop
+    ...[[10, 0.01], [11, 0.09], [12, 0.115], [13, 0.14], [14, 0.21], [15, 0.24], [0, 0.3], [3, 0.36], [6, 0.39], [4, 0.41]].map(([c, o]) => G(c, o, { uk: false })),
+    // London: 1 bus, 3 cabs, 2 Minis, 3 generic cars
+    D('london', 0.71), D('cab', 0.47), D('cab', 0.88), D('cab', 0.12), D('mini', 0.6), D('mini', 0.79),
+    G(11, 0.385, { uk: true, scot: false }), G(13, 0.675, { uk: true, scot: false }), G(15, 0.99, { uk: true, scot: false }),
   ].map((v, i) => ({ lane: -1.75, ...v, base: SPEED[v.type] * (v.type === 'car' ? 0.9 + 0.2 * ((i * 7) % 5) / 4 : 1), p: v.offset, v: 0, brake: 0, yaw: null, x: 0, z: 0, active: false }));
   traffic.forEach((v) => { v.v = v.base; v.len = v.mesh.userData.length; v.tail = null; addBeams(v.mesh, v.mesh.userData.front, v.mesh.userData.beamY); v.tail = v.mesh.children[v.mesh.children.length - 1]; scene.add(v.mesh); });
   // Ponte Estaiada, two cars each way: 'in' cars take the avenue's oncoming lane, turn onto the S-ramp and cross to the far-bank ground;
@@ -97,6 +103,8 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
   scene.add(blink);
   const invP = (t) => { let a = 0, b = 1; for (let i = 0; i < 30; i++) { const m = (a + b) / 2; if (routeT(m, pts.length, knots) < t) a = m; else b = m; } return (a + b) / 2; }; // route progress for a curve t
   bridge.forEach((b) => { if (b.phase === 'road') b.p = invP(b.t0); });
+  const rangeP = invP(swapAt(stops) + SP_RANGE); // route progress of the Sao Paulo loop's east end
+  traffic.forEach((v) => { if (v.uk === false) { v.range = [0, rangeP]; v.p *= rangeP / 0.43; } });
   const tOf = (v) => routeT(v.p, pts.length, knots);
   let lastRoute = null;
   const tmp = new THREE.Vector3(), here = new THREE.Vector3(), nrm = new THREE.Vector3(), swap = swapAt(stops), [scotIn, scotOut] = scotRange(stops), wrap = (p) => ((p % 1) + 1) % 1;
@@ -112,7 +120,13 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
           const target = v.base * (0.3 + 0.7 * Math.min(1, Math.max(0, (near - 3) / (SLOW - 3))) ** 2), prev = v.v;
           v.v += Math.max(-DEC * dt, Math.min(ACC * dt, target - v.v));
           v.brake += (Math.min(1, Math.max(0, (prev - v.v) / dt / 2)) - v.brake) * Math.min(1, dt * 8);
-          v.p = wrap(v.p - v.v * dt / len); // oncoming: against the route
+          const np = v.p - v.v * dt / len; // oncoming: against the route
+          const rg = v.range ?? [0, 1]; // ambient cars loop over their range (SP: its short loop; the rest: the whole route); bridge cars (kind) wrap
+          if (!v.kind && !v.hold && np < rg[0]) v.hold = true; // left the west end: vanish, respawn at the east end
+          if (v.hold) { // ponytail: waits (invisible) until the east end is >= MIN_SPAWN m from the player and 20 m clear of other cars
+            const q = curve.getPointAt(routeT(rg[1], pts.length, knots));
+            if (q.distanceTo(here) > MIN_SPAWN && !auto.some((o) => o !== v && o.active && Math.hypot(o.x - q.x, o.z - q.z) < 20)) { v.hold = false; v.p = rg[1]; v.v = v.base; v.active = true; v.x = q.x; v.z = q.z; } // active now: the next held car sees it
+          } else v.p = v.kind ? wrap(np) : np;
         }
         // still in (or already back in) the lane while turning: fixed leaders for the spacing, so nobody drives through them
         const turning = bridge.filter((b) => b.phase === 'path' && (b.kind === 'in' ? b.s < sIn : b.s > sOut))
@@ -130,9 +144,9 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
       const jump = lastRoute === null || Math.abs(route - lastRoute) > 0.02; lastRoute = route; // first frame or a nav jump: settle every vehicle at once
       for (const v of traffic) {
         const t = v.relative ? route + v.offset : routeT(v.p, pts.length, knots);
-        const inside = t >= 0 && t <= 1, want = inside && (v.uk === undefined || (t >= swap) === v.uk) && (v.scot === undefined || (t >= scotIn && t < scotOut) === v.scot);
+        const inside = t >= 0 && t <= 1, want = inside && !v.hold && (v.range || v.uk === undefined || (t >= swap) === v.uk) && (v.scot === undefined || (t >= scotIn && t < scotOut) === v.scot);
         // region borders sit in view (SP and London share a frame): a vehicle only switches city once it is far from the player, so it drives off instead of popping
-        if (jump || !inside || v.relative || want === v.active || curve.getPointAt(t).distanceTo(here) > HIDE) v.active = want; // ponytail: player distance, not a camera frustum test
+        if (jump || !inside || v.relative || v.hold || want === v.active || curve.getPointAt(t).distanceTo(here) > HIDE) v.active = want; // ponytail: player distance, not a camera frustum test
         v.mesh.visible = v.active;
         if (!v.active) continue;
         const p = curve.getPointAt(t), tan = curve.getTangentAt(t);
