@@ -79,6 +79,18 @@ export function buildBackdrop(add, stops, pts) {
       x += w + gap;
     }
   }
+  // West cap: own rng, appended so no existing row shifts. Rows run 160 m past the old west end, so the hero's upper-left shows city, not bare ground.
+  // ponytail: plain boxes with the shared facade pass, no massing families; add them if the west end is ever the focal frame.
+  const wc = rng(90821);
+  for (const [row, z0] of rows.slice(0, 4).entries()) {
+    for (let x = x0 - 160; x < x0 - 14;) {
+      const w = 9 + wc() * 4, gap = 2 + wc() * 2, xc = x + w / 2, z = z0 + (wc() - 0.5) * 10, floors = 2 + (wc() * (row < 2 ? 3 : 6) | 0), h = floors * 2.8;
+      const wall = (row < 2 ? colors : distantColors)[wc() * (row < 2 ? colors : distantColors).length | 0];
+      body(xc, 0, z, w, h, 11, wall, (Math.round(xc * 91) ^ row * 761) | 0, row < 2, row < 2 ? .78 : .42);
+      add(xc, h, z, w + .3, .35, 11.4, row === 0 ? P.roof : wall);
+      x += w + gap;
+    }
+  }
   // Mid band between the back-lot infill (z -120) and the far rows: own rng, so every existing row keeps its place.
   // Taller than the rows beside it, with stepped crowns, rooftop plant and the odd mast to break the box skyline.
   const m = rng(90818);

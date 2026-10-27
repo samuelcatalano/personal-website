@@ -8,6 +8,9 @@ import { lampPost } from './street-lamp.js'; // ponytail: import cycle is fine, 
 export const PARKS = [ // stops after the Eye sit further east (OUT_GAP + LONG_GAP): the last four parks moved with them
   { x0: -235, x1: -165, z0: -27, z1: -15, fountain: 1, trees: 7 }, // Sé side
   { x0: -293, x1: -273, z0: -24, z1: 24, fountain: 1, trees: 7 }, // behind the start
+  { x0: -266, x1: -246, z0: 8, z1: 18, trees: 5, late: 1 }, // hero foreground: breaks up the bare slab south of the start garden
+  { x0: -262, x1: -238, z0: 28, z1: 38, trees: 5, late: 1 }, // hero foreground, south (mobile frame)
+  { x0: -314, x1: -296, z0: 10, z1: 24, trees: 5, late: 1 }, // hero foreground, left of the start garden
   { x0: -197, x1: -165, z0: -57, z1: -47, trees: 5 },
   { x0: -88, x1: -62, z0: 13, z1: 23, trees: 4 }, // south of Paulista
   { x0: -88, x1: -62, z0: -23, z1: -15, trees: 3 }, // north, in front of the Copan: low trees only
@@ -37,7 +40,8 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
   const spots = furnitureSpots(stops, curve).map((o) => o.xz), r = rng(9157), made = [];
   const loops = walkPaths(stops, pts).filter((p) => p.type === 'loop');
   const plazas = PLAZAS.map((q) => ({ ...q, ...loops.find((l) => l.name === q.name).rect, ring: 1 }));
-  for (const orig of [...PARKS, ...plazas]) {
+  // late parks run after every original one, so they never shift the shared rng that places the older parks' and plazas' trees.
+  for (const orig of [...PARKS.filter((q) => !q.late), ...plazas, ...PARKS.filter((q) => q.late)]) {
     const hero = !!onPublicRealm && orig === PARKS[1];
     const add = hero ? () => {} : draw; // Consume the same RNG and tree callbacks; replace only this park's boxes.
     if (orig.name === 'se') {

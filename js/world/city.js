@@ -68,7 +68,9 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
   const lamps = [], occ = [], obst = [], r = rng(2026), hq = rng(8821), hq2 = rng(4417), noop = () => {}, mx = pts[stopIndex(stops, LANDMARKS.masp)].x, gl = pts[stopIndex(stops, LANDMARKS.glasgow)], ukId = stops[ukStart(stops)].id, LM = new Set([...Object.values(LANDMARKS), ukId]); // ukId: far side of the first UK stop keeps skipping frontage draws (blocks.js riverfront infill owns it)
   const span = pts.length * STOP_SPACING + GAP_TOTAL + 120, rgs = regions(stops, pts);
   const seX = pts[stopIndex(stops, LANDMARKS.se)].x, ukX = pts[ukStart(stops)].x;
-  add(GAP_TOTAL / 2, -1, 0, span, 1, 200, P.pave);
+  // Skirt: ground runs 600 m past both route ends and 300 m south, so no sky shows under the skyline at the hero's left edge.
+  // ponytail: flat pave to the fog; real terrain/horizon dressing if the camera ever tilts to the world's rim.
+  add(GAP_TOTAL / 2, -1, 100, span + 1200, 1, 400, P.pave);
   // Samples along the curve every ~`step` m (curve param is per stop, so count follows each segment's length)
   const ticks = (step) => [...pts.slice(1).flatMap((q, s) => {
     const m = Math.ceil(Math.hypot(q.x - pts[s].x, q.z - pts[s].z) / step);
