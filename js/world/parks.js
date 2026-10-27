@@ -6,7 +6,7 @@ import { lampPost } from './street-lamp.js'; // ponytail: import cycle is fine, 
 // Parks on the big bare paving. Rects were found with an occupancy grid of city + landmarks (tests/parks.test.mjs re-checks the plaza loops);
 // x/z are world metres. Axis u = longer side. uk: black railings + K6-free London look; pond/fountain: centre piece.
 export const PARKS = [ // stops after the Eye sit further east (OUT_GAP + LONG_GAP): the last four parks moved with them
-  { x0: -235, x1: -165, z0: -27, z1: -15, fountain: 1, trees: 7 }, // Sé side
+  { x0: -235, x1: -165, z0: -27, z1: -15, fountain: 1, trees: 7, cafe: 1 }, // Sé side
   { x0: -293, x1: -273, z0: -24, z1: 24, fountain: 1, trees: 7 }, // behind the start
   { x0: -266, x1: -246, z0: 8, z1: 18, trees: 5, late: 1 }, // hero foreground: breaks up the bare slab south of the start garden
   { x0: -262, x1: -238, z0: 28, z1: 38, trees: 5, late: 1 }, // hero foreground, south (mobile frame)
@@ -20,7 +20,7 @@ export const PARKS = [ // stops after the Eye sit further east (OUT_GAP + LONG_G
   { x0: 681, x1: 717, z0: -29, z1: -21, uk: 1, rail: 1, trees: 4 },
   { x0: 681, x1: 761, z0: -69, z1: -61, uk: 1, rail: 1, trees: 6, benchmarkTrees: 1 },
   { x0: 731, x1: 807, z0: -43, z1: -35, uk: 1, rail: 1, trees: 6 }, // in front of Wembley: trees stay <= 4.4 m
-  { x0: 817, x1: 841, z0: -12, z1: 24, uk: 1, rail: 1, pond: 1, trees: 7 },
+  { x0: 817, x1: 841, z0: -12, z1: 24, uk: 1, rail: 1, pond: 1, trees: 7, cafe: 1 },
 ];
 // Pedestrian loops become plazas: walking ring, everything else >= 2.4 m inside the rect.
 export const WALK_INSET = [0.6, 1.6]; // ponytail: mirrors crowd.js between(r, 0.6, 1.6) / people.js INSET; keep in sync
@@ -28,14 +28,14 @@ export const RING = [0.3, 1.9], KEEP = 2.4; // ring covers WALK_INSET with 0.3 t
 export const PLAZAS = [
   { name: 'masp', trees: 0, beds: 4, quiet: 1 }, // MASP view corridor: nothing above 1 m except lamps
   { name: 'paulista', trees: 0, beds: 1, quiet: 1 },
-  { name: 'thames', trees: 4, fountain: 1, nopath: 1 },
-  { name: 'tower', trees: 3, beds: 1, nopath: 1 },
+  { name: 'thames', trees: 4, fountain: 1, nopath: 1, cafe: 1 },
+  { name: 'tower', trees: 3, beds: 1, nopath: 1, cafe: 1 },
   { name: 'wembley', trees: 2, beds: 1 },
   { name: 'glasgow-uni', trees: 0, quiet: 1, nopath: 1, paved: P.pave }, // far-bank promenade: paved, not a lawn; keeps the gravel ring
   { name: 'se', paved: P.stone },
 ];
 const { patch: LAWN, gravel: GRAVEL, hedge: HEDGE, leaf: LEAF, stone: STONE, oak: OAK, iron: IRON, glass: WATER, dirt: SOIL } = P;
-const BLOOM = [P.red, P.tulip, P.violet, P.red];
+const BLOOM = [P.red, P.tulip, P.violet, P.red], FRESH = P.gravel;
 export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) {
   const spots = furnitureSpots(stops, curve).map((o) => o.xz), r = rng(9157), made = [];
   const loops = walkPaths(stops, pts).filter((p) => p.type === 'loop');
@@ -59,6 +59,7 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
     const B = (u, v, y, lu, h, lv, c) => (wide ? add(cx + u, y, cz + v, lu, h, lv, c) : add(cx + v, y, cz + u, lv, h, lu, c));
     const world = (u, v) => (wide ? [cx + u, cz + v] : [cx + v, cz + u]);
     const clearOfSigns = (u, v) => { const [x, z] = world(u, v); return spots.every(([a, b]) => Math.hypot(a - x, b - z) > CLEAR); };
+    const fur = [], benches = []; // plaza dressing footprints [u0,u1,v0,v1]: the extras below only go where nothing stands
     const mainPath = !park.nopath && S >= 6, cross = mainPath && S >= 10 && L >= 16, plaza = park.fountain || park.pond, taken = [];
     const e = !ring && !park.paved ? 0.04 : 0; // bordered lawns sit
     B(0, 0, 0.02, L - e, 0.05, S - e, park.paved || LAWN); // 0.02 inside their border strips, so buildings that share the park edge do not share its planes
@@ -83,12 +84,12 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
       B(u, v, 0.04, w - 1, rim - 0.12, d - 1, WATER);
     };
     if (park.fountain) {
-      B(0, 0, 0.05, 6.4, 0.06, 6.4, GRAVEL); taken.push([0, 0, 5]);
+      B(0, 0, 0.05, 6.4, 0.06, 6.4, GRAVEL); taken.push([0, 0, 5]); fur.push([-3.4, 3.4, -3.4, 3.4]);
       basin(0, 0, 4.4, 4.4, 0.55);
       B(0, 0, 0.1, 0.6, 1.3, 0.6, STONE); B(0, 0, 0.9, 1.6, 0.14, 1.6, STONE); B(0, 0, 1.4, 0.18, 0.5, 0.18, WATER);
     }
     if (park.pond) { // off the crossing, in the first free quadrant
-      const u = L * 0.22, v = S * -0.22; basin(u, v, 9, 6, 0.3); taken.push([u, v, 6]);
+      const u = L * 0.22, v = S * -0.22; basin(u, v, 9, 6, 0.3); taken.push([u, v, 6]); fur.push([u - 4.8, u + 4.8, v - 3.3, v + 3.3]);
     }
     const spot = (clear, tries = 30, half = 0) => { // random lawn spot off the paths, off other features and (for tall things) off the signs
       const e = ring ? 2 * (KEEP - RING[1] + half) : 3; // ring parks: the whole object stays >= KEEP from the loop rect
@@ -120,18 +121,19 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
       const [u, v] = at;
       if (run) B(u, v, 0.05, 3 + r() * 2, 0.8, 0.7, HEDGE); else B(u, v, 0.05, 1 + r() * 0.5, 0.7 + r() * 0.3, 1 + r() * 0.4, i % 2 ? LEAF : HEDGE);
     }
+    const bench = (u, v, f) => { for (const s of [-1, 0, 1]) { B(u, v + s * 0.15, 0.45, 1.6, 0.075, 0.12, OAK); B(u, v + f * 0.2, 0.58 + (s + 1) * 0.12, 1.6, 0.085, 0.08, OAK); }
+      for (const d of [-0.65, 0.65]) B(u + d, v, 0.09, 0.12, 0.36, 0.38, IRON); fur.push([u - 0.9, u + 0.9, v - 0.4, v + 0.4]); benches.push([u, v]); };
     const nb = Math.max(ring ? 2 : 1, Math.round(L / 22)); // benches beside the main path, backs to the lawn
     for (let i = 0; i < nb; i++) for (const f of [-1, 1]) {
       if (S < (ring ? 4 : 7) && f > 0) continue;
       const u = (i + 0.5) / nb * (L - 8) - (L - 8) / 2 + (f > 0 ? 3 : 0), v = f * (ring ? Math.min(1.9, S / 2 - 0.75) : 1.9);
       if (cross && Math.abs(u) < 3.5 || (plaza && Math.abs(u) < 5)) continue;
-      for(const s of [-1,0,1]){B(u,v+s*.15,.45,1.6,.075,.12,OAK);B(u,v+f*.2,.58+(s+1)*.12,1.6,.085,.08,OAK);}
-      for (const d of [-0.65, 0.65]) B(u + d, v, 0.09, 0.12, 0.36, 0.38, IRON);
+      bench(u, v, f);
     }
     for (let u = -L / 2 + 5; u < L / 2 - 3; u += 15) for (const f of [-1, 1]) { // lamps, head P.lit so it glows at night
       const lv = f * (ring ? S / 2 - 0.9 : 1.4);
       if (!ring && S < 7 && f > 0 || !clearOfSigns(u, lv)) continue;
-      const [x, z] = world(u, lv); lampPost(x, z, 0, park.uk ? 'uk' : 'br');
+      const [x, z] = world(u, lv); lampPost(x, z, 0, park.uk ? 'uk' : 'br'); fur.push([u - 0.3, u + 0.3, lv - 0.3, lv + 0.3]);
     }
     if (park.rail) { // black railings round the park with gates where the paths enter
       const hu = L / 2 + 0.9, hv = S / 2 + 0.9;
@@ -144,9 +146,44 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
         if (cross) { run('u', f * hv, -hu, -1.3); run('u', f * hv, 1.3, hu); } else run('u', f * hv, -hu, hu);
       }
     }
+    // Plaza dressing: paving inlay, cafe kiosk, extra benches + bins, planters. Deterministic (no rng draws), after beds/benches/lamps and before the edge-row trees, which skip these footprints.
+    // Everything above 0.12 m keeps the same margin from the lawn edge as the beds (ring plazas: >= KEEP from the loop rect); flat inlay tops out at 0.12.
+    const m = ring ? 0.5 : 0.6, hit = (u, v, hu, hv, g = 0.3) => fur.some(([a, b, c, d]) => u + hu + g > a && u - hu - g < b && v + hv + g > c && v - hv - g < d);
+    const fits = (u, v, hu, hv) => Math.abs(u) + hu <= L / 2 - m && Math.abs(v) + hv <= S / 2 - m && !(mainPath && Math.abs(v) - hv < 1.1) && !(cross && Math.abs(u) - hu < 1.0)
+      && !hit(u, v, hu, hv) && !taken.some(([a, b, d]) => Math.hypot(a - u, b - v) < d * 0.6 + Math.max(hu, hv)) && clearOfSigns(u, v);
+    const planter = (u, v, k, lu = 1.6, lv = 0.8) => { // raised stone box, soil, then blooms (or a clipped hedge every third)
+      B(u, v, 0.05, lu, 0.42, lv, STONE); B(u, v, 0.46, lu - 0.12, 0.04, lv - 0.12, SOIL);
+      if (k % 3 === 2) B(u, v, 0.5, lu - 0.3, 0.45, lv - 0.3, HEDGE);
+      else for (const s of [-1, 1]) B(u + s * (lu - 0.3) / 4, v, 0.5, (lu - 0.3) / 2, 0.2, lv - 0.3, BLOOM[(k + (s > 0)) % 4]);
+      fur.push([u - lu / 2, u + lu / 2, v - lv / 2, v + lv / 2]);
+    };
+    if (park.paved) for (let u = -L / 2 + 3; u < L / 2 - 1.5; u += 6) B(u, 0, 0.06, 0.9, 0.03, S - 0.4, (Math.round((u + L / 2) / 6) % 2) ? FRESH : STONE); // paved promenade: alternating bands
+    else if (!park.fountain && !park.pond && L >= 8 && S >= 8 && !hit(0, 0, 2.3, 2.3, 0) && !taken.some(([a, b, d]) => Math.hypot(a, b) < d * 0.6 + 2.4)) { // central inlay, tops 0.11 / 0.12 clear of the path crossing
+      B(0, 0, 0.09, 4.6, 0.02, 4.6, FRESH); B(0, 0, 0.1, 3.2, 0.02, 3.2, STONE); B(0, 0, 0.11, 1.6, 0.01, 1.6, FRESH); fur.push([-2.3, 2.3, -2.3, 2.3]);
+    }
+    if (mainPath) for (let u = -L / 2 + 1.2, k = 0; u < L / 2 - 1.2; u += 2.4, k++) { // running-bond tiles on the main path (skip fountain pad / crossing)
+      if (park.fountain && Math.abs(u) < 3.6 || cross && Math.abs(u) < 2.0) continue;
+      B(u, k % 2 ? 0.4 : -0.4, 0.1, 2.2, 0.02, 0.7, FRESH);
+    }
+    if (park.cafe && !park.quiet && S >= 8) cafe: for (const fu of [0.3, -0.3, 0.15, -0.15]) for (const f of [-1, 1]) { // news kiosk + two umbrella tables, along the long side so narrow parks fit
+      const u = fu * L, v = f * (S / 2 - m - 1.3);
+      if (!fits(u, v, 4, 1.2)) continue;
+      B(u, v, 0.05, 2.2, 2.2, 1.5, P.teal); B(u, v, 2.25, 2.7, 0.14, 1.9, P.red); B(u, v - f * 0.9, 1.7, 2.3, 0.1, 0.7, P.white); B(u, v - f * 0.8, 0.05, 2, 1, 0.4, OAK); // hut, roof, awning, counter (front faces the lawn side)
+      for (const s of [-1, 1]) { B(u + s * 2.7, v, 0.05, 0.1, 2.1, 0.1, IRON); B(u + s * 2.7, v, 2.1, 1.9, 0.1, 1.9, s > 0 ? P.red : P.white); B(u + s * 2.7, v, 0.75, 0.9, 0.05, 0.9, P.white); }
+      fur.push([u - 3.5, u + 3.5, v - 1.2, v + 1.2]); break cafe;
+    }
+    if (mainPath) for (let i = 0; i < nb; i++) for (const f of [-1, 1]) { // second bench row, between the first, backs to the lawn
+      if (S < (ring ? 4 : 7) && f > 0) continue;
+      const u = (i + 1) / nb * (L - 8) - (L - 8) / 2 - 3 + (f > 0 ? 3 : 0), v = f * (ring ? Math.min(1.9, S / 2 - 0.75) : 1.9);
+      if (Math.abs(u) + 0.9 <= L / 2 - m && !(cross && Math.abs(u) < 3.5) && !(plaza && Math.abs(u) < 5) && !hit(u, v, 0.9, 0.4)) bench(u, v, f);
+    }
+    for (const [u, v] of benches) if (fits(u + 1.25, v, 0.25, 0.25)) { B(u + 1.25, v, 0.05, 0.45, 0.85, 0.45, P.ink); B(u + 1.25, v, 0.9, 0.55, 0.06, 0.55, IRON); fur.push([u + 1, u + 1.5, v - 0.25, v + 0.25]); } // litter bin by each bench
+    for (const rowV of mainPath && S >= 9 ? [S / 2 - 1.0, 3.5] : [S / 2 - 1.0]) for (const f of [-1, 1]) for (let u = -L / 2 + 2.5, k = 0; u < L / 2 - 2; u += 9, k++) {
+      if (fits(u, f * rowV, 0.8, 0.4)) planter(u, f * rowV, k + (f > 0));
+    }
     if (park.trees > 0 && onTree) for (let u = -L / 2 + 4; u <= L / 2 - 3.5; u += 8) for (const f of [-1, 1]) { // edge rows along both long sides of planted parks/plazas (hash jitter: park rng untouched)
       const v = f * (S / 2 - 1.3), hs = Math.abs(Math.sin(u * 12.9898 + v * 78.233 + park.x0) * 43758.5453) % 1, [x, z] = world(u, v);
-      if (S < 7 || (mainPath && Math.abs(v) < 3.2) || (cross && Math.abs(u) < 3.2) || !clearOfSigns(u, v) || taken.some(([a, b, d]) => Math.hypot(a - u, b - v) < d + 1.6)) continue;
+      if (S < 7 || (mainPath && Math.abs(v) < 3.2) || (cross && Math.abs(u) < 3.2) || !clearOfSigns(u, v) || hit(u, v, 1.2, 1.2, 0) || taken.some(([a, b, d]) => Math.hypot(a - u, b - v) < d + 1.6)) continue;
       taken.push([u, v, 1.6]); onTree(x, z, { h: 2.7 + hs * 0.5, crown: 2 + hs * 0.4 });
     }
     if (hero) onPublicRealm(orig);

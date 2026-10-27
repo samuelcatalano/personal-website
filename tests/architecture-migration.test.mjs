@@ -29,7 +29,7 @@ test('citywide architecture migration is deterministic, batched by plot, and kee
   assert.equal(new Set(plots.map(p => p.id)).size, plots.length);
   assert.deepEqual(new Set(plots.map(p => p.kind)), new Set(['terrace', 'midrise', 'shop', 'office']));
   for (const p of plots) assert.ok([p.x, p.z, p.width, p.depth, p.height].every(Number.isFinite) && p.width > 0 && p.depth > 0 && p.height > 0);
-  assert.ok(boxes.length < 10000, 'ordinary building facade boxes have been removed while street props remain');
+  assert.ok(boxes.length < 11000, 'ordinary building facade boxes have been removed while street props remain');
 
   assert.ok(plots.filter(p => p.id.startsWith('riverfront-')).length >= 3, 'old airport site is filled by the riverfront infill');
   const x = id => pts[stopIndex(stops, LANDMARKS[id] || id)].x, { museum, uni } = glasgowSites(stops, pts), cp = copan(stops, pts);
