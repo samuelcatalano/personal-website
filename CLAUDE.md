@@ -31,7 +31,10 @@ If independent subagent work is selected, give each agent one self-contained mod
 ```bash
 python3 -m http.server 8000      # local preview at http://localhost:8000
 node --test tests/               # content integrity check
+OUT=<dir> SHOTS="5:day,11:night" GRID=1 browser-harness < tools/capture.py   # scene capture (MOBILE=1, QUERY=weather=rain)
 ```
+
+Capture stops: 5 São Paulo, 9.5 London, 11 Glasgow (ids in `js/content.js`). The global `/capture` skill defers to `tools/capture.py` here.
 
 ## Verify before claiming done
 
