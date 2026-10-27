@@ -37,6 +37,7 @@ export function buildBackdrop(add, stops, pts) {
     face(depth, z, 'x', x + w / 2, 1);
   };
   const body = (x, y, z, w, h, d, color, seed, trim = false, coverage = 0.78) => {
+    if (y === 0) add(x, -0.1, z, w, 0.08, d, P.concreteMid);
     add(x, y, z, w, h, d, color);
     facade(x, y, z, w, h, d, seed, coverage, color);
     if (trim) {
@@ -45,9 +46,6 @@ export function buildBackdrop(add, stops, pts) {
       add(x, y + 0.35, z, w + 0.12, 0.18, d + 0.12, z > -145 ? P.roof : color);
     }
   };
-  // Continuous low ground lets the existing fog hide the finite world edge.
-  add((pts[0].x + pts.at(-1).x) / 2, -1.3, 0, x1 - x0 + 2000, 0.2, 2200, P.concreteMid);
-
   for (let row = 0; row < rows.length; row++) {
     for (let x = x0; x < x1;) {
       const z = rows[row] + (r() - 0.5) * 10, w = 9 + r() * 4, gap = 2 + r() * 2, xc = x + w / 2;

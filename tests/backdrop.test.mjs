@@ -69,11 +69,14 @@ test('Riverside rear corridor has varied masses across the depth bands without m
   assert.ok(strip.every((b) => b.z + b.d / 2 <= -122), 'rear-strip masses remain behind the landmark buffer');
 });
 
-test('continuous ground and neighborhood paving cover the backdrop', () => {
-  const boxes = make(), ground = boxes.filter((b) => b.h >= 0.2 && b.y + b.h <= -1.05 && b.w > 1000 && b.d > 1000);
-  assert.equal(ground.length, 1);
-  assert.ok(ground[0].x - ground[0].w / 2 <= pts[0].x - 1000 && ground[0].x + ground[0].w / 2 >= pts.at(-1).x + 1000);
-  assert.ok(ground[0].z - ground[0].d / 2 <= -1100 && ground[0].z + ground[0].d / 2 >= 1100);
+test('local foundations and neighborhood paving support the backdrop', () => {
+  const boxes = make();
+  const foundations = boxes.filter((b) => b.color === P.concreteMid && b.y === -0.1 && b.h === 0.08);
+  const buildings = boxes.filter((b) => b.y === 0 && b.h >= 2 && b.w > 1 && b.d > 1);
+  for (const b of buildings) {
+    assert.ok(foundations.some((f) => f.x === b.x && f.z === b.z && f.w === b.w && f.d === b.d), `foundation under ${b.x},${b.z}`);
+  }
+  assert.ok(!boxes.some((b) => b.w > 1000 && b.d > 1000), 'no blanket ground obscures the sky');
   const paving = boxes.filter((b) => b.color === P.pave && b.h <= 0.3 && b.w < 1000 && b.d < 1000);
   assert.ok(paving.length > 50, `${paving.length} paving segments`);
   assert.ok(paving.reduce((area, b) => area + b.w * b.d, 0) > 500_000, 'paving spans neighborhood bands');
