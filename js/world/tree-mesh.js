@@ -5,33 +5,35 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 //  canopy: horizontal radius <= 1, y in [-1, 1] (centre 0); trunk: y in [0, 1] (1 = canopy centre), radii in canopy-radius units.
 const hash = (x, y, z) => { const s = Math.sin(x * 127.1 + y * 311.7 + z * 74.7) * 43758.5453; return s - Math.floor(s); };
 
-// Leaf atlas (procedural, no external asset): left 3/4 = a cluster of small leaves with alpha cut-outs, right 1/4 = solid
-// (the inner foliage masses sample it). Grey values are shade only; hue comes from the instance tint.
+// Leaf atlas (procedural, no external asset): 4 tiles of 128 px (square, so cards are not stretched). Tiles 0-2 = a dense disc of
+// overlapping leaves (round clump, soft edge: cards read as foliage lumps, never as rectangular shards); tile 3 = solid (inner masses).
+// Grey values are shade only; hue comes from the instance tint.
 export function leafTexture() {
-  const cv = document.createElement('canvas'); cv.width = 256; cv.height = 128;
-  const g = cv.getContext('2d'); g.fillStyle = '#ffffff'; g.fillRect(192, 0, 64, 128);
-  for (let i = 0; i < 80; i++) { // back leaves first (darker), front leaves last (lighter): depth inside each card
-    const x = 10 + hash(i, 1, 2) * 172, y = 8 + hash(i, 3, 4) * 112, a = hash(i, 5, 6) * Math.PI * 2, l = 9 + hash(i, 7, 8) * 6, k = 180 + i / 80 * 50 + hash(i, 9, 1) * 25;
-    const w = hash(i, 2, 9) - 0.5; // slight warm/cool shift per leaf
-    g.save(); g.translate(x, y); g.rotate(a);
-    g.fillStyle = `rgb(${k + w * 18 | 0},${k | 0},${k - w * 22 | 0})`; g.beginPath(); g.moveTo(-l, 0); g.quadraticCurveTo(0, -l * 0.62, l, 0); g.quadraticCurveTo(0, l * 0.62, -l, 0); g.fill(); // pointed leaf
-    g.strokeStyle = 'rgba(0,0,0,0.08)'; g.lineWidth = 0.8; g.stroke(); // edge: leaves read separately
-    g.strokeStyle = 'rgba(255,255,255,0.10)'; g.beginPath(); g.moveTo(-l * 0.8, 0); g.lineTo(l * 0.8, 0); g.stroke(); // midrib catches the light
-    g.restore();
+  const cv = document.createElement('canvas'); cv.width = 512; cv.height = 128;
+  const g = cv.getContext('2d'); g.fillStyle = '#d2d2d2'; g.fillRect(384, 0, 128, 128);
+  for (let t = 0; t < 3; t++) {
+    const cx = t * 128 + 64, cy = 64; g.fillStyle = '#9a9a9a'; g.beginPath(); g.arc(cx, cy, 38, 0, Math.PI * 2); g.fill(); // dark core: no holes inside the clump
+    for (let i = 0; i < 110; i++) { // back leaves first (darker, central), front leaves last (lighter, towards the rim): depth inside each card
+      const f = i / 110, ang = hash(i, t, 2) * Math.PI * 2, rad = (0.2 + 0.8 * Math.sqrt(hash(i, t, 3))) * (46 + 12 * f), a = hash(i, t, 6) * Math.PI * 2, l = 12 + hash(i, t, 8) * 7, k = 150 + f * 85 + hash(i, t, 9) * 20;
+      const w = hash(i, t, 5) - 0.5; // slight warm/cool shift per leaf
+      g.save(); g.translate(cx + Math.cos(ang) * rad, cy + Math.sin(ang) * rad * 0.92); g.rotate(a);
+      g.fillStyle = `rgb(${k + w * 18 | 0},${k | 0},${k - w * 22 | 0})`; g.beginPath(); g.moveTo(-l, 0); g.quadraticCurveTo(0, -l * 0.7, l, 0); g.quadraticCurveTo(0, l * 0.7, -l, 0); g.fill();
+      g.strokeStyle = 'rgba(0,0,0,0.10)'; g.lineWidth = 1; g.stroke(); g.restore();
+    }
   }
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
 }
 
 // Per type: inner masses [count, seed] + leaf cards per tree. Shape variants come from per-instance aspect in trees.js.
-const CROWN = { small: [5, 1, 110], medium: [6, 2, 150], large: [8, 3, 200] }; // ponytail: card counts capped by the 250k tree triangle budget (tests/trees.browser.py)
+const CROWN = { small: [4, 1, 60], medium: [5, 2, 80], large: [6, 3, 104] }; // ponytail: few big masses + clump cards keep ~450 tris/tree so ~2x the trees fit the 250k budget (tests/trees.browser.py)
 
 // Crown = a few solid inner masses (shade + volume) covered with alpha-tested leaf cards (fringed silhouette, small-leaf detail).
 // Normals point out of the crown ("foliage normals") so light wraps it softly; colour darkens towards the inside/underside.
 export function canopyGeometry(type) {
   const [count, seed, cards] = CROWN[type], masses = [], pos = [], uv = [], jit = [], ctr = [];
   for (let k = 0; k < count; k++) {
-    const th = (k + hash(k, seed, 1) * 0.6) / count * Math.PI * 2, ph = Math.acos(1 - 2 * (0.15 + hash(seed, k, 2) * 0.7)), shell = k ? 0.42 + 0.2 * hash(k, k, seed) : 0;
-    masses.push([Math.sin(ph) * Math.cos(th) * shell, Math.cos(ph) * shell * 0.8 + (k ? 0 : 0.05), Math.sin(ph) * Math.sin(th) * shell, k ? 0.42 + hash(k, 3, seed) * 0.14 : 0.58]);
+    const th = (k + hash(k, seed, 1) * 0.6) / count * Math.PI * 2, ph = Math.acos(1 - 2 * (0.15 + hash(seed, k, 2) * 0.7)), shell = k ? 0.4 + 0.16 * hash(k, k, seed) : 0;
+    masses.push([Math.sin(ph) * Math.cos(th) * shell, Math.cos(ph) * shell * 0.8 + (k ? 0 : 0.05), Math.sin(ph) * Math.sin(th) * shell, k ? 0.5 + hash(k, 3, seed) * 0.12 : 0.62]);
   }
   for (const [cx, cy, cz, r] of masses) { // inner masses: low-poly, solid texel
     const g = new THREE.IcosahedronGeometry(r * 0.92, 1).toNonIndexed(), p = g.attributes.position;
@@ -42,11 +44,11 @@ export function canopyGeometry(type) {
   for (let c = 0; c < cards; c++) { // leaf cards on the mass surfaces, biased upward and outward, random roll and tilt
     const [cx, cy, cz, r] = masses[Math.floor(hash(c, seed, 11) * masses.length)], th = hash(c, 12, seed) * Math.PI * 2, y = -0.55 + hash(seed, c, 13) * 1.5;
     d.set(Math.cos(th) * Math.sqrt(1 - Math.min(1, y * y)), Math.min(1, y), Math.sin(th) * Math.sqrt(1 - Math.min(1, y * y))).normalize();
-    const o = new THREE.Vector3(cx, cy, cz).addScaledVector(d, r * (0.8 + hash(c, 14, seed) * 0.3)), size = 0.4 + hash(c, seed, 15) * 0.16;
-    const n = d.clone().add(new THREE.Vector3(hash(c, 1, 16) - 0.5, hash(c, 2, 16) - 0.5, hash(c, 3, 16) - 0.5).multiplyScalar(1.1)).normalize();
+    const o = new THREE.Vector3(cx, cy, cz).addScaledVector(d, r * (0.8 + hash(c, 14, seed) * 0.3)), size = 0.5 + hash(c, seed, 15) * 0.16;
+    const n = d.clone().add(new THREE.Vector3(hash(c, 1, 16) - 0.5, hash(c, 2, 16) - 0.5, hash(c, 3, 16) - 0.5).multiplyScalar(0.35)).normalize(); // cards lie nearly flat on the crown surface: tiles of leaf clumps, no spikes
     t1.crossVectors(Math.abs(n.y) > 0.95 ? new THREE.Vector3(1, 0, 0) : up, n).normalize(); t2.crossVectors(n, t1);
     const roll = hash(c, 17, seed) * Math.PI * 2, a = t1.clone().multiplyScalar(Math.cos(roll)).addScaledVector(t2, Math.sin(roll)).multiplyScalar(size), b = n.clone().cross(a);
-    const u0 = Math.floor(hash(c, 18, seed) * 3) * 0.25; // one of three tiles in the leaf area
+    const u0 = Math.floor(hash(c, 18, seed) * 3) * 0.25; // one of three clump tiles 
     const q = [o.clone().sub(a).sub(b), o.clone().add(a).sub(b), o.clone().add(a).add(b), o.clone().sub(a).add(b)], quv = [[u0, 0], [u0 + 0.25, 0], [u0 + 0.25, 1], [u0, 1]];
     const j = (0.92 + hash(c, 19, seed) * 0.22) * (0.8 + 0.2 * (d.y * 0.5 + 0.5)); // per-card jitter x mild clump shade
     for (const i of [0, 1, 2, 0, 2, 3]) { pos.push(q[i].x, q[i].y, q[i].z); uv.push(...quv[i]); jit.push(j); ctr.push(cx, cy, cz); }
