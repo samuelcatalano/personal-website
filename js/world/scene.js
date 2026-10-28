@@ -96,7 +96,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const architecture = await realCity;scene.add(architecture);
   const mini = buildVehicle('mini', { hero: true }), saoPauloBus = buildVehicle('glasgow', { hero: true }), londonBus = buildVehicle('london', { hero: true }), glasgowBus = buildVehicle('glasgow', { hero: true });
   saoPauloBus.name = 'sao-paulo';
-  const candidates = [mini, saoPauloBus, londonBus, glasgowBus], heroVehicles = { saoPaulo: saoPauloBus, london: londonBus, glasgow: glasgowBus };
+  const candidates = [mini, saoPauloBus, londonBus, glasgowBus], heroVehicles = { mini, saoPaulo: saoPauloBus, london: londonBus, glasgow: glasgowBus };
   const bus = createHeroGroup(candidates), swap = swapAt(stops);
   candidates.forEach((v) => { v.visible = false; });
   // Glasgow livery between the two railway underpasses (each within 7 m of its scotRange boundary); the visible swap happens inside the tunnel (see frame())
@@ -207,11 +207,11 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const shot = blendShots(shotFor(ka, busPos, { mobile, lift }), shotFor(kb, busPos, { mobile, lift }), s - i, ka === kb ? 0 : ARC);
     camera.position.fromArray(shot.position);
     camera.lookAt(shot.target[0], shot.target[1], shot.target[2]);
-    // Player model: São Paulo -> London at swap; London <-> Glasgow flips at the underpass centres.
-    const want = heroVehicleAt(t, swap, ARCH_IN, ARCH_OUT, heroVehicles);
+    // Mini leaves Brazil outbound; returning from the UK latches São Paulo until the next outbound crossing.
+    const want = heroVehicleAt(t, swap, ARCH_IN, ARCH_OUT, heroVehicles, shown);
     frameNo++;
     if (shown !== want) {
-      const regionSwap = (shown === saoPauloBus && want === londonBus) || (shown === londonBus && want === saoPauloBus);
+      const regionSwap = (shown === saoPauloBus && want === londonBus) || ((shown === londonBus || shown === glasgowBus) && want === saoPauloBus);
       let why = !shown || shown === mini || want === mini ? 'immediate' : regionSwap ? 'region' : underpass.passes.some((a) => Math.abs(underpass.offset(a, busPos.x, busPos.z)) <= a.half - 5.7) ? 'arch' : Math.abs(s - Math.round(s)) < 0.12 ? 'stop' : ka !== kb && s - i > 0.15 && s - i < 0.85 ? 'blend' : '';
       if (!why) {
         camera.updateMatrixWorld();
