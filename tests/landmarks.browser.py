@@ -11,12 +11,14 @@ print(js(r'''(async () => {
   const { CatmullRomCurve3, Vector3, Scene, Box3 } = THREE;
   const pts = routePoints(stops.length), bridgeX = towerX(stops, pts);
   const curve = routeCurve(THREE, pts), ambientScene = new Scene();
+  const check = (ok, message) => { if (!ok) throw Error(message); };
   createAmbient(ambientScene, { curve, pts, stops });
   ambientScene.updateMatrixWorld(true);
   const boats = ambientScene.children.filter(o => o.isGroup && o.position.y === 0.1 && Math.abs(o.position.z - RIVER_Z) <= 5.1);
+  const expectedBoatStyles = ['launch', 'cruiser', 'service', 'launch', 'cruiser', 'service', 'launch'];
+  check(boats.map(boat => boat.userData.boatStyle).join(',') === expectedBoatStyles.join(','), 'Seven Thames boats must retain their ordered launch/cruiser/service assignment');
   const boxes = [];
   const landmarkParts = buildLandmarks((x, y, z, w, h, d, color) => boxes.push({ x, y, z, w, h, d, color }), stops, pts);
-  const check = (ok, message) => { if (!ok) throw Error(message); };
   const tb = landmarkParts.details.getObjectByName('towerbridge-geometry'), lay = tb?.userData.layout;
   check(tb && lay, 'Tower Bridge must be built through the geometry module');
   tb.updateMatrixWorld(true);
