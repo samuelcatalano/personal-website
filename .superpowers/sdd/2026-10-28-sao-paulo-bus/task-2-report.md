@@ -6,6 +6,8 @@ Implemented the São Paulo GLB as the Brazil-side hero vehicle. The existing sha
 
 The existing axle splitter now recognizes the six empty São Paulo axle markers, separates embedded tire/rim triangles into three axle groups, and uses the source tire radius for signed route-distance roll. Loaded dimensions and front/rear beam anchors come from GLB bounds. Mini steering and ambient traffic are unchanged.
 
+The follow-up fix initializes all hero candidates hidden and centralizes candidate visibility updates, so restored UK positions and reduced-motion swaps cannot leave São Paulo visible. The scene uses the tested object-returning selector and signed wheel-roll helper; browser assertions cover both forward and reverse roll on the extracted São Paulo axles.
+
 ## Files changed
 
 - `js/world/vehicle-assets.js` — asset registration, palette, marker-driven wheel split, bounds metadata.
@@ -15,8 +17,8 @@ The existing axle splitter now recognizes the six empty São Paulo axle markers,
 
 ## Commit
 
-Implementation and browser assertions: `4672201` (`Integrate Sao Paulo hero bus`). The report is committed separately because this SDD folder is ignored by Git.
+Implementation and browser assertions: `4672201` (`Integrate Sao Paulo hero bus`) and `b9692c4` (`Fix regional hero visibility and roll assertions`). The report is committed separately because this SDD folder is ignored by Git.
 
 ## Checks
 
-`git diff --check` passed. Deliberately not run: any tests, browser suite, runtime/visual capture, mobile checks, or full regression. Task 3 owns consolidated desktop validation.
+`git diff --check` passed after both implementation commits. Deliberately not run: any tests, browser suite, runtime/visual capture, mobile checks, or full regression. Task 3 owns consolidated desktop validation.
