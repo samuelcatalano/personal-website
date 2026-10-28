@@ -8,21 +8,27 @@ const tex = (w, h, draw) => {
 const mat = (map, color) => new THREE.MeshBasicMaterial({ map, color, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
 // Road light from two headlamps (texture space: u = metres ahead / L, v = lateral across W). Each lamp: angular Gaussian
 // (~13 deg) x distance falloff, faded in over the first metres (bonnet cut-off) - reads as a lit patch of road, not a solid cone.
-const L = 15, W = 8, LAMP = 0.75; // pool size (m); lamp lateral offset used to bake the texture
+const L = 13, W = 8, LAMP = 0.75; // pool size (m); lamp lateral offset
+// ponytail: one soft trapezoid footprint (widening with distance, soft sides, fades in past the bonnet and out with range); lamps not simulated separately.
 const lit = tex(128, 64, (g) => {
-  const im = g.createImageData(128, 64);
+  const im = g.createImageData(128, 64), ss = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
   for (let y = 0; y < 64; y++) for (let x = 0; x < 128; x++) {
-    const ax = (x + 0.5) / 128 * L, az = ((y + 0.5) / 64 - 0.5) * W;
-    let a = 0;
-    for (const s of [-1, 1]) { const dz = az - s * LAMP, ang = Math.atan2(Math.abs(dz), ax + 0.6); a += Math.exp(-((ang / 0.23) ** 2)) / (1 + (ax / 7) ** 2); }
-    a *= Math.min(1, ax / 2.2) ** 1.5 * Math.min(1, (L - ax) / 3); // soft near cut-off and far fade
-    im.data.set([255, 255, 255, Math.min(1, a * 0.75) * 255], (y * 128 + x) * 4);
+    const ax = (x + 0.5) / 128 * L, az = Math.abs(((y + 0.5) / 64 - 0.5) * W), hw = 1.1 + ax * 0.26;
+    const a = (1 - ss(0.35, 1, az / hw)) * ss(0, 2.2, ax) * Math.exp(-ax / 6.5) * (1 - ss(L * 0.55, L, ax)) * (0.75 + 0.25 * ss(0.3, 0, az / hw));
+    im.data.set([255, 255, 255, Math.min(1, a) * 255], (y * 128 + x) * 4);
   }
   g.putImageData(im, 0, 0);
 });
 const blob = tex(64, 64, (g) => { const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(0.18, 'rgba(255,255,255,0.55)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, 64, 64); });
+// Lamp glow on the vehicle itself: camera-facing points (head warm, tail red), additive, shared material.
+const gm = new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, toneMapped: false,
+  uniforms: { uOp: { value: 0 }, uPx: { value: 1 } },
+  vertexShader: `uniform float uPx; attribute vec3 aCol; varying vec3 vC; void main(){ vC = aCol; vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * mv; gl_PointSize = clamp(0.9 * projectionMatrix[1][1] * uPx / max(-mv.z, 1.0), 2.0, 40.0); }`,
+  fragmentShader: 'uniform float uOp; varying vec3 vC; void main(){ float r = length(gl_PointCoord - 0.5) * 2.0; float a = pow(max(0.0, 1.0 - r), 2.0) * uOp; gl_FragColor = vec4(vC * a, a); }',
+});
 const M = { pool: mat(lit, 0xfff0dc), tail: mat(blob, 0xff2a1a) };
-const OP = { pool: 0.24, tail: 0.1 };
+const OP = { pool: 0.3, tail: 0.1 };
 const pool = new THREE.PlaneGeometry(L, W).rotateX(-Math.PI / 2).translate(L / 2, 0, 0);
 const tailPool = new THREE.PlaneGeometry(2, 1.8).rotateX(-Math.PI / 2).translate(-1.4, 0, 0);
 // One road pool per vehicle, one tail glow per lamp, at the lamps' lateral position (≈68 % of the half-width), not from the vehicle's centre line.
@@ -38,8 +44,14 @@ export function addBeams(vehicle, front, y = 0.65) {
   }
   const p = new THREE.Mesh(pool, M.pool); p.position.set(front - 0.3, 0.04, 0); p.scale.z = Math.max(0.75, lamp / LAMP) ** 0.5; p.name = 'beam'; p.renderOrder = 5; p.frustumCulled = false;
   tail.userData.swell = (k) => tail.children.forEach((t) => t.scale.set(k, 1, 0.5 * k)); // brake lights grow in place
-  vehicle.add(p, tail);
+  const pos = [], col = [];
+  for (const s of [-1, 1]) { pos.push(0.2, y - 0.04, s * lamp / p.scale.z, -2 * front + 0.35, y - 0.04, s * lamp / p.scale.z); col.push(1, 0.9, 0.7, 1, 0.12, 0.06); }
+  // glow points are children of the pool (p), so ambient.js keeps tail as the last vehicle child
+  const gp = new THREE.Points(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)).setAttribute('aCol', new THREE.Float32BufferAttribute(col, 3)), gm);
+  gp.name = 'beam'; gp.frustumCulled = false; gp.renderOrder = 6;
+  p.add(gp); vehicle.add(p, tail);
 }
 export function updateBeams(night) {
   for (const k in M) { M[k].opacity = night * OP[k]; M[k].visible = night > 0.02; }
+  gm.uniforms.uOp.value = night * 0.8; gm.uniforms.uPx.value = innerHeight * Math.min(devicePixelRatio || 1, 1.5) * 0.5;
 }
