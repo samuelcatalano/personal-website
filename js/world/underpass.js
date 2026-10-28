@@ -3,16 +3,18 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { PALETTE as P } from './palette.js';
 import { blockMaterial } from './textures.js';
 import { scotRange } from './layout.js';
-// Countryside railway embankment with a masonry arch underpass across the road at each Glasgow livery boundary (scotRange). The bus is
+// Countryside embankment carrying a two-lane road over the route with a masonry arch underpass across the road at each Glasgow livery boundary (scotRange). The bus is
 // completely inside the tunnel for a moment, so scene.js swaps London <-> Glasgow there and the camera never sees the model pop.
-// Local frame: x along the road, z across it (embankment), y up. 4 meshes per crossing (stone / light stone + ballast / lawn / iron), shared block materials.
+// Local frame: x along the road, z across it (embankment), y up. 5 meshes per crossing (stone / light stone / lawn / asphalt / lines), shared block materials.
 export const HX = 7.5, W = 9, H = 7.5; // tunnel half length, masonry half width, deck height
 const AW = 5.5, AWALL = 3.4, AB = 3.0; // opening: half width, vertical wall height, elliptical crown rise
 export const CLEARANCE = AWALL + AB * Math.sqrt(1 - (3.05 / AW) ** 2); // headroom over the outer edge of a bus in its lane (~5.9 m)
-const FLAT = 11, END = 33, BASE = 6.5, CREST = 4; // crest stays level to |z| = FLAT, then eases down to the fields at END; footprint half width BASE
+export const ROAD_HW = 3; // half width of the overpass road: two 3 m lanes
+export const END = 33;
+const FLAT = 11, BASE = 6.5, CREST = 4; // crest stays level to |z| = FLAT, then eases down to the fields at END; footprint half width BASE
 // ponytail: metres along the road from the scotRange boundary, hand-fitted to the gaps between country.js rows; tests/underpass.browser.py fails if houses, trees or lamps ever overlap
 const NUDGE = [-7, -4.25];
-const crest = (az) => { const u = Math.min(1, Math.max(0, (az - FLAT) / (END - FLAT))); return H * (1 - u * u * (3 - 2 * u)); };
+export const crest = (az) => { const u = Math.min(1, Math.max(0, (az - FLAT) / (END - FLAT))); return H * (1 - u * u * (3 - 2 * u)); };
 const bare = (g) => { g = g.index ? g.toNonIndexed() : g; g.deleteAttribute('uv'); return g; };
 const box = (x0, x1, y0, y1, z0, z1) => bare(new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0).translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2));
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -30,7 +32,7 @@ function archShape(rt = 0) { // arch outline: rt = 0 the opening itself, rt > 0 
   return s;
 }
 function parts() {
-  const stone = [], light = [], lawn = [], iron = [];
+  const stone = [], light = [], lawn = [], road = [], line = [];
   const body = new THREE.Shape(); // masonry block with the opening cut out of its base
   body.moveTo(-W, 0); body.lineTo(-AW, 0); body.lineTo(-AW, AWALL); body.absellipse(0, AWALL, AW, AB, Math.PI, 0, true); body.lineTo(AW, 0); body.lineTo(W, 0); body.lineTo(W, H); body.lineTo(-W, H); body.closePath();
   stone.push(along(body, 2 * HX, -HX));
@@ -52,25 +54,23 @@ function parts() {
     }
   }
   lawn.push(lo.geo());
-  // track: ballast bed, sleepers and two rails follow the crest, level over the masonry and sloping off with the wings
+  // two-lane road over the crest (level over the masonry, sloping off with the wings): asphalt, centre line, edge lines and low parapets
   const zs = [-END, ...Array.from({ length: 10 }, (_, k) => -(END - (END - FLAT) * (k + 1) / 10)), FLAT, ...Array.from({ length: 10 }, (_, k) => FLAT + (END - FLAT) * (k + 1) / 10)];
-  const run = zs, bed = soup(), irn = soup(), top = (z) => crest(Math.abs(z)) + 0.4;
-  for (let i = 0; i < run.length - 1; i++) {
-    const z0 = run[i], z1 = run[i + 1], y0 = crest(Math.abs(z0)), y1 = crest(Math.abs(z1));
-    for (const x of [-1, 1]) bed.quad(V(x * 2.6, y0, z0), V(x * 1.9, y0 + 0.4, z0), V(x * 1.9, y1 + 0.4, z1), V(x * 2.6, y1, z1), V(x, 0.6, 0));
-    bed.quad(V(-1.9, y0 + 0.4, z0), V(1.9, y0 + 0.4, z0), V(1.9, y1 + 0.4, z1), V(-1.9, y1 + 0.4, z1), V(0, 1, 0));
-    for (const x of [-0.72, 0.72]) { // rail: top + two sides
-      const a = [x - 0.045, x + 0.045];
-      irn.quad(V(a[0], y0 + 0.6, z0), V(a[1], y0 + 0.6, z0), V(a[1], y1 + 0.6, z1), V(a[0], y1 + 0.6, z1), V(0, 1, 0));
-      for (const [k, o] of [[0, -1], [1, 1]]) irn.quad(V(a[k], y0 + 0.42, z0), V(a[k], y0 + 0.6, z0), V(a[k], y1 + 0.6, z1), V(a[k], y1 + 0.42, z1), V(o, 0, 0));
-    }
+  const bed = soup(), mk = soup(), UP = V(0, 1, 0), strip = (g, x0, x1, y, z0, z1, h0, h1) => g.quad(V(x0, h0 + y, z0), V(x1, h0 + y, z0), V(x1, h1 + y, z1), V(x0, h1 + y, z1), UP);
+  for (let i = 0; i < zs.length - 1; i++) {
+    const z0 = zs[i], z1 = zs[i + 1], y0 = crest(Math.abs(z0)), y1 = crest(Math.abs(z1));
+    strip(bed, -ROAD_HW, ROAD_HW, 0.12, z0, z1, y0, y1);
+    for (const c of [0, -ROAD_HW + 0.3, ROAD_HW - 0.3]) strip(mk, c - 0.07, c + 0.07, 0.14, z0, z1, y0, y1);
   }
-  for (let z = -32; z <= 32; z += 0.9) irn.quad(V(-1.3, top(z - 0.13) + 0.02, z - 0.13), V(1.3, top(z - 0.13) + 0.02, z - 0.13), V(1.3, top(z + 0.13) + 0.02, z + 0.13), V(-1.3, top(z + 0.13) + 0.02, z + 0.13), V(0, 1, 0));
-  light.push(bed.geo()); iron.push(irn.geo());
-  return { stone, light, lawn, iron };
+  for (const x of [-1, 1]) {
+    stone.push(box(x * ROAD_HW - 0.15, x * ROAD_HW + 0.15, H, H + 0.7, -W, W));
+    light.push(box(x * ROAD_HW - 0.25, x * ROAD_HW + 0.25, H + 0.7, H + 0.78, -W, W)); // coping
+  }
+  road.push(bed.geo()); line.push(mk.geo());
+  return { stone, light, lawn, road, line };
 }
 export function createUnderpass(curve, stops) {
-  const colors = { stone: P.stone, light: P.concreteMid, lawn: P.patch, iron: P.iron }, mats = {}, geos = [];
+  const colors = { stone: P.stone, light: P.concreteMid, lawn: P.patch, road: P.road, line: P.arch }, mats = {}, geos = [];
   for (const k in colors) mats[k] = blockMaterial(colors[k]);
   const root = new THREE.Group(); root.name = 'underpasses';
   const passes = scotRange(stops).map((t, i) => {
