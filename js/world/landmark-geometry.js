@@ -547,11 +547,11 @@ export function createUniversity(x,z,lift=0){
   return finish();
 }
 
-// ---- Boat: rounded hull with tapered bow, deck, windowed cabin; cached per colour pair ----
+// ---- Boats: shared rounded hull and three low-poly silhouettes; cached per style and colour pair ----
 const boatCache=new Map(),tintOf=hex=>{const c=new THREE.Color(hex),b=new THREE.Color().setRGB(.788,.745,.655,THREE.SRGBColorSpace);return [c.r/b.r,c.g/b.g,c.b/b.b].map(q=>Math.min(q,3));};
-export function createBoat(hullColor,cabinColor){
-  const key=hullColor+cabinColor,hit=boatCache.get(key);if(hit)return hit.clone();
-  const {box,add,finish,pale}=landmark('boat',0,0),hull=tintOf(hullColor),cab=tintOf(cabinColor),glass=[.7,.82,.95];
+export function createBoat(hullColor,cabinColor,style='cruiser'){
+  const key=[style,hullColor,cabinColor].join(':'),hit=boatCache.get(key);if(hit)return hit.clone();
+  const {box,add,beam,finish,pale}=landmark('boat',0,0),hull=tintOf(hullColor),cab=tintOf(cabinColor),glass=[.7,.82,.95];
   const plan=(k=1)=>{
     const s=new THREE.Shape();s.moveTo(-3*k,-.7*k);s.quadraticCurveTo(-3*k,-1*k,-2.6*k,-1*k);s.lineTo(.3*k,-1*k);s.bezierCurveTo(1.7*k,-1*k,2.5*k,-.5*k,3*k,0);
     s.bezierCurveTo(2.5*k,.5*k,1.7*k,1*k,.3*k,1*k);s.lineTo(-2.6*k,1*k);s.quadraticCurveTo(-3*k,1*k,-3*k,.7*k);return s;
@@ -560,12 +560,32 @@ export function createBoat(hullColor,cabinColor){
   let [g,y]=flat(new THREE.ExtrudeGeometry(plan(.93),{depth:.26,bevelEnabled:false,curveSegments:3}),0);add(g,0,y,0,S.plaster,hull.map(q=>q*.45));        // dark waterline
   [g,y]=flat(new THREE.ExtrudeGeometry(plan(),{depth:.5,bevelEnabled:true,bevelThickness:.1,bevelSize:.08,bevelSegments:1,curveSegments:3}),.26);add(g,0,y+.1,0,S.plaster,hull); // rounded topsides
   [g,y]=flat(new THREE.ExtrudeGeometry(plan(.9),{depth:.05,bevelEnabled:false}),0);add(g,0,.97,0,S.plaster,[1.1,.95,.8],1);                    // deck
-  const cabin=new THREE.Shape();cabin.moveTo(-1.7,-.8);cabin.lineTo(.5,-.8);cabin.quadraticCurveTo(.95,-.8,.95,-.35);cabin.lineTo(.95,.35);cabin.quadraticCurveTo(.95,.8,.5,.8);cabin.lineTo(-1.7,.8);cabin.closePath();
-  [g,y]=flat(new THREE.ExtrudeGeometry(cabin,{depth:.95,bevelEnabled:true,bevelThickness:.05,bevelSize:.05,bevelSegments:1,curveSegments:2}),0);add(g,0,y+1,0,S.plaster,cab);
-  for(const sz of [-1,1])box(-.5,1.4,sz*.88,2.3,.42,.06,S.glass,glass,2);
-  box(.93,1.4,0,.06,.42,1.1,S.glass,glass,2);
-  box(-.4,2.0,0,3,.12,1.9,S.trim,pale,1);
-  const out=finish();boatCache.set(key,out);return out.clone();
+  const shell=(x0,x1,zHalf,depth,y0)=>{
+    const s=new THREE.Shape();s.moveTo(x0,-zHalf);s.lineTo(x1-.4,-zHalf);s.quadraticCurveTo(x1,-zHalf,x1,-zHalf+.35);s.lineTo(x1,zHalf-.35);s.quadraticCurveTo(x1,zHalf,x1-.4,zHalf);s.lineTo(x0,zHalf);s.closePath();
+    [g,y]=flat(new THREE.ExtrudeGeometry(s,{depth,bevelEnabled:true,bevelThickness:.04,bevelSize:.04,bevelSegments:1,curveSegments:2}),0);add(g,0,y+y0,0,S.plaster,cab);
+  };
+  if(style==='launch'){
+    shell(-2.35,-1.05,.56,.58,.97);
+    for(const sz of [-1,1])box(-1.72,1.35,sz*.58,.8,.3,.05,S.glass,glass,2);
+    box(-1.04,1.35,0,.05,.3,.72,S.glass,glass,2);
+    box(.65,2.0,0,2.25,.12,1.55,S.trim,pale,1);
+    for(const sz of [-1,1]){
+      for(const x of [-.65,.35,1.35,2.25])beam(new THREE.Vector3(x,1,sz*.82),new THREE.Vector3(x,1.42,sz*.82),.035,pale,1,4);
+      beam(new THREE.Vector3(-.65,1.42,sz*.82),new THREE.Vector3(2.25,1.42,sz*.82),.035,pale,1,4);
+    }
+  }else if(style==='service'){
+    shell(-2.35,-.55,.64,.58,.97);
+    for(const sz of [-1,1])box(-1.48,1.24,sz*.65,1.25,.2,.05,S.glass,glass,2);
+    box(-1.45,1.54,0,1.9,.1,1.45,S.trim,pale,1);
+    box(.72,1.02,0,1.35,.18,1.2,S.trim,[.88,.84,.72],1);
+    beam(new THREE.Vector3(-1.9,1.58,0),new THREE.Vector3(-1.9,2.15,0),.045,pale,1,4);
+  }else{
+    shell(-1.7,.95,.8,.95,.97);
+    for(const sz of [-1,1])box(-.5,1.4,sz*.82,2.3,.42,.05,S.glass,glass,2);
+    box(.93,1.4,0,.05,.42,1.1,S.glass,glass,2);
+    box(-.4,2.0,0,3,.12,1.9,S.trim,pale,1);
+  }
+  const out=finish();out.userData.boatStyle=style;boatCache.set(key,out);return out.clone();
 }
 
 // ---- Glasgow City Chambers: Italian-Renaissance palace, sandstone, rusticated base, pedimented portico, domed tower + corner cupolas ----

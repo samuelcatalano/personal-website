@@ -18,6 +18,10 @@ Reduced motion keeps the regional roll and static wet/storm appearance, with no 
 
 Technical release is separate: [final validation](architecture/rendering-budget.md#final-milestone-validation--2026-10-21) records the unresolved coplanar-face regression; do not interpret visual approval as a passing technical gate.
 
+## River boats — 2026-10-28
+
+The user reopened visuals only for the seven existing Thames boats. Their procedural silhouettes may change; all rivers and water, bridges, routes, lighting and other frozen city visuals remain unchanged.
+
 ## Visual principles
 
 - Believable proportions and human scale; clear facade hierarchy and clean silhouettes.

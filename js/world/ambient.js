@@ -8,8 +8,10 @@ import { addBeams } from './beams.js';
 import { fadeVehicle, disposeFade } from './fade.js';
 const cab = () => buildVehicle('cab'); // London black cab (LEVC TX)
 const car = (type, color) => buildVehicle(type, { color });
-function boat(hull = '#6b4f3a', cabin = '#f4f4f4', sx = 1) {
-  const m = createBoat(hull, cabin);
+function boat(hull = '#6b4f3a', cabin = '#f4f4f4', sx = 1, style = 'cruiser') {
+  const m = createBoat(hull, cabin, style);
+  m.name = `thames-boat-${style}`;
+  m.userData.boatStyle = style;
   m.scale.x = sx;
   return m;
 }
@@ -93,8 +95,10 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
   const auto = traffic.filter((v) => !v.relative);
   // Thames only: none on the Pinheiros
   const bx = pts[ukStart(stops)].x - 15, bw = riverEnd(stops, pts) - bx;
+  const boatPalette = [[], ['#2b4a7a', '#f4f4f4', 1.2], ['#a8442f', '#e0c880', 0.85], ['#2f6b4a', '#f4f4f4', 1.1]];
+  const boatStyles = ['launch', 'cruiser', 'service', 'launch', 'cruiser', 'service', 'launch'];
   const boats = Array.from({ length: 7 }, (_, i) => {
-    const mesh = boat(...[[], ['#2b4a7a', '#f4f4f4', 1.2], ['#a8442f', '#e0c880', 0.85], ['#2f6b4a', '#f4f4f4', 1.1]][i % 4]);
+    const mesh = boat(...boatPalette[i % 4], boatStyles[i]);
     mesh.position.set(bx + bw * (i + 0.5) / 7, 0.1, RIVER_Z + ((i % 3) - 1) * 4);
     scene.add(mesh);
     return mesh;

@@ -26,6 +26,14 @@ print(js(r'''(async () => {
   check(box.max.y >= 33 && box.max.y <= 36, `Tower height envelope; got ${box.max.y}`);
   const opening = [tz[0] + 3, tz[1] - 3];
   check(boats.length === 7, `Expected seven Thames boats, all within the bridge opening in z; found ${boats.length}`);
+  const styles = new Set(boats.map(boat => boat.userData.boatStyle));
+  const signatures = [...styles].map(style => {
+    const boat = boats.find(boat => boat.userData.boatStyle === style), counts = [];
+    boat.traverse(o => { if (o.isMesh) counts.push(o.geometry.attributes.position.count); });
+    return counts.sort((a, b) => a - b).join(',');
+  });
+  check(styles.size === 3 && ['launch', 'cruiser', 'service'].every(style => styles.has(style)), `Expected launch, cruiser, and service boat styles; found ${[...styles].join(',')}`);
+  check(signatures.length === 3 && new Set(signatures).size === 3 && signatures.every(Boolean), 'Each boat style must have a distinct mesh position-count signature');
   check(box.min.z < RIVER_Z - 15 && box.max.z > RIVER_Z + 15, 'Road deck and abutments must span the river and reach both banks');
   const roadDeck = { y: lay.deckY };
   const boatBounds = boats.map(boat => new Box3().setFromObject(boat));
