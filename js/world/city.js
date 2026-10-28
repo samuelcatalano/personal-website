@@ -62,7 +62,11 @@ export function tree(add, x, z, { h, crown, base = 0.1 }) {
   add(x + crown * 0.2, h + 0.15, z - crown * 0.2, crown * 0.48, 0.9, crown * 0.48, LEAF);
 }
 export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArchitecturePlot, onPublicRealm) {
-  const drawTree = onTree ? (_add, x, z, shape) => onTree(x, z, shape) : tree;
+  // No tree on the Estaiada deck, ramps or junction (all callers draw first, so the rng stays aligned). Deck runs x = ex (far bank to river), bends to the avenue at ex - 8 (landmark-geometry.js estaiadaRoute).
+  const ex = pts[stopIndex(stops, LANDMARKS.estaiada)].x, ex0 = ex - 16, ex1 = ex + 7, ez0 = RIVER_Z - 43, ez1 = pts[stopIndex(stops, LANDMARKS.estaiada)].z + 1;
+  const onEstaiada = (x, z) => x > ex0 && x < ex1 && z > ez0 && z < ez1; // ponytail: bbox, not per-segment distance
+  const treeAt = onTree && ((x, z, shape) => { if (!onEstaiada(x, z)) onTree(x, z, shape); });
+  const drawTree = treeAt ? (_add, x, z, shape) => treeAt(x, z, shape) : (a, x, z, shape) => { if (!onEstaiada(x, z)) tree(a, x, z, shape); };
   const spots = furnitureSpots(stops, curve).map((o) => o.xz);
   const free = (x, z) => spots.every(([a, b]) => Math.hypot(a - x, b - z) > CLEAR); // ponytail: skip, not shift
   const lamps = [], occ = [], obst = [], r = rng(2026), hq = rng(8821), hq2 = rng(4417), noop = () => {}, mx = pts[stopIndex(stops, LANDMARKS.masp)].x, gl = pts[stopIndex(stops, LANDMARKS.glasgow)], ukId = stops[ukStart(stops)].id, LM = new Set([...Object.values(LANDMARKS), ukId]); // ukId: far side of the first UK stop keeps skipping frontage draws (blocks.js riverfront infill owns it)
@@ -191,6 +195,6 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
   rgs.forEach((rg, leg) => buildCountry(add, curve, drawTree, rg.ctry, leg, onArchitecturePlot));
   buildGlasgowEdges(add, stops, pts, curve, drawTree, onArchitecturePlot);
   buildBlocks(add, stops, pts, curve, occ, onBuildingPlot, onArchitecturePlot);
-  buildParks(add, stops, pts, curve, occ, onTree, onPublicRealm); // after the blocks: own rng, reads the free plazas, never shifts a block
+  buildParks(add, stops, pts, curve, occ, treeAt, onPublicRealm); // after the blocks: own rng, reads the free plazas, never shifts a block
   return { lamps, pilotCrossings };
 }
