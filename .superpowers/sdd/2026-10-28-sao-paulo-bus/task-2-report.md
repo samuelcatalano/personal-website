@@ -6,9 +6,11 @@ Implemented the São Paulo GLB for the reverse UK-to-Brazil crossing. First/rest
 
 The existing axle splitter now recognizes the six empty São Paulo axle markers, separates embedded tire/rim triangles into three axle groups, and uses the source tire radius for signed route-distance roll. Loaded dimensions and front/rear beam anchors come from GLB bounds. Mini steering and ambient traffic are unchanged.
 
+The source asset contract is 6,437 triangles across 8 role meshes. Blender bounds are 16.758 × 2.634 × 3.101 m; Three.js Y-up bounds are 16.758 × 3.101 × 2.634 m. The browser assertions require all source triangles to remain and the runtime total to equal 6,437 + 120 generated axle-disc triangles = 6,557, with no more than 12 runtime meshes.
+
 The follow-up fix initializes all hero candidates hidden and centralizes candidate visibility updates, so restored UK positions and reduced-motion swaps cannot leave São Paulo visible. The scene uses the tested object-returning selector and signed wheel-roll helper; browser assertions cover both forward and reverse roll on the extracted São Paulo axles.
 
-The shared-pose review follow-up adds `createHeroGroup` and `applyHeroPose` in `scene.js`; the runtime uses both helpers, and the browser assertions exercise those same helpers with São Paulo, London, and Glasgow candidates to verify shared parent position and heading. Direction-state assertions cover initial Mini, the outbound sequence, reverse London/Glasgow → São Paulo, São Paulo latch, reset, and exact-boundary behavior. The source asset draw-call and triangle-preservation assertions are retained.
+The shared-pose review follow-up adds `createHeroGroup` and `applyHeroPose` in `scene.js`; the runtime uses both helpers, and the browser assertions exercise those same helpers with Mini, São Paulo, London, and Glasgow candidates to verify shared parent position and heading. Direction-state assertions cover initial Mini, the outbound sequence, reverse London/Glasgow → São Paulo, São Paulo latch, reset, and exact-boundary behavior. The source mesh-count and exact triangle-preservation assertions are retained.
 
 ## Files changed
 
@@ -19,7 +21,7 @@ The shared-pose review follow-up adds `createHeroGroup` and `applyHeroPose` in `
 
 ## Commit
 
-Implementation and browser assertions: `4672201` (`Integrate Sao Paulo hero bus`), `b9692c4` (`Fix regional hero visibility and roll assertions`), `fe60ab0` (`Test shared hero pose wiring`), and `25e5198` (`Make hero vehicle selection direction-aware`). The report is committed separately because this SDD folder is ignored by Git.
+Implementation and browser assertions: `4672201` (`Integrate Sao Paulo hero bus`), `b9692c4` (`Fix regional hero visibility and roll assertions`), `fe60ab0` (`Test shared hero pose wiring`), `25e5198` (`Make hero vehicle selection direction-aware`), and `d74a9c2` (`Assert exact Sao Paulo geometry preservation`). The report is committed separately because this SDD folder is ignored by Git.
 
 ## Checks
 
