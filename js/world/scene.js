@@ -23,6 +23,7 @@ import { createSky, EXPOSURE, SUN_DIR } from './sky.js';
 import { createWater } from './water.js';
 import { createAmbient } from './ambient.js';
 import { createParked } from './parked.js';
+import { parkingBays } from './bays.js';
 import { createPeople } from './people.js';
 import { createSigns } from './signs.js';
 import { buildFigure } from './figure.js';
@@ -96,7 +97,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   world.traverse((o) => { const h = o.material?.color?.getHexString(); if (o.material?.userData.glow) { if (h === WIN_L.slice(1)) o.material.userData.glowColor = new THREE.Color('#ffb04a'); if (h === RG.slice(1)) o.material.userData.glowColor = new THREE.Color('#d8e86a'); if (h === RB.slice(1)) o.material.userData.glowColor = new THREE.Color('#bcd4ff'); } });
   polishLandmarkMaterials(world,stops,pts);
   const motion = buildMotion(); scene.add(motion.group);
-  const roadMarks = createRoadMarks(curve, stops);
+  const roadMarks = createRoadMarks(curve, stops, parkingBays(curve, pts, stops));
   scene.add(world, eye, details, plane, shadow, bus, roadMarks);
   const units = [createAmbient(scene, { curve, pts, stops, reducedMotion }), createParked(scene, { curve, pts, stops })];
   const people = createPeople(scene, { curve, pts, stops, reducedMotion });

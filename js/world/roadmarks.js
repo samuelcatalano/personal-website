@@ -1,10 +1,11 @@
 import * as THREE from 'three';
-import { swapAt } from './layout.js';
+import { swapAt, ROAD } from './layout.js';
+import { SLOT } from './bays.js';
 // Painted road markings as ribbons that follow the route curve (axis-aligned boxes stair-step on bends).
 // São Paulo: double yellow centre line; UK: white dashed centre. Both: white edge lines, zebra crossings near stops.
-const Y = 0.074, HALF = 3.85; // road top is at 0.07; edge lines sit just inside the 8.5 m carriageway
+const Y = 0.074, HALF = ROAD.edge; // road top is at 0.07; the edge lines separate the traffic lanes from the parking bays (ROAD.edge .. ROAD.curb)
 const YELLOW = new THREE.Color('#e9b93a'), WHITE = new THREE.Color('#ece8de');
-export function createRoadMarks(curve, stops) {
+export function createRoadMarks(curve, stops, { bays, sample }) {
   const pos = [], col = [], swap = swapAt(stops), len = curve.getLength(), n = Math.ceil(len / 1.2);
   const quad = (a, b, c, d, color) => { // a,b,c,d: [x,z] counter-clockwise from above
     for (const [x, z] of [a, b, c, a, c, d]) { pos.push(x, Y, z); col.push(color.r, color.g, color.b); }
@@ -28,10 +29,20 @@ export function createRoadMarks(curve, stops) {
   // zebra just past each stop sign (bus stops sit on the stop mark)
   for (let i = 0; i < stops.length; i++) {
     const u = Math.min(1, i / (stops.length - 1) + 9 / len), F = frame(u);
-    for (let s = -3.3; s <= 3.31; s += 0.95) {
+    for (let s = -ROAD.half + 0.25; s <= ROAD.half - 0.24; s += 0.95) { // across the whole carriageway, parking lanes included
       const c = [F.p.x + F.nx * s, F.p.z + F.nz * s], h = 1.4, w = 0.27;
       const ax = [F.t.x * h, F.t.z * h], bx = [F.nx * w, F.nz * w];
       quad([c[0] - ax[0] - bx[0], c[1] - ax[1] - bx[1]], [c[0] + ax[0] - bx[0], c[1] + ax[1] - bx[1]], [c[0] + ax[0] + bx[0], c[1] + ax[1] + bx[1]], [c[0] - ax[0] + bx[0], c[1] - ax[1] + bx[1]], WHITE);
+    }
+  }
+  // bay separators: a short tick across each parking lane at both ends of every bay that has a car slot (no bays at zebras, stops, junctions, plazas, bridges)
+  const ticks = new Set(); bays.forEach((b) => { if (b.ok) { ticks.add(b.k); ticks.add(b.k + 1); } });
+  for (const k of ticks) {
+    const { p, t } = sample(k * SLOT);
+    for (const side of [-1, 1]) {
+      const c = [p.x - t.z * side * ROAD.bayMid, p.z + t.x * side * ROAD.bayMid], h = (ROAD.bay - 0.2) / 2, w = 0.06;
+      const nx = -t.z * side * h, nz = t.x * side * h, tx = t.x * w, tz = t.z * w;
+      quad([c[0] - nx - tx, c[1] - nz - tz], [c[0] + nx - tx, c[1] + nz - tz], [c[0] + nx + tx, c[1] + nz + tz], [c[0] - nx + tx, c[1] - nz + tz], WHITE);
     }
   }
   const g = new THREE.BufferGeometry();

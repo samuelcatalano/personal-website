@@ -1,3 +1,7 @@
+// Cross-section of the main road, metres from the route centre line (one side; mirrored). Two 3.5 m traffic lanes (centres at +-lane), a painted edge line at
+// `edge`, then a parking bay up to the kerb. The pavement keeps its outer edge (8.9 m) so lots, trees and lamps stay put: the bays are taken from the pavement.
+// ponytail: every road consumer (city.js, roadmarks.js, bays.js, crowd.js, signs) reads this, never a literal.
+export const ROAD = Object.freeze({ lane: 1.75, edge: 3.85, half: 6.55, curb: 6.85, padIn: 7.0, padOut: 8.9, furniture: 8.75, bay: 2.7, bayMid: 5.2 });
 export const STOP_SPACING = 30;
 export const RIVER_Z = -45;
 export const WEMBLEY_BENCHMARK = Object.freeze({ x0: 660, x1: 880, z0: -113, z1: -25 });
@@ -69,7 +73,7 @@ export function furnitureSpots(stops, curve) {
     const p = curve.getPointAt(i / n), t = curve.getTangentAt(i / n), last = i === n;
     const at = (k, a) => [p.x - t.z * k + t.x * a, p.z + t.x * k + t.z * a];
     if (s.brand) out.push({ i, kind: 'plaque', xz: at(11.5, 7) });
-    out.push({ i, kind: 'sign', xz: at(last ? 9 : 7.1, last ? 2 : -5) });
+    out.push({ i, kind: 'sign', xz: at(last ? 9 : ROAD.furniture, last ? 2 : -5) });
   });
   return out;
 }

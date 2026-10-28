@@ -5,7 +5,7 @@ result = js(r'''(async () => {
   const { buildRealCity } = await import('./js/world/real-city.js?pilot='+Date.now());
   const { buildCity } = await import('./js/world/city.js?pilot-street='+Date.now());
   const { stops } = await import('./js/content.js');
-  const { routePoints, routeCurve, towerX, isWembleyBenchmark } = await import('./js/world/layout.js');
+  const { ROAD, routePoints, routeCurve, towerX, isWembleyBenchmark } = await import('./js/world/layout.js');
   const check = (ok, message) => { if (!ok) throw Error(message); };
   const { createRoadMarks } = await import('./js/world/roadmarks.js');
   const assertPilotStreetSeparatesRoadwayFromContinuousPedestrianPaths = (additions, plots, curve, safeStart, safeEnd, bridgeX) => {
@@ -23,19 +23,19 @@ result = js(r'''(async () => {
     let stripes = []; for (let i = 0; i < mp.count; i += 6) { const x = mp.getX(i), z = mp.getZ(i); if (x >= minX && x <= maxX && Math.abs(z - curve.getPointAt(0.5).z) < 30) stripes.push(i); }
     const crosses = local.filter(([,y,,w,h,d,c]) => c === '#e6dcc4' && h <= 0.06 && Math.max(w,d) > 8 && Math.min(w,d) < 0.7);
     const variationPatches = additions.filter(([,y,,w,h,d,c]) => c === '#d8cfb8' && y > 0.1 && h < 0.01 && w >= 0.4 && w <= 0.6 && d >= 0.4 && d <= 0.6);
-    const basePavement = additions.filter(([,y,,w,h,d]) => Math.abs(y+0.02)<1e-5 && Math.abs(h-0.12)<1e-5 && Math.abs(w-3.34)<1e-5 && Math.abs(d-3.34)<1e-5);
+    const basePavement = additions.filter(([,y,,w,h,d]) => Math.abs(y+0.02)<1e-5 && Math.abs(h-0.12)<1e-5 && Math.min(w,d)>=0.89 && Math.max(w,d)<=2.9);
     const pilotOnly = additions.filter(([,y,,w,h,d,c]) =>
       c === '#7d7468' && Math.abs(h-0.1)<1e-5 && Math.abs(Math.max(w,d)-0.72)<1e-5 && Math.abs(Math.min(w,d)-0.16)<1e-5 ||
       c === '#d8cfb8' && y > 0.1 && h < 0.01 && w >= 0.4 && w <= 0.6 && d >= 0.4 && d <= 0.6 ||
       c === '#e6dcc4' && Math.abs(h-0.02)<1e-5 && Math.max(w,d)>8 && Math.min(w,d)<0.7);
-    const paths = additions.filter(([, , ,w,h,d]) => w >= 3.1 && w <= 3.5 && d >= 3.1 && d <= 3.5 && h <= 0.14);
-    const localPaths = local.filter(([, , ,w,h,d]) => w >= 3.1 && w <= 3.5 && d >= 3.1 && d <= 3.5 && h <= 0.14);
+    const paths = additions.filter(([,y,,w,h,d]) => Math.abs(y+0.02)<1e-5 && Math.abs(h-0.12)<1e-5 && Math.min(w,d)>=0.89 && Math.max(w,d)<=2.9);
+    const localPaths = local.filter(([,y,,w,h,d]) => Math.abs(y+0.02)<1e-5 && Math.abs(h-0.12)<1e-5 && Math.min(w,d)>=0.89 && Math.max(w,d)<=2.9);
     const pathContinuity = [];
     for (let i = 0; i <= 12; i++) {
       const targetX = minX + (maxX - minX) * i / 12;
       const u = Array.from({length: 101}, (_,j) => j / 100).reduce((best,v) => Math.abs(curve.getPointAt(v).x-targetX) < Math.abs(curve.getPointAt(best).x-targetX) ? v : best, 0);
       const p = curve.getPointAt(u), t = curve.getTangentAt(u), nx = -t.z, nz = t.x;
-      const nearby = [-1,1].every(side => paths.some(([x,,z]) => Math.hypot(x - (p.x + nx * side * 7.1), z - (p.z + nz * side * 7.1)) < 2));
+      const nearby = [-1,1].every(side => paths.some(([x,,z]) => Math.hypot(x - (p.x + nx * side * (ROAD.padIn + ROAD.padOut) / 2), z - (p.z + nz * side * (ROAD.padIn + ROAD.padOut) / 2)) < 2));
       pathContinuity.push(nearby);
     }
     check(curbs.length >= 4, 'pilot street needs low curb geometry on both sides');
@@ -65,7 +65,7 @@ result = js(r'''(async () => {
   };
   const pts = routePoints(stops.length), plots = [], architecturePlots = [], street = [], curve = routeCurve(T,pts);
   buildCity((...box) => street.push(box), stops, pts, curve, undefined, p => plots.push(p), p => architecturePlots.push(p));
-  window.__roadMarks = createRoadMarks(curve, stops);
+  window.__roadMarks = createRoadMarks(curve, stops, (await import('./js/world/bays.js')).parkingBays(curve, pts, stops));
   const bridgeX = towerX(stops, pts), safeStart = pts[stops.findIndex(s => s.id === 'olm')].x + 12, safeEnd = bridgeX - 20;
   const streetDetails = assertPilotStreetSeparatesRoadwayFromContinuousPedestrianPaths(street, plots, curve, safeStart, safeEnd, bridgeX);
   const glbRequestsBefore = performance.getEntriesByType('resource').filter(e => /\.glb(?:$|[?#])/i.test(e.name)).length;

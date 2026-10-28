@@ -1,4 +1,4 @@
-import { furnitureSpots, GAPS, GAP_TOTAL, STOP_SPACING, RIVER_Z, LANDMARKS, rng, riverEnd, riverStart, stopIndex, ukStart, regions, towerX, isWembleyBenchmark } from './layout.js';
+import { ROAD as RD, furnitureSpots, GAPS, GAP_TOTAL, STOP_SPACING, RIVER_Z, LANDMARKS, rng, riverEnd, riverStart, stopIndex, ukStart, regions, towerX, isWembleyBenchmark } from './layout.js';
 import { house } from './houses.js';
 import { phoneBox } from './phone.js';
 import { lampPost } from './street-lamp.js';
@@ -93,12 +93,12 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
     const p = curve.getPointAt(u), t = curve.getTangentAt(u);
     const nx = -t.z, nz = t.x;
     const local = isWembleyBenchmark({ x: p.x, z: p.z });
-    add(p.x, -0.18, p.z, 8.5, 0.25, 8.5, ROAD);
+    add(p.x, -0.18, p.z, 2 * RD.half, 0.25, 2 * RD.half, ROAD);
     // painted lines: roadmarks.js
     if (crossings < 2 && p.x >= (crossings ? pilotX1 - 4 : pilotX0 + 4) && p.x <= pilotX1 - 2) {
       for (let k = -2; k <= 2; k++) {
         const x = p.x + t.x * k * 0.8, z = p.z + t.z * k * 0.8;
-        add(x, -0.035, z, Math.abs(t.x) >= Math.abs(t.z) ? 0.45 : 8.5, 0.02, Math.abs(t.x) >= Math.abs(t.z) ? 8.5 : 0.45, LINE);
+        add(x, -0.035, z, Math.abs(t.x) >= Math.abs(t.z) ? 0.45 : 2 * RD.half, 0.02, Math.abs(t.x) >= Math.abs(t.z) ? 2 * RD.half : 0.45, LINE);
       }
       crossings++;
     }
@@ -118,10 +118,10 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
     const pilot = p.x >= pilotX0 + 1.65 && p.x <= pilotX1 - 1.65;
     for (const side of [-1, 1]) {
       const cw = Math.abs(t.x)*.76+Math.abs(t.z)*.18, cd = Math.abs(t.z)*.76+Math.abs(t.x)*.18;
-      const curbX = p.x + nx * side * 4.55, curbZ = p.z + nz * side * 4.55;
+      const curbX = p.x + nx * side * RD.curb, curbZ = p.z + nz * side * RD.curb;
       add(curbX, 0.07, curbZ, cw, 0.1, cd, P.pave);
-      const px = p.x + nx * side * 7.1, pz = p.z + nz * side * 7.1;
-      add(px, -0.02, pz, 3.34, 0.12, 3.34, P.stone);
+      const mid = (RD.padIn + RD.padOut) / 2, px = p.x + nx * side * mid, pz = p.z + nz * side * mid, pw = RD.padOut - RD.padIn, pl = 0.9; // slab: pl along the route, pw across it
+      add(px, -0.02, pz, Math.abs(t.x) * pl + Math.abs(t.z) * pw, 0.12, Math.abs(t.z) * pl + Math.abs(t.x) * pw, P.stone);
       if (pilot && i % 9 === 0) add(px, 0.1005, pz, 0.55, 0.004, 0.55, P.gravel);
     }
   }
@@ -172,7 +172,7 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
   const kq = rng(6403), u0 = (ukStart(stops) - 0.3) / (stops.length - 1), kiosks = [];
   for (let tries = 0; kiosks.length < 15 && tries < 400; tries++) {
     const u = u0 + kq() * (1 - u0), side = kq() < 0.5 ? -1 : 1, p = curve.getPointAt(u), t = curve.getTangentAt(u);
-    const x = p.x - t.z * side * 7.1, z = p.z + t.x * side * 7.1;
+    const x = p.x - t.z * side * RD.furniture, z = p.z + t.x * side * RD.furniture;
     if (!free(x, z) || [...obst, ...kiosks].some(([a, b]) => Math.hypot(a - x, b - z) < 3.5)) continue;
     phoneBox(add, x, z, Math.atan2(t.z * side, -t.x * side)); // door faces the road
     kiosks.push([x, z]);

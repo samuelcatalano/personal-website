@@ -1,4 +1,4 @@
-import { rng, stopIndex, towerX, copan, glasgowSites, RIVER_Z, LANDMARKS as L } from './layout.js';
+import { ROAD, rng, stopIndex, towerX, copan, glasgowSites, RIVER_Z, LANDMARKS as L } from './layout.js';
 // Pure data (no three): people looks and where they walk. Rendering lives in people.js / sprites.js.
 export const SKIN = ['#f6d9c4', '#efc3a0', '#d9a579', '#b9824f', '#8a5a35', '#5e3a22', '#3d2517'];
 const HAIR = ['#1b1714', '#3a2415', '#6b4328', '#d9b86a'], GREY = '#b5b5b0';
@@ -20,8 +20,8 @@ export function makeLook(r) {
     shoulder: height * (female ? 0.24 : adult ? 0.26 : 0.24), speed: adult ? between(r, 1.1, 1.5) : between(r, 0.9, 1.3),
   };
 }
-// Lane offsets sit between the kerb and the sign posts (7.1) and behind them; inner and outer lanes walk opposite ways.
-const LANES = [[5.95, 1], [8.25, -1], [-5.95, -1], [-8.25, 1]];
+// Lane offsets sit on the pavement (ROAD.padIn..padOut), inside the sign posts at ROAD.furniture; inner and outer lanes walk opposite ways.
+const IN = ROAD.padIn + 0.4, OUT = ROAD.padIn + 1.05, LANES = [[IN, 1], [OUT, -1], [-IN, -1], [-OUT, 1]];
 // Plaza rectangles (world x/z), checked free of boxes with a three stub; z is relative to the river line the landmarks hang on.
 export function walkPaths(stops, pts) {
   const X = (k) => pts[stopIndex(stops, L[k])].x, cp = copan(stops, pts), wx = pts[pts.length - 1].x;
