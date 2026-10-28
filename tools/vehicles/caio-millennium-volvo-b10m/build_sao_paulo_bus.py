@@ -22,6 +22,7 @@ BODY_OBJECT = "Object_15"
 FRONT_DETAIL = "Object_6"
 PLANE_OBJECT = "Object_12"
 TRIANGLE_BUDGET = 12_000
+ROLE_MESH_BUDGET = 8
 SOURCE_SCALE = 2.0
 
 PALETTE = {
@@ -187,6 +188,34 @@ def add_wheel_pivots():
             bpy.context.scene.collection.objects.link(pivot)
 
 
+def join_meshes_by_material_role(objects):
+    """Join the disconnected source pieces into one render mesh per Bus* role."""
+    groups = {}
+    for obj in objects:
+        roles = {mat.name for mat in obj.data.materials}
+        if len(roles) != 1:
+            raise RuntimeError(f"Expected one semantic role on {obj.name}, found {sorted(roles)}")
+        groups.setdefault(roles.pop(), []).append(obj)
+
+    for role, members in sorted(groups.items()):
+        bpy.ops.object.select_all(action="DESELECT")
+        for obj in members:
+            obj.select_set(True)
+        active = members[0]
+        bpy.context.view_layer.objects.active = active
+        if len(members) > 1:
+            bpy.ops.object.join()
+        active.name = role
+
+    joined = [o for o in bpy.context.scene.objects if o.type == "MESH"]
+    if len(joined) > ROLE_MESH_BUDGET:
+        raise RuntimeError(f"Role joins yielded {len(joined)} render meshes (budget {ROLE_MESH_BUDGET})")
+    if len({o.data.materials[0].name for o in joined if o.data.materials}) != len(joined):
+        raise RuntimeError("Expected exactly one render mesh per semantic role")
+    print(f"SAO_PAULO_BUS_ROLE_MESHES={len(joined)}/{ROLE_MESH_BUDGET}:{','.join(sorted(o.name for o in joined))}")
+    return joined
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--source", required=True, type=Path, help="Supplied Caio Millennium II Volvo B10M GLB")
@@ -311,6 +340,10 @@ def main():
         raise RuntimeError(f"Decimation yielded {count} triangles (budget {TRIANGLE_BUDGET})")
     if any(o.name == PLANE_OBJECT for o in result_meshes):
         raise RuntimeError("Stray source plane survived cleanup")
+
+    # Preserve the supplied geometry while collapsing the renderer-facing object count.
+    result_meshes = join_meshes_by_material_role(result_meshes)
+    count = triangles(result_meshes)
 
     bpy.ops.object.select_all(action="SELECT")
     bpy.ops.export_scene.gltf(

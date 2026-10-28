@@ -10,11 +10,9 @@ from mathutils import Vector
 
 
 TRIANGLE_BUDGET = 12_000
-ROLES = {
-    "BusBody", "BusAccent", "BusStripe", "BusSweep", "BusSkirtF", "BusTrim",
-    "BusGlass", "BusRubber", "BusMetal", "BusHeadlight", "BusTaillight",
-    "BusDisplay", "BusInterior",
-}
+EXPECTED_TRIANGLES = 6_437
+ROLE_MESH_BUDGET = 8
+ROLES = {"BusBody", "BusAccent", "BusGlass", "BusMetal", "BusRubber", "BusSweep", "BusTaillight", "BusTrim"}
 PIVOTS = {"FL", "FR", "ML", "MR", "RL", "RR"}
 
 
@@ -36,23 +34,28 @@ def main():
     dimensions = hi - lo
     triangles = sum(sum(max(0, p.loop_total - 2) for p in o.data.polygons) for o in meshes)
     roles = {m.name for o in meshes for m in o.data.materials}
+    mesh_roles = [o.data.materials[0].name for o in meshes if len(o.data.materials) == 1]
     pivots = {o.name: o for o in bpy.context.scene.objects if o.type == "EMPTY" and o.name in PIVOTS}
     images = [i.name for i in bpy.data.images if i.source not in {"VIEWER", "GENERATED"}]
-    print(f"MEASURED_BOUNDS lo={tuple(round(v,3) for v in lo)} hi={tuple(round(v,3) for v in hi)} dimensions={tuple(round(v,3) for v in dimensions)} triangles={triangles} pivots={sorted(pivots)} images={images}")
+    print(f"MEASURED_BOUNDS lo={tuple(round(v,3) for v in lo)} hi={tuple(round(v,3) for v in hi)} dimensions={tuple(round(v,3) for v in dimensions)} triangles={triangles} render_meshes={len(meshes)} pivots={sorted(pivots)} images={images}")
 
     assert triangles <= TRIANGLE_BUDGET, f"{triangles} triangles exceeds {TRIANGLE_BUDGET}"
+    assert triangles == EXPECTED_TRIANGLES, f"geometry count changed: expected {EXPECTED_TRIANGLES}, found {triangles}"
+    assert len(meshes) <= ROLE_MESH_BUDGET, f"{len(meshes)} render meshes exceeds the {ROLE_MESH_BUDGET}-draw-call role budget"
+    assert len(mesh_roles) == len(meshes), "each render mesh must use exactly one material role"
+    assert len(set(mesh_roles)) == len(mesh_roles), f"duplicate role meshes would create extra draw calls: {mesh_roles}"
+    assert set(mesh_roles) == ROLES, f"expected one mesh for each role; got {sorted(mesh_roles)}"
     assert "Object_12" not in {o.name for o in meshes}, "source plane survived"
     assert max(dimensions) < 20, f"stray geometry enlarged bounds: {tuple(dimensions)}"
     assert abs(lo.z) < 0.02, f"ground origin is {lo.z:.3f} m"
     assert abs(dimensions.x - 16.758) < 0.05 and abs(dimensions.y - 2.634) < 0.05 and abs(dimensions.z - 3.101) < 0.05
-    assert roles <= ROLES, f"unexpected material roles: {sorted(roles - ROLES)}"
-    assert {"BusBody", "BusGlass", "BusSweep", "BusTrim"} <= roles
+    assert roles == ROLES, f"unexpected material roles: {sorted(roles)}"
     assert not images, f"unexpected external or embedded images: {images}"
     assert set(pivots) == PIVOTS, f"wheel pivot markers missing: {sorted(PIVOTS - set(pivots))}"
     assert all(pivots[n].get("wheel_pivot") and abs(pivots[n].get("wheel_radius", 0) - 0.52) < 1e-6 for n in PIVOTS)
 
     print(f"VALIDATION_OK asset={asset}")
-    print(f"triangles={triangles}/{TRIANGLE_BUDGET} dimensions_m=({dimensions.x:.3f},{dimensions.y:.3f},{dimensions.z:.3f}) grounded_z={lo.z:.3f}")
+    print(f"triangles={triangles}/{TRIANGLE_BUDGET} render_meshes={len(meshes)}/{ROLE_MESH_BUDGET} dimensions_m=({dimensions.x:.3f},{dimensions.y:.3f},{dimensions.z:.3f}) grounded_z={lo.z:.3f}")
     print(f"material_roles={','.join(sorted(roles))} images={len(images)} pivots={','.join(sorted(pivots))}")
 
 
