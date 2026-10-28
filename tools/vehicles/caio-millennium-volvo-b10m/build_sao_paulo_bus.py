@@ -13,6 +13,7 @@ from pathlib import Path
 
 import bpy
 from mathutils import Matrix, Vector
+from mathutils.bvhtree import BVHTree
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -121,31 +122,56 @@ def smooth_points(points, steps=5):
     return result
 
 
-def add_sweep(side_y, sign):
-    # A short, texture-free ribbon follows the supplied SP electric-bus sweep reference.
-    path = smooth_points([
-        (-2.4, 2.50, 0.10),
-        (-3.2, 2.42, 0.18),
-        (-3.9, 1.95, 0.32),
-        (-3.5, 1.35, 0.38),
-        (-4.25, 0.82, 0.25),
-        (-5.25, 0.80, 0.075),
+def add_surface_sweep(body, sign, surface_objects):
+    """Lay a smooth sweep on the outer body and window surfaces of one module."""
+    # The +X module is the front body section. Projecting onto its shell and
+    # glazing lets the sweep cross the dark window band without floating.
+    profile = smooth_points([
+        (2.8, 1.08, 0.025),
+        (3.4, 1.34, 0.16),
+        (4.1, 1.92, 0.25),
+        (4.9, 1.68, 0.30),
+        (5.5, 1.12, 0.27),
+        (6.0, 0.98, 0.19),
+        (6.4, 1.26, 0.025),
     ])
+    surface_vertices, surface_faces = [], []
+    for obj in surface_objects:
+        offset = len(surface_vertices)
+        surface_vertices.extend(vertex.co.copy() for vertex in obj.data.vertices)
+        surface_faces.extend(tuple(index + offset for index in face.vertices) for face in obj.data.polygons)
+    surface = BVHTree.FromPolygons(
+        surface_vertices,
+        surface_faces,
+        all_triangles=True,
+    )
+
     verts, faces = [], []
-    for x, z, half_width in path:
-        y = (side_y - max(0, z - 2.0) * 1.0) * sign
-        # The sweep lies on the flat outer bus side; mirrored to both sides.
-        verts.extend(((x, y, z - half_width), (x, y, z + half_width)))
-    for i in range(len(path) - 1):
+    for x, center_z, half_width in profile:
+        for edge_z in (center_z - half_width, center_z + half_width):
+            hit = None
+            for dz in (0.0, 0.02, -0.02, 0.04, -0.04, 0.06, -0.06, 0.08, -0.08):
+                origin = Vector((x, sign * 1.8, edge_z + dz))
+                candidate = surface.ray_cast(origin, Vector((0, -sign, 0)), 1.5)
+                if candidate[0] is not None and abs(candidate[1].y) >= 0.65:
+                    hit = candidate
+                    break
+            if not hit:
+                raise RuntimeError(f"Sweep could not follow body side at x={x:.2f}, z={edge_z:.2f}; hit={hit}")
+            point, normal = hit[0], hit[1]
+            if normal.y * sign < 0:
+                normal.negate()
+            verts.append(tuple(point + normal * 0.006))
+
+    for i in range(len(profile) - 1):
         a = 2 * i
         faces.append((a, a + 1, a + 3, a + 2))
-    mesh = bpy.data.meshes.new("SaoPauloBlueSweep")
+    mesh = bpy.data.meshes.new("SaoPauloSurfaceSweep")
     mesh.from_pydata(verts, [], faces)
     mesh.materials.append(material("BusSweep"))
     mesh.update()
     obj = bpy.data.objects.new("BusSweep_L" if sign > 0 else "BusSweep_R", mesh)
     bpy.context.scene.collection.objects.link(obj)
-    return obj
 
 
 def add_wheel_pivots():
@@ -239,10 +265,9 @@ def main():
         obj.data.materials.append(material(role))
 
     body.data.update()
-    body_points = [Vector(c) for c in body.bound_box]
-    half_width = max(abs(p.y) for p in body_points) - 0.09
-    add_sweep(half_width, 1)
-    add_sweep(half_width, -1)
+    side_surfaces = [o for o in meshes if o.data.materials and o.data.materials[0].name in {"BusBody", "BusGlass", "BusTrim"}]
+    add_surface_sweep(body, 1, side_surfaces)
+    add_surface_sweep(body, -1, side_surfaces)
     add_wheel_pivots()
 
     # Uniform collapse keeps the supplied meshes and their silhouette while fitting the hero budget.

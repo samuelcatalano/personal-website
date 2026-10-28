@@ -44,7 +44,7 @@ def main():
     assert "Object_12" not in {o.name for o in meshes}, "source plane survived"
     assert max(dimensions) < 20, f"stray geometry enlarged bounds: {tuple(dimensions)}"
     assert abs(lo.z) < 0.02, f"ground origin is {lo.z:.3f} m"
-    assert abs(dimensions.x - 16.758) < 0.05 and abs(dimensions.y - 3.251) < 0.05 and abs(dimensions.z - 3.101) < 0.05
+    assert abs(dimensions.x - 16.758) < 0.05 and abs(dimensions.y - 2.634) < 0.05 and abs(dimensions.z - 3.101) < 0.05
     assert roles <= ROLES, f"unexpected material roles: {sorted(roles - ROLES)}"
     assert {"BusBody", "BusGlass", "BusSweep", "BusTrim"} <= roles
     assert not images, f"unexpected external or embedded images: {images}"
