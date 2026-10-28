@@ -234,7 +234,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     sky.update(night, dt, camera.position, camera, mood, flash);
     skyline.userData.update(night);
     wetSurfaces.update(clock, wet, mood.rain, night, camera.position, sky.colors, bus.position, bus.rotation.y, post.tier);
-    updateBeams(night); pools.update(night, wet);
+    updateBeams(night); pools.update(night, wet); lampPosts?.userData.setNight?.(night);
     water.update(clock, night, mood, post.tier, sky.colors);
     world.userData.updateLandmarkNight?.(night);
     updateVehicleEnv(night);
