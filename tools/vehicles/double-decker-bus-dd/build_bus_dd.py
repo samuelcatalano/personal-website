@@ -13,7 +13,7 @@ a = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 SRC = a[0] if a else os.path.join(ROOT, 'assets/models/source/london-bus/london_dd_bus.glb')
 OUT = a[1] if len(a) > 1 else os.path.join(ROOT, 'assets/vehicles/double-decker-bus.glb')
 S = 0.0240                       # source inches -> metres, tuned so the hull is ~11.6 m (old bus 11.2 m) and the wheels r 0.445 (old 0.47)
-DISSOLVE = dict(BusGlass=1.5, BusBody=2.0, BusAccent=2.0, BusStripe=2.0, BusTrim=2.0, BusInterior=4.0)   # planar dissolve angle per bucket (degrees)
+DISSOLVE = dict(BusGlass=1.5, BusBody=2.0, BusAccent=2.0, BusStripe=2.0, BusTrim=2.0, BusInterior=4.0, BusSkirtF=2.0, BusSweep=2.0, BusLilac=2.0, BusRear=2.0)   # planar dissolve angle per bucket (degrees)
 INTERIOR_TRIS = 650              # what the saloon silhouette seen through the glass may cost
 # measured on the source tyres (metres after the bake): axle x, tyre centre |y|, tyre half width, radius
 WHEELS = dict(FL=(3.015, 0.998, 0.130), FR=(3.015, -0.998, 0.130), RL=(-2.826, 0.950, 0.180), RR=(-2.826, -0.950, 0.180)); WR = 0.445
@@ -47,7 +47,9 @@ MATS = dict(BusBody=mat('BusBody', '#c9252b', 0.38), BusAccent=mat('BusAccent', 
             BusTrim=mat('BusTrim', '#0d0e10', 0.35), BusGlass=mat('BusGlass', '#2a4558', 0.05, 0.0, 0.6), BusRubber=mat('BusRubber', '#242629', 0.85),
             BusMetal=mat('BusMetal', '#d4d7da', 0.4, 0.4), BusHeadlight=mat('BusHeadlight', '#fff3d6', 0.2, 0, 1, 2.0),
             BusTaillight=mat('BusTaillight', '#c01414', 0.3, 0, 1, 1.0), BusDisplay=mat('BusDisplay', '#3a2a08', 0.3, 0, 1, 1.2),
-            BusInterior=mat('BusInterior', '#2a2622', 0.9))
+            BusInterior=mat('BusInterior', '#2a2622', 0.9),
+            # Glasgow-only regions (London falls back to body / accent): front skirt, white sweep, lilac band, rear violet
+            BusSkirtF=mat('BusSkirtF', '#8e1a1f', 0.4), BusSweep=mat('BusSweep', '#c9252b', 0.4), BusLilac=mat('BusLilac', '#c9252b', 0.4), BusRear=mat('BusRear', '#c9252b', 0.4))
 BUCKETS = list(MATS)
 
 # ---- 1. bake: inches, nose -Y, up +Z, left +X  ->  metres, nose +X, up +Z, left +Y (glTF export maps to three.js forward +X, up +Y, right +Z)
@@ -98,7 +100,10 @@ def diag(x, z0, slope):   # plane through (x, z0) with z - z0 = slope (x' - x)
 KICK_Z = (SKIRT_Z + 0.04, 1.20); KICK_SLOPE = 0.55   # x shifts back 0.55 m per metre of height; ends below the rear window sill (1.30 - frame), never on glass
 kick_x = lambda z, x0_: x0_ - KICK_SLOPE * (z - KICK_Z[0])
 KICK = ((-3.80, -4.05, 'BusStripe'), (-4.12, -4.30, 'BusStripe'))   # (x_front, x_back, bucket) at z = KICK_Z[0]; both pink on Glasgow, body colour on London
-CUTS = [(Vector((0, 0, z)), Vector((0, 0, 1))) for z in (SKIRT_Z, SW_LO, SW_HI, *FRONT_LINE, KICK_Z[1])] + [diag(SW_KINK_LO, SW_LO, SW_SLOPE_LO), diag(SW_KINK_HI, SW_HI, SW_SLOPE_HI), (Vector((SW_X1, 0, 0)), Vector((1, 0, 0)))]
+# diagonal livery sweep: t = x + SWEEP_K (z - 0.3); t > T_FRONT is the front colour, then white, lilac and rear bands (rising forward-to-back)
+SWEEP_K, T_FRONT, T_WHITE, T_LILAC = 0.68, 3.0, 2.55, 2.0
+CUTS = [(Vector((t + SWEEP_K * 0.3, 0, 0)), Vector((1, 0, SWEEP_K)).normalized()) for t in (T_FRONT, T_WHITE, T_LILAC)]
+CUTS += [(Vector((0, 0, z)), Vector((0, 0, 1))) for z in (SKIRT_Z, SW_LO, SW_HI, *FRONT_LINE, KICK_Z[1])] + [diag(SW_KINK_LO, SW_LO, SW_SLOPE_LO), diag(SW_KINK_HI, SW_HI, SW_SLOPE_HI), (Vector((SW_X1, 0, 0)), Vector((1, 0, 0)))]
 CUTS += [(Vector((xs, 0, KICK_Z[0])), Vector((1, 0, KICK_SLOPE)).normalized()) for xs in sorted({k[0] for k in KICK} | {k[1] for k in KICK})]
 for kind, a0, a1, z0, z1, sg in PANES:
     ax = Vector((1, 0, 0)) if kind == 'side' else Vector((0, 1, 0))
@@ -152,7 +157,9 @@ def shell_bucket(p, flip=False):
     if in_frame(p): return 'BusTrim'
     if z < LIP_Z: return 'BusTrim'
     if any(abs(y) > 0.9 and math.hypot(x - wx, z - WR) < WR + ARCH_W for wx in (WHEELS['FL'][0], WHEELS['RL'][0])): return 'BusTrim'
-    if z < SKIRT_Z: return 'BusAccent'
+    t = x + SWEEP_K * (z - 0.3)
+    if z < SKIRT_Z: return 'BusSkirtF' if t > T_FRONT else 'BusAccent'
+    if t <= T_FRONT: return 'BusSweep' if t > T_WHITE else 'BusLilac' if t > T_LILAC else 'BusRear'
     side = abs(ny) > 0.35
     if side and x < SW_X1 and line_lo(x) < z < line_hi(x): return 'BusStripe'
     if side and KICK_Z[0] < z < KICK_Z[1]:

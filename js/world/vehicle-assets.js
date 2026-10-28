@@ -35,7 +35,8 @@ export function adoptVisual(vehicle, visual, keep) {
 // project's shared materials (so night glow, cabin light and destination displays keep working through sky.update).
 export const BUS_VARIANTS = {
   london: { body: '#b52a2d', accent: '#7e1c20', dest: ['london', '19', 'Finsbury Park', '#ffb347'] }, // no stripe: BusStripe falls back to the body red
-  glasgow: { body: '#f2f4f7', accent: '#1f3fa8', stripe: '#e0337a', dest: ['glasgow', '6', 'Renfrew Street', '#ff7a1a'] }, // stylised McGill's-style repaint, no logos
+  // stylised First-Glasgow-style repaint from reference photos (colour blocking only, no logos/text): lime front, white diagonal sweep, lilac band, violet rear
+  glasgow: { body: '#f2e31b', accent: '#5f57a0', stripe: '#f2e31b', skirtF: '#b8ab14', sweep: '#f4f4f6', lilac: '#c7c1e8', rear: '#7d74c0', dest: ['glasgow', '6', 'Renfrew Street', '#ff7a1a'] },
 };
 // GLB material names are semantic; each maps to a shared project material (night glow keeps working through sky.update).
 // Realistic finish for the authored cars: clear-coated paint, metal chrome and reflective glass, all lit by one small
@@ -82,7 +83,7 @@ const CAB_FINISH = {
 };
 const ROLES = {
   ...CAB_FINISH,
-  BusBody: (v) => paint(v.body, true), BusAccent: (v) => paint(v.accent, true), BusStripe: (v) => paint(v.stripe ?? v.body, true), BusTrim: () => fixed('dark'), BusGlass: () => fixed('busGlass'),
+  BusBody: (v) => paint(v.body, true), BusAccent: (v) => paint(v.accent, true), BusStripe: (v) => paint(v.stripe ?? v.body, true), BusSkirtF: (v) => paint(v.skirtF ?? v.accent, true), BusSweep: (v) => paint(v.sweep ?? v.body, true), BusLilac: (v) => paint(v.lilac ?? v.body, true), BusRear: (v) => paint(v.rear ?? v.body, true), BusTrim: () => fixed('dark'), BusGlass: () => fixed('busGlass'),
   BusRubber: () => fixed('tyre'), BusMetal: () => fixed('chrome'), BusHeadlight: () => fixed('head'), BusTaillight: () => fixed('tail'),
   BusDisplay: (v) => destMat(...v.dest), BusInterior: () => fixed('cabin'),
   CarBody: (v) => carPaint(v.body), CarRoof: (v) => carPaint(v.roof), CarGlass: CAR_FINISH.CarGlass, CarTrim: CAR_FINISH.CarTrim, CarInterior: () => phys('miniInterior', () => new THREE.MeshStandardMaterial({ color: '#655d51', roughness: 0.85, envMapIntensity: 0.18 })), CarPlate: () => fixed('plate'), CarRim: CAR_FINISH.CarRim,
@@ -100,7 +101,7 @@ const FLEET_FINISH = {
     return m;
   }),
 };
-const CASTS = new Set(['BusBody', 'BusAccent', 'BusStripe', 'CarBody', 'CarRoof', 'CabBody']); // only painted shells cast: trim/glass/wheels add shadow-pass calls for no visible gain
+const CASTS = new Set(['BusBody', 'BusAccent', 'BusStripe', 'BusSkirtF', 'BusSweep', 'BusLilac', 'BusRear', 'CarBody', 'CarRoof', 'CabBody']); // only painted shells cast: trim/glass/wheels add shadow-pass calls for no visible gain
 const WHEELS = ['FL', 'FR', 'RL', 'RR'];
 // Dark static disc behind each wheel, appended to the body's rubber (no extra call): hides the authored tyre/rim gap that would flicker once spinning.
 function withDiscs(g, keep, xs, r, half, seg = 20) {
