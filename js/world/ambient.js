@@ -15,7 +15,7 @@ function boat(hull = '#6b4f3a', cabin = '#f4f4f4', sx = 1) {
 }
 // Traffic. `relative` vehicles keep a fixed offset from the player (same lane, glued to the scroll position); the rest drive the oncoming lane on their own:
 // a base speed by type, eased down toward a zebra crossing (and back up) by integrating acceleration each frame, a minimum gap to the vehicle ahead, yaw eased toward the road tangent.
-const FADE = 0.5; // s: vehicles fade in/out instead of popping (instant under reduced motion)
+const FADE = 0.8; // s: vehicles fade in/out instead of popping (instant under reduced motion)
 const HIDE = 110; // m from the player beyond which an ambient vehicle may appear/vanish at a region border
 const BRIDGE_FAR = 80; // m: Estaiada cars only appear/vanish beyond this from the player
 const SPEED = { london: 10, glasgow: 10, cab: 13, mini: 13, car: 13.5 }; // m/s
