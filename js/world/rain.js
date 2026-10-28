@@ -22,7 +22,7 @@ export function createRain(scene, { reducedMotion = false, lamps = [] } = {}) {
   const material = new THREE.ShaderMaterial({
     transparent:true,depthWrite:false,fog:false,side:THREE.DoubleSide,forceSinglePass:true,
     uniforms,
-    vertexShader: `attribute vec2 aCorner,aSeed;uniform float uTime,uFall,uWind,uResolution;uniform vec3 uTravel,uCenter,uForward;varying vec3 vWorld;varying vec2 vCorner;varying float vSeed,vDepth;
+    vertexShader: `attribute vec2 aCorner,aSeed;uniform float uTime,uFall,uWind,uResolution;uniform vec3 uTravel,uCenter,uForward;varying vec3 vWorld;varying vec2 vCorner;varying float vSeed,vDepth,vNear;
       void main(){
         float layer=aSeed.y;vec3 box=vec3(36.0+layer*34.0,42.0+layer*8.0,36.0+layer*34.0);
         vec3 center=uCenter+uForward*layer*16.0;
@@ -30,15 +30,17 @@ export function createRain(scene, { reducedMotion = false, lamps = [] } = {}) {
         vec3 velocity=vec3((2.0+sin(uTime*.31)*1.5)*uWind,-speed,sin(uTime*.17)*uWind);
         vec3 drift=vec3(uTravel.x,-baseSpeed*uTravel.y,uTravel.z);
         vec3 p=mod(position+drift-center+box*.5,box)-box*.5+center;
-        p-=normalize(velocity)*(.55+aSeed.x*.8)*(1.7-layer*.45)*uFall*aCorner.y;
-        vWorld=p;vCorner=aCorner;vSeed=aSeed.x;
+        // Near drops get shorter tails and fade in with distance so they do not smear across the frame.
+        float near=clamp(-(viewMatrix*vec4(p,1.0)).z/14.0,.3,1.0);
+        p-=normalize(velocity)*(.55+aSeed.x*.8)*(1.7-layer*.45)*uFall*aCorner.y*near;
+        vWorld=p;vCorner=aCorner;vSeed=aSeed.x;vNear=near;
         vec4 mv=viewMatrix*vec4(p,1.0);vDepth=-mv.z;
         float width=(.009+aSeed.x*.006)*(1.5-layer*.35);
         mv.x+=aCorner.x*max(width,-mv.z/uResolution*.35);
         gl_Position=projectionMatrix*mv;
       }`,
     fragmentShader: `uniform float uRain,uNight;uniform vec3 uCenter,uLamps[4],uBus;uniform vec2 uHeading;
-      varying vec3 vWorld;varying vec2 vCorner;varying float vSeed,vDepth;
+      varying vec3 vWorld;varying vec2 vCorner;varying float vSeed,vDepth,vNear;
       void main(){
         float lamp=0.0;for(int i=0;i<4;i++){vec3 d=vWorld-uLamps[i];lamp+=exp(-dot(d.xz,d.xz)*.065)*exp(-abs(d.y)*.35);}
         vec2 toDrop=vWorld.xz-uBus.xz;float beam=pow(max(dot(normalize(toDrop+vec2(.001)),uHeading),0.0),16.0)*exp(-length(toDrop)*.10);
@@ -46,7 +48,7 @@ export function createRain(scene, { reducedMotion = false, lamps = [] } = {}) {
         float a=(.20+vSeed*.22+light*.30)*uRain;
         // MSAA can extrapolate varyings past the covered samples: negative fractional powers poison bloom.
         a*=pow(clamp(1.0-vCorner.y,0.0,1.0),1.2)*(1.0-smoothstep(.4,1.0,abs(vCorner.x)));
-        a*=smoothstep(.1,1.8,vWorld.y)*(1.0-smoothstep(70.0,135.0,vDepth));
+        a*=mix(.45,1.0,vNear)*smoothstep(.1,1.8,vWorld.y)*(1.0-smoothstep(70.0,135.0,vDepth));
         // ponytail: background brightness is approximated by drop elevation, upgrade only with an already available depth/colour buffer.
         a*=mix(1.0,.25,smoothstep(uCenter.y+4.0,uCenter.y+20.0,vWorld.y));
         gl_FragColor=vec4(mix(vec3(.34,.46,.58),vec3(.95,.79,.52),clamp(light,0.0,1.0)),clamp(a,0.0,1.0));

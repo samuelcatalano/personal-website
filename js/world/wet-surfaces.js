@@ -42,9 +42,17 @@ vec3 wetWorldNormal = inverseTransformDirection(normal, viewMatrix);
 float wetMask = uWet * smoothstep(0.45, 0.85, wetWorldNormal.y);
 float wetPuddle = 0.0;
 // ponytail: ground-level puddles stay off shared roof faces; add surface tags if elevated decks need puddles.
-if (wetMask > 0.001 && vWetWorld.y < 0.4) wetPuddle = wetMask * smoothstep(0.40, 0.68, wetNoise(vWetWorld.xz * 0.42));
-diffuseColor.rgb *= 1.0 - 0.24 * wetMask;
-roughnessFactor = mix(roughnessFactor, max(0.13, roughnessFactor * 0.53), wetMask);
+if (wetMask > 0.001 && vWetWorld.y < 0.4) {
+  // Dark base colour = asphalt; light = pavement. Pools cluster in low-frequency basins and stay small with feathered edges.
+  float wetRoad = 1.0 - smoothstep(0.10, 0.22, dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11)));
+  float basin = wetNoise(vWetWorld.xz * 0.09 + 7.0);
+  float pool = wetNoise(vWetWorld.xz * 0.55) * 0.65 + wetNoise(vWetWorld.xz * 1.9) * 0.35;
+  float edge = mix(0.80, 0.73, wetRoad) - 0.10 * smoothstep(0.45, 0.8, basin);
+  wetPuddle = wetMask * smoothstep(edge, edge + 0.10, pool) * (0.45 + 0.55 * wetRoad);
+}
+diffuseColor.rgb *= 1.0 - 0.30 * wetMask * (0.5 + 0.5 * mix(0.4, 1.0, wetNoise(vWetWorld.xz * 0.3)));
+diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 1.5 + 0.03, wetPuddle * 0.6);
+roughnessFactor = mix(roughnessFactor, max(0.22, roughnessFactor * 0.45), wetMask);
 roughnessFactor = mix(roughnessFactor, 0.12, wetPuddle);
 float wetGlint = 0.0;
 if (uWetHigh > 0.5 && uWetAnimate > 0.5 && uWetRain > 0.01 && wetPuddle > 0.001) {
@@ -63,7 +71,7 @@ if (wetPuddle > 0.001) {
   vec3 wetRay = inverseTransformDirection(reflect(-wetView, normal), viewMatrix);
   float wetFresnel = pow(1.0 - clamp(dot(normal, wetView), 0.0, 1.0), 3.0);
   vec3 wetSky = mix(uWetHorizon, uWetSky, smoothstep(0.0, 0.7, wetRay.y));
-  outgoingLight = mix(outgoingLight, wetSky, wetPuddle * (0.25 + 0.55 * wetFresnel));
+  outgoingLight = mix(outgoingLight, wetSky, wetPuddle * (0.5 + 0.4 * wetFresnel));
   if (uWetNight > 0.01) {
     float wetLights = 0.0;
     // ponytail: four nearby lamps (two below high) bound fragment cost; expand only after measured reflection gaps.
@@ -103,7 +111,7 @@ function register(material) {
       .replace('#include <lights_physical_fragment>', surface + '\n#include <lights_physical_fragment>')
       .replace('#include <opaque_fragment>', reflection + '\n#include <opaque_fragment>');
   };
-  material.customProgramCacheKey = function() { return (defaultKey ?? key.call(this)) + '-wet-surfaces-v2'; };
+  material.customProgramCacheKey = function() { return (defaultKey ?? key.call(this)) + '-wet-surfaces-v3'; };
   material.needsUpdate = true;
   registrations.set(material, entry);
   return entry;
