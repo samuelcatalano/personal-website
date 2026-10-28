@@ -8,8 +8,9 @@ const DITHER = 'void main() {\n if (fract(52.9829189 * fract(dot(gl_FragCoord.xy
 function patch(m) {
   if (m.userData.dither) return;
   m.userData.dither = true;
-  m.onBeforeCompile = (s) => { s.uniforms.uFade = U; s.fragmentShader = 'uniform float uFade;\n' + s.fragmentShader.replace('void main() {', DITHER); };
-  m.customProgramCacheKey = () => 'dither';
+  const prev = m.onBeforeCompile, key = m.customProgramCacheKey();
+  m.onBeforeCompile = (s, r) => { prev?.(s, r); s.uniforms.uFade = U; s.fragmentShader = 'uniform float uFade;\n' + s.fragmentShader.replace('void main() {', DITHER); };
+  m.customProgramCacheKey = () => 'dither' + key;
 }
 const DEPTH = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking }); patch(DEPTH);
 const opacityOnly = (m) => m.isShaderMaterial || m.blending === THREE.AdditiveBlending;

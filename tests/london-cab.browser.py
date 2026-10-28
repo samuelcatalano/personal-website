@@ -54,11 +54,11 @@ print(js(r'''(async () => {
   const glass = visuals[0].getObjectByName('CabGlass').material, trim = visuals[0].getObjectByName('CabTrim').material;
   check(body.emissive.getHex() === 0 && body.color.r < 0.04 && Math.abs(body.color.r - body.color.g) < 0.01, 'neutral dark body is non-emissive');
   assets.updateVehicleEnv(0); const day = lamp.emissiveIntensity;
-  check(body.envMapIntensity === 0.28 && glass.envMapIntensity === 0.6 && trim.envMapIntensity === 0.7, 'cab day reflection unchanged');
+  check(body.envMapIntensity === 0.4 && glass.envMapIntensity === 0.6 && trim.envMapIntensity === 0.7, 'cab day reflection unchanged');
   assets.updateVehicleEnv(1);
   check(body.envMapIntensity === 0.16 && glass.envMapIntensity === 0.28 && trim.envMapIntensity === 0.18 && body.emissive.getHex() === 0, 'cab night reflection floors keep body non-emissive');
   check(lamp.emissive.r === lamp.emissive.g && lamp.emissive.g === lamp.emissive.b && lamp.emissiveIntensity > day, 'neutral light emission preserves vertex red/amber/white at night');
-  const shader = { fragmentShader: '#include <emissivemap_fragment>' }; lamp.onBeforeCompile(shader);
+  const shader = { uniforms: {}, vertexShader: '', fragmentShader: '#include <emissivemap_fragment>' }; lamp.onBeforeCompile(shader);
   check(shader.fragmentShader.includes('totalEmissiveRadiance *= vColor.rgb'), 'lamp shader tints emission with authored vertex colors');
   assets.updateVehicleEnv(0);
   const renderer = new THREE.WebGLRenderer(); renderer.setSize(64, 64);

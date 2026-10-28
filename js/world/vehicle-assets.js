@@ -43,7 +43,7 @@ export const BUS_VARIANTS = {
 // prefiltered studio environment generated in-browser (no texture download). Only these materials get it, so the rest of
 // the scene keeps its approved look; intensity follows day/night (updateVehicleEnv).
 let envTex = null; const envMats = new Set(), physCache = new Map();
-const CAB_ENV_NIGHT = [['cabBody', 0.16], ['cabGlass', 0.28], ['cabTrim', 0.18]];
+const CAB_ENV_NIGHT = [['cabBody', 0.16], ['cabGlass', 0.28], ['cabTrim', 0.18], ['fleetGlass', 0.2], ['busGlass', 0.2]];
 export function initVehicleEnv(renderer) {
   if (envTex) return;
   const pm = new THREE.PMREMGenerator(renderer); envTex = pm.fromScene(new RoomEnvironment(), 0.04).texture; pm.dispose();
@@ -55,22 +55,37 @@ export function updateVehicleEnv(night) {
     const m = physCache.get(key); if (m) m.envMapIntensity = m.userData.envDay * (1 - night) + floor * night;
   }
   const glass = physCache.get('glass'); if (glass) glass.envMapIntensity = glass.userData.envDay * (1 - night) + 0.13 * night;
+  const bg = physCache.get('busGlass'); if (bg) { bg.emissive ??= new THREE.Color(); bg.emissive.set('#ffe0b0').multiplyScalar(0.14 * night); } // saloon light through the glass
   const fleetLights = physCache.get('fleetLights'); if (fleetLights) fleetLights.emissiveIntensity = 0.9 * night;
   const lights = physCache.get('cabLights'); if (lights) lights.emissiveIntensity = 0.9 * night;
 }
 const phys = (key, make) => physCache.get(key) ?? physCache.set(key, (() => {
   const m = make(); m.userData.envDay = m.envMapIntensity; if (envTex) m.envMap = envTex; envMats.add(m); return m;
 })()).get(key);
-const carPaint = (c) => phys('paint' + c, () => new THREE.MeshPhysicalMaterial({ color: c, roughness: 0.32, metalness: 0.05, clearcoat: 1, clearcoatRoughness: 0.06, envMapIntensity: 0.28 }));
+// Shader tweaks chained onto a material (fade.js chains its dither after them). Underbody: darkens paint toward the ground (sills,
+// arches, shadowed lower body) from the model-space height. Fresnel: glass turns opaque/mirror-like at grazing angles.
+const tweak = (m, key, vert, frag) => {
+  const prev = m.onBeforeCompile;
+  m.onBeforeCompile = (s, r) => { prev?.(s, r); s.vertexShader = vert(s.vertexShader); s.fragmentShader = frag(s.fragmentShader); };
+  m.customProgramCacheKey = () => key; return m;
+};
+const lowAO = (m) => tweak(m, 'lowAO', (v) => 'varying float vH;\n' + v.replace('#include <begin_vertex>', '#include <begin_vertex>\n vH = position.y;'),
+  (f) => 'varying float vH;\n' + f.replace('#include <color_fragment>', '#include <color_fragment>\n diffuseColor.rgb *= mix(0.32, 1.0, smoothstep(0.1, 0.55, vH));'));
+const fresnel = (m, a0) => tweak(m, 'fres' + a0, (v) => v,
+  (f) => f.replace('#include <opaque_fragment>', 'diffuseColor.a = mix(' + a0.toFixed(2) + ', 1.0, pow(1.0 - clamp(abs(dot(normalize(vNormal), normalize(vViewPosition))), 0.0, 1.0), 2.5));\n#include <opaque_fragment>'));
+const carPaint = (c) => phys('paint' + c, () => lowAO(new THREE.MeshPhysicalMaterial({ color: c, roughness: 0.34, metalness: 0.08, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 0.34 })));
+const busPaint = (c) => phys('busPaint' + c, () => lowAO(new THREE.MeshPhysicalMaterial({ color: c, roughness: 0.45, metalness: 0.05, clearcoat: 0.35, clearcoatRoughness: 0.3, envMapIntensity: 0.06 })));
+// Automotive glass: dark blue-green tint, mirror-like at grazing angles, clearer head-on; vertex colours (where authored) carry the frit border.
+const glass = (key, color, a0, env, vc) => phys(key, () => fresnel(new THREE.MeshPhysicalMaterial({ color, vertexColors: !!vc, roughness: 0.04, metalness: 0, envMapIntensity: env, transparent: true, opacity: a0, depthWrite: false }), a0));
 const CAR_FINISH = {
   CarChrome: () => phys('chrome', () => new THREE.MeshPhysicalMaterial({ color: '#e4e6e8', roughness: 0.14, metalness: 1, envMapIntensity: 0.7 })),
   CarRim: () => phys('rim', () => new THREE.MeshPhysicalMaterial({ color: '#4a4e54', roughness: 0.28, metalness: 0.85, clearcoat: 0.6, envMapIntensity: 0.5 })),
-  CarGlass: () => phys('glass', () => { const m = new THREE.MeshPhysicalMaterial({ color: '#2a3b44', roughness: 0.06, metalness: 0.05, envMapIntensity: 0.45, transparent: true, opacity: 0.72, depthWrite: false }); return m; }),
+  CarGlass: () => glass('glass', '#08141b', 0.78, 0.6),
   CarTrim: () => phys('trim', () => new THREE.MeshPhysicalMaterial({ color: '#16181b', roughness: 0.55, metalness: 0, clearcoat: 0.3, envMapIntensity: 0.25 })),
 };
 const CAB_FINISH = {
-  CabBody: () => phys('cabBody', () => new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.008, 0.009, 0.011), vertexColors: true, roughness: 0.29, metalness: 0.12, clearcoat: 1, clearcoatRoughness: 0.06, envMapIntensity: 0.28 })),
-  CabGlass: () => phys('cabGlass', () => new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.055, 0.085, 0.10), vertexColors: true, roughness: 0.12, metalness: 0.05, envMapIntensity: 0.6, transparent: true, opacity: 0.32, depthWrite: false })),
+  CabBody: () => phys('cabBody', () => lowAO(new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.008, 0.009, 0.011), vertexColors: true, roughness: 0.29, metalness: 0.12, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 0.4 }))),
+  CabGlass: () => glass('cabGlass', new THREE.Color(0.05, 0.085, 0.10), 0.62, 0.6, true),
   CabRubber: () => phys('cabRubber', () => new THREE.MeshStandardMaterial({ color: new THREE.Color(0.015, 0.018, 0.021), vertexColors: true, roughness: 0.8, envMapIntensity: 0.1 })),
   CabTrim: () => phys('cabTrim', () => new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.53, 0.57, 0.61), vertexColors: true, roughness: 0.23, metalness: 0.8, envMapIntensity: 0.7 })),
   CabInterior: () => phys('cabInterior', () => new THREE.MeshStandardMaterial({ color: new THREE.Color(0.075, 0.081, 0.088), vertexColors: true, roughness: 0.85, envMapIntensity: 0.1 })),
@@ -83,15 +98,15 @@ const CAB_FINISH = {
 };
 const ROLES = {
   ...CAB_FINISH,
-  BusBody: (v) => paint(v.body, true), BusAccent: (v) => paint(v.accent, true), BusStripe: (v) => paint(v.stripe ?? v.body, true), BusSkirtF: (v) => paint(v.skirtF ?? v.accent, true), BusSweep: (v) => paint(v.sweep ?? v.body, true), BusLilac: (v) => paint(v.lilac ?? v.body, true), BusRear: (v) => paint(v.rear ?? v.body, true), BusTrim: () => fixed('dark'), BusGlass: () => fixed('busGlass'),
+  BusBody: (v) => busPaint(v.body), BusAccent: (v) => busPaint(v.accent), BusStripe: (v) => busPaint(v.stripe ?? v.body), BusSkirtF: (v) => busPaint(v.skirtF ?? v.accent), BusSweep: (v) => busPaint(v.sweep ?? v.body), BusLilac: (v) => busPaint(v.lilac ?? v.body), BusRear: (v) => busPaint(v.rear ?? v.body), BusTrim: () => fixed('dark'), BusGlass: () => glass('busGlass', '#07121a', 0.96, 0.6),
   BusRubber: () => fixed('tyre'), BusMetal: () => fixed('chrome'), BusHeadlight: () => fixed('head'), BusTaillight: () => fixed('tail'),
   BusDisplay: (v) => destMat(...v.dest), BusInterior: () => fixed('cabin'),
   CarBody: (v) => carPaint(v.body), CarRoof: (v) => carPaint(v.roof), CarGlass: CAR_FINISH.CarGlass, CarTrim: CAR_FINISH.CarTrim, CarInterior: () => phys('miniInterior', () => new THREE.MeshStandardMaterial({ color: '#655d51', roughness: 0.85, envMapIntensity: 0.18 })), CarPlate: () => fixed('plate'), CarRim: CAR_FINISH.CarRim,
   CarChrome: CAR_FINISH.CarChrome, CarHeadlight: () => fixed('head'), CarTaillight: () => fixed('tail'),
 };
 const FLEET_FINISH = {
-  FleetBody: (v) => phys('fleetBody' + v.body, () => new THREE.MeshPhysicalMaterial({ color: v.body, vertexColors: true, roughness: 0.32, metalness: 0.05, clearcoat: 1, clearcoatRoughness: 0.06, envMapIntensity: 0.28 })),
-  FleetGlass: () => phys('fleetGlass', () => new THREE.MeshPhysicalMaterial({ color: '#a4b4bb', vertexColors: true, roughness: 0.12, transparent: true, opacity: 0.55, depthWrite: false, envMapIntensity: 0.32 })),
+  FleetBody: (v) => phys('fleetBody' + v.body, () => lowAO(new THREE.MeshPhysicalMaterial({ color: v.body, vertexColors: true, roughness: 0.34, metalness: 0.08, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 0.34 }))),
+  FleetGlass: () => glass('fleetGlass', '#2c3f48', 0.72, 0.6, true),
   FleetTrim: () => phys('fleetTrim', () => new THREE.MeshPhysicalMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.3, metalness: 0.45, envMapIntensity: 0.35 })),
   FleetRubber: () => phys('fleetRubber', () => new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.8, envMapIntensity: 0.1 })),
   FleetInterior: () => phys('fleetInterior', () => new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.85, envMapIntensity: 0.1 })),
