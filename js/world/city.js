@@ -93,7 +93,7 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
     const p = curve.getPointAt(u), t = curve.getTangentAt(u);
     const nx = -t.z, nz = t.x;
     const local = isWembleyBenchmark({ x: p.x, z: p.z });
-    add(p.x, -0.18, p.z, 8.5, 0.25, 8.5, ROAD);
+    add(p.x, -0.18, p.z, 8.5, 0.24, 8.5, ROAD); // top 0.06: 1 cm under the 0.07 pavements/tiles/lawns that overlap it
     // painted lines: roadmarks.js
     if (crossings < 2 && p.x >= (crossings ? pilotX1 - 4 : pilotX0 + 4) && p.x <= pilotX1 - 2) {
       for (let k = -2; k <= 2; k++) {
@@ -122,7 +122,7 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
       add(curbX, 0.07, curbZ, cw, 0.1, cd, P.pave);
       const px = p.x + nx * side * 7.1, pz = p.z + nz * side * 7.1;
       add(px, -0.02, pz, 3.34, 0.12, 3.34, P.stone);
-      if (pilot && i % 9 === 0) add(px, 0.1005, pz, 0.55, 0.004, 0.55, P.gravel);
+      if (pilot && i % 9 === 0) add(px, 0.12, pz, 0.55, 0.004, 0.55, P.gravel);
     }
   }
   // Frontage sites: every stop plus filler sites (same 30 m rhythm) along the gaps; the long gaps only keep the London ones (country.js builds the outskirts between)
