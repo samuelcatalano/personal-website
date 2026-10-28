@@ -62,8 +62,8 @@ print(js(r'''(async () => {
   check(spWheels.length === 3 && spWheels.map(w => w.name).join(',') === 'FL-FR,ML-MR,RL-RR' && spWheels.every(w => w.children.some(m => m.isMesh && m.geometry.index?.count) && w.userData.radius === 0.52), 'empty FL/FR, ML/MR and RL/RR markers split embedded tires into three spinning axle groups');
   const spTris = (root) => { let n = 0; root.traverse(o => { if (o.isMesh && o.name !== 'beam') n += (o.geometry.index?.count ?? o.geometry.attributes.position.count) / 3; }); return n; };
   let spRuntimeMeshes = 0; spA.traverse(o => { if (o.isMesh && o.name !== 'beam') spRuntimeMeshes++; });
-  const spRuntimeTriangles = spTris(spA), spDiscTriangles = 3 * 2 * 20;
-  check(spRuntimeMeshes <= 12 && spRuntimeTriangles === spSourceTris + spDiscTriangles && spRuntimeTriangles <= 12000, `São Paulo extracted hero preserves source triangles plus 120 axle discs within 12 draw calls/12k triangles (${spRuntimeMeshes} meshes, ${spRuntimeTriangles} tris)`);
+  const spRuntimeTriangles = spTris(spA);
+  check(spRuntimeMeshes <= 12 && spRuntimeTriangles === spSourceTris && spRuntimeTriangles <= 12000, `São Paulo extracted hero preserves exactly the source triangle total within 12 draw calls/12k triangles (${spRuntimeMeshes} meshes, ${spRuntimeTriangles} tris)`);
   assets.rollWheels(spWheels, 2);
   check(spWheels.every(w => Math.abs(w.rotation.z + 2 / 0.52) < 1e-9), 'extracted São Paulo axles roll backward for positive route distance');
   assets.rollWheels(spWheels, -2);
