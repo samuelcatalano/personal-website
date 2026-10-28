@@ -34,7 +34,7 @@ export function adoptVisual(vehicle, visual, keep) {
 // One double-decker geometry; London/Glasgow differ only by palette. GLB material names are semantic and are replaced by the
 // project's shared materials (so night glow, cabin light and destination displays keep working through sky.update).
 export const BUS_VARIANTS = {
-  london: { body: '#b52a2d', accent: '#7e1c20', dest: ['london', '19', 'Finsbury Park', '#ffb347'] }, // no stripe: BusStripe falls back to the body red
+  london: { body: '#9e2a2b', accent: '#6a1c1e', dest: ['london', '19', 'Finsbury Park', '#ffb347'] }, // no stripe: BusStripe falls back to the body red
   // stylised First-Glasgow-style repaint from reference photos (colour blocking only, no logos/text): lime front, white diagonal sweep, lilac band, violet rear
   glasgow: { body: '#f2e31b', accent: '#5f57a0', stripe: '#f2e31b', skirtF: '#b8ab14', sweep: '#f4f4f6', lilac: '#c7c1e8', rear: '#7d74c0', dest: ['glasgow', '6', 'Renfrew Street', '#ff7a1a'] },
 };
