@@ -5,7 +5,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { fixed, paint } from './vehicles.js';
 import { destMat } from './buses.js';
 // Authored vehicle GLBs (tools/vehicles/*), loaded once and shared. Resolves null on failure so callers keep their procedural model.
-const URLS = { a330: 'a330.glb', bus: 'double-decker-bus.glb', mini: 'mini-cooper.glb', cab: 'london-cab.glb' };
+const URLS = { a330: 'a330.glb', bus: 'double-decker-bus.glb', 'sao-paulo': 'sao-paulo-bus.glb', mini: 'mini-cooper.glb', cab: 'london-cab.glb' };
 const cache = new Map();
 let fleetCatalog;
 export function loadFleetCatalog() {
@@ -35,6 +35,7 @@ export function adoptVisual(vehicle, visual, keep) {
 // project's shared materials (so night glow, cabin light and destination displays keep working through sky.update).
 export const BUS_VARIANTS = {
   london: { body: '#9e2a2b', accent: '#6a1c1e', dest: ['london', '19', 'Finsbury Park', '#ffb347'] }, // no stripe: BusStripe falls back to the body red
+  'sao-paulo': { body: '#a5cb38', accent: '#303b38', sweep: '#2088c8', dest: ['sao-paulo', '', '', '#ffb347'] },
   // stylised First-Glasgow-style repaint from reference photos (colour blocking only, no logos/text): lime front, white diagonal sweep, lilac band, violet rear
   glasgow: { body: '#f2e31b', accent: '#5f57a0', stripe: '#f2e31b', skirtF: '#b8ab14', sweep: '#f4f4f6', lilac: '#c7c1e8', rear: '#7d74c0', dest: ['glasgow', '6', 'Renfrew Street', '#ff7a1a'] },
 };
@@ -140,7 +141,26 @@ function axleWheels(key, src, axles) {
   if (axleCache.has(key)) return axleCache.get(key);
   src.updateMatrixWorld(true);
   const res = { axles: [], body: new Map() }, push = (m, k, g) => (m.get(k) ?? m.set(k, []).get(k)).push(g);
-  if (src.getObjectByName('FL')) { // authored wheel nodes (Mini, bus): merge each axle's pair
+  if (axles?.markers) { // São Paulo axle markers are empty; split embedded wheel triangles around all three pairs
+    const pairs = [['FL', 'FR'], ['ML', 'MR'], ['RL', 'RR']], centers = pairs.map((pair) => {
+      const a = src.getObjectByName(pair[0]).getWorldPosition(new THREE.Vector3()), b = src.getObjectByName(pair[1]).getWorldPosition(new THREE.Vector3());
+      return { name: pair.join('-'), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, z: [a.z, b.z] };
+    }), r = axles.radius ?? 0.52, parts = pairs.map(() => []), v = new THREE.Vector3();
+    src.traverse((o) => {
+      if (!o.isMesh || !/(Rubber|Trim|Metal)/.test(o.material.name) || !o.geometry.index) return;
+      const g = o.geometry, p = g.attributes.position, idx = g.index.array, keep = [], wheel = pairs.map(() => []);
+      for (let t = 0; t < idx.length; t += 3) {
+        v.set(0, 0, 0); for (let k = 0; k < 3; k++) v.x += p.getX(idx[t + k]) / 3, v.y += p.getY(idx[t + k]) / 3, v.z += p.getZ(idx[t + k]) / 3;
+        const a = centers.findIndex((c) => Math.abs(v.z) > 0.3 && Math.hypot(v.x - c.x, v.y - c.y) < r + 0.005 && c.z.some((z) => Math.abs(v.z - z) < 0.24));
+        (a < 0 ? keep : wheel[a]).push(idx[t], idx[t + 1], idx[t + 2]);
+      }
+      if (keep.length === idx.length) return;
+      const sub = (list) => { const s = new THREE.BufferGeometry(); for (const n in g.attributes) s.setAttribute(n, g.attributes[n]); s.setIndex(list); return s; };
+      res.body.set(o.material.name, /Rubber/.test(o.material.name) ? withDiscs(g, keep, centers.map((c) => c.x), r, 0.55) : sub(keep));
+      wheel.forEach((list, a) => list.length && parts[a].push([o.material.name, sub(list), 1]));
+    });
+    centers.forEach(({ name, x, y }, a) => res.axles.push({ name, x, y, radius: r, parts: parts[a] }));
+  } else if (src.getObjectByName('FL')) { // authored wheel nodes (Mini, bus): merge each axle's pair
     for (const pair of [['FL', 'FR'], ['RL', 'RR']]) {
       const c = src.getObjectByName(pair[0]).getWorldPosition(new THREE.Vector3()), byMat = new Map();
       for (const n of pair) src.getObjectByName(n).traverse((o) => { if (o.isMesh) push(byMat, o.material.name, o.geometry.clone().applyMatrix4(o.matrixWorld).translate(-c.x, -c.y, 0)); });
@@ -175,8 +195,8 @@ function upgrade(vehicle, key, v, hero, isDisposed = () => false, axles) {
       for (const n of WHEELS) { const w = glb.getObjectByName(n); w?.parent.remove(w); }
       const split = axleWheels(key, src, axles);
       glb.traverse((o) => { if (o.isMesh && split.body.has(o.material.name)) o.geometry = split.body.get(o.material.name); });
-      wheels = split.axles.map(({ x, y, parts }) => {
-        const w = new THREE.Group(); w.name = 'wheel'; w.position.set(x, y, 0);
+      wheels = split.axles.map(({ name, x, y, radius, parts }) => {
+        const w = new THREE.Group(); w.name = name ?? 'wheel'; w.position.set(x, y, 0); if (radius) w.userData.radius = radius;
         for (const [name, g, shared] of parts) { const m = new THREE.Mesh(g, { name }); if (shared) m.position.set(-x, -y, 0); w.add(m); } // shared: indexes the car-space buffer
         glb.add(w); return w;
       });
@@ -195,7 +215,13 @@ function upgrade(vehicle, key, v, hero, isDisposed = () => false, axles) {
 }
 // Re-livery an upgraded bus in place (shared cached materials, no allocation): ambient buses wear the livery of the region they are driving in.
 export const reskinBus = (vehicle, variant) => vehicle.traverse((o) => { if (o.isMesh && o.userData.role) o.material = ROLES[o.userData.role]?.(BUS_VARIANTS[variant]) ?? o.material; });
-export const upgradeBus = (vehicle, variant, { hero = true, isDisposed } = {}) => upgrade(vehicle, 'bus', BUS_VARIANTS[variant], hero, isDisposed);
+export async function upgradeBus(vehicle, variant, { hero = true, isDisposed, asset = 'bus' } = {}) {
+  await upgrade(vehicle, asset, BUS_VARIANTS[variant], hero, isDisposed, asset === 'sao-paulo' ? { markers: true, radius: 0.52 } : undefined);
+  if (asset !== 'sao-paulo' || isDisposed?.()) return;
+  const glb = vehicle.getObjectByName(vehicle.name + '-glb'); if (!glb) return;
+  const box = new THREE.Box3().setFromObject(glb), size = box.getSize(new THREE.Vector3()), beamY = 0.95, lampZ = size.z * 0.34;
+  Object.assign(vehicle.userData, { length: size.x, dimensions: size.toArray(), front: box.max.x, beamY, beamAnchors: { front: [[box.max.x, beamY, -lampZ], [box.max.x, beamY, lampZ]], rear: [[box.min.x, beamY, -lampZ], [box.min.x, beamY, lampZ]] } });
+}
 // bus geometry: tools/vehicles/double-decker-bus-dd (supersedes the procedural tools/vehicles/double-decker-bus)
 export const upgradeMini = (vehicle, { hero = true, body = '#efe7d6', roof = '#c9252b', isDisposed } = {}) => upgrade(vehicle, 'mini', { body, roof }, hero, isDisposed);
 export const upgradeCab = (vehicle, { isDisposed } = {}) => upgrade(vehicle, 'cab', {}, false, isDisposed);

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
 import { routeT, nearestStop, stopMarks, fineMarks } from '../scroll.js';
-import { routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, FRAME_LIFT, swapAt, ukStart } from './layout.js';
+import { routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, FRAME_LIFT, swapAt, heroVehicleAt, ukStart } from './layout.js';
 import { createBoxes, buildMeshes } from './voxel.js';
 import { buildMotion } from './motion.js';
 import { buildCity, tree } from './city.js';
@@ -88,14 +88,15 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const phones = await buildPhoneBoxes(); if (phones) scene.add(phones);
   const lampPosts = await buildLampPosts(); if (lampPosts) scene.add(lampPosts);
   const architecture = await realCity;scene.add(architecture);
-  const mini = buildVehicle('mini', { hero: true }), londonBus = buildVehicle('london', { hero: true }), glasgowBus = buildVehicle('glasgow', { hero: true });
-  const bus = new THREE.Group().add(mini, londonBus, glasgowBus), swap = swapAt(stops);
-  londonBus.visible = glasgowBus.visible = false;
+  const mini = buildVehicle('mini', { hero: true }), saoPauloBus = buildVehicle('glasgow', { hero: true }), londonBus = buildVehicle('london', { hero: true }), glasgowBus = buildVehicle('glasgow', { hero: true });
+  saoPauloBus.name = 'sao-paulo';
+  const bus = new THREE.Group().add(mini, saoPauloBus, londonBus, glasgowBus), swap = swapAt(stops);
+  mini.visible = londonBus.visible = glasgowBus.visible = false;
   // Glasgow livery between the two railway underpasses (each within 7 m of its scotRange boundary); the visible swap happens inside the tunnel (see frame())
   const underpass = createUnderpass(curve, stops), [ARCH_IN, ARCH_OUT] = underpass.passes.map((a) => a.t);
   scene.add(underpass.group);
   const bridgeCars = createUnderpassTraffic(underpass.passes, { reducedMotion }); scene.add(bridgeCars.group);
-  let shown = null, frameNo = 0, swapFade = null; const SWAP_OUT = 0.3, SWAP_IN = 0.35; // Mini <-> bus: scale-down then scale-up, never both visible
+  let shown = null, frameNo = 0, swapFade = null; const SWAP_OUT = 0.3, SWAP_IN = 0.35; // Hero changes scale down then up; never both visible outside this fade.
   const frustum = new THREE.Frustum(), pv = new THREE.Matrix4(), sphere = new THREE.Sphere(), ray = new THREE.Raycaster();
   for (const v of [mini, londonBus, glasgowBus]) addBeams(v, v.userData.front, v.userData.beamY);
   const WIN_L = '#2b2621', RG = '#27394b', RB = '#c9ccd1'; // Glasgow Uni windows, Riverside glass + band
@@ -111,7 +112,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   scene.add(water.mesh);
   units.push(await createSigns(scene, { stops, curve }));
   let disposed = false, raf = 0;
-  initVehicleEnv(renderer);   upgradeMini(mini, { isDisposed: () => disposed });   upgradeBus(londonBus, 'london', { isDisposed: () => disposed }); upgradeBus(glasgowBus, 'glasgow', { isDisposed: () => disposed }); // one authored bus GLB, two palettes (tools/vehicles/double-decker-bus)
+  initVehicleEnv(renderer);   upgradeMini(mini, { isDisposed: () => disposed });   upgradeBus(saoPauloBus, 'sao-paulo', { hero: false, isDisposed: () => disposed, asset: 'sao-paulo' }).then(() => { if (!disposed) { addBeams(saoPauloBus, saoPauloBus.userData.front, saoPauloBus.userData.beamY); wake(); } }); upgradeBus(londonBus, 'london', { isDisposed: () => disposed }); upgradeBus(glasgowBus, 'glasgow', { isDisposed: () => disposed }); // authored São Paulo and shared London/Glasgow bus GLBs
   loadVehicleAsset('a330').then((glb) => { if (glb && !disposed) adoptVisual(plane, glb, ['nav', 'strobe']); }); // authored A330 (tools/vehicles/a330); procedural stays on failure
   const wake = () => { if (!disposed && !raf && !document.hidden) raf = requestAnimationFrame(frame); };
   const wellington = details.getObjectByName('wellington-geometry');
@@ -185,7 +186,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     Object.assign(busPos, { x: bp.x + lateral.x, y: bp.y, z: bp.z + lateral.z });
     if (prevBus.x !== null) { // hero wheels roll with the distance travelled along the road (signed: scrolling back unrolls them)
       const ds = (busPos.x - prevBus.x) * tan.x + (busPos.z - prevBus.z) * tan.z;
-      for (const m of [mini, londonBus, glasgowBus]) if (m.visible) for (const w of m.userData.wheels) w.rotation.z -= ds / w.position.y;
+      for (const m of [mini, saoPauloBus, londonBus, glasgowBus]) if (m.visible) for (const w of m.userData.wheels) w.rotation.z -= ds / (w.userData.radius ?? w.position.y);
       // Mini front wheels steer into curves: bicycle model on the heading change per metre, smoothed; still / jumps (respawn, reduced-motion stop hops) straighten
       // ponytail: hero Mini only; ambient Minis (axle-merged wheels) and buses do not steer
       const dh = Math.atan2(Math.sin(bus.rotation.y - prevBus.h), Math.cos(bus.rotation.y - prevBus.h)), still = reducedMotion || Math.abs(ds) < 1e-3 || Math.abs(ds) > 2;
@@ -200,11 +201,12 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const shot = blendShots(shotFor(ka, busPos, { mobile, lift }), shotFor(kb, busPos, { mobile, lift }), s - i, ka === kb ? 0 : ARC);
     camera.position.fromArray(shot.position);
     camera.lookAt(shot.target[0], shot.target[1], shot.target[2]);
-    // Player model: Mini -> London at swap; London <-> Glasgow flips at the underpass centres, but only becomes visible while the whole bus is inside a tunnel
-    const want = t < swap ? mini : t >= ARCH_IN && t < ARCH_OUT ? glasgowBus : londonBus;
+    // Player model: São Paulo -> London at swap; London <-> Glasgow flips at the underpass centres.
+    const want = { 'sao-paulo': saoPauloBus, london: londonBus, glasgow: glasgowBus }[heroVehicleAt(t, swap, ARCH_IN, ARCH_OUT)];
     frameNo++;
     if (shown !== want) {
-      let why = !shown || shown === mini || want === mini ? 'immediate' : underpass.passes.some((a) => Math.abs(underpass.offset(a, busPos.x, busPos.z)) <= a.half - 5.7) ? 'arch' : Math.abs(s - Math.round(s)) < 0.12 ? 'stop' : ka !== kb && s - i > 0.15 && s - i < 0.85 ? 'blend' : '';
+      const regionSwap = (shown === saoPauloBus && want === londonBus) || (shown === londonBus && want === saoPauloBus);
+      let why = !shown || shown === mini || want === mini ? 'immediate' : regionSwap ? 'region' : underpass.passes.some((a) => Math.abs(underpass.offset(a, busPos.x, busPos.z)) <= a.half - 5.7) ? 'arch' : Math.abs(s - Math.round(s)) < 0.12 ? 'stop' : ka !== kb && s - i > 0.15 && s - i < 0.85 ? 'blend' : '';
       if (!why) {
         camera.updateMatrixWorld();
         sphere.set(lateral.clone().add(bp).setY(bp.y + 2.2), 6.4);
@@ -218,7 +220,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       if (why) {
         if (swapFade) { swapFade.out.visible = false; swapFade.inn.visible = true; swapFade.out.scale.setScalar(1); swapFade.inn.scale.setScalar(1); swapFade = null; }
         const out = shown; shown = want;
-        if (why === 'immediate' && out && !reducedMotion) swapFade = { out, inn: want, k: 0 }; // out keeps showing until it has shrunk away
+        if ((why === 'immediate' || why === 'region') && out && !reducedMotion) swapFade = { out, inn: want, k: 0 }; // out keeps showing until it has shrunk away
         else { mini.visible = want === mini; londonBus.visible = want === londonBus; glasgowBus.visible = want === glasgowBus; }
       }
     }
