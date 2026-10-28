@@ -6,7 +6,6 @@ import { createBoxes, buildMeshes } from './voxel.js';
 import { buildMotion } from './motion.js';
 import { buildCity, tree } from './city.js';
 import { buildRealCity } from './real-city.js';
-import { fadeVehicle } from './fade.js';
 import { createHeroRealm } from './hero-realm.js';
 import { createTrees } from './trees.js';
 import { buildPhoneBoxes } from './phone.js';
@@ -36,6 +35,7 @@ import { createPost } from './post.js';
 import { createRoadMarks } from './roadmarks.js';
 import { loadVehicleAsset, adoptVisual, upgradeBus, upgradeMini, initVehicleEnv, updateVehicleEnv } from './vehicle-assets.js';
 import { createUnderpass } from './underpass.js';
+import { createUnderpassTraffic } from './underpass-traffic.js';
 import { upgradeWellington } from './wellington-asset.js';
 const BUS_LANE = 1.75, SCROLL_SMOOTH = 0.18, ARC = 10;
 export async function createWorld(canvas, stops, { reducedMotion = false, onProgress = () => {} } = {}) {
@@ -94,7 +94,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   // Glasgow livery between the two railway underpasses (each within 7 m of its scotRange boundary); the visible swap happens inside the tunnel (see frame())
   const underpass = createUnderpass(curve, stops), [ARCH_IN, ARCH_OUT] = underpass.passes.map((a) => a.t);
   scene.add(underpass.group);
-  let shown = null, frameNo = 0, swapFade = null; const SWAP_FADE = 0.6;
+  const bridgeCars = createUnderpassTraffic(underpass.passes, { reducedMotion }); scene.add(bridgeCars.group);
+  let shown = null, frameNo = 0, swapFade = null; const SWAP_OUT = 0.3, SWAP_IN = 0.35; // Mini <-> bus: scale-down then scale-up, never both visible
   const frustum = new THREE.Frustum(), pv = new THREE.Matrix4(), sphere = new THREE.Sphere(), ray = new THREE.Raycaster();
   for (const v of [mini, londonBus, glasgowBus]) addBeams(v, v.userData.front, v.userData.beamY);
   const WIN_L = '#2b2621', RG = '#27394b', RB = '#c9ccd1'; // Glasgow Uni windows, Riverside glass + band
@@ -215,17 +216,23 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
         }
       }
       if (why) {
-        if (swapFade) { swapFade.out.visible = false; fadeVehicle(swapFade.out, 1); fadeVehicle(swapFade.inn, 1); swapFade = null; }
+        if (swapFade) { swapFade.out.visible = false; swapFade.inn.visible = true; swapFade.out.scale.setScalar(1); swapFade.inn.scale.setScalar(1); swapFade = null; }
         const out = shown; shown = want;
-        if (why === 'immediate' && out && !reducedMotion) { swapFade = { out, inn: want, k: 0 }; want.visible = true; } // Mini <-> bus: 0.6 s crossfade, both visible meanwhile
+        if (why === 'immediate' && out && !reducedMotion) swapFade = { out, inn: want, k: 0 }; // out keeps showing until it has shrunk away
         else { mini.visible = want === mini; londonBus.visible = want === londonBus; glasgowBus.visible = want === glasgowBus; }
       }
     }
     if (swapFade) {
-      swapFade.k = Math.min(1, swapFade.k + dt / SWAP_FADE);
-      fadeVehicle(swapFade.out, 1 - swapFade.k); fadeVehicle(swapFade.inn, Math.max(0.001, swapFade.k));
-      if (swapFade.k >= 1) { swapFade.out.visible = false; swapFade = null; }
+      const f = swapFade, k = f.k += dt
+      if (k < SWAP_OUT) f.out.scale.setScalar(Math.max(0.001, 1 - (k / SWAP_OUT) ** 2)); // ease-in
+      else {
+        if (f.out.visible) { f.out.visible = false; f.out.scale.setScalar(1); f.inn.visible = true; }
+        const u = Math.min(1, (k - SWAP_OUT) / SWAP_IN), o = 1 - (1 - Math.min(1, u / 0.7)) ** 3; // ease-out to a 1.04 overshoot, then settle
+        f.inn.scale.setScalar(Math.max(0.001, u < 0.7 ? 1.04 * o : 1.04 - 0.04 * (u - 0.7) / 0.3));
+        if (u >= 1) { f.inn.scale.setScalar(1); swapFade = null; }
+      }
     }
+    bridgeCars.update(dt);
     architecture.userData.update?.(camera);
     // snap the shadow centre to whole shadow texels in light space, so shadow edges don't shimmer while moving
     const a = Math.round(bp.dot(LU) / TEXEL) * TEXEL, b = Math.round(bp.dot(LV) / TEXEL) * TEXEL;
@@ -275,7 +282,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       document.removeEventListener('visibilitychange', visibility);
       observer?.disconnect();
       architecture.userData.dispose?.();
-      underpass.group.userData.dispose();
+      underpass.group.userData.dispose(); bridgeCars.dispose();
       heroRealm?.userData.dispose();
       roadMarks.userData.dispose();
       rain.dispose?.();
