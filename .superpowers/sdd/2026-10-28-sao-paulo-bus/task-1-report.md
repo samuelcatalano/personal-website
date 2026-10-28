@@ -6,13 +6,19 @@
 
 The imported source had 79,618 triangles and an unrelated 38 m plane. The derivative removes that plane, bakes the orientation and scale into the source meshes, recalculates normals, grounds the origin, and applies the São Paulo lime-green body/dark window finish. Source dimensions indicate an articulated bus; the model-sheet reference also shows the articulation. The reimported mesh bounds are 16.758 × 2.634 × 3.101 m. GLB axes are +X forward, +Y up and +Z right.
 
-The build removes the 14,144-triangle thin wheel-face mesh and two over-tessellated sub-wheel islands (12,992 triangles) from a dark source mesh; the source tire profiles and visible wheels remain. It decimates the remaining source geometry and exports 6,437 triangles after GLB reimport, below the 12k cap. No images or texture files are embedded. Materials use the established roles: `BusBody`, `BusAccent`, `BusGlass`, `BusMetal`, `BusRubber`, `BusSweep`, `BusTaillight`, and `BusTrim`.
+The build removes the 14,144-triangle thin wheel-face mesh and two over-tessellated sub-wheel islands (12,992 triangles) from a dark source mesh; the source tire profiles and visible wheels remain. It decimates the remaining source geometry and exports 6,437 triangles after GLB reimport, below the 12k cap. After decimation, it joins source objects by semantic material role, producing one render mesh per role and preserving the triangle count. No images or texture files are embedded. Materials use the established roles: `BusBody`, `BusAccent`, `BusGlass`, `BusMetal`, `BusRubber`, `BusSweep`, `BusTaillight`, and `BusTrim`.
 
 ### Livery correction after review
 
 The first review rejected the blue livery because the approximate-offset ribbon floated across windows and the articulation. The rebuilt sweep is now projected onto the body, glass, and trim meshes by sideward raycasts, with a 6 mm outward surface offset. It follows x=2.8–6.4 m in the +X body section, crossing the dark window band into the lower body and ending before the articulation. It uses no external texture and adds only 120 triangles across both sides.
 
 The correction and regenerated asset/render set are in commit `1de64d6`.
+
+### Draw-call correction after Task 3 measurement
+
+The initial GLB contained 22 renderable meshes and generated too many draw calls. The build now joins meshes by semantic material role before export. The reimported asset contains 8 render meshes, one for each of the eight `Bus*` roles, while preserving all 6,437 triangles and the separated pivot empties. The validator enforces both the ≤8 role-mesh budget and exact triangle preservation.
+
+The role-merge build, regenerated GLB, and desktop renders are in commit `ab811af`.
 
 Six node extras mark axle pivots: FL/FR at x=+5.8 m, ML/MR at x=+0.75 m, RL/RR at x=−5.3 m; each side is y=±0.98 m, z=0.55 m, radius=0.52 m. The source keeps wheel geometry embedded in larger meshes, so these pivots are markers and are not yet parents of individual wheel meshes. Runtime wheel separation/rotation needs to use or replace these markers in the integration task.
 
@@ -22,12 +28,13 @@ Blender 5.2.3 ran the build, reimport validation, and final desktop renders:
 
 ```text
 triangles=6437/12000
+render_meshes=8/8
 dimensions_m=(16.758,2.634,3.101)
 grounded_z=-0.003
 material roles: BusAccent, BusBody, BusGlass, BusMetal, BusRubber, BusSweep, BusTaillight, BusTrim
 images=0; pivot nodes=FL,FR,ML,MR,RL,RR
 ```
 
-The Blender validator passes for the triangle budget, dimensions, grounded origin, material roles, no images, and pivot extras. Final desktop review images are in `tools/vehicles/caio-millennium-volvo-b10m/renders/desktop/` (`front-34.png`, `side.png`, `rear-34.png`). I reviewed all three; the corrected livery conforms to the visible side surfaces and stays within one body section.
+The Blender validator passes for the triangle and role-mesh budgets, exact geometry count, dimensions, grounded origin, material roles, no images, and pivot extras. Final desktop review images are in `tools/vehicles/caio-millennium-volvo-b10m/renders/desktop/` (`front-34.png`, `side.png`, `rear-34.png`). I reviewed all three; the corrected livery conforms to the visible side surfaces and stays within one body section.
 
 Rebuild and review instructions are in `tools/vehicles/caio-millennium-volvo-b10m/README.md`. Mobile capture and the website runtime were outside Task 1 and were not checked.
