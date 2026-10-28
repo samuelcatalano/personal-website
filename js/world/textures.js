@@ -50,8 +50,9 @@ vWN = normalize(mat3(bm) * normal);
 #endif
 vLP = position; vLN = normal; vSc = vec3(length(bm[0].xyz), length(bm[1].xyz), length(bm[2].xyz));`);
     if (kind) sh.fragmentShader = `#define GROUND ${kind}\n` + sh.fragmentShader;
-    if (glow) sh.uniforms.uNight = mat.userData.uNight = { value: 0 };
-    if (glow) sh.fragmentShader = '#define STAGGER\nuniform float uNight;\n' + sh.fragmentShader;
+    if (glow || kind === 2) sh.uniforms.uNight = mat.userData.uNight = { value: 0 };
+    if (glow || kind === 2) sh.fragmentShader = 'uniform float uNight;\n' + sh.fragmentShader;
+    if (glow) sh.fragmentShader = '#define STAGGER\n' + sh.fragmentShader;
     if (!glow) sh.fragmentShader = '#define VOXEL_EDGE\n' + sh.fragmentShader;
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', common)
@@ -71,7 +72,7 @@ diffuseColor *= texture2D(map, tuv);
   #if GROUND == 1
   diffuseColor.rgb *= 1.0 + 0.12 * n + vec3(0.1, 0.0, -0.1) * n;
   #else
-  diffuseColor.rgb *= 1.0 + 0.2 * n;
+  diffuseColor.rgb *= (1.0 + 0.2 * n) * mix(vec3(2.9, 2.4, 1.95), vec3(1.0), uNight); // lighter warm day asphalt; albedo unchanged at night
   #endif
 }
 #endif

@@ -44,7 +44,7 @@ float wetPuddle = 0.0;
 // ponytail: ground-level puddles stay off shared roof faces; add surface tags if elevated decks need puddles.
 if (wetMask > 0.001 && vWetWorld.y < 0.4) {
   // Dark base colour = asphalt; light = pavement. Pools cluster in low-frequency basins and stay small with feathered edges.
-  float wetRoad = 1.0 - smoothstep(0.10, 0.22, dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11)));
+  float wetRoad = 1.0 - smoothstep(0.16, 0.30, dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11)));
   float basin = wetNoise(vWetWorld.xz * 0.09 + 7.0);
   float pool = wetNoise(vWetWorld.xz * 0.55) * 0.65 + wetNoise(vWetWorld.xz * 1.9) * 0.35;
   float edge = mix(0.80, 0.73, wetRoad) - 0.10 * smoothstep(0.45, 0.8, basin);
