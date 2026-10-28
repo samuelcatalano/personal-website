@@ -23,7 +23,7 @@
 ## Review Focus
 
 - Shape variants remain visually distinct after the existing geometry merge and shared-material path: test distinct boat geometry signatures and at least 0.45 m separation between low/mid/high profiles.
-- The seven boats continue fitting between Tower Bridge towers and under its road deck: retain existing browser assertions.
+- The seven boats continue fitting between Tower Bridge towers and under its road deck through the full 0.25 m bob and ±0.04 rad roll: test transformed bounds at both roll extremes.
 - New details stay low-poly and use only existing shared materials: inspect the builder diff and desktop captures.
 - Day/night lighting keeps hull, trim, and windows readable: capture both themes at London stops.
 - Existing palette and scale variety remains represented alongside the three styles: inspect the seven instance definitions and capture.
@@ -71,3 +71,10 @@ Expected: tests pass; no mobile test/capture; day/night captures show three boat
 - [x] Add desktop assertions for the exact seven-style order and at least 0.45 m height separation between cruiser, launch, and service profiles; confirm RED before changing boat geometry.
 - [x] Strengthen profile heights and style-specific trim contrast, using existing buckets while preserving hull footprint, locations, water, and bridge clearance.
 - [x] Run the focused desktop browser test and review day/night captures; run no mobile tests or captures.
+
+#### Fix round 3: make launch legible and preserve animated clearance
+
+- [x] Add a desktop assertion for both ±0.04 rad roll extremes plus the existing 0.25 m bob; confirm RED before lowering profiles.
+- [x] Give the passenger launch a distinct, high-contrast striped canopy top using the existing trim bucket; keep hull footprint and seven placements fixed.
+- [x] Keep the three ordered profile heights at least 0.45 m apart, lower service and neighboring profiles for full animated deck clearance, and recapture desktop day/night frames.
+- [x] Run the focused desktop browser test and Node regression only; no mobile checks/captures.

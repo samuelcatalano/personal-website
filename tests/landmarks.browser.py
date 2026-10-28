@@ -40,9 +40,16 @@ print(js(r'''(async () => {
   const roadDeck = { y: lay.deckY };
   const boatBounds = boats.map(boat => new Box3().setFromObject(boat));
   const profiles = ['cruiser', 'launch', 'service'].map(style => Math.max(...boats.filter(boat => boat.userData.boatStyle === style).map(boat => new Box3().setFromObject(boat).max.y)));
+  const rolledBoatMaxY = boats.map(boat => {
+    const original = boat.rotation.z;
+    const maxY = [-.04, .04].map(roll => { boat.rotation.z = roll; boat.updateMatrixWorld(true); return new Box3().setFromObject(boat).max.y; });
+    boat.rotation.z = original; boat.updateMatrixWorld(true);
+    return Math.max(...maxY);
+  });
   check(profiles[1] - profiles[0] >= .45 && profiles[2] - profiles[1] >= .45, `Boat profiles must rise cruiser < launch < service by at least 0.45m; got ${profiles.join(',')}`);
   check(boatBounds.every(b => b.min.z >= opening[0] && b.max.z <= opening[1]), 'All ambient boat hulls must fit between the towers');
   check(boatBounds.every(b => b.max.y < roadDeck.y), 'All ambient boats must clear the road deck vertically');
+  check(rolledBoatMaxY.every(maxY => maxY + .25 < roadDeck.y), 'All ambient boats must clear the road deck through the full 0.25m bob and 0.04-radian roll');
   check(lay.walkways === 2 && lay.walkwayZ === 0 && lay.pinnacles === 8, 'Two walkways between the towers and eight corner pinnacles');
   const mesh = n => tb.getObjectByName('towerbridge-' + n);
   check(mesh('mass') && mesh('trim') && mesh('glass'), 'Tower Bridge needs mass/trim/glass buckets');
@@ -67,5 +74,5 @@ print(js(r'''(async () => {
   const uk = pts[stops.findIndex(s => s.country === 'UK')];
   const sitePlots = []; buildCity(() => {}, stops, pts, curve, undefined, undefined, p => { if (Math.abs(p.x - uk.x) <= 18 && p.z >= -38 && p.z <= -14) sitePlots.push(p); });
   check(sitePlots.length >= 2, `old airport site needs >= 2 architecture plots, got ${sitePlots.length}`);
-  return { pass: true, bridgeX, riverZ: RIVER_Z, towerZ: tz, boatOpening: opening, boatBounds: boatBounds.map(b => ({ minZ: b.min.z, maxZ: b.max.z, maxY: b.max.y })), clockFaces: clock.count, bigBenX: bigBen.x };
+  return { pass: true, bridgeX, riverZ: RIVER_Z, towerZ: tz, boatOpening: opening, boatBounds: boatBounds.map(b => ({ minZ: b.min.z, maxZ: b.max.z, maxY: b.max.y })), rolledBoatMaxY, clockFaces: clock.count, bigBenX: bigBen.x };
 })()'''))

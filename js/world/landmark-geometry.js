@@ -569,25 +569,26 @@ export function createBoat(hullColor,cabinColor,style='cruiser'){
     shell(-2.35,-1.05,.56,.58,.97);
     for(const sz of [-1,1])box(-1.72,1.35,sz*.58,.8,.3,.05,S.glass,glass,2);
     box(-1.04,1.35,0,.05,.3,.72,S.glass,glass,2);
-    box(.65,3.05,0,2.6,.2,1.65,S.trim,launchTrim,1);
+    box(.65,2.82,0,2.6,.2,1.65,S.trim,launchTrim,1);
+    for(const [i,x] of [-.2125,.65,1.5125].entries())box(x,3.005,0,.85,.025,1.62,S.trim,i===1?[.22,.38,.56]:[1.7,1.3,.35],1);
     for(const sz of [-1,1]){
       for(const x of [-.65,.35,1.35,2.25])beam(new THREE.Vector3(x,1,sz*.82),new THREE.Vector3(x,1.8,sz*.82),.05,launchTrim,1,4);
       beam(new THREE.Vector3(-.65,1.8,sz*.82),new THREE.Vector3(2.25,1.8,sz*.82),.055,launchTrim,1,4);
-      for(const x of [.05,1.3])beam(new THREE.Vector3(x,1.8,sz*.66),new THREE.Vector3(x,3.05,sz*.66),.055,launchTrim,1,4);
+      for(const x of [.05,1.3])beam(new THREE.Vector3(x,1.8,sz*.66),new THREE.Vector3(x,2.82,sz*.66),.055,launchTrim,1,4);
     }
   }else if(style==='service'){
     shell(-2.35,-.55,.64,.8,.97);
     for(const sz of [-1,1])box(-1.48,1.34,sz*.65,1.25,.26,.05,S.glass,glass,2);
     box(-1.45,1.77,0,1.9,.12,1.45,S.trim,serviceTrim,1);
     box(.72,1.02,0,1.35,.18,1.2,S.trim,[.88,.84,.72],1);
-    beam(new THREE.Vector3(-1.9,1.9,0),new THREE.Vector3(-1.9,3.7,0),.07,serviceTrim,1,4);
-    beam(new THREE.Vector3(-1.9,3.2,0),new THREE.Vector3(-.65,3.7,0),.065,serviceTrim,1,4);
-    beam(new THREE.Vector3(-.65,3.7,0),new THREE.Vector3(-.25,3.7,0),.07,serviceTrim,1,4);
+    beam(new THREE.Vector3(-1.9,1.9,0),new THREE.Vector3(-1.9,3.42,0),.07,serviceTrim,1,4);
+    beam(new THREE.Vector3(-1.9,2.92,0),new THREE.Vector3(-.65,3.42,0),.065,serviceTrim,1,4);
+    beam(new THREE.Vector3(-.65,3.42,0),new THREE.Vector3(-.25,3.42,0),.07,serviceTrim,1,4);
   }else{
     shell(-1.7,.95,.8,1.25,.97);
     for(const sz of [-1,1])box(-.5,1.3,sz*.82,2.3,.56,.05,S.glass,glass,2);
     box(.93,1.3,0,.05,.56,1.1,S.glass,glass,2);
-    box(-.4,2.25,0,3.15,.18,1.9,S.trim,cruiserTrim,1);
+    box(-.4,2.39,0,3.15,.18,1.9,S.trim,cruiserTrim,1);
   }
   const out=finish();out.userData.boatStyle=style;boatCache.set(key,out);return out.clone();
 }
