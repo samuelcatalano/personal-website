@@ -88,6 +88,7 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
     }
   }
   let crossings = 0;
+  const pilotCrossings = []; // curve u of each pilot crossing; roadmarks.js keeps longitudinal paint clear of them
   ticks(1.4).forEach((u, i) => {
     if (i % 2) return;
     const p = curve.getPointAt(u), t = curve.getTangentAt(u);
@@ -100,7 +101,7 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
         const x = p.x + t.x * k * 0.8, z = p.z + t.z * k * 0.8;
         add(x, -0.035, z, Math.abs(t.x) >= Math.abs(t.z) ? 0.45 : 2 * RD.half, 0.02, Math.abs(t.x) >= Math.abs(t.z) ? 2 * RD.half : 0.45, LINE);
       }
-      crossings++;
+      crossings++; pilotCrossings.push(u);
     }
     if (i % 16 === 8) {
       for (const side of [-1, 1]) {
@@ -191,5 +192,5 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
   buildGlasgowEdges(add, stops, pts, curve, drawTree, onArchitecturePlot);
   buildBlocks(add, stops, pts, curve, occ, onBuildingPlot, onArchitecturePlot);
   buildParks(add, stops, pts, curve, occ, onTree, onPublicRealm); // after the blocks: own rng, reads the free plazas, never shifts a block
-  return { lamps };
+  return { lamps, pilotCrossings };
 }

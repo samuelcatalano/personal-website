@@ -5,7 +5,7 @@ import { SLOT } from './bays.js';
 // São Paulo: double yellow centre line; UK: white dashed centre. Both: white edge lines, zebra crossings near stops.
 const Y = 0.074, HALF = ROAD.edge; // road top is at 0.07; the edge lines separate the traffic lanes from the parking bays (ROAD.edge .. ROAD.curb)
 const YELLOW = new THREE.Color('#e9b93a'), WHITE = new THREE.Color('#ece8de');
-export function createRoadMarks(curve, stops, { bays, sample }) {
+export function createRoadMarks(curve, stops, { bays, sample, pilotCrossings = [] }) {
   const pos = [], col = [], swap = swapAt(stops), len = curve.getLength(), n = Math.ceil(len / 1.2);
   const quad = (a, b, c, d, color) => { // a,b,c,d: [x,z] counter-clockwise from above
     for (const [x, z] of [a, b, c, a, c, d]) { pos.push(x, Y, z); col.push(color.r, color.g, color.b); }
@@ -17,14 +17,24 @@ export function createRoadMarks(curve, stops, { bays, sample }) {
     const at = (F, s) => [F.p.x + F.nx * (o + s * w / 2), F.p.z + F.nz * (o + s * w / 2)];
     quad(at(A, 1), at(B, 1), at(B, -1), at(A, -1), color);
   };
-  const zebras = stops.map((_, i) => curve.getPointAt(Math.min(1, i / (stops.length - 1) + 9 / len))), ZEBRA_CLEAR = 3.4, FIRST_ZEBRA_END = 9 + ZEBRA_CLEAR; // m from a crossing's centre (1.4 m half-length + 2 m): no centre line through it
+  // every longitudinal line (edges, centre, lane dashes) and bay tick stops GAP m short of each crossing: stop zebras (9 m past a stop, 1.4 m half-length) and pilot crossings (city.js, ~1.85 m half-length)
+  const GAP = 0.5, gaps = [...stops.map((_, i) => [Math.min(1, i / (stops.length - 1) + 9 / len) * len, 1.4]), ...pilotCrossings.map((u) => [u * len, 1.85])]
+    .map(([s, h]) => [s - h - GAP, s + h + GAP]).sort((a, b) => a[0] - b[0]);
+  const inCrossing = (s) => gaps.some(([a, b]) => s > a && s < b);
+  const outside = (s0, s1) => { // parts of the arc span [s0, s1] clear of every crossing gap
+    const out = []; let a = s0;
+    for (const [g0, g1] of gaps) { if (g1 <= a || g0 >= s1) continue; if (g0 > a) out.push([a, g0]); a = Math.max(a, g1); }
+    if (a < s1) out.push([a, s1]);
+    return out;
+  };
+  const line = (s0, s1, o, w, color) => { for (const [a, b] of outside(s0, s1)) strip(a / len, b / len, o, w, color); };
+  const FIRST_ZEBRA_END = 12.4; // no centre line from the route start to just past the first zebra
   for (let k = 0; k < n; k++) {
-    const u0 = k / n, u1 = (k + 1) / n, br = (u0 + u1) / 2 < swap;
-    const mid = curve.getPointAt((u0 + u1) / 2), atZebra = zebras.some((z) => Math.hypot(z.x - mid.x, z.z - mid.z) < ZEBRA_CLEAR);
-    for (const o of [-HALF, HALF]) strip(u0, u1, o, 0.12, WHITE);
-    if (atZebra || (br && u0 * len < FIRST_ZEBRA_END)) continue;
-    if (br) for (const o of [-0.11, 0.11]) strip(u0, u1, o, 0.1, YELLOW);
-    else if (k % 5 < 2) strip(u0, u1, 0, 0.12, WHITE); // 2.4 m dash, 3.6 m gap
+    const u0 = k / n, u1 = (k + 1) / n, s0 = u0 * len, s1 = u1 * len, br = (u0 + u1) / 2 < swap;
+    for (const o of [-HALF, HALF]) line(s0, s1, o, 0.12, WHITE);
+    if (br && s0 < FIRST_ZEBRA_END) continue;
+    if (br) for (const o of [-0.11, 0.11]) line(s0, s1, o, 0.1, YELLOW);
+    else if (k % 5 < 2) line(s0, s1, 0, 0.12, WHITE); // 2.4 m dash, 3.6 m gap
   }
   // zebra just past each stop sign (bus stops sit on the stop mark)
   for (let i = 0; i < stops.length; i++) {
@@ -38,6 +48,7 @@ export function createRoadMarks(curve, stops, { bays, sample }) {
   // bay separators: a short tick across each parking lane at both ends of every bay that has a car slot (no bays at zebras, stops, junctions, plazas, bridges)
   const ticks = new Set(); bays.forEach((b) => { if (b.ok) { ticks.add(b.k); ticks.add(b.k + 1); } });
   for (const k of ticks) {
+    if (inCrossing(k * SLOT)) continue;
     const { p, t } = sample(k * SLOT);
     for (const side of [-1, 1]) {
       const c = [p.x - t.z * side * ROAD.bayMid, p.z + t.x * side * ROAD.bayMid], h = (ROAD.bay - 0.2) / 2, w = 0.06;

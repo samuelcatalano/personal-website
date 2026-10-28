@@ -63,7 +63,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   scene.add(backdrop);
   const { add, list } = createBoxes();
   const treePlacements = [], buildingPlots = [], architecturePlots = [], publicRealmZones = [];
-  const { lamps } = buildCity(add, stops, pts, curve, (x, z, shape) => treePlacements.push({ x, z, ...shape }), plot => buildingPlots.push(plot), plot => architecturePlots.push(plot), zone => publicRealmZones.push(zone));
+  const { lamps, pilotCrossings } = buildCity(add, stops, pts, curve, (x, z, shape) => treePlacements.push({ x, z, ...shape }), plot => buildingPlots.push(plot), plot => architecturePlots.push(plot), zone => publicRealmZones.push(zone));
   const heroRealm=publicRealmZones.length?createHeroRealm():null;
   if(heroRealm)scene.add(heroRealm);
   const realCity = buildRealCity(architecturePlots);
@@ -97,7 +97,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   world.traverse((o) => { const h = o.material?.color?.getHexString(); if (o.material?.userData.glow) { if (h === WIN_L.slice(1)) o.material.userData.glowColor = new THREE.Color('#ffb04a'); if (h === RG.slice(1)) o.material.userData.glowColor = new THREE.Color('#d8e86a'); if (h === RB.slice(1)) o.material.userData.glowColor = new THREE.Color('#bcd4ff'); } });
   polishLandmarkMaterials(world,stops,pts);
   const motion = buildMotion(); scene.add(motion.group);
-  const roadMarks = createRoadMarks(curve, stops, parkingBays(curve, pts, stops));
+  const roadMarks = createRoadMarks(curve, stops, { ...parkingBays(curve, pts, stops), pilotCrossings });
   scene.add(world, eye, details, plane, shadow, bus, roadMarks);
   const units = [createAmbient(scene, { curve, pts, stops, reducedMotion }), createParked(scene, { curve, pts, stops })];
   const people = createPeople(scene, { curve, pts, stops, reducedMotion });
