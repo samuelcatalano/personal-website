@@ -7,6 +7,7 @@ print(js(r'''(async () => {
   const { createAmbient } = await import('./js/world/ambient.js?traffic-speed-test');
   const { stops } = await import('./js/content.js');
   const { routePoints, routeCurve, swapAt, heroVehicleAt } = await import('./js/world/layout.js');
+  const { createHeroGroup, applyHeroPose } = await import('./js/world/scene.js');
   const { routeT, stopMarks, fineMarks } = await import('./js/scroll.js');
     const check = (ok, message) => { if (!ok) throw Error(message); };
   const bounds = (object) => { object.updateMatrixWorld(true); const box = new THREE.Box3(); object.traverse((o) => { if (o.isMesh && o.name !== 'beam') box.union(new THREE.Box3().setFromObject(o)); }); return box; }; // night beams are separate transparent meshes, not body
@@ -71,13 +72,14 @@ print(js(r'''(async () => {
   check(fallback.children.length === fallbackMeshes && fallback.userData.length > 10, 'missing regional GLB leaves the procedural vehicle fallback intact');
   const swap = swapAt(stops), archIn = 0.7, archOut = 0.8, eps = 1e-8;
   const heroCandidates = { saoPaulo: spA, london: buildVehicle('london', { hero: true }), glasgow: buildVehicle('glasgow', { hero: true }) };
-  const heroPose = new THREE.Group(), candidates = Object.values(heroCandidates); heroPose.add(...candidates);
-  heroPose.position.set(12, 0, -5); heroPose.rotation.y = 0.4;
-  const pose = [heroPose.position.clone(), heroPose.rotation.y];
+  const candidates = Object.values(heroCandidates), heroPose = createHeroGroup(candidates);
+  const routePosition = new THREE.Vector3(12, 0, -5), lateral = new THREE.Vector3(0, 0, 2.6), heading = 0.4;
+  applyHeroPose(heroPose, routePosition, lateral, heading);
+  const pose = routePosition.clone().add(lateral);
   check(heroVehicleAt(swap - eps, swap, archIn, archOut, heroCandidates) === spA && heroVehicleAt(swap, swap, archIn, archOut, heroCandidates) === heroCandidates.london && heroVehicleAt(swap + eps, swap, archIn, archOut, heroCandidates) === heroCandidates.london && heroVehicleAt(swap, swap, archIn, archOut, heroCandidates) === heroCandidates.london && heroVehicleAt(swap - eps, swap, archIn, archOut, heroCandidates) === spA, 'shared scene selector uses the exact swapAt boundary in both directions without regional leakage');
   check(heroVehicleAt(archIn - eps, swap, archIn, archOut, heroCandidates) === heroCandidates.london && heroVehicleAt(archIn, swap, archIn, archOut, heroCandidates) === heroCandidates.glasgow && heroVehicleAt(archOut, swap, archIn, archOut, heroCandidates) === heroCandidates.london, 'Glasgow is selected only inside the UK underpass interval');
   heroPose.updateMatrixWorld(true);
-  check(candidates.every(v => v.parent === heroPose && v.getWorldPosition(new THREE.Vector3()).distanceTo(pose[0]) < 1e-9) && heroPose.position.equals(pose[0]) && heroPose.rotation.y === pose[1], 'all selector candidates inherit the same shared route pose');
+  check(candidates.every(v => v.parent === heroPose && v.getWorldPosition(new THREE.Vector3()).distanceTo(pose) < 1e-9) && heroPose.position.equals(pose) && heroPose.rotation.y === heading, 'all scene-built selector candidates inherit the shared route position and heading');
   const cabBox = bounds(buildVehicle('cab')).getSize(new THREE.Vector3());
   check(cabBox.x > 4.6 && cabBox.x < 5.2 && cabBox.y > 1.7 && cabBox.y < 2.05 && cabBox.z < 2.3, `cab must be an LEVC-sized van (${cabBox.toArray().map(v => v.toFixed(2))})`);
   const amb = ['london', 'glasgow', 'cab', 'mini'].map(t => buildVehicle(t));

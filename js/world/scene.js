@@ -38,6 +38,12 @@ import { createUnderpass } from './underpass.js';
 import { createUnderpassTraffic } from './underpass-traffic.js';
 import { upgradeWellington } from './wellington-asset.js';
 const BUS_LANE = 1.75, SCROLL_SMOOTH = 0.18, ARC = 10;
+export const createHeroGroup = (candidates) => new THREE.Group().add(...candidates);
+export const applyHeroPose = (group, position, lateral, heading) => {
+  group.position.copy(position).add(lateral);
+  group.rotation.y = heading;
+};
+
 export async function createWorld(canvas, stops, { reducedMotion = false, onProgress = () => {} } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   Object.assign(renderer, { toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: EXPOSURE, outputColorSpace: THREE.SRGBColorSpace });
@@ -91,7 +97,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const mini = buildVehicle('mini', { hero: true }), saoPauloBus = buildVehicle('glasgow', { hero: true }), londonBus = buildVehicle('london', { hero: true }), glasgowBus = buildVehicle('glasgow', { hero: true });
   saoPauloBus.name = 'sao-paulo';
   const candidates = [mini, saoPauloBus, londonBus, glasgowBus], heroVehicles = { saoPaulo: saoPauloBus, london: londonBus, glasgow: glasgowBus };
-  const bus = new THREE.Group().add(...candidates), swap = swapAt(stops);
+  const bus = createHeroGroup(candidates), swap = swapAt(stops);
   candidates.forEach((v) => { v.visible = false; });
   // Glasgow livery between the two railway underpasses (each within 7 m of its scotRange boundary); the visible swap happens inside the tunnel (see frame())
   const underpass = createUnderpass(curve, stops), [ARCH_IN, ARCH_OUT] = underpass.passes.map((a) => a.t);
@@ -182,8 +188,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const p = scroll.value, t = routeT(p, n, knots);
     const bp = curve.getPointAt(t), tan = curve.getTangentAt(t);
     lateral.set(tan.z, 0, -tan.x).normalize().multiplyScalar(BUS_LANE);
-    bus.position.copy(bp).add(lateral);
-    bus.rotation.y = Math.atan2(-tan.z, tan.x);
+    applyHeroPose(bus, bp, lateral, Math.atan2(-tan.z, tan.x));
     Object.assign(busPos, { x: bp.x + lateral.x, y: bp.y, z: bp.z + lateral.z });
     if (prevBus.x !== null) { // hero wheels roll with the distance travelled along the road (signed: scrolling back unrolls them)
       const ds = (busPos.x - prevBus.x) * tan.x + (busPos.z - prevBus.z) * tan.z;
