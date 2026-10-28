@@ -21,8 +21,8 @@ print(js(r'''(async () => {
   walk('mini', buildMini()); walk('bus', buildBus());
   walk('car', car({ L: 4.4, W: 1.8, c: '#336699', hl: 1, bl: 0.8, ch: 0.6 }));
   walk('taxi', car({ L: 4.6, W: 1.9, c: '#111111', hl: 1, bl: 0.8, ch: 0.6, taxi: 1 }));
-  // Same-direction coplanar faces (top, +-x, +-z) of different colours that overlap > 0.02 z-fight.
-  const E = 1e-3, ov = (a0, a1, b0, b1) => Math.min(a1, b1) - Math.max(a0, b0) > 0.02;
+  // Plaza, fountain, inlay and trim layers are all world boxes. Same-direction coplanar faces (top, +-x, +-z) of different colours that overlap > 0.02 z-fight.
+  const E = 1e-3, ET = 5e-3, ov = (a0, a1, b0, b1) => Math.min(a1, b1) - Math.max(a0, b0) > 0.02;
   const R = b => ({ x0: b.x - b.w / 2, x1: b.x + b.w / 2, y0: b.y, y1: b.y + b.h, z0: b.z - b.d / 2, z1: b.z + b.d / 2 });
   const bad = [];
   for (const [name, L] of lists) {
@@ -33,7 +33,7 @@ print(js(r'''(async () => {
       if (C.x0 > A.x1 + E) break;
       if (L[A.i].color === L[C.i].color) continue;
       const faces = [];
-      if (Math.abs(A.y1 - C.y1) < E && ov(A.x0, A.x1, C.x0, C.x1) && ov(A.z0, A.z1, C.z0, C.z1)) faces.push('top');
+      if (Math.abs(A.y1 - C.y1) < ET && ov(A.x0, A.x1, C.x0, C.x1) && ov(A.z0, A.z1, C.z0, C.z1)) faces.push('top');
       for (const k of ['x0', 'x1']) if (Math.abs(A[k] - C[k]) < E && ov(A.y0, A.y1, C.y0, C.y1) && ov(A.z0, A.z1, C.z0, C.z1)) faces.push(k);
       for (const k of ['z0', 'z1']) if (Math.abs(A[k] - C[k]) < E && ov(A.y0, A.y1, C.y0, C.y1) && ov(A.x0, A.x1, C.x0, C.x1)) faces.push(k);
       for (const f of faces) bad.push(`${name} ${f} ${JSON.stringify([L[A.i], L[C.i]])}`);

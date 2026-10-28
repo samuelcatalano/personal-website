@@ -100,7 +100,7 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
     const basin = (u, v, w, d, rim) => { // stone rim around a water box
       B(u, v - d / 2 + 0.25, 0.04, w, rim, 0.5, STONE); B(u, v + d / 2 - 0.25, 0.04, w, rim, 0.5, STONE);
       B(u - w / 2 + 0.25, v, 0.04, 0.5, rim, d - 1, STONE); B(u + w / 2 - 0.25, v, 0.04, 0.5, rim, d - 1, STONE);
-      B(u, v, 0.04, w - 1, rim - 0.12, d - 1, WATER);
+      B(u, v, 0.04, w - 0.9, rim - 0.12, d - 0.9, WATER); // 0.05 into the rim walls: no shared inner planes
     };
     if (park.fountain) {
       B(0, 0, 0.05, 6.4, 0.06, 6.4, GRAVEL); taken.push([0, 0, 5]); fur.push([-3.4, 3.4, -3.4, 3.4]);
@@ -171,14 +171,14 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
     const fits = (u, v, hu, hv) => Math.abs(u) + hu <= L / 2 - m && Math.abs(v) + hv <= S / 2 - m && !(mainPath && Math.abs(v) - hv < 1.1) && !(cross && Math.abs(u) - hu < 1.0)
       && !hit(u, v, hu, hv) && !taken.some(([a, b, d]) => Math.hypot(a - u, b - v) < d * 0.6 + Math.max(hu, hv)) && clearOfSigns(u, v);
     const planter = (u, v, k, lu = 1.6, lv = 0.8) => { // raised stone box, soil, then blooms (or a clipped hedge every third)
-      B(u, v, 0.05, lu, 0.42, lv, STONE); B(u, v, 0.46, lu - 0.12, 0.04, lv - 0.12, SOIL);
+      B(u, v, 0.05, lu, 0.42, lv, STONE); B(u, v, 0.48, lu - 0.12, 0.04, lv - 0.12, SOIL);
       if (k % 3 === 2) B(u, v, 0.5, lu - 0.3, 0.45, lv - 0.3, HEDGE);
       else for (const s of [-1, 1]) B(u + s * (lu - 0.3) / 4, v, 0.5, (lu - 0.3) / 2, 0.2, lv - 0.3, BLOOM[(k + (s > 0)) % 4]);
       fur.push([u - lu / 2, u + lu / 2, v - lv / 2, v + lv / 2]);
     };
     if (park.paved) for (let u = -L / 2 + 3; u < L / 2 - 1.5; u += 6) B(u, 0, 0.06, 0.9, 0.03, S - 0.4, (Math.round((u + L / 2) / 6) % 2) ? FRESH : STONE); // paved promenade: alternating bands
     else if (!park.fountain && !park.pond && L >= 8 && S >= 8 && !hit(0, 0, 2.3, 2.3, 0) && !taken.some(([a, b, d]) => Math.hypot(a, b) < d * 0.6 + 2.4)) { // central inlay, tops 0.11 / 0.12 clear of the path crossing
-      B(0, 0, 0.09, 4.6, 0.02, 4.6, FRESH); B(0, 0, 0.1, 3.2, 0.02, 3.2, STONE); B(0, 0, 0.11, 1.6, 0.01, 1.6, FRESH); fur.push([-2.3, 2.3, -2.3, 2.3]);
+      B(0, 0, 0.09, 4.6, 0.04, 4.6, FRESH); B(0, 0, 0.13, 3.2, 0.02, 3.2, STONE); B(0, 0, 0.15, 1.6, 0.02, 1.6, FRESH); fur.push([-2.3, 2.3, -2.3, 2.3]);
     }
     if (mainPath) for (let u = -L / 2 + 1.2, k = 0; u < L / 2 - 1.2; u += 2.4, k++) { // running-bond tiles on the main path (skip fountain pad / crossing)
       if (park.fountain && Math.abs(u) < 3.6 || cross && Math.abs(u) < 2.0) continue;
@@ -214,7 +214,7 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
   for (const q of SQUARES) {
     const W = q.x1 - q.x0, D = q.z1 - q.z0, cx = (q.x0 + q.x1) / 2, cz = (q.z0 + q.z1) / 2, ix = 1.4, iz = D < 8 ? 0.6 : 1.4, L = W - 2 * ix;
     for (let u = 0; u < W; u += 4) for (let v = 0; v < D; v += 4) { // checker, 4 m tiles, last row/column trimmed
-      const w = Math.min(4, W - u), d = Math.min(4, D - v); draw(q.x0 + u + w / 2, 0.02, q.z0 + v + d / 2, w - 0.06, 0.05, d - 0.06, TILE[(u / 4 + v / 4) & 1]);
+      const w = Math.min(4, W - u), d = Math.min(4, D - v); draw(q.x0 + u + w / 2, 0.02, q.z0 + v + d / 2, w - 0.06, 0.06, d - 0.06, TILE[(u / 4 + v / 4) & 1]);
     }
     const n = Math.floor(L / 8), rows = D - 2 * iz >= 11 ? [-0.25, 0.25] : [0];
     rows.forEach((rf, ri) => {
@@ -227,16 +227,16 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
           draw(x, 0.05, z, 5.2, 0.55, 1.8, STONE); draw(x, 0.55, z, 5, 0.06, 1.6, SOIL);
           for (let b = 0; b < 5; b++) draw(x - 2 + b, 0.6, z, 0.96, 0.5, 1.5, BED[(b + k) % 5]);
         } else if (c === 'T' && tall && fit(3.4, 1)) for (const s of [-1, 1]) { // planted tree in a square planter
-          const tx = x + s * 2.2; draw(tx, 0.05, z, 1.5, 0.45, 1.5, STONE); draw(tx, 0.45, z, 1.3, 0.05, 1.3, SOIL);
+          const tx = x + s * 2.2; draw(tx, 0.05, z, 1.5, 0.47, 1.5, STONE); draw(tx, 0.48, z, 1.3, 0.05, 1.3, SOIL);
           const sh = { h: 2.9 + ((k * 7 + s) & 3) * 0.12, crown: 2.1 };
           if (onTree) onTree(tx, z, sh); else tree(draw, tx, z, sh);
         } else if (c === 'U' && tall && fit(3.4, 2.4)) { // café cluster: three umbrellas, colours by slot
           [[-2, -0.7], [0, 0.9], [2, -0.5]].forEach(([dx, dz], j) => { const px = x + dx, pz = z + dz;
-            draw(px, 0.05, pz, 0.12, 2.5, 0.12, IRON); draw(px, 2.45, pz, 2.5, 0.12, 2.5, UMB[(k + j) % 5]); draw(px, 0.05, pz, 0.9, 0.75, 0.9, P.white); });
+            draw(px, 0.05, pz, 0.12, 2.5, 0.12, IRON); draw(px, 2.45 + j * 0.03, pz, 2.5, 0.12, 2.5, UMB[(k + j) % 5]); draw(px, 0.05, pz, 0.9, 0.75, 0.9, P.white); });
         } else if (c === 'S' && tall && fit(2.2, 1.6)) { // market stall: striped awning, counter, crates
           const [a, b] = AWN[k % 4];
-          draw(x, 0.05, z - 0.7, 3.8, 1, 0.9, P.oak); draw(x, 0.05, z - 1.0, 3.8, 2.5, 0.12, P.cream);
-          for (let t = 0; t < 7; t++) draw(x - 1.8 + t * 0.6, 2.45, z - 0.2, 0.6, 0.1, 2.4, t & 1 ? b : a);
+          draw(x, 0.05, z - 0.7, 3.6, 1, 0.9, P.oak); draw(x, 0.05, z - 1.0, 3.8, 2.5, 0.12, P.cream);
+          for (let t = 0; t < 7; t++) draw(x - 1.8 + t * 0.6, 2.5, z - 0.2, 0.6, 0.1, 2.4, t & 1 ? b : a);
           for (const s of [-1, 1]) draw(x + s * 1.85, 0.05, z + 0.85, 0.1, 2.4, 0.1, IRON);
           draw(x - 1, 0.05, z + 0.5, 0.8, 0.5, 0.6, P.terracotta); draw(x + 1, 0.05, z + 0.5, 0.8, 0.5, 0.6, LEAF);
         } else if (c === 'P' && tall && D - 2 * iz >= 4 && fit(3.2, 1.7)) { // pergola with a bench under it
@@ -245,7 +245,13 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
           for (let t = 0; t < 8; t++) draw(x - 2.8 + t * 0.8, 3.0, z, 0.14, 0.1, 3.2, P.oak);
           draw(x, 0.45, z, 2, 0.08, 0.5, OAK); draw(x, 0.09, z, 1.8, 0.36, 0.3, IRON);
         } else if (c === 'F' && D - 2 * iz >= 8 && fit(3.6, 3.6)) { // tiered fountain, 3 basins
-          draw(x, 0.05, z, 7, 0.07, 7, GRAVEL); draw(x, 0.05, z, 6, 0.6, 6, STONE); draw(x, 0.55, z, 5.2, 0.1, 5.2, WATER);
+          const bowl = (w, y, t) => { // floor, four rim walls, water that runs 0.05 into the walls: top 0.13 under the rim, no shared planes
+            draw(x, y, z, w, 0.25, w, STONE);
+            for (const f of [-1, 1]) { draw(x, y + 0.25, z + f * (w - t) / 2, w, 0.3, t, STONE); draw(x + f * (w - t) / 2, y + 0.25, z, t, 0.3, w - 2 * t, STONE); }
+            draw(x, y + 0.25, z, w - 2 * t + 0.1, 0.17, w - 2 * t + 0.1, WATER);
+          };
+          draw(x, 0.05, z, 7, 0.07, 7, GRAVEL); bowl(6, 0.12, 0.4); draw(x, 0.37, z, 1.6, 0.6, 1.6, STONE);
+          bowl(3.2, 0.97, 0.3); draw(x, 1.22, z, 0.9, 0.5, 0.9, STONE); bowl(1.8, 1.72, 0.3); draw(x, 1.97, z, 0.25, 1.0, 0.25, WATER);
           draw(x, 0.65, z, 3, 0.6, 3, STONE); draw(x, 1.2, z, 2.6, 0.1, 2.6, WATER); draw(x, 1.3, z, 1.4, 0.55, 1.4, STONE); draw(x, 1.8, z, 1.0, 0.1, 1.0, WATER); draw(x, 1.85, z, 0.25, 1.0, 0.25, WATER);
         }
       }

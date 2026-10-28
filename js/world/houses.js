@@ -3,7 +3,7 @@ const WALLS = [P.steel, P.oak, P.pearl, P.cream, P.brick, P.redBrown, P.londonSt
 // Georgian townhouse. Front faces o (+1: +z, -1: -z); `q` is a seeded rng. Every detail sits proud of the wall by >= 0.03.
 export function house(add, q, x, z, o, w, d, n, fh = 3.1, lo = false) {
   const h = n * fh, f = z + o * d / 2, nc = Math.max(2, Math.round(w / 3)), pick = (a) => a[q() * a.length | 0];
-  const F = (cx, y, bw, bh, front, col, back = -front / 2) => add(cx, y, f + o * (front + back) / 2, bw, bh, front - back, col);
+  const F = (cx, y, bw, bh, front, col, back = -front / 2) => add(cx, y, f + o * (front + back) / 2, bw - (Math.abs(Math.abs(cx - x) + bw / 2 - w / 2) < 0.03 ? 0.1 : 0), bh, front - back, col); // end-bay trim flush with a side wall is pulled in 5 cm
   const wall = pick(WALLS), roof = pick(ROOFS), door = pick(DOORS), dc = q() < 0.5 ? 0 : nc - 1, bal = n > 2 && q() < 0.4, bc = q() * nc | 0;
   add(x, 0, z, w, h, d, wall);
   add(x, 0, z, w + 0.2, 0.5, d + 0.2, P.taupe);

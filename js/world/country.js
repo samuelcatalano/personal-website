@@ -21,7 +21,7 @@ export function buildCountry(add, curve, tree, [c0, c1], leg = 0, onArchitecture
   const oak = () => ({ h: 2.6 + r() * 1.2, crown: 1.8 + r() * 0.8 }), pick = (arr) => arr[r() * arr.length | 0];
   const SX = []; for (let x = a + 14 + r() * 8; x < b - 8; x += 30 + r() * 12) SX.push(x); // side streets, shared by all rows
   for (let x = c0; x < c1 - 0.1; x += 10) { // paved urban ground: near side, road far side to the near bank (river path starts at -29.3), far bank
-    const w = Math.min(10, c1 - x), xc = x + w / 2, z = zr(xc);
+    const w = Math.min(10, c1 - x + 0.3), xc = x + w / 2, z = zr(xc);
     add(xc, 0, z + 24.1, w, 0.05, 31.8, P.pave);
     add(xc, 0, (z - 8.2 - 29.3) / 2, w, 0.05, z - 8.2 + 29.3, P.pave);
     add(xc, 0, -89.5, w, 0.05, 57, P.pave);
