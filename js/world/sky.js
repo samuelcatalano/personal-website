@@ -31,7 +31,7 @@ const sprite = (map, size) => {
   m.renderOrder = 1000;
   return m;
 };
-const LON = { zen: [0.435, 0.694, 0.91], hor: [0.725, 0.863, 0.961], cloud: [0.957, 0.976, 1], light: [1, 0.941, 0.816], sun: 1, hemi: 1, fogK: 1, cloudOp: 0 }; // default mood (== DAY)
+const LON = { zen: [0.435, 0.694, 0.91], hor: [0.725, 0.863, 0.961], cloud: [0.957, 0.976, 1], light: [1, 0.941, 0.816], sun: 1, hemi: 1, fogK: 1, cloudOp: 0, rs: 0, rl: 1, rg: 0 }; // default mood (== DAY)
 export function createSky(scene, { hemi, sun, reducedMotion = false }) {
   const d1 = new THREE.Color(), day = (a, c = d1) => c.setRGB(a[0], a[1], a[2], THREE.SRGBColorSpace); // mood sRGB triplet -> working colour
   const dome = new THREE.Mesh(
@@ -85,10 +85,10 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
   // Feathered density billboards preserve the upper-frame composition with far fewer draws than sphere clusters.
   const cloudMat = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, fog: false, toneMapped: false,
-    uniforms: { uTop: { value: new THREE.Color() }, uBase: { value: new THREE.Color() }, uRim: { value: new THREE.Color() }, uOp: { value: .8 }, uLayer: { value: 0 }, uCover: { value: 0 }, uFlash: { value: 0 } },
+    uniforms: { uTop: { value: new THREE.Color() }, uBase: { value: new THREE.Color() }, uRim: { value: new THREE.Color() }, uOp: { value: .8 }, uLayer: { value: 0 }, uCover: { value: 0 }, uFlash: { value: 0 }, uSeed: { value: 0 }, uFade: { value: 1 } },
     vertexShader: 'varying vec2 vUv; void main(){vUv=uv*2.0-1.0;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
     fragmentShader: `
-      uniform vec3 uTop,uBase,uRim; uniform float uOp,uLayer,uCover,uFlash; varying vec2 vUv;
+      uniform vec3 uTop,uBase,uRim; uniform float uOp,uLayer,uCover,uFlash,uSeed,uFade; varying vec2 vUv;
       float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
       float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+1.0),f.x),f.y);}
       float fbm(vec2 p){return noise(p)*.57+noise(p*2.07+7.0)*.28+noise(p*4.13+19.0)*.15;}
@@ -103,25 +103,30 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
           a=smoothstep(.45,.75,streak)*pow(max(0.0,1.0-p.x*p.x),.7)*(1.0-smoothstep(.3,1.0,abs(p.y)));
           c=mix(uBase,uTop,.8);
         }else{
-          float n=fbm(p*5.0+vec2(3.0,7.0));
-          float shape=1.0-length(vec2(p.x/.93,(p.y+.22)/.42));
-          shape=max(shape,1.0-length((p-vec2(-.42,.02))/vec2(.34,.58)));
-          shape=max(shape,1.0-length((p-vec2(.02,.18))/vec2(.42,.69)));
-          shape=max(shape,1.0-length((p-vec2(.47,.02))/vec2(.33,.50)));
+          float n=fbm(p*5.0+vec2(3.0,7.0)+uSeed*23.0);
+          vec4 j=fract(uSeed*vec4(7.31,3.17,5.53,11.7))-.5; // per-cloud blob jitter: every cloud gets its own silhouette
+          float shape=1.0-length(vec2(p.x/(.93+j.x*.3),(p.y+.22)/(.42+j.y*.12)));
+          shape=max(shape,1.0-length((p-vec2(-.42+j.z*.3,.02))/vec2(.34,.58+j.w*.3)));
+          shape=max(shape,1.0-length((p-vec2(.02+j.w*.3,.18))/vec2(.42,.69+j.x*.3)));
+          shape=max(shape,1.0-length((p-vec2(.47+j.y*.2,.02))/vec2(.33,.50+j.z*.3)));
           a=smoothstep(-.08,.23,shape+(n-.5)*.24);
           float light=smoothstep(-.50,.65,p.y+(n-.5)*.5);
           c=mix(uBase,uTop,light);c=mix(c,uRim,smoothstep(.65,.98,light)*.28);
         }
-        gl_FragColor=vec4(c,a*uOp);
+        gl_FragColor=vec4(c,a*uOp*uFade);
       }`,
   });
   const cirrusMat=cloudMat.clone(), deckMat=cloudMat.clone();
   cirrusMat.uniforms.uLayer.value=1; deckMat.uniforms.uLayer.value=2;
   const cloudGeo=new THREE.PlaneGeometry(1,1), clouds=new THREE.Group();clouds.name='weather-clouds';
-  for(let i=0;i<14;i++){
-    const high=i>=10, c=new THREE.Mesh(cloudGeo,high?cirrusMat:cloudMat);
-    c.scale.set(high?440:220+(i%3)*38,high?65:90+(i%4)*12,1);
-    c.userData={x:((i*.61803398875)%1)*2.8-1.4,y:high?.92+(i%2)*.10:.57+((i*.381966)%1)*.37};
+  // Seeded per-cloud layouts, one per region (SP scattered, London broken, Glasgow packed); the update blends them so clouds glide between stops.
+  const rnd=(i,k)=>{const n=Math.sin(i*91.7+k*47.3+1.3)*43758.5453;return n-Math.floor(n);};
+  const LAYOUT=[[0,.5],[0,.85],[0,1.2]]; // cloud density per region sp/lon/gla
+  for(let i=0;i<20;i++){
+    const high=i>=14, m=high?cirrusMat:Object.assign(cloudMat.clone(),{uniforms:{...cloudMat.uniforms,uSeed:{value:rnd(i,0)},uFade:{value:1}}});
+    const c=new THREE.Mesh(cloudGeo,m);
+    const reg=[0,1,2].map(r=>({x:rnd(i,r*3+1)*2.9-1.45,y:high?.9+rnd(i,r*3+2)*.14:.5+rnd(i,r*3+2)*.45,k:.7+rnd(i,r*3+3)*(r==2?.9:.8)}));
+    c.userData={reg,rank:rnd(i,20),speed:.007+rnd(i,21)*.012,drift:0,high};
     c.renderOrder=high?-8:-7;c.frustumCulled=false;clouds.add(c);
   }
   const deck=new THREE.Mesh(cloudGeo,deckMat);deck.scale.set(3200,650,1);deck.renderOrder=-6;deck.frustumCulled=false;
@@ -189,11 +194,15 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
       dome.position.copy(camPos); stars.position.copy(camPos);
       if (cam) {
         const wide = cam.aspect > 1;
+        const w=[mood.rs??0,mood.rl??1,mood.rg??0], dens=w[0]*LAYOUT[0][1]+w[1]*LAYOUT[1][1]+w[2]*LAYOUT[2][1];
         for (const c of clouds.children) {
-          c.visible=c.material!==cirrusMat||cirrusMat.uniforms.uOp.value>.001;
           const d = c.userData;
-          if (!reducedMotion) d.x = d.x > 1.4 ? -1.4 : d.x + dt * 0.012;
-          at(cam, d.x, d.y, 1250, c.position);
+          let x=0,y=0,k=0;for(let r=0;r<3;r++){x+=d.reg[r].x*w[r];y+=d.reg[r].y*w[r];k+=d.reg[r].k*w[r];}
+          if(!reducedMotion)d.drift+=dt*d.speed;
+          x=((x+d.drift+1.6)%3.2+3.2)%3.2-1.6;
+          if(d.high){c.visible=cirrusMat.uniforms.uOp.value>.001;c.scale.set(440*k,65*k,1);}
+          else{c.material.uniforms.uFade.value=THREE.MathUtils.smoothstep(dens,d.rank*.9,d.rank*.9+.2);c.visible=c.material.uniforms.uFade.value>.005;c.scale.set((220+d.rank*60)*k,(90+d.rank*30)*k,1);}
+          at(cam, x, y, 1250, c.position);
           c.lookAt(cam.position);
         }
         place(sunM, cam, wide ? 0.66 : 0.6, wide ? 0.8 : 0.78); place(moonM, cam, wide ? 0.66 : 0.6, wide ? 0.8 : 0.78);

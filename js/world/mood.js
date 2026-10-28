@@ -37,11 +37,12 @@ export function createMood(stops, { weather = visitWeather } = {}) {
     lon: prepare(P.lon, weather.lon, 'lon'),
     gla: prepare(P.gla, weather.gla, 'gla'),
   };
-  const out = Object.fromEntries([...COLS.map((k) => [k, [0, 0, 0]]), ...NUM.map((k) => [k, 0])]);
+  const out = Object.fromEntries([...COLS.map((k) => [k, [0, 0, 0]]), ...NUM.map((k) => [k, 0]), ['rs', 1], ['rl', 0], ['rg', 0]]);
   return (t) => {
     const g = ss(g0 - h, g0 + h, t) * (1 - ss(g1 - h, g1 + h, t)), sp = (1 - ss(sw - h, sw + h, t)) * (1 - g), l = 1 - g - sp;
     for (const k of COLS) for (let i = 0; i < 3; i++) out[k][i] = weatherMood.sp[k][i] * sp + weatherMood.lon[k][i] * l + weatherMood.gla[k][i] * g;
     for (const k of NUM) out[k] = weatherMood.sp[k] * sp + weatherMood.lon[k] * l + weatherMood.gla[k] * g;
+    out.rs = sp; out.rl = l; out.rg = g; // region weights for the sky's cloud layout
     const entry=1-ss(.5/(stops.length-1),1.5/(stops.length-1),t);
     for(const k of COLS)for(let i=0;i<3;i++)out[k][i]+=(weatherMood.entry[k][i]-out[k][i])*entry;
     for(const k of NUM)out[k]+=(weatherMood.entry[k]-out[k])*entry;
