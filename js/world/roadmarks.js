@@ -17,17 +17,44 @@ export function createRoadMarks(curve, stops, { bays, sample, pilotCrossings = [
     const at = (F, s) => [F.p.x + F.nx * (o + s * w / 2), F.p.z + F.nz * (o + s * w / 2)];
     quad(at(A, 1), at(B, 1), at(B, -1), at(A, -1), color);
   };
-  // every longitudinal line (edges, centre, lane dashes) and bay tick stops GAP m short of each crossing: stop zebras (9 m past a stop, 1.4 m half-length) and pilot crossings (city.js, ~1.85 m half-length)
-  const GAP = 0.5, gaps = [...stops.map((_, i) => [Math.min(1, i / (stops.length - 1) + 9 / len) * len, 1.4]), ...pilotCrossings.map((u) => [u * len, 1.85])]
-    .map(([s, h]) => [s - h - GAP, s + h + GAP]).sort((a, b) => a[0] - b[0]);
+  // Crossings: stop zebras (9 m past a stop, 1.4 m half-length) and pilot crossings (city.js, ~1.85 m half-length). Each is a world-space band (centre C, road tangent T at C,
+  // half-depth h + GAP). Every longitudinal line (edges, centre, dashes) is clipped on its own edge corners by signed distance along T, so all lines end on one straight cut
+  // perpendicular to the road, whatever the line type or the curvature. `gaps` (arc spans) only serves the bay ticks.
+  const GAP = 0.5, spans = [...stops.map((_, i) => [Math.min(1, i / (stops.length - 1) + 9 / len), 1.4]), ...pilotCrossings.map((u) => [u, 1.85])];
+  const bands = spans.map(([u, h]) => { const F = frame(u); return { x: F.p.x, z: F.p.z, tx: F.t.x, tz: F.t.z, d: h + GAP, s: u * len }; });
+  const gaps = bands.map((c) => [c.s - c.d, c.s + c.d]);
   const inCrossing = (s) => gaps.some(([a, b]) => s > a && s < b);
-  const outside = (s0, s1) => { // parts of the arc span [s0, s1] clear of every crossing gap
-    const out = []; let a = s0;
-    for (const [g0, g1] of gaps) { if (g1 <= a || g0 >= s1) continue; if (g0 > a) out.push([a, g0]); a = Math.max(a, g1); }
-    if (a < s1) out.push([a, s1]);
-    return out;
+  const line = (s0, s1, o, w, color) => {
+    const A = frame(s0 / len), B = frame(s1 / len), pt = (F, k) => [F.p.x + F.nx * (o + k * w / 2), F.p.z + F.nz * (o + k * w / 2)];
+    const E = [1, -1].map((k) => [pt(A, k), pt(B, k)]); // left and right edge: [start, end]
+    const m = [(A.p.x + B.p.x) / 2, (A.p.z + B.p.z) / 2];
+    let keep = [[{ t: 0 }, { t: 1 }]]; // kept [start, end] pieces along the strip; a cut carries its band c and signed distance g
+    for (const c of bands) {
+      if (Math.hypot(m[0] - c.x, m[1] - c.z) > 8) continue;
+      const dist = ([x, z]) => (x - c.x) * c.tx + (z - c.z) * c.tz, dA = dist([A.p.x, A.p.z]), dB = dist([B.p.x, B.p.z]);
+      if (dA === dB) continue;
+      let lo = (-c.d - dA) / (dB - dA), hi = (c.d - dA) / (dB - dA), gl = -c.d, gh = c.d;
+      if (lo > hi) { [lo, hi] = [hi, lo]; [gl, gh] = [gh, gl]; }
+      if (hi <= 0 || lo >= 1) continue;
+      const next = [];
+      for (const [p, q] of keep) {
+        if (hi <= p.t || lo >= q.t) { next.push([p, q]); continue; }
+        if (lo > p.t) next.push([p, { t: lo, g: gl, c }]);
+        if (hi < q.t) next.push([{ t: hi, g: gh, c }, q]);
+      }
+      keep = next;
+    }
+    const at = ([P, Q], e) => { // point on an edge at a cut (exact signed distance g from the nearest band) or at its original end
+      if (e.g === undefined) return e.t === 0 ? P : Q;
+      const c = e.c;
+      const dP = (P[0] - c.x) * c.tx + (P[1] - c.z) * c.tz, dQ = (Q[0] - c.x) * c.tx + (Q[1] - c.z) * c.tz, t = (e.g - dP) / (dQ - dP);
+      return [P[0] + (Q[0] - P[0]) * t, P[1] + (Q[1] - P[1]) * t];
+    };
+    for (const [p, q] of keep) {
+      const L = [p, q].map((e) => at(E[0], e)), R = [p, q].map((e) => at(E[1], e));
+      quad(L[0], L[1], R[1], R[0], color);
+    }
   };
-  const line = (s0, s1, o, w, color) => { for (const [a, b] of outside(s0, s1)) strip(a / len, b / len, o, w, color); };
   const FIRST_ZEBRA_END = 12.4; // no centre line from the route start to just past the first zebra
   for (let k = 0; k < n; k++) {
     const u0 = k / n, u1 = (k + 1) / n, s0 = u0 * len, s1 = u1 * len, br = (u0 + u1) / 2 < swap;
