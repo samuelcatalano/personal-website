@@ -101,9 +101,9 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   world.traverse((o) => { const h = o.material?.color?.getHexString(); if (o.material?.userData.glow) { if (h === WIN_L.slice(1)) o.material.userData.glowColor = new THREE.Color('#ffb04a'); if (h === RG.slice(1)) o.material.userData.glowColor = new THREE.Color('#d8e86a'); if (h === RB.slice(1)) o.material.userData.glowColor = new THREE.Color('#bcd4ff'); } });
   polishLandmarkMaterials(world,stops,pts);
   const motion = buildMotion(); scene.add(motion.group);
-  const roadMarks = createRoadMarks(curve, stops, { ...parkingBays(curve, pts, stops), pilotCrossings });
+  const roadMarks = createRoadMarks(curve, stops, { ...parkingBays(curve, pts, stops, pilotCrossings), pilotCrossings });
   scene.add(world, eye, details, plane, shadow, bus, roadMarks);
-  const units = [createAmbient(scene, { curve, pts, stops, reducedMotion }), createParked(scene, { curve, pts, stops })];
+  const units = [createAmbient(scene, { curve, pts, stops, reducedMotion }), createParked(scene, { curve, pts, stops, pilotCrossings })];
   const people = createPeople(scene, { curve, pts, stops, reducedMotion });
   const water = createWater({ x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z: RIVER_Z, width: 22, reducedMotion });
   scene.add(water.mesh);

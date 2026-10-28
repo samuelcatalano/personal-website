@@ -7,10 +7,10 @@ import { parkingBays } from './bays.js';
 // geometry and per-paint materials. A seeded rng thins the bays; it is drawn for every bay and side, eligible or not, so editing a keep-out zone never reshuffles the other cars.
 const FILL = 0.8, SEED = 4242; // share of bays taken
 const PAINT = ['#f1f1ee', '#c4c8cc', '#6c7177', '#1b1d21', '#25324a', '#7a1620', '#2f6fcf', '#b3161f', '#e8c425', '#2e6b46', '#c4c8cc', '#f1f1ee']; // everyday mix, unlike the saturated moving cars
-export function createParked(scene, { curve, pts, stops }) {
+export function createParked(scene, { curve, pts, stops, pilotCrossings }) {
   const group = new THREE.Group(); group.name = 'parked-cars'; scene.add(group);
   let disposed = false;
-  const { bays, sample } = parkingBays(curve, pts, stops), ukX = pts[ukStart(stops)].x - 15, rand = rng(SEED), spots = [];
+  const { bays, sample } = parkingBays(curve, pts, stops, pilotCrossings), ukX = pts[ukStart(stops)].x - 15, rand = rng(SEED), spots = [];
   for (const b of bays) {
     const { p, t } = sample(b.s);
     for (const side of [-1, 1]) { // -1: oncoming side (normal -t.z, t.x), +1: the player's side
