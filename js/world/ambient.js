@@ -15,7 +15,7 @@ function boat(hull = '#6b4f3a', cabin = '#f4f4f4', sx = 1) {
 }
 // Traffic. `relative` vehicles keep a fixed offset from the player (same lane, glued to the scroll position); the rest drive the oncoming lane on their own:
 // a base speed by type, eased down toward a zebra crossing (and back up) by integrating acceleration each frame, a minimum gap to the vehicle ahead, yaw eased toward the road tangent.
-const FADE = 0.8; // s: vehicles fade in/out instead of popping (instant under reduced motion)
+const FADE = 0.6; // s: a vehicle that must appear/vanish inside the camera frustum fades; outside it toggles instantly (and always under reduced motion)
 const HIDE = 110; // m from the player beyond which an ambient vehicle may appear/vanish at a region border
 const BRIDGE_FAR = 80; // m: Estaiada cars only appear/vanish beyond this from the player
 const SPEED = { london: 10, glasgow: 10, cab: 13, mini: 13, car: 13.5 }; // m/s
@@ -110,11 +110,13 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
   const lanePos = (t, lane) => { const p = curve.getPointAt(t), tn = curve.getTangentAt(t); return { x: p.x + tn.z * lane, z: p.z - tn.x * lane }; }; // same side convention as the frame loop
   const tOf = (v) => routeT(v.p, pts.length, knots);
   let lastRoute = null;
-  const tmp = new THREE.Vector3(), here = new THREE.Vector3(), nrm = new THREE.Vector3(), swap = swapAt(stops), [scotIn, scotOut] = scotRange(stops), wrap = (p) => ((p % 1) + 1) % 1;
+  const frustum = new THREE.Frustum(), pv = new THREE.Matrix4(), ball = new THREE.Sphere(), SEEN_MARGIN = 4, tmp = new THREE.Vector3(), here = new THREE.Vector3(), nrm = new THREE.Vector3(), swap = swapAt(stops), [scotIn, scotOut] = scotRange(stops), wrap = (p) => ((p % 1) + 1) % 1;
   return {
     ready: Promise.all([ready, bridgeReady]),
     dispose() { disposed = true; traffic.forEach((v) => disposeFade(v.mesh)); },
-    update({ time, t: route, dt = 0 }) {
+    update({ time, t: route, dt = 0, camera }) {
+      let seen = () => false; // ponytail: no camera (tests) = nothing is on screen
+      if (camera) { camera.updateMatrixWorld(); frustum.setFromProjectionMatrix(pv.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse)); seen = (x, z, len) => frustum.intersectsSphere(ball.set(tmp.set(x, 1.5, z), len / 2 + SEEN_MARGIN)); }
       const move = !reducedMotion && dt > 0;
       if (move) {
         const road = bridge.filter((b) => b.phase === 'road'); // bridge cars on the avenue share the oncoming lane: same speed profile and spacing
@@ -145,7 +147,7 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
       }
       here.copy(curve.getPointAt(Math.min(1, Math.max(0, route))));
       const first = lastRoute === null, jump = first || Math.abs(route - lastRoute) > 0.02; lastRoute = route; // first frame or a nav jump: settle every vehicle at once
-      if (jump) for (const v of auto) { v.active = false; if (!first) v.fade = 0; } // a teleported car fades in at its new place // re-place them one by one: each checks the clearance against those already placed
+      if (jump) for (const v of auto) { v.active = false; if (!first) v.fade = 0; } // re-place them one by one: each checks the clearance against those already placed
       for (const v of traffic) {
         const t = v.relative ? route + v.offset : routeT(v.p, pts.length, knots);
         const inside = t >= 0 && t <= 1, want = inside && !v.hold && (v.range || v.uk === undefined || (t >= swap) === v.uk) && (v.scot === undefined || (t >= scotIn && t < scotOut) === v.scot);
@@ -153,8 +155,11 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
         if (jump || !inside || v.relative || v.hold || want === v.active || curve.getPointAt(t).distanceTo(here) > HIDE) {
           // never appear on top of a car already in the lane (region borders, nav jumps): stay hidden and keep driving until it is clear
           v.active = want && (v.relative || !traffic.some((o) => o !== v && (o.active || o.fade > 0) && o.lane === v.lane && Math.hypot(o.x - lanePos(t, v.lane).x, o.z - lanePos(t, v.lane).z) < (v.len + o.len) / 2 + GAP) && !bridge.some((b) => Math.hypot(b.x - lanePos(t, v.lane).x, b.z - lanePos(t, v.lane).z) < (v.len + b.len) / 2 + GAP));
-        } // ponytail: player distance, not a camera frustum test
-        v.fade = first || reducedMotion || !dt || v.hold || !inside ? +v.active : v.active ? Math.min(1, v.fade + dt / FADE) : Math.max(0, v.fade - dt / FADE);
+        }
+        if (v.fade !== +v.active) { // toggle instantly while off screen (its new place if appearing, its last place otherwise); fade only if it is in view
+          const lp = !v.fade && v.active ? lanePos(t, v.lane) : { x: v.x, z: v.z };
+          v.fade = first || reducedMotion || !dt || !inside || !seen(lp.x, lp.z, v.len) ? +v.active : v.active ? Math.min(1, v.fade + dt / FADE) : Math.max(0, v.fade - dt / FADE);
+        }
         v.mesh.visible = v.fade > 0; fadeVehicle(v.mesh, v.fade);
         if (!v.active && !v.fade) continue; // a fading-out car keeps driving (spawn checks still see it); off the route ends (hold) it just vanishes
         if (v.livery) { const livery = t >= scotIn && t < scotOut ? 'glasgow' : 'london'; if (livery !== v.livery && v.mesh.userData.wheels) { reskinBus(v.mesh, livery); v.livery = livery; } } // buses wear the livery of the region they are in, also after a respawn or past a region border

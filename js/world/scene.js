@@ -6,6 +6,7 @@ import { createBoxes, buildMeshes } from './voxel.js';
 import { buildMotion } from './motion.js';
 import { buildCity, tree } from './city.js';
 import { buildRealCity } from './real-city.js';
+import { fadeVehicle } from './fade.js';
 import { createHeroRealm } from './hero-realm.js';
 import { createTrees } from './trees.js';
 import { buildPhoneBoxes } from './phone.js';
@@ -93,7 +94,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   // Glasgow livery between the two railway underpasses (each within 7 m of its scotRange boundary); the visible swap happens inside the tunnel (see frame())
   const underpass = createUnderpass(curve, stops), [ARCH_IN, ARCH_OUT] = underpass.passes.map((a) => a.t);
   scene.add(underpass.group);
-  let shown = null, frameNo = 0;
+  let shown = null, frameNo = 0, swapFade = null; const SWAP_FADE = 0.6;
   const frustum = new THREE.Frustum(), pv = new THREE.Matrix4(), sphere = new THREE.Sphere(), ray = new THREE.Raycaster();
   for (const v of [mini, londonBus, glasgowBus]) addBeams(v, v.userData.front, v.userData.beamY);
   const WIN_L = '#2b2621', RG = '#27394b', RB = '#c9ccd1'; // Glasgow Uni windows, Riverside glass + band
@@ -213,7 +214,17 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
           if (ray.intersectObject(architecture, true).length) why = 'occluded';
         }
       }
-      if (why) { shown = want; mini.visible = want === mini; londonBus.visible = want === londonBus; glasgowBus.visible = want === glasgowBus; }
+      if (why) {
+        if (swapFade) { swapFade.out.visible = false; fadeVehicle(swapFade.out, 1); fadeVehicle(swapFade.inn, 1); swapFade = null; }
+        const out = shown; shown = want;
+        if (why === 'immediate' && out && !reducedMotion) { swapFade = { out, inn: want, k: 0 }; want.visible = true; } // Mini <-> bus: 0.6 s crossfade, both visible meanwhile
+        else { mini.visible = want === mini; londonBus.visible = want === londonBus; glasgowBus.visible = want === glasgowBus; }
+      }
+    }
+    if (swapFade) {
+      swapFade.k = Math.min(1, swapFade.k + dt / SWAP_FADE);
+      fadeVehicle(swapFade.out, 1 - swapFade.k); fadeVehicle(swapFade.inn, Math.max(0.001, swapFade.k));
+      if (swapFade.k >= 1) { swapFade.out.visible = false; swapFade = null; }
     }
     architecture.userData.update?.(camera);
     // snap the shadow centre to whole shadow texels in light space, so shadow edges don't shimmer while moving
@@ -222,7 +233,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     sun.position.copy(sun.target.position).add(SUN);
     eye.rotation.z = clock * 0.1; motion.uT.value = clock;
     updatePlane(t);
-    const f = { time: clock, dt, progress: p, t, active: nearestStop(p, n, marks), bus: busPos };
+    const f = { camera, time: clock, dt, progress: p, t, active: nearestStop(p, n, marks), bus: busPos };
     onProgress(p);
     for (const u of units) u.update(f);
     people.update(dt, camera.position);
