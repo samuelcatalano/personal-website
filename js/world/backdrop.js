@@ -1,7 +1,7 @@
 import { glasgowSites, rng } from './layout.js';
 import { PALETTE as P } from './palette.js';
 
-export function buildBackdrop(add, stops, pts) {
+export function buildBackdrop(add, stops, pts, addSky = add) {
   const r = rng(90817), { museum } = glasgowSites(stops, pts);
   let nearBuildings = 0;
   const x0 = pts[0].x - 230, x1 = pts.at(-1).x + 230, rows = [-130, -170, -220, -280, -350, -440];
@@ -86,8 +86,13 @@ export function buildBackdrop(add, stops, pts) {
     for (let x = x0 - 160; x < x0 - 14;) {
       const w = 9 + wc() * 4, gap = 2 + wc() * 2, xc = x + w / 2, z = z0 + (wc() - 0.5) * 10, floors = 2 + (wc() * (row < 2 ? 3 : 6) | 0), h = floors * 2.8;
       const wall = (row < 2 ? colors : distantColors)[wc() * (row < 2 ? colors : distantColors).length | 0];
-      body(xc, 0, z, w, h, 11, wall, (Math.round(xc * 91) ^ row * 761) | 0, row < 2, row < 2 ? .78 : .42);
+      const cov = row < 2 ? .78 : .42, seed = (Math.round(xc * 91) ^ row * 761) | 0, kind = wc();
+      if (kind < .3) { body(xc, 0, z, w, h * .65, 11, wall, seed, row < 2, cov); body(xc + w * .1, h * .65, z, w * .7, h * .35, 9, wall, seed ^ 7, false, cov); } // setback
+      else if (kind < .5) { body(xc - w * .25, 0, z, w * .5, h, 11, wall, seed, row < 2, cov); body(xc + w * .25, 0, z, w * .5, h * .7, 11, wall, seed ^ 9, false, cov); } // twin heights
+      else body(xc, 0, z, w, h, 11, wall, seed, row < 2, cov);
       add(xc, h, z, w + .3, .35, 11.4, row === 0 ? P.roof : wall);
+      if (kind > .85 && row > 0) add(xc, h + .35, z, .3, 6 + wc() * 8, .3, P.steel); // mast
+      else if (kind > .7) add(xc, h + .35, z - 1, w * .36, 1.4, 4.5, wall); // plant room
       x += w + gap;
     }
   }
@@ -120,6 +125,35 @@ export function buildBackdrop(add, stops, pts) {
         add(xc, h, z, w + 0.3, 0.35, 12.3, wall);
       }
       x += w + gap;
+    }
+  }
+  // Distant skyline: three silhouette rows behind the far infill, emitted through `addSky` as colour keys 'sky<row>b|t' (darker base, lighter top).
+  // skyline.js gives them an unfogged material with authored on-screen colours (fog would wash them to the horizon); the default addSky keeps them in the same list for tests.
+  // Silhouettes only, no facades. Per-city profile by x: SP dense towers, London mid-rise + few towers/cranes, Glasgow low with church spires.
+  // ponytail: no night window dots, silhouettes only.
+  const sk = rng(90823), spN = pts[0].x + 190, gl = glasgowSites(stops, pts).museum.x;
+  for (const [ri, [z0, hk]] of [[-490, 1], [-570, 1], [-660, 1]].entries()) {
+    const SB = `sky${ri}b`, ST = `sky${ri}t`;
+    for (let x = x0 - 220; x < x1 + 120;) {
+      const city = x < spN ? 0 : x > gl - 160 && x < gl + 140 ? 2 : 1, q = sk(), w = (city === 0 ? 15 : 11) + sk() * 9, gap = 3 + sk() * 7, xc = x + w / 2, z = z0 + (sk() - .5) * 8, d = 44;
+      sk(); const wall = ST;
+      let h = city === 0 ? (q < .1 ? 55 + sk() * 25 : 16 + sk() * 30) : city === 1 ? (q < .05 ? 28 + sk() * 10 : 8 + sk() * 14) : 7 + sk() * 9;
+      h *= hk;
+      const corridor = xc + w / 2 > museumL && xc - w / 2 < museumR;
+      x += w + gap;
+      if (corridor && Math.abs(xc - museum.x) > 31) continue;
+      if (corridor) h = Math.min(h, 20);
+      add(xc, -0.1, z, w, 0.08, d, P.concreteMid);
+      addSky(xc, 0, z, w, h * .5, d, SB); addSky(xc, h * .5, z, w, h * .5, d, wall);
+      if (corridor) continue;
+      if (h > 48 && city === 0) { // tower: stepped crown, tapering cap, mast
+        addSky(xc, h, z, w * .72, h * .12, d * .72, wall); addSky(xc, h * 1.12, z, w * .4, h * .1, d * .4, wall);
+        addSky(xc, h * 1.22, z, .8, h * .15, .8, wall);
+      } else if (city === 2 && q > .6) { // church / tenement spire
+        addSky(xc, h, z, w * .5, 6, w * .5, wall); addSky(xc, h + 6, z, w * .26, 8, w * .26, wall); addSky(xc, h + 14, z, .6, 10, .6, wall);
+      } else if (city === 1 && q > .85) { // tower crane: mast, jib, counterweight
+        addSky(xc, h, z, .8, 14, .8, wall); addSky(xc + 5, h + 14, z, 20, .7, .7, wall); addSky(xc - 7, h + 13, z, 3, 1.6, 1.6, wall);
+      } else if (q > .5) addSky(xc - w * .2, h, z, w * .5, 3 + sk() * 4, d * .5, wall); // setback / plant
     }
   }
 }

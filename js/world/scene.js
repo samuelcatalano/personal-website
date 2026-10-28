@@ -11,6 +11,7 @@ import { createTrees } from './trees.js';
 import { buildPhoneBoxes } from './phone.js';
 import { buildLampPosts } from './street-lamp.js';
 import { buildBackdrop } from './backdrop.js';
+import { createSkyline } from './skyline.js';
 import { buildLandmarks } from './landmarks.js';
 import { resetFloodlights } from './building-slice-materials.js';
 import { polishLandmarkMaterials } from './landmark-materials.js';
@@ -56,7 +57,10 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const n = stops.length, pts = routePoints(n), marks = stopMarks(pts);
   const curve = routeCurve(THREE, pts), knots = fineMarks(marks, curve);
   const distant = createBoxes();
-  buildBackdrop(distant.add, stops, pts);
+  const far = createBoxes();
+  buildBackdrop(distant.add, stops, pts, far.add);
+  const skyline = createSkyline(far.list);
+  scene.add(skyline);
   const backdrop = buildMeshes(distant.list);
   backdrop.name = 'distant-neighborhoods';
   backdrop.traverse(o => { o.castShadow = o.receiveShadow = false; });
@@ -228,6 +232,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     wet = lagWetness(wet, mood.wet, dt);
     const flash = rain.update(clock, camera, mood, night, post.tier, busPos, bus.rotation.y);
     sky.update(night, dt, camera.position, camera, mood, flash);
+    skyline.userData.update(night);
     wetSurfaces.update(clock, wet, mood.rain, night, camera.position, sky.colors, bus.position, bus.rotation.y, post.tier);
     updateBeams(night); pools.update(night, wet);
     water.update(clock, night, mood, post.tier, sky.colors);
