@@ -50,7 +50,9 @@ export function rolloutRecipe(p,kind,neighbors=[p]){
   }
   if(kind==='office'){const r=officeRecipe(p);return {...r,bays:Math.max(2,r.bays+(seed%3)-1),lobbyHeight:3.8+(seed%3)*.2,spandrel:[.36,.85,.55,.7][Math.floor(seed/5)%4],reveal:[.32,.22,.4][Math.floor(seed/11)%3],emphasis:seed%2?'horizontal':'vertical',rooftop:seed%3!==0,crown:Math.floor(seed/7)%4};}
   const r=towerRecipe(p),silhouette=towerFamily(p,neighbors),profiles={straight:{setbacks:[.12,.82,.96],scales:[.91,.91,.91],offsets:[0,0,0]},stepped:{setbacks:[.12,.70,.88],scales:[.91,.74,.52],offsets:[0,0,0]},asymmetric:{setbacks:[.12,.62,.86],scales:[.91,.62,.42],offsets:[0,.14,.20]}};
-  return {...r,silhouette,...profiles[silhouette],chamfer:.65+(seed%3)*.12,bayWidth:[3.1,4.0,2.7,3.6,4.4][Math.floor(seed/3)%5],spandrel:[.18,.3,.5][Math.floor(seed/13)%3],reveal:[.30,.22,.38][Math.floor(seed/17)%3],crown:Math.floor(seed/11)%4};
+  // Per-lot jitter (footprint/height untouched) so neighbouring towers of one family are not clones.
+  const j=(n,m)=>((Math.floor(seed/n)%m)/(m-1)-.5),pr=profiles[silhouette],setbacks=pr.setbacks.map((v,i)=>i?+(v+j(19+i,5)*.06).toFixed(3):v),scales=pr.scales.map((v,i)=>i?+(v+j(23+i,5)*.1).toFixed(3):v);
+  return {...r,silhouette,...pr,setbacks,scales,chamfer:.65+(seed%3)*.12,bayWidth:[3.1,4.0,2.7,3.6,4.4][Math.floor(seed/3)%5],spandrel:[.18,.3,.5][Math.floor(seed/13)%3],reveal:[.30,.22,.38][Math.floor(seed/17)%3],crown:Math.floor(seed/11)%4};
 }
 function building(p,kind,neighbors,level=0){
   const recipe=rolloutRecipe(p,kind,neighbors);
@@ -62,7 +64,16 @@ function building(p,kind,neighbors,level=0){
 }
 // Vertex tints vary the shared metric atlas; materials and maps are never cloned.
 const walls=[[1.12,1.14,1.16],[.55,.80,1.12],[.65,.92,.60],[1.18,.82,.45],[1.10,.65,.70],[.58,.64,.72],[1.10,1.04,.80],[.83,.75,.64],[1.15,.95,.62],[.72,.95,.88],[1.05,.55,.45],[.92,.88,1.08],[1.16,1.08,.92],[.62,.72,.58]];
-const glass=[0,1,2,5,6,1];
+// Glass tint families (multipliers on the shared teal pane): 0 cool blue, 1 green-teal, 2 bronze, 3 silver, 4 smoked.
+const glassTints=[[.72,1.02,1.42],[.62,1.22,1.0],[1.85,1.0,.62],[1.45,1.2,1.02],[.58,.64,.7]];
+const glassPick={london:[0,3,4,0,3,2],paulista:[1,2,3,1,0,4],glasgow:[3,4,0,3,2,1],none:[0,1,3,2,4,0]};
+// Roof targets in sRGB; vertex colour = target / atlas roof albedo, in linear space. Pitched = terrace/shop, flat = everything else.
+const roofBase=[68,80,94],lin=(t,b)=>Math.pow(t/b,2.2);
+const roofFor=t=>t.map((c,i)=>lin(c,roofBase[i]));
+const roofs={
+  pitched:{london:[[88,94,104],[168,92,66],[120,118,116],[110,82,66]],glasgow:[[88,94,104],[110,112,116],[88,94,104],[120,100,90]],paulista:[[168,92,66],[184,110,80],[130,128,124],[168,92,66]],none:[[88,94,104],[168,92,66],[120,118,116],[110,82,66]]},
+  flat:[[176,178,176],[168,156,132],[128,136,142],[176,178,176],[168,156,132],[96,120,72],[128,136,142],[88,94,104]]
+};
 const bricks=[[1.05,.70,.50],[.58,.64,.74],[1.12,1.06,.86],[.72,.85,.74],[1.20,.66,.55],[.68,.54,.47],[.92,.48,.40],[1.0,.92,.70]];
 function tint(g,p) {
   const seed=hash(p.id),wall=walls[seed%walls.length],roof=[[1,1,1],[.72,.82,.93],[1.08,.76,.62],[.58,.58,.64],[1.2,.62,.45]][Math.floor(seed/5)%5];
@@ -70,9 +81,11 @@ function tint(g,p) {
   const region=p.id.startsWith('glasgow-house-')||p.id.startsWith('glasgow-tenement-')?'glasgow':p.id.startsWith('paulista-')?'paulista':p.id.startsWith('london-')?'london':null;
   const regionalWall=region==='glasgow'?walls[[6,8,12][seed%3]]:region==='paulista'?walls[[0,6,12][seed%3]]:region==='london'?walls[[6,7,12][seed%3]]:wall;
   const regionalBrick=region==='glasgow'?bricks[[2,5,7][Math.floor(seed/3)%3]]:region==='london'?bricks[[0,5,7][Math.floor(seed/3)%3]]:bricks[Math.floor(seed/3)%bricks.length];
+  const pitched=p.kind==='terrace'||p.kind==='shop',gt=glassTints[glassPick[region||'none'][Math.floor(seed/7)%6]];
+  const roofTop=roofFor(pitched?roofs.pitched[region||'none'][Math.floor(seed/13)%4]:roofs.flat[Math.floor(seed/13)%8]);
   for(const m of g.children){const a=m.geometry.attributes;
     for(let i=0;i<a.position.count;i++){
-      const s=a.aSurface.getX(i),t=s===S.plaster?regionalWall:s===S.stone?(region?regionalWall:p.kind==='office'?walls[(seed%3)*2]:[1,1,1]):s===S.brick?regionalBrick:s===S.roof?(region==='glasgow'?walls[5]:roof):s===S.glass||s===S.litGlass?(region==='paulista'?walls[1]:walls[glass[Math.floor(seed/7)%(p.kind==='terrace'||p.kind==='shop'?3:glass.length)]]):[1,1,1];
+      const s=a.aSurface.getX(i),t=s===S.plaster?regionalWall:s===S.stone?(region?regionalWall:p.kind==='office'?walls[(seed%3)*2]:[1,1,1]):s===S.brick?regionalBrick:s===S.roof?(pitched||a.normal.getY(i)>.7?roofTop:region==='glasgow'?walls[5]:roof):s===S.glass||s===S.litGlass?gt:[1,1,1];
       a.color.setXYZ(i,a.color.getX(i)*t[0],a.color.getY(i)*t[1],a.color.getZ(i)*t[2]);
     }
   }
