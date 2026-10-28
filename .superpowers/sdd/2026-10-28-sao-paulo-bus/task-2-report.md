@@ -8,6 +8,8 @@ The existing axle splitter now recognizes the six empty São Paulo axle markers,
 
 The follow-up fix initializes all hero candidates hidden and centralizes candidate visibility updates, so restored UK positions and reduced-motion swaps cannot leave São Paulo visible. The scene uses the tested object-returning selector and signed wheel-roll helper; browser assertions cover both forward and reverse roll on the extracted São Paulo axles.
 
+The shared-pose review follow-up adds `createHeroGroup` and `applyHeroPose` in `scene.js`; the runtime uses both helpers, and the browser assertions exercise those same helpers with São Paulo, London, and Glasgow candidates to verify shared parent position and heading.
+
 ## Files changed
 
 - `js/world/vehicle-assets.js` — asset registration, palette, marker-driven wheel split, bounds metadata.
@@ -17,8 +19,8 @@ The follow-up fix initializes all hero candidates hidden and centralizes candida
 
 ## Commit
 
-Implementation and browser assertions: `4672201` (`Integrate Sao Paulo hero bus`) and `b9692c4` (`Fix regional hero visibility and roll assertions`). The report is committed separately because this SDD folder is ignored by Git.
+Implementation and browser assertions: `4672201` (`Integrate Sao Paulo hero bus`), `b9692c4` (`Fix regional hero visibility and roll assertions`), and `fe60ab0` (`Test shared hero pose wiring`). The report is committed separately because this SDD folder is ignored by Git.
 
 ## Checks
 
-`git diff --check` passed after both implementation commits. Deliberately not run: any tests, browser suite, runtime/visual capture, mobile checks, or full regression. Task 3 owns consolidated desktop validation.
+`git diff --check` passed after each implementation update. Deliberately not run: any tests, browser suite, runtime/visual capture, mobile checks, or full regression. Task 3 owns consolidated desktop validation.
