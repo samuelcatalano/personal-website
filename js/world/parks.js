@@ -1,4 +1,4 @@
-import { furnitureSpots, rng, isWembleyBenchmark } from './layout.js';
+import { ROAD, furnitureSpots, rng, isWembleyBenchmark } from './layout.js';
 import { walkPaths } from './crowd.js';
 import { PALETTE as P } from './palette.js';
 import { tree, CLEAR } from './city.js';
@@ -211,17 +211,21 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
 
   // Squares: two-tone large-format paving plus slot furniture; deterministic, drawn last so nothing above shifts.
   const walks = walkPaths(stops, pts).filter((w) => w.rect).map((w) => w.rect);
+  const road = Array.from({ length: 1501 }, (_, i) => curve.getPointAt(i / 1500)), CLEAR_ROAD = ROAD.padOut + 0.3; // paving stays behind the widened pavement (+0.3 m)
+  const offRoad = (x0, x1, z0, z1) => road.every((p) => Math.hypot(p.x - Math.min(x1, Math.max(x0, p.x)), p.z - Math.min(z1, Math.max(z0, p.z))) >= CLEAR_ROAD); // ponytail: 1500-point polyline, ~1 m spacing
   for (const q of SQUARES) {
     const W = q.x1 - q.x0, D = q.z1 - q.z0, cx = (q.x0 + q.x1) / 2, cz = (q.z0 + q.z1) / 2, ix = 1.4, iz = D < 8 ? 0.6 : 1.4, L = W - 2 * ix;
-    for (let u = 0; u < W; u += 4) for (let v = 0; v < D; v += 4) { // checker, 4 m tiles, last row/column trimmed
-      const w = Math.min(4, W - u), d = Math.min(4, D - v); draw(q.x0 + u + w / 2, 0.02, q.z0 + v + d / 2, w - 0.06, 0.06, d - 0.06, TILE[(u / 4 + v / 4) & 1]);
+    for (let u = 0; u < W; u += 4) for (let v = 0; v < D; v += 4) { // checker, 4 m tiles, last row/column trimmed; tiles that reach the road band are cut into 1 m cells and the near ones dropped
+      const w = Math.min(4, W - u), d = Math.min(4, D - v), tile = TILE[(u / 4 + v / 4) & 1], x0 = q.x0 + u, z0 = q.z0 + v;
+      if (offRoad(x0, x0 + w, z0, z0 + d)) draw(x0 + w / 2, 0.02, z0 + d / 2, w - 0.06, 0.06, d - 0.06, tile);
+      else for (let a = 0; a < w; a++) for (let b = 0; b < d; b++) { const cw = Math.min(1, w - a), cd = Math.min(1, d - b); if (offRoad(x0 + a, x0 + a + cw, z0 + b, z0 + b + cd)) draw(x0 + a + cw / 2, 0.02, z0 + b + cd / 2, cw - 0.02, 0.06, cd - 0.02, tile); }
     }
     const n = Math.floor(L / 8), rows = D - 2 * iz >= 11 ? [-0.25, 0.25] : [0];
     rows.forEach((rf, ri) => {
       for (let i = 0; i < n; i++) {
         const c = q.mix[(i + ri * 3) % q.mix.length], x = q.x0 + ix + (i + 0.5) * (L / n), z = cz + rf * (D - 2 * iz), k = i + ri;
         const tall = !q.low && c !== 'B';
-        const hit = (hx, hz) => walks.some((r) => x - hx < r.x1 + 0.5 && x + hx > r.x0 - 0.5 && z - hz < r.z1 + 0.5 && z + hz > r.z0 - 0.5) || (tall && !spots.every(([a, b]) => Math.hypot(a - x, b - z) > CLEAR));
+        const hit = (hx, hz) => !offRoad(x - hx, x + hx, z - hz, z + hz) || walks.some((r) => x - hx < r.x1 + 0.5 && x + hx > r.x0 - 0.5 && z - hz < r.z1 + 0.5 && z + hz > r.z0 - 0.5) || (tall && !spots.every(([a, b]) => Math.hypot(a - x, b - z) > CLEAR));
         const fit = (hx, hz) => hz <= (D - 2 * iz) / 2 + 0.01 && !hit(hx, hz);
         if (c === 'B' && fit(2.6, 1) && !(rows.length === 1 && D < 5)) { // raised bed, five saturated colour blocks
           draw(x, 0.05, z, 5.2, 0.55, 1.8, STONE); draw(x, 0.55, z, 5, 0.06, 1.6, SOIL);
