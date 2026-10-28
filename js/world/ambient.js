@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { createBoat, estaiadaRoute } from './landmark-geometry.js';
 import { buildVehicle } from './vehicles.js';
-import { upgradeBus, upgradeMini, upgradeCab, loadFleetCatalog, regionalFleetModel, upgradeFleet } from './vehicle-assets.js';
+import { upgradeBus, reskinBus, upgradeMini, upgradeCab, loadFleetCatalog, regionalFleetModel, upgradeFleet } from './vehicle-assets.js';
 import { RIVER_Z, LANDMARKS, ukStart, stopIndex, swapAt, scotRange, riverEnd, riverStart } from './layout.js';
 import { stopMarks, fineMarks, routeT } from '../scroll.js';
 import { addBeams } from './beams.js';
@@ -45,7 +45,7 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
     // London: 1 bus, 3 cabs, 2 Minis, 3 generic cars
     D('london', 0.71), D('cab', 0.47), D('cab', 0.88), D('cab', 0.12), D('mini', 0.6), D('mini', 0.79),
     G(11, 0.385, { uk: true, scot: false }), G(13, 0.675, { uk: true, scot: false }), G(15, 0.99, { uk: true, scot: false }),
-  ].map((v, i) => ({ lane: -1.75, ...v, base: SPEED[v.type] * (v.type === 'car' ? 0.9 + 0.2 * ((i * 7) % 5) / 4 : 1), p: v.offset, v: 0, brake: 0, yaw: null, x: 0, z: 0, active: false }));
+  ].map((v, i) => ({ lane: -1.75, livery: v.type === 'london' || v.type === 'glasgow' ? v.type : null, ...v, base: SPEED[v.type] * (v.type === 'car' ? 0.9 + 0.2 * ((i * 7) % 5) / 4 : 1), p: v.offset, v: 0, brake: 0, yaw: null, x: 0, z: 0, active: false }));
   traffic.forEach((v) => { v.v = v.base; v.len = v.mesh.userData.length; v.tail = null; addBeams(v.mesh, v.mesh.userData.front, v.mesh.userData.beamY); v.tail = v.mesh.children[v.mesh.children.length - 1]; scene.add(v.mesh); });
   // Ponte Estaiada, two cars each way: 'in' cars take the avenue's oncoming lane, turn onto the S-ramp and cross to the far-bank ground;
   // 'out' cars come back over the river, down the ramp and away along the avenue. Spawns/despawns only happen BRIDGE_FAR m from the player.
@@ -105,6 +105,7 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
   bridge.forEach((b) => { if (b.phase === 'road') b.p = invP(b.t0); });
   const rangeP = invP(swapAt(stops) + SP_RANGE); // route progress of the Sao Paulo loop's east end
   traffic.forEach((v) => { if (v.uk === false) { v.range = [0, rangeP]; v.p *= rangeP / 0.43; } });
+  const lanePos = (t, lane) => { const p = curve.getPointAt(t), tn = curve.getTangentAt(t); return { x: p.x + tn.z * lane, z: p.z - tn.x * lane }; }; // same side convention as the frame loop
   const tOf = (v) => routeT(v.p, pts.length, knots);
   let lastRoute = null;
   const tmp = new THREE.Vector3(), here = new THREE.Vector3(), nrm = new THREE.Vector3(), swap = swapAt(stops), [scotIn, scotOut] = scotRange(stops), wrap = (p) => ((p % 1) + 1) % 1;
@@ -142,13 +143,18 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
       }
       here.copy(curve.getPointAt(Math.min(1, Math.max(0, route))));
       const jump = lastRoute === null || Math.abs(route - lastRoute) > 0.02; lastRoute = route; // first frame or a nav jump: settle every vehicle at once
+      if (jump) for (const v of auto) v.active = false; // re-place them one by one: each checks the clearance against those already placed
       for (const v of traffic) {
         const t = v.relative ? route + v.offset : routeT(v.p, pts.length, knots);
         const inside = t >= 0 && t <= 1, want = inside && !v.hold && (v.range || v.uk === undefined || (t >= swap) === v.uk) && (v.scot === undefined || (t >= scotIn && t < scotOut) === v.scot);
         // region borders sit in view (SP and London share a frame): a vehicle only switches city once it is far from the player, so it drives off instead of popping
-        if (jump || !inside || v.relative || v.hold || want === v.active || curve.getPointAt(t).distanceTo(here) > HIDE) v.active = want; // ponytail: player distance, not a camera frustum test
+        if (jump || !inside || v.relative || v.hold || want === v.active || curve.getPointAt(t).distanceTo(here) > HIDE) {
+          // never appear on top of a car already in the lane (region borders, nav jumps): stay hidden and keep driving until it is clear
+          v.active = want && (v.relative || !traffic.some((o) => o !== v && o.active && o.lane === v.lane && Math.hypot(o.x - lanePos(t, v.lane).x, o.z - lanePos(t, v.lane).z) < (v.len + o.len) / 2 + GAP));
+        } // ponytail: player distance, not a camera frustum test
         v.mesh.visible = v.active;
         if (!v.active) continue;
+        if (v.livery) { const livery = t >= scotIn && t < scotOut ? 'glasgow' : 'london'; if (livery !== v.livery && v.mesh.userData.wheels) { reskinBus(v.mesh, livery); v.livery = livery; } } // buses wear the livery of the region they are in, also after a respawn or past a region border
         const p = curve.getPointAt(t), tan = curve.getTangentAt(t);
         nrm.set(tan.z, 0, -tan.x).normalize();
         v.mesh.position.copy(p).addScaledVector(nrm, v.lane);

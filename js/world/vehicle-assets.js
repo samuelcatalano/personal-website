@@ -168,6 +168,7 @@ function upgrade(vehicle, key, v, hero, isDisposed = () => false, axles) {
     glb.traverse((o) => {
       if (!o.isMesh) return;
       const name = o.material.name.replace(/\.\d+$/, '');
+      o.userData.role = name; // reskinBus maps it back to a livery
       o.material = (FLEET_FINISH[name] ?? ROLES[name])?.(v) ?? o.material;
       if (FLEET_FINISH[name]) o.material.name = name;
       o.castShadow = CASTS.has(name) || name === 'FleetBody'; o.receiveShadow = true;
@@ -176,6 +177,8 @@ function upgrade(vehicle, key, v, hero, isDisposed = () => false, axles) {
     vehicle.userData.wheels = hero ? WHEELS.map((n) => glb.getObjectByName(n)).filter(Boolean) : wheels;
   });
 }
+// Re-livery an upgraded bus in place (shared cached materials, no allocation): ambient buses wear the livery of the region they are driving in.
+export const reskinBus = (vehicle, variant) => vehicle.traverse((o) => { if (o.isMesh && o.userData.role) o.material = ROLES[o.userData.role]?.(BUS_VARIANTS[variant]) ?? o.material; });
 export const upgradeBus = (vehicle, variant, { hero = true, isDisposed } = {}) => upgrade(vehicle, 'bus', BUS_VARIANTS[variant], hero, isDisposed);
 // bus geometry: tools/vehicles/double-decker-bus-dd (supersedes the procedural tools/vehicles/double-decker-bus)
 export const upgradeMini = (vehicle, { hero = true, body = '#efe7d6', roof = '#c9252b', isDisposed } = {}) => upgrade(vehicle, 'mini', { body, roof }, hero, isDisposed);
