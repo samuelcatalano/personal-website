@@ -67,7 +67,7 @@ export function rng(seed) {
 // First UK stop (country field, not an airport): the hero vehicle swap sits half a stop before it.
 export const ukStart = (stops) => stops.findIndex((s) => s.country === 'UK');
 export const swapAt = (stops) => (ukStart(stops) - 0.5) / (stops.length - 1);
-export const heroVehicleAt = (t, swap, archIn, archOut) => t < swap ? 'sao-paulo' : t >= archIn && t < archOut ? 'glasgow' : 'london';
+export const heroVehicleAt = (t, swap, archIn, archOut, vehicles) => t < swap ? vehicles.saoPaulo : t >= archIn && t < archOut ? vehicles.glasgow : vehicles.london;
 // Glasgow livery between these route params: from mid-countryside on the way up to where the Scottish edge ends on the way back.
 export const scotRange = (stops) => {
   const pts = routePoints(stops.length), e = stopIndex(stops, LANDMARKS.eye), g = stopIndex(stops, LANDMARKS.glasgow), [out, back] = regions(stops, pts);

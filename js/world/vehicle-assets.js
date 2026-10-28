@@ -119,6 +119,7 @@ const FLEET_FINISH = {
 };
 const CASTS = new Set(['BusBody', 'BusAccent', 'BusStripe', 'BusSkirtF', 'BusSweep', 'BusLilac', 'BusRear', 'CarBody', 'CarRoof', 'CabBody']); // only painted shells cast: trim/glass/wheels add shadow-pass calls for no visible gain
 const WHEELS = ['FL', 'FR', 'RL', 'RR'];
+export const rollWheels = (wheels, distance) => wheels.forEach((w) => { w.rotation.z -= distance / (w.userData.radius ?? w.position.y); });
 // Dark static disc behind each wheel, appended to the body's rubber (no extra call): hides the authored tyre/rim gap that would flicker once spinning.
 function withDiscs(g, keep, xs, r, half, seg = 20) {
   const base = g.attributes.position.count, n = base + xs.length * 2 * (seg + 1), out = new THREE.BufferGeometry(), index = [...keep];

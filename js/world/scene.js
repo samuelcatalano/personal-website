@@ -33,7 +33,7 @@ import { updateBeams, addBeams } from './beams.js';
 import { createLampPools } from './lamps.js';
 import { createPost } from './post.js';
 import { createRoadMarks } from './roadmarks.js';
-import { loadVehicleAsset, adoptVisual, upgradeBus, upgradeMini, initVehicleEnv, updateVehicleEnv } from './vehicle-assets.js';
+import { loadVehicleAsset, adoptVisual, upgradeBus, upgradeMini, rollWheels, initVehicleEnv, updateVehicleEnv } from './vehicle-assets.js';
 import { createUnderpass } from './underpass.js';
 import { createUnderpassTraffic } from './underpass-traffic.js';
 import { upgradeWellington } from './wellington-asset.js';
@@ -90,8 +90,9 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const architecture = await realCity;scene.add(architecture);
   const mini = buildVehicle('mini', { hero: true }), saoPauloBus = buildVehicle('glasgow', { hero: true }), londonBus = buildVehicle('london', { hero: true }), glasgowBus = buildVehicle('glasgow', { hero: true });
   saoPauloBus.name = 'sao-paulo';
-  const bus = new THREE.Group().add(mini, saoPauloBus, londonBus, glasgowBus), swap = swapAt(stops);
-  mini.visible = londonBus.visible = glasgowBus.visible = false;
+  const candidates = [mini, saoPauloBus, londonBus, glasgowBus], heroVehicles = { saoPaulo: saoPauloBus, london: londonBus, glasgow: glasgowBus };
+  const bus = new THREE.Group().add(...candidates), swap = swapAt(stops);
+  candidates.forEach((v) => { v.visible = false; });
   // Glasgow livery between the two railway underpasses (each within 7 m of its scotRange boundary); the visible swap happens inside the tunnel (see frame())
   const underpass = createUnderpass(curve, stops), [ARCH_IN, ARCH_OUT] = underpass.passes.map((a) => a.t);
   scene.add(underpass.group);
@@ -186,7 +187,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     Object.assign(busPos, { x: bp.x + lateral.x, y: bp.y, z: bp.z + lateral.z });
     if (prevBus.x !== null) { // hero wheels roll with the distance travelled along the road (signed: scrolling back unrolls them)
       const ds = (busPos.x - prevBus.x) * tan.x + (busPos.z - prevBus.z) * tan.z;
-      for (const m of [mini, saoPauloBus, londonBus, glasgowBus]) if (m.visible) for (const w of m.userData.wheels) w.rotation.z -= ds / (w.userData.radius ?? w.position.y);
+      for (const m of candidates) if (m.visible) rollWheels(m.userData.wheels, ds);
       // Mini front wheels steer into curves: bicycle model on the heading change per metre, smoothed; still / jumps (respawn, reduced-motion stop hops) straighten
       // ponytail: hero Mini only; ambient Minis (axle-merged wheels) and buses do not steer
       const dh = Math.atan2(Math.sin(bus.rotation.y - prevBus.h), Math.cos(bus.rotation.y - prevBus.h)), still = reducedMotion || Math.abs(ds) < 1e-3 || Math.abs(ds) > 2;
@@ -202,7 +203,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     camera.position.fromArray(shot.position);
     camera.lookAt(shot.target[0], shot.target[1], shot.target[2]);
     // Player model: São Paulo -> London at swap; London <-> Glasgow flips at the underpass centres.
-    const want = { 'sao-paulo': saoPauloBus, london: londonBus, glasgow: glasgowBus }[heroVehicleAt(t, swap, ARCH_IN, ARCH_OUT)];
+    const want = heroVehicleAt(t, swap, ARCH_IN, ARCH_OUT, heroVehicles);
     frameNo++;
     if (shown !== want) {
       const regionSwap = (shown === saoPauloBus && want === londonBus) || (shown === londonBus && want === saoPauloBus);
@@ -220,8 +221,10 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       if (why) {
         if (swapFade) { swapFade.out.visible = false; swapFade.inn.visible = true; swapFade.out.scale.setScalar(1); swapFade.inn.scale.setScalar(1); swapFade = null; }
         const out = shown; shown = want;
-        if ((why === 'immediate' || why === 'region') && out && !reducedMotion) swapFade = { out, inn: want, k: 0 }; // out keeps showing until it has shrunk away
-        else { mini.visible = want === mini; londonBus.visible = want === londonBus; glasgowBus.visible = want === glasgowBus; }
+        if ((why === 'immediate' || why === 'region') && out && !reducedMotion) {
+          candidates.forEach((v) => { v.visible = v === out; });
+          swapFade = { out, inn: want, k: 0 }; // out keeps showing until it has shrunk away
+        } else candidates.forEach((v) => { v.visible = v === want; });
       }
     }
     if (swapFade) {
