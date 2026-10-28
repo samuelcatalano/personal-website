@@ -29,7 +29,7 @@ export function blockMaterial(color, { glow = false, k = 2.2 } = {}) {
   const mat = new THREE.MeshStandardMaterial({ color, map: noiseTexture(), roughness: 0.9, metalness: 0 });
   const kind = GRASS.has(color) ? 1 : color === P.road ? 2 : 0; // 1 lawn, 2 asphalt: world-space tint noise
   mat.userData.glow = glow;
-  if (kind === 2) { mat.userData.glow = true; mat.userData.glowColor = new THREE.Color('#1b2028'); mat.userData.glowK = 1; } // ponytail: flat moonlit lift on asphalt (sky.update drives emissive); no per-lamp light
+  if (kind === 2) { mat.userData.glow = true; mat.userData.glowColor = new THREE.Color('#151412'); mat.userData.glowK = 1; } // ponytail: neutral-warm flat night lift (no blue cast) on asphalt (sky.update drives emissive); no per-lamp light
   mat.userData.glowK = k; // night emissive multiplier, see sky.update
   mat.customProgramCacheKey = () => 'block' + glow + kind; // glow/non-glow differ by define only
   mat.onBeforeCompile = (sh) => {
