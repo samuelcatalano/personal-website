@@ -109,7 +109,7 @@ function floodShader(shader, glass) {
 const night = { value: 0 };
 
 function metricAtlas(material) {
-  material.customProgramCacheKey=()=> material.name+'-metric-atlas-v6';
+  material.customProgramCacheKey=()=> material.name+'-metric-atlas-v7';
   material.onBeforeCompile=shader=>{
     shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nattribute float aSurface; varying float vSliceSurface; varying float vSliceY;').replace('#include <begin_vertex>','#include <begin_vertex>\nvSliceSurface = aSurface; vSliceY = (modelMatrix * vec4(position,1.0)).y;');
     shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
@@ -143,7 +143,8 @@ ${GLASS_REFLECTION}`);
         vec3 reflected=inverseTransformDirection(reflect(-glassView,normal),viewMatrix);
         float litWindow=1.0-step(0.25,abs(vSliceSurface-5.0));
         float reflectionWeight=(0.38+grazing*0.36)*(1.0-uGlassNight*litWindow*0.82);
-        outgoingLight=mix(outgoingLight,glassReflection(reflected,uGlassNight),reflectionWeight);
+        vec3 paneTint=vColor.rgb/max(dot(vColor.rgb,vec3(.3333)),.01); // per-lot glass family tints the sky reflection too
+        outgoingLight=mix(outgoingLight,glassReflection(reflected,uGlassNight)*mix(vec3(1.0),paneTint,.85),reflectionWeight);
         #include <opaque_fragment>`);
     }
     floodShader(shader, material.name==='slice-glass');
