@@ -1,6 +1,6 @@
 import { estaiadaRoute } from './landmark-geometry.js';
 import { LANDMARKS, RIVER_Z, WEMBLEY_BENCHMARK, TOWER_AT, regions, ukStart, stopIndex } from './layout.js';
-// Parking bays along both kerbs of the main road, one per SLOT m of route arc length, only on town frontage (not the countryside / Glasgow gap).
+// Parking bays along both kerbs of the main road, one per SLOT m of route arc length, only on town frontage (London + Glasgow; not the countryside).
 // Shared by parked.js (cars) and roadmarks.js (bay ticks) so a painted bay always has a car slot and vice versa.
 // Skipped: bus stops + zebras, landmark plazas, the Estaiada ramp mouth, Tower Bridge, the Wembley benchmark.
 export const SLOT = 6.4;
@@ -17,7 +17,7 @@ export function parkingBays(curve, pts, stops, pilotCrossings = []) {
     ...feature([{ x: J.x, z: J.z }], CLEAR.ramp), ...feature([{ x: pts[stopIndex(stops, LANDMARKS.eye)].x + TOWER_AT, z: 0 }], CLEAR.tower),
   ];
   const stopS = stops.map((_, i) => { const q = at(i); let b = 0; for (let k = 1; k < fine.length; k++) if (fine[k].distanceToSquared(q) < fine[b].distanceToSquared(q)) b = k; return cum[b]; });
-  const town = (x) => x < rgs[0].ctry[0] || x >= rgs[1].ctry[1]; // before the out-leg countryside, after the return-leg one
+  const town = (x) => x < rgs[0].ctry[0] || x >= rgs[1].ctry[1] || (x >= rgs[0].scot[0] && x < rgs[0].scot[1]) || (x >= rgs[1].scot[0] && x < rgs[1].scot[1] - 15); // London, plus Glasgow's sandstone edge (not the countryside, nor the 15 m before the return railway underpass)
   // Every painted crossing as an arc-length band at the exact roadmarks.js position (curve.getPointAt(u), snapped to our arc table): stop zebras (9 m past a stop, 1.4 m half-length) and
   // pilot crossings (~1.85 m); a bay centre stays 1 m + a whole half bay clear of each, so no car or tick touches paint.
   const Lc = curve.getLength(), nearS = (q) => { let b = 0; for (let k = 1; k < fine.length; k++) if (fine[k].distanceToSquared(q) < fine[b].distanceToSquared(q)) b = k; return cum[b]; };
