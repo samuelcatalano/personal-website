@@ -53,7 +53,7 @@ print(js(r'''(async () => {
   check(saoPaulo, 'São Paulo hero GLB loads through the cached vehicle loader');
   let spSourceTris = 0, spSourceMeshes = 0;
   saoPaulo.traverse(o => { if (o.isMesh) { spSourceMeshes++; spSourceTris += (o.geometry.index?.count ?? o.geometry.attributes.position.count) / 3; } });
-  check(spSourceMeshes <= 12 && spSourceTris === 6437, `São Paulo asset stays under the draw-call budget without losing source triangles (${spSourceMeshes} meshes, ${spSourceTris} tris)`);
+  check(spSourceMeshes === 8 && spSourceTris === 6437, `São Paulo source keeps its eight role meshes and 6,437 triangles (${spSourceMeshes} meshes, ${spSourceTris} tris)`);
   const spA = buildVehicle('glasgow', { hero: true }), spB = buildVehicle('glasgow', { hero: true });
   await Promise.all([assets.upgradeBus(spA, 'sao-paulo', { hero: false, asset: 'sao-paulo' }), assets.upgradeBus(spB, 'sao-paulo', { hero: false, asset: 'sao-paulo' })]);
   const spBox = bounds(spA), spSize = spBox.getSize(new THREE.Vector3()), spWheels = spA.userData.wheels;
@@ -62,7 +62,8 @@ print(js(r'''(async () => {
   check(spWheels.length === 3 && spWheels.map(w => w.name).join(',') === 'FL-FR,ML-MR,RL-RR' && spWheels.every(w => w.children.some(m => m.isMesh && m.geometry.index?.count) && w.userData.radius === 0.52), 'empty FL/FR, ML/MR and RL/RR markers split embedded tires into three spinning axle groups');
   const spTris = (root) => { let n = 0; root.traverse(o => { if (o.isMesh && o.name !== 'beam') n += (o.geometry.index?.count ?? o.geometry.attributes.position.count) / 3; }); return n; };
   let spRuntimeMeshes = 0; spA.traverse(o => { if (o.isMesh && o.name !== 'beam') spRuntimeMeshes++; });
-  check(spRuntimeMeshes <= 12 && spTris(spA) >= spSourceTris && spTris(spA) <= 12000, `São Paulo extracted hero keeps all source triangles within 12 draw calls/12k triangles (${spRuntimeMeshes} meshes, ${spTris(spA)} tris)`);
+  const spRuntimeTriangles = spTris(spA), spDiscTriangles = 3 * 2 * 20;
+  check(spRuntimeMeshes <= 12 && spRuntimeTriangles === spSourceTris + spDiscTriangles && spRuntimeTriangles <= 12000, `São Paulo extracted hero preserves source triangles plus 120 axle discs within 12 draw calls/12k triangles (${spRuntimeMeshes} meshes, ${spRuntimeTriangles} tris)`);
   assets.rollWheels(spWheels, 2);
   check(spWheels.every(w => Math.abs(w.rotation.z + 2 / 0.52) < 1e-9), 'extracted São Paulo axles roll backward for positive route distance');
   assets.rollWheels(spWheels, -2);
@@ -76,7 +77,7 @@ print(js(r'''(async () => {
   check(fallback.children.length === fallbackMeshes && fallback.userData.length > 10, 'missing regional GLB leaves the procedural vehicle fallback intact');
   const swap = swapAt(stops), archIn = 0.7, archOut = 0.8, eps = 1e-8;
   const heroCandidates = { mini: buildVehicle('mini', { hero: true }), saoPaulo: spA, london: buildVehicle('london', { hero: true }), glasgow: buildVehicle('glasgow', { hero: true }) };
-  const candidates = [heroCandidates.saoPaulo, heroCandidates.london, heroCandidates.glasgow], heroPose = createHeroGroup(candidates);
+  const candidates = Object.values(heroCandidates), heroPose = createHeroGroup(candidates);
   const routePosition = new THREE.Vector3(12, 0, -5), lateral = new THREE.Vector3(0, 0, 2.6), heading = 0.4;
   applyHeroPose(heroPose, routePosition, lateral, heading);
   const pose = routePosition.clone().add(lateral);
