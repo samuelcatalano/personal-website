@@ -22,11 +22,12 @@
 
 ## Review Focus
 
-- Shape variants remain visually distinct after the existing geometry merge and shared-material path: test distinct boat geometry signatures.
+- Shape variants remain visually distinct after the existing geometry merge and shared-material path: test distinct boat geometry signatures and at least 0.45 m separation between low/mid/high profiles.
 - The seven boats continue fitting between Tower Bridge towers and under its road deck: retain existing browser assertions.
 - New details stay low-poly and use only existing shared materials: inspect the builder diff and desktop captures.
 - Day/night lighting keeps hull, trim, and windows readable: capture both themes at London stops.
 - Existing palette and scale variety remains represented alongside the three styles: inspect the seven instance definitions and capture.
+- A day/night city frame should separate profiles at existing camera scale; keep hull footprint and placements fixed, and check the desktop captures.
 
 ---
 
@@ -64,3 +65,9 @@ Run: `OUT=/private/tmp/river-boats SHOTS="9.5:day,9.5:night,10:day,10:night,11:n
 Expected: tests pass; no mobile test/capture; day/night captures show three boat silhouettes, readable at existing camera scale, without changing river, bridges, or city composition.
 
 - [x] **Step 8: Review diff for scope, shared materials, bounds, and authored data preservation; summarize checks and any remaining visual limits.**
+
+#### Fix round 2: strengthen city-scale silhouettes
+
+- [x] Add desktop assertions for the exact seven-style order and at least 0.45 m height separation between cruiser, launch, and service profiles; confirm RED before changing boat geometry.
+- [x] Strengthen profile heights and style-specific trim contrast, using existing buckets while preserving hull footprint, locations, water, and bridge clearance.
+- [x] Run the focused desktop browser test and review day/night captures; run no mobile tests or captures.

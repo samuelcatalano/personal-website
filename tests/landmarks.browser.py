@@ -39,6 +39,8 @@ print(js(r'''(async () => {
   check(box.min.z < RIVER_Z - 15 && box.max.z > RIVER_Z + 15, 'Road deck and abutments must span the river and reach both banks');
   const roadDeck = { y: lay.deckY };
   const boatBounds = boats.map(boat => new Box3().setFromObject(boat));
+  const profiles = ['cruiser', 'launch', 'service'].map(style => Math.max(...boats.filter(boat => boat.userData.boatStyle === style).map(boat => new Box3().setFromObject(boat).max.y)));
+  check(profiles[1] - profiles[0] >= .45 && profiles[2] - profiles[1] >= .45, `Boat profiles must rise cruiser < launch < service by at least 0.45m; got ${profiles.join(',')}`);
   check(boatBounds.every(b => b.min.z >= opening[0] && b.max.z <= opening[1]), 'All ambient boat hulls must fit between the towers');
   check(boatBounds.every(b => b.max.y < roadDeck.y), 'All ambient boats must clear the road deck vertically');
   check(lay.walkways === 2 && lay.walkwayZ === 0 && lay.pinnacles === 8, 'Two walkways between the towers and eight corner pinnacles');
