@@ -3,6 +3,12 @@
 // ponytail: every road consumer (city.js, roadmarks.js, bays.js, crowd.js, signs) reads this, never a literal.
 export const ROAD = Object.freeze({ lane: 1.75, edge: 3.85, half: 6.55, curb: 6.775, padIn: 7.0, padOut: 8.9, furniture: 8.75, bay: 2.7, bayMid: 5.2 });
 export const STOP_SPACING = 30;
+export const UNDERPASS = Object.freeze({ nudge: [-7, -4.25], end: 33, base: 6.5 }); // arch offset from each scotRange boundary (m), overpass road half length across the route, embankment half width
+// Overpass frames on the route (centre, unit tangent), shared by underpass.js (geometry) and city.js (keeps houses off the embankment road).
+export const underpassFrames = (curve, stops) => scotRange(stops).map((t, i) => {
+  const e = 1e-4, a = curve.getPointAt(t), speed = Math.hypot(curve.getPointAt(t + e).x - a.x, curve.getPointAt(t + e).z - a.z) / e, tc = t + UNDERPASS.nudge[i] / speed, c = curve.getPointAt(tc), tan = curve.getTangentAt(tc);
+  return { t, tc, x: c.x, z: c.z, tx: tan.x, tz: tan.z };
+});
 export const RIVER_Z = -45;
 export const WEMBLEY_BENCHMARK = Object.freeze({ x0: 660, x1: 880, z0: -113, z1: -25 });
 export const isWembleyBenchmark = ({ x, z, width = 0, depth = 0 }) =>

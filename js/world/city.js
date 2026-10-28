@@ -1,4 +1,4 @@
-import { ROAD as RD, furnitureSpots, GAPS, GAP_TOTAL, STOP_SPACING, RIVER_Z, LANDMARKS, rng, riverEnd, riverStart, stopIndex, ukStart, regions, towerX, isWembleyBenchmark } from './layout.js';
+import { ROAD as RD, furnitureSpots, GAPS, GAP_TOTAL, STOP_SPACING, RIVER_Z, LANDMARKS, rng, riverEnd, riverStart, stopIndex, ukStart, regions, towerX, isWembleyBenchmark, underpassFrames, UNDERPASS } from './layout.js';
 import { house } from './houses.js';
 import { phoneBox } from './phone.js';
 import { lampPost } from './street-lamp.js';
@@ -192,8 +192,12 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
       drawTree(add, x, z, { h: 3 + hsh * 0.6, crown: 3.1 + hsh * 0.5 }); obst.push([x, z]);
     }
   }
-  rgs.forEach((rg, leg) => buildCountry(add, curve, drawTree, rg.ctry, leg, onArchitecturePlot));
-  buildGlasgowEdges(add, stops, pts, curve, drawTree, onArchitecturePlot);
+  // Overpass corridors: the embankment road runs across the route to +-UNDERPASS.end; nothing of the countryside/Glasgow edge may stand on it (cars drive there)
+  const ups = underpassFrames(curve, stops), onOverpass = (x, z, r) => ups.some((u) => { const dx = x - u.x, dz = z - u.z, a = dx * u.tx + dz * u.tz, c = -dx * u.tz + dz * u.tx; return Math.abs(a) < UNDERPASS.base + 2 + r && Math.abs(c) < UNDERPASS.end + 3 + r; });
+  const addOff = (x, y, z, w, h, d, ...rest) => { if (!onOverpass(x, z, Math.min(w, d) / 2)) add(x, y, z, w, h, d, ...rest); };
+  const plotOff = onArchitecturePlot && ((p) => { if (!onOverpass(p.x, p.z, Math.max(p.width, p.depth) / 2)) onArchitecturePlot(p); });
+  rgs.forEach((rg, leg) => buildCountry(addOff, curve, drawTree, rg.ctry, leg, plotOff));
+  buildGlasgowEdges(addOff, stops, pts, curve, drawTree, plotOff);
   buildBlocks(add, stops, pts, curve, occ, onBuildingPlot, onArchitecturePlot);
   buildParks(add, stops, pts, curve, occ, treeAt, onPublicRealm); // after the blocks: own rng, reads the free plazas, never shifts a block
   return { lamps, pilotCrossings };

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { PALETTE as P } from './palette.js';
 import { blockMaterial } from './textures.js';
-import { scotRange } from './layout.js';
+import { underpassFrames, UNDERPASS } from './layout.js';
 // Countryside embankment carrying a two-lane road over the route with a masonry arch underpass across the road at each Glasgow livery boundary (scotRange). The bus is
 // completely inside the tunnel for a moment, so scene.js swaps London <-> Glasgow there and the camera never sees the model pop.
 // Local frame: x along the road, z across it (embankment), y up. 5 meshes per crossing (stone / light stone / lawn / asphalt / lines), shared block materials.
@@ -10,10 +10,9 @@ export const HX = 7.5, W = 9, H = 7.5; // tunnel half length, masonry half width
 const AW = 5.5, AWALL = 3.4, AB = 3.0; // opening: half width, vertical wall height, elliptical crown rise
 export const CLEARANCE = AWALL + AB * Math.sqrt(1 - (3.05 / AW) ** 2); // headroom over the outer edge of a bus in its lane (~5.9 m)
 export const ROAD_HW = 3; // half width of the overpass road: two 3 m lanes
-export const END = 33;
-const FLAT = 11, BASE = 6.5, CREST = 4; // crest stays level to |z| = FLAT, then eases down to the fields at END; footprint half width BASE
+export const END = UNDERPASS.end;
+const FLAT = 11, BASE = UNDERPASS.base, CREST = 4; // crest stays level to |z| = FLAT, then eases down to the fields at END; footprint half width BASE
 // ponytail: metres along the road from the scotRange boundary, hand-fitted to the gaps between country.js rows; tests/underpass.browser.py fails if houses, trees or lamps ever overlap
-const NUDGE = [-7, -4.25];
 export const crest = (az) => { const u = Math.min(1, Math.max(0, (az - FLAT) / (END - FLAT))); return H * (1 - u * u * (3 - 2 * u)); };
 const bare = (g) => { g = g.index ? g.toNonIndexed() : g; g.deleteAttribute('uv'); return g; };
 const box = (x0, x1, y0, y1, z0, z1) => bare(new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0).translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2));
@@ -45,7 +44,7 @@ function parts() {
     stone.push(box(f * (HX - 0.4) - 0.25, f * (HX - 0.4) + 0.25, H, H + 0.9, -W, W)); // parapet
   }
   const lo = soup();
-  for (const s of [-1, 1]) { // grassy wings, sloped sides, easing into the fields
+  for (const s of [-1, 1]) { // concrete wings, sloped sides, easing into the fields
     const az = [W - 0.1, FLAT, ...Array.from({ length: 10 }, (_, k) => FLAT + (END - FLAT) * (k + 1) / 10)], prof = az.map((a) => { const y = crest(a), cw = BASE - (BASE - CREST) * y / H; return { z: s * a, y, cw }; });
     for (let i = 0; i < prof.length - 1; i++) {
       const a = prof[i], b = prof[i + 1];
@@ -70,11 +69,10 @@ function parts() {
   return { stone, light, lawn, road, line };
 }
 export function createUnderpass(curve, stops) {
-  const colors = { stone: P.stone, light: P.concreteMid, lawn: P.patch, road: P.road, line: P.arch }, mats = {}, geos = [];
+  const colors = { stone: P.stone, light: P.concreteMid, lawn: P.concreteMid, road: P.road, line: P.arch }, mats = {}, geos = [];
   for (const k in colors) mats[k] = blockMaterial(colors[k]);
   const root = new THREE.Group(); root.name = 'underpasses';
-  const passes = scotRange(stops).map((t, i) => {
-    const e = 1e-4, speed = curve.getPointAt(t + e).distanceTo(curve.getPointAt(t)) / e, tc = t + NUDGE[i] / speed; // metres -> curve parameter
+  const passes = underpassFrames(curve, stops).map(({ t, tc }, i) => {
     const c = curve.getPointAt(tc), tan = curve.getTangentAt(tc), g = new THREE.Group();
     g.name = 'underpass-' + i; g.position.copy(c); g.rotation.y = Math.atan2(-tan.z, tan.x);
     const pr = parts();
