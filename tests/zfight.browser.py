@@ -11,7 +11,7 @@ print(js(r'''(async () => {
   const { routePoints, routeCurve } = await import('./js/world/layout.js');
   const pts = routePoints(stops.length);
   const curve = routeCurve(THREE, pts);
-  const world = [], add = (x, y, z, w, h, d, color) => world.push({ x, y, z, w, h, d, color });
+  const world = [], add = (x, y, z, w, h, d, color, ry) => world.push({ x, y, z, w, h, d, color, ry });
   buildCity(add, stops, pts, curve);
   const lm = buildLandmarks(add, stops, pts);
   const lists = [['world', world]];
@@ -31,7 +31,7 @@ print(js(r'''(async () => {
     for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) {
       const A = rs[i], C = rs[j];
       if (C.x0 > A.x1 + E) break;
-      if (L[A.i].color === L[C.i].color) continue;
+      if (L[A.i].color === L[C.i].color || L[A.i].ry || L[C.i].ry) continue; // yawed boxes (kerbs, pavement slabs) have no axis-aligned faces
       const faces = [];
       if (Math.abs(A.y1 - C.y1) < ET && ov(A.x0, A.x1, C.x0, C.x1) && ov(A.z0, A.z1, C.z0, C.z1)) faces.push('top');
       for (const k of ['x0', 'x1']) if (Math.abs(A[k] - C[k]) < E && ov(A.y0, A.y1, C.y0, C.y1) && ov(A.z0, A.z1, C.z0, C.z1)) faces.push(k);

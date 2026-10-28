@@ -117,11 +117,10 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
     const nx = -t.z, nz = t.x;
     const pilot = p.x >= pilotX0 + 1.65 && p.x <= pilotX1 - 1.65;
     for (const side of [-1, 1]) {
-      const cw = Math.abs(t.x)*.76+Math.abs(t.z)*.18, cd = Math.abs(t.z)*.76+Math.abs(t.x)*.18;
-      const curbX = p.x + nx * side * RD.curb, curbZ = p.z + nz * side * RD.curb;
-      add(curbX, 0.07, curbZ, cw, 0.1, cd, P.pave);
-      const mid = (RD.padIn + RD.padOut) / 2, px = p.x + nx * side * mid, pz = p.z + nz * side * mid, pw = RD.padOut - RD.padIn, pl = 0.9; // slab: pl along the route, pw across it
-      add(px, -0.02, pz, Math.abs(t.x) * pl + Math.abs(t.z) * pw, 0.12, Math.abs(t.z) * pl + Math.abs(t.x) * pw, P.stone);
+      const ry = Math.atan2(-t.z, t.x), len = 0.95; // segments follow the tangent and overlap their neighbours: no stair-steps or gaps on curves
+      add(p.x + nx * side * RD.curb, 0.07, p.z + nz * side * RD.curb, len, 0.1, RD.padIn - RD.half, P.pave, ry);
+      const mid = (RD.padIn + RD.padOut) / 2, px = p.x + nx * side * mid, pz = p.z + nz * side * mid;
+      add(px, -0.02, pz, len, 0.12, RD.padOut - RD.padIn, P.stone, ry);
       if (pilot && i % 9 === 0) add(px, 0.12, pz, 0.55, 0.004, 0.55, P.gravel);
     }
   }
