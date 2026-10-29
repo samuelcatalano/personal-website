@@ -41,3 +41,9 @@ Six user-supplied Sketchfab models, normalized and batched in Blender by `tools/
 ## Sky and weather — 2026-10-26
 
 Sun/halo/full-moon maps are original runtime canvas generation in `js/world/sky.js`; clouds, stars, layered rain, puddles and ripple masks are original procedural shaders in `sky.js`, `rain.js`, `wet-surfaces.js` and `water.js`. Project-owned code; no external textures, geometry, HDRIs or reference pixels.
+
+## Big Ben + Palace of Westminster river frontage — 2026-10-29
+
+| Asset | Path | Source | Licence |
+| --- | --- | --- | --- |
+| Big Ben + Palace of Westminster river frontage | `assets/processed/landmarks/bigben.lod{0,1}.glb` | Generated in-project by `tools/landmarks/bigben/build_bigben.py` (Blender; original geometry and baked textures; photos used as visual reference only; external geometry: none) | Project-owned |
