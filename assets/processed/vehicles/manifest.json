@@ -1,0 +1,28 @@
+{
+  "generated": "2026-10-29",
+  "tool": "tools/pipeline/optimise.mjs",
+  "versions": {
+    "@gltf-transform/cli": "4.5.1",
+    "meshoptimizer": "see tools/pipeline/package-lock.json"
+  },
+  "source": {
+    "path": "assets/vehicles/mini-cooper-2011.glb",
+    "bytes": 20512356,
+    "sha256": "061c548c73e15820521ae444dbada0038a1c15c25848daa0591e6bd408db0c32"
+  },
+  "note": "Meshopt byte compression without quantization (runtime shaders read metre-space positions). Opt-in via ?glb=processed.",
+  "outputs": {
+    "lod0": {
+      "path": "assets/processed/vehicles/mini-cooper-2011.lod0.glb",
+      "bytes": 2130868,
+      "sha256": "f25bebcc180275fe8e69fa5d0dc54b156daa65b5494b914818eff5f2b945b523",
+      "simplify": "ratio 0.12, error 0.0005"
+    },
+    "lod1": {
+      "path": "assets/processed/vehicles/mini-cooper-2011.lod1.glb",
+      "bytes": 893272,
+      "sha256": "01bb60261398477eae76dfa49e5882c310b9ce5acea105621f6cf4c609cae2eb",
+      "simplify": "ratio 0.03, error 0.002"
+    }
+  }
+}

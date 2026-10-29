@@ -13,6 +13,7 @@ cd tools/pipeline && npm install        # @gltf-transform/cli 4.5.1 (pinned), in
 ## Commands
 
 ```bash
+node tools/pipeline/optimise.mjs <in.glb> <out.glb> [ratio] [error]   # weld/dedup/prune/simplify/reorder + Meshopt (no quantization, see header)
 node tools/pipeline/check.mjs            # report bytes/tris/materials/textures per GLB, unreferenced GLBs, budget breaches (budgets.json)
 node tools/pipeline/check.mjs --strict   # exit 1 on a breach (future CI)
 npx gltf-transform --help                # run from tools/pipeline; check subcommands against this pinned version before scripting

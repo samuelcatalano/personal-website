@@ -1,11 +1,15 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { fixed, paint } from './vehicles.js';
 import { destMat } from './buses.js';
 // Authored vehicle GLBs (tools/vehicles/*), loaded once and shared. Resolves null on failure so callers keep their procedural model.
 const URLS = { a330: 'a330.glb', bus: 'double-decker-bus.glb', 'sao-paulo': 'sao-paulo-bus.glb', mini: 'mini-cooper-2011.glb', cab: 'london-cab.glb' };
+// Production GLBs (tools/pipeline: weld/simplify/Meshopt), opt-in while the pipeline is validated: add ?glb=processed to the URL. Default stays on the raw assets.
+const PROCESSED = { mini: 'processed/vehicles/mini-cooper-2011.lod0.glb' };
+const useProcessed = typeof location !== 'undefined' && new URLSearchParams(location.search).get('glb') === 'processed';
 const cache = new Map();
 let fleetCatalog;
 export function loadFleetCatalog() {
@@ -20,10 +24,10 @@ export function regionalFleetModel(catalog, region, slot) {
 export function loadVehicleAsset(type) {
   if (!cache.has(type)) cache.set(type, (async () => {
     const model = URLS[type] ? null : (await loadFleetCatalog()).find((m) => m.id === type);
-    const path = URLS[type] ? 'assets/vehicles/' + URLS[type] : model?.path;
+    const path = useProcessed && PROCESSED[type] ? 'assets/' + PROCESSED[type] : URLS[type] ? 'assets/vehicles/' + URLS[type] : model?.path;
     if (!path) return null;
     const url = new URL('../../' + path, import.meta.url); if (model?.sha256) url.searchParams.set('v', model.sha256);
-    return new GLTFLoader().loadAsync(url.href).then((g) => g.scene);
+    return new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(url.href).then((g) => g.scene);
   })().catch(() => null));
   return cache.get(type);
 }

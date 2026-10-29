@@ -2,6 +2,8 @@
 // Reads every shipped GLB (assets/**/*.glb), reports bytes / triangles / meshes / materials / textures, flags GLBs no module references,
 // and compares against budgets.json. Exit code 1 only with --strict and a hard-limit breach. Dev tool: never deployed.
 import { NodeIO } from '@gltf-transform/core';
+import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
+import { MeshoptDecoder } from 'meshoptimizer';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, basename } from 'node:path';
 
@@ -11,7 +13,8 @@ const code = [...walk(join(ROOT, 'js'), '.js'), ...walk(join(ROOT, 'tests'), '.p
 const catalog = (() => { try { return readFileSync(join(ROOT, 'tools/vehicles/regional-fleet/models.json'), 'utf8'); } catch { return ''; } })();
 const classOf = (rel) => /vehicles\/(a330)/.test(rel) ? 'airplane' : /vehicles\/.*bus/.test(rel) ? 'bus' : /vehicles\/mini/.test(rel) ? 'hero-car' : /vehicles\//.test(rel) ? 'car' : /landmarks\//.test(rel) ? 'landmark' : 'other';
 
-const io = new NodeIO(), rows = [], breaches = [];
+await MeshoptDecoder.ready; // reads Meshopt-compressed production GLBs too
+const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.decoder': MeshoptDecoder }), rows = [], breaches = [];
 for (const file of walk(join(ROOT, 'assets'), '.glb')) {
   const rel = relative(ROOT, file), bytes = statSync(file).size, cls = classOf(rel), b = budgets[cls] ?? budgets.other;
   let tris = 0, meshes = 0, materials = 0, textures = 0, compressed = false, err = '';
