@@ -4,11 +4,11 @@ from mathutils import Vector
 src, out, pre = sys.argv[sys.argv.index('--') + 1:][:3]; variant = (sys.argv[sys.argv.index('--') + 1:] + ['london'])[3]; os.makedirs(out, exist_ok=True)
 bpy.ops.wm.read_factory_settings(use_empty=True); bpy.ops.import_scene.gltf(filepath=src)
 s = bpy.context.scene
-PAL = dict(london=dict(body='#b52a2d', accent='#7e1c20', stripe=None), glasgow=dict(body='#f2e31b', accent='#5f57a0', stripe='#f2e31b', skirtF='#b8ab14', sweep='#f4f4f6', lilac='#c7c1e8', rear='#7d74c0'), london_old=dict(body='#c9252b', accent='#8f171d', stripe=None), glasgow_old=dict(body='#8a36ae', accent='#c9cdd2', stripe=None))[variant]
+PAL = dict(london=dict(body='#b52a2d', accent='#7e1c20', stripe=None), glasgow=dict(body='#5a2a86', accent='#33174f', stripe='#e0398f', skirtF='#33174f', sweep='#f4f2f8', lilac='#b79ad6', rear='#7b4bb0', mark='#7b4bb0', mark2='#7b4bb0'), london_old=dict(body='#c9252b', accent='#8f171d', stripe=None), glasgow_old=dict(body='#8a36ae', accent='#c9cdd2', stripe=None))[variant]
 def lin(h): c = [int(h[i:i + 2], 16) / 255 for i in (1, 3, 5)]; return (*[((x + .055) / 1.055) ** 2.4 if x > .04045 else x / 12.92 for x in c], 1)
 # approximate runtime finishes: paint = glossy standard, trim/tyre dark, glass bluish translucent, chrome, lamps and blind emissive
 FIN = dict(BusBody=(PAL['body'], .28, .1, 1), BusAccent=(PAL['accent'], .28, .1, 1), BusStripe=(PAL['stripe'] or PAL['body'], .28, .1, 1), BusSkirtF=(PAL.get('skirtF', PAL['accent']), .28, .1, 1), BusSweep=(PAL.get('sweep', PAL['body']), .28, .1, 1), BusLilac=(PAL.get('lilac', PAL['body']), .28, .1, 1), BusRear=(PAL.get('rear', PAL['body']), .28, .1, 1), BusTrim=('#1b1d21', .7, 0, 1), BusGlass=('#3d5262', .2, .3, .55),
-           BusRubber=('#242629', .85, 0, 1), BusMetal=('#d8dadc', .3, .25, 1), BusHeadlight=('#fff3d6', .2, 0, 1), BusTaillight=('#c01414', .3, 0, 1), BusDisplay=('#ffb347', .5, 0, 1), BusInterior=(os.environ.get('INTC', '#2a2622'), .9, 0, 1))
+           BusRubber=('#242629', .85, 0, 1), BusMetal=('#d8dadc', .3, .25, 1), BusHeadlight=('#fff3d6', .2, 0, 1), BusTaillight=('#c01414', .3, 0, 1), BusDisplay=('#ffb347', .5, 0, 1), BusMark=(PAL.get('mark', '#f2f2f0'), .4, 0, 1), BusMark2=(PAL.get('mark2', '#1c3f94'), .4, 0, 1), BusInterior=(os.environ.get('INTC', '#2a2622'), .9, 0, 1))
 for m in bpy.data.materials:
     k = m.name.split('.')[0]
     if k not in FIN: continue

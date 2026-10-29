@@ -1,30 +1,26 @@
-# Game-ready double-decker from "London DD Bus" by jsa201077 (CC-BY-4.0, https://sketchfab.com/3d-models/london-dd-bus-a2a2736856a7452bbbaf712e07ed8eb4).
-# Run: blender -b --factory-startup -P build_bus_dd.py -- [src.glb] [out.glb]
-# Output contract = assets/vehicles/double-decker-bus.glb: three.js forward +X, up +Y, right +Z, ground y=0, wheel nodes FL FR RL RR
-# (origin at the wheel centre, no rotation: runtime spins rotation.z), one mesh per semantic material (BusBody BusAccent BusStripe BusTrim
-# BusGlass BusRubber BusMetal BusHeadlight BusTaillight BusDisplay BusInterior), no textures / vertex colours; only BusDisplay has UVs.
-# Paint regions are read from the source's baked texture (red / black / grey) and cut by exact planes (skirt, swoosh) so Glasgow can repaint.
+# Authored low-floor double-decker (New Routemaster / StreetDeck proportions), fully procedural: no external model, no textures.
+# Run: blender -b --factory-startup -P build_bus_dd.py -- [out.glb]
+# Output contract = assets/vehicles/double-decker-bus.glb: three.js forward +X, up +Y, right +Z, ground y=0, 11.7 x 4.3 x 2.8 m, wheel nodes FL FR RL RR
+# (origin at the wheel centre, no rotation: runtime spins rotation.z), one mesh per semantic material role (see BUCKETS), no textures / vertex colours;
+# only BusDisplay has UVs. Blender frame while modelling: nose +X, up +Z, kerb side (left) +Y; the glTF exporter maps that to three.js.
+# Liveries are position-cut regions (skirt, stripe, diagonal sweep bands, roundel) that the runtime recolours per city (BUS_VARIANTS).
 import bpy, bmesh, math, os, sys
-from mathutils import Vector, Matrix
-from mathutils.bvhtree import BVHTree
+from mathutils import Vector
 
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.abspath(os.path.join(HERE, '../../..'))
 a = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
-SRC = a[0] if a else os.path.join(ROOT, 'assets/models/source/london-bus/london_dd_bus.glb')
-OUT = a[1] if len(a) > 1 else os.path.join(ROOT, 'assets/vehicles/double-decker-bus.glb')
-S = 0.0240                       # source inches -> metres, tuned so the hull is ~11.6 m (old bus 11.2 m) and the wheels r 0.445 (old 0.47)
-# measured on the source tyres (metres after the bake): axle x, tyre centre |y|, tyre half width, radius
-WHEELS = dict(FL=(3.015, 0.998, 0.130), FR=(3.015, -0.998, 0.130), RL=(-2.826, 0.950, 0.180), RR=(-2.826, -0.950, 0.180)); WR = 0.445
-# livery cuts (z up, x forward): skirt top, and the swoosh as boolean regions between lines z = f(x)
-SKIRT_Z = 0.66
-SW_LO, SW_HI, SW_X1 = 0.96, 1.12, 3.75
-SW_KINK_LO, SW_SLOPE_LO = 2.2, 0.30      # lower edge turns up at x=2.2 (past the last saloon window), 0.30 m per metre
-SW_KINK_HI, SW_SLOPE_HI = 2.0, 0.40      # upper edge turns up earlier / steeper so the swoosh widens towards the door
-FRONT_LINE = (4.15, 4.21)
-FRAME_W, LIP_Z, ARCH_W = 0.06, 0.30, 0.10   # black window surround width, bottom lip height, wheel-arch surround                 # thin pink line above the windscreen (front-facing faces)
+OUT = a[0] if a else os.path.join(ROOT, 'assets/vehicles/double-decker-bus.glb')
+
+W, ZR = 1.26, 4.10                     # hull half width, roof height
+WR = 0.445
+WHEELS = dict(FL=(3.015, 0.998, 0.140), FR=(3.015, -0.998, 0.140), RL=(-2.826, 0.950, 0.180), RR=(-2.826, -0.950, 0.180))
+SKIRT_Z, LIP_Z, STRIPE = 0.66, 0.46, (0.80, 0.90)
+SWEEP_K, T_FRONT, T_WHITE, T_LILAC = 0.68, 3.0, 2.55, 2.0          # diagonal bands: t = x + K (z - 0.3); front colour, white, lilac, rear
+BUCKETS = ['BusBody', 'BusAccent', 'BusStripe', 'BusTrim', 'BusGlass', 'BusRubber', 'BusMetal', 'BusHeadlight', 'BusTaillight', 'BusDisplay', 'BusInterior',
+           'BusSkirtF', 'BusSweep', 'BusLilac', 'BusRear', 'BusMark', 'BusMark2']
+BI = {b: i for i, b in enumerate(BUCKETS)}
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
-bpy.ops.import_scene.gltf(filepath=SRC)
 sc = bpy.context.scene
 
 def lin(h):
@@ -46,196 +42,242 @@ MATS = dict(BusBody=mat('BusBody', '#c9252b', 0.38), BusAccent=mat('BusAccent', 
             BusMetal=mat('BusMetal', '#d4d7da', 0.4, 0.4), BusHeadlight=mat('BusHeadlight', '#fff3d6', 0.2, 0, 1, 2.0),
             BusTaillight=mat('BusTaillight', '#c01414', 0.3, 0, 1, 1.0), BusDisplay=mat('BusDisplay', '#3a2a08', 0.3, 0, 1, 1.2),
             BusInterior=mat('BusInterior', '#2a2622', 0.9),
-            # Glasgow-only regions (London falls back to body / accent): front skirt, white sweep, lilac band, rear violet
-            BusSkirtF=mat('BusSkirtF', '#8e1a1f', 0.4), BusSweep=mat('BusSweep', '#c9252b', 0.4), BusLilac=mat('BusLilac', '#c9252b', 0.4), BusRear=mat('BusRear', '#c9252b', 0.4))
-BUCKETS = list(MATS)
+            # city-specific regions (a city that does not set one falls back to body / accent in the runtime): front skirt, sweep, lilac band, rear block, roundel ring + bar
+            BusSkirtF=mat('BusSkirtF', '#8e1a1f', 0.4), BusSweep=mat('BusSweep', '#c9252b', 0.4), BusLilac=mat('BusLilac', '#c9252b', 0.4), BusRear=mat('BusRear', '#c9252b', 0.4),
+            BusMark=mat('BusMark', '#f2f2f0', 0.4), BusMark2=mat('BusMark2', '#1c3f94', 0.4))
 
-# ---- 1. bake: inches, nose -Y, up +Z, left +X  ->  metres, nose +X, up +Z, left +Y (glTF export maps to three.js forward +X, up +Y, right +Z)
-meshes = [o for o in sc.objects if o.type == 'MESH']
-def bb(o, m=None):
-    vs = [(m or o.matrix_world) @ v.co for v in o.data.vertices]; return [(min(v[i] for v in vs), max(v[i] for v in vs)) for i in range(3)]
-by = {o.data.materials[0].name: o for o in meshes}
-x0 = sum(bb(by['london_bus_glass1'])[0]) / 2; y0 = sum(bb(by['london_bus_body_1'])[1]) / 2
-FIX = Matrix.Scale(S, 4) @ Matrix(((0, -1, 0, 0), (1, 0, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1))) @ Matrix.Translation((-x0, -y0, 0))
-src = {}
-for o in meshes:
-    o.data = o.data.copy(); o.data.transform(FIX @ o.matrix_world); o.parent = None; o.matrix_world = Matrix.Identity(4); src[o.data.materials[0].name] = o
-for o in [o for o in sc.objects if o.type != 'MESH']: bpy.data.objects.remove(o)
-SHELL, FRAME, GLASS_, BLIND, HUB, PLATE, WHEEL_, SEATS = (src[k] for k in ('london_bus_body_1', 'material', 'london_bus_glass1', 'london_bus_bo1', 'material_0', 'plates1', 'london_bus_wheel1', 'london_bus_chass1'))
+# ---- 1. hull: side profile (x, z) extruded across the width, then bevelled (big plan-view radius on the nose / tail chains, small on the rest)
+RAD = 0.74                                                       # plan-view corner radius at nose and tail (pill ends)
+RR = 0.45                                                        # roof edge radius
+ZS = ZR - RR                                                     # side wall top; the roof arc starts here
+XF = [(0.34, 5.62), (0.62, 5.86), (1.40, 5.86), (2.60, 5.80), (ZS, 5.60)]          # nose x(z): bumper chamfer, lamp panel, raked upper deck
+XR = [(0.34, -5.66), (0.50, -5.86), (ZS, -5.84)]                                    # tail x(z)
+def tab(t, z):
+    z = min(max(z, t[0][0]), t[-1][0])
+    for (z0, x0), (z1, x1) in zip(t, t[1:]):
+        if z <= z1: return x0 + (x1 - x0) * (z - z0) / (z1 - z0)
+    return t[-1][1]
+def half_w(z): return W * (1 - 0.040 * min(max((z - 2.5) / (ZS - 2.5), 0.0), 1.0))    # tumblehome
+def ring(z, inset, M=8):
+    """closed rounded-rectangle outline (plan view) at height z, offset inwards by inset; 4 * (M + 1) points, same topology at every level"""
+    zc = min(z, ZS); xf, xr, hw = tab(XF, zc) - inset, tab(XR, zc) + inset, half_w(zc) - inset; r = max(RAD - inset, 0.03); pts = []
+    for cx, cy, a0 in ((xf - r, hw - r, 0), (xr + r, hw - r, 90), (xr + r, -(hw - r), 180), (xf - r, -(hw - r), 270)):
+        for k in range(M + 1):
+            a = math.radians(a0 + 90 * k / M); pts.append((cx + r * math.cos(a), cy + r * math.sin(a), z))
+    return pts
+LEVELS = [(0.34, 0.05), (0.40, 0.0), (0.62, 0.0), (1.40, 0.0), (2.60, 0.0), (ZS, 0.0)]
+for k in range(1, 9):
+    th = math.radians(90 * k / 8); LEVELS.append((ZS + RR * math.sin(th), RR * (1 - math.cos(th))))
+for k in range(1, 5): i = RR + 0.2 * k; LEVELS.append((ZR + 0.085 * (1 - ((i - RR) / 0.8) ** 2), i))
+bm = bmesh.new(); rings = []
+for z, ins in LEVELS:
+    pts = ring(z, ins)
+    if abs(z - ZS) > 1e-6 and z > ZS: pts = [(x, y, z) for x, y, _ in ring(ZS, ins)]   # roof arc / crown keep the wall-top outline, inset
+    rings.append([bm.verts.new(p) for p in pts])
+for r0, r1 in zip(rings, rings[1:]):
+    n = len(r0)
+    for i in range(n):
+        if (i + 1) % (len(r0) // 4 and 9) == 0 and False: pass
+        bm.faces.new((r0[i], r0[(i + 1) % n], r1[(i + 1) % n], r1[i]))
+bm.faces.new(rings[-1][::-1]); bm.faces.new(rings[0])
+bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+bmesh.ops.triangulate(bm, faces=bm.faces[:]); bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+lay = bm.faces.layers.int.new('fx')       # 1 = material already decided (pockets); 0 = decided by position later
+mi = bm.faces.layers.int.new('mi')
+# wheel wells: 28-gon cut around each front / rear arch, inside extruded inward (black well), outer ring black trim
+ARCH_R, ARCH_RING, ARCH_N = 0.60, 0.085, 28
+def archcut(wx, sg, R):
+    for k in range(ARCH_N):
+        th = 2 * math.pi * (k + 0.5) / ARCH_N; n = Vector((math.cos(th), 0, math.sin(th)))
+        co = Vector((wx, 0, WR)) + n * R
+        bm.normal_update(); fs = [f for f in bm.faces if f.normal.y * sg > 0.5 and max(v.co.x for v in f.verts) > wx - R - 0.1 and min(v.co.x for v in f.verts) < wx + R + 0.1 and min(v.co.z for v in f.verts) < WR + R + 0.1]
+        geom = fs + list({e for f in fs for e in f.edges}) + list({v for f in fs for v in f.verts})
+        bmesh.ops.bisect_plane(bm, geom=geom, plane_co=co, plane_no=n)
+def inpoly(p, wx, R):
+    return all((p.x - wx) * math.cos(2 * math.pi * (k + 0.5) / ARCH_N) + (p.z - WR) * math.sin(2 * math.pi * (k + 0.5) / ARCH_N) <= R + 1e-4 for k in range(ARCH_N))
+for wx in (WHEELS['FL'][0], WHEELS['RL'][0]):
+    for sg in (1, -1):
+        bm.normal_update(); archcut(wx, sg, ARCH_R + ARCH_RING); bm.normal_update(); archcut(wx, sg, ARCH_R); bm.normal_update()
+        ring, well = [], []
+        for f in bm.faces:
+            p = f.calc_center_median()
+            if f.normal.y * sg > 0.8 and p.y * sg > 1.0 and inpoly(p, wx, ARCH_R + ARCH_RING):
+                (well if inpoly(p, wx, ARCH_R) else ring).append(f)
+        for f in ring: f[lay] = 1; f[mi] = BI['BusTrim']
+        if well:
+            ext = bmesh.ops.extrude_face_region(bm, geom=well); nv = [v for v in ext['geom'] if isinstance(v, bmesh.types.BMVert)]
+            bmesh.ops.delete(bm, geom=[f for f in well if f.is_valid], context='FACES_ONLY'); bmesh.ops.translate(bm, vec=(0, -sg * 0.58, 0), verts=nv)
+            for g in ext['geom']:
+                if isinstance(g, bmesh.types.BMFace): g[lay] = 1; g[mi] = BI['BusTrim']
 
-# ---- 2a. glass panes (connected components of the glass mesh, all flat axis-aligned rectangles): their expanded rectangles become the black frames
-def glass_panes():
-    bm = bmesh.new(); bm.from_mesh(GLASS_.data); seen_, out = set(), {}
-    for v in bm.verts:
-        if v in seen_: continue
-        st, comp = [v], []; seen_.add(v)
-        while st:
-            q = st.pop(); comp.append(q)
-            for e in q.link_edges:
-                w = e.other_vert(q)
-                if w not in seen_: seen_.add(w); st.append(w)
-        mn = [min(q.co[i] for q in comp) for i in range(3)]; mx = [max(q.co[i] for q in comp) for i in range(3)]
-        if mx[1] - mn[1] < 0.15 and abs(mn[1]) > 0.9: out[('side', round(mn[0], 2), round(mx[0], 2), round(mn[2], 2), round(mx[2], 2), 1 if mn[1] > 0 else -1)] = ('side', mn[0], mx[0], mn[2], mx[2], 1 if mn[1] > 0 else -1)
-        elif mx[0] - mn[0] < 0.3 and abs(mn[0]) > 5: out[('end', round(mn[1], 2), round(mx[1], 2), round(mn[2], 2), round(mx[2], 2), 1 if mn[0] > 0 else -1)] = ('end', mn[1], mx[1], mn[2], mx[2], 1 if mn[0] > 0 else -1)
-    bm.free(); return list(out.values())
-PANES = glass_panes(); print('glass panes', len(PANES))
-for q in PANES:
-    if os.environ.get('DBG') and q[0] == 'side' and q[3] < 0.6: print('DOORPANE', [round(v, 2) if isinstance(v, float) else v for v in q])
-def in_frame(p):
-    x, y, z = p.center; m = FRAME_W
-    for kind, a0, a1, z0, z1, sg in PANES:
-        if z0 - m <= z <= z1 + m:
-            if kind == 'side' and sg * y > 0.9 and a0 - m <= x <= a1 + m: return True
-            if kind == 'end' and sg * x > 5 and a0 - m <= y <= a1 + m: return True
-    return False
-
-# ---- 2. exact paint cuts on the skin meshes (planes extruded along Y, so left/right stay symmetric)
-line_lo = lambda x: SW_LO + max(0.0, x - SW_KINK_LO) * SW_SLOPE_LO
-line_hi = lambda x: SW_HI + max(0.0, x - SW_KINK_HI) * SW_SLOPE_HI
-def diag(x, z0, slope):   # plane through (x, z0) with z - z0 = slope (x' - x)
-    return Vector((x, 0, z0)), Vector((-slope, 0, 1)).normalized()
-# the swoosh ends in a thin diagonal kick at the rear: two parallel strokes rising towards the tail (pink then blue)
-KICK_Z = (SKIRT_Z + 0.04, 1.20); KICK_SLOPE = 0.55   # x shifts back 0.55 m per metre of height; ends below the rear window sill (1.30 - frame), never on glass
-kick_x = lambda z, x0_: x0_ - KICK_SLOPE * (z - KICK_Z[0])
-KICK = ((-3.80, -4.05, 'BusStripe'), (-4.12, -4.30, 'BusStripe'))   # (x_front, x_back, bucket) at z = KICK_Z[0]; both pink on Glasgow, body colour on London
-# diagonal livery sweep: t = x + SWEEP_K (z - 0.3); t > T_FRONT is the front colour, then white, lilac and rear bands (rising forward-to-back)
-SWEEP_K, T_FRONT, T_WHITE, T_LILAC = 0.68, 3.0, 2.55, 2.0
-CUTS = [(Vector((t + SWEEP_K * 0.3, 0, 0)), Vector((1, 0, SWEEP_K)).normalized()) for t in (T_FRONT, T_WHITE, T_LILAC)]
-CUTS += [(Vector((0, 0, z)), Vector((0, 0, 1))) for z in (SKIRT_Z, SW_LO, SW_HI, *FRONT_LINE, KICK_Z[1])] + [diag(SW_KINK_LO, SW_LO, SW_SLOPE_LO), diag(SW_KINK_HI, SW_HI, SW_SLOPE_HI), (Vector((SW_X1, 0, 0)), Vector((1, 0, 0)))]
-CUTS += [(Vector((xs, 0, KICK_Z[0])), Vector((1, 0, KICK_SLOPE)).normalized()) for xs in sorted({k[0] for k in KICK} | {k[1] for k in KICK})]
-for kind, a0, a1, z0, z1, sg in PANES:
-    ax = Vector((1, 0, 0)) if kind == 'side' else Vector((0, 1, 0))
-    for a_ in (a0 - FRAME_W, a1 + FRAME_W): CUTS.append((ax * a_, ax))
-    for z_ in (z0 - FRAME_W, z1 + FRAME_W): CUTS.append((Vector((0, 0, z_)), Vector((0, 0, 1))))
-_seen, _u = set(), []
-for co, no in CUTS:   # drop duplicate planes (shared window edges)
-    k = (round(co.dot(no), 3), tuple(round(c, 3) for c in no))
-    if k not in _seen: _seen.add(k); _u.append((co, no))
-CUTS = _u; print('paint cuts', len(CUTS))
-for o in (SHELL, FRAME):
-    bm = bmesh.new(); bm.from_mesh(o.data)
-    for co, no in CUTS: bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=co, plane_no=no)
-    bm.to_mesh(o.data); bm.free()
-
-# ---- 4. visibility: glass blocks the rays, so what survives is skin; what a ray reaches only through the glass is the saloon
-def tree_of(objs):
-    vs, ps = [], []
-    for o in objs:
-        base = len(vs); vs += [v.co.copy() for v in o.data.vertices]; ps += [tuple(base + i for i in p.vertices) for p in o.data.polygons]
-    return BVHTree.FromPolygons(vs, ps)
-solids = [SHELL, FRAME, BLIND, HUB, PLATE, WHEEL_, SEATS]
-T_SKIN = tree_of(solids + [GLASS_]); T_SEE = tree_of(solids)
-DIRS = [Vector((math.cos(e) * math.cos(t), math.cos(e) * math.sin(t), math.sin(e))) for e in (0.0, 0.3, 0.7, 1.1, 1.5) for t in [2 * math.pi * i / 24 for i in range(24)]]
-def seen(tree, c, n):
-    return any(n.dot(d) > 0 and tree.ray_cast(c + n * 0.004, d, 30)[0] is None for d in DIRS)
-def classify_vis(o):    # -> {poly index: ('skin' | 'saloon', flip)}; the source has inward-wound faces (double-sided material), so try the back side too
-    out = {}
-    for p in o.data.polygons:
-        for tree, kind in ((T_SKIN, 'skin'), (T_SEE, 'saloon')):
-            if seen(tree, p.center, p.normal): out[p.index] = (kind, False); break
-            if seen(tree, p.center, -p.normal): out[p.index] = (kind, True); break
-    return out
-
-# ---- 5. collect faces per bucket into bmeshes
-BM = {b: bmesh.new() for b in BUCKETS}
-def add_faces(o, picks):    # picks: {poly index: bucket}; copies the polygons (triangulated) into the bucket bmeshes with fresh verts
-    for pi, bucket in picks.items():
-        bucket, flip = bucket if isinstance(bucket, tuple) else (bucket, False)
-        p = o.data.polygons[pi]; vs = [BM[bucket].verts.new(o.data.vertices[i].co) for i in p.vertices]
-        try: f = BM[bucket].faces.new(vs)
-        except ValueError: continue
-        f.normal_update()
-        if f.normal.dot(-p.normal if flip else p.normal) < 0: f.normal_flip()
-
-T_GLASS = tree_of([GLASS_])
-def shell_bucket(p, flip=False):
-    """paint by geometry, not by the source texture (its big triangles bleed across window edges): black around the glass, arches and the
-    bottom lip; red regions are cut by exact planes into skirt / swoosh / kick / front line; everything else is body"""
-    x, y, z = p.center; nx, ny = (-p.normal.x, -p.normal.y) if flip else (p.normal.x, p.normal.y)
-    if in_frame(p): return 'BusTrim'
+# ---- 2. glazing: continuous glass bands cut into the skin by exact planes (flush glass, thin dark frame + pillars), wrapping the rounded nose and tail
+UZ = (2.80, 3.64); FW = 0.04
+UP_P = [-4.60, -3.30, -2.00, -0.70, 0.60, 1.90, 3.20, 4.50]                              # upper-deck pillars (both sides)
+LOW_X = (-3.45, 5.12)                                                                    # lower side band extent
+LOW_P_L = [-2.55, -0.30, 0.95, 2.20, 3.30]; LOW_P_R = [-2.30, -1.10, 0.10, 1.30, 2.50, 3.70, 4.55]
+DOORS = [(3.98, 5.04), (-1.74, -0.62)]; DOOR_P = [3.98, 4.51, 5.04, -1.74, -1.18, -0.62]  # kerb doors: glazed leaves down to the sill
+RAKE_X0, RAKE_S, RAKE_CAP = 2.60, 0.28, 2.62                                            # lower band top rises towards the front (stepped New Routemaster window line)
+def low_top(x): return 2.22 + RAKE_S * min(max(x - RAKE_X0, 0.0), (RAKE_CAP - 2.22) / RAKE_S)
+def vert_faces(): bm.normal_update(); return [f for f in bm.faces if not f[lay] and abs(f.normal.z) < 0.6]
+def vcut(co, no, pred=lambda f: True):
+    fs = [f for f in vert_faces() if pred(f)]; geom = fs + list({e for f in fs for e in f.edges}) + list({v for f in fs for v in f.verts})
+    bmesh.ops.bisect_plane(bm, geom=geom, plane_co=co, plane_no=no)
+Zc = lambda z: (Vector((0, 0, z)), Vector((0, 0, 1)))
+for z in (UZ[0] - FW, UZ[0], UZ[1], UZ[1] + FW, 0.48, 0.52, 1.11, 1.15, 2.18, 2.22, 2.26, 1.28, 1.32, 2.34, 2.38, 1.51, 1.55, 2.30): vcut(*Zc(z))
+sidef = lambda f: abs(f.normal.y) > 0.5
+for xp in UP_P: 
+    for dx in (-0.045, 0.045): vcut(Vector((xp + dx, 0, 0)), Vector((1, 0, 0)), sidef)
+for xp in (*LOW_P_L, *LOW_P_R, *DOOR_P):
+    for dx in (-0.045, 0.045): vcut(Vector((xp + dx, 0, 0)), Vector((1, 0, 0)), sidef)
+for xe in LOW_X:
+    for dx in (-FW, 0, FW): vcut(Vector((xe + dx, 0, 0)), Vector((1, 0, 0)), sidef)
+for off in (0, FW):        # rake of the lower band top (diagonal planes, side faces ahead of the rake start only)
+    co = Vector((RAKE_X0, 0, 2.22 + off)); no = Vector((-RAKE_S, 0, 1)).normalized()
+    vcut(co, no, lambda f: sidef(f) and f.calc_center_median().x > 2.0)
+vcut(*Zc(RAKE_CAP)); vcut(*Zc(RAKE_CAP + FW))
+def bandclass(p, n):
+    x, y, z = p; sg = 1 if y > 0 else -1
+    pil = lambda lst, w=0.0: any(abs(x - xp) < 0.045 + w for xp in lst)
+    # upper band: all the way round (side faces get pillars)
+    if UZ[0] - 1e-4 <= z <= UZ[1] + 1e-4: return 'BusTrim' if (sidef_n(n) and pil(UP_P)) else 'BusGlass'
+    if UZ[0] - FW - 1e-4 <= z <= UZ[1] + FW + 1e-4: return 'BusTrim'
+    # front lower windscreen (wraps the nose), rear lower glass
+    if n.x > 0.45 and abs(y) < 1.05:
+        if 1.32 - 1e-4 <= z <= 2.34 + 1e-4: return 'BusGlass'
+        if 1.28 - 1e-4 <= z <= 2.38 + 1e-4: return 'BusTrim'
+    if n.x < -0.45 and abs(y) < 0.95:
+        if 1.55 - 1e-4 <= z <= 2.30 + 1e-4: return 'BusGlass'
+        if 1.51 - 1e-4 <= z <= 2.34 + 1e-4: return 'BusTrim'
+    if sidef_n(n) and LOW_X[0] - FW - 1e-4 <= x <= LOW_X[1] + FW + 1e-4:
+        door = sg > 0 and any(a0 - 1e-4 <= x <= a1 + 1e-4 for a0, a1 in DOORS)
+        zb, zt = (0.52 if door else 1.15), low_top(x)
+        inside_x = LOW_X[0] - 1e-4 <= x <= LOW_X[1] + 1e-4
+        if inside_x and zb - 1e-4 <= z <= zt + 1e-4: return 'BusTrim' if pil((LOW_P_L if sg > 0 else LOW_P_R) + (DOOR_P if sg > 0 else [])) else 'BusGlass'
+        if (zb - FW - 1e-4 <= z <= zt + FW + 1e-4): return 'BusTrim'
+    return None
+def sidef_n(n): return abs(n.y) > 0.5
+bm.normal_update()
+for f in bm.faces:
+    if f[lay] or abs(f.normal.z) > 0.6: continue
+    r = bandclass(f.calc_center_median(), f.normal)
+    if r: f[lay] = 1; f[mi] = BI[r]
+print('glazing done')
+# ---- 3. livery cuts on the remaining skin (planes only through faces not already decided)
+def skin():
+    bm.normal_update(); return [f for f in bm.faces if not f[lay]]
+def livery_cut(co, no):
+    fs = skin(); geom = fs + list({e for f in fs for e in f.edges}) + list({v for f in fs for v in f.verts})
+    bmesh.ops.bisect_plane(bm, geom=geom, plane_co=co, plane_no=no)
+for z in (LIP_Z, SKIRT_Z, *STRIPE): livery_cut(Vector((0, 0, z)), Vector((0, 0, 1)))
+for t in (T_FRONT, T_WHITE, T_LILAC): livery_cut(Vector((t + SWEEP_K * 0.3, 0, 0)), Vector((1, 0, SWEEP_K)).normalized())
+livery_cut(Vector((0, 0, 3.66)), Vector((0, 0, 1)))
+print('livery cuts done')
+def paint(p, n):
+    x, y, z = p
     if z < LIP_Z: return 'BusTrim'
-    if any(abs(y) > 0.9 and math.hypot(x - wx, z - WR) < WR + ARCH_W for wx in (WHEELS['FL'][0], WHEELS['RL'][0])): return 'BusTrim'
     t = x + SWEEP_K * (z - 0.3)
     if z < SKIRT_Z: return 'BusSkirtF' if t > T_FRONT else 'BusAccent'
+    if n.z > 0.5 and z > 3.66: return 'BusSweep'
+    if STRIPE[0] < z < STRIPE[1] and (abs(n.y) > 0.3 or n.x > 0.3): return 'BusStripe'
     if t <= T_FRONT: return 'BusSweep' if t > T_WHITE else 'BusLilac' if t > T_LILAC else 'BusRear'
-    side = abs(ny) > 0.35
-    if side and x < SW_X1 and line_lo(x) < z < line_hi(x): return 'BusStripe'
-    if side and KICK_Z[0] < z < KICK_Z[1]:
-        for xa, xb, bk in KICK:
-            if kick_x(z, xb) < x < kick_x(z, xa): return bk
-    if nx > 0.5 and FRONT_LINE[0] < z < FRONT_LINE[1]: return 'BusStripe'
     return 'BusBody'
-def collect(o, skin):   # skin: poly -> bucket or None (then not wanted); saloon faces always go to BusInterior
-    picks = {}
-    for i, (kind, flip) in classify_vis(o).items():
-        b = skin(o.data.polygons[i], flip) if kind == 'skin' else 'BusInterior'
-        if b: picks[i] = (b, flip)
-    add_faces(o, picks)
-# the skin is split between 'body_1' and the pale 'material' mesh (sliver wedges), both painted by position; mirrors/blind box and hub bits are trim/chrome
-collect(SHELL, shell_bucket); collect(FRAME, lambda p, f: None if abs(p.normal.z) > 0.6 else shell_bucket(p, f))
-collect(BLIND, lambda p, f: 'BusMetal' if abs(p.center.y) > 1.3 else 'BusTrim')
-collect(HUB, lambda p, f: None); collect(SEATS, lambda p, f: None)
-add_faces(PLATE, {p.index: 'BusMetal' for p in PLATE.data.polygons})
-add_faces(GLASS_, {p.index: 'BusGlass' for p in GLASS_.data.polygons})   # flat panes, source tessellation kept
-
-# ---- 6. decals: front destination blind (UVs for the runtime canvas), headlamps, tail lamps, side blinds
-def ray_hit(origin, d):
-    h = T_SKIN.ray_cast(origin, d, 30); return (h[0], h[1]) if h[0] is not None else (None, None)
-def decal(bucket, p0, nrm, right, up, hw, hh, off, uv=False, segs=0):
-    """rectangle (segs=0) or disc centred on p0, facing nrm, lifted by off; right/up span the face; UVs = (u right, v up) when uv"""
-    b = BM[bucket]; c = p0 + nrm * off
-    if segs: pts = [c + right * (hw * math.cos(2 * math.pi * k / segs)) + up * (hh * math.sin(2 * math.pi * k / segs)) for k in range(segs)]
-    else: pts = [c - right * hw - up * hh, c + right * hw - up * hh, c + right * hw + up * hh, c - right * hw + up * hh]
-    vs = [b.verts.new(p) for p in pts]; f = b.faces.new(vs); f.normal_update()
+BM = {b: bmesh.new() for b in BUCKETS}
+def add(bucket, pts, nrm):
+    vs = [BM[bucket].verts.new(p) for p in pts]
+    try: f = BM[bucket].faces.new(vs)
+    except ValueError: return None
+    f.normal_update()
     if f.normal.dot(nrm) < 0: f.normal_flip()
-    if uv:
-        lay = b.loops.layers.uv.verify()
-        for lp in f.loops:
-            d = lp.vert.co - c; lp[lay].uv = (0.5 + d.dot(right) / (2 * hw), 0.5 + d.dot(up) / (2 * hh))
-UPV = Vector((0, 0, 1))
-def on_shell(x, y, z, face, rad=0.25):   # outermost skin point over a patch (rays along -face from outside), so decals clear local bulges; returns (point, face normal)
-    side = face.cross(UPV) if abs(face.z) < 0.5 else Vector((1, 0, 0)); best = None
-    for du in (-rad, 0, rad):
-        for dv in (-rad, 0, rad):
-            h, n = ray_hit(Vector((x, y, z)) + side * du + UPV * dv + face * 3, -face)
-            if h is not None and (best is None or h.dot(face) > best.dot(face)): best = h
-    if best is None: return None, None
-    c = Vector((x, y, z)); c += face * (best.dot(face) - c.dot(face)); return c, face.copy()
-# front blind: on the front skin between the decks (the source paints it on a black texture panel there)
-h, n = on_shell(8, 0, 2.645, Vector((1, 0, 0)))
-fright = UPV.cross(n)
-decal('BusDisplay', h, n, fright, UPV, 0.55, 0.20, 0.016, uv=True); decal('BusTrim', h, n, fright, UPV, 0.60, 0.25, 0.008)
-for sg in (1, -1):         # side blinds sit by the front windscreen, in the red band between the decks
-    h, n = on_shell(3.15, sg * 3, 2.55, Vector((0, sg, 0)))
-    if h is not None:
-        right = UPV.cross(n)
-        decal('BusDisplay', h, n, right, UPV, 0.60, 0.21, 0.012, uv=True)
-        decal('BusTrim', h, n, right, UPV, 0.66, 0.26, 0.006)
-# kerb-side (left, +Y; UK traffic) doors: the source glass already forms two leaves per door, recessed behind the skin; add a trim surround, header and
-# centre seam so they read as folding doors. Paint cuts stop at the frames (in_frame has priority over skirt / swoosh).
-DOORS = ((3.79, 5.05), (-1.84, -0.59))   # x ranges of the front entrance and the centre exit door (from the glass panes)
-def strip(xc, zc, w, h):
-    hit, n = on_shell(xc, 3, zc, Vector((0, 1, 0)), rad=0.03)
-    if hit is not None: decal('BusTrim', hit, n, UPV.cross(n), UPV, w / 2, h / 2, 0.012)
-for xa, xb in DOORS:
-    z0, z1, t = 0.27, 2.30, 0.07
-    strip((xa + xb) / 2, z1 - t / 2, xb - xa + 2 * t, t); strip((xa + xb) / 2, z0 + t / 2, xb - xa + 2 * t, t)   # header, sill
-    strip(xa - t / 2, (z0 + z1) / 2, t, z1 - z0); strip(xb + t / 2, (z0 + z1) / 2, t, z1 - z0)                   # jambs
-    strip((xa + xb) / 2, (z0 + z1) / 2, 0.05, z1 - z0)                                                          # centre seam between the leaves
-# lamps: discs flush on the skin (positions measured from the source's lamp texels)
-for sg in (1, -1):
-    h, n = on_shell(5.9, sg * 0.83, 0.86, Vector((1, 0, 0)))
-    if h is not None:
-        decal('BusTrim', h, n, Vector((0, 1, 0)), UPV, 0.20, 0.20, 0.02, segs=16); decal('BusHeadlight', h, n, Vector((0, 1, 0)), UPV, 0.15, 0.15, 0.03, segs=16)
-    h, n = on_shell(-5.95, sg * 1.04, 1.10, Vector((-1, 0, 0)))
-    if h is not None:
-        decal('BusTrim', h, n, Vector((0, 1, 0)), UPV, 0.19, 0.19, 0.02, segs=16); decal('BusTaillight', h, n, Vector((0, 1, 0)), UPV, 0.14, 0.14, 0.03, segs=16)
+    return f
+bm.normal_update()
+for f in bm.faces: f[mi] = f[mi] if f[lay] else BI[paint(f.calc_center_median(), f.normal)]
+merge = [e for e in bm.edges if len(e.link_faces) == 2 and e.link_faces[0][mi] == e.link_faces[1][mi] and e.calc_face_angle(1) < math.radians(1.2)]
+bmesh.ops.dissolve_edges(bm, edges=merge, use_verts=True, use_face_split=False)   # merge coplanar same-role faces (cut seams inside glass / paint fields)
+print('merged', len(merge))
+for f in bm.faces:
+    b = BUCKETS[f[mi]]
+    add(b, [v.co.copy() for v in f.verts], f.normal)
+    if b == 'BusGlass': add('BusInterior', [v.co - f.normal * 0.07 for v in f.verts], f.normal)    # opaque dark saloon behind the glass
+bm.free()
 
-# ---- 7. wheels: smooth tyre revolve + dished rim with alternating dark wedges (so the spin reads); axis = Y, origin = wheel centre
+# ---- 4. decals and small parts (all flat, authored): lamps, plates, blinds, roundels, grilles, mirrors, wipers, roof pods
+UPV = Vector((0, 0, 1))
+def decal(bucket, c, nrm, hw, hh, off=0.012, segs=0, uv=False, ring=0.0, right=None):
+    right = right or UPV.cross(nrm); up = nrm.cross(right).normalized() if abs(nrm.z) > 0.9 else UPV
+    c = c + nrm * off; b = BM[bucket]
+    if segs:
+        outer = [c + right * (hw * math.cos(2 * math.pi * k / segs)) + up * (hh * math.sin(2 * math.pi * k / segs)) for k in range(segs)]
+        if ring:
+            inner = [c + right * (hw * ring * math.cos(2 * math.pi * k / segs)) + up * (hh * ring * math.sin(2 * math.pi * k / segs)) for k in range(segs)]
+            for k in range(segs): add(bucket, [outer[k], outer[(k + 1) % segs], inner[(k + 1) % segs], inner[k]], nrm)
+            return
+        add(bucket, outer, nrm); return
+    pts = [c - right * hw - up * hh, c + right * hw - up * hh, c + right * hw + up * hh, c - right * hw + up * hh]
+    f = add(bucket, pts, nrm)
+    if uv and f:
+        l = b.loops.layers.uv.verify()
+        for lp in f.loops:
+            d = lp.vert.co - c; lp[l].uv = (0.5 + d.dot(right) / (2 * hw), 0.5 + d.dot(up) / (2 * hh))
+def box(bucket, lo, hi):    # axis-aligned box from two corners
+    x0, y0, z0 = lo; x1, y1, z1 = hi; v = lambda x, y, z: Vector((x, y, z))
+    for pts, n in (([v(x0, y0, z1), v(x1, y0, z1), v(x1, y1, z1), v(x0, y1, z1)], (0, 0, 1)), ([v(x0, y0, z0), v(x0, y1, z0), v(x1, y1, z0), v(x1, y0, z0)], (0, 0, -1)),
+                   ([v(x1, y0, z0), v(x1, y1, z0), v(x1, y1, z1), v(x1, y0, z1)], (1, 0, 0)), ([v(x0, y0, z0), v(x0, y0, z1), v(x0, y1, z1), v(x0, y1, z0)], (-1, 0, 0)),
+                   ([v(x0, y1, z0), v(x0, y1, z1), v(x1, y1, z1), v(x1, y1, z0)], (0, 1, 0)), ([v(x0, y0, z0), v(x1, y0, z0), v(x1, y0, z1), v(x0, y0, z1)], (0, -1, 0))):
+        add(bucket, pts, Vector(n))
+def front_x(z): return 5.86 if z <= 1.40 else 5.86 - 0.06 * (z - 1.40) / 1.20
+def end_pt(end, y, z):     # point on the rounded nose (end=+1) / tail (end=-1) and its outward normal
+    base = front_x(z) if end > 0 else -5.85
+    d = max(0.0, abs(y) - (W - RAD)); c = math.sqrt(max(RAD * RAD - d * d, 1e-6))
+    return Vector((end * (abs(base) - RAD + c), y, z)), Vector((end * c, (1 if y > 0 else -1) * d, 0)).normalized() if d > 1e-6 else Vector((end, 0, 0))
+def edecal(bucket, end, yc, zc, hw, hh, off=0.012, uv=False, n=6):    # strip-conformed rectangle on the rounded end
+    b = BM[bucket]; cols = []
+    for i in range(n + 1):
+        y = yc - hw + 2 * hw * i / n; p, nr = end_pt(end, y, zc); cols.append((p + nr * off, nr, i / n))
+    for i in range(n):
+        q = [cols[i][0] - UPV * hh, cols[i + 1][0] - UPV * hh, cols[i + 1][0] + UPV * hh, cols[i][0] + UPV * hh]
+        f = add(bucket, q, cols[i][1])
+        if uv and f:
+            l = b.loops.layers.uv.verify(); us = [cols[i][2] if end > 0 else 1 - cols[i][2], cols[i + 1][2] if end > 0 else 1 - cols[i + 1][2]]
+            for lp, (u, v) in zip(f.loops, [(us[0], 0), (us[1], 0), (us[1], 1), (us[0], 1)]): lp[l].uv = (u, v)
+FRONT, REAR = Vector((1, 0, 0)), Vector((-1, 0, 0))
+# front: blind above the lower screen, headlamps in the lower corners, small grille, plate, wipers
+edecal('BusTrim', 1, 0, 2.52, 0.80, 0.130, 0.010); edecal('BusDisplay', 1, 0, 2.52, 0.76, 0.098, 0.016, uv=True, n=8)
+for sg in (1, -1):
+    edecal('BusTrim', 1, sg * 0.78, 0.86, 0.24, 0.115, 0.008, n=4); edecal('BusHeadlight', 1, sg * 0.78, 0.89, 0.20, 0.060, 0.015, n=4)
+    edecal('BusHeadlight', 1, sg * 0.78, 0.76, 0.12, 0.020, 0.015, n=3)
+edecal('BusTrim', 1, 0, 0.92, 0.30, 0.15, 0.008, n=3)
+for k in range(5): edecal('BusMetal', 1, 0, 0.84 + k * 0.05, 0.25, 0.010, 0.012, n=3)
+edecal('BusTrim', 1, 0, 0.55, 0.30, 0.085, 0.008, n=3); edecal('BusMetal', 1, 0, 0.55, 0.26, 0.065, 0.012, n=3)
+for sg in (1, -1):    # driver-screen wipers
+    p, nr = end_pt(1, sg * 0.50, 1.55); box('BusTrim', (p.x + 0.0, sg * 0.50 - 0.012, 1.50), (p.x + 0.03, sg * 0.50 + 0.012, 2.12))
+# rear: tail lamp clusters, high brake lamp, plate, engine louvres
+for sg in (1, -1):
+    edecal('BusTrim', -1, sg * 0.84, 1.10, 0.12, 0.44, 0.008, n=3); edecal('BusTaillight', -1, sg * 0.84, 1.10, 0.085, 0.40, 0.014, n=3)
+edecal('BusTaillight', -1, 0, 2.43, 0.60, 0.025, 0.012, n=6)
+edecal('BusTrim', -1, 0, 0.74, 0.34, 0.12, 0.008, n=3); edecal('BusMetal', -1, 0, 0.74, 0.26, 0.07, 0.012, n=3)
+for k in range(5): edecal('BusTrim', -1, 0, 1.00 + k * 0.10, 0.50, 0.028, 0.008, n=4)
+edecal('BusTrim', -1, 0, 3.80, 0.52, 0.08, 0.008, n=4)       # (rear blind sits in the glass band's frame)
+# sides: route blinds above the front door / by the driver, roundels on the rear panel, engine louvres, fuel flap
+for sg in (1, -1):
+    n = Vector((0, sg, 0)); y = sg * W
+    bx = 1.55
+    decal('BusTrim', Vector((bx, y, 2.52)), n, 0.52, 0.15, 0.006); decal('BusDisplay', Vector((bx, y, 2.52)), n, 0.47, 0.115, 0.012, uv=True)
+    rc = Vector((-4.45, y, 1.78))
+    decal('BusMark', rc, n, 0.26, 0.26, 0.010, segs=40, ring=0.74); decal('BusMark2', rc, n, 0.31, 0.058, 0.014)
+    for k in range(7): decal('BusTrim', Vector((-4.45, y, 0.80 + k * 0.075)), n, 0.60, 0.014, 0.008)
+    decal('BusTrim', Vector((1.9, y, 0.95)), n, 0.20, 0.13, 0.006)          # service flap
+# mirrors: arm + housing + mirror face, set at the A-pillar level of the lower screen
+for sg in (1, -1):
+    box('BusTrim', (5.00, sg * 1.20, 2.44), (5.12, sg * 1.40, 2.50)); box('BusTrim', (4.98, sg * 1.34, 1.92), (5.14, sg * 1.42, 2.50))
+    box('BusMetal', (4.96, sg * 1.34, 1.96), (4.98, sg * 1.415, 2.46))
+# roof: air-conditioning pod and two vents
+box('BusSweep', (-4.2, -0.70, ZR + 0.03), (-1.6, 0.70, ZR + 0.19)); box('BusTrim', (-4.1, -0.55, ZR + 0.19), (-1.7, 0.55, ZR + 0.195)); box('BusSweep', (1.0, -0.45, ZR + 0.06), (2.0, 0.45, ZR + 0.14))
+
+# ---- 5. wheels: smooth tyre revolve + dished rim with alternating dark wedges (so the spin reads); axis = Y, origin = wheel centre
 TYRE_SEG, RIM_SEG = 64, 48
 def wheel(name, c, hw, sign):
     mesh = bpy.data.meshes.new(name); w = bmesh.new(); R, RIM = WR, WR * 0.62
-    prof = [(RIM * 0.95, hw * 0.86), (R * 0.80, hw), (R * 0.96, hw * 0.92), (R, hw * 0.45), (R, hw * 0.34), (R * 0.985, hw * 0.29), (R * 0.985, hw * 0.23), (R, hw * 0.18), (R, hw * 0.07)]  # four shallow circumferential tread grooves
+    prof = [(RIM * 0.95, hw * 0.86), (R * 0.80, hw), (R * 0.96, hw * 0.92), (R, hw * 0.45), (R, hw * 0.34), (R * 0.985, hw * 0.29), (R * 0.985, hw * 0.23), (R, hw * 0.18), (R, hw * 0.07)]
     prof += [(r, -y) for r, y in reversed(prof)]
     rings = [[w.verts.new((r * math.cos(2 * math.pi * i / TYRE_SEG), y, r * math.sin(2 * math.pi * i / TYRE_SEG))) for r, y in prof] for i in range(TYRE_SEG)]
     mats = [MATS['BusRubber'], MATS['BusMetal'], MATS['BusTrim']]; [mesh.materials.append(m) for m in mats]
@@ -250,7 +292,7 @@ def wheel(name, c, hw, sign):
         for j in range(len(rp) - 2): w.faces.new((r0[j], r1[j], r1[j + 1], r0[j + 1])).material_index = 2 if (dark and j in (1, 2)) else 1
         w.faces.new((r0[-1], r1[-1], ctr)).material_index = 1
     bmesh.ops.recalc_face_normals(w, faces=w.faces[:])
-    for f in w.faces:   # tyre normals outwards (from axis), rim normals outwards along the sign axis
+    for f in w.faces:
         cen = f.calc_center_median()
         if f.material_index == 0:
             if f.normal.dot(Vector((cen.x, 0, cen.z)) if abs(cen.y) < hw * 0.6 else Vector((0, cen.y, 0))) < 0: f.normal_flip()
@@ -258,27 +300,23 @@ def wheel(name, c, hw, sign):
     bmesh.ops.triangulate(w, faces=w.faces[:]); w.to_mesh(mesh); w.free()
     o = bpy.data.objects.new(name, mesh); sc.collection.objects.link(o); o.location = (c[0], c[1], WR); return o
 wheels = {k: wheel(k, v, v[2], 1 if v[1] > 0 else -1) for k, v in WHEELS.items()}
-for k, v in WHEELS.items(): wheels[k].location = (v[0], v[1], WR)
 
-# ---- 8. build the body meshes: one per material; preserve source tessellation
+# ---- 6. body meshes: one per material role
 bodies = []
 for b in BUCKETS:
-    me = bpy.data.meshes.new(b); bm = BM[b]
-    bmesh.ops.triangulate(bm, faces=bm.faces[:]); bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=1e-5)
-    bm.to_mesh(me); bm.free()
+    bmb = BM[b]
+    if not bmb.faces: bmb.free(); continue
+    bmesh.ops.triangulate(bmb, faces=bmb.faces[:]); bmesh.ops.remove_doubles(bmb, verts=bmb.verts[:], dist=1e-5)
+    me = bpy.data.meshes.new(b); bmb.to_mesh(me); bmb.free()
     o = bpy.data.objects.new(b, me); sc.collection.objects.link(o); me.materials.append(MATS[b]); bodies.append(o)
-bodies = [o for o in bodies if len(o.data.polygons)]
-for o in [o for o in sc.objects if o.type == 'MESH' and o not in bodies and o not in wheels.values()]: bpy.data.objects.remove(o)
-
-# ---- 9. export
 root = bpy.data.objects.new('BusRoot', None); sc.collection.objects.link(root)
 for o in [*bodies, *wheels.values()]:
-    o.parent = root; bpy.context.view_layer.objects.active = o; o.select_set(True); o.data.validate(verbose=False)
-    try: bpy.ops.object.shade_auto_smooth(angle=math.radians(40))
-    except Exception: bpy.ops.object.shade_smooth()
+    o.parent = root; o.data.validate(verbose=False)
+    o.data.polygons.foreach_set('use_smooth', [True] * len(o.data.polygons))
+    try: o.data.set_sharp_from_angle(angle=math.radians(38))
+    except Exception: pass
 for m in list(bpy.data.materials):
     if m.name not in MATS: bpy.data.materials.remove(m)
-for i in list(bpy.data.images): bpy.data.images.remove(i)
 bpy.ops.object.select_all(action='SELECT')
 bpy.ops.export_scene.gltf(filepath=OUT, export_format='GLB', export_yup=True, use_selection=True, export_apply=True, export_texcoords=True, export_image_format='NONE',
                           export_animations=False, export_cameras=False, export_lights=False, export_materials='EXPORT', export_vertex_color='NONE')
