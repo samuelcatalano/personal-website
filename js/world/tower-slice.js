@@ -71,7 +71,7 @@ export function createTowerSlice(plot,recipe=towerRecipe(plot)) {
   tier(shoulder,crown,w*scales[1],d*scales[1],Math.max(2,Math.round(recipe.floors*.15)),false,w*offsets[1]);
   // A smaller, louvered mechanical lantern terminates the skyline without an antenna.
   const cw=w*scales[2],cd=d*scales[2],shift=w*offsets[2];
-  const cap=recipe.crown??0,topY=height-[.22,1.3,2.9,1.3][cap]; // plant/mast variants sit between topY and height
+  const cap=recipe.crown??0,topY=height-[.22,1.3,2.9,1.3,2.9][cap]; // plant/mast variants sit between topY and height
   tier(crown,topY,cw,cd,1,false,shift);
   if(cap!==3)for(let i=0;i<4;i++){
     const y=crown+.35+i*(topY-.43-crown)/4;
