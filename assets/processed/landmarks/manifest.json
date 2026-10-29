@@ -1,0 +1,20 @@
+{
+  "generated": "2026-10-29",
+  "tool": "tools/pipeline/landmark.sh",
+  "source": "tools/landmarks/bigben/build_bigben.py (Blender, original geometry, baked textures)",
+  "note": "KTX2 ETC1S (colour/emissive q160, ORM q200) + Meshopt, no quantization. Loaded by js/world/bigben-asset.js; ?landmarks=procedural forces the procedural Big Ben.",
+  "outputs": {
+    "lod0": {
+      "path": "assets/processed/landmarks/bigben.lod0.glb",
+      "bytes": 635412,
+      "sha256": "40cfc46211a9249b1ffb8309cd23391a5c6126cfd17c8b2fb101ac7b586db066",
+      "raw": "assets/models/source/bigben/bigben.lod0.raw.glb (git-ignored)"
+    },
+    "lod1": {
+      "path": "assets/processed/landmarks/bigben.lod1.glb",
+      "bytes": 533336,
+      "sha256": "ad86e45d5c209904964f3e672df6a7ef86be00775b247ea20f7eeca775a65e8d",
+      "raw": "assets/models/source/bigben/bigben.lod1.raw.glb (git-ignored)"
+    }
+  }
+}

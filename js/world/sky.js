@@ -161,6 +161,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
   let starTime=0;
   const place = (m, cam, x, y) => { at(cam, x, y, DIST, m.position); m.lookAt(cam.position); };
   return {
+    track(m) { if (m?.userData?.glow) glow.push(m); }, // materials that arrive after createSky (async GLBs) join the night glow loop
     colors:{zen:u.uZen.value,hor:u.uHor.value},
     update(night, dt = 0, camPos = new THREE.Vector3(), cam, mood = LON, flash = 0) {
       cam?.updateMatrixWorld();

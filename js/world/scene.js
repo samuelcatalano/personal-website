@@ -13,6 +13,8 @@ import { buildLampPosts } from './street-lamp.js';
 import { buildBackdrop } from './backdrop.js';
 import { createSkyline } from './skyline.js';
 import { buildLandmarks } from './landmarks.js';
+import { initGlbLoader } from './glb-loader.js';
+import { upgradeBigBen, bigBenForced } from './bigben-asset.js';
 import { resetFloodlights } from './building-slice-materials.js';
 import { polishLandmarkMaterials } from './landmark-materials.js';
 import { buildVehicle } from './vehicles.js';
@@ -121,6 +123,10 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   initVehicleEnv(renderer); upgradeMini(mini, { isDisposed: () => disposed }); upgradeBus(londonBus, 'london', { isDisposed: () => disposed }); upgradeBus(glasgowBus, 'glasgow', { isDisposed: () => disposed }); // authored shared London/Glasgow bus GLB
   loadVehicleAsset('a330').then((glb) => { if (glb && !disposed) adoptVisual(plane, glb, ['nav', 'strobe']); }); // authored A330 (tools/vehicles/a330); procedural stays on failure
   const wake = () => { if (!disposed && !raf && !document.hidden) raf = requestAnimationFrame(frame); };
+  initGlbLoader(renderer);
+  let bigBenLod = null; // authored Big Ben LOD0/LOD1 (tools/landmarks/bigben); the procedural group stays hidden underneath as fallback
+  const bigben = details.getObjectByName('bigben-geometry');
+  if (bigben && !bigBenForced()) upgradeBigBen(bigben, { isDisposed: () => disposed, track: (m) => sky.track(m) }).then((l) => { bigBenLod = l; wake(); });
   const wellington = details.getObjectByName('wellington-geometry');
   if (wellington) upgradeWellington(wellington, () => disposed).then(wake);
   const figure = buildFigure(wake);
@@ -259,6 +265,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const flash = rain.update(clock, camera, mood, night, post.tier, busPos, bus.rotation.y);
     sky.update(night, dt, camera.position, camera, mood, flash);
     skyline.userData.update(night);
+    bigBenLod?.update(camera.position);
     wetSurfaces.update(clock, wet, mood.rain, night, camera.position, sky.colors, bus.position, bus.rotation.y, post.tier);
     updateBeams(night); pools.update(night, wet); lampPosts?.userData.setNight?.(night);
     water.update(clock, night, mood, post.tier, sky.colors);
