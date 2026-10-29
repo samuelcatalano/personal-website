@@ -47,6 +47,7 @@ Sun/halo/full-moon maps are original runtime canvas generation in `js/world/sky.
 | Asset | Path | Source | Licence |
 | --- | --- | --- | --- |
 | Big Ben + Palace of Westminster river frontage | `assets/processed/landmarks/bigben.lod{0,1}.glb` | Generated in-project by `tools/landmarks/bigben/build_bigben.py` (Blender; original geometry and baked textures; photos used as visual reference only; external geometry: none) | Project-owned |
+| Catedral da Se (Sao Paulo) | `assets/processed/landmarks/se.lod{0,1}.glb` | Generated in-project by `tools/landmarks/se/build_se.py` (Blender; original geometry and baked textures; reference descriptions only; external geometry: none) | Project-owned |
 
 ## Townhouse modular kit — 2026-10-29
 
