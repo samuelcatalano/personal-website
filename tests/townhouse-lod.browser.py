@@ -1,7 +1,8 @@
+cdp('Network.enable');cdp('Network.setCacheDisabled',cacheDisabled=True)
 result=js(r'''(async()=>{
 // Baseline renderer contracts; citywide.browser.py covers the rollout default.
 const legacyCity=plots=>createCityBuildings(plots,{rollout:false});
-const T=await import('three'),s=await import('./js/world/building-slice.js'),{createCityBuildings}=await import('./js/world/building-kit.js'),{stops}=await import('./js/content.js'),{routePoints,routeCurve}=await import('./js/world/layout.js'),{buildCity}=await import('./js/world/city.js');
+const T=await import('three'),s=await import('./js/world/building-slice.js?removed-house='+Date.now()),{createCityBuildings}=await import('./js/world/building-kit.js?removed-house='+Date.now()),{stops}=await import('./js/content.js'),{routePoints,routeCurve}=await import('./js/world/layout.js'),{buildCity}=await import('./js/world/city.js');
 const check=(v,m)=>{if(!v)throw Error(m)},pts=routePoints(stops.length),plots=[];buildCity(()=>{},stops,pts,routeCurve(T,pts),undefined,undefined,p=>plots.push(p));
 const ids=[...Array.from({length:5},(_,i)=>`block-679--80-${i}`),...Array.from({length:4},(_,i)=>`block-712--80-${i}`)],selected=plots.filter(p=>ids.includes(p.id));
 check(selected.length===9&&selected.every(p=>p.width===6&&p.depth===9&&p.height===12),'descriptors diverge');
@@ -11,7 +12,7 @@ check(chunks.length===2&&chunks.every(c=>c.children.length===3),'two chunks, thr
 const tri=g=>g.reduce((n,x)=>n+(x.index?.count||x.attributes.position.count)/3,0),mats=new Set,maps=new Set;
 let t0=0,t1=0,bytes=0;const fingerprints=[];
 for(let ci=0;ci<2;ci++){
-const c=chunks[ci],d=c.userData;check(d.plotIds.length===(ci?4:5),'lot distribution');check(c.position.x===(ci?710:678)&&c.position.z===-96,'cell origins');
+const c=chunks[ci],d=c.userData;check(d.plotIds.length===4&&!d.plotIds.includes('block-679--80-0'),`removed riverfront house and four lots per chunk: ${d.plotIds}`);check(c.position.x===(ci?710:678)&&c.position.z===-96,'cell origins');
 check(d.lods.length===2&&d.lods.every(gs=>gs.length===3),'six cached geometries per chunk');t0+=tri(d.lods[0]);t1+=tri(d.lods[1]);
 const own=selected.filter(p=>d.plotIds.includes(p.id));
 check(d.lods[0][0].boundingBox.equals(d.lods[1][0].boundingBox),'mass/roof silhouette bounds');check(Array.from(d.lods[0][2].attributes.position.array).join()===Array.from(d.lods[1][2].attributes.position.array).join(),'glass and window placement preserved');

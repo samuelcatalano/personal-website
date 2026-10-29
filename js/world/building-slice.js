@@ -244,6 +244,7 @@ export function createTownhouseChunk(plots) {
 
 
 export const EXPERIMENT_LOT_IDS=Object.freeze([...Array.from({length:5},(_,i)=>`block-679--80-${i}`),...Array.from({length:4},(_,i)=>`block-712--80-${i}`)]);
+export const REMOVED_EXPERIMENT_LOT_ID='block-679--80-0';
 export function createTownhouseExperiment(plots,neighbors) {
   if(plots.length!==9||new Set(plots.map(p=>p.id)).size!==9||plots.some(p=>!EXPERIMENT_LOT_IDS.includes(p.id)||p.width!==6||p.depth!==9||p.height!==12))throw new TypeError('Townhouse experiment descriptors diverge');
   const experiment=new THREE.Group();experiment.name='townhouse-experiment';
@@ -252,8 +253,8 @@ export function createTownhouseExperiment(plots,neighbors) {
   const scratch=Array.from({length:3},()=>Object.fromEntries([['position',3],['normal',3],['uv',2],['surface',1],['color',3]].map(([key,size])=>[key,new Float32Array(4096*size)])));
   for(const [index,x]of [678,710].entries()){
     const group=new THREE.Group();group.name=`townhouse-chunk-${index?'B':'A'}`;group.position.set(x,0,-96);
-    const selected=plots.filter(p=>p.x>=x&&p.x<x+32).sort((a,b)=>a.id.localeCompare(b.id));
-    if(selected.length!==(index?4:5)||selected.some(p=>p.x-3<x||p.x+3>x+32||p.z-4.5< -96||p.z+4.5> -64))throw new TypeError('Townhouse experiment footprint diverges');
+    const selected=plots.filter(p=>p.id!==REMOVED_EXPERIMENT_LOT_ID&&p.x>=x&&p.x<x+32).sort((a,b)=>a.id.localeCompare(b.id));
+    if(selected.length!==4||selected.some(p=>p.x-3<x||p.x+3>x+32||p.z-4.5< -96||p.z+4.5> -64))throw new TypeError('Townhouse experiment footprint diverges');
     const houses=selected.map(p=>({plotId:p.id,recipe:townhouseRecipe(p,neighbors)})),lods=[],buildMs=[];
     for(let level=0;level<2;level++){
       const start=performance.now(),buckets=[[],[],[]];
