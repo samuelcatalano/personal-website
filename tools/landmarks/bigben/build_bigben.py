@@ -343,15 +343,9 @@ def mat_nodes(m, chan, img, idx, nt_cache={}):
             link(albedo(), em.inputs['Color'])
             mr = node('ShaderNodeMapRange'); mr.inputs[1].default_value = 0; mr.inputs[2].default_value = 12; mr.inputs[3].default_value = .15; mr.inputs[4].default_value = .10
             link(Z, mr.inputs[0]); link(mr.outputs[0], em.inputs['Strength'])
-        elif name == 'gold': em.inputs['Color'].default_value = lin('#d9a93a'); em.inputs['Strength'].default_value = .55
-        elif name == 'louvre': em.inputs['Color'].default_value = lin('#ffb24a')
-        elif name in ('glass', 'slit'):
-            sc = node('ShaderNodeVectorMath', operation='SCALE'); sc.inputs['Scale'].default_value = 1 / 1.4; link(P, sc.inputs[0])
-            fl = node('ShaderNodeVectorMath', operation='FLOOR'); link(sc.outputs[0], fl.inputs[0])
-            wn = node('ShaderNodeTexWhiteNoise', noise_dimensions='3D'); link(fl.outputs[0], wn.inputs['Vector'])
-            gt = node('ShaderNodeMath', operation='GREATER_THAN'); gt.inputs[1].default_value = .22; link(wn.outputs['Value'], gt.inputs[0])
-            mx = node('ShaderNodeMixRGB'); mx.inputs['Color1'].default_value = (0, 0, 0, 1); mx.inputs['Color2'].default_value = lin('#ffc46b')
-            link(gt.outputs[0], mx.inputs['Fac']); link(mx.outputs['Color'], em.inputs['Color'])
+        elif name == 'gold': em.inputs['Color'].default_value = lin('#d9a93a'); em.inputs['Strength'].default_value = .07
+        elif name == 'louvre': em.inputs['Color'].default_value = lin('#ffb24a'); em.inputs['Strength'].default_value = .5
+        elif name in ('glass', 'slit'): em.inputs['Color'].default_value = lin('#ffc46b'); em.inputs['Strength'].default_value = .5   # every window/slit lit, uniform
         else: em.inputs['Color'].default_value = (0, 0, 0, 1)
 
 
