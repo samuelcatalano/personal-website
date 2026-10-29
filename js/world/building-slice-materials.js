@@ -96,7 +96,7 @@ const FLOOD_GLSL = `uniform int uFloodCount; uniform vec4 uFloodBox[${FLOOD_MAX}
       else if (glass) { float y = vFloodP.y - uFloodY[i].x, base = 1.0 - step(3.2, y), gridY = y - 3.2 * (1.0 - base);
         vec2 bay = vec2(floor((vFloodP.x - b.x) / 1.5), floor(gridY / 3.0)), pane = vec2(fract((vFloodP.x - b.x) / 1.5), fract(gridY / 3.0));
         float side = step(0.0, n.z), r = floodHash(vec3(bay, side)), window = step(0.14, pane.x) * (1.0 - step(0.86, pane.x)) * step(0.18, pane.y) * (1.0 - step(0.78, pane.y));
-        e += t.rgb * (window * step(3.2, y) * step(0.72, r) * (0.2 + 0.12 * floodHash(vec3(bay + 7.0, side))) + window * base * step(0.98, r) * 0.08); }
+        e += t.rgb * (window * step(3.2, y) * step(0.58, r) * (0.34 + 0.2 * floodHash(vec3(bay + 7.0, side))) + window * base * step(0.98, r) * 0.08); }
     }
     return e * uFloodNight;
   }`;

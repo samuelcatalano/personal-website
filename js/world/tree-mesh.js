@@ -12,13 +12,13 @@ export function leafTexture() {
   const cv = document.createElement('canvas'); cv.width = 512; cv.height = 128;
   const g = cv.getContext('2d'); g.fillStyle = '#d2d2d2'; g.fillRect(384, 0, 128, 128);
   for (let t = 0; t < 3; t++) {
-    const cx = t * 128 + 64, cy = 64; g.fillStyle = '#9a9a9a'; g.beginPath(); g.arc(cx, cy, 38, 0, Math.PI * 2); g.fill(); // dark core: no holes inside the clump
+    const cx = t * 128 + 64, cy = 64; g.fillStyle = '#6f6f6f'; g.beginPath(); g.arc(cx, cy, 38, 0, Math.PI * 2); g.fill(); // dark core: no holes inside the clump
     for (let i = 0; i < 110; i++) { // back leaves first (darker, central), front leaves last (lighter, towards the rim): depth inside each card
-      const f = i / 110, ang = hash(i, t, 2) * Math.PI * 2, rad = (0.2 + 0.8 * Math.sqrt(hash(i, t, 3))) * (46 + 12 * f), a = hash(i, t, 6) * Math.PI * 2, l = 12 + hash(i, t, 8) * 7, k = 150 + f * 85 + hash(i, t, 9) * 20;
+      const f = i / 110, ang = hash(i, t, 2) * Math.PI * 2, rad = (0.2 + 0.8 * Math.sqrt(hash(i, t, 3))) * (46 + 12 * f), a = hash(i, t, 6) * Math.PI * 2, l = 12 + hash(i, t, 8) * 7, k = 105 + f * 140 + hash(i, t, 9) * 30; // wide grey range: dark gaps between leaves, bright sunlit tips
       const w = hash(i, t, 5) - 0.5; // slight warm/cool shift per leaf
       g.save(); g.translate(cx + Math.cos(ang) * rad, cy + Math.sin(ang) * rad * 0.92); g.rotate(a);
       g.fillStyle = `rgb(${k + w * 18 | 0},${k | 0},${k - w * 22 | 0})`; g.beginPath(); g.moveTo(-l, 0); g.quadraticCurveTo(0, -l * 0.7, l, 0); g.quadraticCurveTo(0, l * 0.7, -l, 0); g.fill();
-      g.strokeStyle = 'rgba(0,0,0,0.10)'; g.lineWidth = 1; g.stroke(); g.restore();
+      g.strokeStyle = 'rgba(0,0,0,0.28)'; g.lineWidth = 1; g.stroke(); g.beginPath(); g.moveTo(-l * 0.8, 0); g.lineTo(l * 0.8, 0); g.strokeStyle = 'rgba(0,0,0,0.16)'; g.stroke(); g.restore(); // rim + midrib
     }
   }
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
