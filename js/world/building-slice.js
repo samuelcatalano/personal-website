@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { SURFACE as S, townhouseMaterials } from './building-slice-materials.js';
+import { loadGlb } from './glb-loader.js';
 
 export const SLICE_LOT_ID = 'block-827--54-0';
 export const TOWNHOUSE_LOT_IDS=Object.freeze([SLICE_LOT_ID,'block-827--54-1','block-827--54-2']);
@@ -18,7 +19,7 @@ export function townhouseRecipe(plot,neighbors=[]) {
   return {...profile,structural:alternate?'B':'A',floors:3,bays:2,roof:'gable',entrySide:alternate?-1:1,bayOffset:alternate?.20:.24,windowWidth:alternate?1.08:1.15,palette:Math.floor(seed/2)%3,windowSeed:seed%3,exposedWest};
 }
 
-function townhouseGeometry(plot,recipe,level=0,storage=null) {
+function townhouseGeometry(plot,recipe,level=0,storage=null,modular=false) {
   const {x,z,width,depth,height}=plot;
   if (![x,z,width,depth,height].every(Number.isFinite)||width<4.8||depth<5.5||height<recipe.ridge+.08-1e-6) throw new TypeError('Townhouse recipe does not fit plot');
   const w=width-.3,d=depth-.3,front=d/2,openings=[];
@@ -67,12 +68,15 @@ function townhouseGeometry(plot,recipe,level=0,storage=null) {
       for(const [u,sign] of [[a,1],[b,-1]])quad([pt(u,lo),pt(u,hi),pt(u,hi,-recipe.reveal),pt(u,lo,-recipe.reveal)],side.map(n=>n*sign),S.stone);
       for(const [y,sign] of [[lo,1],[hi,-1]])quad([pt(a,y),pt(b,y),pt(b,y,-recipe.reveal),pt(a,y,-recipe.reveal)],[0,sign,0],S.stone);
       const f=recipe.frame;
+      if(!modular){
       for(const u of [a-f/2,b+f/2])piece(u,o.y,.025,f,o.h+2*f,.09,S.trim);
       piece(o.u,hi+f/2,.025,o.w,f,.09,S.trim);
-      if(o.type==='door'){
+      }
+      if(o.type==='door'&&!modular){
         piece(o.u,o.y,-.185,o.w,o.h,.03,S.door,0);
-      }else{
-        if(level===0)piece(o.u,lo-f/2,.06,o.w+.22,.10,.15,S.stone);
+      }else if(o.type!=='door'){
+        if(level===0&&!modular)piece(o.u,lo-f/2,.06,o.w+.22,.10,.15,S.stone);
+        if(modular)return;
         piece(o.u,o.y,.005,.065,o.h,.075,S.trim);
         const lit=(index+(frontFace?1:0)+recipe.windowSeed)%3===0;
         const u0=index*.137+(frontFace?0:.19)+recipe.windowSeed*.07,v0=index*.271;
@@ -94,7 +98,7 @@ function townhouseGeometry(plot,recipe,level=0,storage=null) {
   quad([[-w/2,0,-d/2],[w/2,0,-d/2],[w/2,recipe.eaves,-d/2],[-w/2,recipe.eaves,-d/2]],[0,0,-1],S.plaster);
   quad([[w/2,0,-d/2],[w/2,0,d/2],[w/2,recipe.eaves,d/2],[w/2,recipe.eaves,-d/2]],[1,0,0],S.plaster);
   if(level===0&&recipe.bands!==false)for(const y of [recipe.ground,recipe.ground+recipe.upper])box(0,y,0,w+.14,.12,d+.14,S.stone,1);
-  box(0,recipe.eaves-.09,0,width-.04,.18,depth-.04,S.trim);
+  if(!modular)box(0,recipe.eaves-.09,0,width-.04,.18,depth-.04,S.trim);
   const half=width/2-.02,rz=depth/2-.02,dy=recipe.ridge-recipe.eaves,slope=Math.hypot(half,dy);
   if(recipe.roof==='side'||recipe.roof==='hip'){ // ridge parallel to the street (rollout variety); 'hip' also slopes the two ends
     const a=recipe.roof==='hip'?Math.max(0,half-rz):half,sz=Math.hypot(rz,dy);
@@ -125,6 +129,76 @@ function townhouseGeometry(plot,recipe,level=0,storage=null) {
     return geometry;
   });
   return {geometries,metadata:{plotId:plot.id,openings,front,recipe}};
+}
+
+const KIT_URL=new URL('../../assets/processed/buildings/townhouse-kit.glb',import.meta.url).href;
+let kitPromise;
+const loadTownhouseKit=()=>kitPromise??=loadGlb(KIT_URL).then(scene=>{
+  const modules=new Map();
+  scene.updateMatrixWorld(true);
+  scene.traverse(node=>{
+    const category=node.userData?.category;
+    if(!category)return;
+    const roles={mass:[],trim:[],glass:[]};
+    node.children.forEach(role=>{
+      const name=role.userData?.semantic_role;
+      if(!roles[name])return;
+      role.traverse(mesh=>{if(mesh.isMesh){const geometry=mesh.geometry.clone();geometry.applyMatrix4(mesh.matrixWorld);roles[name].push(geometry.toNonIndexed());}});
+    });
+    modules.set(node.name,{category,anchor:node.userData.anchor,roles});
+  });
+  return modules;
+});
+const moduleNames={
+  window:['window_sash_6light_01','window_sash_4light_02','window_tall_8light_03','window_paired_sash_04','window_slim_sash_05','window_shop_upper_06','window_broad_sash_07'],
+  door:['door_recessed_panel_01','door_glazed_top_02','door_sidelight_03','door_double_leaf_04','storefront_timber_05','storefront_pilaster_06'],
+  cornice:['cornice_classical_01','cornice_bracketed_02','string_course_03','cornice_stepped_04','cornice_terrace_05'],
+  roof:['roof_chimney_brick_01','roof_chimney_stone_02','roof_dormer_sash_03','roof_ridge_vent_04','roof_ridge_finial_05']
+};
+function modularGeometry(plot,recipe,modules) {
+  const {geometries,metadata}=townhouseGeometry(plot,recipe,0,null,true),extra=[[],[],[]],w=plot.width-.3,d=plot.depth-.3,front=d/2;
+  const moduleGeometry=(category,index,position,rotation,scale,surfaceByRole)=>{
+    const name=moduleNames[category][index%moduleNames[category].length],module=modules.get(name);
+    const anchor={window:'center of sill line on facade plane',door:'center of threshold on facade plane',cornice:'center of wall run at underside datum',roof:'center of roof contact footprint'}[category];
+    if(!module||module.category!==category||module.anchor!==anchor)throw new Error(`Townhouse kit contract mismatch for ${name}`);
+    const roleOrder={mass:0,trim:1,glass:2},palette=palettes[recipe.palette];
+    for(const [role,items] of Object.entries(module.roles))for(const source of items){
+      const geometry=source.clone(),matrix=new THREE.Matrix4().compose(position,rotation,scale);
+      geometry.applyMatrix4(matrix);
+      const surface=surfaceByRole[role];
+      geometry.setAttribute('aSurface',new THREE.Float32BufferAttribute(new Float32Array(geometry.attributes.position.count).fill(surface),1));
+      const tint=palette[surface]||[1,1,1],colors=new Float32Array(geometry.attributes.position.count*3);
+      for(let i=0;i<colors.length;i+=3)colors.set(tint,i);
+      geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
+      if(!geometry.attributes.normal)geometry.computeVertexNormals();
+      extra[roleOrder[role]].push(geometry);
+    }
+  };
+  const hash=(()=>{let seed=2166136261;for(const c of plot.id)seed=Math.imul(seed^c.charCodeAt(0),16777619)>>>0;return seed;})();
+  for(const [index,o] of metadata.openings.entries()){
+    const face=o.face==='front',angle=face?0:-Math.PI/2,rotation=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),angle);
+    const x=face?o.u:-w/2,z=face?front:o.u,scale=new THREE.Vector3(o.w,o.h,1);
+    if(o.type==='window'){
+      const name=moduleNames.window[(recipe.windowSeed+index+(face?0:3))%7],dims=[[.92,1.48],[1.05,1.48],[.88,1.72],[1.34,1.55],[.76,1.44],[1.28,1.12],[1.48,1.58]][moduleNames.window.indexOf(name)];
+      scale.set(o.w/dims[0],o.h/dims[1],1);
+      moduleGeometry('window',recipe.windowSeed+index+(face?0:3),new THREE.Vector3(x, o.y-o.h/2, face?z-.06:z),rotation,scale,{mass:S.stone,trim:S.trim,glass:S.glass});
+    }else{
+      const doorIndex=(recipe.windowSeed+(recipe.structural==='B'?3:0))%6,dims=[[1.02,2.24],[1.02,2.32],[1.34,2.35],[1.48,2.42],[2.05,2.62],[2.32,2.72]][doorIndex];
+      scale.set(o.w/dims[0],o.h/dims[1],1);
+      moduleGeometry('door',doorIndex,new THREE.Vector3(x,.09,z-.06),rotation,scale,{mass:S.door,trim:S.trim,glass:S.glass});
+    }
+  }
+  const corniceY=recipe.eaves-.3;
+  moduleGeometry('cornice',(recipe.palette+recipe.windowSeed)%5,new THREE.Vector3(0, corniceY, front-.12),new THREE.Quaternion(),new THREE.Vector3(w/5.08,1,1),{mass:S.stone,trim:S.trim,glass:S.glass});
+  const roofX=(hash%2?1:-1)*w*.28,roofY=recipe.ridge-(recipe.ridge-recipe.eaves)*Math.abs(roofX)/(w/2);
+  moduleGeometry('roof',(hash>>>2)%5,new THREE.Vector3(roofX,roofY,0),new THREE.Quaternion(),new THREE.Vector3(1,1,1),{mass:S.roof,trim:S.roof,glass:S.glass});
+  const result=geometries.map((base,i)=>{
+    const merged=mergeGeometries([base,...extra[i]],false);
+    base.dispose();extra[i].forEach(g=>g.dispose());
+    if(!merged)throw new Error('Unable to merge townhouse modules');
+    merged.computeBoundingBox();merged.computeBoundingSphere();return merged;
+  });
+  return result;
 }
 
 const names=['slice-mass','slice-details','slice-glass'];
@@ -204,5 +278,31 @@ export function createTownhouseExperiment(plots,neighbors) {
   };
   let disposed=false;
   experiment.userData.dispose=()=>{if(disposed)return;disposed=true;experiment.children.forEach(c=>c.userData.lods.flat().forEach(g=>g.dispose()));};
+  loadTownhouseKit().then(modules=>{
+    if(disposed)return;
+    const replacements=[];
+    try{
+      for(const chunk of experiment.children){
+        const d=chunk.userData,x=chunk.position.x,selected=plots.filter(p=>d.plotIds.includes(p.id)).sort((a,b)=>a.id.localeCompare(b.id));
+        const buckets=[[],[],[]];
+        selected.forEach(p=>{
+          const geometry=modularGeometry(p,townhouseRecipe(p,neighbors),modules),matrix=new THREE.Matrix4().makeTranslation(p.x-x,0,p.z+96);
+          geometry.forEach((g,k)=>buckets[k].push(g.applyMatrix4(matrix)));
+        });
+        replacements.push(buckets.map(items=>{
+          const geometry=mergeGeometries(items,false);items.forEach(g=>g.dispose());
+          if(!geometry)throw new Error('Unable to merge townhouse module chunk');
+          geometry.computeBoundingBox();geometry.computeBoundingSphere();return geometry;
+        }));
+      }
+      if(disposed){replacements.flat().forEach(g=>g.dispose());return;}
+      experiment.children.forEach((chunk,i)=>{
+        const d=chunk.userData,previous=d.lods[0];d.lods[0]=replacements[i];
+        if(d.level===null||d.level===0)replacements[i].forEach((g,k)=>chunk.children[k].geometry=g);
+        d.bounds.makeEmpty();[...replacements[i],...d.lods[1]].forEach(g=>d.bounds.union(g.boundingBox));d.bounds.translate(chunk.position);
+        previous.forEach(g=>g.dispose());
+      });
+    }catch(error){replacements.flat().forEach(g=>g.dispose());}
+  }).catch(()=>{});
   return experiment;
 }

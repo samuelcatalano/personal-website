@@ -1,4 +1,5 @@
 # browser-harness < tests/building-slice.browser.py (local preview)
+import time
 result = js(r'''(async () => {
 // Baseline renderer contracts; citywide.browser.py covers the rollout default.
 const legacyCity=plots=>kit.createCityBuildings(plots,{rollout:false});
@@ -74,3 +75,58 @@ const legacyCity=plots=>kit.createCityBuildings(plots,{rollout:false});
 })()''')
 print(result)
 assert isinstance(result, dict) and result.get('pass'), result
+
+started = js(r'''(async()=>{
+const T=await import('three'),s=await import('./js/world/building-slice.js?success-kit='+Date.now()),{createTownhouseChunk}=await import('./js/world/building-slice.js'),{stops}=await import('./js/content.js'),{routePoints,routeCurve}=await import('./js/world/layout.js'),{buildCity}=await import('./js/world/city.js');
+const points=routePoints(stops.length),plots=[];buildCity(()=>{},stops,points,routeCurve(T,points),undefined,undefined,p=>plots.push(p));
+const pilots=plots.filter(p=>s.EXPERIMENT_LOT_IDS.includes(p.id)),controlPlots=plots.filter(p=>p.id.startsWith('block-827--54-'));
+const controlHash=g=>{let h=2166136261;for(const m of g.children)for(const n of m.geometry.attributes.position.array)h=Math.imul(h^Math.round(n*1e5),16777619);return h>>>0;},controlBefore=controlHash(createTownhouseChunk(controlPlots));
+window.__townhouseTask2={T,s,plots,pilots,controlPlots,controlBefore};
+return {pilots:pilots.length};
+})()''')
+print(started)
+assert started['pilots'] == 9, started
+cdp('Network.enable')
+cdp('Network.setBlockedURLs', urls=['*townhouse-kit.glb*'])
+failed = js(r'''(async()=>{const q=window.__townhouseTask2,s=await import('./js/world/building-slice.js?failed-kit='+Date.now()),g=s.createTownhouseExperiment(q.pilots,q.plots);q.failed=g;q.failedFallback=g.children.map(c=>c.userData.lods[0].slice());return {chunks:g.children.length}})()''')
+print(failed)
+time.sleep(0.5)
+cdp('Network.setBlockedURLs', urls=[])
+started = js(r'''(()=>{const q=window.__townhouseTask2,{s,pilots,plots}=q,late=s.createTownhouseExperiment(pilots,plots),lateFallback=late.children.map(c=>c.userData.lods[0].slice());late.userData.dispose();const experiment=s.createTownhouseExperiment(pilots,plots),fallback=experiment.children.map(c=>c.userData.lods[0].slice());Object.assign(q,{late,lateFallback,experiment,fallback});return {chunks:experiment.children.length,renderables:experiment.children.map(c=>c.children.length),fallbackVertices:fallback.map(gs=>gs.map(g=>g.attributes.position.count))}})()''')
+print(started)
+assert started['chunks'] == 2 and started['renderables'] == [3, 3], started
+ready = False
+for _ in range(40):
+    ready = js(r'''(()=>{const q=window.__townhouseTask2;return q.experiment.children.every((c,i)=>c.userData.lods[0].some((g,k)=>g!==q.fallback[i][k]))})()''')
+    if ready:
+        break
+    time.sleep(0.25)
+assert ready, 'successful GLB load did not adopt modules'
+
+adopted = js(r'''(()=>{
+const q=window.__townhouseTask2,{T,experiment,fallback,late,lateFallback,failed,failedFallback}=q,check=(v,m)=>{if(!v)throw Error(m)};
+check(experiment.children.every((c,i)=>c.userData.lods[0].some((g,k)=>g!==fallback[i][k])),'successful GLB load must replace pilot LOD0 geometry');
+check(experiment.children.every((c,i)=>c.children.length===3&&c.userData.lods[0].every((g,k)=>g.attributes.position.count>fallback[i][k].attributes.position.count)),'authored modules must fill the three existing buckets');
+check(failed.children.every((c,i)=>c.userData.lods[0].every((g,k)=>g===failedFallback[i][k])),'failed load must retain procedural fallback');
+check(late.children.every((c,i)=>c.userData.lods[0].every((g,k)=>g===lateFallback[i][k])),'late completion after disposal must keep fallback geometry');
+const bounds=new T.Box3().setFromObject(experiment);check(bounds.min.y>=0&&bounds.max.y<=12&&bounds.min.x>=678&&bounds.max.x<=742&&bounds.min.z>=-84.5&&bounds.max.z<=-75.5,'module bounds must stay grounded within the pilot lots');
+experiment.userData.update({position:new T.Vector3(706,10,-80)});check(experiment.children.every(c=>c.userData.level===0),'near camera must select LOD0');
+experiment.userData.update({position:new T.Vector3(900,10,-80)});check(experiment.children.every(c=>c.userData.level===1),'far camera must select LOD1');
+experiment.userData.update({position:new T.Vector3(706,10,-80)});check(experiment.children.every(c=>c.userData.level===0),'near return must select LOD0');
+const reversed=q.s.createTownhouseExperiment(q.pilots.slice().reverse(),q.plots);q.reversed=reversed;
+return {bounds:{min:bounds.min.toArray(),max:bounds.max.toArray()},lods:experiment.children.map(c=>c.userData.level),adopted:experiment.children.map(c=>c.userData.lods[0].map(g=>g.attributes.position.count))};
+})()''')
+print(adopted)
+time.sleep(0.5)
+
+deterministic = js(r'''(()=>{
+const q=window.__townhouseTask2,{experiment,reversed,T,controlPlots,failed,late}=q,check=(v,m)=>{if(!v)throw Error(m)};
+check(reversed.children.every((c,i)=>c.userData.lods[0].some((g,k)=>g!==q.fallback[i][k])),'shuffled input must adopt kit modules');
+const hash=group=>{let h=2166136261;for(const c of group.children)for(const g of c.userData.lods[0])for(const n of g.attributes.position.array)h=Math.imul(h^Math.round(n*1e5),16777619);return h>>>0;};
+check(hash(experiment)===hash(reversed),'module assignment must be deterministic after shuffling lots');
+const control=q.s.createTownhouseChunk(controlPlots);let after=2166136261;for(const m of control.children)for(const n of m.geometry.attributes.position.array)after=Math.imul(after^Math.round(n*1e5),16777619);after>>>=0;check(after===q.controlBefore,'three-lot control must remain unchanged');
+failed.userData.dispose();late.userData.dispose();experiment.userData.dispose();reversed.userData.dispose();
+return {pass:true,determinismHash:hash(experiment),controlHash:after};
+})()''')
+print(deterministic)
+assert deterministic.get('pass'), deterministic
