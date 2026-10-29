@@ -17,6 +17,7 @@ import { buildLandmarks } from './landmarks.js';
 import { initGlbLoader } from './glb-loader.js';
 import { upgradeBigBen, bigBenForced } from './bigben-asset.js';
 import { upgradeSe, seForced } from './se-asset.js';
+import { upgradeTowerBridge, towerBridgeForced } from './towerbridge-asset.js';
 import { resetFloodlights } from './building-slice-materials.js';
 import { polishLandmarkMaterials } from './landmark-materials.js';
 import { createLandmarkEnv } from './landmark-env.js';
@@ -137,6 +138,9 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   let seLod = null; // authored Catedral da Se (tools/landmarks/se), same fallback rule
   const se = details.getObjectByName('se-geometry');
   if (se && !seForced()) upgradeSe(se, { isDisposed: () => disposed, track: (m) => sky.track(m), env: landmarkEnv }).then((l) => { seLod = l; wake(); });
+  let towerBridgeLod = null; // authored Tower Bridge LOD0/LOD1 (tools/landmarks/towerbridge); procedural group stays hidden underneath as fallback
+  const towerbridge = details.getObjectByName('towerbridge-geometry');
+  if (towerbridge && !towerBridgeForced()) upgradeTowerBridge(towerbridge, { isDisposed: () => disposed, track: (m) => sky.track(m), env: landmarkEnv }).then((l) => { towerBridgeLod = l; wake(); });
   const wellington = details.getObjectByName('wellington-geometry');
   if (wellington) upgradeWellington(wellington, () => disposed).then(wake);
   const figure = buildFigure(wake);
@@ -277,6 +281,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     skyline.userData.update(night);
     bigBenLod?.update(camera.position);
     seLod?.update(camera.position);
+    towerBridgeLod?.update(camera.position);
     wetSurfaces.update(clock, wet, mood.rain, night, camera.position, sky.colors, bus.position, bus.rotation.y, post.tier);
     updateBeams(night); pools.update(night, wet); lampPosts?.userData.setNight?.(night);
     water.update(clock, night, mood, post.tier, sky.colors);
