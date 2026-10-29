@@ -1,0 +1,7 @@
+{
+  "name": "pipeline",
+  "private": true,
+  "description": "Dev-only asset tooling (glTF-Transform). Never deployed: GitHub Pages serves only the generated assets.",
+  "type": "module",
+  "devDependencies": { "@gltf-transform/cli": "4.5.1" }
+}

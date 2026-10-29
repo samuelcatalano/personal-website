@@ -1,3 +1,6 @@
 
 assets/models/source/
 tools/image-to-3d/
+
+# pipeline dev tooling
+tools/pipeline/node_modules/

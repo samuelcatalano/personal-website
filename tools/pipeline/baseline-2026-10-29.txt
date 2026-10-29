@@ -1,0 +1,40 @@
+Missing optional extension, "KHR_materials_emissive_strength".
+Missing optional extension, "KHR_materials_clearcoat".
+Missing optional extension, "KHR_materials_transmission".
+Missing optional extension, "KHR_materials_specular".
+Missing optional extension, "KHR_materials_transmission".
+Missing optional extension, "KHR_materials_specular".
+Missing optional extension, "KHR_materials_transmission".
+Missing optional extension, "KHR_materials_specular".
+┌─────────┬─────────────────────────────────────────┬────────────┬───────┬────────┬──────┬─────┬──────┬──────┬────────────────────────┐
+│ (index) │ file                                    │ cls        │ MB    │ tris   │ mats │ tex │ comp │ used │ over                   │
+├─────────┼─────────────────────────────────────────┼────────────┼───────┼────────┼──────┼─────┼──────┼──────┼────────────────────────┤
+│ 0       │ 'vehicles/honda-hr-v.glb'               │ 'car'      │ 46.99 │ 497148 │ 31   │ 3   │ 'n'  │ 'y'  │ 'bytes+tris+materials' │
+│ 1       │ 'vehicles/mercedes-e63-amg-s-wagon.glb' │ 'car'      │ 23.53 │ 376971 │ 28   │ 0   │ 'n'  │ 'y'  │ 'bytes+tris+materials' │
+│ 2       │ 'vehicles/mini-cooper-2011.glb'         │ 'hero-car' │ 19.56 │ 993601 │ 9    │ 0   │ 'n'  │ 'y'  │ 'bytes+tris'           │
+│ 3       │ 'vehicles/toyota-corolla.glb'           │ 'car'      │ 13.6  │ 188000 │ 6    │ 11  │ 'n'  │ 'y'  │ 'bytes+tris'           │
+│ 4       │ 'vehicles/land-rover-range-rover.glb'   │ 'car'      │ 9.4   │ 183024 │ 22   │ 9   │ 'n'  │ 'y'  │ 'bytes+tris+materials' │
+│ 5       │ 'vehicles/vw-t-cross.glb'               │ 'car'      │ 8.28  │ 172102 │ 20   │ 10  │ 'n'  │ 'y'  │ 'bytes+tris+materials' │
+│ 6       │ 'vehicles/nissan-qashqai.glb'           │ 'car'      │ 5.9   │ 154932 │ 16   │ 9   │ 'n'  │ 'y'  │ 'bytes+tris+materials' │
+│ 7       │ 'vehicles/mini-cooper.glb'              │ 'hero-car' │ 3.44  │ 127699 │ 10   │ 0   │ 'n'  │ 'NO' │ 'bytes+tris'           │
+│ 8       │ 'vehicles/sao-paulo-bus.glb'            │ 'bus'      │ 1.58  │ 52588  │ 8    │ 0   │ 'n'  │ 'y'  │ 'tris'                 │
+│ 9       │ 'vehicles/double-decker-bus.glb'        │ 'bus'      │ 1.26  │ 58806  │ 15   │ 0   │ 'n'  │ 'y'  │ 'tris+materials'       │
+│ 10      │ 'landmarks/wellington.glb'              │ 'landmark' │ 0.4   │ 14680  │ 3    │ 0   │ 'n'  │ 'y'  │ 'tris'                 │
+│ 11      │ 'vehicles/london-cab.glb'               │ 'car'      │ 0.38  │ 8227   │ 6    │ 0   │ 'n'  │ 'y'  │ 'tris'                 │
+│ 12      │ 'vehicles/a330.glb'                     │ 'airplane' │ 0.3   │ 14608  │ 6    │ 0   │ 'n'  │ 'y'  │ 'tris'                 │
+└─────────┴─────────────────────────────────────────┴────────────┴───────┴────────┴──────┴─────┴──────┴──────┴────────────────────────┘
+total 134.6 MB in 13 GLBs; referenced by runtime 131.2 MB; unreferenced 3.4 MB (1 files)
+budget breaches:
+  assets/landmarks/wellington.glb: tris
+  assets/vehicles/a330.glb: tris
+  assets/vehicles/double-decker-bus.glb: tris, materials
+  assets/vehicles/honda-hr-v.glb: bytes, tris, materials
+  assets/vehicles/land-rover-range-rover.glb: bytes, tris, materials
+  assets/vehicles/london-cab.glb: tris
+  assets/vehicles/mercedes-e63-amg-s-wagon.glb: bytes, tris, materials
+  assets/vehicles/mini-cooper-2011.glb: bytes, tris
+  assets/vehicles/mini-cooper.glb: bytes, tris
+  assets/vehicles/nissan-qashqai.glb: bytes, tris, materials
+  assets/vehicles/sao-paulo-bus.glb: tris
+  assets/vehicles/toyota-corolla.glb: bytes, tris
+  assets/vehicles/vw-t-cross.glb: bytes, tris, materials

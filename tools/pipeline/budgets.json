@@ -1,0 +1,9 @@
+{
+  "_note": "Hypotheses to benchmark (docs/architecture/blender-asset-pipeline.md section 12), per shipped GLB after Meshopt/KTX2. Phase 0 reports against them without failing.",
+  "hero-car": { "maxBytes": 2097152, "maxTris": 12000, "maxMaterials": 12 },
+  "car": { "maxBytes": 1048576, "maxTris": 3000, "maxMaterials": 8 },
+  "bus": { "maxBytes": 2097152, "maxTris": 9000, "maxMaterials": 12 },
+  "airplane": { "maxBytes": 1048576, "maxTris": 4000, "maxMaterials": 6 },
+  "landmark": { "maxBytes": 2097152, "maxTris": 12000, "maxMaterials": 8 },
+  "other": { "maxBytes": 2097152, "maxTris": 12000, "maxMaterials": 12 }
+}
