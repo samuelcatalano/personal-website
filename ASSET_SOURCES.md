@@ -55,6 +55,12 @@ Sun/halo/full-moon maps are original runtime canvas generation in `js/world/sky.
 | --- | --- | --- | --- |
 | Tower Bridge (London) | `assets/processed/landmarks/towerbridge.lod{0,1}.glb` | Generated in-project by `tools/landmarks/towerbridge/build_towerbridge.py` (Blender; original geometry and baked textures; photos used as visual reference only; external geometry: none) | Project-owned |
 
+## MASP — 2026-10-29
+
+| Asset | Path | Source | Licence |
+| --- | --- | --- | --- |
+| MASP (Sao Paulo) | `assets/processed/landmarks/masp.lod{0,1}.glb` | Generated in-project by `tools/landmarks/masp/build_masp.py` (Blender; original geometry and baked textures; photos used as visual reference only; external geometry: none) | Project-owned |
+
 ## Townhouse modular kit — 2026-10-29
 
 | Asset | Path | Source | Licence |

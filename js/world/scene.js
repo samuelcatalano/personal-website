@@ -18,6 +18,7 @@ import { initGlbLoader } from './glb-loader.js';
 import { upgradeBigBen, bigBenForced } from './bigben-asset.js';
 import { upgradeSe, seForced } from './se-asset.js';
 import { upgradeTowerBridge, towerBridgeForced } from './towerbridge-asset.js';
+import { upgradeMasp, maspForced } from './masp-asset.js';
 import { resetFloodlights } from './building-slice-materials.js';
 import { polishLandmarkMaterials } from './landmark-materials.js';
 import { createLandmarkEnv } from './landmark-env.js';
@@ -141,6 +142,9 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   let towerBridgeLod = null; // authored Tower Bridge LOD0/LOD1 (tools/landmarks/towerbridge); procedural group stays hidden underneath as fallback
   const towerbridge = details.getObjectByName('towerbridge-geometry');
   if (towerbridge && !towerBridgeForced()) upgradeTowerBridge(towerbridge, { isDisposed: () => disposed, track: (m) => sky.track(m), env: landmarkEnv }).then((l) => { towerBridgeLod = l; wake(); });
+  let maspLod = null; // authored MASP LOD0/LOD1 (tools/landmarks/masp); procedural group stays hidden underneath as fallback
+  const masp = details.getObjectByName('masp-geometry');
+  if (masp && !maspForced()) upgradeMasp(masp, { isDisposed: () => disposed, track: (m) => sky.track(m), env: landmarkEnv }).then((l) => { maspLod = l; wake(); });
   const wellington = details.getObjectByName('wellington-geometry');
   if (wellington) upgradeWellington(wellington, () => disposed).then(wake);
   const figure = buildFigure(wake);
@@ -282,6 +286,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     bigBenLod?.update(camera.position);
     seLod?.update(camera.position);
     towerBridgeLod?.update(camera.position);
+    maspLod?.update(camera.position);
     wetSurfaces.update(clock, wet, mood.rain, night, camera.position, sky.colors, bus.position, bus.rotation.y, post.tier);
     updateBeams(night); pools.update(night, wet); lampPosts?.userData.setNight?.(night);
     water.update(clock, night, mood, post.tier, sky.colors);

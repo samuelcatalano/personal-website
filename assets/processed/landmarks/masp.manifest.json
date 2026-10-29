@@ -1,0 +1,20 @@
+{
+  "generated": "2026-10-29",
+  "tool": "tools/pipeline/landmark.sh",
+  "source": "tools/landmarks/masp/build_masp.py (Blender, original geometry, baked textures)",
+  "note": "KTX2 ETC1S (colour/emissive q160, ORM q200) + Meshopt. Loaded by js/world/masp-asset.js; ?landmarks=procedural forces the procedural MASP.",
+  "outputs": {
+    "lod0": {
+      "path": "assets/processed/landmarks/masp.lod0.glb",
+      "bytes": 370792,
+      "sha256": "1fd7ec579e83ca873a1ce3266d6ce6064f86886ee6b397bdcc24e9ff4bbff016",
+      "raw": "assets/models/source/masp/masp.lod0.raw.glb (git-ignored)"
+    },
+    "lod1": {
+      "path": "assets/processed/landmarks/masp.lod1.glb",
+      "bytes": 136096,
+      "sha256": "11988b608d8b622e2e62f98ae35486f9b6833e8e21943b62c7868d8a683cb45e",
+      "raw": "assets/models/source/masp/masp.lod1.raw.glb (git-ignored)"
+    }
+  }
+}
