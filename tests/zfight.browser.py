@@ -39,6 +39,19 @@ print(js(r'''(async () => {
       for (const f of faces) bad.push(`${name} ${f} ${JSON.stringify([L[A.i], L[C.i]])}`);
     }
   }
+  // Yawed boxes (kerbs, slabs): oriented-rectangle SAT on coplanar tops of different colours (penetration > 0.02 on every axis)
+  const obb = (b) => { const c = Math.cos(b.ry || 0), s = Math.sin(b.ry || 0); return { x: b.x, z: b.z, ax: [[c, -s, b.w / 2], [s, c, b.d / 2]] }; };
+  const sat = (A, C) => [...A.ax, ...C.ax].every(([ux, uz]) => { const pr = (o) => o.ax.reduce((r, [vx, vz, h]) => r + h * Math.abs(ux * vx + uz * vz), 0), d = Math.abs((C.x - A.x) * ux + (C.z - A.z) * uz); return pr(A) + pr(C) - d > 0.02; });
+  let yawPairs = 0;
+  for (const [name, L] of lists) {
+    const yawed = L.filter((b) => b.ry), rest = L.filter((b) => !b.ry);
+    for (const a of yawed) { const ra = Math.hypot(a.w, a.d) / 2, A = obb(a); // ponytail: O(yawed x boxes), fine at city scale
+      for (const c of [...yawed, ...rest]) {
+        if (c === a || a.color === c.color || Math.abs(a.y + a.h - c.y - c.h) >= ET || Math.hypot(c.x - a.x, c.z - a.z) > ra + Math.hypot(c.w, c.d) / 2 || (c.ry && yawed.indexOf(c) < yawed.indexOf(a))) continue;
+        if (sat(A, obb(c))) { yawPairs++; bad.push(`${name} yawed-top ${JSON.stringify([a, c])}`); }
+      }
+    }
+  }
   if (bad.length) throw Error(`${bad.length} z-fighting face pairs, e.g. ${bad.slice(0, 5).join('\n')}`);
-  return { pass: true, lists: lists.map(([n, l]) => `${n}:${l.length}`) };
+  return { pass: true, yawPairs, lists: lists.map(([n, l]) => `${n}:${l.length}`) };
 })()'''))

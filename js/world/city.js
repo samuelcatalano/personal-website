@@ -65,8 +65,10 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
   // No tree on the Estaiada deck, ramps or junction (all callers draw first, so the rng stays aligned). Deck runs x = ex (far bank to river), bends to the avenue at ex - 8 (landmark-geometry.js estaiadaRoute).
   const ex = pts[stopIndex(stops, LANDMARKS.estaiada)].x, ex0 = ex - 16, ex1 = ex + 7, ez0 = RIVER_Z - 43, ez1 = pts[stopIndex(stops, LANDMARKS.estaiada)].z + 1;
   const onEstaiada = (x, z) => x > ex0 && x < ex1 && z > ez0 && z < ez1; // ponytail: bbox, not per-segment distance
-  const treeAt = onTree && ((x, z, shape) => { if (!onEstaiada(x, z)) onTree(x, z, shape); });
-  const drawTree = treeAt ? (_add, x, z, shape) => treeAt(x, z, shape) : (a, x, z, shape) => { if (!onEstaiada(x, z)) tree(a, x, z, shape); };
+  // Overpass corridors: the embankment road runs across the route to +-UNDERPASS.end; nothing of the countryside/Glasgow edge may stand on it (cars drive there)
+  const ups = underpassFrames(curve, stops), onOverpass = (x, z, r) => ups.some((u) => { const dx = x - u.x, dz = z - u.z, a = dx * u.tx + dz * u.tz, c = -dx * u.tz + dz * u.tx; return Math.abs(a) < UNDERPASS.base + 2 + r && Math.abs(c) < UNDERPASS.end + 3 + r; });
+  const treeAt = onTree && ((x, z, shape) => { if (!onEstaiada(x, z) && !onOverpass(x, z, (shape.crown || 2) / 2 + 0.3)) onTree(x, z, shape); });
+  const drawTree = treeAt ? (_add, x, z, shape) => treeAt(x, z, shape) : (a, x, z, shape) => { if (!onEstaiada(x, z) && !onOverpass(x, z, (shape.crown || 2) / 2 + 0.3)) tree(a, x, z, shape); };
   const spots = furnitureSpots(stops, curve).map((o) => o.xz);
   const free = (x, z) => spots.every(([a, b]) => Math.hypot(a - x, b - z) > CLEAR); // ponytail: skip, not shift
   const lamps = [], occ = [], obst = [], r = rng(2026), hq = rng(8821), hq2 = rng(4417), noop = () => {}, mx = pts[stopIndex(stops, LANDMARKS.masp)].x, gl = pts[stopIndex(stops, LANDMARKS.glasgow)], ukId = stops[ukStart(stops)].id, LM = new Set([...Object.values(LANDMARKS), ukId]); // ukId: far side of the first UK stop keeps skipping frontage draws (blocks.js riverfront infill owns it)
@@ -192,13 +194,11 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
       drawTree(add, x, z, { h: 3 + hsh * 0.6, crown: 3.1 + hsh * 0.5 }); obst.push([x, z]);
     }
   }
-  // Overpass corridors: the embankment road runs across the route to +-UNDERPASS.end; nothing of the countryside/Glasgow edge may stand on it (cars drive there)
-  const ups = underpassFrames(curve, stops), onOverpass = (x, z, r) => ups.some((u) => { const dx = x - u.x, dz = z - u.z, a = dx * u.tx + dz * u.tz, c = -dx * u.tz + dz * u.tx; return Math.abs(a) < UNDERPASS.base + 2 + r && Math.abs(c) < UNDERPASS.end + 3 + r; });
   const addOff = (x, y, z, w, h, d, ...rest) => { if (!onOverpass(x, z, Math.min(w, d) / 2)) add(x, y, z, w, h, d, ...rest); };
   const plotOff = onArchitecturePlot && ((p) => { if (!onOverpass(p.x, p.z, Math.max(p.width, p.depth) / 2)) onArchitecturePlot(p); });
   rgs.forEach((rg, leg) => buildCountry(addOff, curve, drawTree, rg.ctry, leg, plotOff));
   buildGlasgowEdges(addOff, stops, pts, curve, drawTree, plotOff);
   buildBlocks(add, stops, pts, curve, occ, onBuildingPlot, onArchitecturePlot);
-  buildParks(add, stops, pts, curve, occ, treeAt, onPublicRealm); // after the blocks: own rng, reads the free plazas, never shifts a block
+  buildParks(addOff, stops, pts, curve, occ, treeAt, onPublicRealm); // after the blocks: own rng, reads the free plazas, never shifts a block
   return { lamps, pilotCrossings };
 }

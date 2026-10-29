@@ -253,7 +253,7 @@ function upgrade(vehicle, key, v, hero, isDisposed = () => false, axles) {
         o.material = m;
       } else o.material = (FLEET_FINISH[name] ?? ROLES[name])?.(v) ?? o.material;
       if (FLEET_FINISH[name]) o.material.name = name;
-      o.castShadow = CASTS.has(name) || name === 'FleetBody' || v.shadowMaterials?.includes(name); o.receiveShadow = true;
+      o.castShadow = CASTS.has(name) || name === 'FleetBody' || !!v.shadowMaterials?.includes(name); o.receiveShadow = true;
     });
     adoptVisual(vehicle, glb, ['beam']);
     vehicle.userData.visualAsset = key;
