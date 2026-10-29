@@ -59,7 +59,10 @@ class Module:
             group["semantic_role"] = role
             self.groups[role] = group
 
-    def box(self, role, name, loc, dims, bevel=0.018, segments=2):
+    def box(self, role, name, loc, dims, bevel=0.018, segments=1):
+        # Rollout budget: one bevel segment, and no bevel on slim parts (muntins, brackets) that read as plain boxes from street distance.
+        if min(dims) < 0.1:
+            bevel = 0
         bpy.ops.mesh.primitive_cube_add(size=1, location=loc)
         obj = bpy.context.object
         obj.name = f"{self.name}__{name}"
@@ -75,7 +78,7 @@ class Module:
         self._finish(obj, role)
         return obj
 
-    def cylinder(self, role, name, loc, radius, depth, vertices=12, axis="Y"):
+    def cylinder(self, role, name, loc, radius, depth, vertices=8, axis="Y"):
         rotation = (math.pi / 2, 0, 0) if axis == "Y" else (0, 0, 0)
         bpy.ops.mesh.primitive_cylinder_add(vertices=vertices, radius=radius, depth=depth, location=loc, rotation=rotation)
         obj = bpy.context.object

@@ -133,7 +133,7 @@ function townhouseGeometry(plot,recipe,level=0,storage=null,modular=false) {
 
 const KIT_URL=new URL('../../assets/processed/buildings/townhouse-kit.glb',import.meta.url).href;
 let kitPromise;
-const loadTownhouseKit=()=>kitPromise??=loadGlb(KIT_URL).then(scene=>{
+export const loadTownhouseKit=()=>kitPromise??=loadGlb(KIT_URL).then(scene=>{
   const modules=new Map();
   scene.updateMatrixWorld(true);
   scene.traverse(node=>{
@@ -155,7 +155,7 @@ const moduleNames={
   cornice:['cornice_classical_01','cornice_bracketed_02','string_course_03','cornice_stepped_04','cornice_terrace_05'],
   roof:['roof_chimney_brick_01','roof_chimney_stone_02','roof_dormer_sash_03','roof_ridge_vent_04','roof_ridge_finial_05']
 };
-function modularGeometry(plot,recipe,modules) {
+export function modularGeometry(plot,recipe,modules,variety=false) {
   const {geometries,metadata}=townhouseGeometry(plot,recipe,0,null,true),extra=[[],[],[]],w=plot.width-.3,d=plot.depth-.3,front=d/2;
   const moduleGeometry=(category,index,position,rotation,scale,surfaceByRole)=>{
     const name=moduleNames[category][index%moduleNames[category].length],module=modules.get(name);
@@ -181,20 +181,26 @@ function modularGeometry(plot,recipe,modules) {
     const faceIndex=faceIndices[o.face]++;
     const x=face?o.u:-w/2,z=face?front:o.u,scale=new THREE.Vector3(o.w,o.h,1);
     if(o.type==='window'){
-      const name=moduleNames.window[(recipe.windowSeed+index+(face?0:3))%7],dims=[[.92,1.48],[1.05,1.48],[.88,1.72],[1.34,1.55],[.76,1.44],[1.28,1.12],[1.48,1.58]][moduleNames.window.indexOf(name)];
+      // variety: per-house hash picks the window family; ground floor and side faces shift it so a facade never repeats one sash.
+      const wi=variety?((hash>>>3)+(o.y<recipe.ground?2:0)+(face?0:3))%7:(recipe.windowSeed+index+(face?0:3))%7,name=moduleNames.window[wi],dims=[[.92,1.48],[1.05,1.48],[.88,1.72],[1.34,1.55],[.76,1.44],[1.28,1.12],[1.48,1.58]][moduleNames.window.indexOf(name)];
       scale.set(o.w/dims[0],o.h/dims[1],1);
       const lit=(faceIndex+(face?1:0)+recipe.windowSeed)%3===0;
-      moduleGeometry('window',recipe.windowSeed+index+(face?0:3),new THREE.Vector3(x, o.y-o.h/2, face?z-.06:z),rotation,scale,{mass:S.stone,trim:S.trim,glass:lit?S.litGlass:S.glass});
+      moduleGeometry('window',wi,new THREE.Vector3(x, o.y-o.h/2, face?z-.06:z),rotation,scale,{mass:S.stone,trim:S.trim,glass:lit?S.litGlass:S.glass});
     }else{
-      const doorIndex=(recipe.windowSeed+(recipe.structural==='B'?3:0))%6,dims=[[1.02,2.24],[1.02,2.32],[1.34,2.35],[1.48,2.42],[2.05,2.62],[2.32,2.72]][doorIndex];
+      const doorIndex=variety?(hash>>>5)%4:(recipe.windowSeed+(recipe.structural==='B'?3:0))%6,dims=[[1.02,2.24],[1.02,2.32],[1.34,2.35],[1.48,2.42],[2.05,2.62],[2.32,2.72]][doorIndex];
       scale.set(o.w/dims[0],o.h/dims[1],1);
       moduleGeometry('door',doorIndex,new THREE.Vector3(x,.09,z-.06),rotation,scale,{mass:S.door,trim:S.trim,glass:S.glass});
     }
   }
   const corniceY=recipe.eaves-.3;
-  moduleGeometry('cornice',(recipe.palette+recipe.windowSeed)%5,new THREE.Vector3(0, corniceY, front-.12),new THREE.Quaternion(),new THREE.Vector3(w/5.08,1,1),{mass:S.stone,trim:S.trim,glass:S.glass});
-  const roofX=(hash%2?1:-1)*w*.28,roofY=recipe.ridge-(recipe.ridge-recipe.eaves)*Math.abs(roofX)/(w/2);
-  moduleGeometry('roof',(hash>>>2)%5,new THREE.Vector3(roofX,roofY,0),new THREE.Quaternion(),new THREE.Vector3(1,1,1),{mass:S.roof,trim:S.roof,glass:S.glass});
+  moduleGeometry('cornice',variety?(hash>>>7)%5:(recipe.palette+recipe.windowSeed)%5,new THREE.Vector3(0, corniceY, front-.12),new THREE.Quaternion(),new THREE.Vector3(w/5.08,1,1),{mass:S.stone,trim:S.trim,glass:S.glass});
+  const gable=!recipe.roof||recipe.roof==='gable';
+  let roofX,roofY,roofIndex=(hash>>>2)%5;
+  if(gable){roofX=(hash%2?1:-1)*w*.28;roofY=recipe.ridge-(recipe.ridge-recipe.eaves)*Math.abs(roofX)/(w/2);}
+  else{ // ridge runs along X: keep detail on the ridge line (no dormer, which only fits the gable pitch)
+    const a=recipe.roof==='hip'?Math.max(0,w/2-d/2):w/2;roofX=a>1.2?(hash%2?1:-1)*a*.55:0;roofY=recipe.ridge-.04;if(roofIndex===2)roofIndex=0;
+  }
+  moduleGeometry('roof',roofIndex,new THREE.Vector3(roofX,roofY,0),new THREE.Quaternion(),new THREE.Vector3(1,1,1),{mass:S.roof,trim:S.roof,glass:S.glass});
   const result=geometries.map((base,i)=>{
     const merged=mergeGeometries([base,...extra[i]],false);
     base.dispose();extra[i].forEach(g=>g.dispose());

@@ -10,6 +10,14 @@
 - **Environment:** local server was stopped; no browser capture, test, deployment, or mobile work was performed.
 - **Next step:** wait for explicit owner approval before starting Phase 3 (the townhouse modular kit). Further landmark phases, Phase 6 lighting, moving/deleting raw GLBs, CI, and the pedestrian experiment also remain approval-gated as described in the handoff.
 
+## 2026-10-29 — Townhouse kit rollout to all UK terraces
+
+- **Scope (owner approved):** every UK terraced townhouse in the citywide rollout (x>0: London, countryside villas, Glasgow; 343 lots, 87 of 194 cells; São Paulo, landmarks and the `frontage-gap-olm-135--1--9` exclusion untouched). Rollback: `?kit=off`.
+- **How:** `city-rollout.js` builds the procedural LOD0/LOD1 as before; kit LOD0 per cell is built lazily from 140 m (max 3 near / 1 far cells per update), replaces and frees the procedural LOD0, and is dropped beyond 180 m. LOD1 and the 120/129/111 hysteresis are unchanged; 3 meshes per chunk, same 2 materials. Variety: per-lot FNV hash picks window family (ground floor and side faces shifted), door (4 houses doors), cornice (5) and roof detail (5; chimneys/vents/finial on side/hip ridges, dormer only on gables).
+- **Kit rebuild:** one bevel segment, no bevel on parts <0.1 m, 8-sided knobs: GLB 1.81 MB -> 0.53 MB, window ~1,300 -> ~170-230 triangles. The building-slice browser test constant for lit-glass vertices changed 132 -> 36 per pane (glass box is now 12 triangles).
+- **Measured (desktop, 60 rAF ticks, stops 9.5/10/11, kit=off vs on):** draw calls 1247/1144/1265 -> 1263/1153/1265 (+1.3/+0.8/0%); triangles 9.80/9.07/10.28M -> 9.98/9.17/10.37M (+1.9/+1.1/+0.8%). Rollout LOD0 triangles if every kit cell were resident: 845k -> 1.37M; camera sweep along the route: resident geometry 154 -> peak 183 -> 133 MiB at the end. No console errors.
+- **Validation:** `node --test tests/` 116/116; desktop building-slice, townhouse-lod, building-kit, citywide, zfight, trees, vehicles, bigben-asset browser tests pass. No mobile checks.
+
 ## 2026-10-29 — Townhouse modular kit desktop quality pass
 
 - **Baseline/integration:** visual baseline `fe6b720da45189a2faffa3d658aadc82f33ac98e`; raw asset milestone `fe6b720da45189a2faffa3d658aadc82f33ac98e`; runtime integration `7c715258c5fd9b59576cf900478a43ea65ca6ff7`.
