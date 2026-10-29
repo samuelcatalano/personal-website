@@ -55,7 +55,7 @@ export const BUS_VARIANTS = {
 // prefiltered studio environment generated in-browser (no texture download). Only these materials get it, so the rest of
 // the scene keeps its approved look; intensity follows day/night (updateVehicleEnv).
 let envTex = null; const envMats = new Set(), physCache = new Map();
-const CAB_ENV_NIGHT = [['cabBody', 0.16], ['cabGlass', 0.28], ['cabTrim', 0.18], ['fleetGlass', 0.2], ['busGlass', 0.2]];
+const CAB_ENV_NIGHT = [['cabBody', 0.16], ['cabGlass', 0.28], ['cabTrim', 0.18], ['fleetGlass', 0.2], ['busGlass', 0.0]];
 export function initVehicleEnv(renderer) {
   if (envTex) return;
   const pm = new THREE.PMREMGenerator(renderer); envTex = pm.fromScene(new RoomEnvironment(), 0.04).texture; pm.dispose();
@@ -67,7 +67,7 @@ export function updateVehicleEnv(night) {
     const m = physCache.get(key); if (m) m.envMapIntensity = m.userData.envDay * (1 - night) + floor * night;
   }
   const glass = physCache.get('glass'); if (glass) glass.envMapIntensity = glass.userData.envDay * (1 - night) + 0.13 * night;
-  const bg = physCache.get('busGlass'); if (bg) { bg.emissive ??= new THREE.Color(); bg.emissive.set('#ffe0b0').multiplyScalar(0.14 * night); } // saloon light through the glass
+  const bg = physCache.get('busGlass'); if (bg) { bg.emissive ??= new THREE.Color(); bg.emissive.set('#ffe0b0').multiplyScalar(0.022 * night); } // saloon light through the glass
   const fleetLights = physCache.get('fleetLights'); if (fleetLights) fleetLights.emissiveIntensity = 0.9 * night;
   const lights = physCache.get('cabLights'); if (lights) lights.emissiveIntensity = 0.9 * night;
 }
@@ -112,7 +112,7 @@ const ROLES = {
   ...CAB_FINISH,
   BusBody: (v) => busPaint(v.body), BusAccent: (v) => busPaint(v.accent), BusStripe: (v) => busPaint(v.stripe ?? v.body), BusSkirtF: (v) => busPaint(v.skirtF ?? v.accent), BusSweep: (v) => busPaint(v.sweep ?? v.body), BusLilac: (v) => busPaint(v.lilac ?? v.body), BusRear: (v) => busPaint(v.rear ?? v.body), BusMark: (v) => busPaint(v.mark ?? '#f0efe9'), BusMark2: (v) => busPaint(v.mark2 ?? '#1c3f94'), BusTrim: () => fixed('dark'), BusGlass: () => glass('busGlass', '#07121a', 0.96, 0.6),
   BusRubber: () => fixed('tyre'), BusMetal: () => fixed('chrome'), BusHeadlight: () => fixed('head'), BusTaillight: () => fixed('tail'),
-  BusDisplay: (v) => destMat(...v.dest), BusInterior: () => fixed('cabin'),
+  BusDisplay: (v) => destMat(...v.dest), BusInterior: () => fixed('dark'), // the authored glazing is large: the shared warm 'cabin' glow would flood it cream at night, so the glow comes from busGlass only
   CarBody: (v) => carPaint(v.body), CarRoof: (v) => carPaint(v.roof), CarStripe: () => carPaint('#f2f0e9'), CarGlass: CAR_FINISH.CarGlass, CarTrim: CAR_FINISH.CarTrim, CarInterior: () => phys('miniInterior', () => new THREE.MeshStandardMaterial({ color: '#655d51', roughness: 0.85, envMapIntensity: 0.18 })), CarPlate: () => fixed('plate'), CarRim: CAR_FINISH.CarRim,
   CarChrome: CAR_FINISH.CarChrome, CarHeadlight: () => fixed('head'), CarTaillight: () => fixed('tail'),
 };
