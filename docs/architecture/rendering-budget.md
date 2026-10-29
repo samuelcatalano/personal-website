@@ -202,3 +202,23 @@ Legacy lots → rollout recipes, gap-fill lots (+106), roof/palette variety, ins
 | London 13.2 mobile | ~197 → ~198 | 313 k → 383 k | 8.3 / 9.0–9.2 ms (both) |
 
 Frame time sits at the 120 Hz cap on this machine, so the triangle increase is not yet visible in timing; heap +30–40 MiB. Tree triangles stay under the 250 k test budget (235 k).
+
+## Townhouse modular kit pilot — 2026-10-29
+
+Desktop visual comparison: pre-integration commit `fe6b720da45189a2faffa3d658aadc82f33ac98e` versus raw-kit integration commit `7c715258c5fd9b59576cf900478a43ea65ca6ff7`. The fixed desktop comparison scene uses the same 1440×900 renderer, camera and lot descriptors. Full-scene desktop captures were also taken at stop 5/day and stop 11/night. LOD states were explicitly selected through the pilot update hook.
+
+| Pilot state | Baseline draws | Current draws | Baseline triangles | Current triangles |
+|---|---:|---:|---:|---:|
+| Nine lots, LOD0 | 6 | 6 | 6,572 | 104,270 |
+| Nine lots, LOD1 | 6 | 6 | 3,226 | 3,226 |
+| Three-lot control | 3 | 3 | 2,334 | 2,334 |
+
+The nine-lot pilot occupies two spatial chunks, each with three active renderables; the control occupies one chunk with the same three buckets. Per chunk, current pilot draw calls are 3 versus 3 for the control (0% change; within the 10% gate). Triangle counts are workload measurements only. Counts are unique geometry triangles in the isolated one-pass desktop comparison, not whole-scene multipass submissions or frame-time evidence.
+
+`node tools/pipeline/check.mjs` reports the raw kit at 1,812,724 bytes (1.73 MiB), 24,780 triangles, 3 source materials and no textures. The runtime townhouse family still uses 2 shared materials and 4 generated maps (~4.33 MiB).
+
+Visual review found readable raised window/door details at LOD0, intact roof silhouette and facade rhythm, grounded bounds, and no visible z-fighting in the fixed day/night captures. LOD1 retains the procedural facade and roof rhythm at 3,226 triangles. The three-lot control geometry and counts are unchanged.
+
+The required lossless optimizer produced a 688,108-byte candidate with the same 24,780 source triangles. It pruned `TEXCOORD_0`/UV because the source GLB does not reference UVs in its materials. The site merges loaded module geometry with procedural geometry that has UV attributes; the optimized candidate therefore fails pilot adoption and leaves the procedural fallback visible. It is not visually or functionally equivalent and was discarded. The raw GLB remains shipped. The current optimizer CLI has no keep-UV option; its `smooth` mode also changes normals and is not an equivalent preservation path.
+
+Evidence screenshots and the discarded candidate are in machine-local `/private/tmp/townhouse-evidence/`; full-scene baseline screenshots are in `/private/tmp/townhouse-baseline-capture/`. Browser checks passed for building-slice, building-kit, citywide and zfight; Node tests passed 116/116. The citywide browser check needed a 30-second browser-harness IPC timeout because the default 5-second IPC timed out twice; the test itself passed unchanged. No mobile, Lighthouse, physical-device, deployment, or full-pipeline performance benchmark was run. Further townhouse rollout remains approval-gated.
