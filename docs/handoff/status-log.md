@@ -20,3 +20,10 @@
 - **Evidence/limitations:** fixed-stage screenshots are machine-local under `/private/tmp/townhouse-evidence/`; full-scene baseline captures under `/private/tmp/townhouse-baseline-capture/`. No full-pipeline timing benchmark, physical-device check, or mobile validation was performed. The zfight suite checks the existing box-world representation; the module pilot received visual inspection rather than a new analytic face-pair assertion.
 - **Next approval-gated step:** obtain owner approval before extending the kit beyond the nine pilot lots. Investigate a UV-preserving optimizer path only if another optimization phase is approved.
 
+## 2026-10-29 — Townhouse night-window lighting fix
+
+- **Fix:** `f73f34de23aa06b155345a0e56c2013c2db3679b` restores the existing deterministic emissive-window assignment to modular townhouse glazing; `6ba6389d4182177316aec5796b3539a51d1d6ea2` records fix evidence.
+- **Verification:** desktop `building-slice.browser.py` passed with 17 lit panes / 2,244 lit-glass vertices; a desktop night capture at stop 13.5 showed warm lit panes. `node --test tests/` rerun after the fix: 116/116 passed (existing `MODULE_TYPELESS_PACKAGE_JSON` warning only). Scoped fix review found no new breakage.
+- **State:** working tree clean after this entry is committed; branch remains local and the preview server is stopped. No mobile checks or deployment.
+- **Next step:** use the nine-lot pilot as the approved scope. Further rollout and any UV-preserving asset optimization require a new owner decision.
+
