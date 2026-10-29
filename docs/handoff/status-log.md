@@ -29,8 +29,8 @@
 
 ## 2026-10-29 — London Eye townhouse correction and Phase 4 tree LOD
 
-- **House:** the first removal targeted Glasgow's `block-679--80-0` by mistake (`41b6f17`). Commit `60ed913` restored that lot and removed only one unit from the London Eye frontage; `5e1a25a` excludes all four contiguous `lot-front-105--81.5-*` townhouse units in `createCityBuildings`, leaving descriptors and map layout intact.
-- **House verification:** desktop `citywide.browser.py` passes with all four IDs absent from rendered architecture while retained in source plots. Fresh-cache desktop capture at stop 9.5 confirms the frontage is gone. No mobile checks.
+- **House:** the first removal targeted Glasgow's `block-679--80-0` by mistake (`41b6f17`). Commit `60ed913` restored that lot; `5e1a25a` then removed the wrong London Eye frontage. After the owner supplied a closer view, `26f5e08` excludes the four `block-120--80-*` units and four adjacent `lot-front-105--81.5-*` units from rendering while preserving their descriptors and map layout.
+- **House verification:** desktop `citywide.browser.py` passes with all eight IDs absent from rendered architecture while retained in source plots. Fresh-cache desktop capture at stop 9.5 confirms the marked yellow townhouse is gone and neighboring buildings remain. No mobile checks.
 - **Trees:** commit `429c2ea` adds per-160 m chunk LOD0/LOD1/LOD2. LOD2 is a two-triangle camera-facing billboard using a procedural 512×128 atlas; LOD transitions use AABB distance with hysteresis. Existing lamp/phone-box instancing and merged park furniture remain unchanged. No Blender tree/prop GLB or public-prop atlas was added; that remains a Phase 4 gap if the owner wants authored props.
 - **Verification:** desktop browser contracts passed for `building-slice`, `townhouse-lod`, `citywide`, and `trees`; `node --test tests/` passed 116/116 (pre-existing `MODULE_TYPELESS_PACKAGE_JSON` warnings). Desktop captures at stops 9.5 and 11 by day were inspected. No mobile tests, deployment, or push.
 - **Environment:** the local preview remains running at `http://localhost:8000` because the owner asked to keep it available for testing.
