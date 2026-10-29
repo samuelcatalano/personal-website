@@ -6,14 +6,14 @@
   "outputs": {
     "lod0": {
       "path": "assets/processed/landmarks/masp.lod0.glb",
-      "bytes": 354632,
-      "sha256": "5d7394b51d4927b76ec072381fa56e46f184f6c280164668db61ffa45df04a94",
+      "bytes": 384052,
+      "sha256": "451e42e654d1fb30ce0c90d9d803e86c82e0807859fe5addf02ae35cbb981844",
       "raw": "assets/models/source/masp/masp.lod0.raw.glb (git-ignored)"
     },
     "lod1": {
       "path": "assets/processed/landmarks/masp.lod1.glb",
-      "bytes": 125736,
-      "sha256": "6db9a396d8dac51aa0ae23a8bc7ef3ecc7feab5d143603c6e3d537dc871a9d2b",
+      "bytes": 119500,
+      "sha256": "fbde7f4e877eec94b54d6d941da0c1fad7a62b54a2c191fdd97850951d7d7997",
       "raw": "assets/models/source/masp/masp.lod1.raw.glb (git-ignored)"
     }
   }

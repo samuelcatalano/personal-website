@@ -76,6 +76,7 @@ function copanTower(add, { x, z, len, amp, depth, h: H }) {
 function paulista(add, x, i, onArchitecturePlot, rollout, stopId) {
   const z = RIVER_Z - 22;
   [[-8, 30 + (i % 3) * 8], [9, 44 - (i % 2) * 10]].forEach(([dx, h], j) => {
+    if (stopId === 'insane' && j === 1) return; // that tower stood right behind MASP's left column (owner request)
     const tx = x + dx, w = 9, t = j ? 4.4 : 4.5;
     if (onArchitecturePlot && (i === 0 || rollout)) {
       // Preserve the existing columns/crown/antenna envelope, replacing only hero decoration.

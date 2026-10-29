@@ -12,12 +12,13 @@ OUT = os.path.abspath(os.path.join(HERE, '..', '..', '..', 'assets', 'models', '
 TEX = os.path.join(OUT, 'tex')
 os.makedirs(TEX, exist_ok=True)
 SIZE = 1024
+LW = .08                 # baked mullion half-width as a fraction of one pane (widened at LOD1 so the rhythm survives 512 px)
 CN, RD, GL, MU, PV, SF = range(6)   # authoring slots: concrete, red paint, glass, mullion steel, plaza paving, lit soffit
 MATS = ['concrete', 'red', 'glass', 'mullion', 'paving', 'soffit']
 ROUGH = [.85, .55, .08, .45, .8, .85]
 METAL = [0, 0, 0, .3, 0, 0]
 V = lambda x, y, z: Vector((x, -z, y))
-BAY = 17.1 / 14          # glazing module (m), ~1.2 m pitch, 28 bays
+BAY = 0.65               # glazing module (m): slender panes, fine pitch
 
 
 class B:
@@ -47,13 +48,13 @@ class B:
             if k not in skip: s.poly(p, m, n)
 
 
-# Frozen envelope: x +-20, z +-6.5, y 0..15.6. Columns stand at x 15..17.8 (outer faces z +-6.5); the box (floor slab, glass, fascia) runs between and PAST them
-# (2.2 m cantilever to x +-20), its glass wall almost flush with the girders' outer face, so the glazing is the dominant street face.
-XC0, XC1 = 15.0, 17.8    # column x range (inner / outer face)
-ZC0 = 3.9                # column inner face z (outer 6.5)
-XB = 20.0                # box half length (cantilever past the columns)
-ZB = 6.5                 # slab / fascia half depth
-ZG = 6.4                 # glass plane (proud of the girder inner face, flush with the girder outer face within 10 cm)
+# Frozen envelope: x +-20, z +-6.5, y 0..15.6. Four chunky red columns at the corners (x 17.2..20, outer face inset to z +-5.6) carry two deep girders; the glass box
+# runs BETWEEN the columns (ends recessed, no cantilever) and its long glass wall, fascia and slab edge sit at z +-6.5, outboard of the girders.
+XC0, XC1 = 17.2, 20.0    # column x range (inner / outer face)
+ZC0, ZC1 = 3.0, 5.6      # column z range (outer face inset behind the glass plane)
+XB = 17.2                # box half length (up to the column inner faces)
+ZB = 6.5                 # slab / fascia half depth (glass plane)
+ZG = 6.42                # glass plane (mullions and fascia flush at 6.5)
 FY0, FY1 = 8.0, 9.3      # floor slab (soffit at 8.0)
 GY0, GY1 = FY1, 12.4     # glass band (two storeys)
 RY0, RY1 = GY1, 13.5     # concrete fascia band above the glass
@@ -61,39 +62,34 @@ GM = (GY0 + GY1) / 2     # mid rail
 
 
 def frames(b):
-    """Four massive red columns and two deep red girders on top of the fascia (outer faces flush at z +-6.5)."""
     for sx in (-1, 1):
         for sz in (-1, 1):
-            b.box(sx * (XC0 + XC1) / 2, .2, sz * (ZC0 + 6.5) / 2, XC1 - XC0, 15.4, 6.5 - ZC0, RD, ())
+            b.box(sx * (XC0 + XC1) / 2, .2, sz * (ZC0 + ZC1) / 2, XC1 - XC0, 15.4, ZC1 - ZC0, RD, ())      # chunky column
     for sz in (-1, 1):
-        b.box(0, RY1, sz * 5.5, 2 * XC0, 15.6 - RY1, 2.0, RD, ('+x', '-x'))
+        b.box(0, RY1, sz * 4.6, 2 * XC0, 15.6 - RY1, 2.0, RD, ('+x', '-x'))                              # deep girder on the fascia, set back behind the glass plane
 
 
 def body(b):
     L0 = b.lod == 0
-    # floor slab: full width except around the columns (x 15..17.8 keeps only |z| < 3.9), then full width again out to the cantilever tip
-    for xa, xb, zh in ((-XC0, XC0, ZB), (XC0, XC1, ZC0), (XC1, XB, ZB), (-XC1, -XC0, ZC0), (-XB, -XC1, ZB)):
-        b.box((xa + xb) / 2, FY0, 0, xb - xa, FY1 - FY0, 2 * zh, CN, ('-y',))                 # raw concrete slab (soffit = lit material below)
-        b.poly([(xa, FY0, -zh), (xb, FY0, -zh), (xb, FY0, zh), (xa, FY0, zh)], SF, (0, -1, 0))
-        b.box((xa + xb) / 2, RY0, 0, xb - xa, RY1 - RY0, 2 * zh, CN, ())                      # fascia band + roof slab
-    n = 22 if L0 else 11                                                                      # skylight ribs between the girders
+    b.box(0, FY0, 0, 2 * XB, FY1 - FY0, 2 * ZB, CN, ('-y',))                                             # raw concrete floor slab
+    b.poly([(-XB, FY0, -ZB), (XB, FY0, -ZB), (XB, FY0, ZB), (-XB, FY0, ZB)], SF, (0, -1, 0))             # lit soffit
+    b.box(0, RY0, 0, 2 * XB, RY1 - RY0, 2 * ZB, CN, ())                                                  # fascia band over the glass + roof slab
+    n = 22 if L0 else 11                                                                                  # skylight ribs between the girders
     for i in range(n):
         x = -XB + 1.0 + i * (2 * XB - 2.0) / (n - 1)
-        b.box(x, RY1, 0, .28 if L0 else .5, .65, 2 * 4.5 - .1, CN, ())
-    segs = ((-XC0 + .1, XC0 - .1), (XC1 + .1, XB - .1), (-XB + .1, -XC1 - .1))
-    for sz in (-1, 1):                                                                        # long glass faces (three runs: between the columns and the two tips)
-        for xa, xb in segs:
-            b.poly([(xa, GY0, sz * ZG), (xb, GY0, sz * ZG), (xb, GY1, sz * ZG), (xa, GY1, sz * ZG)], GL, (0, 0, sz))
-            if L0:
-                xs = [i * BAY for i in range(-14, 15) if xa < i * BAY < xb] + ([(xa + xb) / 2] if xb - xa < 3 else [])
-                for x in xs: b.box(x, GY0, sz * (ZG + .03), .09, GY1 - GY0, .08, MU, ('+x', '-x', '+z', '-z'))
-                for y in (GY0, GM - .05, GY1 - .1): b.box((xa + xb) / 2, y, sz * (ZG + .03), xb - xa, .1, .08, MU, ('+y', '-y', '+z', '-z'))
-    for sx in (-1, 1):                                                                        # glazed short ends
-        xg = sx * (XB - .04)
-        b.poly([(xg, GY0, -ZG + .1), (xg, GY0, ZG - .1), (xg, GY1, ZG - .1), (xg, GY1, -ZG + .1)], GL, (sx, 0, 0))
+        b.box(x, RY1, 0, .28 if L0 else .5, .65, 2 * 3.6 - .1, CN, ())
+    nb = int(XB / BAY) - 1
+    for sz in (-1, 1):                                                                                    # long glass faces: fine pitch, thin dark mullions, mid rail
+        b.poly([(-XB + .1, GY0, sz * ZG), (XB - .1, GY0, sz * ZG), (XB - .1, GY1, sz * ZG), (-XB + .1, GY1, sz * ZG)], GL, (0, 0, sz))
         if L0:
-            for i in range(-6, 7): b.box(xg + sx * .03, GY0, i * (ZG - .1) / 6.0, .08, GY1 - GY0, .08, MU, ('+z', '-z', '+x', '-x'))
-            b.box(xg + sx * .03, GM - .05, 0, .08, .1, 2 * ZG - .2, MU, ('+y', '-y', '+x', '-x'))
+            for i in range(-nb, nb + 1): b.box(i * BAY, GY0, sz * (ZG + .04), .05, GY1 - GY0, .08, MU, ('+y', '-y', '-z'))
+            for y in (GY0, GM - .04, GY1 - .08): b.box(0, y, sz * (ZG + .04), 2 * XB - .2, .08, .08, MU, ('+y', '-y', '-z'))
+    for sx in (-1, 1):                                                                                    # glazed ends, recessed between the end columns
+        xg = sx * (XB - .12)
+        b.poly([(xg, GY0, -ZG), (xg, GY0, ZG), (xg, GY1, ZG), (xg, GY1, -ZG)], GL, (sx, 0, 0))
+        if L0:
+            for i in range(-18, 19): b.box(xg + sx * .03, GY0, i * (ZG - .1) / 18.0, .06, GY1 - GY0, .05, MU, ('+y', '-y', '-x'))
+            b.box(xg + sx * .03, GM - .04, 0, .06, .08, 2 * ZG - .2, MU, ('+y', '-y', '-x'))
 
 
 def plaza(b):
@@ -122,6 +118,13 @@ def make(lod):
     bpy.ops.object.shade_smooth_by_angle(angle=math.radians(35))
     bpy.ops.object.mode_set(mode='EDIT'); bpy.ops.mesh.select_all(action='SELECT')
     bpy.ops.uv.smart_project(angle_limit=math.radians(66), island_margin=.004)
+    bpy.ops.object.mode_set(mode='OBJECT')
+    uvd = me.uv_layers.active.data                                   # glass islands get 2.2x the texel area so the fine pane rhythm stays readable
+    for pl in me.polygons:
+        if pl.material_index != GL: continue
+        li = list(pl.loop_indices); c = sum((uvd[i].uv for i in li), Vector((0, 0))) / len(li)
+        for i in li: uvd[i].uv = c + (uvd[i].uv - c) * 2.2
+    bpy.ops.object.mode_set(mode='EDIT'); bpy.ops.mesh.select_all(action='SELECT')
     bpy.ops.uv.pack_islands(margin=.006, rotate=False)
     bpy.ops.object.mode_set(mode='OBJECT')
     return ob
@@ -189,11 +192,11 @@ def mat_nodes(m, chan, img, idx):
             gy = math_('GREATER_THAN', math_('ABSOLUTE', math_('SUBTRACT', math_('FRACT', math_('DIVIDE', Y, 1.8)), .5)), .485)
             return mul(c, math_('MULTIPLY_ADD', math_('MAXIMUM', gx, gy), -.3, 1))
         if name == 'glass':
-            t = node('ShaderNodeMapRange'); t.inputs[1].default_value = 9.3; t.inputs[2].default_value = 12.4; link(Z, t.inputs[0])
+            t = node('ShaderNodeMapRange'); t.inputs[1].default_value = GY0; t.inputs[2].default_value = GY1; link(Z, t.inputs[0])
             c = ramp(t.outputs[0], '#223330', '#4d6663')
             # steel grid lines (mullions every BAY, mid rail) so LOD1 keeps the grid without geometry
-            vx = math_('LESS_THAN', math_('ABSOLUTE', math_('SUBTRACT', math_('FRACT', math_('ADD', math_('DIVIDE', X, BAY), .5)), .5)), .03)
-            hz = math_('LESS_THAN', math_('ABSOLUTE', math_('SUBTRACT', Z, 10.85)), .05)
+            vx = math_('LESS_THAN', math_('ABSOLUTE', math_('SUBTRACT', math_('FRACT', math_('ADD', math_('DIVIDE', X, BAY), .5)), .5)), LW)
+            hz = math_('LESS_THAN', math_('ABSOLUTE', math_('SUBTRACT', Z, GM)), .06)
             mx = node('ShaderNodeMixRGB'); link(c, mx.inputs['Color1']); mx.inputs['Color2'].default_value = lin('#1a1d20'); link(math_('MAXIMUM', vx, hz), mx.inputs['Fac'])
             return mx.outputs['Color']
         return None
@@ -208,13 +211,13 @@ def mat_nodes(m, chan, img, idx):
             link(Z, mr.inputs[0]); link(mr.outputs[0], em.inputs['Strength'])
         elif name == 'glass':
             cell = node('ShaderNodeCombineXYZ')
-            link(math_('FLOOR', math_('DIVIDE', X, BAY)), cell.inputs['X'])
-            link(math_('FLOOR', math_('DIVIDE', math_('SUBTRACT', Z, 9.3), 1.55)), cell.inputs['Y'])
+            link(math_('FLOOR', math_('DIVIDE', X, BAY * 3)), cell.inputs['X'])
+            link(math_('FLOOR', math_('DIVIDE', math_('SUBTRACT', Z, GY0), (GY1 - GY0) / 2)), cell.inputs['Y'])
             link(math_('SIGN', Y), cell.inputs['Z'])
             wn = node('ShaderNodeTexWhiteNoise'); wn.noise_dimensions = '3D'; link(cell.outputs[0], wn.inputs['Vector'])
             lit = math_('GREATER_THAN', wn.outputs['Value'], .35)
-            vx = math_('LESS_THAN', math_('ABSOLUTE', math_('SUBTRACT', math_('FRACT', math_('ADD', math_('DIVIDE', X, BAY), .5)), .5)), .03)
-            hz = math_('LESS_THAN', math_('ABSOLUTE', math_('SUBTRACT', Z, 10.85)), .05)
+            vx = math_('LESS_THAN', math_('ABSOLUTE', math_('SUBTRACT', math_('FRACT', math_('ADD', math_('DIVIDE', X, BAY), .5)), .5)), LW)
+            hz = math_('LESS_THAN', math_('ABSOLUTE', math_('SUBTRACT', Z, GM)), .06)
             pane = math_('SUBTRACT', 1, math_('MAXIMUM', vx, hz))                           # steel grid stays dark
             em.inputs['Color'].default_value = lin('#ffb866'); link(math_('MULTIPLY', math_('MULTIPLY_ADD', lit, .4, .1), pane), em.inputs['Strength'])
         elif name == 'soffit': em.inputs['Color'].default_value = lin('#ffd7a0'); em.inputs['Strength'].default_value = .38
@@ -250,8 +253,8 @@ def bounds_of(glb):
 
 
 def run(lod):
-    global SIZE
-    SIZE = 1024 if lod == 0 else 512
+    global SIZE, LW
+    SIZE = 1024 if lod == 0 else 512; LW = .08 if lod == 0 else .15
     bpy.ops.wm.read_factory_settings(use_empty=True)
     sc = bpy.context.scene; sc.render.engine = 'CYCLES'; sc.cycles.device = 'CPU'; sc.cycles.use_denoising = False
     sc.view_settings.view_transform = 'Standard'
