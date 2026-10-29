@@ -6,7 +6,7 @@ print(js(r'''(async () => {
   const { buildCity } = await import('./js/world/city.js');
   const { buildLandmarks } = await import('./js/world/landmarks.js');
   const { PALETTE: P } = await import('./js/world/palette.js');
-  const { routePoints, routeCurve } = await import('./js/world/layout.js');
+  const { routePoints, routeCurve, treeRegion } = await import('./js/world/layout.js');
   const { isWembleyBenchmark } = await import('./js/world/layout.js');
   const { stops } = await import('./js/content.js');
   const { walkPaths } = await import('./js/world/crowd.js');
@@ -19,7 +19,7 @@ print(js(r'''(async () => {
   const countTrunk = (...b) => { if (b[6] === P.trunk) expected++; };
   const countTree = () => expected++;
   buildCity(countTrunk, stops, pts, routeCurve(T,pts), countTree); buildLandmarks(countTrunk, stops, pts, countTree);
-  const mesh = await createTrees(placements), check = (ok, msg) => { if (!ok) throw Error(msg); };
+  const regionOf = treeRegion(stops, pts), mesh = await createTrees(placements, regionOf), check = (ok, msg) => { if (!ok) throw Error(msg); };
   const batches = mesh.userData.batches;
   check(batches?.length && batches.every(b => b.lods.length===3 && b.lods[0].canopy && b.lods[1].canopy && b.lods[2].impostor), 'tree chunks expose detailed, simplified and impostor LODs');
   const canopies = batches.flatMap(b => [b.lods[0].canopy]), trunks = batches.flatMap(b => [b.lods[0].trunk]);
@@ -54,6 +54,9 @@ print(js(r'''(async () => {
     }
   }
   trunks.forEach((t, k) => check(t.count === canopies[k].count && t.name.split('-').pop() === canopies[k].name.split('-').pop() && t.instanceColor, 'trunk matches canopy')); // paired per type per chunk
+  const fams = new Map(); for (const b of batches) { const f = b.lods[0].canopy.name.split('-')[2]; fams.set(f, (fams.get(f) ?? 0) + b.lods[0].canopy.count); }
+  for (const r of ['sp','london','glasgow']) { const set = new Set(placements.filter(p => regionOf(p.x,p.z)===r).length ? [r] : []); check(set.size, 'region has trees: '+r); }
+  check(fams.size >= 4, 'at least four tree families in use: '+[...fams.keys()]);
   check(heights.size>3 && tints.size>3 && newTrees.length>=3, 'trees need varied heights and tints');
   const reducedTris=batches.reduce((n,b)=>n+b.lods[1].canopy.geometry.attributes.position.count/3*b.lods[1].canopy.count,0);
   check(stats.tris>reducedTris,'LOD1 reduces canopy detail without constraining the authored LOD0 triangle count');
@@ -73,5 +76,5 @@ print(js(r'''(async () => {
     }
   }
   mesh.userData.dispose(); mesh.userData.dispose();
-  return {pass:true, trees:placements.length, benchmarkTrees:newTrees.length, heights:heights.size, drawBatches:mesh.children.length, tris:stats.tris, pathSamples:samples};
+  return {pass:true, trees:placements.length, benchmarkTrees:newTrees.length, heights:heights.size, drawBatches:mesh.children.length,chunks:batches.length,families:Object.fromEntries(fams), tris:stats.tris, pathSamples:samples};
 })()'''))
