@@ -2,6 +2,7 @@
 // once via buildPhoneBoxes() (geometry in kiosk-mesh.js, loaded lazily so node tests need no three).
 const spots = [];
 export function phoneBox(_add, x, z, yaw = 0) { spots.push([x, z, yaw]); }
+export const kioskSpots = () => spots.map(([x, z]) => [x, z]);
 export async function buildPhoneBoxes() {
   if (!spots.length) return null;
   const group = (await import('./kiosk-mesh.js')).buildKiosks(spots.splice(0));

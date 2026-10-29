@@ -8,8 +8,9 @@ import { buildCity, tree } from './city.js';
 import { buildRealCity } from './real-city.js';
 import { createHeroRealm } from './hero-realm.js';
 import { createTrees } from './trees.js';
-import { buildPhoneBoxes } from './phone.js';
-import { buildLampPosts } from './street-lamp.js';
+import { buildPhoneBoxes, kioskSpots } from './phone.js';
+import { buildLampPosts, lampSpots } from './street-lamp.js';
+import { placeStreetProps, buildStreetProps } from './street-props.js';
 import { buildBackdrop } from './backdrop.js';
 import { createSkyline } from './skyline.js';
 import { buildLandmarks } from './landmarks.js';
@@ -90,11 +91,14 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const t = treePlacements[i], radius = t.crown / 2;
     if (infill.some(p => Math.abs(t.x - p.x) < p.width / 2 + radius && Math.abs(t.z - p.z) < p.depth / 2 + radius)) treePlacements.splice(i, 1);
   }
+  const arc = parkingBays(curve, pts, stops, pilotCrossings); // shared by the street props and the road marks
+  const streetProps = placeStreetProps({ stops, pts, curve, arc, pilotCrossings, boxes: list, trees: treePlacements, lamps: lampSpots(), kiosks: kioskSpots(), plots: [...architecturePlots, ...buildingPlots], exclude: publicRealmZones });
   let trees;
   try { trees = await createTrees(treePlacements); scene.add(trees); }
   catch { treePlacements.forEach(({ x, z, ...shape }) => tree(add, x, z, shape)); } // retain trees if the texture cannot load
   const phones = await buildPhoneBoxes(); if (phones) scene.add(phones);
   const lampPosts = await buildLampPosts(); if (lampPosts) scene.add(lampPosts);
+  const propsGroup = await buildStreetProps(streetProps); if (propsGroup) scene.add(propsGroup); // before createSky: the Belisha globes join its night glow loop
   const architecture = await realCity;scene.add(architecture);
   const mini = buildVehicle('mini', { hero: true }), londonBus = buildVehicle('london', { hero: true }), glasgowBus = buildVehicle('glasgow', { hero: true });
   const candidates = [mini, londonBus, glasgowBus], heroVehicles = { mini, london: londonBus, glasgow: glasgowBus };
@@ -112,7 +116,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   world.traverse((o) => { const h = o.material?.color?.getHexString(); if (o.material?.userData.glow) { if (h === WIN_L.slice(1)) o.material.userData.glowColor = new THREE.Color('#ffb04a'); if (h === RG.slice(1)) o.material.userData.glowColor = new THREE.Color('#d8e86a'); if (h === RB.slice(1)) o.material.userData.glowColor = new THREE.Color('#bcd4ff'); } });
   polishLandmarkMaterials(world,stops,pts);
   const motion = buildMotion(); scene.add(motion.group);
-  const roadMarks = createRoadMarks(curve, stops, { ...parkingBays(curve, pts, stops, pilotCrossings), pilotCrossings });
+  const roadMarks = createRoadMarks(curve, stops, { ...arc, pilotCrossings });
   scene.add(world, eye, details, plane, shadow, bus, roadMarks);
   const units = [createAmbient(scene, { curve, pts, stops, reducedMotion }), createParked(scene, { curve, pts, stops, pilotCrossings })];
   const people = createPeople(scene, { curve, pts, stops, reducedMotion });
@@ -299,7 +303,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       architecture.userData.dispose?.();
       underpass.group.userData.dispose(); bridgeCars.dispose();
       heroRealm?.userData.dispose();
-      roadMarks.userData.dispose();
+      roadMarks.userData.dispose(); propsGroup?.userData.dispose();
       rain.dispose?.();
       wetSurfaces.dispose();
       sky.dispose();
