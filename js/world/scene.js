@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
 import { routeT, nearestStop, stopMarks, fineMarks } from '../scroll.js';
-import { routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, FRAME_LIFT, swapAt, heroVehicleAt, ukStart } from './layout.js';
+import { routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, FRAME_LIFT, swapAt, heroVehicleAt, ukStart, treeRegion } from './layout.js';
 import { createBoxes, buildMeshes } from './voxel.js';
 import { buildMotion } from './motion.js';
 import { buildCity, tree } from './city.js';
@@ -91,7 +91,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     if (infill.some(p => Math.abs(t.x - p.x) < p.width / 2 + radius && Math.abs(t.z - p.z) < p.depth / 2 + radius)) treePlacements.splice(i, 1);
   }
   let trees;
-  try { trees = await createTrees(treePlacements); scene.add(trees); }
+  try { trees = await createTrees(treePlacements, treeRegion(stops, pts)); scene.add(trees); }
   catch { treePlacements.forEach(({ x, z, ...shape }) => tree(add, x, z, shape)); } // retain trees if the texture cannot load
   const phones = await buildPhoneBoxes(); if (phones) scene.add(phones);
   const lampPosts = await buildLampPosts(); if (lampPosts) scene.add(lampPosts);

@@ -24,35 +24,50 @@ export function leafTexture() {
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
 }
 
+// Crown species. Family order = impostor atlas tile order. `profile(y)` scales the horizontal radius along the crown height (y in [-1, 1]).
+export const FAMILIES = ['round', 'column', 'spread', 'bloom', 'conifer'];
+export const PROFILE = {
+  round: () => 1, spread: () => 1, bloom: () => 1,
+  column: (y) => (y > 0.2 ? 1 - 0.55 * ((y - 0.2) / 0.8) ** 2 : 1), // pointed top (poplar / cypress / palm-like)
+  conifer: (y) => 0.1 + 0.9 * (1 - y) / 2, // cone, widest at the skirt
+};
+const TILE = 128, TILES = FAMILIES.length;
+
+// Neutral greys only (shade, no hue): the instance tint colours the impostor exactly like the leaf cards, so near and far trees match.
 export function impostorTexture() {
-  const cv=document.createElement('canvas');cv.width=512;cv.height=128;
-  const g=cv.getContext('2d');
-  for(let type=0;type<3;type++){
-    const ox=type*128,cx=ox+64,green=['#547a3e','#607f43','#718b4c'][type];
-    const bark=g.createLinearGradient(cx-4,0,cx+4,0);bark.addColorStop(0,'#30251e');bark.addColorStop(.5,'#74523a');bark.addColorStop(1,'#392a22');
-    g.fillStyle=bark;g.beginPath();g.moveTo(cx-3,126);g.lineTo(cx-2,66);g.lineTo(cx+2,66);g.lineTo(cx+3,126);g.fill();
-    for(let i=0;i<19;i++){
-      const a=i*2.399963,rad=(i%4)*5.5+3,x=cx+Math.cos(a)*rad,y=48+Math.sin(a)*rad*.78;
-      const shade=green;
-      const grad=g.createRadialGradient(x-4,y-5,1,x,y,20);grad.addColorStop(0,['#91a962','#9bab67','#a4b16e'][type]);grad.addColorStop(.55,shade);grad.addColorStop(1,['#38572d','#405d32','#4a6638'][type]);
-      g.fillStyle=grad;g.beginPath();g.ellipse(x,y,16+(i%3)*2,14+(i%4)*2,a*.15,0,Math.PI*2);g.fill();
+  const cv = document.createElement('canvas'); cv.width = TILE * TILES; cv.height = TILE;
+  const g = cv.getContext('2d');
+  FAMILIES.forEach((fam, type) => {
+    const cx = type * TILE + 64, prof = PROFILE[fam], conifer = fam === 'conifer', n = conifer ? 46 : 30, br = conifer ? 11 : 16;
+    const bark = g.createLinearGradient(cx - 4, 0, cx + 4, 0); bark.addColorStop(0, '#6a6a6a'); bark.addColorStop(0.5, '#a0a0a0'); bark.addColorStop(1, '#707070');
+    g.fillStyle = bark; g.beginPath(); g.moveTo(cx - 3, 127); g.lineTo(cx - 2, 90); g.lineTo(cx + 2, 90); g.lineTo(cx + 3, 127); g.fill();
+    const blobs = Array.from({ length: n }, (_, i) => { // sort bottom-up: lower (darker) blobs first, sunlit tops last
+      const u = (conifer ? i / (n - 1) : hash(i, type, 21)) * 2 - 1, half = prof(u) * Math.sqrt(Math.max(0, 1 - u * u)) * (conifer ? 1 : 1) , a = hash(i, type, 22) * 2 - 1;
+      return { u, x: cx + a * Math.max(0, (conifer ? prof(u) : half) * 60 - br * 0.8), y: 52 - u * (50 - br) };
+    }).sort((p, q) => q.y - p.y);
+    for (const { u, x, y } of blobs) {
+      const lit = (u + 1) / 2, hi = 150 + lit * 85, lo = 95 + lit * 55, gr = g.createRadialGradient(x - 3, y - 4, 1, x, y, br + 4);
+      gr.addColorStop(0, `rgb(${hi},${hi},${hi})`); gr.addColorStop(0.6, `rgb(${(hi + lo) / 2 | 0},${(hi + lo) / 2 | 0},${(hi + lo) / 2 | 0})`); gr.addColorStop(1, `rgb(${lo | 0},${lo | 0},${lo | 0})`);
+      g.fillStyle = gr; g.beginPath(); g.ellipse(x, y, br + 3, br + 1, 0, 0, Math.PI * 2); g.fill();
     }
-    for(let i=0;i<84;i++){
-      const a=hash(i,type,22)*Math.PI*2,r=Math.sqrt(hash(i,type,23))*31,x=cx+Math.cos(a)*r,y=48+Math.sin(a)*r*.78;
-      g.fillStyle=i%3===0?'rgba(181,194,119,.5)':'rgba(28,50,24,.22)';g.beginPath();g.arc(x,y,1+hash(i,type,24)*1.8,0,Math.PI*2);g.fill();
+    for (let i = 0; i < 60; i++) { // leaf speckle inside the silhouette
+      const u = hash(i, type, 23) * 2 - 1, x = cx + (hash(i, type, 24) * 2 - 1) * prof(u) * Math.sqrt(Math.max(0, 1 - u * u)) * 50, y = 52 - u * 40;
+      g.fillStyle = i % 3 === 0 ? 'rgba(255,255,255,.28)' : 'rgba(0,0,0,.2)'; g.beginPath(); g.arc(x, y, 1 + hash(i, type, 25) * 1.8, 0, Math.PI * 2); g.fill();
     }
-  }
-  const texture=new THREE.CanvasTexture(cv);texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=4;return texture;
+  });
+  const texture = new THREE.CanvasTexture(cv); texture.colorSpace = THREE.SRGBColorSpace; texture.anisotropy = 4; return texture;
 }
 
+// Quad per family tile; the instance matrix scales it to 2*rw x (ground -> crown top), with the crown filling ~the top 80% of the tile.
 export function impostorGeometry(type) {
-  const index={small:0,medium:1,large:2}[type],inset=2/512,u0=index*.25+inset,span=.25-inset*2,g=new THREE.PlaneGeometry(1,1),uv=g.attributes.uv;
-  for(let i=0;i<uv.count;i++)uv.setX(i,u0+uv.getX(i)*span);
-  g.attributes.uv.needsUpdate=true;g.computeBoundingBox();g.computeBoundingSphere();return g;
+  const index = Math.max(0, FAMILIES.indexOf(type)), w = 1 / TILES, inset = 2 / (TILE * TILES), u0 = index * w + inset, span = w - inset * 2, g = new THREE.PlaneGeometry(1, 1), uv = g.attributes.uv;
+  for (let i = 0; i < uv.count; i++) uv.setX(i, u0 + uv.getX(i) * span);
+  g.translate(0, 0.5, 0); // origin at the quad's foot
+  g.attributes.uv.needsUpdate = true; g.computeBoundingBox(); g.computeBoundingSphere(); return g;
 }
 
 // Per type: inner masses [count, seed] + leaf cards per tree. Shape variants come from per-instance aspect in trees.js.
-const CROWN = { small: [4, 1, 60], medium: [5, 2, 80], large: [6, 3, 104] };
+const CROWN = { small: [4, 1, 60], medium: [5, 2, 80], large: [6, 3, 104], round: [5, 2, 80], column: [5, 4, 88], spread: [6, 3, 104], bloom: [4, 1, 66], conifer: [6, 5, 100] };
 
 // Crown = a few solid inner masses (shade + volume) covered with alpha-tested leaf cards (fringed silhouette, small-leaf detail).
 // Normals point out of the crown ("foliage normals") so light wraps it softly; colour darkens towards the inside/underside.
@@ -83,12 +98,13 @@ export function canopyGeometry(type, lod = 0) {
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   const p = g.attributes.position; let rad = 0, ymin = 1e9, ymax = -1e9; // normalise: radius 1, y in [-1, 1]
   for (let i = 0; i < p.count; i++) { rad = Math.max(rad, Math.hypot(p.getX(i), p.getZ(i))); ymin = Math.min(ymin, p.getY(i)); ymax = Math.max(ymax, p.getY(i)); }
-  const yc = (ymin + ymax) / 2, ys = 2 / (ymax - ymin);
-  for (let i = 0; i < p.count; i++) p.setXYZ(i, p.getX(i) / rad, (p.getY(i) - yc) * ys, p.getZ(i) / rad);
+  const yc = (ymin + ymax) / 2, ys = 2 / (ymax - ymin), prof = PROFILE[type] ?? PROFILE.round; let rad2 = 1e-9;
+  for (let i = 0; i < p.count; i++) { const y = (p.getY(i) - yc) * ys, k = prof(y) / rad; p.setXYZ(i, p.getX(i) * k, y, p.getZ(i) * k); rad2 = Math.max(rad2, Math.hypot(p.getX(i), p.getZ(i))); }
+  for (let i = 0; i < p.count; i++) p.setXYZ(i, p.getX(i) / rad2, p.getY(i), p.getZ(i) / rad2); // renormalise: widest ring has radius 1 again
   const nrm = new Float32Array(p.count * 3), col = new Float32Array(p.count * 3), v = new THREE.Vector3();
   for (let i = 0; i < p.count; i++) {
     v.fromBufferAttribute(p, i); const out = Math.min(1, v.length()), y = v.y;
-    const m = new THREE.Vector3(ctr[i * 3] / rad, (ctr[i * 3 + 1] - yc) * ys, ctr[i * 3 + 2] / rad), cl = v.clone().sub(m).normalize(); // out of this vertex's clump
+    const my = (ctr[i * 3 + 1] - yc) * ys, hk = prof(my) / rad / rad2, m = new THREE.Vector3(ctr[i * 3] * hk, my, ctr[i * 3 + 2] * hk), cl = v.clone().sub(m).normalize(); // out of this vertex's clump
     v.normalize().multiplyScalar(0.25).addScaledVector(cl, 0.75); // clump + crown normal: the sun models each lump, the crown stays one volume
     v.set(v.x, v.y * 0.8 + 0.25, v.z).normalize().toArray(nrm, i * 3); // tilted up so tops catch the sky
     const k = 1.08 * jit[i] * (0.55 + 0.48 * out ** 2) * (0.90 + 0.24 * THREE.MathUtils.clamp((y + 1) / 2, 0, 1)); // inner/underside shade, sunlit top

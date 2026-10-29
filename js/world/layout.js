@@ -88,3 +88,8 @@ export function furnitureSpots(stops, curve) {
   });
   return out;
 }
+// Tree species region by x: Sao Paulo (before the UK swap), London (to the Eye tail), countryside, Glasgow (scot ranges), countryside, London return.
+export const treeRegion = (stops, pts) => {
+  const X = (id) => pts[stopIndex(stops, id)].x, u = ukStart(stops), swap = (pts[u - 1].x + pts[u].x) / 2, [a, g, t] = [LANDMARKS.eye, LANDMARKS.glasgow, 'tribal'].map(X), w = a + TOWER_AT;
+  return (x) => (x < swap ? 'sp' : x < w + 55 ? 'london' : x < g - 110 ? 'country' : x < g + 55 ? 'glasgow' : x < t - 55 ? 'country' : 'london');
+};
