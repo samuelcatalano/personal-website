@@ -61,6 +61,8 @@ Rebuild command: `blender -b --factory-startup -P tools/buildings/townhouse-kit/
 | Asset | Path | Source | Licence |
 | --- | --- | --- | --- |
 | Shop facade module library | `assets/processed/buildings/shop-kit.glb` | Generated in-project by `tools/buildings/shop-kit/build_shop_kit.py` (Blender; original authored geometry and simple role materials; no external meshes or textures) | Project-owned |
+| Office facade module library | `assets/processed/buildings/office-kit.glb` | Generated in-project by `tools/buildings/office-kit/build_office_kit.py` (Blender; original geometry, role materials only) | Project-owned |
+| Tower facade module library | `assets/processed/buildings/tower-kit.glb` | Generated in-project by `tools/buildings/tower-kit/build_tower_kit.py` (Blender; original geometry, role materials only) | Project-owned |
 | Midrise facade module library | `assets/processed/buildings/midrise-kit.glb` | Generated in-project by `tools/buildings/midrise-kit/build_midrise_kit.py` (Blender; original authored geometry and simple role materials; no external meshes or textures) | Project-owned |
 
 Rebuild commands: `blender -b --factory-startup -P tools/buildings/shop-kit/build_shop_kit.py` and `blender -b --factory-startup -P tools/buildings/midrise-kit/build_midrise_kit.py`.

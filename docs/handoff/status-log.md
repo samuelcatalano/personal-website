@@ -88,3 +88,10 @@
   - Frame times (p95) were not measured; only calls and triangles, via a WebGL hook.
   - The shared user Chrome hung under load during final verification, so the final capture and console check ran in an isolated headless Chrome (console: 0 errors day and night).
 
+
+## 2026-10-29 (final wave): SP townhouses, office/tower kits, Phase 6
+
+- Commits: `271bdfe` (SP townhouse kit, 26 of 30 terraces), `8393dce` (office 25 + tower 12 kits, `?kits=office,tower`, `kit-place.js`, `hirise-kit.js`), `8f6389e` (procedural landmark IBL `landmark-env.js`, depth-only AO `ao-pass.js` replacing GTAO, `?ao=0`; Big Ben `metalness 0.2` workaround removed). All local, not pushed.
+- Verified: `node --test tests/` 116/116; browser tests building-slice, midrise, tower-slice, hirise-kit, townhouse-lod, zfight, trees, bigben-asset, final-art pass; capture grid stops 5/9.5/11 day+night looks right.
+- Not verified: citywide, vehicles, street-props browser suites time out under current machine load (also at baseline `271bdfe`, so not a regression); each test leaves its tab open, close tabs between runs. Draw-call budget with all kits together not re-measured; AO p95 only bounded (~+1 ms, software GL); kit frame time, London office/tower crops, lit-window emission at night under real shader unchecked.
+- Phase 6 decision: stay on ACES (AgX flatter, sky pre-inverted for ACES); no tone-mapper switch.
