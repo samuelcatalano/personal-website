@@ -19,7 +19,7 @@ Blender owns what the eye reads as quality: window/door depth, cornices, storefr
 | Buildings | procedural recipes → mass/trim/glass merged per 32×32 cell, 2 shared materials / 4 generated atlas maps (~4.3 MiB), LOD0/LOD1 (townhouse only) | facades are boxes + atlas texels: no real depth/silhouette, flat window reveals |
 | Vehicles | Blender scripts under `tools/vehicles/*` → plain GLB. Mini F56 24.6k tris (sourced, CC-BY-NC-SA), cab 8.2k, DD bus 5.9k, SP bus, regional fleet. Runtime swaps GLB materials for shared semantic ones (`CarBody`, `CarGlass`…) | **no compression**: raw source GLBs in repo (e.g. `honda-hr-v.glb` 47 MB, `mini-cooper-2011.glb` 20 MB, `toyota-corolla.glb` 14 MB; several unreferenced), no LODs, one wheel-split hack in JS |
 | Landmarks | procedural `landmark-geometry.js` (3 buckets each), Wellington statue GLB | silhouettes ok, surface detail flat |
-| Trees | procedural leaf-card crowns, 1 atlas, 250k tri budget | no LOD2 impostor, no real trunk/branch authoring |
+| Trees | procedural leaf-card crowns and branching trunks; instanced by 160 m chunks with LOD0/LOD1 and a camera-facing LOD2 atlas card | no Blender-authored tree GLB; current atlas is procedural |
 | Textures | canvas/procedural atlases; no KTX2 | memory and GPU upload cost scale with every new map |
 | Light | sun + hemi + night glow emissive; no baked light | flat contact shadows, no AO |
 | Asset hygiene | `ASSET_SOURCES.md` registry, build scripts per vehicle, `tools/capture.py`, GLB-aware tests | no manifest, no size/tri budget check, no reproducible optimise step |
@@ -28,6 +28,10 @@ Findings that change priorities:
 1. Raw multi-MB GLBs in `assets/vehicles/` are the largest payload risk; Meshopt + KTX2 attack it directly.
 2. Vehicles already have a working Blender → GLB loop, so a vehicle is the cheapest place to prove the full chain.
 3. Procedural buildings are a good *layout* layer; only the module detail needs authoring.
+
+### Phase 4 runtime slice — 2026-10-29
+
+The owner approved Phase 4. `trees.js` now keeps detailed and reduced 3D tree batches plus a two-triangle billboard using a generated 512×128 atlas. Chunks select LOD by camera-to-AABB distance with hysteresis; the existing 160 m spatial batches and planting descriptors remain unchanged. Phone boxes and lamp posts already use `InstancedMesh`; park furniture remains merged into the existing shared geometry batches, so this pass leaves their representation intact. No prop GLB/atlas was added.
 
 ## 3. Pipeline
 

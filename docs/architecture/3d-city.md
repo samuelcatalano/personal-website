@@ -12,6 +12,8 @@ The requested declaration `3D CITY VISUAL SYSTEM = PRODUCTION-READY` is withheld
 
 Approved delivered scope: townhouse/terrace, shop/mixed low-rise, midrise, office, tower; citywide rollout and deterministic diversity; hero/public realm, vegetation, lighting/atmosphere; shared glass, water; modernized Wembley, Big Ben/Parliament and MASP. No further visual work, rollout, optimization or new LOD is authorized. London Eye remains segmented by explicit decision.
 
+**2026-10-29 exception:** the owner approved Asset Pipeline Phase 4. Tree LOD0/LOD1/LOD2 is authorized within the existing planting data and 160 m batches; this does not reopen building LODs, map/layout changes or broader city rollout. Runtime details are recorded in [the asset-pipeline architecture](blender-asset-pipeline.md#phase-4-runtime-slice--2026-10-29).
+
 Production flow and policies below remain authoritative. Dated boundaries and intermediate NO-GO notes are delivery history, superseded by the user's final visual approval. See [final measurements and release gate](rendering-budget.md#final-milestone-validation--2026-10-21) and [art direction](../art-direction.md).
 
 Known limits: physical mobile not validated; WebGL/browser scheduling, runtime/GPU and random cloud counts affect observed metrics; submitted triangles include multiple passes, not unique geometry; London Eye remains segmented. No physical-VRAM or universal-FPS guarantee. Five smoke shots (main/skyline/Wembley/London/MASP) show no new visual regression; final technical release remains blocked as above.

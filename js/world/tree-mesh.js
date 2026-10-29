@@ -24,13 +24,40 @@ export function leafTexture() {
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
 }
 
+export function impostorTexture() {
+  const cv=document.createElement('canvas');cv.width=512;cv.height=128;
+  const g=cv.getContext('2d');
+  for(let type=0;type<3;type++){
+    const ox=type*128,cx=ox+64,green=['#547a3e','#607f43','#718b4c'][type];
+    const bark=g.createLinearGradient(cx-4,0,cx+4,0);bark.addColorStop(0,'#30251e');bark.addColorStop(.5,'#74523a');bark.addColorStop(1,'#392a22');
+    g.fillStyle=bark;g.beginPath();g.moveTo(cx-3,126);g.lineTo(cx-2,66);g.lineTo(cx+2,66);g.lineTo(cx+3,126);g.fill();
+    for(let i=0;i<19;i++){
+      const a=i*2.399963,rad=(i%4)*5.5+3,x=cx+Math.cos(a)*rad,y=48+Math.sin(a)*rad*.78;
+      const shade=green;
+      const grad=g.createRadialGradient(x-4,y-5,1,x,y,20);grad.addColorStop(0,['#91a962','#9bab67','#a4b16e'][type]);grad.addColorStop(.55,shade);grad.addColorStop(1,['#38572d','#405d32','#4a6638'][type]);
+      g.fillStyle=grad;g.beginPath();g.ellipse(x,y,16+(i%3)*2,14+(i%4)*2,a*.15,0,Math.PI*2);g.fill();
+    }
+    for(let i=0;i<84;i++){
+      const a=hash(i,type,22)*Math.PI*2,r=Math.sqrt(hash(i,type,23))*31,x=cx+Math.cos(a)*r,y=48+Math.sin(a)*r*.78;
+      g.fillStyle=i%3===0?'rgba(181,194,119,.5)':'rgba(28,50,24,.22)';g.beginPath();g.arc(x,y,1+hash(i,type,24)*1.8,0,Math.PI*2);g.fill();
+    }
+  }
+  const texture=new THREE.CanvasTexture(cv);texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=4;return texture;
+}
+
+export function impostorGeometry(type) {
+  const index={small:0,medium:1,large:2}[type],inset=2/512,u0=index*.25+inset,span=.25-inset*2,g=new THREE.PlaneGeometry(1,1),uv=g.attributes.uv;
+  for(let i=0;i<uv.count;i++)uv.setX(i,u0+uv.getX(i)*span);
+  g.attributes.uv.needsUpdate=true;g.computeBoundingBox();g.computeBoundingSphere();return g;
+}
+
 // Per type: inner masses [count, seed] + leaf cards per tree. Shape variants come from per-instance aspect in trees.js.
-const CROWN = { small: [4, 1, 60], medium: [5, 2, 80], large: [6, 3, 104] }; // ponytail: few big masses + clump cards keep ~450 tris/tree so ~2x the trees fit the 250k budget (tests/trees.browser.py)
+const CROWN = { small: [4, 1, 60], medium: [5, 2, 80], large: [6, 3, 104] };
 
 // Crown = a few solid inner masses (shade + volume) covered with alpha-tested leaf cards (fringed silhouette, small-leaf detail).
 // Normals point out of the crown ("foliage normals") so light wraps it softly; colour darkens towards the inside/underside.
-export function canopyGeometry(type) {
-  const [count, seed, cards] = CROWN[type], masses = [], pos = [], uv = [], jit = [], ctr = [];
+export function canopyGeometry(type, lod = 0) {
+  const [count, seed, fullCards] = CROWN[type], cards=lod?Math.ceil(fullCards*.48):fullCards, masses = [], pos = [], uv = [], jit = [], ctr = [];
   for (let k = 0; k < count; k++) {
     const th = (k + hash(k, seed, 1) * 0.6) / count * Math.PI * 2, ph = Math.acos(1 - 2 * (0.15 + hash(seed, k, 2) * 0.7)), shell = k ? 0.4 + 0.16 * hash(k, k, seed) : 0;
     masses.push([Math.sin(ph) * Math.cos(th) * shell, Math.cos(ph) * shell * 0.8 + (k ? 0 : 0.05), Math.sin(ph) * Math.sin(th) * shell, k ? 0.5 + hash(k, 3, seed) * 0.12 : 0.62]);
@@ -72,22 +99,22 @@ export function canopyGeometry(type) {
 }
 
 // Trunk: flared base with surface roots, a slight lean/twist, and 3-5 branches reaching into the crown (y = 1 is the crown centre).
-export function trunkGeometry(type) {
+export function trunkGeometry(type,lod=0) {
   const bark = new THREE.Color('#4b3c33'), dark = new THREE.Color('#2f2621'), tip = new THREE.Color();
   const limb = (r0, r1, from, to, seg) => { // tapered cylinder between two points, smooth normals
     const a = new THREE.Vector3(...from), b = new THREE.Vector3(...to), g = new THREE.CylinderGeometry(r1, r0, a.distanceTo(b), seg, 2, true);
     g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize()));
     g.translate(...a.add(b).multiplyScalar(0.5).toArray()); const n = g.toNonIndexed(); g.dispose(); return n;
   };
-  const R = { small: 0.1, medium: 0.12, large: 0.14 }[type], forks = { small: 3, medium: 4, large: 5 }[type], s = { small: 1, medium: 2, large: 3 }[type];
-  const parts = [limb(R * 1.45, R * 1.05, [0, 0, 0], [0.03, 0.3, 0.02], 8), limb(R * 1.05, R * 0.8, [0.03, 0.3, 0.02], [-0.02, 0.58, 0.04], 8)];
-  for (let i = 0; i < 5; i++) { // surface roots
+  const R = { small: 0.1, medium: 0.12, large: 0.14 }[type], forks = { small: 3, medium: 4, large: 5 }[type], s = { small: 1, medium: 2, large: 3 }[type], rootCount=lod?3:5;
+  const parts = [limb(R * 1.45, R * 1.05, [0, 0, 0], [0.03, 0.3, 0.02], lod?6:8), limb(R * 1.05, R * 0.8, [0.03, 0.3, 0.02], [-0.02, 0.58, 0.04], lod?6:8)];
+  for (let i = 0; i < rootCount; i++) { // surface roots
     const a = i * Math.PI * 2 / 5 + hash(i, s, 1) * 0.6, l = 0.32 + hash(i, s, 2) * 0.14;
-    parts.push(limb(R * 0.75, R * 0.12, [Math.cos(a) * R * 0.6, 0.14, Math.sin(a) * R * 0.6], [Math.cos(a) * l, -0.01, Math.sin(a) * l], 5));
+    parts.push(limb(R * 0.75, R * 0.12, [Math.cos(a) * R * 0.6, 0.14, Math.sin(a) * R * 0.6], [Math.cos(a) * l, -0.01, Math.sin(a) * l], lod?3:5));
   }
   for (let i = 0; i < forks; i++) { // branches lean outward into the crown
     const a = i * Math.PI * 2 / forks + 0.5 + hash(i, s, 3) * 0.5, out = 0.32 + hash(i, s, 4) * 0.2, top = 0.92 + hash(i, s, 5) * 0.3;
-    parts.push(limb(R * 0.62, R * 0.22, [-0.02, 0.52, 0.04], [Math.cos(a) * out, top, Math.sin(a) * out], 6));
+    if(!lod||i%2===0)parts.push(limb(R * 0.62, R * 0.22, [-0.02, 0.52, 0.04], [Math.cos(a) * out, top, Math.sin(a) * out], lod?4:6));
   }
   const g = mergeGeometries(parts); g.deleteAttribute('uv'); g.computeVertexNormals();
   const p = g.attributes.position, c = new Float32Array(p.count * 3);

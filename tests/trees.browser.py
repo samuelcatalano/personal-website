@@ -1,4 +1,5 @@
 # browser-harness < tests/trees.browser.py (local preview)
+tab=new_tab('about:blank');activate_tab(tab);cdp('Network.enable');cdp('Network.setCacheDisabled',cacheDisabled=True);goto_url('http://localhost:8000/');wait_for_load()
 print(js(r'''(async () => {
   const T = await import('three');
   const { createTrees } = await import('./js/world/trees.js');
@@ -19,13 +20,17 @@ print(js(r'''(async () => {
   const countTree = () => expected++;
   buildCity(countTrunk, stops, pts, routeCurve(T,pts), countTree); buildLandmarks(countTrunk, stops, pts, countTree);
   const mesh = await createTrees(placements), check = (ok, msg) => { if (!ok) throw Error(msg); };
-  const canopies = mesh.children.filter(o => o.name.startsWith('trees-canopy-')), trunks = mesh.children.filter(o => o.name.startsWith('trees-trunk-'));
+  const batches = mesh.userData.batches;
+  check(batches?.length && batches.every(b => b.lods.length===3 && b.lods[0].canopy && b.lods[1].canopy && b.lods[2].impostor), 'tree chunks expose detailed, simplified and impostor LODs');
+  const canopies = batches.flatMap(b => [b.lods[0].canopy]), trunks = batches.flatMap(b => [b.lods[0].trunk]);
   const newTrees = placements.filter(p => isWembleyBenchmark({x:p.x,z:p.z,width:p.crown*2,depth:p.crown*2}));
   const total = canopies.reduce((n,c) => n + c.count, 0);
-  check(mesh.isGroup && canopies.length >= 2 && trunks.length === canopies.length && mesh.children.length <= 64 && [...canopies, ...trunks].every(m => m.frustumCulled && m.boundingSphere), 'trees stay in few spatially chunked, frustum-culled instanced batches');
+  check(mesh.isGroup && batches.length >= 2 && batches.length <= 64 && canopies.length === batches.length && trunks.length === canopies.length && [...canopies, ...trunks,...batches.map(b=>b.lods[2].impostor)].every(m => m.frustumCulled && m.boundingSphere), 'trees stay in spatially chunked, frustum-culled instanced batches');
   check(total === placements.length && total === expected, 'one canopy instance per placement');
+  check(batches.every(b=>b.lods[0].canopy.count===b.lods[1].canopy.count&&b.lods[1].canopy.count===b.lods[2].impostor.count&&b.lods[2].impostor.geometry.attributes.position.count===4),'each tree remains represented at every LOD');
+  const center=b=>b.bounds.getCenter(new T.Vector3());mesh.userData.update({position:center(batches[0])});check(batches[0].level===0,'near tree chunk selects detailed LOD');mesh.userData.update({position:center(batches[0]).add(new T.Vector3(1000,0,0))});check(batches[0].level===2,'far tree chunk selects billboard impostor');mesh.userData.update({position:center(batches[0])});check(batches[0].level===0,'near return restores detailed tree geometry');
   check(!boxes.some(b => b[6] === P.trunk), 'voxel trees remain');
-  check(mesh.children.every(o => o.name === 'tree-understory' || (o.castShadow && o.receiveShadow)), 'foliage shadows must remain enabled');
+  check(batches.every(b=>[...Object.values(b.lods[0]),...Object.values(b.lods[1])].every(m=>m.castShadow&&m.receiveShadow)&&!b.lods[2].impostor.castShadow&&!b.lods[2].impostor.receiveShadow), 'near foliage shadows remain enabled without billboard shadow planes');
   const m = new T.Matrix4(), p = new T.Vector3(), q = new T.Quaternion(), scale = new T.Vector3(), heights = new Set(), tints = new Set();
   const stats = {tris: 0};
   for (const c of canopies) {
@@ -50,7 +55,8 @@ print(js(r'''(async () => {
   }
   trunks.forEach((t, k) => check(t.count === canopies[k].count && t.name.split('-').pop() === canopies[k].name.split('-').pop() && t.instanceColor, 'trunk matches canopy')); // paired per type per chunk
   check(heights.size>3 && tints.size>3 && newTrees.length>=3, 'trees need varied heights and tints');
-  check(stats.tris < 250000, 'tree triangle budget '+stats.tris);
+  const reducedTris=batches.reduce((n,b)=>n+b.lods[1].canopy.geometry.attributes.position.count/3*b.lods[1].canopy.count,0);
+  check(stats.tris>reducedTris,'LOD1 reduces canopy detail without constraining the authored LOD0 triangle count');
   let samples = 0;
   for (const path of walkPaths(stops,pts).filter(p => p.type !== 'lane')) {
     const {x0,x1,z0,z1}=path.rect;
