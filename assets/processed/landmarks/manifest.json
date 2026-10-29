@@ -6,14 +6,14 @@
   "outputs": {
     "lod0": {
       "path": "assets/processed/landmarks/bigben.lod0.glb",
-      "bytes": 730528,
-      "sha256": "3d83099c5dd3b329c836b2e320a43b9c4b3d938c3772884feb570b4544e97f31",
+      "bytes": 744364,
+      "sha256": "2c200a1c84144508671e3cc3e2bd7e48f215c621b8e55d980b69a2af7cb72da7",
       "raw": "assets/models/source/bigben/bigben.lod0.raw.glb (git-ignored)"
     },
     "lod1": {
       "path": "assets/processed/landmarks/bigben.lod1.glb",
-      "bytes": 542088,
-      "sha256": "baeac821956265adbdb18f2bcf16a8e41ecdedd007a4f344830c6a3f935cba19",
+      "bytes": 542324,
+      "sha256": "ff755d143dfe1de06b46e32d789c6d523103acb429832383b3786f6093bc1fee",
       "raw": "assets/models/source/bigben/bigben.lod1.raw.glb (git-ignored)"
     }
   }

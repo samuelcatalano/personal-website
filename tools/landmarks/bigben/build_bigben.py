@@ -136,30 +136,30 @@ def fb(b, N, U, u, y0, w, h, d0, d1, m, skip=(), hw=2.95):
 
 def tower(b):
     cz = TZ; L0 = b.lod == 0
-    b.ring(0, cz, (2.3, 2.3), (2.1, 2.1), 0, 2.2, BASE, bot=False)                 # darker plain base block
+    b.ring(0, cz, (3.0, 3.0), (2.7, 2.7), 0, 2.2, BASE, bot=False)                 # darker plain base block
     YT = [2.4, 7.45, 12.45]
     def shaft(w, N):                                                                 # 3 tiers: 6 long thin slits + 4 blind arches each
         o = []
         for y0 in YT:
             for k in range(6):
-                u = w / 2 - 1.375 + k * .55
+                u = w / 2 - 2.0 + k * .8
                 o.append(([(u - .06, y0 + .5 - 2.2), (u + .06, y0 + .5 - 2.2), (u + .06, y0 + 2.5 - 2.2), (u - .06, y0 + 2.5 - 2.2)], DK, .16))
-            o += [(arch5(w / 2 - 1.2 + k * .8, y0 + 3.1 - 2.2, .42, .8), SH if L0 else None, .15) for k in range(4)]
+            o += [(arch5(w / 2 - 1.8 + k * .9, y0 + 3.1 - 2.2, .46, .8), SH if L0 else None, .15) for k in range(5)]
         return o
-    b.sides(0, cz, 2.1, 2.1, 2.2, 14.9, shaft, SH, .16)
-    for y, h in ((6.85, .25), (7.2, .12), (11.9, .25), (12.25, .12), (16.85, .25)): b.ring(0, cz, (2.22, 2.22), (2.1, 2.1), y, h, TAN)
-    b.ring(0, cz, (2.7, 2.7), (2.22, 2.22), 17.1, .3, TAN, top=False)
-    b.sides(0, cz, 2.7, 2.7, 17.4, .5, lambda w, N: [(arch5(w / 2 - 2.1 + k * .6, .08, .4, .34), BASE if L0 else None, .15) for k in range(8)], TAN, .15)  # machicolation row
-    b.ring(0, cz, (2.95, 2.95), (2.7, 2.7), 17.9, .1, TAN, top=False)
+    b.sides(0, cz, 2.7, 2.7, 2.2, 14.9, shaft, SH, .16)
+    for y, h in ((6.85, .25), (7.2, .12), (11.9, .25), (12.25, .12), (16.85, .25)): b.ring(0, cz, (2.8, 2.8), (2.7, 2.7), y, h, TAN)
+    b.ring(0, cz, (2.9, 2.9), (2.8, 2.8), 17.1, .3, TAN, top=False)
+    b.sides(0, cz, 2.9, 2.9, 17.4, .5, lambda w, N: [(arch5(w / 2 - 2.1 + k * .6, .08, .4, .34), BASE if L0 else None, .15) for k in range(8)], TAN, .15)  # machicolation row
+    b.ring(0, cz, (2.95, 2.95), (2.9, 2.9), 17.9, .1, TAN, top=False)
     for sx in (-1, 1):
         for sz in (-1, 1):
-            b.box(sx * 1.92, 2.2, cz + sz * 1.92, .56, 14.9, .56, TAN, ['-y', '+y'])
+            b.box(sx * 2.52, 2.2, cz + sz * 2.52, .56, 14.9, .56, TAN, ['-y', '+y'])
             b.box(sx * 2.78, 18, cz + sz * 2.78, .55, 6.25, .55, SH, ['-y'])
             b.box(sx * 2.78, 24.25, cz + sz * 2.78, .38, 1.75, .38, TAN, ['-y'])    # corner pinnacle + gold tip + cross
             b.frus(sx * 2.78, 26.0, cz + sz * 2.78, .2, .2, 0, 0, .6, GD)
             b.box(sx * 2.78, 26.6, cz + sz * 2.78, .06, .6, .06, GD, ['-y']); b.box(sx * 2.78, 26.95, cz + sz * 2.78, .34, .05, .05, GD); b.box(sx * 2.78, 26.95, cz + sz * 2.78, .05, .05, .34, GD)
-            b.box(sx * 1.78, 28.5, cz + sz * 1.78, .12, .7, .12, GD, ['-y'])      # lantern corner pinnacle + cross
-            b.box(sx * 1.78, 29.2, cz + sz * 1.78, .04, .5, .04, GD, ['-y']); b.box(sx * 1.78, 29.5, cz + sz * 1.78, .24, .04, .04, GD); b.box(sx * 1.78, 29.5, cz + sz * 1.78, .04, .04, .24, GD)
+            b.box(sx * 1.93, 28.5, cz + sz * 1.93, .12, .7, .12, GD, ['-y'])      # lantern corner pinnacle + cross
+            b.box(sx * 1.93, 29.2, cz + sz * 1.93, .04, .5, .04, GD, ['-y']); b.box(sx * 1.93, 29.5, cz + sz * 1.93, .24, .04, .04, GD); b.box(sx * 1.93, 29.5, cz + sz * 1.93, .04, .04, .24, GD)
     nd = 24 if b.lod == 0 else 12
     def stage(w, N):                                                                 # dial recess + gold-trimmed arcade of small pointed arches
         return [(circ(w / 2, 3.0, 1.75, nd), BZ if L0 else None, .25)] + [(arch5(w / 2 - 2.1 + k * .6, 5.5, .38, .4), DK, .15) for k in range(8)]
@@ -172,8 +172,8 @@ def tower(b):
         for u in (-2.55, 2.55): fb(b, N, U, u, 18.5, .1, 5.0, 0, .1, GD)               # beaded vertical edges
         dial(b, N, U)
     b.ring(0, cz, (3.05, 3.05), (2.75, 2.75), 23.95, .3, TAN, ib=(2.95, 2.95))
-    b.ring(0, cz, (2.8, 2.8), (2.7, 2.7), 24.25, .08, GD)
-    b.frus(0, 24.25, cz, 2.7, 2.7, 1.7, 1.7, 1.9, SL)                              # slate hip + 8 dormers
+    b.ring(0, cz, (2.95, 2.95), (2.85, 2.85), 24.25, .08, GD)
+    b.frus(0, 24.25, cz, 2.85, 2.85, 1.85, 1.85, 1.9, SL)                              # slate hip + 8 dormers
     for N, U in SIDES:
         for u in (-.9, .9):
             cx_, cz_ = N[0] * 2.3 + U[0] * u, N[2] * 2.3 + U[2] * u
@@ -182,19 +182,18 @@ def tower(b):
             fx, fz = cx_ + N[0] * .21, cz_ + N[2] * .21
             b.poly([(fx + U[0] * .13, 24.7, cz + fz + U[2] * .13), (fx - U[0] * .13, 24.7, cz + fz - U[2] * .13), (fx - U[0] * .13, 24.95, cz + fz - U[2] * .13), (fx + U[0] * .13, 24.95, cz + fz + U[2] * .13)], DK, N)
             b.frus(cx_, 25.05, cz + cz_, .28, .28, 0, 0, .4, GD)
-    b.ring(0, cz, (1.95, 1.95), (1.65, 1.65), 26.15, .15, GD)                       # gold open-work lantern
-    b.sides(0, cz, 1.65, 1.65, 26.3, 2.0, lambda w, N: [([(w / 2 - 1.26 + k * .42 + dx, .25 + dy) for dx, dy in ((-.11, 0), (.11, 0), (.11, 1.5), (-.11, 1.5))], LV, .16) for k in range(7)], GD, .16)
+    b.ring(0, cz, (2.1, 2.1), (1.8, 1.8), 26.15, .15, GD)                       # gold open-work lantern
+    b.sides(0, cz, 1.8, 1.8, 26.3, 2.0, lambda w, N: [([(w / 2 - 1.26 + k * .42 + dx, .25 + dy) for dx, dy in ((-.11, 0), (.11, 0), (.11, 1.5), (-.11, 1.5))], LV, .16) for k in range(7)], GD, .16)
     if L0:
         for N, U in SIDES:
-            for u in (-1.5, -.75, 0, .75, 1.5): fb(b, N, U, u, 26.3, .06, .34, .17, .23, GD, hw=1.65)
-        b.ring(0, cz, (1.89, 1.89), (1.81, 1.81), 26.62, .04, GD)
-    b.ring(0, cz, (1.95, 1.95), (1.45, 1.45), 28.3, .2, GD, ib=(1.65, 1.65))
-    b.ring(0, cz, (1.62, 1.62), (1.42, 1.42), 28.5, .18, GD)                       # crown cornice
-    b.frus(0, 28.68, cz, 1.42, 1.42, .1, .1, 3.9, SP)                               # tall narrow slate spire
+            for u in (-1.5, -.75, 0, .75, 1.5): fb(b, N, U, u, 26.3, .06, .34, .17, .23, GD, hw=1.8)
+        b.ring(0, cz, (2.04, 2.04), (1.96, 1.96), 26.62, .04, GD)
+    b.ring(0, cz, (2.1, 2.1), (1.6, 1.6), 28.3, .2, GD, ib=(1.8, 1.8))
+    b.ring(0, cz, (1.77, 1.77), (1.57, 1.57), 28.5, .18, GD)                       # crown cornice
+    b.frus(0, 28.68, cz, 1.57, 1.57, .1, .1, 3.9, SP)                               # tall narrow slate spire
     ap = (0, 32.58, cz)
     for dx, dz in ((1, 1), (1, -1), (-1, 1), (-1, -1), (1, 0), (-1, 0), (0, 1), (0, -1)):  # gold ribs
-        l = math.hypot(dx, dz); ux, uz = dx / l, dz / l; r = 1.42 if (dx and dz) else 1.42
-        P0 = (dx * 1.42 if dx else 0, 28.68, cz + (dz * 1.42 if dz else 0)); sh = .02
+        l = math.hypot(dx, dz); ux, uz = dx / l, dz / l;         P0 = (dx * 1.57 if dx else 0, 28.68, cz + (dz * 1.57 if dz else 0)); sh = .02
         P0 = (P0[0] + ux * sh, P0[1], P0[2] + uz * sh)
         b.poly([(P0[0] - uz * .045, P0[1], P0[2] + ux * .045), (P0[0] + uz * .045, P0[1], P0[2] - ux * .045), (ux * sh, ap[1], ap[2] + uz * sh)], GD, (ux, .3, uz))
     b.box(0, 32.5, cz, .07, 1.5, .07, GD, ['-y']); b.box(0, 33.3, cz, .4, .05, .05, GD); b.box(0, 33.3, cz, .05, .05, .4, GD)
