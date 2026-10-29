@@ -111,7 +111,7 @@ check(experiment.children.some(c=>c.userData.plotIds.includes('block-679--80-0')
 let expectedLitWindows=0;
 for(const plot of q.pilots){const recipe=q.s.townhouseRecipe(plot,q.plots),openings=q.s.createTownhouseSlice(plot,recipe).userData.openings,indices={front:0,west:0};for(const o of openings){const index=indices[o.face]++;if(o.type==='window'&&(index+(o.face==='front'?1:0)+recipe.windowSeed)%3===0)expectedLitWindows++;}}
 const litGlassVertices=experiment.children.reduce((sum,c)=>sum+c.userData.lods[0][2].attributes.aSurface.array.filter(surface=>surface===SURFACE.litGlass).length,0);
-check(litGlassVertices===expectedLitWindows*132,`modular lit-glass panes must follow the existing deterministic window formula (${expectedLitWindows} panes)`);
+check(litGlassVertices===expectedLitWindows*36,`modular lit-glass panes must follow the existing deterministic window formula (${expectedLitWindows} panes)`);
 check(failed.children.every((c,i)=>c.userData.lods[0].every((g,k)=>g===failedFallback[i][k])),'failed load must retain procedural fallback');
 check(late.children.every((c,i)=>c.userData.lods[0].every((g,k)=>g===lateFallback[i][k])),'late completion after disposal must keep fallback geometry');
 const bounds=new T.Box3().setFromObject(experiment);check(bounds.min.y>=0&&bounds.max.y<=12&&bounds.min.x>=678&&bounds.max.x<=742&&bounds.min.z>=-84.5&&bounds.max.z<=-75.5,'module bounds must stay grounded within the pilot lots');

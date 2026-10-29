@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { townhouseRecipe, createTownhouseSlice } from './building-slice.js';
+import { townhouseRecipe, createTownhouseSlice, loadTownhouseKit, modularGeometry } from './building-slice.js';
 import { midriseRecipe, createMidriseSlice } from './midrise-slice.js';
 import { officeRecipe, createOfficeSlice } from './office-slice.js';
 import { towerRecipe, createTowerSlice } from './tower-slice.js';
@@ -90,6 +90,26 @@ function tint(g,p) {
     }
   }
 }
+// Kit rollout: UK terraces (x>0; every Brazilian terrace sits at x<-10) swap their LOD0 for authored kit modules once the GLB loads. `?kit=off` keeps the procedural facade.
+// ponytail: x>0 is a map-region shortcut; use explicit lot metadata if the route is ever re-laid.
+const KIT_ON=!(typeof location!=='undefined'&&/[?&]kit=off\b/.test(location.search));
+const kitLot=(p,kind)=>KIT_ON&&kind==='townhouse'&&p.x>0;
+function houseGeometries(p,kind,neighbors,cell,level,modules) {
+  let geometries,dispose=null;
+  if(modules&&level===0&&kitLot(p,kind)){geometries=modularGeometry(p,rolloutRecipe(p,kind,neighbors),modules,true);tint({children:geometries.map(geometry=>({geometry}))},p);}
+  else{const h=building(p,kind,neighbors,level);tint(h,p);geometries=h.children.map(m=>m.geometry);}
+  geometries.forEach(g=>g.translate(p.x-cell.x,0,p.z-cell.z));
+  return geometries;
+}
+function mergeCell(cell,neighbors,level,modules) {
+  const houses=cell.plots.map(({p,kind})=>houseGeometries(p,kind,neighbors,cell,kind==='townhouse'?level:0,modules));
+  const merged=[0,1,2].map(k=>{
+    const geometry=mergeGeometries(houses.map(h=>h[k]),false);
+    if(!geometry)throw new Error('Incompatible city architecture bucket');geometry.computeBoundingBox();geometry.computeBoundingSphere();return geometry;
+  });
+  houses.flat().forEach(g=>g.dispose());
+  return merged;
+}
 export function createCityRollout(plots,neighbors=plots) {
   const group=new THREE.Group();group.name='citywide-architecture';
   const cells=new Map(),counts={townhouse:0,shop:0,midrise:0,office:0,tower:0},ids=new Set();
@@ -98,24 +118,31 @@ export function createCityRollout(plots,neighbors=plots) {
     const x=Math.floor(p.x/32)*32,z=Math.floor(p.z/32)*32,key=`${x}:${z}`;
     if(!cells.has(key))cells.set(key,{x,z,plots:[]});cells.get(key).plots.push({p,kind});
   }
-  const materials=townhouseMaterials(),start=performance.now();
+  let kitLots=0;const materials=townhouseMaterials(),start=performance.now(),chunkOf=new Map();
   for(const cell of cells.values()){
     const chunk=new THREE.Group();chunk.name=`architecture-cell-${cell.x}-${cell.z}`;chunk.position.set(cell.x,0,cell.z);
-    const hasLod=cell.plots.some(({kind})=>kind==='townhouse'),houses=cell.plots.map(({p,kind})=>{
-      const levels=[building(p,kind,neighbors)];if(hasLod&&kind==='townhouse')levels.push(building(p,kind,neighbors,1));
-      for(const h of levels){tint(h,p);h.children.forEach(m=>m.geometry.translate(p.x-cell.x,0,p.z-cell.z));}return levels;
-    }),lods=[];
-    for(let level=0;level<(hasLod?2:1);level++)lods.push([0,1,2].map(k=>{
-      const geometry=mergeGeometries(houses.map(h=>(h[level]||h[0]).children[k].geometry),false);
-      if(!geometry)throw new Error('Incompatible city architecture bucket');geometry.computeBoundingBox();geometry.computeBoundingSphere();return geometry;
-    }));
-    houses.flat().forEach(h=>h.children.forEach(m=>m.geometry.dispose()));
+    const hasLod=cell.plots.some(({kind})=>kind==='townhouse'),lods=[];
+    for(let level=0;level<(hasLod?2:1);level++)lods.push(mergeCell(cell,neighbors,level,null));
     lods[0].forEach((geometry,k)=>{const mesh=new THREE.Mesh(geometry,k===2?materials.glass:materials.architecture);mesh.name=['city-mass','city-trim','city-glass'][k];mesh.castShadow=k===0;mesh.receiveShadow=true;chunk.add(mesh);});
     const bounds=new THREE.Box3();lods.flat().forEach(g=>bounds.union(g.boundingBox));bounds.translate(chunk.position);
-    chunk.userData={plotIds:cell.plots.map(({p})=>p.id),lods,bounds,level:null};group.add(chunk);
+    chunk.userData={plotIds:cell.plots.map(({p})=>p.id),lods,bounds,level:null};group.add(chunk);chunkOf.set(cell,chunk);
   }
-  let disposed=false;group.userData={archetype:'citywide-architecture',plotIds:[...ids],counts,buildMs:performance.now()-start,
-    update(camera){for(const c of group.children){const d=c.userData,distance=d.bounds.distanceToPoint(camera.position);const level=d.lods.length===1?0:d.level===null?(distance<120?0:1):d.level===0?(distance>129?1:0):(distance<111?0:1);if(level!==d.level){c.children.forEach((m,k)=>m.geometry=d.lods[level][k]);d.level=level;}}},
-    dispose(){if(disposed)return;disposed=true;group.children.forEach(c=>c.userData.lods.flat().forEach(g=>g.dispose()));}};
+  for(const [cell,chunk] of chunkOf){const n=cell.plots.filter(({p,kind})=>kitLot(p,kind)).length;if(n){chunk.userData.kitCell=cell;chunk.userData.kit=null;kitLots+=n;}}
+  let disposed=false;let kit=null;group.userData={archetype:'citywide-architecture',get kitLots(){return kitLots},get kitReady(){return !!kit},plotIds:[...ids],counts,buildMs:performance.now()-start,
+    update(camera){
+      let built=0;
+      for(const c of group.children){
+        const d=c.userData,distance=d.bounds.distanceToPoint(camera.position);
+        // Kit LOD0 is built lazily (max one cell per update, from 140 m, LOD0 starts at 120) and dropped beyond 180 m, so resident memory follows the camera, not the city.
+        if(d.kitCell){
+          if(kit&&!d.kit&&distance<140&&built<(distance<125?3:1)){d.kit=mergeCell(d.kitCell,neighbors,0,kit);built++;d.level=d.level===0?null:d.level;if(d.lods[0]){d.lods[0].forEach(g=>g.dispose());d.lods[0]=null;}}
+          else if(d.kit&&distance>180){d.kit.forEach(g=>g.dispose());d.kit=null;d.level=d.level===0?null:d.level;}
+        }
+        const level=d.lods.length===1?0:d.level===null?(distance<120?0:1):d.level===0?(distance>129?1:0):(distance<111?0:1);
+        if(level!==d.level){const set=level===0?d.kit||d.lods[0]:d.lods[level];if(!set)continue;c.children.forEach((m,k)=>m.geometry=set[k]);d.level=level;}
+      }
+    },
+    dispose(){if(disposed)return;disposed=true;group.children.forEach(c=>{c.userData.lods.flat().forEach(g=>g?.dispose());c.userData.kit?.forEach(g=>g.dispose());});}};
+  if(kitLots)loadTownhouseKit().then(m=>{kit=m;}).catch(()=>{});
   return group;
 }
