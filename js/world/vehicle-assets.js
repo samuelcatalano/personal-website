@@ -9,6 +9,9 @@ import { destMat } from './buses.js';
 const URLS = { a330: 'a330.glb', bus: 'double-decker-bus.glb', 'sao-paulo': 'sao-paulo-bus.glb', mini: 'mini-cooper-2011.glb', cab: 'london-cab.glb' };
 // Production GLBs (tools/pipeline: weld/simplify/Meshopt) are the default; ?glb=raw forces the raw source GLB, and a failed processed load falls back to it.
 const PROCESSED = { mini: 'processed/vehicles/mini-cooper-2011.lod0.glb' };
+// Fleet models with a processed GLB (same coordinates, so catalog axles/beam anchors still apply). honda-hr-v stays raw: its triangles share no vertices, so it cannot be simplified.
+for (const id of ['toyota-corolla', 'vw-t-cross', 'nissan-qashqai', 'land-rover-range-rover', 'mercedes-e63-amg-s-wagon']) PROCESSED[id] = `processed/vehicles/${id}.glb`;
+const PIPELINE_V = '6'; // bump when processed GLBs are regenerated (cache busting)
 const useProcessed = typeof location === 'undefined' || new URLSearchParams(location.search).get('glb') !== 'raw';
 const cache = new Map();
 let fleetCatalog;
@@ -26,7 +29,7 @@ export function loadVehicleAsset(type) {
     const model = URLS[type] ? null : (await loadFleetCatalog()).find((m) => m.id === type);
     const raw = URLS[type] ? 'assets/vehicles/' + URLS[type] : model?.path, tries = [useProcessed && PROCESSED[type] ? 'assets/' + PROCESSED[type] : null, raw].filter(Boolean);
     for (const path of tries) { // processed first, raw source as fallback
-      const url = new URL('../../' + path, import.meta.url); if (model?.sha256 && path === raw) url.searchParams.set('v', model.sha256);
+      const url = new URL('../../' + path, import.meta.url); if (model?.sha256) url.searchParams.set('v', path === raw ? model.sha256 : PIPELINE_V + model.sha256.slice(0, 8));
       try { return (await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(url.href)).scene; } catch { /* next candidate */ }
     }
     return null;
