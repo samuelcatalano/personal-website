@@ -212,6 +212,7 @@ export function createCityBuildings(plots,{rollout=true}={}) {
     buildingCount++;
     kinds.add(plot.kind);
     if (benchmark) { benchmarkCount++; benchmarkKinds.add(plot.kind); }
+    if (plot.id==='lot-front-105--81.5-2') continue;
     if (TOWNHOUSE_LOT_IDS.includes(plot.id)) {
       townhouses.push(plot);
       sliceCount++;

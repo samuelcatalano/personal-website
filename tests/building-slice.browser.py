@@ -82,7 +82,7 @@ const points=routePoints(stops.length),plots=[];buildCity(()=>{},stops,points,ro
 const pilots=plots.filter(p=>s.EXPERIMENT_LOT_IDS.includes(p.id)),controlPlots=plots.filter(p=>p.id.startsWith('block-827--54-'));
 const controlHash=g=>{let h=2166136261;for(const m of g.children)for(const n of m.geometry.attributes.position.array)h=Math.imul(h^Math.round(n*1e5),16777619);return h>>>0;},controlBefore=controlHash(createTownhouseChunk(controlPlots));
 window.__townhouseTask2={T,SURFACE,s,plots,pilots,controlPlots,controlBefore};
-return {pilots:pilots.length,removed:'block-679--80-0'};
+return {pilots:pilots.length};
 })()''')
 print(started)
 assert started['pilots'] == 9, started
@@ -107,9 +107,9 @@ adopted = js(r'''(()=>{
 const q=window.__townhouseTask2,{T,SURFACE,experiment,fallback,late,lateFallback,failed,failedFallback}=q,check=(v,m)=>{if(!v)throw Error(m)};
 check(experiment.children.every((c,i)=>c.userData.lods[0].some((g,k)=>g!==fallback[i][k])),'successful GLB load must replace pilot LOD0 geometry');
 check(experiment.children.every((c,i)=>c.children.length===3&&c.userData.lods[0].every((g,k)=>g.attributes.position.count>fallback[i][k].attributes.position.count)),'authored modules must fill the three existing buckets');
-check(q.pilots.some(p=>p.id==='block-679--80-0')&&!experiment.children.some(c=>c.userData.plotIds.includes('block-679--80-0'))&&experiment.children.every(c=>c.userData.plotIds.length===4),'the selected riverfront house is omitted while its source lot remains');
+check(experiment.children.some(c=>c.userData.plotIds.includes('block-679--80-0'))&&experiment.children.map(c=>c.userData.plotIds.length).join(',')==='5,4','Glasgow townhouse pilot stays intact');
 let expectedLitWindows=0;
-for(const plot of q.pilots.filter(p=>p.id!=='block-679--80-0')){const recipe=q.s.townhouseRecipe(plot,q.plots),openings=q.s.createTownhouseSlice(plot,recipe).userData.openings,indices={front:0,west:0};for(const o of openings){const index=indices[o.face]++;if(o.type==='window'&&(index+(o.face==='front'?1:0)+recipe.windowSeed)%3===0)expectedLitWindows++;}}
+for(const plot of q.pilots){const recipe=q.s.townhouseRecipe(plot,q.plots),openings=q.s.createTownhouseSlice(plot,recipe).userData.openings,indices={front:0,west:0};for(const o of openings){const index=indices[o.face]++;if(o.type==='window'&&(index+(o.face==='front'?1:0)+recipe.windowSeed)%3===0)expectedLitWindows++;}}
 const litGlassVertices=experiment.children.reduce((sum,c)=>sum+c.userData.lods[0][2].attributes.aSurface.array.filter(surface=>surface===SURFACE.litGlass).length,0);
 check(litGlassVertices===expectedLitWindows*132,`modular lit-glass panes must follow the existing deterministic window formula (${expectedLitWindows} panes)`);
 check(failed.children.every((c,i)=>c.userData.lods[0].every((g,k)=>g===failedFallback[i][k])),'failed load must retain procedural fallback');
