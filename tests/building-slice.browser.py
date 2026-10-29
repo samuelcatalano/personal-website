@@ -77,11 +77,11 @@ print(result)
 assert isinstance(result, dict) and result.get('pass'), result
 
 started = js(r'''(async()=>{
-const T=await import('three'),s=await import('./js/world/building-slice.js?success-kit='+Date.now()),{createTownhouseChunk}=await import('./js/world/building-slice.js'),{stops}=await import('./js/content.js'),{routePoints,routeCurve}=await import('./js/world/layout.js'),{buildCity}=await import('./js/world/city.js');
+const T=await import('three'),s=await import('./js/world/building-slice.js?success-kit='+Date.now()),{SURFACE}=await import('./js/world/building-slice-materials.js'),{createTownhouseChunk}=await import('./js/world/building-slice.js'),{stops}=await import('./js/content.js'),{routePoints,routeCurve}=await import('./js/world/layout.js'),{buildCity}=await import('./js/world/city.js');
 const points=routePoints(stops.length),plots=[];buildCity(()=>{},stops,points,routeCurve(T,points),undefined,undefined,p=>plots.push(p));
 const pilots=plots.filter(p=>s.EXPERIMENT_LOT_IDS.includes(p.id)),controlPlots=plots.filter(p=>p.id.startsWith('block-827--54-'));
 const controlHash=g=>{let h=2166136261;for(const m of g.children)for(const n of m.geometry.attributes.position.array)h=Math.imul(h^Math.round(n*1e5),16777619);return h>>>0;},controlBefore=controlHash(createTownhouseChunk(controlPlots));
-window.__townhouseTask2={T,s,plots,pilots,controlPlots,controlBefore};
+window.__townhouseTask2={T,SURFACE,s,plots,pilots,controlPlots,controlBefore};
 return {pilots:pilots.length};
 })()''')
 print(started)
@@ -104,9 +104,13 @@ for _ in range(40):
 assert ready, 'successful GLB load did not adopt modules'
 
 adopted = js(r'''(()=>{
-const q=window.__townhouseTask2,{T,experiment,fallback,late,lateFallback,failed,failedFallback}=q,check=(v,m)=>{if(!v)throw Error(m)};
+const q=window.__townhouseTask2,{T,SURFACE,experiment,fallback,late,lateFallback,failed,failedFallback}=q,check=(v,m)=>{if(!v)throw Error(m)};
 check(experiment.children.every((c,i)=>c.userData.lods[0].some((g,k)=>g!==fallback[i][k])),'successful GLB load must replace pilot LOD0 geometry');
 check(experiment.children.every((c,i)=>c.children.length===3&&c.userData.lods[0].every((g,k)=>g.attributes.position.count>fallback[i][k].attributes.position.count)),'authored modules must fill the three existing buckets');
+let expectedLitWindows=0;
+for(const plot of q.pilots){const recipe=q.s.townhouseRecipe(plot,q.plots),openings=q.s.createTownhouseSlice(plot,recipe).userData.openings,indices={front:0,west:0};for(const o of openings){const index=indices[o.face]++;if(o.type==='window'&&(index+(o.face==='front'?1:0)+recipe.windowSeed)%3===0)expectedLitWindows++;}}
+const litGlassVertices=experiment.children.reduce((sum,c)=>sum+c.userData.lods[0][2].attributes.aSurface.array.filter(surface=>surface===SURFACE.litGlass).length,0);
+check(litGlassVertices===expectedLitWindows*132,`modular lit-glass panes must follow the existing deterministic window formula (${expectedLitWindows} panes)`);
 check(failed.children.every((c,i)=>c.userData.lods[0].every((g,k)=>g===failedFallback[i][k])),'failed load must retain procedural fallback');
 check(late.children.every((c,i)=>c.userData.lods[0].every((g,k)=>g===lateFallback[i][k])),'late completion after disposal must keep fallback geometry');
 const bounds=new T.Box3().setFromObject(experiment);check(bounds.min.y>=0&&bounds.max.y<=12&&bounds.min.x>=678&&bounds.max.x<=742&&bounds.min.z>=-84.5&&bounds.max.z<=-75.5,'module bounds must stay grounded within the pilot lots');
@@ -122,7 +126,7 @@ time.sleep(0.5)
 deterministic = js(r'''(()=>{
 const q=window.__townhouseTask2,{experiment,reversed,T,controlPlots,failed,late}=q,check=(v,m)=>{if(!v)throw Error(m)};
 check(reversed.children.every((c,i)=>c.userData.lods[0].some((g,k)=>g!==q.fallback[i][k])),'shuffled input must adopt kit modules');
-const hash=group=>{let h=2166136261;for(const c of group.children)for(const g of c.userData.lods[0])for(const n of g.attributes.position.array)h=Math.imul(h^Math.round(n*1e5),16777619);return h>>>0;};
+const hash=group=>{let h=2166136261;for(const c of group.children)for(const g of c.userData.lods[0])for(const a of [g.attributes.position.array,g.attributes.aSurface.array])for(const n of a)h=Math.imul(h^Math.round(n*1e5),16777619);return h>>>0;};
 check(hash(experiment)===hash(reversed),'module assignment must be deterministic after shuffling lots');
 const control=q.s.createTownhouseChunk(controlPlots);let after=2166136261;for(const m of control.children)for(const n of m.geometry.attributes.position.array)after=Math.imul(after^Math.round(n*1e5),16777619);after>>>=0;check(after===q.controlBefore,'three-lot control must remain unchanged');
 failed.userData.dispose();late.userData.dispose();experiment.userData.dispose();reversed.userData.dispose();

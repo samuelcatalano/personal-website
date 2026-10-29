@@ -175,13 +175,16 @@ function modularGeometry(plot,recipe,modules) {
     }
   };
   const hash=(()=>{let seed=2166136261;for(const c of plot.id)seed=Math.imul(seed^c.charCodeAt(0),16777619)>>>0;return seed;})();
+  const faceIndices={front:0,west:0};
   for(const [index,o] of metadata.openings.entries()){
     const face=o.face==='front',angle=face?0:-Math.PI/2,rotation=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),angle);
+    const faceIndex=faceIndices[o.face]++;
     const x=face?o.u:-w/2,z=face?front:o.u,scale=new THREE.Vector3(o.w,o.h,1);
     if(o.type==='window'){
       const name=moduleNames.window[(recipe.windowSeed+index+(face?0:3))%7],dims=[[.92,1.48],[1.05,1.48],[.88,1.72],[1.34,1.55],[.76,1.44],[1.28,1.12],[1.48,1.58]][moduleNames.window.indexOf(name)];
       scale.set(o.w/dims[0],o.h/dims[1],1);
-      moduleGeometry('window',recipe.windowSeed+index+(face?0:3),new THREE.Vector3(x, o.y-o.h/2, face?z-.06:z),rotation,scale,{mass:S.stone,trim:S.trim,glass:S.glass});
+      const lit=(faceIndex+(face?1:0)+recipe.windowSeed)%3===0;
+      moduleGeometry('window',recipe.windowSeed+index+(face?0:3),new THREE.Vector3(x, o.y-o.h/2, face?z-.06:z),rotation,scale,{mass:S.stone,trim:S.trim,glass:lit?S.litGlass:S.glass});
     }else{
       const doorIndex=(recipe.windowSeed+(recipe.structural==='B'?3:0))%6,dims=[[1.02,2.24],[1.02,2.32],[1.34,2.35],[1.48,2.42],[2.05,2.62],[2.32,2.72]][doorIndex];
       scale.set(o.w/dims[0],o.h/dims[1],1);
