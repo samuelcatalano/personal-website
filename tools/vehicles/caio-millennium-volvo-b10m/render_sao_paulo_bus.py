@@ -2,6 +2,7 @@
 """Render the exported GLB from three desktop review angles."""
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -35,8 +36,8 @@ def main():
 
     scene = bpy.context.scene
     scene.render.engine = "CYCLES"
-    scene.cycles.samples = 32
-    scene.render.resolution_x, scene.render.resolution_y = 1440, 900
+    scene.cycles.samples = 24
+    scene.render.resolution_x, scene.render.resolution_y = 1200, 750
     scene.render.resolution_percentage = 100
     scene.render.image_settings.file_format = "PNG"
     scene.render.film_transparent = False
@@ -69,11 +70,21 @@ def main():
         "front-34.png": ((center.x + length * 0.95, center.y - length * 0.95, center.z + 0.45 * length), 35),
         "side.png": ((center.x, center.y - length * 1.45, center.z + 0.18 * length), 35),
         "rear-34.png": ((center.x - length * 0.95, center.y - length * 0.95, center.z + 0.45 * length), 35),
+        "left-front-34.png": ((center.x + length * 0.95, center.y + length * 0.95, center.z + 0.45 * length), 35),
+        "left-rear-34.png": ((center.x - length * 0.95, center.y + length * 0.95, center.z + 0.45 * length), 35),
+        "front-close.png": ((hi.x + 7.5, lo.y - 3.5, 2.6), 50, (hi.x - 1.0, center.y, 1.5)),
+        "rear-close.png": ((lo.x - 7.5, lo.y - 3.5, 2.6), 50, (lo.x + 1.0, center.y, 1.5)),
+        "top.png": ((center.x, center.y - 0.5, 28), 35, (center.x, center.y, 1.5)),
+        "joint-close.png": ((-1.4, -9.0, 3.2), 50, (-1.4, 0, 1.5)),
     }
-    for filename, (location, lens) in views.items():
+    only = [v for v in os.environ.get("VIEWS", "").split(",") if v]  # e.g. VIEWS=front-close,rear-close
+    for filename, spec in views.items():
+        if only and filename.split(".")[0] not in only:
+            continue
+        location, lens = spec[0], spec[1]
         camera.location = location
         camera.data.lens = lens
-        look_at(camera, target)
+        look_at(camera, spec[2] if len(spec) > 2 else target)
         scene.render.filepath = str(output / filename)
         bpy.ops.render.render(write_still=True)
 

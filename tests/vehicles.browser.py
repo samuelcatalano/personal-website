@@ -60,8 +60,8 @@ print(js(r'''(async () => {
   check(saoPaulo, 'São Paulo hero GLB loads through the cached vehicle loader');
   let spSourceTris = 0, spSourceMeshes = 0, spMetalTris = 0;
   saoPaulo.traverse(o => { if (o.isMesh) { const n = (o.geometry.index?.count ?? o.geometry.attributes.position.count) / 3; spSourceMeshes++; spSourceTris += n; if (o.material.name === 'BusMetal') spMetalTris += n; } });
-  check(spSourceMeshes === 8 && spSourceTris >= 50000, `São Paulo source preserves high-resolution geometry (${spSourceMeshes} meshes, ${spSourceTris} tris)`);
-  check(spMetalTris >= 2000, `São Paulo articulated bellows are assigned to the metallic role (${spMetalTris} tris)`);
+  check(spSourceMeshes <= 9 && spSourceTris >= 8000 && spSourceTris <= 35000, `São Paulo authored bus stays within the 35k budget, one mesh per role (${spSourceMeshes} meshes, ${spSourceTris} tris)`);
+  check(spMetalTris >= 300, `São Paulo rims, roof units and trim plates use the metallic role (${spMetalTris} tris)`);
   const spA = buildVehicle('glasgow', { hero: true }), spB = buildVehicle('glasgow', { hero: true });
   await Promise.all([assets.upgradeBus(spA, 'sao-paulo', { hero: false, asset: 'sao-paulo' }), assets.upgradeBus(spB, 'sao-paulo', { hero: false, asset: 'sao-paulo' })]);
   let spMetalMaterial; spA.traverse(o => { if (o.isMesh && o.userData.role === 'BusMetal') spMetalMaterial = o.material; });
@@ -76,7 +76,7 @@ print(js(r'''(async () => {
   const spTris = (root) => { let n = 0; root.traverse(o => { if (o.isMesh && o.name !== 'beam') n += (o.geometry.index?.count ?? o.geometry.attributes.position.count) / 3; }); return n; };
   let spRuntimeMeshes = 0; spA.traverse(o => { if (o.isMesh && o.name !== 'beam') spRuntimeMeshes++; });
   const spRuntimeTriangles = spTris(spA);
-  check(spRuntimeMeshes <= 12 && spRuntimeTriangles === spSourceTris, `São Paulo extracted hero preserves exactly the source triangle total within 12 draw calls (${spRuntimeMeshes} meshes, ${spRuntimeTriangles} tris)`);
+  check(spRuntimeMeshes <= 15 && spRuntimeTriangles >= spSourceTris && spRuntimeTriangles <= spSourceTris + 240, `São Paulo extracted hero keeps the source triangles (plus the static tyre discs) within 15 draw calls (${spRuntimeMeshes} meshes, ${spRuntimeTriangles} tris)`);
   assets.rollWheels(spWheels, 2);
   check(spWheels.every(w => Math.abs(w.rotation.z + 2 / 0.52) < 1e-9), 'positive local X travel rolls the contact patch backward around local Z');
   assets.rollWheels(spWheels, -2);

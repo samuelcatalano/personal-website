@@ -9,8 +9,8 @@ import bpy
 from mathutils import Vector
 
 
-ROLE_MESH_BUDGET = 8
-ROLES = {"BusBody", "BusAccent", "BusGlass", "BusMetal", "BusRubber", "BusSweep", "BusTaillight", "BusTrim"}
+ROLE_MESH_BUDGET = 9
+ROLES = {"BusBody", "BusDisplay", "BusGlass", "BusHeadlight", "BusMetal", "BusRubber", "BusSweep", "BusTaillight", "BusTrim"}
 PIVOTS = {"FL", "FR", "ML", "MR", "RL", "RR"}
 
 
@@ -37,7 +37,7 @@ def main():
     images = [i.name for i in bpy.data.images if i.source not in {"VIEWER", "GENERATED"}]
     print(f"MEASURED_BOUNDS lo={tuple(round(v,3) for v in lo)} hi={tuple(round(v,3) for v in hi)} dimensions={tuple(round(v,3) for v in dimensions)} triangles={triangles} render_meshes={len(meshes)} pivots={sorted(pivots)} images={images}")
 
-    assert triangles >= 50_000, f"high-resolution source geometry was unexpectedly reduced: {triangles} triangles"
+    assert 8_000 <= triangles <= 35_000, f"triangle count outside the 35k budget: {triangles}"
     assert len(meshes) <= ROLE_MESH_BUDGET, f"{len(meshes)} render meshes exceeds the {ROLE_MESH_BUDGET}-draw-call role budget"
     assert len(mesh_roles) == len(meshes), "each render mesh must use exactly one material role"
     assert len(set(mesh_roles)) == len(mesh_roles), f"duplicate role meshes would create extra draw calls: {mesh_roles}"

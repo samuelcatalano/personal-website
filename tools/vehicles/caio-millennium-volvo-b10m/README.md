@@ -1,15 +1,13 @@
-# Caio Millennium II Volvo B10M — São Paulo
+# Caio Millennium II Volvo B10M (São Paulo articulated bus)
 
-The build script imports the supplied Sketchfab GLB, removes its stray plane, corrects the model axes and ground origin, repaints the source meshes with the existing `Bus*` material roles, assigns the full-height articulation bellows to the light metallic `BusMetal` finish, projects a texture-free blue sweep onto the body and window surfaces, and preserves the supplied mesh density for both hero and secondary traffic. The supplied source is about 80k triangles; the exported bus has 52,588 after removing dense wheel-face islands and adding the livery sweep. No triangle-count cap or ambient decimation is applied.
+Authored from scratch in Blender (`build_sao_paulo_bus.py`, no external source): a lofted low-floor body with rounded corners, a raked wrap-around windscreen and destination blind, window and door pockets cut with exact booleans (so frames and recesses are real geometry, not overlapping panels), three sliding doors on the right/kerb side, a pleated bellows joint, rear engine grille and tail lamps, wheel arches, roof units and six wheels. The livery sweep is a recessed `BusSweep` ribbon cut into the lower body (no coplanar overlay).
 
 ```bash
-blender -b --factory-startup -P tools/vehicles/caio-millennium-volvo-b10m/build_sao_paulo_bus.py -- --source "$CAIO_SOURCE"
+blender -b --factory-startup -P tools/vehicles/caio-millennium-volvo-b10m/build_sao_paulo_bus.py
 blender -b --factory-startup -P tools/vehicles/caio-millennium-volvo-b10m/validate_sao_paulo_bus.py -- assets/vehicles/sao-paulo-bus.glb
-blender -b --factory-startup -P tools/vehicles/caio-millennium-volvo-b10m/render_sao_paulo_bus.py -- assets/vehicles/sao-paulo-bus.glb tools/vehicles/caio-millennium-volvo-b10m/renders/desktop
+VIEWS=front-34,side,rear-34,front-close blender -b --factory-startup -P tools/vehicles/caio-millennium-volvo-b10m/render_sao_paulo_bus.py -- assets/vehicles/sao-paulo-bus.glb tools/vehicles/caio-millennium-volvo-b10m/renders/desktop
 ```
 
-The source GLB is external and supplied via `--source`; its private local path is not embedded in the script or runtime. Asset attribution and licence are recorded in `ASSET_SOURCES.md`.
+Contract (js/world/vehicle-assets.js depends on it): +X forward, +Y up, +Z right in the GLB; 16.758 x 3.10 x 2.634 m with the origin on the ground at the centre; one render mesh per `Bus*` role (BusBody, BusSweep, BusTrim, BusGlass, BusRubber, BusMetal, BusHeadlight, BusTaillight, BusDisplay; the dark skirt is BusTrim); empties FL/FR/ML/MR/RL/RR at x = +5.8 / +0.75 / -5.3, |z| = 0.98, y = 0.52 with `wheel_radius` 0.52. Only wheel triangles lie inside those circles (tyre, rim, discs and lug nuts use BusRubber/BusMetal), so ambient buses can still split and spin the axles. `BusDisplay` carries UVs for the destination canvas (front blind and a small right-side blind). No images are embedded.
 
-Validated export: 52,588 triangles across 8 render meshes (one per `Bus*` material role); reimported mesh bounds 16.76 × 2.63 × 3.10 m; +X forward, +Y up, +Z right in the GLB; no images. The source meshes are joined by semantic role without decimation, preserving the remaining high-resolution geometry and reducing draw calls to eight. The blue sweep follows the +X body section (x=2.8–6.4 m), ray-projects onto body, glass, and trim side surfaces, and sits 6 mm off the shell. Six named FL/FR/ML/MR/RL/RR wheel pivot markers carry axle positions/radius as node extras. The source wheel geometry is still embedded in larger meshes; runtime wheel splitting/rotation is a follow-up integration task.
-
-Hero and secondary traffic share the same high-resolution GLB, preserving silhouette quality and material-role batching.
+Budget: about 14.6k triangles, 9 render meshes, 0.42 MB (the previous source-derived asset had 52.6k triangles, 8 meshes and 1.6 MB).
