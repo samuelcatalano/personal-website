@@ -47,3 +47,11 @@ Sun/halo/full-moon maps are original runtime canvas generation in `js/world/sky.
 | Asset | Path | Source | Licence |
 | --- | --- | --- | --- |
 | Big Ben + Palace of Westminster river frontage | `assets/processed/landmarks/bigben.lod{0,1}.glb` | Generated in-project by `tools/landmarks/bigben/build_bigben.py` (Blender; original geometry and baked textures; photos used as visual reference only; external geometry: none) | Project-owned |
+
+## Townhouse modular kit — 2026-10-29
+
+| Asset | Path | Source | Licence |
+| --- | --- | --- | --- |
+| Townhouse facade module library | `assets/processed/buildings/townhouse-kit.glb` | Generated in-project by `tools/buildings/townhouse-kit/build_townhouse_kit.py` (Blender; original authored geometry and simple role materials; no external meshes or textures) | Project-owned |
+
+Rebuild command: `blender -b --factory-startup -P tools/buildings/townhouse-kit/build_townhouse_kit.py`. Module names, counts, geometry, role hierarchy, and valid bounds are asserted by the generator; see `tools/buildings/townhouse-kit/README.md` for the coordinate and anchor contract.
