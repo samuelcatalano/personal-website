@@ -1,6 +1,6 @@
 # Blender asset pipeline (target architecture)
 
-Status: **plan, nothing implemented** (2026-10-29). Runtime stays Three.js 0.169 / WebGL2, no build step, no npm in the shipped site. Roadmap and gates: `docs/plans/3d-asset-pipeline-roadmap.md`. Existing rules still win: `docs/architecture/3d-city.md`, `docs/architecture/rendering-budget.md`, `docs/art/asset-quality-spec.md`, `docs/art-direction.md`.
+Status: **Phases 0-2 implemented** (2026-10-29): `tools/pipeline`, processed vehicles, and the authored Big Ben (LOD0 11,570 / LOD1 3,285 triangles). Later phases remain plans. Runtime stays Three.js 0.169 / WebGL2, no build step, no npm in the shipped site. Roadmap and gates: `docs/plans/3d-asset-pipeline-roadmap.md`. Existing rules still win: `docs/architecture/3d-city.md`, `docs/architecture/rendering-budget.md`, `docs/art/asset-quality-spec.md`, `docs/art-direction.md`.
 
 ## 1. Principle
 
@@ -220,7 +220,7 @@ Not now. Experimental branch later: `WebGPURenderer` + same assets, benchmark vs
 
 ## 15. Asset sourcing
 
-Order: CC0 → public domain → clearly permissive → self-authored/procedural. Record in `ASSET_SOURCES.md`: asset, source URL, author, licence, modifications, usage (and approval for NC/SA). **Open conflict:** the owner's 2026-10-27 decision allows Sketchfab and NC/SA assets with per-asset approval (Mini, cab and bus exist this way), while this plan's brief says "do not use Sketchfab". Until the owner confirms, new sourcing in this pipeline avoids Sketchfab; existing registered assets keep their rows. `.gitignore` already excludes `assets/models/source/`.
+Order: CC0 → public domain → clearly permissive → self-authored/procedural. Record in `ASSET_SOURCES.md`: asset, source URL, author, licence, modifications, usage (and approval for NC/SA). Sketchfab and NC/SA assets are allowed per asset with owner approval (owner decision 2026-10-27; Mini, cab and bus exist this way). Each use needs its own approval and an `ASSET_SOURCES.md` row. `.gitignore` already excludes `assets/models/source/`.
 
 ## 16. CI / build (future)
 
