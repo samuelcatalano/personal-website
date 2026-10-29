@@ -47,7 +47,7 @@ export function draw(add, x, z, [w0, d, n, fh, wall, trim, kind, u], r, q, near,
 export function buildBlocks(add, stops, pts, curve, occ, onBuildingPlot, onArchitecturePlot) {
   const r = rng(7311), q = rng(5521), { museum: mu, uni } = glasgowSites(stops, pts), site = (o, m) => [o.x - o.w / 2 - m, o.x + o.w / 2 + m, o.z - o.d / 2 - m, o.z + o.d / 2 + m], cp = copan(stops, pts), gl = pts[stopIndex(stops, L.glasgow)], rgs = regions(stops, pts), X = (k) => pts[stopIndex(stops, L[k])].x, ux = pts[ukStart(stops)].x, mv = ux - 15, lz = pts[pts.length - 1].z;
   // Plots touching MASP's west side are dropped after generation (the RNG sequence of the rest of the city stays untouched).
-  const maspW = onArchitecturePlot && ((p) => p.x + p.width / 2 > X('masp') - 40 && p.x - p.width / 2 < X('masp') - 19 && p.z + p.depth / 2 > -80 && p.z - p.depth / 2 < -42);
+  const maspW = onArchitecturePlot && ((p) => p.x + p.width / 2 > X('masp') - 40 && p.x - p.width / 2 < X('masp') - 19 && p.z + p.depth / 2 > -80 && p.z < -56);
   if (maspW) { const emit = onArchitecturePlot; onArchitecturePlot = (p) => { if (!maspW(p)) emit(p); }; }
   const H = (k, a, b, z0, z1) => [X(k) - a, X(k) + b, z0, z1], path = Array.from({ length: 241 }, (_, i) => curve.getPointAt(i / 240));
   const zAt = (x) => path.reduce((a, p) => Math.abs(p.x - x) < Math.abs(a.x - x) ? p : a).z;

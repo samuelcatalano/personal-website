@@ -6,7 +6,7 @@ SRC = os.path.abspath(os.path.join(HERE, '..', '..', '..', 'assets', 'models', '
 OUT = os.path.join(HERE, 'renders'); os.makedirs(OUT, exist_ok=True)
 night = 'night' in sys.argv
 V = lambda x, y, z: Vector((x, -z, y))          # glTF space -> Blender space (importer already converted the mesh)
-VIEWS = {'front34': ((-34, 9, 46), (0, 8, 0), 36), 'front': ((0, 7, 60), (0, 8, 0), 36), 'under': ((-14, 1.7, 22), (0, 8, 0), 34), 'side': ((-60, 7, 4), (0, 8, 0), 40)}
+VIEWS = {'front34': ((-34, 14, 40), (0, 9, 0), 38), 'front': ((0, 7, 60), (0, 8, 0), 36), 'under': ((-14, 1.7, 22), (0, 8, 0), 34), 'side': ((-60, 7, 4), (0, 8, 0), 40)}
 for lod in (0, 1):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     sc = bpy.context.scene; sc.render.engine = 'CYCLES'; sc.cycles.device = 'CPU'; sc.cycles.samples = 24; sc.cycles.use_denoising = False
