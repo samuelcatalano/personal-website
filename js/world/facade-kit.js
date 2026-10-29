@@ -6,7 +6,11 @@ import { SURFACE as S } from './building-slice-materials.js';
 import { classifyPlot, rolloutRecipe, building, tint } from './city-rollout.js';
 import { createShopSlice } from './shop-slice.js';
 import { createMidriseSlice } from './midrise-slice.js';
+import { createOfficeSlice } from './office-slice.js';
+import { createTowerSlice } from './tower-slice.js';
 import { loadKit } from './kit-loader.js';
+import { place, hash, pick, accumulators, geometryOf } from './kit-place.js';
+import { officeOverlay, towerOverlay } from './hirise-kit.js';
 
 // Shop + midrise facade kits (tools/buildings/{shop,midrise}-kit). The rollout builds every chunk procedurally first;
 // once the kits load, chunks that hold kit lots are rebuilt with module geometry merged into the same mass/trim/glass
@@ -15,39 +19,12 @@ import { loadKit } from './kit-loader.js';
 // or ?kits=0.
 // Everything stays inside the 0.2 m facade margin of the lot (modules are authored <= 0.19 m deep).
 const URLS = {
+  office: new URL('../../assets/processed/buildings/office-kit.glb?v=1', import.meta.url).href,
+  tower: new URL('../../assets/processed/buildings/tower-kit.glb?v=1', import.meta.url).href,
   shop: new URL('../../assets/processed/buildings/shop-kit.glb?v=1', import.meta.url).href,
   midrise: new URL('../../assets/processed/buildings/midrise-kit.glb?v=1', import.meta.url).href,
 };
 export const KIT_RADIUS = 1e4; // metres from the route polyline: midrises nearer than this get modules; measured budget fits every rollout midrise
-const BUCKET = { mass: 0, trim: 1, glass: 2 };
-// Local hash: never touches the city RNG.
-const hash = (id) => { let n = 2166136261; for (const c of id) n = Math.imul(n ^ c.charCodeAt(0), 16777619) >>> 0; return n; };
-const pick = (h, shift, n) => (h >>> shift) % n;
-
-const accumulators = () => Array.from({ length: 3 }, () => ({ position: [], normal: [], uv: [], aSurface: [], color: [] }));
-const tmp = new THREE.Vector3(), nrm = new THREE.Vector3(), q = new THREE.Quaternion(), one = new THREE.Matrix4(), nm = new THREE.Matrix3();
-function place(acc, kit, name, x, y, z, sx, sy, sz, surf) {
-  const mod = kit.get(name);
-  if (!mod) throw new Error(`Facade kit module missing: ${name}`);
-  one.compose(tmp.set(x, y, z), q, nrm.set(sx, sy, sz)); nm.getNormalMatrix(one);
-  for (const [role, data] of Object.entries(mod.roles)) {
-    const b = acc[BUCKET[role]], s = surf[role];
-    for (let i = 0; i < data.pos.length; i += 3) {
-      tmp.fromArray(data.pos, i).applyMatrix4(one); nrm.fromArray(data.nor, i).applyMatrix3(nm).normalize();
-      b.position.push(tmp.x, tmp.y, tmp.z); b.normal.push(nrm.x, nrm.y, nrm.z); b.aSurface.push(s); b.color.push(1, 1, 1);
-      // Same planar mapping as the procedural slices (1 x 2 m atlas tiles).
-      const ax = Math.abs(nrm.x), ay = Math.abs(nrm.y);
-      b.uv.push(...(ax > .7 ? [tmp.z, tmp.y] : ay > .7 ? [tmp.x, tmp.z] : [tmp.x, tmp.y]));
-    }
-  }
-}
-const geometryOf = (data) => {
-  if (!data.position.length) return null;
-  const g = new THREE.BufferGeometry();
-  for (const [key, size] of [['position', 3], ['normal', 3], ['uv', 2], ['aSurface', 1], ['color', 3]]) g.setAttribute(key, new THREE.Float32BufferAttribute(data[key], size));
-  return g;
-};
-
 function shopOverlay(p, recipe, h, kit, hs) {
   const acc = accumulators(), w = p.width - .24, d = p.depth - .4, front = d / 2, roofY = p.height - .55, ground = recipe.ground;
   const front_ = h.userData.openings.filter((o) => o.face === 'front');
@@ -124,13 +101,15 @@ const distToRoute = (pts, p) => { // metres to the route polyline in XZ
   return best;
 };
 export function selectKitLots(plots, radius = KIT_RADIUS, pts = routePoints(stops.length)) {
-  const shops = [], midrises = [];
+  const shops = [], midrises = [], offices = [], towers = [];
   for (const p of plots) {
     const kind = classifyPlot(p);
     if (kind === 'shop') shops.push(p);
     else if (kind === 'midrise' && distToRoute(pts, p) <= radius) midrises.push(p);
+    else if (kind === 'office' && distToRoute(pts, p) <= radius) offices.push(p);
+    else if (kind === 'tower' && distToRoute(pts, p) <= radius) towers.push(p);
   }
-  return { shops, midrises };
+  return { shops, midrises, offices, towers };
 }
 
 function buildChunk(chunk, byId, neighbors, kits, kitIds) {
@@ -144,6 +123,14 @@ function buildChunk(chunk, byId, neighbors, kits, kitIds) {
         const recipe = { ...r, canopy: false };
         h = createShopSlice(p, neighbors, recipe);
         overlays.push([h, shopOverlay(p, recipe, h, kits.shop, hs)]);
+      } else if (kind === 'office') {
+        const recipe = { ...r, rooftop: false };
+        h = createOfficeSlice(p, recipe);
+        overlays.push([h, officeOverlay(p, recipe, kits.office, hs)]);
+      } else if (kind === 'tower') {
+        const recipe = { ...r, crown: 4 }; // crown 4: bare lantern with 2.9 m of headroom for the kit crown
+        h = createTowerSlice(p, recipe);
+        overlays.push([h, towerOverlay(p, recipe, kits.tower, hs)]);
       } else {
         const recipe = { ...r, rooftop: false, penthouse: 0, noCanopy: true };
         h = createMidriseSlice(p, recipe);
@@ -171,15 +158,23 @@ function buildChunk(chunk, byId, neighbors, kits, kitIds) {
 }
 
 // Async: resolves with coverage stats; the scene keeps rendering the procedural chunks until each swap.
+// ?kits=0 disables every kit; ?kits=shop,midrise,office,tower enables only the listed ones (default: all).
+export const enabledKits = (search = typeof location !== 'undefined' ? location.search : '') => {
+  const v = /[?&]kits=([^&]*)/.exec(search)?.[1];
+  const all = ['shop', 'midrise', 'office', 'tower'];
+  return v === undefined ? all : v === '0' ? [] : all.filter((k) => v.split(',').includes(k));
+};
 export async function upgradeFacadeKits(rollout, rolloutPlots, neighbors = rolloutPlots, { radius = KIT_RADIUS } = {}) {
-  if (typeof location !== 'undefined' && /[?&]kits=0\b/.test(location.search)) return null;
+  const on = new Set(enabledKits());
+  if (!on.size) return null;
   let dead = false;
   const dispose = rollout.userData.dispose;
   rollout.userData.dispose = () => { dead = true; dispose?.(); };
-  const { shops, midrises } = selectKitLots(rolloutPlots, radius);
-  const kitIds = new Set([...shops, ...midrises].map((p) => p.id)), byId = new Map(rolloutPlots.map((p) => [p.id, p]));
-  const [shop, midrise] = await Promise.all([loadKit(URLS.shop), loadKit(URLS.midrise)]);
-  const kits = { shop, midrise }, stats = { shops: shops.length, midrises: midrises.length, chunks: 0, radius, buildMs: 0 };
+  const sel = selectKitLots(rolloutPlots, radius), lots = { shop: sel.shops, midrise: sel.midrises, office: sel.offices, tower: sel.towers };
+  for (const k of Object.keys(lots)) if (!on.has(k)) lots[k] = [];
+  const kitIds = new Set(Object.values(lots).flat().map((p) => p.id)), byId = new Map(rolloutPlots.map((p) => [p.id, p]));
+  const names = Object.keys(lots).filter((k) => lots[k].length), loaded = await Promise.all(names.map((k) => loadKit(URLS[k])));
+  const kits = Object.fromEntries(names.map((k, i) => [k, loaded[i]])), stats = { shops: lots.shop.length, midrises: lots.midrise.length, offices: lots.office.length, towers: lots.tower.length, chunks: 0, radius, buildMs: 0 };
   rollout.userData.kit = stats;
   for (const chunk of rollout.children.filter((c) => c.userData.plotIds.some((id) => kitIds.has(id)))) {
     await new Promise((r) => setTimeout(r, 0)); // one chunk per task: no long main-thread stall
