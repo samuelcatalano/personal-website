@@ -209,7 +209,7 @@ def palace(b):
         ops = []
         for i in range(10):
             uc = (i + .5) * bw
-            if sgn > 0 and i == 4: ops.append((arch(uc, .05, 1.5, 3.1), BZ, None))
+            if sgn > 0 and i == 4: ops.append((arch(uc, .05, 1.5, 3.1), DK, None))
             else: ops += [(arch(uc + dx, .5, .62, 2.5), GL, None) for dx in (-.37, .37)]
             ops += [(arch(uc + dx, 3.4, .62, 2.4), GL, None) for dx in (-.37, .37)]
         b.wall(O, U, N, X1 - X0, 6.2, ops)
@@ -277,6 +277,21 @@ def make(lod):
     bpy.ops.object.shade_smooth_by_angle(angle=math.radians(35))
     bpy.ops.object.mode_set(mode='EDIT'); bpy.ops.mesh.select_all(action='SELECT')
     bpy.ops.uv.smart_project(angle_limit=math.radians(66), island_margin=.004)
+    bpy.ops.object.mode_set(mode='OBJECT')
+    # slit panes are only 12 cm wide (~3 px): widen their UV footprint x2.5 so the emissive always covers >= ~7 px
+    uvd = me.uv_layers.active.data
+    for pl in me.polygons:
+        if pl.material_index != DK: continue
+        pts = [me.vertices[v].co for v in pl.vertices]
+        ext = [max(c[i] for c in pts) - min(c[i] for c in pts) for i in range(3)]
+        if sorted(ext)[1] >= .2: continue            # second-largest extent < 0.2 m -> narrow slit
+        li = list(pl.loop_indices); uvs = [uvd[i].uv.copy() for i in li]
+        c = sum(uvs, uvs[0] * 0) / len(uvs)
+        ex = [max(u[k] for u in uvs) - min(u[k] for u in uvs) for k in (0, 1)]
+        k = 0 if ex[0] < ex[1] else 1
+        for i, u in zip(li, uvs):
+            u[k] = c[k] + (u[k] - c[k]) * 2.5; uvd[i].uv = u
+    bpy.ops.object.mode_set(mode='EDIT'); bpy.ops.mesh.select_all(action='SELECT')
     bpy.ops.uv.pack_islands(margin=.006, rotate=False)
     bpy.ops.object.mode_set(mode='OBJECT')
     return ob
@@ -389,6 +404,14 @@ def run(lod):
     a, r = px(ao), px(rm)
     orm = np.ones((SIZE, SIZE, 4), np.float32); orm[..., 0] = a[..., 0]; orm[..., 1] = r[..., 1]; orm[..., 2] = r[..., 2]
     ormi = bpy.data.images.new('orm', SIZE, SIZE, alpha=False); ormi.colorspace_settings.name = 'Non-Color'; ormi.pixels.foreach_set(orm.ravel())
+    # verify: every lit-type pane (glass / slit / louvre) must be emissive at its UV centre and shrunken corners
+    e = px(emi); uvd = ob.data.uv_layers.active.data; tot = {}; lit = {}
+    for pl in ob.data.polygons:
+        if pl.material_index not in (GL, DK, LV): continue
+        uvs = [uvd[i].uv for i in pl.loop_indices]; c = sum(uvs, uvs[0] * 0) / len(uvs)
+        ok = all(e[min(SIZE - 1, int((c[1] + .8 * (u[1] - c[1])) * SIZE)), min(SIZE - 1, int((c[0] + .8 * (u[0] - c[0])) * SIZE)), :3].max() > .05 for u in [c] + uvs)
+        n = MATS[pl.material_index]; tot[n] = tot.get(n, 0) + 1; lit[n] = lit.get(n, 0) + ok
+    print('LITCHECK', lod, {n: f'{lit[n]}/{tot[n]}' for n in tot})
     p = lambda n: os.path.join(TEX, f'lod{lod}_{n}.png')
     save(alb, p('albedo')); save(emi, p('emissive')); save(ormi, p('orm'))
     # export material: standard ORM packing
