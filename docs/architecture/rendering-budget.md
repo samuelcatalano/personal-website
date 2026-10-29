@@ -243,3 +243,19 @@ Findings:
 - Not measured: real GPU, mobile, LOD-threshold before/after screenshots.
 
 Recommended follow-ups (not implemented): 1) the +100 MB heap with kits on is the real cost: dispose kit source geometry after merge or build fewer cells; 2) find what changes at 0.18 / 9.03 / 11.47 (log chunk visibility / LOD switches there) and stage it over several frames; 3) warm shaders/textures before the first scroll (compile async) to remove the 66-72 ms start hitch.
+
+## Final-wave route profile 2026-10-29 (all kits + landmark env + depth AO)
+
+`tools/perf/route-profile.py`, software GL, desktop viewport, `weather=clear`, 15 s scripted scroll. Draw calls and triangles come from the WebGL hook (all passes, including shadows), so they are comparable only with each other.
+
+| Segment | Config | Frames | Median ms | p95 ms | Calls (median) | Triangles (median) |
+|---|---|---|---|---|---|---|
+| 8.5 to 11.5 | kits off | 1026 | 15.1 | 20.5 | 1066 | 9.13M |
+| 8.5 to 11.5 | all kits (default) | 1027 | 14.9 | 20.6 | 1064 | 9.13M |
+| 3 to 6 (SP) | default, 2 runs | 964 / 962 | 15.2 / 15.5 | 20.9 / 20.6 | 1177 / 1181 | 10.60M / 10.61M |
+| 3 to 6 (SP) | `ao=0` | 1061 | 16.0 | 18.0 | 1175 | 10.59M |
+
+- All four kits cost no measurable calls or frame time on the London to Glasgow segment (calls 1064 vs 1066, p95 20.6 vs 20.5 ms).
+- Depth AO adds 0 to 6 draw calls and no median frame time; p95 is about 2 to 3 ms higher in one clean `ao=0` pair (20.7 vs 18.0), so it is not proven to meet the +1 ms desktop limit on software GL. The pass can be turned off with `?ao=0`; confirm on real GPU before treating it as GO.
+- Runs that stall (about 94 frames, p99 above 40 s) happen about one in four on a freshly opened tab; discard them and repeat.
+- Heap peaks 485 to 570 MB with all kits (was 472 to 517 MB without), consistent with the earlier kit note of about +100 MB.
