@@ -64,9 +64,9 @@ GM = (GY0 + GY1) / 2     # mid rail
 def frames(b):
     for sx in (-1, 1):
         for sz in (-1, 1):
-            b.box(sx * (XC0 + XC1) / 2, .2, sz * (ZC0 + ZC1) / 2, XC1 - XC0, 15.4, ZC1 - ZC0, RD, ())      # chunky column
+            b.box(sx * (XC0 + XC1) / 2, .54, sz * (ZC0 + ZC1) / 2, XC1 - XC0, 15.6 - .54, ZC1 - ZC0, RD)           # chunky column, starts on the plaza slab top (no buried or coplanar faces)
     for sz in (-1, 1):
-        b.box(0, RY1, sz * 4.6, 2 * XC0, 15.6 - RY1, 2.0, RD, ('+x', '-x'))                              # deep girder on the fascia, set back behind the glass plane
+        b.box(0, RY1, sz * 4.6, 2 * XC0, 15.6 - RY1, 2.0, RD, ('+x', '-x', '-y'))                              # deep girder on the fascia, set back behind the glass plane
 
 
 def body(b):

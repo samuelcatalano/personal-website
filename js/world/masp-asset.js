@@ -3,7 +3,7 @@ import { loadGlb } from './glb-loader.js';
 // Authored MASP (tools/landmarks/masp): one mesh / one atlas material per LOD (KTX2 baseColor + ORM + emissive), same local frame as
 // createMasp (origin = footprint centre at ground level, x along the long side). Same pattern as bigben-asset.js; the procedural group stays
 // as the fallback: it is hidden, never removed, so a failed load changes nothing.
-const GLB_V = '6'; // bump when the processed GLBs are regenerated (static hosts cache GLBs aggressively)
+const GLB_V = '7'; // bump when the processed GLBs are regenerated (static hosts cache GLBs aggressively)
 const URLS = ['assets/processed/landmarks/masp.lod0.glb', 'assets/processed/landmarks/masp.lod1.glb'].map((u) => u + '?v=' + GLB_V);
 const NEAR = 140, FAR = 170; // camera-to-AABB distance (m): LOD0 below NEAR, LOD1 beyond FAR, previous level in between (hysteresis like the city chunks)
 const BOX = new THREE.Box3(new THREE.Vector3(-20.1, 0, -6.6), new THREE.Vector3(20.1, 15.7, 6.6)); // local envelope (tests/masp-asset.browser.py)
