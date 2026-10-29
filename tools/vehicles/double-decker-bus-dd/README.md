@@ -1,19 +1,15 @@
-# Double-decker bus asset (London DD Bus)
+# Double-decker bus asset (London + Glasgow liveries)
 
-`assets/vehicles/double-decker-bus.glb` is a game-ready derivative of "London DD Bus" by [jsa201077](https://sketchfab.com/unityjsa7), CC-BY-4.0 ([source](https://sketchfab.com/3d-models/london-dd-bus-a2a2736856a7452bbbaf712e07ed8eb4)). Keep the attribution; changes: hidden geometry filtered, source tessellation preserved, re-materialed, wheels re-rigged, repainted per city. The Glasgow livery is an original stylised repaint (white / blue skirt / magenta swoosh) from a reference photo of a McGill's bus; no logos or text.
+`assets/vehicles/double-decker-bus.glb` is an original, fully procedural low-floor double-decker (New Routemaster / StreetDeck proportions) authored by `build_bus_dd.py`. No third-party mesh or texture is used (the earlier Sketchfab base model was retired on 2026-10-29).
 
-Rebuild (source GLB is gitignored in `assets/models/source/london-bus/`):
+Rebuild and preview:
 
 ```bash
 blender -b --factory-startup -P tools/vehicles/double-decker-bus-dd/build_bus_dd.py        # writes assets/vehicles/double-decker-bus.glb
-blender -b --factory-startup -P tools/vehicles/double-decker-bus-dd/render_views.py -- assets/vehicles/double-decker-bus.glb tools/vehicles/double-decker-bus-dd/renders after-london london
-blender -b --factory-startup -P tools/vehicles/double-decker-bus-dd/render_views.py -- assets/vehicles/double-decker-bus.glb tools/vehicles/double-decker-bus-dd/renders after-glasgow glasgow
+blender -b --factory-startup -P tools/vehicles/double-decker-bus-dd/render_views.py -- assets/vehicles/double-decker-bus.glb tools/vehicles/double-decker-bus-dd/renders after london
+blender -b --factory-startup -P tools/vehicles/double-decker-bus-dd/render_views.py -- assets/vehicles/double-decker-bus.glb tools/vehicles/double-decker-bus-dd/renders after glasgow glasgow   # CLOSE=1 for detail views
 ```
 
-Contract (drop-in for the old bus): forward +X, up +Y, right +Z, ground y=0, 11.6 x 4.3 x 2.8 m (length, height, width incl. mirrors; old bus 11.2 x 4.4 x 3.2). 58,806 triangles, 1.32 MB, 14 material-role buckets, no textures or vertex colours. Body meshes: `BusBody BusAccent BusStripe BusTrim BusGlass BusHeadlight BusTaillight BusDisplay BusInterior BusSkirtF BusSweep BusLilac BusRear`; wheel meshes also use `BusRubber` and `BusMetal` plus nodes `FL FR RL RR` (origin at the wheel centre, no rotation; 64-segment tyres with four shallow circumferential grooves, 48-segment dished rims with dark `BusTrim` wedges so the spin reads; rear single wide tyres). Only `BusDisplay` has UVs (front blind + one blind on each side, laid out for `destMat`'s canvas).
+Contract: forward +X, up +Y, right +Z (kerb side = left = three.js -Z), ground y=0, 11.7 x 4.3 x 2.8 m incl. mirrors. 14k triangles, 0.36 MB, 17 material-role buckets, no textures or vertex colours. Meshes: `BusBody BusAccent BusStripe BusTrim BusGlass BusHeadlight BusTaillight BusDisplay BusInterior BusSkirtF BusSweep BusLilac BusRear BusMark BusMark2` (+ `BusRubber`, `BusMetal` on wheels and details); wheel nodes `FL FR RL RR` (origin at the wheel centre, no rotation). Only `BusDisplay` has UVs (front, rear and side blinds for `destMat`).
 
-Paint: the source texture is not used (its big triangles bleed over window edges). The build cuts the skin by exact planes (skirt, swoosh, rear kick, window rectangles from the glass panes, front line) and assigns by position: `BusAccent` = skirt (dark red London, blue Glasgow), `BusStripe` = swoosh and line above the screen (`BUS_VARIANTS.stripe`; omitted for London so it vanishes into the red body), `BusTrim` = window frames, arches, bottom lip. Glass panes block the visibility rays, so skin vs saloon is decided by what a ray reaches from outside; the saloon (frame, seats, floors) is one dark `BusInterior` mesh using the retained source tessellation.
-
-Kerb-side (left, +Y) doors: front entrance and centre exit, glazed leaves recessed behind the skin with trim surround and seam; paint stops at the frames. The rear kick flashes end below the rear window sill. London colour `#b52a2d` / `#7e1c20`.
-
-`renders/` holds before (procedural bus; Glasgow was purple/silver) and after stills with approximate runtime finishes.
+How it is built: the hull is lofted from rounded-rectangle outlines (0.74 m plan radius at nose and tail, raked upper deck, tumblehome, 0.45 m roof radius, crowned roof); wheel wells, the continuous upper-deck glass band (wraps nose and tail), the lower band with its raked front step, kerb doors, front and rear lower screens and the thin dark pillars are all cut into the skin with exact planes (flush `BusGlass` over a dark `BusInterior` copy, `BusTrim` frames); coplanar same-role faces are merged afterwards. Livery regions are position cuts (skirt, stripe line, diagonal sweep bands, roof, roundel) that the runtime recolours per city in `BUS_VARIANTS`: London keeps one red (with roundel `BusMark` ring + `BusMark2` bar), Glasgow is purple with a white roof, white and lilac sweep and a magenta line (roundel painted out).

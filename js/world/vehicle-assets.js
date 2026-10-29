@@ -47,8 +47,8 @@ export function adoptVisual(vehicle, visual, keep) {
 export const BUS_VARIANTS = {
   london: { body: '#9e2a2b', accent: '#6a1c1e', dest: ['london', '19', 'Finsbury Park', '#ffb347'] }, // no stripe: BusStripe falls back to the body red
   'sao-paulo': { body: '#a5cb38', accent: '#303b38', sweep: '#2088c8', dest: ['sao-paulo', '', '', '#ffb347'] },
-  // stylised First-Glasgow-style repaint from reference photos (colour blocking only, no logos/text): lime front, white diagonal sweep, lilac band, violet rear
-  glasgow: { body: '#f2e31b', accent: '#5f57a0', stripe: '#f2e31b', skirtF: '#b8ab14', sweep: '#f4f4f6', lilac: '#c7c1e8', rear: '#7d74c0', dest: ['glasgow', '6', 'Renfrew Street', '#ff7a1a'] },
+  // stylised First-Glasgow-style repaint (colour blocking only, no logos/text): purple body and white roof, white + lilac diagonal sweep, pale-violet rear, magenta line; the London roundel is painted out
+  glasgow: { body: '#5b2a86', accent: '#33174f', stripe: '#e0398f', skirtF: '#33174f', sweep: '#f1eef6', lilac: '#b79ad6', rear: '#7b4bb0', mark: '#7b4bb0', mark2: '#7b4bb0', dest: ['glasgow', '6', 'Renfrew Street', '#ff7a1a'] },
 };
 // GLB material names are semantic; each maps to a shared project material (night glow keeps working through sky.update).
 // Realistic finish for the authored cars: clear-coated paint, metal chrome and reflective glass, all lit by one small
@@ -110,7 +110,7 @@ const CAB_FINISH = {
 };
 const ROLES = {
   ...CAB_FINISH,
-  BusBody: (v) => busPaint(v.body), BusAccent: (v) => busPaint(v.accent), BusStripe: (v) => busPaint(v.stripe ?? v.body), BusSkirtF: (v) => busPaint(v.skirtF ?? v.accent), BusSweep: (v) => busPaint(v.sweep ?? v.body), BusLilac: (v) => busPaint(v.lilac ?? v.body), BusRear: (v) => busPaint(v.rear ?? v.body), BusTrim: () => fixed('dark'), BusGlass: () => glass('busGlass', '#07121a', 0.96, 0.6),
+  BusBody: (v) => busPaint(v.body), BusAccent: (v) => busPaint(v.accent), BusStripe: (v) => busPaint(v.stripe ?? v.body), BusSkirtF: (v) => busPaint(v.skirtF ?? v.accent), BusSweep: (v) => busPaint(v.sweep ?? v.body), BusLilac: (v) => busPaint(v.lilac ?? v.body), BusRear: (v) => busPaint(v.rear ?? v.body), BusMark: (v) => busPaint(v.mark ?? '#f0efe9'), BusMark2: (v) => busPaint(v.mark2 ?? '#1c3f94'), BusTrim: () => fixed('dark'), BusGlass: () => glass('busGlass', '#07121a', 0.96, 0.6),
   BusRubber: () => fixed('tyre'), BusMetal: () => fixed('chrome'), BusHeadlight: () => fixed('head'), BusTaillight: () => fixed('tail'),
   BusDisplay: (v) => destMat(...v.dest), BusInterior: () => fixed('cabin'),
   CarBody: (v) => carPaint(v.body), CarRoof: (v) => carPaint(v.roof), CarStripe: () => carPaint('#f2f0e9'), CarGlass: CAR_FINISH.CarGlass, CarTrim: CAR_FINISH.CarTrim, CarInterior: () => phys('miniInterior', () => new THREE.MeshStandardMaterial({ color: '#655d51', roughness: 0.85, envMapIntensity: 0.18 })), CarPlate: () => fixed('plate'), CarRim: CAR_FINISH.CarRim,
@@ -128,7 +128,7 @@ const FLEET_FINISH = {
     return m;
   }),
 };
-const CASTS = new Set(['BusBody', 'BusAccent', 'BusStripe', 'BusSkirtF', 'BusSweep', 'BusLilac', 'BusRear', 'CarBody', 'CarRoof', 'CabBody']); // only painted shells cast: trim/glass/wheels add shadow-pass calls for no visible gain
+const CASTS = new Set(['BusBody', 'BusAccent', 'BusStripe', 'BusSkirtF', 'BusSweep', 'BusLilac', 'BusRear', 'BusMark', 'BusMark2', 'CarBody', 'CarRoof', 'CabBody']); // only painted shells cast: trim/glass/wheels add shadow-pass calls for no visible gain
 const WHEELS = ['FL', 'FR', 'RL', 'RR'];
 export const rollWheels = (wheels, distance) => wheels.forEach((w) => { w.rotation.z -= distance / (w.userData.radius ?? w.position.y); });
 // Weld UV/normal seams for connectivity only; never cut a tyre or body panel by triangle centroid.
