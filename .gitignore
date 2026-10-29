@@ -6,3 +6,4 @@ tools/image-to-3d/
 tools/pipeline/node_modules/
 tools/pipeline/bin/
 tools/pipeline/lib/
+__pycache__/

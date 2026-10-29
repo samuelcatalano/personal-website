@@ -15,8 +15,8 @@ import { loadKit } from './kit-loader.js';
 // or ?kits=0.
 // Everything stays inside the 0.2 m facade margin of the lot (modules are authored <= 0.19 m deep).
 const URLS = {
-  shop: new URL('../../assets/processed/buildings/shop-kit.glb', import.meta.url).href,
-  midrise: new URL('../../assets/processed/buildings/midrise-kit.glb', import.meta.url).href,
+  shop: new URL('../../assets/processed/buildings/shop-kit.glb?v=1', import.meta.url).href,
+  midrise: new URL('../../assets/processed/buildings/midrise-kit.glb?v=1', import.meta.url).href,
 };
 export const KIT_RADIUS = 1e4; // metres from the route polyline: midrises nearer than this get modules; measured budget fits every rollout midrise
 const BUCKET = { mass: 0, trim: 1, glass: 2 };
