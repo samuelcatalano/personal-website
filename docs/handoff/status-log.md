@@ -36,3 +36,8 @@
 - **Environment:** the local preview remains running at `http://localhost:8000` because the owner asked to keep it available for testing.
 - **Next step:** if Phase 4 continues, author and review a public-realm prop atlas as a separate vertical slice; current props already use instancing or shared geometry batches.
 
+## 2026-10-29 — Claude handoff refresh
+
+- **Handoff:** commit `1f4f572` adds `docs/handoff/claude-handoff-2026-10-29.md` with current branch/runtime state, exact London Eye house root cause and fix, verified desktop-only checks, guardrails, and a copy-ready prompt for Claude.
+- **State:** `feat/site-gamefication` was clean at `4d8ef2c` before this documentation change. Preview server remains running at `http://localhost:8000`; no code, tests, deployment, push, or mobile work was performed for this handoff.
+
