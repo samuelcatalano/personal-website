@@ -17,7 +17,7 @@ WHEELS = dict(FL=(3.015, 0.998, 0.140), FR=(3.015, -0.998, 0.140), RL=(-2.826, 0
 SKIRT_Z, LIP_Z, STRIPE = 0.66, 0.46, (0.80, 0.90)
 SWEEP_K, T_FRONT, T_WHITE, T_LILAC = 0.68, 3.0, 2.55, 2.0          # diagonal bands: t = x + K (z - 0.3); front colour, white, lilac, rear
 BUCKETS = ['BusBody', 'BusAccent', 'BusStripe', 'BusTrim', 'BusGlass', 'BusRubber', 'BusMetal', 'BusHeadlight', 'BusTaillight', 'BusDisplay', 'BusInterior',
-           'BusSkirtF', 'BusSweep', 'BusLilac', 'BusRear', 'BusMark', 'BusMark2']
+           'BusSkirtF', 'BusSweep', 'BusLilac', 'BusRear', 'BusMark', 'BusMark2', 'BusWheel']
 BI = {b: i for i, b in enumerate(BUCKETS)}
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -44,7 +44,7 @@ MATS = dict(BusBody=mat('BusBody', '#c9252b', 0.38), BusAccent=mat('BusAccent', 
             BusInterior=mat('BusInterior', '#2a2622', 0.9),
             # city-specific regions (a city that does not set one falls back to body / accent in the runtime): front skirt, sweep, lilac band, rear block, roundel ring + bar
             BusSkirtF=mat('BusSkirtF', '#8e1a1f', 0.4), BusSweep=mat('BusSweep', '#c9252b', 0.4), BusLilac=mat('BusLilac', '#c9252b', 0.4), BusRear=mat('BusRear', '#c9252b', 0.4),
-            BusMark=mat('BusMark', '#f2f2f0', 0.4), BusMark2=mat('BusMark2', '#1c3f94', 0.4))
+            BusMark=mat('BusMark', '#f2f2f0', 0.4), BusMark2=mat('BusMark2', '#1c3f94', 0.4), BusWheel=mat('BusWheel', '#c3c8cd', 0.38, 0.5))
 
 # ---- 1. hull: side profile (x, z) extruded across the width, then bevelled (big plan-view radius on the nose / tail chains, small on the rest)
 RAD = 0.74                                                       # plan-view corner radius at nose and tail (pill ends)
@@ -101,7 +101,7 @@ for wx in (WHEELS['FL'][0], WHEELS['RL'][0]):
         ring, well = [], []
         for f in bm.faces:
             p = f.calc_center_median()
-            if f.normal.y * sg > 0.8 and p.y * sg > 1.0 and inpoly(p, wx, ARCH_R + ARCH_RING):
+            if (f.normal.y * sg > 0.8 or (p.z < 0.45 and f.normal.y * sg > 0.4)) and p.y * sg > 1.0 and inpoly(p, wx, ARCH_R + ARCH_RING):
                 (well if inpoly(p, wx, ARCH_R) else ring).append(f)
         for f in ring: f[lay] = 1; f[mi] = BI['BusTrim']
         if well:
@@ -273,24 +273,34 @@ for sg in (1, -1):
 # roof: air-conditioning pod and two vents
 box('BusSweep', (-4.2, -0.70, ZR + 0.03), (-1.6, 0.70, ZR + 0.19)); box('BusTrim', (-4.1, -0.55, ZR + 0.19), (-1.7, 0.55, ZR + 0.195)); box('BusSweep', (1.0, -0.45, ZR + 0.06), (2.0, 0.45, ZR + 0.14))
 
-# ---- 5. wheels: smooth tyre revolve + dished rim with alternating dark wedges (so the spin reads); axis = Y, origin = wheel centre
-TYRE_SEG, RIM_SEG = 64, 48
+# ---- 5. wheels: chunky tyre (sidewall step, rim-protector ridge, tread grooves), deep-dished steel disc with 10 hand holes, nut ring and a raised hub cap; axis = Y, origin = wheel centre
+TYRE_SEG, RIM_SEG = 48, 30
 def wheel(name, c, hw, sign):
     mesh = bpy.data.meshes.new(name); w = bmesh.new(); R, RIM = WR, WR * 0.62
-    prof = [(RIM * 0.95, hw * 0.86), (R * 0.80, hw), (R * 0.96, hw * 0.92), (R, hw * 0.45), (R, hw * 0.34), (R * 0.985, hw * 0.29), (R * 0.985, hw * 0.23), (R, hw * 0.18), (R, hw * 0.07)]
-    prof += [(r, -y) for r, y in reversed(prof)]
+    outer = [(RIM * 0.96, 0.80), (RIM * 1.06, 0.82), (RIM * 1.10, 0.97), (RIM * 1.22, 0.99), (R * 0.84, 1.0), (R * 0.955, 0.94), (R * 0.995, 0.72), (R, 0.45), (R, 0.34), (R * 0.985, 0.29), (R * 0.985, 0.23), (R, 0.18), (R, 0.07)]
+    inner = [(R, -0.07), (R, -0.5), (R * 0.9, -1.0), (RIM * 0.96, -0.80)]       # inboard half is hidden: kept coarse
+    prof = [(r, sign * k * hw) for r, k in outer + [(R, 0.0)] + inner]
     rings = [[w.verts.new((r * math.cos(2 * math.pi * i / TYRE_SEG), y, r * math.sin(2 * math.pi * i / TYRE_SEG))) for r, y in prof] for i in range(TYRE_SEG)]
-    mats = [MATS['BusRubber'], MATS['BusMetal'], MATS['BusTrim']]; [mesh.materials.append(m) for m in mats]
+    mats = [MATS['BusRubber'], MATS['BusMetal'], MATS['BusTrim'], MATS['BusWheel']]; [mesh.materials.append(m) for m in mats]
     for i in range(TYRE_SEG):
         r0, r1 = rings[i], rings[(i + 1) % TYRE_SEG]
         for j in range(len(prof) - 1): w.faces.new((r0[j], r0[j + 1], r1[j + 1], r1[j])).material_index = 0
-    rp = [(RIM, 0.020), (RIM * 0.84, 0.050), (RIM * 0.52, 0.080), (RIM * 0.28, 0.100), (0.0, 0.108)]
-    rr = [[w.verts.new((r * math.cos(2 * math.pi * i / RIM_SEG), sign * (hw * 0.86 + y), r * math.sin(2 * math.pi * i / RIM_SEG))) for r, y in rp[:-1]] for i in range(RIM_SEG)]
-    ctr = w.verts.new((0, sign * (hw * 0.86 + rp[-1][1]), 0))
+    y0 = hw * 0.80
+    rp = [(1.02, 0.0), (0.96, 0.012), (0.90, -0.020), (0.80, -0.055), (0.63, -0.060), (0.49, -0.060), (0.42, -0.025), (0.38, 0.022), (0.30, 0.042), (0.16, 0.048), (0.12, 0.022)]
+    rr = [[w.verts.new((RIM * k * math.cos(2 * math.pi * i / RIM_SEG), sign * (y0 + d), RIM * k * math.sin(2 * math.pi * i / RIM_SEG))) for k, d in rp] for i in range(RIM_SEG)]
+    ctr = w.verts.new((0, sign * (y0 + 0.022), 0))
     for i in range(RIM_SEG):
-        r0, r1 = rr[i], rr[(i + 1) % RIM_SEG]; dark = i % 2 == 1
-        for j in range(len(rp) - 2): w.faces.new((r0[j], r1[j], r1[j + 1], r0[j + 1])).material_index = 2 if (dark and j in (1, 2)) else 1
+        r0, r1 = rr[i], rr[(i + 1) % RIM_SEG]; hole = i % 3 == 1
+        for j in range(len(rp) - 1):
+            mi_ = 2 if (hole and j == 3) else 1 if j in (7, 8, 9, 10) else 3
+            w.faces.new((r0[j], r1[j], r1[j + 1], r0[j + 1])).material_index = mi_
         w.faces.new((r0[-1], r1[-1], ctr)).material_index = 1
+    for k in range(10):    # wheel nuts: low pentagonal prisms on the dish floor
+        a = 2 * math.pi * (k + 0.5) / 10; cx, cz = RIM * 0.56 * math.cos(a), RIM * 0.56 * math.sin(a); yb, yt = sign * (y0 - 0.060), sign * (y0 - 0.036)
+        lo = [w.verts.new((cx + 0.017 * math.cos(2 * math.pi * m / 5), yb, cz + 0.017 * math.sin(2 * math.pi * m / 5))) for m in range(5)]
+        hi = [w.verts.new((cx + 0.017 * math.cos(2 * math.pi * m / 5), yt, cz + 0.017 * math.sin(2 * math.pi * m / 5))) for m in range(5)]
+        for m in range(5): w.faces.new((lo[m], lo[(m + 1) % 5], hi[(m + 1) % 5], hi[m])).material_index = 1
+        w.faces.new(hi).material_index = 1
     bmesh.ops.recalc_face_normals(w, faces=w.faces[:])
     for f in w.faces:
         cen = f.calc_center_median()
