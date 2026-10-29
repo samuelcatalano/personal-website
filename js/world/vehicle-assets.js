@@ -7,9 +7,9 @@ import { fixed, paint } from './vehicles.js';
 import { destMat } from './buses.js';
 // Authored vehicle GLBs (tools/vehicles/*), loaded once and shared. Resolves null on failure so callers keep their procedural model.
 const URLS = { a330: 'a330.glb', bus: 'double-decker-bus.glb', 'sao-paulo': 'sao-paulo-bus.glb', mini: 'mini-cooper-2011.glb', cab: 'london-cab.glb' };
-// Production GLBs (tools/pipeline: weld/simplify/Meshopt), opt-in while the pipeline is validated: add ?glb=processed to the URL. Default stays on the raw assets.
+// Production GLBs (tools/pipeline: weld/simplify/Meshopt) are the default; ?glb=raw forces the raw source GLB, and a failed processed load falls back to it.
 const PROCESSED = { mini: 'processed/vehicles/mini-cooper-2011.lod0.glb' };
-const useProcessed = typeof location !== 'undefined' && new URLSearchParams(location.search).get('glb') === 'processed';
+const useProcessed = typeof location === 'undefined' || new URLSearchParams(location.search).get('glb') !== 'raw';
 const cache = new Map();
 let fleetCatalog;
 export function loadFleetCatalog() {
@@ -24,10 +24,12 @@ export function regionalFleetModel(catalog, region, slot) {
 export function loadVehicleAsset(type) {
   if (!cache.has(type)) cache.set(type, (async () => {
     const model = URLS[type] ? null : (await loadFleetCatalog()).find((m) => m.id === type);
-    const path = useProcessed && PROCESSED[type] ? 'assets/' + PROCESSED[type] : URLS[type] ? 'assets/vehicles/' + URLS[type] : model?.path;
-    if (!path) return null;
-    const url = new URL('../../' + path, import.meta.url); if (model?.sha256) url.searchParams.set('v', model.sha256);
-    return new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(url.href).then((g) => g.scene);
+    const raw = URLS[type] ? 'assets/vehicles/' + URLS[type] : model?.path, tries = [useProcessed && PROCESSED[type] ? 'assets/' + PROCESSED[type] : null, raw].filter(Boolean);
+    for (const path of tries) { // processed first, raw source as fallback
+      const url = new URL('../../' + path, import.meta.url); if (model?.sha256 && path === raw) url.searchParams.set('v', model.sha256);
+      try { return (await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(url.href)).scene; } catch { /* next candidate */ }
+    }
+    return null;
   })().catch(() => null));
   return cache.get(type);
 }
