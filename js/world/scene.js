@@ -94,9 +94,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const phones = await buildPhoneBoxes(); if (phones) scene.add(phones);
   const lampPosts = await buildLampPosts(); if (lampPosts) scene.add(lampPosts);
   const architecture = await realCity;scene.add(architecture);
-  const mini = buildVehicle('mini', { hero: true }), saoPauloBus = buildVehicle('glasgow', { hero: true }), londonBus = buildVehicle('london', { hero: true }), glasgowBus = buildVehicle('glasgow', { hero: true });
-  saoPauloBus.name = 'sao-paulo';
-  const candidates = [mini, saoPauloBus, londonBus, glasgowBus], heroVehicles = { mini, saoPaulo: saoPauloBus, london: londonBus, glasgow: glasgowBus };
+  const mini = buildVehicle('mini', { hero: true }), londonBus = buildVehicle('london', { hero: true }), glasgowBus = buildVehicle('glasgow', { hero: true });
+  const candidates = [mini, londonBus, glasgowBus], heroVehicles = { mini, london: londonBus, glasgow: glasgowBus };
   const bus = createHeroGroup(candidates), swap = swapAt(stops);
   candidates.forEach((v) => { v.visible = false; });
   // Glasgow livery between the two railway underpasses (each within 7 m of its scotRange boundary); the visible swap happens inside the tunnel (see frame())
@@ -105,7 +104,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const bridgeCars = createUnderpassTraffic(underpass.passes, { reducedMotion }); scene.add(bridgeCars.group);
   let shown = null, frameNo = 0, swapFade = null; const SWAP_OUT = 0.3, SWAP_IN = 0.35; // Hero changes scale down then up; never both visible outside this fade.
   const frustum = new THREE.Frustum(), pv = new THREE.Matrix4(), sphere = new THREE.Sphere(), ray = new THREE.Raycaster();
-  for (const v of [mini, londonBus, glasgowBus]) addBeams(v, v.userData.front, v.userData.beamY);
+  for (const v of candidates) addBeams(v, v.userData.front, v.userData.beamY);
   const WIN_L = '#2b2621', RG = '#27394b', RB = '#c9ccd1'; // Glasgow Uni windows, Riverside glass + band
   const world = buildMeshes(list, { glow: [P.lit, '#ffd86b', '#fff7c2', P.arch, WIN_L, RG, RB], glowK: { [P.arch]: 1.1, [WIN_L]: 1.0, [RG]: 0.55, [RB]: 0.2 } });
   world.traverse((o) => { const h = o.material?.color?.getHexString(); if (o.material?.userData.glow) { if (h === WIN_L.slice(1)) o.material.userData.glowColor = new THREE.Color('#ffb04a'); if (h === RG.slice(1)) o.material.userData.glowColor = new THREE.Color('#d8e86a'); if (h === RB.slice(1)) o.material.userData.glowColor = new THREE.Color('#bcd4ff'); } });
@@ -119,7 +118,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   scene.add(water.mesh);
   units.push(await createSigns(scene, { stops, curve }));
   let disposed = false, raf = 0;
-  initVehicleEnv(renderer);   upgradeMini(mini, { isDisposed: () => disposed });   upgradeBus(saoPauloBus, 'sao-paulo', { hero: false, isDisposed: () => disposed, asset: 'sao-paulo' }).then(() => { if (!disposed) { addBeams(saoPauloBus, saoPauloBus.userData.front, saoPauloBus.userData.beamY); wake(); } }); upgradeBus(londonBus, 'london', { isDisposed: () => disposed }); upgradeBus(glasgowBus, 'glasgow', { isDisposed: () => disposed }); // authored São Paulo and shared London/Glasgow bus GLBs
+  initVehicleEnv(renderer); upgradeMini(mini, { isDisposed: () => disposed }); upgradeBus(londonBus, 'london', { isDisposed: () => disposed }); upgradeBus(glasgowBus, 'glasgow', { isDisposed: () => disposed }); // authored shared London/Glasgow bus GLB
   loadVehicleAsset('a330').then((glb) => { if (glb && !disposed) adoptVisual(plane, glb, ['nav', 'strobe']); }); // authored A330 (tools/vehicles/a330); procedural stays on failure
   const wake = () => { if (!disposed && !raf && !document.hidden) raf = requestAnimationFrame(frame); };
   const wellington = details.getObjectByName('wellington-geometry');
@@ -207,12 +206,11 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const shot = blendShots(shotFor(ka, busPos, { mobile, lift }), shotFor(kb, busPos, { mobile, lift }), s - i, ka === kb ? 0 : ARC);
     camera.position.fromArray(shot.position);
     camera.lookAt(shot.target[0], shot.target[1], shot.target[2]);
-    // Mini leaves Brazil outbound; returning from the UK latches São Paulo until the next outbound crossing.
-    const want = heroVehicleAt(t, swap, ARCH_IN, ARCH_OUT, heroVehicles, shown);
+    // The primary Mini returns as a Mini; regional São Paulo buses belong to secondary traffic.
+    const want = heroVehicleAt(t, swap, ARCH_IN, ARCH_OUT, heroVehicles);
     frameNo++;
     if (shown !== want) {
-      const regionSwap = (shown === saoPauloBus && want === londonBus) || ((shown === londonBus || shown === glasgowBus) && want === saoPauloBus);
-      let why = !shown || shown === mini || want === mini ? 'immediate' : regionSwap ? 'region' : underpass.passes.some((a) => Math.abs(underpass.offset(a, busPos.x, busPos.z)) <= a.half - 5.7) ? 'arch' : Math.abs(s - Math.round(s)) < 0.12 ? 'stop' : ka !== kb && s - i > 0.15 && s - i < 0.85 ? 'blend' : '';
+      let why = !shown || shown === mini || want === mini ? 'immediate' : underpass.passes.some((a) => Math.abs(underpass.offset(a, busPos.x, busPos.z)) <= a.half - 5.7) ? 'arch' : Math.abs(s - Math.round(s)) < 0.12 ? 'stop' : ka !== kb && s - i > 0.15 && s - i < 0.85 ? 'blend' : '';
       if (!why) {
         camera.updateMatrixWorld();
         sphere.set(lateral.clone().add(bp).setY(bp.y + 2.2), 6.4);

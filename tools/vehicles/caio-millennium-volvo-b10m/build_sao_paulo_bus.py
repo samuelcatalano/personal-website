@@ -21,7 +21,6 @@ OUTPUT_DEFAULT = ROOT / "assets/vehicles/sao-paulo-bus.glb"
 BODY_OBJECT = "Object_15"
 FRONT_DETAIL = "Object_6"
 PLANE_OBJECT = "Object_12"
-TRIANGLE_BUDGET = 12_000
 ROLE_MESH_BUDGET = 8
 SOURCE_SCALE = 2.0
 
@@ -34,7 +33,7 @@ PALETTE = {
     "BusTrim": (0.018, 0.024, 0.031, 1),
     "BusGlass": (0.003, 0.008, 0.012, 1),
     "BusRubber": (0.025, 0.028, 0.031, 1),
-    "BusMetal": (0.34, 0.38, 0.40, 1),
+    "BusMetal": (0.58, 0.61, 0.64, 1),
     "BusHeadlight": (0.95, 0.89, 0.63, 1),
     "BusTaillight": (0.72, 0.025, 0.018, 1),
     "BusDisplay": (0.012, 0.018, 0.022, 1),
@@ -105,7 +104,8 @@ def material(name):
     mat.use_nodes = True
     shader = mat.node_tree.nodes.get("Principled BSDF")
     shader.inputs["Base Color"].default_value = PALETTE[name]
-    shader.inputs["Roughness"].default_value = 0.42 if name in {"BusBody", "BusAccent", "BusStripe", "BusSweep", "BusSkirtF"} else 0.72
+    shader.inputs["Roughness"].default_value = 0.35 if name == "BusMetal" else 0.42 if name in {"BusBody", "BusAccent", "BusStripe", "BusSweep", "BusSkirtF"} else 0.72
+    shader.inputs["Metallic"].default_value = 0.55 if name == "BusMetal" else 0.0
     return mat
 
 
@@ -216,12 +216,60 @@ def join_meshes_by_material_role(objects):
     return joined
 
 
+def move_articulation_bellows(trim, metal):
+    """Move only the disconnected, full-height folds in the articulation to BusMetal."""
+    bm = bmesh.new()
+    bm.from_mesh(trim.data)
+    unseen, selected = set(bm.faces), []
+    while unseen:
+        start = unseen.pop()
+        component, stack = [start], [start]
+        while stack:
+            face = stack.pop()
+            for vert in face.verts:
+                for linked in vert.link_faces:
+                    if linked in unseen:
+                        unseen.remove(linked)
+                        component.append(linked)
+                        stack.append(linked)
+        verts = {vert for face in component for vert in face.verts}
+        bounds = [(min(v.co[i] for v in verts), max(v.co[i] for v in verts)) for i in range(3)]
+        if -2.05 <= bounds[0][0] and bounds[0][1] <= -0.95 and bounds[2][1] - bounds[2][0] > 2.3 and bounds[0][1] - bounds[0][0] < 0.08 and bounds[1][1] - bounds[1][0] > 0.1:
+            selected.extend(component)
+    tri_count = sum(len(face.verts) - 2 for face in selected)
+    if tri_count < 1500:
+        bm.free()
+        raise RuntimeError(f"Expected articulation folds in BusTrim, found {tri_count} triangles")
+
+    metal_bm = bmesh.new()
+    metal_bm.from_mesh(metal.data)
+    transform = metal.matrix_world.inverted() @ trim.matrix_world
+    copied = {}
+    for face in selected:
+        verts = []
+        for vert in face.verts:
+            if vert not in copied:
+                copied[vert] = metal_bm.verts.new(transform @ vert.co)
+            verts.append(copied[vert])
+        metal_bm.faces.new(verts).material_index = 0
+    bmesh.ops.delete(bm, geom=selected, context="FACES")
+    bmesh.ops.delete(bm, geom=[vert for vert in bm.verts if not vert.link_faces], context="VERTS")
+    bm.to_mesh(trim.data)
+    metal_bm.to_mesh(metal.data)
+    trim.data.update()
+    metal.data.update()
+    bm.free()
+    metal_bm.free()
+    print(f"SAO_PAULO_BUS_ARTICULATION_METAL_TRIS={tri_count}")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--source", required=True, type=Path, help="Supplied Caio Millennium II Volvo B10M GLB")
     parser.add_argument("--output", type=Path, default=OUTPUT_DEFAULT)
     args = parser.parse_args(sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else [])
-    source, output = args.source.expanduser().resolve(), args.output.resolve()
+    source = args.source.expanduser().resolve()
+    output = (args.output or OUTPUT_DEFAULT).expanduser().resolve()
     if not source.is_file():
         raise FileNotFoundError(source)
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -299,50 +347,20 @@ def main():
     add_surface_sweep(body, -1, side_surfaces)
     add_wheel_pivots()
 
-    # Uniform collapse keeps the supplied meshes and their silhouette while fitting the hero budget.
-    ratio = 0.12
-    for obj in meshes:
-        if len(obj.data.polygons) <= 3:
-            continue
-        modifier = obj.modifiers.new("12k triangle budget", "DECIMATE")
-        modifier.decimate_type = "COLLAPSE"
-        modifier.ratio = ratio
-        bpy.context.view_layer.objects.active = obj
-        obj.select_set(True)
-        bpy.ops.object.modifier_apply(modifier=modifier.name)
-        obj.select_set(False)
-    bpy.context.view_layer.update()
-
     result_meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
     count = triangles(result_meshes)
-    # A few disconnected source meshes resist one collapse pass; trim only the largest until in budget.
-    while count > TRIANGLE_BUDGET:
-        obj = max(result_meshes, key=lambda o: triangles([o]))
-        before = triangles([obj])
-        modifier = obj.modifiers.new("budget cleanup", "DECIMATE")
-        modifier.decimate_type = "COLLAPSE"
-        modifier.ratio = 0.48
-        bpy.context.view_layer.objects.active = obj
-        bpy.ops.object.select_all(action="DESELECT")
-        obj.select_set(True)
-        bpy.ops.object.modifier_apply(modifier=modifier.name)
-        obj.select_set(False)
-        count = triangles(result_meshes)
-        if triangles([obj]) >= before:
-            print(f"DECIMATION_FLOOR={obj.name}:{before}")
-            break
     for obj in result_meshes:
         if obj.data.validate(verbose=True, clean_customdata=True):
             print(f"MESH_REPAIRED={obj.name}")
         obj.data.update()
     count = triangles(result_meshes)
-    if count > TRIANGLE_BUDGET:
-        raise RuntimeError(f"Decimation yielded {count} triangles (budget {TRIANGLE_BUDGET})")
     if any(o.name == PLANE_OBJECT for o in result_meshes):
         raise RuntimeError("Stray source plane survived cleanup")
 
     # Preserve the supplied geometry while collapsing the renderer-facing object count.
     result_meshes = join_meshes_by_material_role(result_meshes)
+    by_role = {obj.name: obj for obj in result_meshes}
+    move_articulation_bellows(by_role["BusTrim"], by_role["BusMetal"])
     count = triangles(result_meshes)
 
     bpy.ops.object.select_all(action="SELECT")

@@ -6,99 +6,110 @@
   {
    "id": "toyota-corolla",
    "name": "Toyota Corolla",
-   "generation": "Twelfth generation sedan, MY2020 Brazil",
-   "region": [
-    "br",
-    "uk"
-   ],
+   "generation": "Toyota Corolla 2020",
    "path": "assets/vehicles/toyota-corolla.glb",
    "dimensions": {
     "length": 4.63,
-    "bodyWidth": 1.78,
-    "height": 1.455,
-    "wheelbase": 2.7,
-    "sourceWheelbase": 2.7,
-    "widthIncludingMirrors": 2.018
+    "bodyWidth": 2.089,
+    "height": 1.451,
+    "wheelbase": 2.681,
+    "sourceWheelbase": 2.681,
+    "widthIncludingMirrors": 2.089
    },
    "axles": {
-    "front": 1.38,
-    "rear": -1.32,
-    "height": 0.325822,
-    "halfTrack": 0.78,
-    "wheelRadius": 0.325822
+    "front": 1.291,
+    "rear": -1.39,
+    "height": 0.338,
+    "halfTrack": 0.795,
+    "wheelRadius": 0.338,
+    "wheelMaterials": [
+     "Index_0_1",
+     "Index_1_1",
+     "Paint_Color"
+    ]
    },
    "beamAnchors": {
     "front": [
      [
-      2.270504,
-      0.688379,
+      2.256,
+      0.688,
       0.6
      ],
      [
-      2.270504,
-      0.688379,
+      2.256,
+      0.688,
       -0.6
      ]
     ],
     "rear": [
      [
-      -2.281911,
-      0.898904,
+      -2.266,
+      0.899,
       0.55
      ],
      [
-      -2.281911,
-      0.898904,
+      -2.266,
+      0.899,
       -0.55
      ]
     ]
    },
+   "triangles": 188000,
+   "vertices": 165816,
+   "bytes": 14256100,
+   "sha256": "9bbeedfeb38c7989275905d4165a5719d1fa3f8728f25ae6e35f232fd0ede83d",
+   "sources": [
+    "https://sketchfab.com/3d-models/toyota-corolla-2020-6d7d34ee42734d1ab28a6b1f1c5fc4fc"
+   ],
+   "author": "ItsDiyor",
+   "license": "CC-BY-4.0",
    "materials": [
-    "FleetBody",
-    "FleetGlass",
-    "FleetTrim",
-    "FleetRubber",
-    "FleetLights",
-    "FleetInterior"
+    "Index_0_1",
+    "Index_0_2",
+    "Index_0_2_SS",
+    "Index_1_1",
+    "metal_white",
+    "Paint_Color"
    ],
    "meshCount": 6,
-   "triangles": 17780,
-   "vertices": 13936,
-   "bytes": 558576,
-   "sha256": "123b29884b88813e5e0e96f02a4847161c017154abe73bb6e4460b3885e643de",
-   "sources": [
-    "https://getoutlines.com/blueprints/car/toyota/toyota-corolla-e120-2019.png",
-    "https://getoutlines.com/vectors/car/toyota/large/Toyota-Corolla-12-Gen-E210-Sporty-2019-blueprint-large.png",
-    "https://www.toyotacomunica.com.br/toyota-apresenta-o-novo-corolla-2020/",
-    "https://www.toyotaoman.com/wp-content/uploads/2020/05/Corolla-2020.pdf"
+   "shadowMaterials": [
+    "Index_1_1",
+    "Paint_Color"
    ],
-   "author": "Original Blender geometry; references visual only",
-   "signature": "Long low sedan bonnet and separate boot; narrow J headlamps; trapezoidal intake; stretched rear lamps",
-   "referenceLimit": "Manufacturer dimensions; contours modelled from public blueprints/brochure drawings, not CAD."
+   "signature": "Source-detailed 2020 sedan with original paint, trim, wheels and glass materials.",
+   "referenceLimit": "User-supplied detailed Sketchfab GLB, normalized and batched in Blender; geometry and original materials preserved.",
+   "paintMaterials": [
+    "Paint_Color"
+   ],
+   "region": [
+    "br",
+    "uk"
+   ]
   },
   {
    "id": "vw-t-cross",
    "name": "Volkswagen T-Cross",
-   "generation": "First generation, MY2020 Brazilian long-wheelbase",
-   "region": [
-    "br",
-    "uk"
-   ],
+   "generation": "2021 Volkswagen T-Cross 280 TSI",
    "path": "assets/vehicles/vw-t-cross.glb",
    "dimensions": {
     "length": 4.214,
-    "bodyWidth": 1.76,
-    "height": 1.567,
-    "wheelbase": 2.651,
-    "sourceWheelbase": 2.651,
-    "widthIncludingMirrors": 1.876
+    "bodyWidth": 2.05,
+    "height": 1.679,
+    "wheelbase": 2.645,
+    "sourceWheelbase": 2.645,
+    "widthIncludingMirrors": 2.05
    },
    "axles": {
-    "front": 1.2447,
-    "rear": -1.4063,
-    "height": 0.325792,
-    "halfTrack": 0.77,
-    "wheelRadius": 0.325792
+    "front": 1.259,
+    "rear": -1.386,
+    "height": 0.384,
+    "halfTrack": 0.719,
+    "wheelRadius": 0.334,
+    "wheelMaterials": [
+     "tyre",
+     "chrome",
+     "B_metal"
+    ]
    },
    "beamAnchors": {
     "front": [
@@ -126,48 +137,75 @@
      ]
     ]
    },
-   "triangles": 19713,
-   "vertices": 12164,
-   "bytes": 677752,
-   "sha256": "4310d2b5480e06664ff0ff535cf995e83f4788bbbccc5f828996f0715ccfe1b0",
+   "triangles": 172102,
+   "vertices": 180265,
+   "bytes": 8678004,
+   "sha256": "190cdfe3e3de9d6d81c9bacbd112a01a263d718814674b95006f700d7afffbc4",
    "sources": [
-    "https://getoutlines.com/blueprints/car/volkswagen/volkswagen-t-cross-2018.png (visual reference only)",
-    "https://www.volkswagen.com.pe/idhub/content/dam/onehub_pkw/importers/pe/ficha_tecnica/01-2024/VWPer%C3%BA_FichaT%C3%A9cnica_%20T-CrossMY2023-2024.pdf",
-    "https://www.volkswagen-newsroom.com/en/welcome-to-the-family-the-new-t-cross-4306/the-exterior-4311"
+    "https://sketchfab.com/3d-models/2021-volkswagen-t-cross-280-tsi-e7a833769e774e62a6500c294cb1aea6"
    ],
-   "author": "Original Blender geometry; references visual only",
+   "author": "Ddiaz Design",
+   "license": "CC-BY-NC-SA-4.0",
    "materials": [
-    "FleetBody",
-    "FleetGlass",
-    "FleetTrim",
-    "FleetRubber",
-    "FleetLights",
-    "FleetInterior"
+    "B_metal",
+    "BADG",
+    "black_glass",
+    "breaks",
+    "carpaint",
+    "carpet",
+    "chrome",
+    "glass",
+    "inner_chair",
+    "inner_door",
+    "inner_map",
+    "Lchairmap",
+    "mirror",
+    "N2_Plastic",
+    "plastic",
+    "r_plastic",
+    "trunk",
+    "tyre",
+    "W_plastic",
+    "y_Plastic"
    ],
-   "meshCount": 6,
-   "signature": "Square upright SUV greenhouse; black wheel cladding; full-width rear light bar",
-   "referenceLimit": "Manufacturer dimensions; contours modelled from public blueprints/brochure drawings, not CAD."
+   "meshCount": 20,
+   "shadowMaterials": [
+    "carpaint",
+    "N2_Plastic",
+    "W_plastic"
+   ],
+   "signature": "Source-detailed T-Cross SUV with original paint, glass, chrome and tire materials.",
+   "referenceLimit": "User-supplied detailed Sketchfab GLB, normalized and batched in Blender; geometry and original materials preserved.",
+   "paintMaterials": [
+    "carpaint"
+   ],
+   "region": [
+    "br",
+    "uk"
+   ]
   },
   {
    "id": "nissan-qashqai",
    "name": "Nissan Qashqai",
-   "generation": "J11 facelift, circa 2017",
-   "region": "uk",
+   "generation": "2018 Nissan Qashqai",
    "path": "assets/vehicles/nissan-qashqai.glb",
    "dimensions": {
     "length": 4.394,
-    "bodyWidth": 1.806,
-    "height": 1.59,
-    "wheelbase": 2.646,
-    "sourceWheelbase": 2.646,
-    "widthIncludingMirrors": 2.074
+    "bodyWidth": 2.016,
+    "height": 1.831,
+    "wheelbase": 2.647,
+    "sourceWheelbase": 2.647,
+    "widthIncludingMirrors": 2.016
    },
    "axles": {
-    "front": 1.272,
+    "front": 1.273,
     "rear": -1.374,
-    "height": 0.343,
-    "halfTrack": 0.793,
-    "wheelRadius": 0.343
+    "height": 0.346,
+    "halfTrack": 0.778,
+    "wheelRadius": 0.342,
+    "wheelMaterials": [
+     "wluntai_x1"
+    ]
    },
    "beamAnchors": {
     "front": [
@@ -195,26 +233,359 @@
      ]
     ]
    },
-   "triangles": 19290,
-   "vertices": 12119,
-   "bytes": 635804,
-   "sha256": "b219747cbce889ac17bc98cabe2e94dc3daa8f99195a5bbd116e4fa28a4625a4",
+   "triangles": 154932,
+   "vertices": 131834,
+   "bytes": 6183952,
+   "sha256": "a9e448449e3bbee252053463872f0dbec2f70dde00c200866a43781db3d56a56",
    "sources": [
-    "https://www.nissan-cdn.net/content/dam/Nissan/ch/fr/brochures/pkw/qashqai-2017-ebrochure-listedeprix.pdf",
-    "https://europe.nissannews.com/en-GB/releases/the-new-nissan-qashqai-premium-enhancements-reinforcing-10-years-of-crossover-leadership"
+    "https://sketchfab.com/3d-models/2018-nissan-qashqai-ef3c5a9808b44b44ac600ad4431b8680"
    ],
-   "author": "Original Blender geometry; references visual only",
+   "author": "Ddiaz Design",
+   "license": "CC-BY-NC-SA-4.0",
    "materials": [
-    "FleetBody",
-    "FleetGlass",
-    "FleetTrim",
-    "FleetRubber",
-    "FleetLights",
-    "FleetInterior"
+    "qblack3",
+    "qblackplasic_ref1",
+    "qblackplasic_roughness1",
+    "qblackplasic_roughness_withouttex1",
+    "qcarpaint_red1",
+    "qlight_glass3",
+    "qlight_tex1",
+    "qMaterial__2255",
+    "qMaterial__2256",
+    "qMaterial__2257",
+    "qneishi_mix1",
+    "qnissan1",
+    "qsliver_plastic1",
+    "qsliverb1",
+    "qwindow1",
+    "wluntai_x1"
    ],
-   "meshCount": 6,
-   "signature": "V-motion grille; boomerang lamps; swept roof with pinched rear quarter",
-   "referenceLimit": "Manufacturer dimensions; contours modelled from public blueprints/brochure drawings, not CAD."
+   "meshCount": 16,
+   "shadowMaterials": [
+    "qcarpaint_red1"
+   ],
+   "signature": "Source-detailed J11 crossover, with V-motion grille and original materials/textures.",
+   "referenceLimit": "User-supplied detailed Sketchfab GLB, normalized and batched in Blender; geometry and original materials preserved.",
+   "paintMaterials": [
+    "qcarpaint_red1"
+   ],
+   "region": "uk"
+  },
+  {
+   "id": "honda-hr-v",
+   "name": "Honda HR-V e:HEV",
+   "generation": "2022 Honda HR-V e:HEV",
+   "path": "assets/vehicles/honda-hr-v.glb",
+   "dimensions": {
+    "length": 4.34,
+    "bodyWidth": 1.9503,
+    "height": 1.5852,
+    "wheelbase": 2.76,
+    "sourceWheelbase": 2.76,
+    "widthIncludingMirrors": 1.9503
+   },
+   "axles": {
+    "front": 1.38,
+    "rear": -1.38,
+    "height": 0.345,
+    "halfTrack": 0.86,
+    "wheelRadius": 0.345,
+    "wheelMaterials": [
+     "M_2022_Honda_HR_V_eHEV_Tires",
+     "M_2022_Honda_HR_V_eHEV_Rims1",
+     "M_2022_Honda_HR_V_eHEV_Rims2",
+     "M_2022_Honda_HR_V_eHEV_BrakeRotors1",
+     "M_2022_Honda_HR_V_eHEV_BrakeRotors2"
+    ],
+    "wheelbase": 2.76
+   },
+   "beamAnchors": {
+    "front": [
+     [
+      2.05,
+      0.89,
+      -0.74
+     ],
+     [
+      2.05,
+      0.89,
+      0.74
+     ]
+    ],
+    "rear": [
+     [
+      -2.08,
+      1.0,
+      -0.74
+     ],
+     [
+      -2.08,
+      1.0,
+      0.74
+     ]
+    ]
+   },
+   "triangles": 497148,
+   "vertices": 1372945,
+   "bytes": 49270052,
+   "sha256": "c4b61b5d6a41d93028e9e613e1f25950140525733652e10c28ebf70f478e37da",
+   "sources": [
+    "https://sketchfab.com/3d-models/2022-honda-hr-v-ehev-e9128a46adc34e5e995ab7e8ad36339c"
+   ],
+   "author": "tonielpro520",
+   "license": "CC-BY-4.0",
+   "materials": [
+    "M_2022_Honda_HR_V_eHEV_Black1",
+    "M_2022_Honda_HR_V_eHEV_BlackChrome",
+    "M_2022_Honda_HR_V_eHEV_BlackTrims1",
+    "M_2022_Honda_HR_V_eHEV_BlueBadges",
+    "M_2022_Honda_HR_V_eHEV_BrakeLightsBase",
+    "M_2022_Honda_HR_V_eHEV_BrakeLightsGlass",
+    "M_2022_Honda_HR_V_eHEV_BrakeRotors1",
+    "M_2022_Honda_HR_V_eHEV_BrakeRotors2",
+    "M_2022_Honda_HR_V_eHEV_Calipers",
+    "M_2022_Honda_HR_V_eHEV_Chrome1",
+    "M_2022_Honda_HR_V_eHEV_DarkRed",
+    "M_2022_Honda_HR_V_eHEV_Default_Material",
+    "M_2022_Honda_HR_V_eHEV_DRLs",
+    "M_2022_Honda_HR_V_eHEV_Exhausts",
+    "M_2022_Honda_HR_V_eHEV_Grille1",
+    "M_2022_Honda_HR_V_eHEV_Grille2",
+    "M_2022_Honda_HR_V_eHEV_HeadLightsBase",
+    "M_2022_Honda_HR_V_eHEV_HeadLightsGlass",
+    "M_2022_Honda_HR_V_eHEV_Interior",
+    "M_2022_Honda_HR_V_eHEV_Mirrors",
+    "M_2022_Honda_HR_V_eHEV_Platinum_White_Pearl",
+    "M_2022_Honda_HR_V_eHEV_RedMain",
+    "M_2022_Honda_HR_V_eHEV_Reflectors",
+    "M_2022_Honda_HR_V_eHEV_Rims1",
+    "M_2022_Honda_HR_V_eHEV_Rims2",
+    "M_2022_Honda_HR_V_eHEV_SilverSkid",
+    "M_2022_Honda_HR_V_eHEV_Tires",
+    "M_2022_Honda_HR_V_eHEV_UnderCarrier",
+    "M_2022_Honda_HR_V_eHEV_Windows",
+    "M_2022_Honda_HR_V_eHEV_WindowsTrims1",
+    "Philippine_License_Plate_Recovered"
+   ],
+   "meshCount": 31,
+   "shadowMaterials": [
+    "M_2022_Honda_HR_V_eHEV_Platinum_White_Pearl"
+   ],
+   "paintMaterials": [
+    "M_2022_Honda_HR_V_eHEV_Platinum_White_Pearl"
+   ],
+   "signature": "User-supplied detailed source GLB, normalized in Blender; source geometry and authored materials retained.",
+   "referenceLimit": "User-supplied Sketchfab model; prepared and batched by source material in Blender.",
+   "region": [
+    "br",
+    "uk"
+   ]
+  },
+  {
+   "id": "land-rover-range-rover",
+   "name": "Land Rover Range Rover Supercharged",
+   "generation": "2008 Land Rover Range Rover Supercharged",
+   "path": "assets/vehicles/land-rover-range-rover.glb",
+   "dimensions": {
+    "length": 4.97,
+    "bodyWidth": 2.1871,
+    "height": 1.9602,
+    "wheelbase": 2.87,
+    "sourceWheelbase": 2.87,
+    "widthIncludingMirrors": 2.1871
+   },
+   "axles": {
+    "front": 1.52,
+    "rear": -1.35,
+    "height": 0.411,
+    "halfTrack": 0.95,
+    "wheelRadius": 0.411,
+    "wheelMaterials": [
+     "tire",
+     "material_21"
+    ],
+    "wheelbase": 2.87
+   },
+   "beamAnchors": {
+    "front": [
+     [
+      2.33,
+      0.86,
+      -0.78
+     ],
+     [
+      2.33,
+      0.86,
+      0.78
+     ]
+    ],
+    "rear": [
+     [
+      -2.33,
+      1.12,
+      -0.78
+     ],
+     [
+      -2.33,
+      1.12,
+      0.78
+     ]
+    ]
+   },
+   "triangles": 183024,
+   "vertices": 193600,
+   "bytes": 9855300,
+   "sha256": "7586e859f63b2f26c50ba500ec4a2157f670ce59618c6f842f3e03e64e8d2d2a",
+   "sources": [
+    "https://sketchfab.com/3d-models/2008-land-rover-range-rover-supercharged-43fe3d9855ef409892d976bd8850d819"
+   ],
+   "author": "Ddiaz Design",
+   "license": "CC-BY-NC-SA-4.0",
+   "materials": [
+    "CarPaint",
+    "D_glass",
+    "EXT_Metal",
+    "EXT_Plastic",
+    "Glass_light",
+    "Glass_Surr",
+    "indows",
+    "INT_Leather",
+    "INT_Metal",
+    "INT_Mot",
+    "INT_Plast",
+    "INT_Transp",
+    "Light",
+    "light_G",
+    "lr_rangerover_08_cockpitdigital_gauge1",
+    "material",
+    "material_21",
+    "mirror",
+    "rubber",
+    "tire",
+    "under",
+    "wood"
+   ],
+   "meshCount": 22,
+   "shadowMaterials": [
+    "CarPaint"
+   ],
+   "paintMaterials": [
+    "CarPaint"
+   ],
+   "signature": "User-supplied detailed source GLB, normalized in Blender; source geometry and authored materials retained.",
+   "referenceLimit": "User-supplied Sketchfab model; prepared and batched by source material in Blender.",
+   "region": [
+    "br",
+    "uk"
+   ]
+  },
+  {
+   "id": "mercedes-e63-amg-s-wagon",
+   "name": "Mercedes-Benz E63 AMG S Wagon",
+   "generation": "2018 Mercedes-Benz E63 AMG S Wagon",
+   "path": "assets/vehicles/mercedes-e63-amg-s-wagon.glb",
+   "dimensions": {
+    "length": 4.93,
+    "bodyWidth": 2.0175,
+    "height": 1.4747,
+    "wheelbase": 2.72,
+    "sourceWheelbase": 2.72,
+    "widthIncludingMirrors": 2.0175
+   },
+   "axles": {
+    "front": 1.48,
+    "rear": -1.24,
+    "height": 0.336,
+    "halfTrack": 0.91,
+    "wheelRadius": 0.336,
+    "wheelMaterials": [
+     "tire",
+     "TIREEES",
+     "RIM.001",
+     "RIM.003",
+     "carbon_disk_brake",
+     "Material"
+    ],
+    "wheelbase": 2.72
+   },
+   "beamAnchors": {
+    "front": [
+     [
+      2.32,
+      0.68,
+      -0.72
+     ],
+     [
+      2.32,
+      0.68,
+      0.72
+     ]
+    ],
+    "rear": [
+     [
+      -2.32,
+      0.86,
+      -0.76
+     ],
+     [
+      -2.32,
+      0.86,
+      0.76
+     ]
+    ]
+   },
+   "triangles": 376971,
+   "vertices": 658010,
+   "bytes": 24674016,
+   "sha256": "775c38d13d2582708fc2fd0f45bb590dfc51a8b5e6b89aab633766d62950a346",
+   "sources": [
+    "https://sketchfab.com/3d-models/2018-mercedes-benz-e63-amg-s-wagon-da7dc289aeee4c8590762a1218b1bc6d"
+   ],
+   "author": "SINNIK",
+   "license": "CC-BY-4.0",
+   "materials": [
+    "Black_Roof",
+    "CAR_PAINT",
+    "CAR_Window",
+    "CARBON__PLASTIC",
+    "carbon_disk_brake",
+    "DARKEN_TAIL_LIGHT",
+    "FRONT_DRL_LIGHTS",
+    "glass_lamp",
+    "GRILL",
+    "KACA_LAMPU",
+    "knalpot",
+    "Material",
+    "Material.001",
+    "Material.003",
+    "Material.004",
+    "matic",
+    "MERCEDES_FRONT_LOGO",
+    "MERCEDES_LOGO",
+    "REAR_TAIL_LIGHT",
+    "reverse_lgiht",
+    "RIM.001",
+    "RIM.003",
+    "SIDE_CHROME",
+    "SVGMat",
+    "SVGMat.003",
+    "tire",
+    "TIREEES",
+    "UNDER_CAR"
+   ],
+   "meshCount": 28,
+   "shadowMaterials": [
+    "CAR_PAINT"
+   ],
+   "paintMaterials": [
+    "CAR_PAINT"
+   ],
+   "signature": "User-supplied detailed source GLB, normalized in Blender; source geometry and authored materials retained.",
+   "referenceLimit": "User-supplied Sketchfab model; prepared and batched by source material in Blender.",
+   "region": [
+    "br",
+    "uk"
+   ]
   }
  ]
 }

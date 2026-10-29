@@ -9,8 +9,6 @@ import bpy
 from mathutils import Vector
 
 
-TRIANGLE_BUDGET = 12_000
-EXPECTED_TRIANGLES = 6_437
 ROLE_MESH_BUDGET = 8
 ROLES = {"BusBody", "BusAccent", "BusGlass", "BusMetal", "BusRubber", "BusSweep", "BusTaillight", "BusTrim"}
 PIVOTS = {"FL", "FR", "ML", "MR", "RL", "RR"}
@@ -39,8 +37,7 @@ def main():
     images = [i.name for i in bpy.data.images if i.source not in {"VIEWER", "GENERATED"}]
     print(f"MEASURED_BOUNDS lo={tuple(round(v,3) for v in lo)} hi={tuple(round(v,3) for v in hi)} dimensions={tuple(round(v,3) for v in dimensions)} triangles={triangles} render_meshes={len(meshes)} pivots={sorted(pivots)} images={images}")
 
-    assert triangles <= TRIANGLE_BUDGET, f"{triangles} triangles exceeds {TRIANGLE_BUDGET}"
-    assert triangles == EXPECTED_TRIANGLES, f"geometry count changed: expected {EXPECTED_TRIANGLES}, found {triangles}"
+    assert triangles >= 50_000, f"high-resolution source geometry was unexpectedly reduced: {triangles} triangles"
     assert len(meshes) <= ROLE_MESH_BUDGET, f"{len(meshes)} render meshes exceeds the {ROLE_MESH_BUDGET}-draw-call role budget"
     assert len(mesh_roles) == len(meshes), "each render mesh must use exactly one material role"
     assert len(set(mesh_roles)) == len(mesh_roles), f"duplicate role meshes would create extra draw calls: {mesh_roles}"
@@ -55,7 +52,7 @@ def main():
     assert all(pivots[n].get("wheel_pivot") and abs(pivots[n].get("wheel_radius", 0) - 0.52) < 1e-6 for n in PIVOTS)
 
     print(f"VALIDATION_OK asset={asset}")
-    print(f"triangles={triangles}/{TRIANGLE_BUDGET} render_meshes={len(meshes)}/{ROLE_MESH_BUDGET} dimensions_m=({dimensions.x:.3f},{dimensions.y:.3f},{dimensions.z:.3f}) grounded_z={lo.z:.3f}")
+    print(f"triangles={triangles} render_meshes={len(meshes)}/{ROLE_MESH_BUDGET} dimensions_m=({dimensions.x:.3f},{dimensions.y:.3f},{dimensions.z:.3f}) grounded_z={lo.z:.3f}")
     print(f"material_roles={','.join(sorted(roles))} images={len(images)} pivots={','.join(sorted(pivots))}")
 
 

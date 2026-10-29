@@ -1,28 +1,26 @@
-# Task 2 — São Paulo hero integration
+# Task 2 — São Paulo regional traffic integration
 
 ## Result
 
-Implemented the São Paulo GLB for the reverse UK-to-Brazil crossing. First/restarted Brazil entry keeps Mini; the forward crossing at exact `swapAt(stops)` preserves Mini → London → Glasgow → London. Crossing back below the same boundary selects São Paulo from London or Glasgow. São Paulo remains latched while in Brazil and the next forward crossing selects London. Shared route pose, wheel-distance update, fade path, underpass interval, and the original procedural fallback remain in use.
+The primary hero remains Mini → London bus → Glasgow bus → London bus → Mini. São Paulo is not in the hero candidate set. One secondary oncoming London bus starts just across the UK/Brazil boundary and adopts the authored São Paulo traffic LOD as it crosses into Brazil; its own route motion, heading, speed, wheel roll, and beams are retained. The São Paulo livery remains latched through Brazil; a fresh page visit initializes the bus as London.
 
-The existing axle splitter now recognizes the six empty São Paulo axle markers, separates embedded tire/rim triangles into three axle groups, and uses the source tire radius for signed route-distance roll. Loaded dimensions and front/rear beam anchors come from GLB bounds. Mini steering and ambient traffic are unchanged.
+The swap fades the existing traffic model out, loads the regional GLB into the same vehicle root, refreshes its measured length and headlight beams, and fades it back in. The runtime checks `visualAsset` so a failed load cannot be mistaken for the requested model. Both regional GLBs are preloaded before the secondary transition.
 
-The source asset contract is 6,437 triangles across 8 role meshes. Blender bounds are 16.758 × 2.634 × 3.101 m; Three.js Y-up bounds are 16.758 × 3.101 × 2.634 m. Axle extraction moves wheel triangles into axle groups, while 120 generated disc triangles replace removed wheel triangles; the runtime therefore remains exactly 6,437 triangles. The browser assertion pins that exact total and the 12-mesh cap.
-
-The follow-up fix initializes all hero candidates hidden and centralizes candidate visibility updates, so restored UK positions and reduced-motion swaps cannot leave São Paulo visible. The scene uses the tested object-returning selector and signed wheel-roll helper; browser assertions cover both forward and reverse roll on the extracted São Paulo axles.
-
-The shared-pose review follow-up adds `createHeroGroup` and `applyHeroPose` in `scene.js`; the runtime uses both helpers, and the browser assertions exercise those same helpers with Mini, São Paulo, London, and Glasgow candidates to verify shared parent position and heading. Direction-state assertions cover initial Mini, the outbound sequence, reverse London/Glasgow → São Paulo, São Paulo latch, reset, and exact-boundary behavior. The source mesh-count and exact triangle-preservation assertions are retained.
+The authored São Paulo GLB now preserves 52,588 triangles across 8 role meshes, with no triangle cap or decimated LOD. Hero and secondary traffic share the same full-resolution asset.
 
 ## Files changed
 
-- `js/world/vehicle-assets.js` — asset registration, palette, marker-driven wheel split, bounds metadata.
-- `js/world/scene.js` — shared candidate group, selector wiring, route-distance wheel roll, exact-boundary fade.
-- `js/world/layout.js` — small pure `heroVehicleAt` selector for boundary assertions.
-- `tests/vehicles.browser.py` — desktop assertions for load/fallback, dimensions/grounding, axle extraction, triangle budget, shared materials, selector boundaries, underpass interval, and shared pose.
+- `js/world/ambient.js` — secondary regional bus and in-place regional model swap.
+- `js/world/layout.js` — primary selector and secondary asset boundary helper.
+- `js/world/scene.js` — primary hero no longer selects São Paulo.
+- `js/world/vehicle-assets.js` — ambient asset registration, successful-asset tracking, shared wheel roll.
+- `tests/vehicles.browser.py` — desktop browser assertions for primary route, secondary boundary/model adoption, asset bounds, geometry preservation, and wheel pivots.
+- `tools/vehicles/caio-millennium-volvo-b10m/` — full-resolution asset builder/validator documentation and source attribution.
+- `assets/vehicles/sao-paulo-bus.glb` — full-resolution asset shared with secondary traffic.
 
-## Commit
+## Validation status
 
-Implementation and browser assertions: `4672201` (`Integrate Sao Paulo hero bus`), `b9692c4` (`Fix regional hero visibility and roll assertions`), `fe60ab0` (`Test shared hero pose wiring`), `25e5198` (`Make hero vehicle selection direction-aware`), `d74a9c2` (`Assert exact Sao Paulo geometry preservation`), and `628ced9` (`Correct Sao Paulo runtime triangle expectation`). The report is committed separately because this SDD folder is ignored by Git.
-
-## Checks
-
-`git diff --check` passed after each implementation update. Deliberately not run: any tests, browser suite, runtime/visual capture, mobile checks, or full regression. Task 3 owns consolidated desktop validation.
+- `git diff --check` passed.
+- Targeted desktop browser assertions passed before the final wheel-roll helper change; rerun after the final LOD is reviewed.
+- Desktop visual validation is pending the LOD correction.
+- Mobile checks intentionally not run.

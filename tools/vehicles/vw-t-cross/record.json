@@ -1,66 +1,94 @@
 {
- "id": "vw-t-cross",
- "name": "Volkswagen T-Cross",
- "generation": "First generation, MY2020 Brazilian long-wheelbase",
- "region": "br",
- "path": "assets/vehicles/vw-t-cross.glb",
- "dimensions": {
-  "length": 4.214,
-  "bodyWidth": 1.76,
-  "height": 1.567,
-  "wheelbase": 2.651,
-  "sourceWheelbase": 2.651,
-  "widthIncludingMirrors": 1.876
- },
- "axles": {
-  "front": 1.2447,
-  "rear": -1.4063,
-  "height": 0.325792,
-  "halfTrack": 0.77,
-  "wheelRadius": 0.325792
- },
- "beamAnchors": {
-  "front": [
-   [
-    2.001,
-    0.735,
-    0.66
-   ],
-   [
-    2.001,
-    0.735,
-    -0.66
-   ]
+  "id": "vw-t-cross",
+  "name": "Volkswagen T-Cross",
+  "generation": "2021 Volkswagen T-Cross 280 TSI",
+  "path": "assets/vehicles/vw-t-cross.glb",
+  "dimensions": {
+    "length": 4.214,
+    "bodyWidth": 2.05,
+    "height": 1.679,
+    "wheelbase": 2.645,
+    "sourceWheelbase": 2.645,
+    "widthIncludingMirrors": 2.05
+  },
+  "axles": {
+    "front": 1.259,
+    "rear": -1.386,
+    "height": 0.384,
+    "halfTrack": 0.719,
+    "wheelRadius": 0.334,
+    "wheelMaterials": [
+      "tyre",
+      "chrome",
+      "B_metal"
+    ]
+  },
+  "beamAnchors": {
+    "front": [
+      [
+        2.001,
+        0.735,
+        0.66
+      ],
+      [
+        2.001,
+        0.735,
+        -0.66
+      ]
+    ],
+    "rear": [
+      [
+        -1.922,
+        0.97,
+        -0.68985
+      ],
+      [
+        -1.922,
+        0.97,
+        0.68985
+      ]
+    ]
+  },
+  "triangles": 172102,
+  "vertices": 180265,
+  "bytes": 8678004,
+  "sha256": "190cdfe3e3de9d6d81c9bacbd112a01a263d718814674b95006f700d7afffbc4",
+  "sources": [
+    "https://sketchfab.com/3d-models/2021-volkswagen-t-cross-280-tsi-e7a833769e774e62a6500c294cb1aea6"
   ],
-  "rear": [
-   [
-    -1.922,
-    0.97,
-    -0.68985
-   ],
-   [
-    -1.922,
-    0.97,
-    0.68985
-   ]
+  "author": "Ddiaz Design",
+  "license": "CC-BY-NC-SA-4.0",
+  "materials": [
+    "B_metal",
+    "BADG",
+    "black_glass",
+    "breaks",
+    "carpaint",
+    "carpet",
+    "chrome",
+    "glass",
+    "inner_chair",
+    "inner_door",
+    "inner_map",
+    "Lchairmap",
+    "mirror",
+    "N2_Plastic",
+    "plastic",
+    "r_plastic",
+    "trunk",
+    "tyre",
+    "W_plastic",
+    "y_Plastic"
+  ],
+  "meshCount": 20,
+  "shadowMaterials": [
+    "carpaint",
+    "N2_Plastic",
+    "W_plastic"
+  ],
+  "signature": "Source-detailed T-Cross SUV with original paint, glass, chrome and tire materials.",
+  "referenceLimit": "User-supplied detailed Sketchfab GLB, normalized and batched in Blender; geometry and original materials preserved.",
+  "paintMaterials": [
+    "carpaint"
   ]
- },
- "triangles": 19713,
- "vertices": 12164,
- "bytes": 677752,
- "sha256": "4310d2b5480e06664ff0ff535cf995e83f4788bbbccc5f828996f0715ccfe1b0",
- "meshes": [
-  "FleetBody",
-  "FleetGlass",
-  "FleetTrim",
-  "FleetRubber",
-  "FleetLights",
-  "FleetInterior"
- ],
- "sources": [
-  "https://getoutlines.com/blueprints/car/volkswagen/volkswagen-t-cross-2018.png (visual reference only)",
-  "https://www.volkswagen.com.pe/idhub/content/dam/onehub_pkw/importers/pe/ficha_tecnica/01-2024/VWPer%C3%BA_FichaT%C3%A9cnica_%20T-CrossMY2023-2024.pdf",
-  "https://www.volkswagen-newsroom.com/en/welcome-to-the-family-the-new-t-cross-4306/the-exterior-4311"
- ],
- "author": "Original Blender geometry; references visual only"
 }

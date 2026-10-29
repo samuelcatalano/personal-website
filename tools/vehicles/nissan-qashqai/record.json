@@ -1,23 +1,25 @@
 {
   "id": "nissan-qashqai",
   "name": "Nissan Qashqai",
-  "generation": "J11 facelift, circa 2017",
-  "region": "uk",
+  "generation": "2018 Nissan Qashqai",
   "path": "assets/vehicles/nissan-qashqai.glb",
   "dimensions": {
     "length": 4.394,
-    "bodyWidth": 1.806,
-    "height": 1.59,
-    "wheelbase": 2.646,
-    "sourceWheelbase": 2.646,
-    "widthIncludingMirrors": 2.074
+    "bodyWidth": 2.016,
+    "height": 1.831,
+    "wheelbase": 2.647,
+    "sourceWheelbase": 2.647,
+    "widthIncludingMirrors": 2.016
   },
   "axles": {
-    "front": 1.272,
+    "front": 1.273,
     "rear": -1.374,
-    "height": 0.343,
-    "halfTrack": 0.793,
-    "wheelRadius": 0.343
+    "height": 0.346,
+    "halfTrack": 0.778,
+    "wheelRadius": 0.342,
+    "wheelMaterials": [
+      "wluntai_x1"
+    ]
   },
   "beamAnchors": {
     "front": [
@@ -45,13 +47,40 @@
       ]
     ]
   },
-  "triangles": 19290,
-  "vertices": 12119,
-  "bytes": 635804,
-  "sha256": "b219747cbce889ac17bc98cabe2e94dc3daa8f99195a5bbd116e4fa28a4625a4",
+  "triangles": 154932,
+  "vertices": 131834,
+  "bytes": 6183952,
+  "sha256": "a9e448449e3bbee252053463872f0dbec2f70dde00c200866a43781db3d56a56",
   "sources": [
-    "https://www.nissan-cdn.net/content/dam/Nissan/ch/fr/brochures/pkw/qashqai-2017-ebrochure-listedeprix.pdf",
-    "https://europe.nissannews.com/en-GB/releases/the-new-nissan-qashqai-premium-enhancements-reinforcing-10-years-of-crossover-leadership"
+    "https://sketchfab.com/3d-models/2018-nissan-qashqai-ef3c5a9808b44b44ac600ad4431b8680"
   ],
-  "author": "Original Blender geometry; references visual only"
+  "author": "Ddiaz Design",
+  "license": "CC-BY-NC-SA-4.0",
+  "materials": [
+    "qblack3",
+    "qblackplasic_ref1",
+    "qblackplasic_roughness1",
+    "qblackplasic_roughness_withouttex1",
+    "qcarpaint_red1",
+    "qlight_glass3",
+    "qlight_tex1",
+    "qMaterial__2255",
+    "qMaterial__2256",
+    "qMaterial__2257",
+    "qneishi_mix1",
+    "qnissan1",
+    "qsliver_plastic1",
+    "qsliverb1",
+    "qwindow1",
+    "wluntai_x1"
+  ],
+  "meshCount": 16,
+  "shadowMaterials": [
+    "qcarpaint_red1"
+  ],
+  "signature": "Source-detailed J11 crossover, with V-motion grille and original materials/textures.",
+  "referenceLimit": "User-supplied detailed Sketchfab GLB, normalized and batched in Blender; geometry and original materials preserved.",
+  "paintMaterials": [
+    "qcarpaint_red1"
+  ]
 }

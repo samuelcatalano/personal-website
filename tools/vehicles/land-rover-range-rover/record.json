@@ -1,0 +1,98 @@
+{
+  "id": "land-rover-range-rover",
+  "name": "Land Rover Range Rover Supercharged",
+  "generation": "2008 Land Rover Range Rover Supercharged",
+  "path": "assets/vehicles/land-rover-range-rover.glb",
+  "dimensions": {
+    "length": 4.97,
+    "bodyWidth": 2.1871,
+    "height": 1.9602,
+    "wheelbase": 2.87,
+    "sourceWheelbase": 2.87,
+    "widthIncludingMirrors": 2.1871
+  },
+  "axles": {
+    "front": 1.52,
+    "rear": -1.35,
+    "height": 0.411,
+    "halfTrack": 0.95,
+    "wheelRadius": 0.411,
+    "wheelMaterials": [
+      "tire",
+      "material_21"
+    ],
+    "wheelbase": 2.87
+  },
+  "beamAnchors": {
+    "front": [
+      [
+        2.33,
+        0.86,
+        -0.78
+      ],
+      [
+        2.33,
+        0.86,
+        0.78
+      ]
+    ],
+    "rear": [
+      [
+        -2.33,
+        1.12,
+        -0.78
+      ],
+      [
+        -2.33,
+        1.12,
+        0.78
+      ]
+    ]
+  },
+  "triangles": 183024,
+  "vertices": 193600,
+  "bytes": 9855300,
+  "sha256": "7586e859f63b2f26c50ba500ec4a2157f670ce59618c6f842f3e03e64e8d2d2a",
+  "sources": [
+    "https://sketchfab.com/3d-models/2008-land-rover-range-rover-supercharged-43fe3d9855ef409892d976bd8850d819"
+  ],
+  "author": "Ddiaz Design",
+  "license": "CC-BY-NC-SA-4.0",
+  "materials": [
+    "CarPaint",
+    "D_glass",
+    "EXT_Metal",
+    "EXT_Plastic",
+    "Glass_light",
+    "Glass_Surr",
+    "indows",
+    "INT_Leather",
+    "INT_Metal",
+    "INT_Mot",
+    "INT_Plast",
+    "INT_Transp",
+    "Light",
+    "light_G",
+    "lr_rangerover_08_cockpitdigital_gauge1",
+    "material",
+    "material_21",
+    "mirror",
+    "rubber",
+    "tire",
+    "under",
+    "wood"
+  ],
+  "meshCount": 22,
+  "shadowMaterials": [
+    "CarPaint"
+  ],
+  "paintMaterials": [
+    "CarPaint"
+  ],
+  "signature": "User-supplied detailed source GLB, normalized in Blender; source geometry and authored materials retained.",
+  "referenceLimit": "User-supplied Sketchfab model; prepared and batched by source material in Blender.",
+  "region": [
+    "br",
+    "uk"
+  ]
+}

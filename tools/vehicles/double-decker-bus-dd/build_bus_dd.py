@@ -13,8 +13,6 @@ a = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 SRC = a[0] if a else os.path.join(ROOT, 'assets/models/source/london-bus/london_dd_bus.glb')
 OUT = a[1] if len(a) > 1 else os.path.join(ROOT, 'assets/vehicles/double-decker-bus.glb')
 S = 0.0240                       # source inches -> metres, tuned so the hull is ~11.6 m (old bus 11.2 m) and the wheels r 0.445 (old 0.47)
-DISSOLVE = dict(BusGlass=1.5, BusBody=2.0, BusAccent=2.0, BusStripe=2.0, BusTrim=2.0, BusInterior=4.0, BusSkirtF=2.0, BusSweep=2.0, BusLilac=2.0, BusRear=2.0)   # planar dissolve angle per bucket (degrees)
-INTERIOR_TRIS = 650              # what the saloon silhouette seen through the glass may cost
 # measured on the source tyres (metres after the bake): axle x, tyre centre |y|, tyre half width, radius
 WHEELS = dict(FL=(3.015, 0.998, 0.130), FR=(3.015, -0.998, 0.130), RL=(-2.826, 0.950, 0.180), RR=(-2.826, -0.950, 0.180)); WR = 0.445
 # livery cuts (z up, x forward): skirt top, and the swoosh as boolean regions between lines z = f(x)
@@ -178,7 +176,7 @@ collect(SHELL, shell_bucket); collect(FRAME, lambda p, f: None if abs(p.normal.z
 collect(BLIND, lambda p, f: 'BusMetal' if abs(p.center.y) > 1.3 else 'BusTrim')
 collect(HUB, lambda p, f: None); collect(SEATS, lambda p, f: None)
 add_faces(PLATE, {p.index: 'BusMetal' for p in PLATE.data.polygons})
-add_faces(GLASS_, {p.index: 'BusGlass' for p in GLASS_.data.polygons})   # flat panes, dissolved below
+add_faces(GLASS_, {p.index: 'BusGlass' for p in GLASS_.data.polygons})   # flat panes, source tessellation kept
 
 # ---- 6. decals: front destination blind (UVs for the runtime canvas), headlamps, tail lamps, side blinds
 def ray_hit(origin, d):
@@ -207,8 +205,8 @@ def on_shell(x, y, z, face, rad=0.25):   # outermost skin point over a patch (ra
 h, n = on_shell(8, 0, 2.645, Vector((1, 0, 0)))
 fright = UPV.cross(n)
 decal('BusDisplay', h, n, fright, UPV, 0.55, 0.20, 0.016, uv=True); decal('BusTrim', h, n, fright, UPV, 0.60, 0.25, 0.008)
-for sg in (1, -1):         # side blinds in the red band between the decks, text reads front-to-rear on both sides like a real blind
-    h, n = on_shell(0.9, sg * 3, 2.55, Vector((0, sg, 0)))
+for sg in (1, -1):         # side blinds sit by the front windscreen, in the red band between the decks
+    h, n = on_shell(3.15, sg * 3, 2.55, Vector((0, sg, 0)))
     if h is not None:
         right = UPV.cross(n)
         decal('BusDisplay', h, n, right, UPV, 0.60, 0.21, 0.012, uv=True)
@@ -234,10 +232,11 @@ for sg in (1, -1):
         decal('BusTrim', h, n, Vector((0, 1, 0)), UPV, 0.19, 0.19, 0.02, segs=16); decal('BusTaillight', h, n, Vector((0, 1, 0)), UPV, 0.14, 0.14, 0.03, segs=16)
 
 # ---- 7. wheels: smooth tyre revolve + dished rim with alternating dark wedges (so the spin reads); axis = Y, origin = wheel centre
-TYRE_SEG, RIM_SEG = 20, 16
+TYRE_SEG, RIM_SEG = 64, 48
 def wheel(name, c, hw, sign):
     mesh = bpy.data.meshes.new(name); w = bmesh.new(); R, RIM = WR, WR * 0.62
-    prof = [(RIM * 0.95, hw * 0.86), (R * 0.80, hw), (R * 0.96, hw * 0.92), (R, hw * 0.45)]; prof += [(r, -y) for r, y in reversed(prof)]
+    prof = [(RIM * 0.95, hw * 0.86), (R * 0.80, hw), (R * 0.96, hw * 0.92), (R, hw * 0.45), (R, hw * 0.34), (R * 0.985, hw * 0.29), (R * 0.985, hw * 0.23), (R, hw * 0.18), (R, hw * 0.07)]  # four shallow circumferential tread grooves
+    prof += [(r, -y) for r, y in reversed(prof)]
     rings = [[w.verts.new((r * math.cos(2 * math.pi * i / TYRE_SEG), y, r * math.sin(2 * math.pi * i / TYRE_SEG))) for r, y in prof] for i in range(TYRE_SEG)]
     mats = [MATS['BusRubber'], MATS['BusMetal'], MATS['BusTrim']]; [mesh.materials.append(m) for m in mats]
     for i in range(TYRE_SEG):
@@ -261,19 +260,13 @@ def wheel(name, c, hw, sign):
 wheels = {k: wheel(k, v, v[2], 1 if v[1] > 0 else -1) for k, v in WHEELS.items()}
 for k, v in WHEELS.items(): wheels[k].location = (v[0], v[1], WR)
 
-# ---- 8. build the body meshes: one per material, dissolve coplanar glass, decimate saloon
+# ---- 8. build the body meshes: one per material; preserve source tessellation
 bodies = []
 for b in BUCKETS:
     me = bpy.data.meshes.new(b); bm = BM[b]
     bmesh.ops.triangulate(bm, faces=bm.faces[:]); bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=1e-5)
     bm.to_mesh(me); bm.free()
     o = bpy.data.objects.new(b, me); sc.collection.objects.link(o); me.materials.append(MATS[b]); bodies.append(o)
-    if b in DISSOLVE:   # flat regions merge back into big polygons (the long-edge split above only served the paint classification)
-        d = o.modifiers.new('p', 'DECIMATE'); d.decimate_type = 'DISSOLVE'; d.angle_limit = math.radians(DISSOLVE[b]); t = o.modifiers.new('t', 'TRIANGULATE')
-        bpy.context.view_layer.objects.active = o; bpy.ops.object.modifier_apply(modifier='p'); bpy.ops.object.modifier_apply(modifier='t')
-    if b == 'BusInterior' and len(me.polygons) > INTERIOR_TRIS:
-        d = o.modifiers.new('d', 'DECIMATE'); d.ratio = INTERIOR_TRIS / len(me.polygons)
-        bpy.context.view_layer.objects.active = o; bpy.ops.object.modifier_apply(modifier='d')
 bodies = [o for o in bodies if len(o.data.polygons)]
 for o in [o for o in sc.objects if o.type == 'MESH' and o not in bodies and o not in wheels.values()]: bpy.data.objects.remove(o)
 

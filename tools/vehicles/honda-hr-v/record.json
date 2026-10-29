@@ -1,0 +1,110 @@
+{
+  "id": "honda-hr-v",
+  "name": "Honda HR-V e:HEV",
+  "generation": "2022 Honda HR-V e:HEV",
+  "path": "assets/vehicles/honda-hr-v.glb",
+  "dimensions": {
+    "length": 4.34,
+    "bodyWidth": 1.9503,
+    "height": 1.5852,
+    "wheelbase": 2.76,
+    "sourceWheelbase": 2.76,
+    "widthIncludingMirrors": 1.9503
+  },
+  "axles": {
+    "front": 1.38,
+    "rear": -1.38,
+    "height": 0.345,
+    "halfTrack": 0.86,
+    "wheelRadius": 0.345,
+    "wheelMaterials": [
+      "M_2022_Honda_HR_V_eHEV_Tires",
+      "M_2022_Honda_HR_V_eHEV_Rims1",
+      "M_2022_Honda_HR_V_eHEV_Rims2",
+      "M_2022_Honda_HR_V_eHEV_BrakeRotors1",
+      "M_2022_Honda_HR_V_eHEV_BrakeRotors2"
+    ],
+    "wheelbase": 2.76
+  },
+  "beamAnchors": {
+    "front": [
+      [
+        2.05,
+        0.89,
+        -0.74
+      ],
+      [
+        2.05,
+        0.89,
+        0.74
+      ]
+    ],
+    "rear": [
+      [
+        -2.08,
+        1.0,
+        -0.74
+      ],
+      [
+        -2.08,
+        1.0,
+        0.74
+      ]
+    ]
+  },
+  "triangles": 497148,
+  "vertices": 1372945,
+  "bytes": 49270052,
+  "sha256": "c4b61b5d6a41d93028e9e613e1f25950140525733652e10c28ebf70f478e37da",
+  "sources": [
+    "https://sketchfab.com/3d-models/2022-honda-hr-v-ehev-e9128a46adc34e5e995ab7e8ad36339c"
+  ],
+  "author": "tonielpro520",
+  "license": "CC-BY-4.0",
+  "materials": [
+    "M_2022_Honda_HR_V_eHEV_Black1",
+    "M_2022_Honda_HR_V_eHEV_BlackChrome",
+    "M_2022_Honda_HR_V_eHEV_BlackTrims1",
+    "M_2022_Honda_HR_V_eHEV_BlueBadges",
+    "M_2022_Honda_HR_V_eHEV_BrakeLightsBase",
+    "M_2022_Honda_HR_V_eHEV_BrakeLightsGlass",
+    "M_2022_Honda_HR_V_eHEV_BrakeRotors1",
+    "M_2022_Honda_HR_V_eHEV_BrakeRotors2",
+    "M_2022_Honda_HR_V_eHEV_Calipers",
+    "M_2022_Honda_HR_V_eHEV_Chrome1",
+    "M_2022_Honda_HR_V_eHEV_DarkRed",
+    "M_2022_Honda_HR_V_eHEV_Default_Material",
+    "M_2022_Honda_HR_V_eHEV_DRLs",
+    "M_2022_Honda_HR_V_eHEV_Exhausts",
+    "M_2022_Honda_HR_V_eHEV_Grille1",
+    "M_2022_Honda_HR_V_eHEV_Grille2",
+    "M_2022_Honda_HR_V_eHEV_HeadLightsBase",
+    "M_2022_Honda_HR_V_eHEV_HeadLightsGlass",
+    "M_2022_Honda_HR_V_eHEV_Interior",
+    "M_2022_Honda_HR_V_eHEV_Mirrors",
+    "M_2022_Honda_HR_V_eHEV_Platinum_White_Pearl",
+    "M_2022_Honda_HR_V_eHEV_RedMain",
+    "M_2022_Honda_HR_V_eHEV_Reflectors",
+    "M_2022_Honda_HR_V_eHEV_Rims1",
+    "M_2022_Honda_HR_V_eHEV_Rims2",
+    "M_2022_Honda_HR_V_eHEV_SilverSkid",
+    "M_2022_Honda_HR_V_eHEV_Tires",
+    "M_2022_Honda_HR_V_eHEV_UnderCarrier",
+    "M_2022_Honda_HR_V_eHEV_Windows",
+    "M_2022_Honda_HR_V_eHEV_WindowsTrims1",
+    "Philippine_License_Plate_Recovered"
+  ],
+  "meshCount": 31,
+  "shadowMaterials": [
+    "M_2022_Honda_HR_V_eHEV_Platinum_White_Pearl"
+  ],
+  "paintMaterials": [
+    "M_2022_Honda_HR_V_eHEV_Platinum_White_Pearl"
+  ],
+  "signature": "User-supplied detailed source GLB, normalized in Blender; source geometry and authored materials retained.",
+  "referenceLimit": "User-supplied Sketchfab model; prepared and batched by source material in Blender.",
+  "region": [
+    "br",
+    "uk"
+  ]
+}

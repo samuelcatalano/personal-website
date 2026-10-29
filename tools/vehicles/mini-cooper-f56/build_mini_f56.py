@@ -10,8 +10,6 @@ a = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 SRC = a[0] if a else os.path.join(ROOT, 'assets/models/source/mini-f56/2014_mini_cooper_s_f56.glb')
 OUT = a[1] if len(a) > 1 else os.path.join(ROOT, 'assets/vehicles/mini-cooper.glb')
 COL = dict(CarBody='#efe7d6', CarRoof='#c9252b', CarGlass='#1b2830', CarTrim='#17191c', CarChrome='#aeb4ba', CarHeadlight='#fff6e0', CarTaillight='#c01414', CarInterior='#2b2724', CarPlate='#f3f1ea', CarRim='#4a4e54')
-# triangle budget per piece (total ~27k, current Mini is 26k)
-T = dict(body=8500, roof=1200, trim=3500, gasket=400, glass=900, tail=260, light=700, interior=1300, tilling=150, base=300, grille=150, badge=90, plate=30, caliper=70, rim=560)
 STRIPE_X, STRIPE_Y = (1.0, 1.72), ((0.09, 0.27))   # twin bonnet stripes: x range, |y| band (symmetric about the centreline)
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -54,33 +52,28 @@ dz = -min(bounds(w)[2][0] for w in wheels_src)
 for o in src.values(): o.data.transform(Matrix.Translation((0, 0, dz)))
 
 # ---- 2. piece helpers
-def tris(o): return sum(len(p.vertices) - 2 for p in o.data.polygons)
 def clone(o):
     c = o.copy(); c.data = o.data.copy(); sc.collection.objects.link(c); return c
 def cent(o, p): return o.matrix_world @ p.center
-def take(o, pred, target, material):
-    """copy of o holding only faces with pred(centroid, normal), decimated to ~target tris, all in `material`"""
+def take(o, pred, material):
+    """copy of o holding only faces with pred(centroid, normal), all in `material`"""
     c = clone(o); bm = bmesh.new(); bm.from_mesh(c.data); bm.faces.ensure_lookup_table()
     bmesh.ops.delete(bm, geom=[f for f in bm.faces if not pred(f.calc_center_median(), f.normal)], context='FACES')
     bmesh.ops.triangulate(bm, faces=bm.faces[:]); bm.to_mesh(c.data); bm.free()
-    n = len(c.data.polygons)
-    if n == 0: bpy.data.objects.remove(c); return None
-    if n > target:
-        d = c.modifiers.new('d', 'DECIMATE'); d.ratio = target / n
-        bpy.context.view_layer.objects.active = c; bpy.ops.object.modifier_apply(modifier='d')
+    if not c.data.polygons: bpy.data.objects.remove(c); return None
     c.data.materials.clear(); c.data.materials.append(M[material])
     for p in c.data.polygons: p.material_index = 0
     return c
 ALL = lambda c, n: True
 pieces = []
-def add(o, pred, target, material):
-    p = take(o, pred, target, material)
+def add(o, pred, material):
+    p = take(o, pred, material)
     if p: pieces.append(p)
     return p
 
 # ---- 3. body shell + roof (roof panel, mirror caps), then bonnet stripes cut by exact planes
 paint = find('Paint_Geo', 'Paint_Material1')[0]
-body = take(paint, ALL, T['body'], 'CarBody')
+body = take(paint, ALL, 'CarBody')
 bm = bmesh.new(); bm.from_mesh(body.data)
 def cut(plane_y):
     fs = [f for f in bm.faces if STRIPE_X[0] - 0.2 < f.calc_center_median().x < STRIPE_X[1] + 0.2 and f.normal.z > 0.2]
@@ -94,30 +87,30 @@ for f in bm.faces:
     if f.normal.z > 0.2 and STRIPE_X[0] < c.x < STRIPE_X[1] and STRIPE_Y[0] < abs(c.y) < STRIPE_Y[1]: f.material_index = 1
 bm.to_mesh(body.data); bm.free()
 body.data.materials.append(M['CarRoof']); pieces.append(body)
-add(find('Paint_Geo', 'carP_2')[0], ALL, T['roof'], 'CarRoof')
+add(find('Paint_Geo', 'carP_2')[0], ALL, 'CarRoof')
 
 # ---- 4. trim, glass, lamps, interior
 chrome_zone = lambda c, n: c.x > 1.55 and 0.25 < c.z < 0.8 and abs(c.y) < 0.62   # grille surround
 col = find('Coloured_Geo', 'Coloured_Material1')
 col = [o for o in col if len(o.data.polygons) > 5000][0]
-add(col, lambda c, n: not chrome_zone(c, n), T['trim'], 'CarTrim'); add(col, chrome_zone, 600, 'CarChrome')
-add(find('Window_Geo', 'Window_Material1')[0], ALL, T['gasket'], 'CarTrim')
-add(find('Window_Geo', 'red_glass')[0], ALL, T['tail'], 'CarTaillight')
+add(col, lambda c, n: not chrome_zone(c, n), 'CarTrim'); add(col, chrome_zone, 'CarChrome')
+add(find('Window_Geo', 'Window_Material1')[0], ALL, 'CarTrim')
+add(find('Window_Geo', 'red_glass')[0], ALL, 'CarTaillight')
 gl = find('Window_Geo', 'glass_light')[0]
-add(gl, lambda c, n: c.z >= 0.8, T['glass'], 'CarGlass')
-add(gl, lambda c, n: c.z < 0.8 and c.x > 0, 520, 'CarHeadlight'); add(gl, lambda c, n: c.z < 0.8 and c.x <= 0, 120, 'CarTaillight')
+add(gl, lambda c, n: c.z >= 0.8, 'CarGlass')
+add(gl, lambda c, n: c.z < 0.8 and c.x > 0, 'CarHeadlight'); add(gl, lambda c, n: c.z < 0.8 and c.x <= 0, 'CarTaillight')
 lt = find('Light_Geo')[0]
-add(lt, lambda c, n: c.x > 0, T['light'], 'CarChrome'); add(lt, lambda c, n: c.x <= 0, 300, 'CarTrim')
-add(find('Interior_Geo', 'InteriorA')[0], ALL, T['interior'], 'CarInterior')
-add(find('InteriorTillingColourZone')[0], ALL, T['tilling'], 'CarInterior')
-add(find('Base_Geo')[0], ALL, T['base'], 'CarTrim')
-add(find('Grille1_Geo')[0], ALL, T['grille'], 'CarTrim'); add(find('Grille2_Geo')[0], ALL, 40, 'CarTrim')
-add(find('Badge_Geo')[0], ALL, T['badge'], 'CarChrome')
-add(find('ManufacturerPlate')[0], ALL, T['plate'], 'CarPlate')
-for o in find('Calliper'): add(o, ALL, T['caliper'] if len(o.data.polygons) > 100 else 12, 'CarRoof')   # red calipers stay on the body (they do not spin)
+add(lt, lambda c, n: c.x > 0, 'CarChrome'); add(lt, lambda c, n: c.x <= 0, 'CarTrim')
+add(find('Interior_Geo', 'InteriorA')[0], ALL, 'CarInterior')
+add(find('InteriorTillingColourZone')[0], ALL, 'CarInterior')
+add(find('Base_Geo')[0], ALL, 'CarTrim')
+add(find('Grille1_Geo')[0], ALL, 'CarTrim'); add(find('Grille2_Geo')[0], ALL, 'CarTrim')
+add(find('Badge_Geo')[0], ALL, 'CarChrome')
+add(find('ManufacturerPlate')[0], ALL, 'CarPlate')
+for o in find('Calliper'): add(o, ALL, 'CarRoof')   # red calipers stay on the body (they do not spin)
 
-TYRE_PROFILE = [(0.210, 0.100), (0.232, 0.116), (0.262, 0.118), (0.292, 0.108), (0.308, 0.090), (0.312, 0.060)]   # (radius, half-width) outer half; mirrored
-def tyre(c, R, seg=36):
+TYRE_PROFILE = [(0.210, 0.100), (0.232, 0.116), (0.262, 0.118), (0.292, 0.108), (0.308, 0.090), (0.312, 0.060), (0.312, 0.045), (0.306, 0.040), (0.306, 0.035), (0.312, 0.030), (0.312, 0.020), (0.306, 0.015), (0.306, 0.010), (0.312, 0.005)]   # (radius, half-width) outer half; mirrored; four shallow circumferential tread grooves
+def tyre(c, R, seg=96):
     k = R / 0.312; prof = [(r * k, y) for r, y in TYRE_PROFILE]; prof += [(r, -y) for r, y in reversed(prof)]
     bm = bmesh.new(); rings = []
     for i in range(seg):
@@ -135,7 +128,7 @@ for w in wheels_src:
     (x0, x1), (y0, y1), (z0, z1) = bounds(w); c = Vector(((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2)); R = (z1 - z0) / 2
     name = ('F' if c.x > 0 else 'R') + ('L' if c.y > 0 else 'R')
     rad = lambda p: math.hypot(p.x - c.x, p.z - c.z)
-    parts = [tyre(c, R), take(w, lambda p, n: rad(p) < RIM_R, T['rim'], 'CarRim')]   # source tyre has tread/lettering that decimates into lumps: rebuilt as a smooth revolve
+    parts = [tyre(c, R), take(w, lambda p, n: rad(p) < RIM_R, 'CarRim')]   # source tyre tread/lettering is replaced by a smooth revolve; keep the source rim geometry
     bpy.ops.object.select_all(action='DESELECT')
     for p in parts: p.select_set(True)
     bpy.context.view_layer.objects.active = parts[0]; bpy.ops.object.join()

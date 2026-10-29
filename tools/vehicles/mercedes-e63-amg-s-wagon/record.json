@@ -1,0 +1,108 @@
+{
+  "id": "mercedes-e63-amg-s-wagon",
+  "name": "Mercedes-Benz E63 AMG S Wagon",
+  "generation": "2018 Mercedes-Benz E63 AMG S Wagon",
+  "path": "assets/vehicles/mercedes-e63-amg-s-wagon.glb",
+  "dimensions": {
+    "length": 4.93,
+    "bodyWidth": 2.0175,
+    "height": 1.4747,
+    "wheelbase": 2.72,
+    "sourceWheelbase": 2.72,
+    "widthIncludingMirrors": 2.0175
+  },
+  "axles": {
+    "front": 1.48,
+    "rear": -1.24,
+    "height": 0.336,
+    "halfTrack": 0.91,
+    "wheelRadius": 0.336,
+    "wheelMaterials": [
+      "tire",
+      "TIREEES",
+      "RIM.001",
+      "RIM.003",
+      "carbon_disk_brake",
+      "Material"
+    ],
+    "wheelbase": 2.72
+  },
+  "beamAnchors": {
+    "front": [
+      [
+        2.32,
+        0.68,
+        -0.72
+      ],
+      [
+        2.32,
+        0.68,
+        0.72
+      ]
+    ],
+    "rear": [
+      [
+        -2.32,
+        0.86,
+        -0.76
+      ],
+      [
+        -2.32,
+        0.86,
+        0.76
+      ]
+    ]
+  },
+  "triangles": 376971,
+  "vertices": 658010,
+  "bytes": 24674016,
+  "sha256": "775c38d13d2582708fc2fd0f45bb590dfc51a8b5e6b89aab633766d62950a346",
+  "sources": [
+    "https://sketchfab.com/3d-models/2018-mercedes-benz-e63-amg-s-wagon-da7dc289aeee4c8590762a1218b1bc6d"
+  ],
+  "author": "SINNIK",
+  "license": "CC-BY-4.0",
+  "materials": [
+    "Black_Roof",
+    "CAR_PAINT",
+    "CAR_Window",
+    "CARBON__PLASTIC",
+    "carbon_disk_brake",
+    "DARKEN_TAIL_LIGHT",
+    "FRONT_DRL_LIGHTS",
+    "glass_lamp",
+    "GRILL",
+    "KACA_LAMPU",
+    "knalpot",
+    "Material",
+    "Material.001",
+    "Material.003",
+    "Material.004",
+    "matic",
+    "MERCEDES_FRONT_LOGO",
+    "MERCEDES_LOGO",
+    "REAR_TAIL_LIGHT",
+    "reverse_lgiht",
+    "RIM.001",
+    "RIM.003",
+    "SIDE_CHROME",
+    "SVGMat",
+    "SVGMat.003",
+    "tire",
+    "TIREEES",
+    "UNDER_CAR"
+  ],
+  "meshCount": 28,
+  "shadowMaterials": [
+    "CAR_PAINT"
+  ],
+  "paintMaterials": [
+    "CAR_PAINT"
+  ],
+  "signature": "User-supplied detailed source GLB, normalized in Blender; source geometry and authored materials retained.",
+  "referenceLimit": "User-supplied Sketchfab model; prepared and batched by source material in Blender.",
+  "region": [
+    "br",
+    "uk"
+  ]
+}

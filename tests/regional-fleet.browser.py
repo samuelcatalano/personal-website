@@ -4,29 +4,28 @@ print(js(r'''(async () => {
  const THREE = await import('three'), A = await import('./js/world/vehicle-assets.js');
  const check = (v,m) => {if(!v) throw Error(m)};
  check(typeof A.loadFleetCatalog === 'function', 'cached regional fleet catalog is available');
- const catalog = await A.loadFleetCatalog(); check(catalog.length === 3, 'all three catalog models');
+ const catalog = await A.loadFleetCatalog(); check(catalog.length === 6, 'all six catalog models');
  check(A.loadFleetCatalog() === A.loadFleetCatalog(), 'catalog promise cached');
- const painted = await Promise.all(['#2f6fcf','#2f6fcf','#b9bec4'].map(async body => {const g=new THREE.Group();await A.upgradeFleet(g,catalog[0],{body});let mesh;g.traverse(o=>{if(o.isMesh&&o.material.name==='FleetBody')mesh=o});return mesh}));
- check(painted[0].material===painted[1].material && painted[0].material!==painted[2].material && painted.every(m=>m.geometry===painted[0].geometry), 'paint palettes cache distinct materials while sharing geometry');
- check(painted[0].material.color.getHexString()==='2f6fcf' && painted[2].material.color.getHexString()==='b9bec4','ambient paint preserved');
- const selected = ['br','uk'].flatMap(region => Array.from({length:3},(_,i) => A.regionalFleetModel(catalog,region,i).id));
- check(new Set(selected).size===3, 'deterministic selection exercises every regional model');
+ const selected = ['br','uk'].flatMap(region => Array.from({length:6},(_,i) => A.regionalFleetModel(catalog,region,i)?.id).filter(Boolean));
+ check(new Set(selected).size===6, 'deterministic selection exercises every regional model');
  check(!A.regionalFleetModel([], 'br', 0), 'missing catalog keeps fallback');
- const resources = [];
  for (const m of catalog) {
   const src = await A.loadVehicleAsset(m.id); check(src && src === await A.loadVehicleAsset(m.id), m.id+' loads once');
   const a = new THREE.Group(), b = new THREE.Group();
-  await Promise.all([A.upgradeFleet(a,m), A.upgradeFleet(b,m)]);
+  await Promise.all([A.upgradeFleet(a,m,{body:'#142b4a'}), A.upgradeFleet(b,m,{body:'#a31d2a'})]);
   const meshes = o => {const r=[];o.traverse(x=>{if(x.isMesh)r.push(x)});return r};
-  const am=meshes(a), bm=meshes(b); check(new Set(am.map(x=>x.material.name)).size===6 && a.userData.wheels.length===2 && a.userData.wheels.every(w=>w.children.length===2), m.id+' six finishes, two spinning axles');
-  check(am.every((x,i)=>x.geometry===bm[i].geometry && x.material===bm[i].material && x.material.vertexColors), 'shared semantic resources '+m.id);
+  const am=meshes(a), bm=meshes(b), names=[...new Set(am.map(x=>x.material.name))].sort();
+  check(JSON.stringify(names)===JSON.stringify([...m.materials].sort()) && a.userData.wheels.length===2 && a.userData.wheels.every(w=>w.children.length>0&&w.children.every(x=>x.material.isMaterial)), m.id+' source materials and two spinning axles');
+  if(m.id==='honda-hr-v')check(am.some(x=>x.material.name.endsWith('Calipers'))&&a.userData.wheels.every(w=>w.children.every(x=>!x.material.name.endsWith('Calipers'))),'Honda brake calipers stay on the body');
+  check(am.every((x,i)=>x.geometry===bm[i].geometry), 'shared source geometry '+m.id);
+  const paintA=am.filter(x=>m.paintMaterials.includes(x.material.name)),paintB=bm.filter(x=>m.paintMaterials.includes(x.material.name));
+  check(paintA.length>0&&paintA.every(x=>x.material.color.getHexString()==='142b4a'&&x.material.metalness>=.7)&&paintB.every(x=>x.material.color.getHexString()==='a31d2a'&&x.material!==paintA.find(y=>y.material.name===x.material.name)?.material), 'isolated metallic per-car paint '+m.id);
+  check(am.filter(x=>!m.paintMaterials.includes(x.material.name)).every((x,i)=>x.material===bm.filter(y=>!m.paintMaterials.includes(y.material.name))[i]?.material), 'shared nonpaint materials '+m.id);
   const box=new THREE.Box3().setFromObject(a), size=box.getSize(new THREE.Vector3());
   check(Math.abs(size.x-m.dimensions.length)<.03 && Math.abs(box.min.y)<.02 && Math.abs(size.y-m.dimensions.height)<.04, 'metre bounds '+m.id);
   check(a.userData.length===m.dimensions.length && a.userData.front>0 && a.userData.beamY>0, 'physical metadata '+m.id);
-  check(am.every(x=>x.frustumCulled), 'standard culling '+m.id); resources.push(am);
+  check(am.every(x=>x.frustumCulled), 'standard culling '+m.id);
  }
- check(resources.every(r=>r.find(x=>x.material.name==='FleetGlass').material===resources[0].find(x=>x.material.name==='FleetGlass').material), 'glass shared across catalog');
- A.updateVehicleEnv(1);check(resources[0].find(x=>x.material.name==='FleetLights').material.emissiveIntensity>0,'night lamps');A.updateVehicleEnv(0);
  const {createAmbient}=await import('./js/world/ambient.js'),{stops}=await import('./js/content.js'),{routePoints,routeCurve}=await import('./js/world/layout.js');
  const pts=routePoints(stops.length),curve=routeCurve(THREE,pts),scene=new THREE.Scene();
  const ambient=createAmbient(scene,{pts,curve,stops}), traffic=scene.children.slice(0,20), minis=traffic.filter(x=>x.name==='mini');
@@ -35,9 +34,11 @@ print(js(r'''(async () => {
  exclusive(); await ambient.ready;exclusive();
  const cars=traffic.filter(x=>x.userData.fleetModel);check(cars.length===9,'nine regional traffic slots');
  check(cars.every(x=>catalog.find(m=>m.id===x.userData.fleetModel).region.includes(traffic.indexOf(x)>=16?'br':'uk')),'regional selection');
+ const colors=new Set(['151a20','b9bec5','a31d2a','142b4a','173b2d']);
+ check(cars.every(x=>{const m=catalog.find(y=>y.id===x.userData.fleetModel);let paint=[];x.traverse(o=>{if(o.isMesh&&m.paintMaterials.includes(o.material.name))paint.push(o.material)});return paint.length&&paint.every(p=>colors.has(p.color.getHexString())&&p.metalness>=.7)}),'metallic palette without pink');
  const before=traffic.map(x=>x.position.clone());for(let i=0;i<120;i++)ambient.update({time:i/30,t:.5,dt:1/30});
  check(traffic.some((x,i)=>x.visible&&x.position.distanceTo(before[i])>1),'traffic moves');
- {const roll=x=>x.userData.wheels?.length===2&&x.userData.wheels.every(w=>Math.abs(w.rotation.z)>0.5),moved=traffic.filter((x,i)=>x.visible&&x.position.distanceTo(before[i])>1);check(moved.filter(x=>x.userData.fleetModel).every(roll)&&['london','mini'].every(n=>moved.some(x=>x.name===n&&roll(x))),'ambient vehicles roll their wheels');}
+ {const roll=x=>x.userData.wheels?.length===2&&x.userData.wheels.every(w=>Math.abs(w.rotation.z)>0.5),moved=traffic.filter((x,i)=>x.visible&&x.position.distanceTo(before[i])>1);check(moved.filter(x=>x.userData.fleetModel).every(roll)&&moved.some(x=>!x.userData.fleetModel&&roll(x)),'ambient vehicles roll their wheels');}
  check(cars.every(x=>x.children.filter(c=>c.name==='beam').length===2),'beam ownership retained');
  check(cars.every(x=>{const model=catalog.find(m=>m.id===x.userData.fleetModel),[pool,tail]=x.children.filter(c=>c.name==='beam');return Math.abs(pool.position.x-(x.userData.front-.3))<1e-6&&tail.position.x===model.beamAnchors.rear[0][0]&&tail.children.every((lamp,j)=>lamp.position.z===model.beamAnchors.rear[j][2])&&typeof tail.userData.swell==='function'}),'measured beam anchors and brake behavior retained');
  check(traffic.some(x=>!x.visible)&&traffic.some(x=>x.visible),'regional visibility rules retained');

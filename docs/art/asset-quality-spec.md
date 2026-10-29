@@ -5,7 +5,7 @@ Budgets are set by **screen size × importance**, not by maximizing resolution. 
 ## Principles
 
 - Silhouette, depth and occlusion → geometry. Microdetail → shared maps / vertex tint.
-- No per-object materials. Vehicles and landmarks share materials by colour/surface (`voxel.js` block materials or the architecture atlas from `building-slice-materials.js`).
+- Prefer shared materials by colour/surface. Source-faithful vehicles retain their authored material groups and textures.
 - Round things are round: wheels, Eye rim, fuselage, domes use cylinders/lathes/tori with segment counts below — never stacked cubes.
 - Deterministic variation (stable hash of position/id); never the layout RNG.
 - Textures: generated canvases or CC0 only; mipmaps on; anisotropy ≤ 8; power-of-two.
@@ -14,14 +14,16 @@ Budgets are set by **screen size × importance**, not by maximizing resolution. 
 
 | Class | Typical screen height @1440×900 | Triangles | Draw calls | Textures | Round segments |
 |---|---|---|---|---|---|
-| Hero asset (player Mini/bus) | 60–200 px, always visible | ≤ 12k | ≤ 12 (per-colour groups) | shared only | wheels 20–24, lamps 12 |
+| Hero asset (player Mini/bus) | 60–200 px, always visible | ≤ 12k, except source-faithful São Paulo bus, Mini and London/Glasgow bus | ≤ 12 (per-colour groups) | shared only | wheels 20–24, lamps 12 |
 | Landmark | 150–600 px | ≤ 8k (Eye/Estaiada ≤ 4k) | 3–8 | shared atlas / block mats | rims 64–96, tubes 6–8 |
-| Vehicle (ambient) | 20–80 px | ≤ 3k | ≤ 8, shared across all cars | none / shared | wheels 12–16 |
+| Vehicle (ambient) | 20–80 px | ≤ 3k, except source-faithful buses and user-supplied regional cars (155k–497k) | ≤ 31 for supplied regional cars | shared or source maps | wheels 12–16 |
 | Airplane | 80–300 px, brief | ≤ 4k | ≤ 6 | none | fuselage 16 |
 | Standard building | 50–400 px | existing archetype budgets (see rendering-budget) | chunk mass/trim/glass | 2 mats / 4 maps | — |
 | Public realm prop | 5–40 px | ≤ 200 each, instanced | per type batch | none | 6–8 |
 | Vegetation | 15–120 px | billboard 2 tris, instanced | 1–2 | 1254² painted atlas | — |
 | Background object | < 30 px | boxes | instanced buckets | none | — |
+
+The source-faithful hero Mini uses 96 circumferential tire segments and shallow tread grooves; this is a per-asset exception to the typical wheel segment counts above.
 
 ## Resolution
 

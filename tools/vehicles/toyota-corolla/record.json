@@ -1,68 +1,79 @@
 {
   "id": "toyota-corolla",
   "name": "Toyota Corolla",
-  "generation": "Twelfth generation sedan, MY2020 Brazil",
-  "region": "br",
+  "generation": "Toyota Corolla 2020",
   "path": "assets/vehicles/toyota-corolla.glb",
   "dimensions": {
     "length": 4.63,
-    "bodyWidth": 1.78,
-    "height": 1.455,
-    "wheelbase": 2.7,
-    "sourceWheelbase": 2.7,
-    "widthIncludingMirrors": 2.018
+    "bodyWidth": 2.089,
+    "height": 1.451,
+    "wheelbase": 2.681,
+    "sourceWheelbase": 2.681,
+    "widthIncludingMirrors": 2.089
   },
   "axles": {
-    "front": 1.38,
-    "rear": -1.32,
-    "height": 0.325822,
-    "halfTrack": 0.78,
-    "wheelRadius": 0.325822
+    "front": 1.291,
+    "rear": -1.39,
+    "height": 0.338,
+    "halfTrack": 0.795,
+    "wheelRadius": 0.338,
+    "wheelMaterials": [
+      "Index_0_1",
+      "Index_1_1",
+      "Paint_Color"
+    ]
   },
   "beamAnchors": {
     "front": [
       [
-        2.270504,
-        0.688379,
+        2.256,
+        0.688,
         0.6
       ],
       [
-        2.270504,
-        0.688379,
+        2.256,
+        0.688,
         -0.6
       ]
     ],
     "rear": [
       [
-        -2.281911,
-        0.898904,
+        -2.266,
+        0.899,
         0.55
       ],
       [
-        -2.281911,
-        0.898904,
+        -2.266,
+        0.899,
         -0.55
       ]
     ]
   },
+  "triangles": 188000,
+  "vertices": 165816,
+  "bytes": 14256100,
+  "sha256": "9bbeedfeb38c7989275905d4165a5719d1fa3f8728f25ae6e35f232fd0ede83d",
+  "sources": [
+    "https://sketchfab.com/3d-models/toyota-corolla-2020-6d7d34ee42734d1ab28a6b1f1c5fc4fc"
+  ],
+  "author": "ItsDiyor",
+  "license": "CC-BY-4.0",
   "materials": [
-    "FleetBody",
-    "FleetGlass",
-    "FleetTrim",
-    "FleetRubber",
-    "FleetLights",
-    "FleetInterior"
+    "Index_0_1",
+    "Index_0_2",
+    "Index_0_2_SS",
+    "Index_1_1",
+    "metal_white",
+    "Paint_Color"
   ],
   "meshCount": 6,
-  "triangles": 17780,
-  "vertices": 13936,
-  "bytes": 558576,
-  "sha256": "123b29884b88813e5e0e96f02a4847161c017154abe73bb6e4460b3885e643de",
-  "sources": [
-    "https://getoutlines.com/blueprints/car/toyota/toyota-corolla-e120-2019.png",
-    "https://getoutlines.com/vectors/car/toyota/large/Toyota-Corolla-12-Gen-E210-Sporty-2019-blueprint-large.png",
-    "https://www.toyotacomunica.com.br/toyota-apresenta-o-novo-corolla-2020/",
-    "https://www.toyotaoman.com/wp-content/uploads/2020/05/Corolla-2020.pdf"
+  "shadowMaterials": [
+    "Index_1_1",
+    "Paint_Color"
   ],
-  "author": "Original Blender geometry; references visual only"
+  "signature": "Source-detailed 2020 sedan with original paint, trim, wheels and glass materials.",
+  "referenceLimit": "User-supplied detailed Sketchfab GLB, normalized and batched in Blender; geometry and original materials preserved.",
+  "paintMaterials": [
+    "Paint_Color"
+  ]
 }

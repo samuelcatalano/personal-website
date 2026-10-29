@@ -7,7 +7,7 @@ export function createLampPools(scene, lamps, size = 7) {
   // ponytail: smooth cosine-like falloff (many stops) so the pool has no visible rim and neighbours blend additively.
   for (let i = 0; i <= 8; i++) { const t = i / 8, f = (0.5 + 0.5 * Math.cos(Math.PI * t)) ** 1.6; gr.addColorStop(t, `rgba(255,${Math.round(214 - 14 * t)},${Math.round(150 - 30 * t)},${(0.85 * f).toFixed(3)})`); }
   g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
-  const mat = new THREE.MeshBasicMaterial({ map: Object.assign(new THREE.CanvasTexture(c), { colorSpace: THREE.SRGBColorSpace }), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0, fog: false });
+  const mat = new THREE.MeshBasicMaterial({ map: Object.assign(new THREE.CanvasTexture(c), { colorSpace: THREE.SRGBColorSpace }), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1, opacity: 0, fog: false });
   const mesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(size, size).rotateX(-Math.PI / 2), mat, lamps.length), m = new THREE.Matrix4();
   lamps.forEach(([x, z], i) => mesh.setMatrixAt(i, m.makeTranslation(x, 0.08, z)));
   mesh.frustumCulled = false; mesh.renderOrder = 2;

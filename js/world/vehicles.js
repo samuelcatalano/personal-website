@@ -331,7 +331,7 @@ function busParts(A, { hero }, S) {
   A('matte', plate(rect(-0.8, 0.8, S.dest[0] - 0.02, S.dest[1] + 0.02), 0.03, FX + 0.01, 0.03), BLK);
   A('lit', pane('+x', 1.4, 0.22, FX + 0.012, (S.dest[0] + S.dest[1]) / 2));
   A('lit', pane('-x', 0.96, 0.15, -FX - 0.012, 3.9));
-  for (const zs of [1, -1]) A('lit', pane(zs > 0 ? '+z' : '-z', 0.96, 0.15, 1.31 * zs, 2.62, hl - 4));
+  for (const zs of [1, -1]) A('lit', pane(zs > 0 ? '+z' : '-z', 0.96, 0.15, 1.31 * zs, 2.62, hl - 2.4));
   A('matte', plate(rect(-0.32, 0.32, 0.62, 0.8), 0.02, FX, 0.03, true), '#f2c230'); // rear plate
   A('matte', plate(rect(-0.32, 0.32, 0.62, 0.8), 0.02, FX, 0.03), WHT);
   for (const s of [-1, 1]) {

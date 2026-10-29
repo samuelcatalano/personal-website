@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { createBoat, estaiadaRoute } from './landmark-geometry.js';
 import { buildVehicle } from './vehicles.js';
-import { upgradeBus, reskinBus, upgradeMini, upgradeCab, loadFleetCatalog, regionalFleetModel, upgradeFleet } from './vehicle-assets.js';
-import { RIVER_Z, LANDMARKS, ukStart, stopIndex, swapAt, scotRange, riverEnd, riverStart } from './layout.js';
+import { upgradeBus, reskinBus, upgradeMini, upgradeCab, loadFleetCatalog, loadVehicleAsset, regionalFleetModel, upgradeFleet, rollWheels } from './vehicle-assets.js';
+import { RIVER_Z, LANDMARKS, ukStart, stopIndex, swapAt, secondaryBusAssetAt, scotRange, riverEnd, riverStart } from './layout.js';
 import { stopMarks, fineMarks, routeT } from '../scroll.js';
 import { addBeams } from './beams.js';
 import { fadeVehicle, disposeFade } from './fade.js';
@@ -23,7 +23,41 @@ const BRIDGE_FAR = 80; // m: Estaiada cars only appear/vanish beyond this from t
 const SPEED = { london: 10, glasgow: 10, cab: 13, mini: 13, car: 13.5 }; // m/s
 const SP_RANGE = 0.062, MIN_SPAWN = 110; // Sao Paulo cars loop inside [route start, swap + SP_RANGE] (curve t) instead of the whole route: respawn at the east end only when >= MIN_SPAWN m from the player
 const ACC = 3, DEC = 6, GAP = 3.5, ZEBRA_AT = 9, SLOW = 24; // m/s^2 up, m/s^2 down, bumper gap (m), zebra offset past a stop (roadmarks.js), slow-down radius (m)
-const CARS = [['#e8c425', 'mini'], ['#2f6fcf', 'sedan'], ['#c8102e', 'suv'], ['#3f9d4a', 'mini'], ['#16181c', 'sedan'], ['#1f6b3a', 'van'], ['#f2b705', 'sedan'], ['#b3161f', 'hatch'], ['#2e7d32', 'suv'], ['#e8c425', 'sedan'], ['#e07a1f', 'hatch'], ['#0e8a8a', 'suv'], ['#8a1c4a', 'sedan'], ['#2a4fa8', 'hatch'], ['#d94f2b', 'suv'], ['#6d8f1f', 'sedan']]; // saturated paints only: no white/grey
+const CARS = Array.from({ length: 16 }, (_, i) => [['#151a20', '#b9bec5', '#a31d2a', '#142b4a', '#173b2d'][i % 5], ['mini', 'sedan', 'suv', 'mini', 'sedan', 'van', 'sedan', 'hatch', 'suv', 'sedan', 'hatch', 'suv', 'sedan', 'hatch', 'suv', 'sedan'][i]]); // metallic black, silver, red, dark blue and dark green
+const REGION_FADE = 0.25;
+function updateRegionalBus(v, target, dt, isDisposed) {
+  if (!v.modelReady) return;
+  if (v.regionSwap?.phase === 'out') v.regionSwap.asset = target;
+  if (!v.regionSwap && target !== v.modelAsset && target !== v.failedAsset) v.regionSwap = { asset: target, phase: 'out', time: 0 };
+  const swap = v.regionSwap;
+  if (!swap) return;
+  swap.time += dt;
+  if (swap.phase === 'out') {
+    v.mesh.scale.setScalar(Math.max(0.001, 1 - swap.time / REGION_FADE));
+    if (swap.time < REGION_FADE) return;
+    swap.phase = 'loading';
+    swap.wheelRotation = v.mesh.userData.wheels?.[0]?.rotation.z;
+    const variant = swap.asset === 'sao-paulo' ? 'sao-paulo' : 'london';
+    const asset = swap.asset === 'sao-paulo' ? 'sao-paulo' : 'bus';
+    v.mesh.scale.setScalar(1); v.mesh.visible = false; fadeVehicle(v.mesh, 1);
+    upgradeBus(v.mesh, variant, { hero: false, isDisposed, asset }).then(() => {
+      if (isDisposed()) return;
+      if (v.mesh.userData.visualAsset !== asset) v.failedAsset = swap.asset;
+      else {
+        v.modelAsset = swap.asset; v.mesh.userData.regionAsset = swap.asset; v.mesh.userData.regionTransitions = (v.mesh.userData.regionTransitions ?? 0) + 1; v.len = v.mesh.userData.length;
+        if (Number.isFinite(swap.wheelRotation)) v.mesh.userData.wheels.forEach((w) => { w.rotation.z = swap.wheelRotation; });
+        const beams = v.mesh.children.filter((c) => c.name === 'beam');
+        beams.forEach((b) => { b.traverse((o) => { if (o.isPoints) o.geometry.dispose(); }); b.removeFromParent(); });
+        addBeams(v.mesh, v.mesh.userData.front, v.mesh.userData.beamY);
+        v.tail = v.mesh.children.at(-1);
+      }
+      v.mesh.scale.setScalar(0.001); swap.phase = 'in'; swap.time = 0;
+    });
+  } else if (swap.phase === 'in') {
+    v.mesh.scale.setScalar(Math.min(1, swap.time / REGION_FADE));
+    if (swap.time >= REGION_FADE) { v.mesh.scale.setScalar(1); v.regionSwap = null; }
+  }
+}
 export function createAmbient(scene, { curve, pts, stops, reducedMotion = false }) {
   const knots = fineMarks(stopMarks(pts), curve), len = curve.getLength();
   let disposed = false, miniIndex = 0;
@@ -35,7 +69,7 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
   const G = (i, offset, extra) => ({ mesh: car(CARS[i][1], CARS[i][0]), body: CARS[i][0], type: 'car', offset, ...extra });
   const traffic = [
     // London: 2 buses, 4 cabs, 3 Minis, 3 generic cars
-    D('london', -0.16, { lane: 1.75, relative: true }), D('london', 0.35),
+    D('london', -0.16, { lane: 1.75, relative: true }), D('london', 0.35, { regionBus: true, uk: undefined, scot: undefined }),
     D('cab', 0.22, { lane: 1.75, relative: true }), D('cab', 0.25), D('cab', 0.55), D('cab', 0.75),
     D('mini', 0.08), D('mini', 0.42), D('mini', 0.64),
     G(4, 0.5, { uk: true, scot: false }), G(8, 0.83, { uk: true, scot: false }), G(6, 0.95, { uk: true, scot: false }),
@@ -49,8 +83,8 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
     // London: 1 bus, 3 cabs, 2 Minis, 3 generic cars
     D('london', 0.71), D('cab', 0.47), D('cab', 0.88), D('cab', 0.12), D('mini', 0.6), D('mini', 0.79),
     G(11, 0.385, { uk: true, scot: false }), G(13, 0.675, { uk: true, scot: false }), G(15, 0.99, { uk: true, scot: false }),
-  ].map((v, i) => ({ lane: -1.75, livery: v.type === 'london' || v.type === 'glasgow' ? v.type : null, ...v, base: SPEED[v.type] * (v.type === 'car' ? 0.9 + 0.2 * ((i * 7) % 5) / 4 : 1), p: v.offset, v: 0, brake: 0, yaw: null, x: 0, z: 0, active: false, fade: 0 }));
-  traffic.forEach((v) => { v.v = v.base; v.len = v.mesh.userData.length; v.tail = null; addBeams(v.mesh, v.mesh.userData.front, v.mesh.userData.beamY); v.tail = v.mesh.children[v.mesh.children.length - 1]; scene.add(v.mesh); });
+  ].map((v, i) => ({ lane: -1.75, livery: v.type === 'london' || v.type === 'glasgow' ? v.type : null, ...v, modelReady: !v.regionBus, base: SPEED[v.type] * (v.type === 'car' ? 0.9 + 0.2 * ((i * 7) % 5) / 4 : 1), p: v.offset, v: 0, brake: 0, yaw: null, x: 0, z: 0, active: false, fade: 0 }));
+  traffic.forEach((v) => { v.v = v.base; v.len = v.mesh.userData.length; v.tail = null; if (v.regionBus) { v.mesh.name = 'regional-bus'; v.mesh.userData.regionBus = true; } addBeams(v.mesh, v.mesh.userData.front, v.mesh.userData.beamY); v.tail = v.mesh.children[v.mesh.children.length - 1]; scene.add(v.mesh); });
   // Ponte Estaiada, two cars each way: 'in' cars take the avenue's oncoming lane, turn onto the S-ramp and cross to the far-bank ground;
   // 'out' cars come back over the river, down the ramp and away along the avenue. Spawns/despawns only happen BRIDGE_FAR m from the player.
   const er = estaiadaRoute(pts[stopIndex(stops, LANDMARKS.estaiada)].x, curve, RIVER_Z), uIn = er.uj + 9 / len, uOut = er.uj - 9 / len;
@@ -70,7 +104,11 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
   });
   const isDisposed = () => disposed;
   const ready = Promise.all(traffic.map(async (v, i) => {
-    if (v.type === 'london' || v.type === 'glasgow') await upgradeBus(v.mesh, v.type, { hero: false, isDisposed });
+    if (v.type === 'london' || v.type === 'glasgow') {
+      if (v.regionBus) await loadVehicleAsset('sao-paulo');
+      await upgradeBus(v.mesh, v.type, { hero: false, isDisposed });
+      if (v.regionBus) { v.modelAsset = 'bus'; v.mesh.userData.regionAsset = 'bus'; v.modelReady = true; }
+    }
     else if (v.type === 'cab') await upgradeCab(v.mesh, { isDisposed });
     else if (v.type === 'mini') await upgradeMini(v.mesh, { hero: false, ...v.palette, isDisposed });
     else {
@@ -131,10 +169,11 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
           v.brake += (Math.min(1, Math.max(0, (prev - v.v) / dt / 2)) - v.brake) * Math.min(1, dt * 8);
           const np = v.p - v.v * dt / len; // oncoming: against the route
           const rg = v.range ?? [0, 1]; // ambient cars loop over their range (SP: its short loop; the rest: the whole route); bridge cars (kind) wrap
-          if (!v.kind && !v.hold && np < rg[0]) v.hold = true; // left the west end: vanish, respawn at the east end
+          const enteredHold = !v.kind && !v.hold && np < rg[0];
+          if (enteredHold) v.hold = true; // left the west end: vanish, respawn at the east end
           if (v.hold) { // ponytail: waits (invisible) until the east end is >= MIN_SPAWN m from the player and 20 m clear of other cars
             const q = curve.getPointAt(routeT(rg[1], pts.length, knots));
-            if (q.distanceTo(here) > MIN_SPAWN && !auto.some((o) => o !== v && (o.active || o.fade > 0) && Math.hypot(o.x - q.x, o.z - q.z) < 20)) { v.hold = false; v.p = rg[1]; v.v = v.base; v.active = true; v.x = q.x; v.z = q.z; } // active now: the next held car sees it
+            if (!enteredHold && !v.fade && q.distanceTo(here) > MIN_SPAWN && !auto.some((o) => o !== v && (o.active || o.fade > 0) && Math.hypot(o.x - q.x, o.z - q.z) < 20)) { v.hold = false; v.p = rg[1]; v.v = v.base; v.active = true; v.x = q.x; v.z = q.z; } // active now: the next held car sees it
           } else v.p = v.kind ? wrap(np) : np;
         }
         // still in (or already back in) the lane while turning: fixed leaders for the spacing, so nobody drives through them
@@ -154,9 +193,9 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
       if (jump) for (const v of auto) { v.active = false; if (!first) v.fade = 0; } // re-place them one by one: each checks the clearance against those already placed
       for (const v of traffic) {
         const t = v.relative ? route + v.offset : routeT(v.p, pts.length, knots);
-        const inside = t >= 0 && t <= 1, want = inside && !v.hold && (v.range || v.uk === undefined || (t >= swap) === v.uk) && (v.scot === undefined || (t >= scotIn && t < scotOut) === v.scot);
+        const sameRegion = (route < swap) === (t < swap), regionBus = v.regionBus || v.type === 'london' || v.type === 'glasgow', inside = t >= 0 && t <= 1, want = inside && !v.hold && (!regionBus || sameRegion) && (v.range || v.uk === undefined || (t >= swap) === v.uk) && (v.scot === undefined || (t >= scotIn && t < scotOut) === v.scot);
         // region borders sit in view (SP and London share a frame): a vehicle only switches city once it is far from the player, so it drives off instead of popping
-        if (jump || !inside || v.relative || v.hold || want === v.active || curve.getPointAt(t).distanceTo(here) > HIDE) {
+        if (jump || !inside || v.relative || v.hold || regionBus || want === v.active || curve.getPointAt(t).distanceTo(here) > HIDE) {
           // never appear on top of a car already in the lane (region borders, nav jumps): stay hidden and keep driving until it is clear
           v.active = want && (v.relative || !traffic.some((o) => o !== v && (o.active || o.fade > 0) && o.lane === v.lane && Math.hypot(o.x - lanePos(t, v.lane).x, o.z - lanePos(t, v.lane).z) < (v.len + o.len) / 2 + GAP) && !bridge.some((b) => Math.hypot(b.x - lanePos(t, v.lane).x, b.z - lanePos(t, v.lane).z) < (v.len + b.len) / 2 + GAP));
         }
@@ -165,13 +204,14 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
           v.fade = first || reducedMotion || !dt || !inside || !seen(lp.x, lp.z, v.len) ? +v.active : v.active ? Math.min(1, v.fade + dt / FADE) : Math.max(0, v.fade - dt / FADE);
         }
         v.mesh.visible = v.fade > 0; fadeVehicle(v.mesh, v.fade);
+        if (v.regionBus) updateRegionalBus(v, secondaryBusAssetAt(t, swap), dt, isDisposed);
         if (!v.active && !v.fade) continue; // a fading-out car keeps driving (spawn checks still see it); off the route ends (hold) it just vanishes
-        if (v.livery) { const livery = t >= scotIn && t < scotOut ? 'glasgow' : 'london'; if (livery !== v.livery && v.mesh.userData.wheels) { reskinBus(v.mesh, livery); v.livery = livery; } } // buses wear the livery of the region they are in, also after a respawn or past a region border
+        if (v.livery) { const livery = v.regionBus && t < swap ? 'sao-paulo' : t >= scotIn && t < scotOut ? 'glasgow' : 'london'; if (livery !== v.livery && v.mesh.userData.wheels) { reskinBus(v.mesh, livery); v.livery = livery; } } // buses wear the livery of the region they are in, also after a respawn or past a region border
         const p = curve.getPointAt(t), tan = curve.getTangentAt(t);
         nrm.set(tan.z, 0, -tan.x).normalize();
         v.mesh.position.copy(p).addScaledVector(nrm, v.lane);
         const ds = (v.mesh.position.x - v.x) * Math.cos(v.mesh.rotation.y) - (v.mesh.position.z - v.z) * Math.sin(v.mesh.rotation.y); // signed travel along the heading
-        if (Math.abs(ds) < 5) for (const w of v.mesh.userData.wheels ?? []) w.rotation.z -= ds / w.position.y; // wheels roll; skip respawn jumps
+        if (Math.abs(ds) < 5 && !(v.regionBus && v.regionSwap?.phase === 'loading')) rollWheels(v.mesh.userData.wheels ?? [], ds); // wheels roll; skip respawn jumps and the hidden model load
         v.x = v.mesh.position.x; v.z = v.mesh.position.z;
         const yaw = Math.atan2(-tan.z, tan.x) + (v.lane < 0 ? Math.PI : 0);
         v.yaw = v.yaw === null || !move ? yaw : v.yaw + (((yaw - v.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI) * Math.min(1, dt * 8); // ease around bends
@@ -209,7 +249,7 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
         if (b.phase === 'road') { const t = tOf(b), tg = curve.getTangentAt(Math.min(1, Math.max(0, t))); laneAt(t, m.position); m.rotation.set(0, Math.atan2(-tg.z, tg.x) + Math.PI, 0); }
         else { const k = Math.min(1, Math.max(0, b.s / path.plen)), tg = path.getTangentAt(k); m.position.copy(path.getPointAt(k)); m.rotation.set(0, Math.atan2(-tg.z, tg.x), Math.atan2(tg.y, Math.hypot(tg.x, tg.z))); } // pitch with the ramp
         const ds = Math.hypot(m.position.x - x0, m.position.z - z0); b.x = m.position.x; b.z = m.position.z;
-        if (move && ds < 5) for (const w of m.userData.wheels ?? []) w.rotation.z -= ds / w.position.y; // skip respawn jumps
+        if (move && ds < 5) rollWheels(m.userData.wheels ?? [], ds); // skip respawn jumps
         b.tail.userData.swell?.(1 + 1.4 * b.brake);
       }
       boats.forEach((b, i) => {
