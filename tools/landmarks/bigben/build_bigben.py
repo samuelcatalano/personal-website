@@ -11,10 +11,11 @@ OUT = os.path.abspath(os.path.join(HERE, '..', '..', '..', 'assets', 'models', '
 TEX = os.path.join(OUT, 'tex')
 os.makedirs(TEX, exist_ok=True)
 SIZE = 1024
-S, SL, GD, GL, BZ, LV = range(6)                    # material slots: stone slate gold glass bronze louvre
-MATS = ['stone', 'slate', 'gold', 'glass', 'bronze', 'louvre']
-ROUGH = [.85, .6, .3, .08, .5, .5]
-METAL = [0, 0, 1, 0, .6, .6]
+S, SL, GD, GL, BZ, LV, SH, TAN, BASE, CU, DK = range(11)   # authoring slots
+MATS = ['stone', 'slate', 'gold', 'glass', 'bronze', 'louvre', 'shaft', 'tan', 'base', 'copper', 'slit']
+ROUGH = [.85, .6, .3, .08, .5, .5, .85, .85, .9, .45, .8]
+METAL = [0, 0, 1, 0, .6, .6, 0, 0, 0, .15, 0]
+STONES = {'stone': ('#977a58', '#b99a72'), 'shaft': ('#7a5c42', '#946f50'), 'tan': ('#a8855c', '#c0a076'), 'base': ('#5a3d2c', '#6f4d38')}
 V = lambda x, y, z: Vector((x, -z, y))
 SIDES = [((0, 0, 1), (1, 0, 0)), ((0, 0, -1), (-1, 0, 0)), ((1, 0, 0), (0, 0, -1)), ((-1, 0, 0), (0, 0, 1))]
 TZ = 1.5  # tower axis z
@@ -110,48 +111,53 @@ class B:
 
 
 def dial(b, N, U):
+    R, r = 2.15, 1.75
     n = 24 if b.lod == 0 else 12
     C = (N[0] * 2.95, 21.0, TZ + N[2] * 2.95)
     p = lambda r, a, o: (C[0] + U[0] * r * math.cos(a) + N[0] * o, C[1] + r * math.sin(a), C[2] + U[2] * r * math.cos(a) + N[2] * o)
     rad = lambda a: (U[0] * math.cos(a), math.sin(a), U[2] * math.cos(a))
     for k in range(n):
         a0, a1 = 2 * math.pi * k / n, 2 * math.pi * (k + 1) / n; am = (a0 + a1) / 2; rr = rad(am)
-        b.poly([p(2, a0, 0), p(2, a1, 0), p(2, a1, .12), p(2, a0, .12)], GD, rr)
-        b.poly([p(2, a0, .12), p(2, a1, .12), p(1.66, a1, .12), p(1.66, a0, .12)], GD, N)
-        if b.lod == 0: b.poly([p(1.66, a0, .12), p(1.66, a1, .12), p(1.66, a1, 0), p(1.66, a0, 0)], GD, tuple(-c for c in rr))
+        b.poly([p(R, a0, 0), p(R, a1, 0), p(R, a1, .12), p(R, a0, .12)], GD, rr)
+        b.poly([p(R, a0, .12), p(R, a1, .12), p(r, a1, .12), p(r, a0, .12)], GD, N)
+        if b.lod == 0: b.poly([p(r, a0, .12), p(r, a1, .12), p(r, a1, 0), p(r, a0, 0)], GD, tuple(-c for c in rr))
 
 
 def tower(b):
     cz = TZ
-    b.ring(0, cz, (2.5, 2.5), (2.25, 2.25), 0, .8, S, bot=False)
-    def shaft(w, N):
-        return [(arch(w / 2 + dx, y - .8, .85, 3.2), GL, None) for y in (3.2, 8, 12.8) for dx in (-.72, .72)]
-    b.sides(0, cz, 2.25, 2.25, .8, 17.2, shaft)
-    for y in (2.3, 7.2, 12.0, 16.5): b.ring(0, cz, (2.4, 2.4), (2.25, 2.25), y, .22, S)
+    b.ring(0, cz, (2.3, 2.3), (2.1, 2.1), 0, 2.2, BASE, bot=False)                 # dark plain base block
+    YB = [2.2, 6.0, 9.8, 13.6]
+    def shaft(w, N):                                                                 # 6 tall narrow recessed slits per row, 4 rows
+        return [([(w / 2 - 1.5 + (k + .5) * .6 - .12 + dx, y0 + .55 - 2.2 + dy) for dx, dy in ((0, 0), (.24, 0), (.24, 3.0), (0, 3.0))], DK, .16)
+                for y0 in YB for k in range(6)]
+    b.sides(0, cz, 2.1, 2.1, 2.2, 14.9, shaft, SH, .16)
+    for y in YB[1:] + [17.1]: b.ring(0, cz, (2.22, 2.22), (2.1, 2.1), y, .3, TAN)
     for sx in (-1, 1):
         for sz in (-1, 1):
-            b.box(sx * 2.22, .8, cz + sz * 2.22, .56, 16.6, .56, S, ['-y'])
-            b.box(sx * 2.78, 18, cz + sz * 2.78, .55, 6, .55, S, ['-y'])
-            b.box(sx * 2.78, 24, cz + sz * 2.78, .46, 1.1, .46, S, ['-y'])
-            b.frus(sx * 2.78, 25.1, cz + sz * 2.78, .26, .26, 0, 0, 1.7, SL)
-            b.frus(sx * 2.78, 26.8, cz + sz * 2.78, .05, .05, 0, 0, .35, GD)
-    for sx in (-1, 1):
-        for sz in (-1, 1): b.box(sx * 2.22, 17.4, cz + sz * 2.22, .4, .6, .4, S, ['-y'])
-    b.frus(0, 17.4, cz, 2.5, 2.5, 2.95, 2.95, .6, S)
+            b.box(sx * 1.92, 2.2, cz + sz * 1.92, .56, 14.9, .56, TAN, ['-y', '+y'])
+            b.box(sx * 2.78, 18, cz + sz * 2.78, .55, 6, .55, SH, ['-y'])
+            b.box(sx * 2.78, 24, cz + sz * 2.78, .36, .5, .36, TAN, ['-y'])      # corner pinnacle + tiny cross
+            b.box(sx * 2.78, 24.5, cz + sz * 2.78, .07, .8, .07, GD, ['-y']); b.box(sx * 2.78, 25.0, cz + sz * 2.78, .36, .07, .07, GD); b.box(sx * 2.78, 25.0, cz + sz * 2.78, .07, .07, .36, GD)
+    b.frus(0, 17.4, cz, 2.22, 2.22, 2.95, 2.95, .6, BASE)                         # dark cornice band below the clock stage
     nd = 24 if b.lod == 0 else 12
-    def stage(w, N):
-        o = [(circ(w / 2, 3.0, 1.66, nd), BZ if b.lod == 0 else None, .25)]
-        o += [(arch(w / 2 + dx, 1.0, .7, 3.6), LV, .3) for dx in (-2.45, 2.45)]
-        return o
-    b.sides(0, cz, 2.95, 2.95, 18, 6, stage)
+    b.sides(0, cz, 2.95, 2.95, 18, 6, lambda w, N: [(circ(w / 2, 3.0, 1.75, nd), BZ if b.lod == 0 else None, .25)], TAN)
     for N, U in SIDES: dial(b, N, U)
-    b.ring(0, cz, (3.05, 3.05), (2.75, 2.75), 23.6, .4, S, ib=(2.95, 2.95))
-    b.frus(0, 24, cz, 2.75, 2.75, 1.4, 1.4, 4, SL)
-    b.ring(0, cz, (1.52, 1.52), (1.4, 1.4), 27.9, .22, GD)
-    b.frus(0, 28.12, cz, 1.4, 1.4, .45, .45, 2.88, SL)
-    b.frus(0, 31, cz, .5, .5, .3, .3, .5, GD, top=True)
-    b.sphere(0, 31.85, cz, .34, GD)
-    b.frus(0, 32.1, cz, .1, .1, 0, 0, 1.9, GD)
+    b.ring(0, cz, (3.05, 3.05), (2.75, 2.75), 23.6, .4, BASE, ib=(2.95, 2.95))    # dark cornice band above
+    b.frus(0, 24, cz, 2.75, 2.75, 1.78, 1.78, 1.4, CU)                            # lower copper hip with dormers
+    for N, U in SIDES:
+        for u in (-.9, .9):
+            cx_, cz_ = N[0] * 2.35 + U[0] * u, N[2] * 2.35 + U[2] * u
+            w, dd = (.42, .4) if N[2] else (.4, .42)
+            b.box(cx_, 24.45, cz + cz_, w, .5, dd, TAN, ['-y', '+z' if N[2] > 0 else '-z' if N[2] < 0 else '+x' if N[0] > 0 else '-x'])
+            fx, fz = cx_ + N[0] * .21, cz_ + N[2] * .21
+            for q in (1, -1): pass
+            b.poly([(fx + U[0] * .13, 24.6, cz + fz + U[2] * .13), (fx - U[0] * .13, 24.6, cz + fz - U[2] * .13), (fx - U[0] * .13, 24.85, cz + fz - U[2] * .13), (fx + U[0] * .13, 24.85, cz + fz + U[2] * .13)], LV, N)
+            b.frus(cx_, 24.95, cz + cz_, .28, .28, 0, 0, .4, CU)
+    def belfry(w, N): return [(arch(w / 2 + dx, .5, .42, 1.3), LV, .16) for dx in (-.9, 0, .9)]
+    b.sides(0, cz, 1.75, 1.75, 25.4, 1.9, belfry, SH, .16)
+    b.ring(0, cz, (1.95, 1.95), (1.75, 1.75), 27.3, .3, BASE)
+    b.frus(0, 27.6, cz, 1.85, 1.85, .09, .09, 5.3, CU)                             # steep teal spire
+    b.frus(0, 32.9, cz, .05, .05, 0, 0, 1.1, GD)                                   # finial / flag pole to y = 34
 
 
 def palace(b):
@@ -268,8 +274,8 @@ def mat_nodes(m, chan, img, idx, nt_cache={}):
         link(a, x.inputs['Color1']); link(b_, x.inputs['Color2']); return x.outputs['Color']
     zsep = node('ShaderNodeSeparateXYZ'); link(P, zsep.inputs[0]); Z = zsep.outputs['Z']
     def albedo():
-        if name == 'stone':
-            c = ramp(noise(3, 6, (1, 1, .35)), '#8c7a58', '#bfa97c')
+        if name in STONES:
+            c = ramp(noise(3, 6, (1, 1, .35)), *STONES[name])
             g = ramp(noise(45, 3), '#d8d8d8', '#ffffff')
             c = mul(c, g)
             d = node('ShaderNodeMath', operation='DIVIDE'); d.inputs[1].default_value = .5; link(Z, d.inputs[0])
@@ -279,21 +285,22 @@ def mat_nodes(m, chan, img, idx, nt_cache={}):
             c = mul(c, ma.outputs[0])
             soot = node('ShaderNodeMapRange'); soot.inputs[1].default_value = 0; soot.inputs[2].default_value = 6; soot.inputs[3].default_value = .78; soot.inputs[4].default_value = 1; link(Z, soot.inputs[0])
             return mul(c, soot.outputs[0])
+        if name == 'copper': return ramp(noise(14, 3, (1, 1, .5)), '#2f5a53', '#3f6f68')
         if name == 'slate': return ramp(noise(25, 4), '#23272e', '#3a404a')
         return None
-    COL = {'gold': '#d9a93a', 'glass': '#1b2630', 'bronze': '#3a4a3c', 'louvre': '#3a4a3c'}
+    COL = {'slit': '#3a2a20', 'gold': '#d9a93a', 'glass': '#1b2630', 'bronze': '#3a4a3c', 'louvre': '#3a4a3c'}
     if chan == 'ALB':
         s = albedo()
         if s is not None: link(s, em.inputs['Color'])
         else: em.inputs['Color'].default_value = lin(COL[name])
     else:  # EMI: night lighting
-        if name == 'stone':
+        if name in STONES:
             link(albedo(), em.inputs['Color'])
             mr = node('ShaderNodeMapRange'); mr.inputs[1].default_value = 0; mr.inputs[2].default_value = 12; mr.inputs[3].default_value = .15; mr.inputs[4].default_value = .10
             link(Z, mr.inputs[0]); link(mr.outputs[0], em.inputs['Strength'])
         elif name == 'gold': em.inputs['Color'].default_value = lin('#d9a93a'); em.inputs['Strength'].default_value = .55
         elif name == 'louvre': em.inputs['Color'].default_value = lin('#ffb24a')
-        elif name == 'glass':
+        elif name in ('glass', 'slit'):
             sc = node('ShaderNodeVectorMath', operation='SCALE'); sc.inputs['Scale'].default_value = 1 / 1.4; link(P, sc.inputs[0])
             fl = node('ShaderNodeVectorMath', operation='FLOOR'); link(sc.outputs[0], fl.inputs[0])
             wn = node('ShaderNodeTexWhiteNoise', noise_dimensions='3D'); link(fl.outputs[0], wn.inputs['Vector'])
