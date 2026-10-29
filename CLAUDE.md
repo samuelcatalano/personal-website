@@ -8,7 +8,16 @@ For city work, start with the three current references below; consult other docu
 - `docs/architecture/rendering-budget.md`: budgets, measured evidence and measurement limits.
 - `docs/art-direction.md`: approved visual language.
 
+Asset-pipeline plan (not implemented, needs owner approval per phase): `docs/architecture/blender-asset-pipeline.md` and `docs/plans/3d-asset-pipeline-roadmap.md`.
+
 `docs/PRD.md` covers product goals; `docs/TRD.md` covers interfaces/runtime. Dated specs/plans under `docs/superpowers/` are historical context. The current references supersede their older city art, model, budget and rollout proposals; historical plans do not authorize further implementation.
+
+## Tooling and token economy
+
+- **Serena** is the preferred tool for code navigation (symbols, references, targeted reads); avoid opening whole large files when it can locate the part.
+- **RTK** wraps commands with large output (tests, find/grep, listings, builds); keep only errors, warnings, metrics and file names.
+- **token-saviour** is an operating rule: no redundant reads, summarise large outputs, write detail into repo docs and keep chat short.
+- **Subagents are OFF by default** (see 3D City rules); never spawn one just because a skill exists.
 
 ## Model orchestration
 
