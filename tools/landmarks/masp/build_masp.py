@@ -12,6 +12,7 @@ OUT = os.path.abspath(os.path.join(HERE, '..', '..', '..', 'assets', 'models', '
 TEX = os.path.join(OUT, 'tex')
 os.makedirs(TEX, exist_ok=True)
 SIZE = 1024
+GLASS_NIGHT = '#282e25'     # emissive glass tone (sRGB hex), tuned so the pane reads like the day capture under night lighting
 LW = .08                 # baked mullion half-width as a fraction of one pane (widened at LOD1 so the rhythm survives 512 px)
 CN, RD, GL, MU, PV, SF = range(6)   # authoring slots: concrete, red paint, glass, mullion steel, plaza paving, lit soffit
 MATS = ['concrete', 'red', 'glass', 'mullion', 'paving', 'soffit']
@@ -204,11 +205,15 @@ def mat_nodes(m, chan, img, idx):
         s = albedo()
         if s is not None: link(s, em.inputs['Color'])
         else: em.inputs['Color'].default_value = lin(COL[name])
-    else:  # EMI: night lighting = uplit red frames only (glass, soffit and plaza stay dark)
+    else:  # EMI: night lighting = uplit red frames + a uniform low glass emissive (soffit, plaza and mullions stay dark)
         if name == 'red':
             em.inputs['Color'].default_value = rgb('#ff1a30')
             mr = node('ShaderNodeMapRange'); mr.inputs[1].default_value = 0; mr.inputs[2].default_value = 15.6; mr.inputs[3].default_value = .36; mr.inputs[4].default_value = .1
             link(Z, mr.inputs[0]); link(mr.outputs[0], em.inputs['Strength'])
+        elif name == 'glass':   # uniform low emissive = the day grey-green, so the pane does not fall to black at night (no cells, no warm glow); grid lines stay dark
+            vx = math_('LESS_THAN', math_('ABSOLUTE', math_('SUBTRACT', math_('FRACT', math_('ADD', math_('DIVIDE', X, BAY), .5)), .5)), LW)
+            hz = math_('LESS_THAN', math_('ABSOLUTE', math_('SUBTRACT', Z, GM)), .06)
+            em.inputs['Color'].default_value = lin(GLASS_NIGHT); link(math_('SUBTRACT', 1, math_('MAXIMUM', vx, hz)), em.inputs['Strength'])
         else: em.inputs['Color'].default_value = (0, 0, 0, 1)
 
 
