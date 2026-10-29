@@ -131,7 +131,7 @@ function townhouseGeometry(plot,recipe,level=0,storage=null,modular=false) {
   return {geometries,metadata:{plotId:plot.id,openings,front,recipe}};
 }
 
-const KIT_URL=new URL('../../assets/processed/buildings/townhouse-kit.glb',import.meta.url).href;
+const KIT_URL=new URL('../../assets/processed/buildings/townhouse-kit.glb?v=2',import.meta.url).href; // bump ?v when the kit is rebuilt (static hosts cache GLBs)
 let kitPromise;
 export const loadTownhouseKit=()=>kitPromise??=loadGlb(KIT_URL).then(scene=>{
   const modules=new Map();
