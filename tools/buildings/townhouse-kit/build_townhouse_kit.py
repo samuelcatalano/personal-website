@@ -20,10 +20,10 @@ MATERIALS = {
     "glass": ((0.22, 0.43, 0.52, 1), 0.28),
 }
 EXPECTED = {
-    "window": 7,
-    "door": 6,
-    "cornice": 5,
-    "roof": 5,
+    "window": 9,
+    "door": 8,
+    "cornice": 6,
+    "roof": 6,
 }
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -136,6 +136,23 @@ window_specs = [
 for name, width, height, rows, columns, stone in window_specs:
     m = module(name, "window", "center of sill line on facade plane")
     window_frame(m, width, height, rows, columns, stone)
+
+# Sao Paulo variants (appended so UK module indices are unchanged).
+m = module("window_grille_08", "window", "center of sill line on facade plane")
+window_frame(m, 0.92, 1.48, 0, 1, False)
+for i in range(5):
+    m.box("trim", "grille_bar", (-0.36 + i * 0.18, 0.74, 0.075), (0.03, 1.40, 0.03))
+for y in (0.12, 0.74, 1.36):
+    m.box("trim", "grille_rail", (0, y, 0.075), (0.84, 0.04, 0.04))
+
+m = module("window_balconette_09", "window", "center of sill line on facade plane")
+window_frame(m, 1.20, 1.50, 0, 2, False)
+m.box("mass", "balcony_slab", (0, -0.05, 0.27), (1.50, 0.09, 0.48))
+m.box("trim", "balcony_rail", (0, 0.58, 0.47), (1.50, 0.05, 0.05))
+for i in range(6):
+    m.box("trim", "balcony_bar", (-0.63 + i * 0.252, 0.27, 0.47), (0.03, 0.54, 0.03))
+for side in (-1, 1):
+    m.box("trim", "balcony_post", (side * 0.74, 0.30, 0.47), (0.06, 0.60, 0.06))
 
 
 door_specs = [
@@ -257,10 +274,44 @@ for name in roof_specs:
         m.cylinder("trim", "finial_tip", (0, 1.10, 0), 0.07, 0.20, vertices=10, axis="Y")
 
 
+# Sao Paulo ground-floor doors: iron gate and roll-up shutter.
+for name, shutter in (("door_gated_07", False), ("door_rollshutter_08", True)):
+    width, height = 1.02, 2.30
+    m = module(name, "door", "center of threshold on facade plane")
+    for side in (-1, 1):
+        m.box("trim", "jamb", (side * (width / 2 - 0.06), height / 2, 0.005), (0.12, height, 0.22))
+    m.box("trim", "head", (0, height - 0.06, 0.015), (width, 0.12, 0.24), bevel=0.025)
+    m.box("mass", "threshold", (0, -0.04, 0.02), (width + 0.10, 0.10, 0.32), bevel=0.02)
+    if shutter:
+        m.box("mass", "shutter", (0, height / 2 - 0.1, -0.03), (width - 0.12, height - 0.3, 0.06))
+        for i in range(6):
+            m.box("trim", "slat", (0, 0.2 + i * 0.32, 0.012), (width - 0.14, 0.03, 0.03))
+        m.box("mass", "hood", (0, height + 0.02, 0.06), (width + 0.10, 0.22, 0.28), bevel=0.02)
+    else:
+        m.box("mass", "door_leaf", (0, height / 2, -0.075), (width - 0.12, height - 0.16, 0.12))
+        for i in range(5):
+            m.box("trim", "gate_bar", (-0.36 + i * 0.18, height / 2, 0.09), (0.03, height - 0.2, 0.03))
+        for y in (0.30, 1.15, 2.0):
+            m.box("trim", "gate_rail", (0, y, 0.09), (width - 0.16, 0.04, 0.04))
+
+# Sao Paulo cornice: platibanda with tile coping.
+m = module("cornice_parapet_06", "cornice", "center of wall run at underside datum")
+m.box("mass", "backing", (0, 0.18, -0.14), (4.9, 0.30, 0.22), bevel=0.025)
+m.box("trim", "fascia", (0, 0.13, 0.04), (4.96, 0.20, 0.14), bevel=0.03)
+m.box("trim", "tile_coping", (0, 0.31, 0.04), (5.04, 0.08, 0.30))
+for i in range(7):
+    m.box("trim", "tile_end", (-2.25 + i * 0.75, 0.30, 0.19), (0.30, 0.07, 0.04))
+
+# Sao Paulo roof detail: caixa d'agua on the ridge.
+m = module("roof_water_tank_06", "roof", "center of roof contact footprint")
+m.box("mass", "tank_base", (0, 0.12, 0), (1.0, 0.24, 1.0), bevel=0.03)
+m.cylinder("mass", "tank_body", (0, 0.66, 0), 0.42, 0.84, vertices=12, axis="Y")
+m.cylinder("trim", "tank_lid", (0, 1.12, 0), 0.46, 0.08, vertices=12, axis="Y")
+
 def validate_modules():
     names = {m.name for m in modules}
     assert len(names) == len(modules), "Module names must be unique"
-    assert len(modules) == sum(EXPECTED.values()), f"Expected 23 modules, got {len(modules)}"
+    assert len(modules) == sum(EXPECTED.values()), f"Expected 29 modules, got {len(modules)}"
     for category, count in EXPECTED.items():
         assert sum(m.category == category for m in modules) == count, f"Wrong {category} module count"
     assert all(all(role in m.groups for role in ROLES) for m in modules), "Missing semantic role group"

@@ -131,7 +131,7 @@ function townhouseGeometry(plot,recipe,level=0,storage=null,modular=false) {
   return {geometries,metadata:{plotId:plot.id,openings,front,recipe}};
 }
 
-const KIT_URL=new URL('../../assets/processed/buildings/townhouse-kit.glb?v=2',import.meta.url).href; // bump ?v when the kit is rebuilt (static hosts cache GLBs)
+const KIT_URL=new URL('../../assets/processed/buildings/townhouse-kit.glb?v=3',import.meta.url).href; // bump ?v when the kit is rebuilt (static hosts cache GLBs)
 let kitPromise;
 export const loadTownhouseKit=()=>kitPromise??=loadGlb(KIT_URL).then(scene=>{
   const modules=new Map();
@@ -150,12 +150,16 @@ export const loadTownhouseKit=()=>kitPromise??=loadGlb(KIT_URL).then(scene=>{
   return modules;
 });
 const moduleNames={
-  window:['window_sash_6light_01','window_sash_4light_02','window_tall_8light_03','window_paired_sash_04','window_slim_sash_05','window_shop_upper_06','window_broad_sash_07'],
-  door:['door_recessed_panel_01','door_glazed_top_02','door_sidelight_03','door_double_leaf_04','storefront_timber_05','storefront_pilaster_06'],
-  cornice:['cornice_classical_01','cornice_bracketed_02','string_course_03','cornice_stepped_04','cornice_terrace_05'],
-  roof:['roof_chimney_brick_01','roof_chimney_stone_02','roof_dormer_sash_03','roof_ridge_vent_04','roof_ridge_finial_05']
+  window:['window_sash_6light_01','window_sash_4light_02','window_tall_8light_03','window_paired_sash_04','window_slim_sash_05','window_shop_upper_06','window_broad_sash_07','window_grille_08','window_balconette_09'],
+  door:['door_recessed_panel_01','door_glazed_top_02','door_sidelight_03','door_double_leaf_04','storefront_timber_05','storefront_pilaster_06','door_gated_07','door_rollshutter_08'],
+  cornice:['cornice_classical_01','cornice_bracketed_02','string_course_03','cornice_stepped_04','cornice_terrace_05','cornice_parapet_06'],
+  roof:['roof_chimney_brick_01','roof_chimney_stone_02','roof_dormer_sash_03','roof_ridge_vent_04','roof_ridge_finial_05','roof_water_tank_06']
 };
+// Sao Paulo (x<0) variant pools: indices into moduleNames. Hash-picked per lot, never the city RNG.
+// ponytail: x<0 is the same map-region shortcut as city-rollout.js; swap for lot metadata if the route is re-laid.
+const SP={upper:[8,1,8,0,4,8],ground:[7,7,7,2],side:[1,0,4,7],door:[6,7,6,0,7],cornice:[5,5,2,0,5],roof:[3,5,3,0,5,3]};
 export function modularGeometry(plot,recipe,modules,variety=false) {
+  const sp=variety&&plot.x<0;
   const {geometries,metadata}=townhouseGeometry(plot,recipe,0,null,true),extra=[[],[],[]],w=plot.width-.3,d=plot.depth-.3,front=d/2;
   const moduleGeometry=(category,index,position,rotation,scale,surfaceByRole)=>{
     const name=moduleNames[category][index%moduleNames[category].length],module=modules.get(name);
@@ -182,20 +186,20 @@ export function modularGeometry(plot,recipe,modules,variety=false) {
     const x=face?o.u:-w/2,z=face?front:o.u,scale=new THREE.Vector3(o.w,o.h,1);
     if(o.type==='window'){
       // variety: per-house hash picks the window family; ground floor and side faces shift it so a facade never repeats one sash.
-      const wi=variety?((hash>>>3)+(o.y<recipe.ground?2:0)+(face?0:3))%7:(recipe.windowSeed+index+(face?0:3))%7,name=moduleNames.window[wi],dims=[[.92,1.48],[1.05,1.48],[.88,1.72],[1.34,1.55],[.76,1.44],[1.28,1.12],[1.48,1.58]][moduleNames.window.indexOf(name)];
+      const wi=sp?SP[face?o.y<recipe.ground?'ground':'upper':'side'][(hash>>>3)%(face?o.y<recipe.ground?4:6:4)]:variety?((hash>>>3)+(o.y<recipe.ground?2:0)+(face?0:3))%7:(recipe.windowSeed+index+(face?0:3))%7,name=moduleNames.window[wi],dims=[[.92,1.48],[1.05,1.48],[.88,1.72],[1.34,1.55],[.76,1.44],[1.28,1.12],[1.48,1.58],[.92,1.48],[1.2,1.5]][moduleNames.window.indexOf(name)];
       scale.set(o.w/dims[0],o.h/dims[1],1);
       const lit=(faceIndex+(face?1:0)+recipe.windowSeed)%3===0;
       moduleGeometry('window',wi,new THREE.Vector3(x, o.y-o.h/2, face?z-.06:z),rotation,scale,{mass:S.stone,trim:S.trim,glass:lit?S.litGlass:S.glass});
     }else{
-      const doorIndex=variety?(hash>>>5)%4:(recipe.windowSeed+(recipe.structural==='B'?3:0))%6,dims=[[1.02,2.24],[1.02,2.32],[1.34,2.35],[1.48,2.42],[2.05,2.62],[2.32,2.72]][doorIndex];
+      const doorIndex=sp?SP.door[(hash>>>5)%5]:variety?(hash>>>5)%4:(recipe.windowSeed+(recipe.structural==='B'?3:0))%6,dims=[[1.02,2.24],[1.02,2.32],[1.34,2.35],[1.48,2.42],[2.05,2.62],[2.32,2.72],[1.02,2.3],[1.02,2.3]][doorIndex];
       scale.set(o.w/dims[0],o.h/dims[1],1);
       moduleGeometry('door',doorIndex,new THREE.Vector3(x,.09,z-.06),rotation,scale,{mass:S.door,trim:S.trim,glass:S.glass});
     }
   }
   const corniceY=recipe.eaves-.3;
-  moduleGeometry('cornice',variety?(hash>>>7)%5:(recipe.palette+recipe.windowSeed)%5,new THREE.Vector3(0, corniceY, front-.12),new THREE.Quaternion(),new THREE.Vector3(w/5.08,1,1),{mass:S.stone,trim:S.trim,glass:S.glass});
+  moduleGeometry('cornice',sp?SP.cornice[(hash>>>7)%5]:variety?(hash>>>7)%5:(recipe.palette+recipe.windowSeed)%5,new THREE.Vector3(0, corniceY, front-.12),new THREE.Quaternion(),new THREE.Vector3(w/5.08,1,1),{mass:S.stone,trim:S.trim,glass:S.glass});
   const gable=!recipe.roof||recipe.roof==='gable';
-  let roofX,roofY,roofIndex=(hash>>>2)%5;
+  let roofX,roofY,roofIndex=sp?SP.roof[(hash>>>2)%6]:(hash>>>2)%5;
   if(gable){roofX=(hash%2?1:-1)*w*.28;roofY=recipe.ridge-(recipe.ridge-recipe.eaves)*Math.abs(roofX)/(w/2);}
   else{ // ridge runs along X: keep detail on the ridge line (no dormer, which only fits the gable pitch)
     const a=recipe.roof==='hip'?Math.max(0,w/2-d/2):w/2;roofX=a>1.2?(hash%2?1:-1)*a*.55:0;roofY=recipe.ridge-.04;if(roofIndex===2)roofIndex=0;

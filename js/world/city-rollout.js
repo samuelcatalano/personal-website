@@ -90,10 +90,9 @@ export function tint(g,p) {
     }
   }
 }
-// Kit rollout: UK terraces (x>0; every Brazilian terrace sits at x<-10) swap their LOD0 for authored kit modules once the GLB loads. `?kit=off` keeps the procedural facade.
-// ponytail: x>0 is a map-region shortcut; use explicit lot metadata if the route is ever re-laid.
+// Kit rollout: every terraced townhouse (UK x>0 and Sao Paulo x<0, which gets its own variant pools in building-slice.js) swaps their LOD0 for authored kit modules once the GLB loads. `?kit=off` keeps the procedural facade.
 const KIT_ON=!(typeof location!=='undefined'&&/[?&]kit=off\b/.test(location.search));
-const kitLot=(p,kind)=>KIT_ON&&kind==='townhouse'&&p.x>0;
+const kitLot=(p,kind)=>KIT_ON&&kind==='townhouse';
 function houseGeometries(p,kind,neighbors,cell,level,modules) {
   let geometries,dispose=null;
   if(modules&&level===0&&kitLot(p,kind)){geometries=modularGeometry(p,rolloutRecipe(p,kind,neighbors),modules,true);tint({children:geometries.map(geometry=>({geometry}))},p);}
