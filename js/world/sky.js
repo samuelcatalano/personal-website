@@ -16,8 +16,8 @@ export function untone(c) {
   return c.setRGB(Math.max(0, tmp.x), Math.max(0, tmp.y), Math.max(0, tmp.z));
 }
 const C = (h) => new THREE.Color(h);
-const DAY = { zen: C(0x6fb1e8), hor: C(0xb9dcf5), cloud: C(0xf4f9ff), sun: 2.35, hemi: 1.08, light: C(0xfff0d0) };
-const NIGHT = { zen: C(0x0b1530), hor: C(0x1d2b4f), cloud: C(0x3b4668), sun: 0.40, hemi: 0.60, light: C(0xaec4ff) };
+export const DAY = { zen: C(0x6fb1e8), hor: C(0xb9dcf5), cloud: C(0xf4f9ff), sun: 2.35, hemi: 1.08, light: C(0xfff0d0) };
+export const NIGHT = { zen: C(0x0b1530), hor: C(0x1d2b4f), cloud: C(0x3b4668), sun: 0.40, hemi: 0.60, light: C(0xaec4ff) };
 export const SUN_DIR = new THREE.Vector3(110, 45, 40).normalize(); // directional light + sun + moon share this direction
 const DIST = 1300; // just inside camera.far (1400), beyond every building
 function disc(draw) {

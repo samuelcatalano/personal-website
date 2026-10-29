@@ -18,6 +18,7 @@ import { initGlbLoader } from './glb-loader.js';
 import { upgradeBigBen, bigBenForced } from './bigben-asset.js';
 import { resetFloodlights } from './building-slice-materials.js';
 import { polishLandmarkMaterials } from './landmark-materials.js';
+import { createLandmarkEnv } from './landmark-env.js';
 import { buildVehicle } from './vehicles.js';
 import { createMood } from './mood.js';
 import { createRain } from './rain.js';
@@ -114,7 +115,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const WIN_L = '#2b2621', RG = '#27394b', RB = '#c9ccd1'; // Glasgow Uni windows, Riverside glass + band
   const world = buildMeshes(list, { glow: [P.lit, '#ffd86b', '#fff7c2', P.arch, WIN_L, RG, RB], glowK: { [P.arch]: 1.1, [WIN_L]: 1.0, [RG]: 0.55, [RB]: 0.2 } });
   world.traverse((o) => { const h = o.material?.color?.getHexString(); if (o.material?.userData.glow) { if (h === WIN_L.slice(1)) o.material.userData.glowColor = new THREE.Color('#ffb04a'); if (h === RG.slice(1)) o.material.userData.glowColor = new THREE.Color('#d8e86a'); if (h === RB.slice(1)) o.material.userData.glowColor = new THREE.Color('#bcd4ff'); } });
-  polishLandmarkMaterials(world,stops,pts);
+  const landmarkEnv = createLandmarkEnv(renderer);
+  polishLandmarkMaterials(world,stops,pts,landmarkEnv);
   const motion = buildMotion(); scene.add(motion.group);
   const roadMarks = createRoadMarks(curve, stops, { ...arc, pilotCrossings });
   scene.add(world, eye, details, plane, shadow, bus, roadMarks);
@@ -130,7 +132,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   initGlbLoader(renderer);
   let bigBenLod = null; // authored Big Ben LOD0/LOD1 (tools/landmarks/bigben); the procedural group stays hidden underneath as fallback
   const bigben = details.getObjectByName('bigben-geometry');
-  if (bigben && !bigBenForced()) upgradeBigBen(bigben, { isDisposed: () => disposed, track: (m) => sky.track(m) }).then((l) => { bigBenLod = l; wake(); });
+  if (bigben && !bigBenForced()) upgradeBigBen(bigben, { isDisposed: () => disposed, track: (m) => sky.track(m), env: landmarkEnv }).then((l) => { bigBenLod = l; wake(); });
   const wellington = details.getObjectByName('wellington-geometry');
   if (wellington) upgradeWellington(wellington, () => disposed).then(wake);
   const figure = buildFigure(wake);
@@ -274,7 +276,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     updateBeams(night); pools.update(night, wet); lampPosts?.userData.setNight?.(night);
     water.update(clock, night, mood, post.tier, sky.colors);
     world.userData.updateLandmarkNight?.(night);
-    updateVehicleEnv(night);
+    updateVehicleEnv(night); landmarkEnv.update(night);
     if (dt > 0 && post.tier === 'high') {
       fpsT += dt; fpsN++;
       if (fpsT >= 2) { post.setTier(nextTier(post.tier, [fpsN / fpsT])); fpsT = fpsN = 0; }
