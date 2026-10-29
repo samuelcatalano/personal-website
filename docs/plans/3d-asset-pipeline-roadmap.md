@@ -47,12 +47,14 @@ Big Ben validates almost every stage in one asset and sits inside an existing re
 - Deliverables: window/door/cornice/roof modules, deterministic bay assignment, LOD0/LOD1 reuse, benchmark of both combination strategies.
 - Tests: building-slice/kit/diversity/citywide/zfight browser tests, Node tests; memory and draw-call report.
 - GO: draw calls ≤ +10 %, tris within `rendering-budget.md`, facade depth readable at default camera. Rollback: archetype flag back to the procedural recipe.
+- **Status (2026-10-29):** the townhouse kit now covers all 343 UK terraced townhouses (lazy per-cell LOD0 within 140 m, dropped beyond 180 m; `?kit=off` rollback). Shop and midrise modular kits cover all 18 rollout shops and 217 midrises (`?kits=0` rollback; cache-bust `?v=2` townhouse, `?v=1` facade kits). Office, tower and townhouse procedural paths are otherwise unchanged; hero shops `block--295--34` and `block--282--34` keep their bespoke path. Kit module depth is limited to 0.19 m (lot margin). Measured draw-call deltas are within +1.3% and triangle deltas within +1.9% at the stops checked, which meets the draw-call GO criterion on that evidence (see `status-log.md`).
 
 ### Phase 4: vegetation and public realm
 - Objective: tree LOD0/LOD1/LOD2 and a props atlas; instanced benches/bins/phone boxes/bus stops.
 - Systems: `trees.js`, `tree-mesh.js`, `lamps.js`, `street-lamp.js`, `kiosk-mesh.js`, `parks.js`.
 - Deliverables: processed tree/prop GLBs, impostor atlas, budgets met (tree ≤ 3k / 900 / 2 tris).
 - GO: tree triangle budget holds with better crowns; draw calls ≤ +10 %. Rollback: current leaf-card system.
+- **Status (2026-10-29):** street props are done. `js/world/street-props.js` and `street-props-mesh.js` add 226 instanced props (bollards, UK Belisha beacons that glow at night, bins, hydrants, bike racks), covered by `tests/street-props.browser.py`. Lamps are already instanced (196 in 4 calls) and benches are batched, so neither needs an extra LOD. Cost at stop 5 is about +26 to 31 draw calls and +70k triangles per frame. Tree LOD0/LOD1/LOD2 with five crown families and per-family impostor tiles is also in place (canopy 198k triangles, budget 250k). Tree and prop GLBs were not added; the impostors are procedural.
 
 ### Phase 5: citywide asset migration
 - Objective: roll proven kits/vehicles/landmarks across all regions, region by region (SP, London, Glasgow), lazy-loading per region.

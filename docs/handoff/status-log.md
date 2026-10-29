@@ -49,3 +49,42 @@
 - **Handoff:** commit `1f4f572` adds `docs/handoff/claude-handoff-2026-10-29.md` with current branch/runtime state, exact London Eye house root cause and fix, verified desktop-only checks, guardrails, and a copy-ready prompt for Claude.
 - **State:** `feat/site-gamefication` was clean at `4d8ef2c` before this documentation change. Preview server remains running at `http://localhost:8000`; no code, tests, deployment, push, or mobile work was performed for this handoff.
 
+## 2026-10-29 Claude continuation (owner approved all 5 next steps)
+
+- **Step 1, tests fixed (`0053563`):**
+  - `underpass` was a real bug: parks and trees ignored the overpass corridor. Fixed in `city.js` via `onOverpass` for trees and `buildParks(addOff)`.
+  - `london-cab`: `castShadow` could be undefined; now a boolean.
+  - `hero-facades`: stale test, rewritten to build plots via `buildCity`.
+  - `zfight` now also checks yawed boxes with an oriented-rectangle test (6,088 yawed boxes, 0 pairs).
+- **Step 2, townhouse kit (merge `6427f99`, cache bust `26a8d83`):**
+  - The kit now covers 343 UK terraced townhouses (was 9 pilot lots).
+  - Lazy per-cell kit LOD0 is built within 140 m and dropped beyond 180 m. Variants are hash-driven. `?kit=off` is the rollback.
+  - Kit rebuilt with 1-segment bevels: 1.81 MB -> 0.53 MB.
+  - Measured calls +1.3% / +0.8% / 0% and triangles +1.9% / +1.1% / +0.8% at stops 9.5 / 10 / 11.
+  - Simulated sweep peak: 183 MiB resident, about 3 MiB over the 180 MiB ceiling in `tests/citywide.browser.py` (sweep only).
+- **Step 3, trees (`79a7951`, merge `184cd8d`):**
+  - Five crown families (round, columnar, spreading, flowering, conifer) chosen from region (`treeRegion` in `layout.js`) and a stable position hash, with per-region palettes and per-family LOD2 impostor tiles.
+  - Fixed black LOD2 billboards (vertex colours without a colour attribute).
+  - 333 -> 322 trees; the overpass corridor filter removed 11.
+  - Canopy 198k triangles (budget 250k).
+- **Step 4, street props (`299e35e`, merge `4df0a11`):**
+  - New `js/world/street-props.js` and `street-props-mesh.js`: 226 instanced props (128 bollards, 45 UK Belisha beacons that glow at night, 38 bins, 2 BR hydrants, 6 UK hydrant marker posts, 7 bike racks).
+  - Covered by `tests/street-props.browser.py`.
+  - Lamps are already instanced (196 lamps, 4 calls, about 0.4% of triangles) and benches are batched, so no extra LOD was added.
+  - Cost at stop 5: about +26 to 31 draw calls and about +70k triangles per frame.
+- **Step 5, shop and midrise kits (`b36cef2`, merge `da56e40`, cleanup `463cd3f`):**
+  - Blender-authored shop kit (27 modules) and midrise kit (25 modules) via `tools/buildings/{shop-kit,midrise-kit,kit-common}`.
+  - Covers all 18 rollout shops and all 217 midrises. Procedural geometry stays as LOD1.
+  - Modules are at most 0.19 m deep (lot margin).
+  - Office, tower and townhouse paths are untouched. Hero shops `block--295--34` and `block--282--34` keep their bespoke path.
+  - Rollback: `?kits=0` or `createCityBuildings(plots, {kits: false})`.
+  - Cache-bust params: `?v=2` (townhouse kit), `?v=1` (facade kits).
+  - Calls within +/-1%; triangles up to +0.8% at stops 3 / 5 / 9.5 / 10.
+- **Known issues / not verified:**
+  - `tests/final-art.browser.py` fails: the 'bounded vegetation batches' check sums LOD0 + LOD1 chunk batches (24 vs 12). It already failed before the tree work because of an earlier LOD change; the assertion is stale.
+  - LOD switch popping and z-fighting at switches were not checked in motion.
+  - London and Glasgow shop crops were not inspected.
+  - Variety was judged by eye only.
+  - Frame times (p95) were not measured; only calls and triangles, via a WebGL hook.
+  - The shared user Chrome hung under load during final verification, so the final capture and console check ran in an isolated headless Chrome (console: 0 errors day and night).
+

@@ -55,3 +55,12 @@ Sun/halo/full-moon maps are original runtime canvas generation in `js/world/sky.
 | Townhouse facade module library | `assets/processed/buildings/townhouse-kit.glb` | Generated in-project by `tools/buildings/townhouse-kit/build_townhouse_kit.py` (Blender; original authored geometry and simple role materials; no external meshes or textures) | Project-owned |
 
 Rebuild command: `blender -b --factory-startup -P tools/buildings/townhouse-kit/build_townhouse_kit.py`. Module names, counts, geometry, role hierarchy, and valid bounds are asserted by the generator; see `tools/buildings/townhouse-kit/README.md` for the coordinate and anchor contract.
+
+## Shop and midrise modular kits — 2026-10-29
+
+| Asset | Path | Source | Licence |
+| --- | --- | --- | --- |
+| Shop facade module library | `assets/processed/buildings/shop-kit.glb` | Generated in-project by `tools/buildings/shop-kit/build_shop_kit.py` (Blender; original authored geometry and simple role materials; no external meshes or textures) | Project-owned |
+| Midrise facade module library | `assets/processed/buildings/midrise-kit.glb` | Generated in-project by `tools/buildings/midrise-kit/build_midrise_kit.py` (Blender; original authored geometry and simple role materials; no external meshes or textures) | Project-owned |
+
+Rebuild commands: `blender -b --factory-startup -P tools/buildings/shop-kit/build_shop_kit.py` and `blender -b --factory-startup -P tools/buildings/midrise-kit/build_midrise_kit.py`.
