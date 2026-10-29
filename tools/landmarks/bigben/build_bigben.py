@@ -136,24 +136,24 @@ def fb(b, N, U, u, y0, w, h, d0, d1, m, skip=(), hw=2.95):
 
 def tower(b):
     cz = TZ; L0 = b.lod == 0
-    b.ring(0, cz, (3.0, 3.0), (2.7, 2.7), 0, 2.2, BASE, bot=False)                 # darker plain base block
-    YT = [2.4, 7.45, 12.45]
+    b.ring(0, cz, (2.8, 2.8), (2.7, 2.7), 0, .5, SH, bot=False)                    # modest same-stone plinth (0.1 m projection)
+    YT = [.5, 4.7, 8.9, 13.1]
     def shaft(w, N):                                                                 # 3 tiers: 6 long thin slits + 4 blind arches each
         o = []
         for y0 in YT:
             for k in range(6):
                 u = w / 2 - 2.0 + k * .8
-                o.append(([(u - .06, y0 + .5 - 2.2), (u + .06, y0 + .5 - 2.2), (u + .06, y0 + 2.5 - 2.2), (u - .06, y0 + 2.5 - 2.2)], DK, .16))
-            o += [(arch5(w / 2 - 1.8 + k * .9, y0 + 3.1 - 2.2, .46, .8), SH if L0 else None, .15) for k in range(5)]
+                o.append(([(u - .06, y0 + .35 - .5), (u + .06, y0 + .35 - .5), (u + .06, y0 + 2.35 - .5), (u - .06, y0 + 2.35 - .5)], DK, .16))
+            o += [(arch5(w / 2 - 1.5 + k * 1.0, y0 + 2.7 - .5, .46, .6), SH if L0 else None, .15) for k in range(4)]
         return o
-    b.sides(0, cz, 2.7, 2.7, 2.2, 14.9, shaft, SH, .16)
-    for y, h in ((6.85, .25), (7.2, .12), (11.9, .25), (12.25, .12), (16.85, .25)): b.ring(0, cz, (2.8, 2.8), (2.7, 2.7), y, h, TAN)
+    b.sides(0, cz, 2.7, 2.7, .5, 16.6, shaft, SH, .16)
+    for y, h in ((4.1, .25), (4.45, .12), (8.3, .25), (8.65, .12), (12.5, .25), (12.85, .12), (16.7, .25)): b.ring(0, cz, (2.8, 2.8), (2.7, 2.7), y, h, TAN)
     b.ring(0, cz, (2.9, 2.9), (2.8, 2.8), 17.1, .3, TAN, top=False)
     b.sides(0, cz, 2.9, 2.9, 17.4, .5, lambda w, N: [(arch5(w / 2 - 2.1 + k * .6, .08, .4, .34), BASE if L0 else None, .15) for k in range(8)], TAN, .15)  # machicolation row
     b.ring(0, cz, (2.95, 2.95), (2.9, 2.9), 17.9, .1, TAN, top=False)
     for sx in (-1, 1):
         for sz in (-1, 1):
-            b.box(sx * 2.52, 2.2, cz + sz * 2.52, .56, 14.9, .56, TAN, ['-y', '+y'])
+            b.box(sx * 2.52, .5, cz + sz * 2.52, .56, 16.6, .56, TAN, ['-y', '+y'])
             b.box(sx * 2.78, 18, cz + sz * 2.78, .55, 6.25, .55, SH, ['-y'])
             b.box(sx * 2.78, 24.25, cz + sz * 2.78, .38, 1.75, .38, TAN, ['-y'])    # corner pinnacle + gold tip + cross
             b.frus(sx * 2.78, 26.0, cz + sz * 2.78, .2, .2, 0, 0, .6, GD)
@@ -226,7 +226,7 @@ def palace(b):
             b.box(x, 3.95, zc + .075 * sgn, bw - .5, .2, .15, S, ['-y', '-z' if sgn > 0 else '+z'])
         b.box(20, 7.0, zc - .1 * sgn + 0 * sgn, X1 - X0, 0.9, .5, S, ['-y'])                        # cornice + parapet block
         if L0:
-            n = 29
+            n = 15
             for i in range(n):
                 b.box(X0 + (i + .5) * (X1 - X0) / n, 7.9, zc - .0 * sgn, .55, .5, .35, S, ['-y'])
     # roof (hipped between the pavilions) with lantern turrets
@@ -338,7 +338,7 @@ def mat_nodes(m, chan, img, idx, nt_cache={}):
             lt = node('ShaderNodeMath', operation='LESS_THAN'); lt.inputs[1].default_value = .05; link(fr.outputs[0], lt.inputs[0])
             ma = node('ShaderNodeMath', operation='MULTIPLY_ADD'); ma.inputs[1].default_value = -.2; ma.inputs[2].default_value = 1; link(lt.outputs[0], ma.inputs[0])
             c = mul(c, ma.outputs[0])
-            soot = node('ShaderNodeMapRange'); soot.inputs[1].default_value = 0; soot.inputs[2].default_value = 6; soot.inputs[3].default_value = .78; soot.inputs[4].default_value = 1; link(Z, soot.inputs[0])
+            soot = node('ShaderNodeMapRange'); soot.inputs[1].default_value = 0; soot.inputs[2].default_value = 2; soot.inputs[3].default_value = .93; soot.inputs[4].default_value = 1; link(Z, soot.inputs[0])
             return mul(c, soot.outputs[0])
         if name == 'spire':   # blue-grey slate with baked gold studs
             base = ramp(noise(14, 3, (1, 1, .5)), '#46536b', '#5f6f8c')
