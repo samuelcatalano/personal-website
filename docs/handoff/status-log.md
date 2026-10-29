@@ -27,3 +27,11 @@
 - **State:** working tree clean after this entry is committed; branch remains local and the preview server is stopped. No mobile checks or deployment.
 - **Next step:** use the nine-lot pilot as the approved scope. Further rollout and any UV-preserving asset optimization require a new owner decision.
 
+## 2026-10-29 — London Eye townhouse correction and Phase 4 tree LOD
+
+- **House:** the first removal targeted Glasgow's `block-679--80-0` by mistake (`41b6f17`). After the owner supplied the London Eye reference, commit `60ed913` restored that Glasgow pilot lot and excludes only `lot-front-105--81.5-2` in `createCityBuildings`; all source plot descriptors and surrounding layout remain.
+- **Trees:** commit `429c2ea` adds per-160 m chunk LOD0/LOD1/LOD2. LOD2 is a two-triangle camera-facing billboard using a procedural 512×128 atlas; LOD transitions use AABB distance with hysteresis. Existing lamp/phone-box instancing and merged park furniture remain unchanged. No Blender tree/prop GLB or public-prop atlas was added; that remains a Phase 4 gap if the owner wants authored props.
+- **Verification:** desktop browser contracts passed for `building-slice`, `townhouse-lod`, `citywide`, and `trees`; `node --test tests/` passed 116/116 (pre-existing `MODULE_TYPELESS_PACKAGE_JSON` warnings). Desktop captures at stops 9.5 and 11 by day were inspected. No mobile tests, deployment, or push.
+- **Environment:** the local preview remains running at `http://localhost:8000` because the owner asked to keep it available for testing.
+- **Next step:** if Phase 4 continues, author and review a public-realm prop atlas as a separate vertical slice; current props already use instancing or shared geometry batches.
+
