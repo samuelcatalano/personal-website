@@ -222,3 +222,24 @@ Visual review found readable raised window/door details at LOD0, intact roof sil
 The required lossless optimizer produced a 688,108-byte candidate with the same 24,780 source triangles. It pruned `TEXCOORD_0`/UV because the source GLB does not reference UVs in its materials. The site merges loaded module geometry with procedural geometry that has UV attributes; the optimized candidate therefore fails pilot adoption and leaves the procedural fallback visible. It is not visually or functionally equivalent and was discarded. The raw GLB remains shipped. The current optimizer CLI has no keep-UV option; its `smooth` mode also changes normals and is not an equivalent preservation path.
 
 Evidence screenshots and the discarded candidate are in machine-local `/private/tmp/townhouse-evidence/`; full-scene baseline screenshots are in `/private/tmp/townhouse-baseline-capture/`. Browser checks passed for building-slice, building-kit, citywide and zfight; Node tests passed 116/116. The citywide browser check needed a 30-second browser-harness IPC timeout because the default 5-second IPC timed out twice; the test itself passed unchanged. No mobile, Lighthouse, physical-device, deployment, or full-pipeline performance benchmark was run. Further townhouse rollout remains approval-gated.
+
+## Route profile 2026-10-29 (kits, processed GLBs)
+
+`tools/perf/route-profile.py`: scripted scroll (600 steps / 25 s) with an in-page rAF recorder; draw calls and triangles come from a `WebGL2RenderingContext` draw hook (all passes incl. shadows; the scene graph is not reachable without code changes, so draw calls stand in for visible meshes). Headless Chrome, SwiftShader software GL, 1728x963 @2x, vsync-capped at 60 Hz, 3 runs per config (alternating order), medians. **Absolute ms are not representative of real GPUs and the 16.7 ms cap hides frame cost; only A/B ratios and spikes are meaningful.** The hook misses multi-draw calls, so calls/tris are workload indicators only.
+
+| Segment / config | median | p95 | p99 | max ms | calls med/p95 | tris med/p95 (M) | long tasks | peak heap MB |
+|---|---:|---:|---:|---:|---|---|---|---:|
+| 8.5-11.5 BASE (`kit=off&kits=0&glb=raw&landmarks=procedural`) | 16.7 | 16.8 | 16.8 | 33.3 | 1130/1461 | 14.43/18.74 | 0 | 492 |
+| 8.5-11.5 DEFAULT | 16.7 | 16.8 | 16.8 | 16.8 | 1127/1461 | 9.75/11.59 | 0 | 659 |
+| 8.5-11.5 DEFAULT `kits=0` | 16.7 | 16.8 | 16.8 | 16.8 | 1127/1461 | 9.76/11.57 | 0 | 538 |
+| 8.5-11.5 DEFAULT `kit=off` | 16.7 | 16.7 | 16.8 | 16.8 | 1127/1460 | 9.66/11.55 | 0 | 564 |
+| 0-3 BASE | 16.7 | 16.7 | 16.8 | 66.6 | 884/1095 | 11.14/13.40 | 1 (72 ms) | 487 |
+| 0-3 DEFAULT | 16.7 | 16.7 | 16.8 | 66.6 | 883/1105 | 7.77/9.29 | 1 (71 ms) | 558 |
+
+Findings:
+- No frame-time regression within the +1 ms desktop p95 limit (p95 delta 0.0-0.1 ms), subject to the software-GL cap caveat.
+- DEFAULT submits ~32% fewer triangles than BASE (processed GLBs/authored landmarks vs raw); draw calls are equal. Neither townhouse kit LOD0 nor `kits=0` changed calls or triangles on this route (the kit shows only in peak heap: DEFAULT 659 MB vs 538-564 MB with a kit disabled, about +100 MB). `kits=0` is not read by any `js/` module (only `kit=off` is), so it is a no-op flag.
+- Pops are identical in every config, so they are not kit-related: segment 0-3 at 0.18 (+209 calls, in every config, plus one 66 ms long task and max frame at scene start, likely first-use shader/texture upload), 1.55 (-79), and 8.5-11.5 at 9.03 (+80) and 11.47 (+81). Causes were not confirmed: screenshots at the pop positions were skipped (cost), so attributing them to tree LOD / vehicle respawn / chunk culling is a hypothesis.
+- Not measured: real GPU, mobile, LOD-threshold before/after screenshots.
+
+Recommended follow-ups (not implemented): 1) the +100 MB heap with kits on is the real cost: dispose kit source geometry after merge or build fewer cells; 2) find what changes at 0.18 / 9.03 / 11.47 (log chunk visibility / LOD switches there) and stage it over several frames; 3) warm shaders/textures before the first scroll (compile async) to remove the 66-72 ms start hitch; 4) remove or implement the `kits` flag.
