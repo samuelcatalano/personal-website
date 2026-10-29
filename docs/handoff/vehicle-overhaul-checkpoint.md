@@ -22,7 +22,8 @@ Loader map: `vehicle-assets.js` `URLS` (a330, bus, sao-paulo, mini, cab), proced
 5. Audit Mini, cab, A330, ambient cars (read-only, fix only concrete defects).
 6. Verify transitions (Mini -> London bus, Glasgow, Caio), route profile before/after, node + browser tests; update this file.
 
-## State
-- Done: discovery, inventory, this checkpoint.
-- Pending: everything in the plan.
-- Blocker: weekly usage at 53% of the 55% cap; agents (about 3 to 5% each) cannot run until the owner raises the cap.
+## State (updated 2026-10-30)
+- Done and merged (local, unpushed): London/Glasgow double-decker rebuilt as an original lofted Blender model (`ee2d20e`, night glass fix `68f3a4e`): 14,088 tris, 0.36 MB (was 58,806 / 1.32 MB), Glasgow purple, London red, same contract and role names. Caio Millennium bus rebuilt from scratch (merged with `v-caio`): 14,594 tris, 0.42 MB (was 52,588 / 1.66 MB), `tests/vehicles.browser.py` SP checks updated (8k to 35k tris, at most 9 meshes). Tests: node 116/116, browser vehicles and zfight pass.
+- In-scene evidence: London (stops 9.5, 10.3) and Glasgow (stop 11) day and night in `scratchpad/busfinal` and `scratchpad/n5` (not committed). The Caio bus was NOT seen in any in-scene capture (single ambient regional bus, `ambient.js` D('london', 0.35, { regionBus })); only Blender renders and the vehicles test.
+- Mini Cooper, London cab, A330: seen in scene captures (stops 4 to 11) with no defect noticed; not changed, no formal audit.
+- Pending: confirm Caio in scene (orientation of doors, wheel y 0.52, scale), Mini to London bus hero-swap scale morph (bus is about 0.1 m longer), lamps at night, cache-bust for raw bus GLBs (`PIPELINE_V` only covers processed files), ambient car audit (HR-V 47 MB raw unchanged), route-profile before/after for buses, mobile/WebGL-off not run.
