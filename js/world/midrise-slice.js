@@ -92,7 +92,7 @@ export function createMidriseSlice(plot,recipe=midriseRecipe(plot)) {
   else if(recipe.penthouse===2){box(-w*.24,roofY+.5,d*.1,1.9,1.0,1.9,S.roof);box(w*.22,roofY+.4,-d*.1,2.2,.8,1.6,S.stone);}
   // Recessed human-scale entrance and canopy stay inside the source footprint.
   const entrance=(Math.floor(recipe.bays/2)-(recipe.bays-1)/2)*w/recipe.bays;
-  box(entrance,2.92,d/2-.27,2.65,.14,.82,S.roof);
+  if(!recipe.noCanopy)box(entrance,2.92,d/2-.27,2.65,.14,.82,S.roof);
   box(entrance,.06,d/2-.22,2.5,.12,.72,S.stone);
   const materials=townhouseMaterials(),g=new THREE.Group();g.name=plot.id;g.position.set(x,0,z);
   buckets.forEach((data,k)=>{
