@@ -55,7 +55,7 @@ ZC0, ZC1 = 3.0, 5.6      # column z range (outer face inset behind the glass pla
 XB = 17.2                # box half length (up to the column inner faces)
 ZB = 6.5                 # slab / fascia half depth (glass plane)
 ZG = 6.42                # glass plane (mullions and fascia flush at 6.5)
-FY0, FY1 = 8.0, 9.3      # floor slab (soffit at 8.0)
+FY0, FY1 = 8.0, 8.4      # floor slab edge (soffit at 8.0); the glass runs almost down to it
 GY0, GY1 = FY1, 12.4     # glass band (two storeys)
 RY0, RY1 = GY1, 13.5     # concrete fascia band above the glass
 GM = (GY0 + GY1) / 2     # mid rail
@@ -72,7 +72,7 @@ def frames(b):
 def body(b):
     L0 = b.lod == 0
     b.box(0, FY0, 0, 2 * XB, FY1 - FY0, 2 * ZB, CN, ('-y',))                                             # raw concrete floor slab
-    b.poly([(-XB, FY0, -ZB), (XB, FY0, -ZB), (XB, FY0, ZB), (-XB, FY0, ZB)], SF, (0, -1, 0))             # lit soffit
+    b.poly([(-XB, FY0, -ZB), (XB, FY0, -ZB), (XB, FY0, ZB), (-XB, FY0, ZB)], SF, (0, -1, 0))             # soffit
     b.box(0, RY0, 0, 2 * XB, RY1 - RY0, 2 * ZB, CN, ())                                                  # fascia band over the glass + roof slab
     n = 22 if L0 else 11                                                                                  # skylight ribs between the girders
     for i in range(n):
@@ -204,26 +204,11 @@ def mat_nodes(m, chan, img, idx):
         s = albedo()
         if s is not None: link(s, em.inputs['Color'])
         else: em.inputs['Color'].default_value = lin(COL[name])
-    else:  # EMI: night lighting (warm lit gallery box with scattered brighter cells, uplit red frames, lit soffit and plaza)
+    else:  # EMI: night lighting = uplit red frames only (glass, soffit and plaza stay dark)
         if name == 'red':
             em.inputs['Color'].default_value = rgb('#ff1a30')
             mr = node('ShaderNodeMapRange'); mr.inputs[1].default_value = 0; mr.inputs[2].default_value = 15.6; mr.inputs[3].default_value = .36; mr.inputs[4].default_value = .1
             link(Z, mr.inputs[0]); link(mr.outputs[0], em.inputs['Strength'])
-        elif name == 'glass':
-            cell = node('ShaderNodeCombineXYZ')
-            link(math_('FLOOR', math_('DIVIDE', X, BAY * 3)), cell.inputs['X'])
-            link(math_('FLOOR', math_('DIVIDE', math_('SUBTRACT', Z, GY0), (GY1 - GY0) / 2)), cell.inputs['Y'])
-            link(math_('SIGN', Y), cell.inputs['Z'])
-            wn = node('ShaderNodeTexWhiteNoise'); wn.noise_dimensions = '3D'; link(cell.outputs[0], wn.inputs['Vector'])
-            lit = math_('GREATER_THAN', wn.outputs['Value'], .35)
-            vx = math_('LESS_THAN', math_('ABSOLUTE', math_('SUBTRACT', math_('FRACT', math_('ADD', math_('DIVIDE', X, BAY), .5)), .5)), LW)
-            hz = math_('LESS_THAN', math_('ABSOLUTE', math_('SUBTRACT', Z, GM)), .06)
-            pane = math_('SUBTRACT', 1, math_('MAXIMUM', vx, hz))                           # steel grid stays dark
-            em.inputs['Color'].default_value = lin('#ffb866'); link(math_('MULTIPLY', math_('MULTIPLY_ADD', lit, .4, .1), pane), em.inputs['Strength'])
-        elif name == 'soffit': em.inputs['Color'].default_value = lin('#ffd7a0'); em.inputs['Strength'].default_value = .38
-        elif name == 'paving': em.inputs['Color'].default_value = lin('#ffd9a8'); em.inputs['Strength'].default_value = .1
-        elif name == 'mullion': em.inputs['Color'].default_value = rgb('#ffc98a'); em.inputs['Strength'].default_value = .1
-        elif name == 'concrete': em.inputs['Color'].default_value = rgb('#ffcf99'); em.inputs['Strength'].default_value = .05
         else: em.inputs['Color'].default_value = (0, 0, 0, 1)
 
 
@@ -276,7 +261,7 @@ def run(lod):
         uvs = [uvd[i].uv for i in pl.loop_indices]; c = (sum(uvs, uvs[0] * 0) / len(uvs) * 3 + uvs[0]) / 4  # off-centre: the glass centre sits on the mid rail
         ok = e[min(SIZE - 1, int(c[1] * SIZE)), min(SIZE - 1, int(c[0] * SIZE)), :3].max() > .05
         n = MATS[pl.material_index]; tot[n] = tot.get(n, 0) + 1; lit[n] = lit.get(n, 0) + ok
-    print('LITCHECK', lod, {n: f'{lit[n]}/{tot[n]}' for n in tot})
+    print('LITCHECK(expect 0 lit: glass and soffit stay dark)', lod, {n: f'{lit[n]}/{tot[n]}' for n in tot})
     p = lambda n: os.path.join(TEX, f'lod{lod}_{n}.png')
     save(alb, p('albedo')); save(emi, p('emissive')); save(ormi, p('orm'))
     # export material: standard ORM packing (R = baked AO, G = roughness, B = metalness)

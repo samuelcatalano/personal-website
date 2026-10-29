@@ -18,7 +18,8 @@ export function createHeroBackground(plots) {
       throw new TypeError('Incompatible hero background envelope');
     }
     // The two source positions lie in adjacent 32m cells; retain independent culling bounds.
-    group.add(i === 0 ? createOfficeSlice(plot) : createTowerSlice(plot));
+    if (i === 1) continue; // owner request: no tower beside the Sé's left side (plot id stays reserved so the rollout skips it)
+    group.add(createOfficeSlice(plot));
   }
   let disposed = false;
   group.userData = { plotIds: envelopes.map(p => p[0]), dispose() {
