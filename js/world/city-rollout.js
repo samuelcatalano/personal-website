@@ -54,7 +54,7 @@ export function rolloutRecipe(p,kind,neighbors=[p]){
   const j=(n,m)=>((Math.floor(seed/n)%m)/(m-1)-.5),pr=profiles[silhouette],setbacks=pr.setbacks.map((v,i)=>i?+(v+j(19+i,5)*.06).toFixed(3):v),scales=pr.scales.map((v,i)=>i?+(v+j(23+i,5)*.1).toFixed(3):v);
   return {...r,silhouette,...pr,setbacks,scales,chamfer:.65+(seed%3)*.12,bayWidth:[3.1,4.0,2.7,3.6,4.4][Math.floor(seed/3)%5],spandrel:[.18,.3,.5][Math.floor(seed/13)%3],reveal:[.30,.22,.38][Math.floor(seed/17)%3],crown:Math.floor(seed/11)%4};
 }
-function building(p,kind,neighbors,level=0){
+export function building(p,kind,neighbors,level=0){
   const recipe=rolloutRecipe(p,kind,neighbors);
   if(kind==='townhouse')return createTownhouseSlice(p,recipe,level);
   if(kind==='shop')return createShopSlice(p,neighbors,recipe);
@@ -75,7 +75,7 @@ const roofs={
   flat:[[176,178,176],[168,156,132],[128,136,142],[176,178,176],[168,156,132],[96,120,72],[128,136,142],[88,94,104]]
 };
 const bricks=[[1.05,.70,.50],[.58,.64,.74],[1.12,1.06,.86],[.72,.85,.74],[1.20,.66,.55],[.68,.54,.47],[.92,.48,.40],[1.0,.92,.70]];
-function tint(g,p) {
+export function tint(g,p) {
   const seed=hash(p.id),wall=walls[seed%walls.length],roof=[[1,1,1],[.72,.82,.93],[1.08,.76,.62],[.58,.58,.64],[1.2,.62,.45]][Math.floor(seed/5)%5];
   // ponytail: Prefix-only regional approximation; use explicit lot metadata if coverage expands.
   const region=p.id.startsWith('glasgow-house-')||p.id.startsWith('glasgow-tenement-')?'glasgow':p.id.startsWith('paulista-')?'paulista':p.id.startsWith('london-')?'london':null;
