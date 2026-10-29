@@ -1,0 +1,20 @@
+{
+  "generated": "2026-10-29",
+  "tool": "tools/pipeline/landmark.sh",
+  "source": "tools/landmarks/towerbridge/build_towerbridge.py (Blender, original geometry, baked textures)",
+  "note": "KTX2 ETC1S (colour/emissive q160, ORM q200) + Meshopt. Loaded by js/world/towerbridge-asset.js; ?landmarks=procedural forces the procedural Tower Bridge.",
+  "outputs": {
+    "lod0": {
+      "path": "assets/processed/landmarks/towerbridge.lod0.glb",
+      "bytes": 691800,
+      "sha256": "2e4a62aab0116482960b61a6aa975ad7fb9f863adad7ac772edc61d0e920df84",
+      "raw": "assets/models/source/towerbridge/towerbridge.lod0.raw.glb (git-ignored)"
+    },
+    "lod1": {
+      "path": "assets/processed/landmarks/towerbridge.lod1.glb",
+      "bytes": 246776,
+      "sha256": "071942f5b7745e063a3237c660ccde41a4c70a38a2405d3adfd3d66870c76b1c",
+      "raw": "assets/models/source/towerbridge/towerbridge.lod1.raw.glb (git-ignored)"
+    }
+  }
+}
