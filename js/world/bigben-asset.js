@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { loadGlb } from './glb-loader.js';
 // Authored Big Ben + Westminster river front (tools/landmarks/bigben): one mesh / one atlas material per LOD (KTX2 baseColor + ORM + emissive).
 // The procedural group from landmark-geometry.js stays as the fallback: it is hidden, never removed, so a failed load changes nothing.
-const GLB_V = '6'; // bump when the processed GLBs are regenerated (static hosts cache GLBs aggressively)
+const GLB_V = '7'; // bump when the processed GLBs are regenerated (static hosts cache GLBs aggressively)
 const URLS = ['assets/processed/landmarks/bigben.lod0.glb', 'assets/processed/landmarks/bigben.lod1.glb'].map((u) => u + '?v=' + GLB_V);
 const NEAR = 140, FAR = 170; // camera-to-AABB distance (m): LOD0 below NEAR, LOD1 beyond FAR, previous level in between (hysteresis like the city chunks)
 const BOX = new THREE.Box3(new THREE.Vector3(-3.1, 0, -4), new THREE.Vector3(37, 34, 4.6)); // local envelope (tests/bigben-asset.browser.py)
