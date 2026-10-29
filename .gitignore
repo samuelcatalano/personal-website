@@ -4,3 +4,5 @@ tools/image-to-3d/
 
 # pipeline dev tooling
 tools/pipeline/node_modules/
+tools/pipeline/bin/
+tools/pipeline/lib/

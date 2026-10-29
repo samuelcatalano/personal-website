@@ -8,12 +8,7 @@ Asset tooling for the Blender -> GLB -> Meshopt -> KTX2 pipeline (`docs/architec
 cd tools/pipeline && npm install        # @gltf-transform/cli 4.5.1 (pinned), installs into the git-ignored node_modules
 ```
 
-`toktx` (KTX-Software 4.4.2, Khronos, Apache-2.0) is needed only for KTX2 compression (Phase 2): official signed + notarized macOS installer from
-https://github.com/KhronosGroup/KTX-Software/releases/tag/v4.4.2 (`KTX-Software-4.4.2-Darwin-arm64.pkg`, 6.8 MB). It needs an administrator password, run it yourself:
-
-```bash
-sudo installer -pkg <path>/KTX-Software-4.4.2-Darwin-arm64.pkg -target /    # then: toktx --version
-```
+`toktx` (KTX-Software 4.4.2, Khronos, Apache-2.0) is used only for KTX2 compression (Phase 2). The official macOS installer (`KTX-Software-4.4.2-Darwin-arm64.pkg`, from https://github.com/KhronosGroup/KTX-Software/releases/tag/v4.4.2, signed + notarized, Developer ID TD2656HYNK) can be run with `sudo installer -pkg <pkg> -target /`. Without admin rights, the same signed binary works from this folder: expand the pkg (`pkgutil --expand-full`) and copy `toktx` to `tools/pipeline/bin/` and `libktx.4.4.2.dylib` (+ symlink `libktx.4.dylib`) to `tools/pipeline/lib/` (both git-ignored; the binary's rpath is `@executable_path/../lib`). Use it as `PATH=tools/pipeline/bin:$PATH`; check with `toktx --version`.
 
 ## Commands
 
