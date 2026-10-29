@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { AOPass } from './ao-pass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
@@ -38,16 +38,14 @@ gl_FragColor = vec4(clamp(g * uWarm, 0.0, 1.0), c.a);
 export function createPost(renderer, scene, camera, { tier = 'high', sun } = {}) {
   const size = renderer.getSize(new THREE.Vector2());
   const pr = renderer.getPixelRatio(), msaa = (t) => (t === 'high' ? 4 : 0); // the default composer target drops the canvas antialias, so thin detail (A330 windows, railings) stair-steps; MSAA rides the high tier (desktop p95 9 -> 17 ms at 120 Hz, the fps governor demotes it)
-  const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(size.x * pr, size.y * pr, { type: THREE.HalfFloatType, samples: msaa(tier) }));
+  const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(size.x * pr, size.y * pr, { type: THREE.HalfFloatType, samples: msaa(tier), depthTexture: tier === 'high' ? new THREE.DepthTexture(size.x * pr, size.y * pr) : null }));
   composer.addPass(new RenderPass(scene, camera));
   const heavy = [];
   let rays = null;
   if (tier === 'high') { // ponytail: medium never builds heavy passes
-    const ao = new GTAOPass(scene, camera, size.x, size.y);
-    const hide = ao.overrideVisibility;
-    ao.overrideVisibility = function () { hide.call(this); this.scene.traverse((o) => { if (o.isSprite || o.name === 'crowd' || o.material?.transparent) o.visible = false; }); };
     rays = new ShaderPass(SunRays);
-    heavy.push(ao, rays);
+    if (typeof location === 'undefined' || new URLSearchParams(location.search).get('ao') !== '0') heavy.push(new AOPass(camera)); // ?ao=0 kill switch
+    heavy.push(rays);
     heavy.forEach((p) => composer.addPass(p));
   }
   composer.addPass(new UnrealBloomPass(size, 0.15, 0.2, 0.95));
