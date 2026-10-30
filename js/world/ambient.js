@@ -20,7 +20,7 @@ function boat(hull = '#6b4f3a', cabin = '#f4f4f4', sx = 1, style = 'cruiser') {
 const FADE = 0.6; // s: a vehicle that must appear/vanish inside the camera frustum fades; outside it toggles instantly (and always under reduced motion)
 const HIDE = 110; // m from the player beyond which an ambient vehicle may appear/vanish at a region border
 const BRIDGE_FAR = 80; // m: Estaiada cars only appear/vanish beyond this from the player
-const SPEED = { london: 10, glasgow: 10, cab: 13, mini: 13, car: 13.5 }; // m/s
+const SPEED = { london: 10, glasgow: 10, caio: 10, cab: 13, mini: 13, car: 13.5 }; // m/s
 const SP_RANGE = 0.062, MIN_SPAWN = 110; // Sao Paulo cars loop inside [route start, swap + SP_RANGE] (curve t) instead of the whole route: respawn at the east end only when >= MIN_SPAWN m from the player
 const ACC = 3, DEC = 6, GAP = 3.5, ZEBRA_AT = 9, SLOW = 24; // m/s^2 up, m/s^2 down, bumper gap (m), zebra offset past a stop (roadmarks.js), slow-down radius (m)
 const CARS = Array.from({ length: 16 }, (_, i) => [['#151a20', '#b9bec5', '#a31d2a', '#142b4a', '#173b2d'][i % 5], ['mini', 'sedan', 'suv', 'mini', 'sedan', 'van', 'sedan', 'hatch', 'suv', 'sedan', 'hatch', 'suv', 'sedan', 'hatch', 'suv', 'sedan'][i]]); // metallic black, silver, red, dark blue and dark green
@@ -76,10 +76,12 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
     // Glasgow (only inside the Scotland range): 2 buses, 2 generic cars
     D('glasgow', -0.12, { lane: 1.75, relative: true, scot: true }), D('glasgow', 0.4, { scot: true }),
     G(1, 0.3, { uk: true, scot: true }), G(7, 0.6, { uk: true, scot: true }),
-    // Sao Paulo: generic cars only (the player there is the Mini)
+    // Sao Paulo: generic cars (the player there is the Mini); the articulated Caio buses are appended below
     G(1, 0.17, { uk: false }), G(2, 0.33, { uk: false }), G(5, 0.06, { uk: false }), G(9, 0.27, { uk: false }),
     // Extra density (appended: the first 20 keep their slots). Sao Paulo: ten more cars on the same short loop
     ...[[10, 0.01], [11, 0.09], [12, 0.115], [13, 0.14], [14, 0.21], [15, 0.24], [0, 0.3], [3, 0.36], [6, 0.39], [4, 0.41]].map(([c, o]) => G(c, o, { uk: false })),
+    // Sao Paulo: seven Caio buses on the same short loop as the cars (bus placeholder, upgraded to the Caio asset below)
+    ...[0.03, 0.10, 0.17, 0.24, 0.31, 0.37, 0.42].map((o) => { const b = D('london', o, { type: 'caio', uk: false }); b.mesh.name = 'caio'; return b; }),
     // London: 1 bus, 3 cabs, 2 Minis, 3 generic cars
     D('london', 0.71), D('cab', 0.47), D('cab', 0.88), D('cab', 0.12), D('mini', 0.6), D('mini', 0.79),
     G(11, 0.385, { uk: true, scot: false }), G(13, 0.675, { uk: true, scot: false }), G(15, 0.99, { uk: true, scot: false }),
@@ -104,7 +106,10 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
   });
   const isDisposed = () => disposed;
   const ready = Promise.all(traffic.map(async (v, i) => {
-    if (v.type === 'london' || v.type === 'glasgow') {
+    if (v.type === 'caio') { // Sao Paulo residents are always the Caio (same shared geometry as the regional bus), with beams re-fitted to its bounds
+      await upgradeBus(v.mesh, 'sao-paulo', { hero: false, isDisposed, asset: 'sao-paulo' });
+      if (v.mesh.userData.visualAsset === 'sao-paulo') { v.len = v.mesh.userData.length; v.mesh.children.filter((c) => c.name === 'beam').forEach((b) => { b.traverse((o) => { if (o.isPoints) o.geometry.dispose(); }); b.removeFromParent(); }); addBeams(v.mesh, v.mesh.userData.front, v.mesh.userData.beamY); v.tail = v.mesh.children.at(-1); }
+    } else if (v.type === 'london' || v.type === 'glasgow') {
       if (v.regionBus) await loadVehicleAsset('sao-paulo');
       await upgradeBus(v.mesh, v.type, { hero: false, isDisposed });
       if (v.regionBus) { v.modelAsset = 'bus'; v.mesh.userData.regionAsset = 'bus'; v.modelReady = true; }
@@ -149,6 +154,8 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
   bridge.forEach((b) => { if (b.phase === 'road') b.p = invP(b.t0); });
   const rangeP = invP(swapAt(stops) + SP_RANGE); // route progress of the Sao Paulo loop's east end
   traffic.forEach((v) => { if (v.uk === false) { v.range = [0, rangeP]; v.p *= rangeP / 0.43; } });
+  const rangeBus = invP(swapAt(stops) - 20 / len); // Caio buses never cross the border (unlike the cars, which may drive a little way into London): past the swap every bus is the double-decker
+  traffic.forEach((v) => { if (v.type === 'caio') { v.range = [0, rangeBus]; v.p = v.offset * rangeBus / 0.43; } });
   const lanePos = (t, lane) => { const p = curve.getPointAt(t), tn = curve.getTangentAt(t); return { x: p.x + tn.z * lane, z: p.z - tn.x * lane }; }; // same side convention as the frame loop
   const tOf = (v) => routeT(v.p, pts.length, knots);
   let lastRoute = null;
@@ -173,7 +180,7 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
           if (enteredHold) v.hold = true; // left the west end: vanish, respawn at the east end
           if (v.hold) { // ponytail: waits (invisible) until the east end is >= MIN_SPAWN m from the player and 20 m clear of other cars
             const q = curve.getPointAt(routeT(rg[1], pts.length, knots));
-            if (!enteredHold && !v.fade && q.distanceTo(here) > MIN_SPAWN && !auto.some((o) => o !== v && (o.active || o.fade > 0) && Math.hypot(o.x - q.x, o.z - q.z) < 20)) { v.hold = false; v.p = rg[1]; v.v = v.base; v.active = true; v.x = q.x; v.z = q.z; } // active now: the next held car sees it
+            if (!enteredHold && !v.fade && (q.distanceTo(here) > MIN_SPAWN || (v.type === 'caio' && q.distanceTo(here) > 40 && !seen(q.x, q.z, v.len))) && !auto.some((o) => o !== v && (o.active || o.fade > 0) && Math.hypot(o.x - q.x, o.z - q.z) < 20)) { v.hold = false; v.p = rg[1]; v.v = v.base; v.active = true; v.x = q.x; v.z = q.z; } // active now: the next held car sees it
           } else v.p = v.kind ? wrap(np) : np;
         }
         // still in (or already back in) the lane while turning: fixed leaders for the spacing, so nobody drives through them

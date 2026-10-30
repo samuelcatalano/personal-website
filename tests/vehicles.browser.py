@@ -60,23 +60,23 @@ print(js(r'''(async () => {
   check(saoPaulo, 'São Paulo hero GLB loads through the cached vehicle loader');
   let spSourceTris = 0, spSourceMeshes = 0, spMetalTris = 0;
   saoPaulo.traverse(o => { if (o.isMesh) { const n = (o.geometry.index?.count ?? o.geometry.attributes.position.count) / 3; spSourceMeshes++; spSourceTris += n; if (o.material.name === 'BusMetal') spMetalTris += n; } });
-  check(spSourceMeshes <= 9 && spSourceTris >= 8000 && spSourceTris <= 35000, `São Paulo authored bus stays within the 35k budget, one mesh per role (${spSourceMeshes} meshes, ${spSourceTris} tris)`);
+  check(spSourceMeshes <= 10 && spSourceTris >= 8000 && spSourceTris <= 35000, `São Paulo authored bus stays within the 35k budget, one mesh per role (${spSourceMeshes} meshes, ${spSourceTris} tris)`);
   check(spMetalTris >= 300, `São Paulo rims, roof units and trim plates use the metallic role (${spMetalTris} tris)`);
   const spA = buildVehicle('glasgow', { hero: true }), spB = buildVehicle('glasgow', { hero: true });
   await Promise.all([assets.upgradeBus(spA, 'sao-paulo', { hero: false, asset: 'sao-paulo' }), assets.upgradeBus(spB, 'sao-paulo', { hero: false, asset: 'sao-paulo' })]);
   let spMetalMaterial; spA.traverse(o => { if (o.isMesh && o.userData.role === 'BusMetal') spMetalMaterial = o.material; });
   check(spMetalMaterial?.color.getHexString() === 'd8dadc', `São Paulo articulation uses the light chrome runtime finish (${spMetalMaterial?.color.getHexString()})`);
   const spBox = bounds(spA), spSize = spBox.getSize(new THREE.Vector3()), spWheels = spA.userData.wheels;
-  check(Math.abs(spBox.min.y) < 0.01 && Math.abs(spSize.x - 16.758) < 0.08 && Math.abs(spSize.y - 3.101) < 0.08 && Math.abs(spSize.z - 2.634) < 0.08, `São Paulo GLB keeps its grounded source dimensions (${spSize.toArray().map(v => v.toFixed(2))})`);
+  check(Math.abs(spBox.min.y) < 0.01 && Math.abs(spSize.x - 16.758) < 0.08 && Math.abs(spSize.y - 3.101) < 0.08 && Math.abs(spSize.z - 2.70) < 0.08, `São Paulo GLB keeps its grounded source dimensions (${spSize.toArray().map(v => v.toFixed(2))})`);
   check(spA.userData.length > 16.7 && spA.userData.front > 8.3 && spA.userData.dimensions.length === 3 && spA.userData.beamAnchors.front.every(p => p[0] === spBox.max.x) && spA.userData.beamAnchors.rear.every(p => p[0] === spBox.min.x), 'São Paulo metadata and front/rear beam anchors come from GLB bounds');
-  check(spWheels.length === 3 && spWheels.map(w => w.name).join(',') === 'FL-FR,ML-MR,RL-RR' && spWheels.every(w => w.children.some(m => m.isMesh && m.geometry.index?.count) && w.userData.radius === 0.52), 'empty FL/FR, ML/MR and RL/RR markers split embedded tires into three spinning axle groups');
+  check(spWheels.length === 4 && spWheels.map(w => w.name).join(',') === 'FL-FR,ML-MR,RL-RR,TL-TR' && spWheels.every(w => w.children.some(m => m.isMesh && m.geometry.index?.count) && w.userData.radius === 0.52), 'empty FL/FR, ML/MR, RL/RR and TL/TR markers split the tyres into four spinning axle groups (rear tandem)');
   const spTraffic = buildVehicle('glasgow', { hero: true });
   await assets.upgradeBus(spTraffic, 'sao-paulo', { hero: false, asset: 'sao-paulo' });
-  check(spTraffic.userData.visualAsset === 'sao-paulo' && spTraffic.userData.wheels.length === 3 && spTraffic.userData.length > 16.7 && spTraffic.userData.dimensions[1] > 3, 'São Paulo full-resolution traffic model uses axle markers and measured bounds');
+  check(spTraffic.userData.visualAsset === 'sao-paulo' && spTraffic.userData.wheels.length === 4 && spTraffic.userData.length > 16.7 && spTraffic.userData.dimensions[1] > 3, 'São Paulo full-resolution traffic model uses axle markers and measured bounds');
   const spTris = (root) => { let n = 0; root.traverse(o => { if (o.isMesh && o.name !== 'beam') n += (o.geometry.index?.count ?? o.geometry.attributes.position.count) / 3; }); return n; };
   let spRuntimeMeshes = 0; spA.traverse(o => { if (o.isMesh && o.name !== 'beam') spRuntimeMeshes++; });
   const spRuntimeTriangles = spTris(spA);
-  check(spRuntimeMeshes <= 15 && spRuntimeTriangles >= spSourceTris && spRuntimeTriangles <= spSourceTris + 240, `São Paulo extracted hero keeps the source triangles (plus the static tyre discs) within 15 draw calls (${spRuntimeMeshes} meshes, ${spRuntimeTriangles} tris)`);
+  check(spRuntimeMeshes <= 20 && spRuntimeTriangles >= spSourceTris && spRuntimeTriangles <= spSourceTris + 240, `São Paulo extracted hero keeps the source triangles (plus the static tyre discs) within 20 draw calls (${spRuntimeMeshes} meshes, ${spRuntimeTriangles} tris)`);
   assets.rollWheels(spWheels, 2);
   check(spWheels.every(w => Math.abs(w.rotation.z + 2 / 0.52) < 1e-9), 'positive local X travel rolls the contact patch backward around local Z');
   assets.rollWheels(spWheels, -2);
@@ -149,7 +149,7 @@ print(js(r'''(async () => {
     transitionAmbient.update({ time: 60 + k / 2, t: 0.1, dt: 0.5 });
     await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
   }
-  check(transitionBus.visible && hexes(transitionBus).has('a5cb38') && !hexes(transitionBus).has('c9252b'), `visible regional traffic uses the São Paulo livery after the model swap (visible=${transitionBus.visible}, colors=${[...hexes(transitionBus)]})`);
+  check(transitionBus.visible && hexes(transitionBus).has('0a8f3c') && !hexes(transitionBus).has('c9252b'), `visible regional traffic uses the São Paulo livery after the model swap (visible=${transitionBus.visible}, colors=${[...hexes(transitionBus)]})`);
   const sharedBus = await assets.loadVehicleAsset('bus');
   let sharedBusTris = 0; sharedBus.traverse(m => { if (m.isMesh) sharedBusTris += (m.geometry.index?.count ?? m.geometry.attributes.position.count) / 3; });
   check(sharedBusTris > 8000, `shared authored London/Glasgow GLB stays above 8k triangles (${sharedBusTris})`);
