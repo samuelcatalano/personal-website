@@ -31,6 +31,7 @@ def storefront(n, mullions, transom, bulk, header, cap):
         if cap:
             m.box("trim", "capital", (s * (W / 2 + .05), H + .02, .08), (.18, .10, .14))
     m.box("trim", "head", (0, H + .06, .06), (W + .22, header, .12))
+    m.box("trim", "head_drip", (0, H + .01, .13), (W + .30, .06, .10))
     for i in range(mullions):
         x = -W / 2 + (i + 1) * W / (mullions + 1)
         m.box("trim", "mullion", (x, H / 2 + .1, .03), (.05, H - .2, .05))
@@ -39,6 +40,7 @@ def storefront(n, mullions, transom, bulk, header, cap):
     if bulk > .4:
         m.box("trim", "bulkhead_panel", (0, bulk / 2, .105), (W - .3, bulk - .16, .02))
     m.box("trim", "sill", (0, .02, .09), (W + .24, .06, .16))
+    m.box("trim", "sill_drip", (0, -.015, .14), (W + .30, .05, .10))
 
 
 storefront("timber_01", 1, 1.70, .55, .14, False)
@@ -191,6 +193,7 @@ def roof(n, kind):
         m.box("mass", "unit", (-.5, .35, 0), (.9, .7, .8))
         m.box("mass", "unit", (.55, .3, .1), (.8, .6, .7))
         m.cyl("trim", "fan", (-.5, .72, 0), .30, .03, 14)
+        m.cyl("mass", "fan_hub", (-.5, .742, 0), .075, .018, 10)
         m.box("trim", "rail", (0, .04, 0), (2.4, .08, 1.1))
 
 

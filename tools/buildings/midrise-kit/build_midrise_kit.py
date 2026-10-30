@@ -26,6 +26,7 @@ W, H = 1.58, 1.8
 
 def window(n, kind):
     m = kit.module(f"window_{n}", "window", A["window"])
+    m.box("trim", "sill_drip", (0, -.30, .14), (W + .32, .075, .10))
     if kind == "juliet":
         for s in (-1, 1):
             m.box("trim", "post", (s * (W / 2 + .02), .45, .09), (.05, .9, .06))
@@ -186,6 +187,7 @@ def roof(n, kind):
         for i in range(4):
             m.box("mass", "unit", (-1.35 + i * .9, .35, 0), (.8, .7, .7))
             m.cyl("trim", "fan", (-1.35 + i * .9, .72, 0), .28, .03, 14)
+        m.cyl("mass", "fan_hub", (-1.35 + i * .9, .742, 0), .07, .018, 10)
         m.box("trim", "rack", (0, .04, 0), (3.8, .08, .9))
     elif kind == "tank":
         for sx in (-.6, .6):

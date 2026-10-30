@@ -22,8 +22,16 @@ A = {
     "louvre": "bottom centre of a mechanical-floor louvre panel on the glazed plane (4 x 3 m, stretch X/Y)",
 }
 
-m = kit.module("fin_square_01", "fin", A["fin"]); m.box("trim", "fin", (0, 1.5, .095), (.14, 3, .15))
-m = kit.module("fin_blade_02", "fin", A["fin"]); m.box("trim", "blade", (0, 1.5, .105), (.05, 3, .17))
+m = kit.module("fin_square_01", "fin", A["fin"])
+m.box("trim", "fin", (0, 1.5, .095), (.14, 3, .15))
+for s in (-1, 1):
+    m.box("trim", "edge_bead", (s * .052, 1.5, .145), (.045, 3, .075))
+m.box("trim", "base_collar", (0, .055, .095), (.20, .11, .19)); m.box("trim", "top_collar", (0, 2.945, .095), (.20, .11, .19))
+m = kit.module("fin_blade_02", "fin", A["fin"])
+m.box("trim", "blade", (0, 1.5, .105), (.05, 3, .17))
+for s in (-1, 1):
+    m.box("trim", "blade_bead", (s * .04, 1.5, .16), (.03, 3, .06))
+m.box("trim", "base_collar", (0, .055, .08), (.10, .11, .18)); m.box("trim", "top_collar", (0, 2.945, .08), (.10, .11, .18))
 m = kit.module("fin_twin_03", "fin", A["fin"])
 for s in (-1, 1):
     m.box("trim", "post", (s * .06, 1.5, .09), (.05, 3, .14))
@@ -67,6 +75,8 @@ for i in range(6):
         m.box("trim", "fin", (x, 1.35, z), (.14, 2.1, .14))
 m = kit.module("crown_stepped_02", "crown", A["crown"])
 m.box("mass", "t1", (0, .3, 0), (4.8, .6, 4.8)); m.box("mass", "t2", (0, .95, 0), (3.4, .7, 3.4)); m.box("mass", "t3", (0, 1.7, 0), (2.0, .8, 2.0)); m.box("trim", "cap", (0, 2.14, 0), (2.2, .08, 2.2))
+for s in (-1, 1):
+    m.box("trim", "t1_coping", (s * 2.42, .62, 0), (.12, .06, 4.8)); m.box("trim", "t1_coping", (0, .62, s * 2.42), (4.8, .06, .12))
 m = kit.module("crown_mast_03", "crown", A["crown"])
 m.box("mass", "base", (0, .3, 0), (2.8, .6, 2.8)); m.box("trim", "trim", (0, .64, 0), (3.0, .08, 3.0)); m.cyl("trim", "mast", (0, 1.65, 0), .08, 2.1, 8, "Y")
 for y in (1.9, 2.3):

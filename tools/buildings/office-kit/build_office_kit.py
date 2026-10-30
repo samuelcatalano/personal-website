@@ -23,11 +23,18 @@ A = {
 }
 
 # Vertical mullion fins (depth 0.13-0.19, never coplanar with the facade piers).
-m = kit.module("bay_square_01", "bay", A["bay"]); m.box("trim", "fin", (0, 1.8, .095), (.14, 3.6, .15))
-m = kit.module("bay_blade_02", "bay", A["bay"]); m.box("trim", "web", (0, 1.8, .105), (.05, 3.6, .17)); m.box("trim", "flange", (0, 1.8, .175), (.16, 3.6, .03))
+m = kit.module("bay_square_01", "bay", A["bay"])
+m.box("trim", "fin", (0, 1.8, .095), (.14, 3.6, .15))
+for s in (-1, 1):
+    m.box("trim", "edge_bead", (s * .052, 1.8, .145), (.045, 3.6, .075))
+m = kit.module("bay_blade_02", "bay", A["bay"])
+m.box("trim", "web", (0, 1.8, .105), (.05, 3.6, .17)); m.box("trim", "flange", (0, 1.8, .175), (.16, 3.6, .03))
+for s in (-1, 1):
+    m.box("trim", "blade_edge", (s * .065, 1.8, .155), (.035, 3.6, .065))
 m = kit.module("bay_twin_03", "bay", A["bay"])
 for s in (-1, 1):
     m.box("trim", "post", (s * .07, 1.8, .09), (.04, 3.6, .14))
+    m.box("trim", "post_bead", (s * .07, 1.8, .145), (.035, 3.6, .055))
 for y in (.3, 1.2, 2.1, 3.0):
     m.box("trim", "tie", (0, y, .13), (.18, .03, .04))
 
@@ -92,6 +99,7 @@ for i in range(7):
 m = kit.module("roof_cooling_row_01", "roof", A["roof"])
 for i in range(3):
     m.box("mass", "unit", (-.9 + i * .9, .32, 0), (.8, .6, .7)); m.cyl("trim", "fan", (-.9 + i * .9, .63, 0), .28, .03, 14, "Y")
+    m.cyl("mass", "fan_hub", (-.9 + i * .9, .653, 0), .07, .016, 10, "Y")
 m.box("trim", "rack", (0, .01, 0), (2.8, .02, .9))
 m = kit.module("roof_lift_overrun_02", "roof", A["roof"])
 m.box("mass", "overrun", (0, .5, 0), (1.7, 1.0, 1.6)); m.box("trim", "cap", (0, 1.03, 0), (1.9, .04, 1.8)); m.box("trim", "door", (0, .45, .81), (.7, .9, .03))

@@ -75,6 +75,9 @@ class Module:
             modifier.affect = "EDGES"
             bpy.context.view_layer.objects.active = obj
             bpy.ops.object.modifier_apply(modifier=modifier.name)
+            # Bevel UV interpolation drifts by one float ULP between Blender processes.
+            for item in obj.data.uv_layers.active.data:
+                item.uv = (round(item.uv.x, 5), round(item.uv.y, 5))
         self._finish(obj, role)
         return obj
 
@@ -114,6 +117,9 @@ def window_frame(m, width, height, muntins=1, panes=2, stone=False):
     for side in (-1, 1):
         m.box("trim", "sash_side", (side * (width / 2 - 0.07), height / 2, -0.025), (0.07, height - 0.16, 0.09))
     m.box("trim", "projecting_sill", (0, -0.07, 0.015), (width + 0.24, 0.12, 0.25), bevel=0.025)
+    m.box("trim", "sill_drip_edge", (0, -0.115, 0.13), (width + 0.18, 0.06, 0.06), bevel=0.018)
+    if stone:
+        m.box("mass", "keystone", (0, height + 0.045, 0.02), (0.24, 0.13, 0.14), bevel=0.025)
     for i in range(1, muntins + 1):
         y = height * i / (muntins + 1)
         m.box("trim", "horizontal_muntin", (0, y, 0.006), (width - 0.12, 0.035, 0.06), bevel=0.008)
@@ -179,6 +185,8 @@ for name, width, height, style in door_specs:
             m.box("mass", "door_leaf", (cx, height / 2, -0.075), (leaf_width, height - 0.16, 0.12))
             for y in (0.42, 0.90, 1.43):
                 m.box("trim", "raised_panel_rail", (cx, y, 0.002), (leaf_width * 0.72, 0.045, 0.035))
+            for edge in (-1, 1):
+                m.box("trim", "raised_panel_stile", (cx + edge * leaf_width * 0.36, 0.90, 0.002), (0.04, 1.05, 0.035))
             m.box("trim", "raised_panel_stile", (cx, 0.88, 0.002), (0.045, 0.94, 0.035))
             m.cylinder("trim", "brass_knob", (cx - side * (leaf_width * 0.36), 0.99, 0.075), 0.038, 0.045, axis="Z")
     else:
