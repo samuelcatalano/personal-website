@@ -11,7 +11,7 @@ const URLS = { a330: 'a330.glb', bus: 'double-decker-bus.glb', 'sao-paulo': 'sao
 const PROCESSED = { mini: 'processed/vehicles/mini-cooper-2011.lod0.glb' };
 // Fleet models with a processed GLB (same coordinates, so catalog axles/beam anchors still apply). honda-hr-v stays raw: its triangles share no vertices, so it cannot be simplified.
 for (const id of ['toyota-corolla', 'vw-t-cross', 'nissan-qashqai', 'land-rover-range-rover', 'mercedes-e63-amg-s-wagon']) PROCESSED[id] = `processed/vehicles/${id}.glb`;
-const PIPELINE_V = '6'; // bump when processed GLBs are regenerated (cache busting)
+const PIPELINE_V = '7'; // bump when processed GLBs are regenerated (cache busting)
 const useProcessed = typeof location === 'undefined' || new URLSearchParams(location.search).get('glb') !== 'raw';
 const cache = new Map();
 let fleetCatalog;
@@ -130,6 +130,19 @@ const FLEET_FINISH = {
   }),
 };
 const CASTS = new Set(['BusBody', 'BusAccent', 'BusStripe', 'BusSkirtF', 'BusSweep', 'BusLilac', 'BusRear', 'BusMark', 'BusMark2', 'CarBody', 'CarRoof', 'CabBody']); // only painted shells cast: trim/glass/wheels add shadow-pass calls for no visible gain
+// Authored (fleet) car paint: one shared material per colour. Moderate metalness keeps the colour readable instead of mirroring the bright studio lights
+// (which showed as grey blotches on the simplified panels); the clear-coat carries the highlights; lowAO darkens sills and arches.
+const fleetPaint = (c) => phys('fleetPaint' + c, () => lowAO(new THREE.MeshPhysicalMaterial({ color: c, roughness: 0.38, metalness: 0.25, clearcoat: 1, clearcoatRoughness: 0.1, envMapIntensity: 0.34 })));
+// Source materials of the authored cars that no role replaces. Glass (untextured, dark, blended) becomes the shared tinted fresnel glass; tyres lose their
+// stray metalness (they rendered shiny blue-black); every other metallic material gets the studio env, otherwise metals have nothing to reflect and render black.
+const finished = new WeakSet();
+function finishSource(m) {
+  if (m.transparent && !m.map && m.color.r + m.color.g + m.color.b < 0.3) return CAR_FINISH.CarGlass();
+  if (finished.has(m)) return m; finished.add(m);
+  if (/^(tire|tyre|rubber|TIREEES|.*_Tires)$/i.test(m.name)) { m.metalness = 0.05; m.roughness = Math.max(m.roughness, 0.8); return m; }
+  if (m.metalness > 0.3) { m.userData.envDay = m.envMapIntensity = 0.38; if (envTex) m.envMap = envTex; envMats.add(m); }
+  return m;
+}
 const WHEELS = ['FL', 'FR', 'RL', 'RR'];
 export const rollWheels = (wheels, distance) => wheels.forEach((w) => { w.rotation.z -= distance / (w.userData.radius ?? w.position.y); });
 // Weld UV/normal seams for connectivity only; never cut a tyre or body panel by triangle centroid.
@@ -238,21 +251,14 @@ function upgrade(vehicle, key, v, hero, isDisposed = () => false, axles) {
         glb.add(w); return w;
       });
     }
-    const paintMaterials = new Set(v.paintMaterials ?? []), paint = new Map();
+    const paintMaterials = new Set(v.paintMaterials ?? []);
     glb.traverse((o) => {
       if (!o.isMesh) return;
       const name = o.material.name.replace(/\.\d+$/, '');
       o.userData.role = name; // reskinBus maps it back to a livery
-      if (paintMaterials.has(name)) {
-        let m = paint.get(name);
-        if (!m) {
-          m = o.material.clone(); m.name = name; m.color.set(v.body); m.vertexColors = false;
-          m.roughness = 0.28; m.metalness = 0.72; m.envMapIntensity = 0.48; m.userData.envDay = 0.48;
-          if (envTex) m.envMap = envTex;
-          envMats.add(m); paint.set(name, m);
-        }
-        o.material = m;
-      } else o.material = (FLEET_FINISH[name] ?? ROLES[name])?.(v) ?? o.material;
+      if (paintMaterials.has(name)) o.material = fleetPaint(v.body);
+      else if (FLEET_FINISH[name] ?? ROLES[name]) o.material = (FLEET_FINISH[name] ?? ROLES[name])(v);
+      else o.material = finishSource(o.material); // authored car materials: glass/tyre/metal finish, in place (shared by every clone)
       if (FLEET_FINISH[name]) o.material.name = name;
       o.castShadow = CASTS.has(name) || name === 'FleetBody' || !!v.shadowMaterials?.includes(name); o.receiveShadow = true;
     });
