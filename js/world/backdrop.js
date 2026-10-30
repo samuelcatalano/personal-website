@@ -60,15 +60,16 @@ export function buildBackdrop(add, stops, pts, addSky = add) {
         const floors = rearFill ? row < 2 ? 2 + (rowRandom() * 3 | 0) : 2 + (rowRandom() * 6 | 0) : row < 2 ? 2 + (r() * 3 | 0) : 2 + (r() * 6 | 0);
         const wall = (row < 2 ? colors : distantColors)[(rearFill ? rowRandom() : r()) * (row < 2 ? colors : distantColors).length | 0];
         const roof = row === 0 ? [P.roof, P.brick, P.ink][(rearFill ? rowRandom() : r()) * 3 | 0] : wall, h = floors * 2.8;
-        // Four low-cost mass profiles; existing RNG/positions and fog remain the source of depth.
-        const family=(Math.abs(Math.round(xc*17))+row)%4;
+        // Five low-cost mass profiles; existing RNG/positions and fog remain the source of depth.
+        const family=(Math.abs(Math.round(xc*17))+row)%5;
         let topX=xc,topW=w;
         const coverage = row < 2 ? .78 : row < 4 ? .42 : .22;
         if(family===0)body(xc,0,z,w,h,depth,wall,(Math.round(xc*91)^row*761)|0,row<2,coverage);
         else if(family===1){body(xc,0,z,w,h*.62,depth,wall,(Math.round(xc*91)^row*761)|0,row<2,coverage);topX=xc+w*.12;topW=w*.70;body(topX,h*.62,z,topW,h*.38,depth*.82,wall,(Math.round(xc*97)^row*787)|0,row<2,coverage);}
         else if(family===2){body(xc-w*.25,0,z,w*.5,h*.78,depth,wall,(Math.round(xc*101)^row*809)|0,row<2,coverage);add(xc-w*.25,h*.78,z,w*.5+.1,.25,depth+.2,roof);topX=xc+w*.25;topW=w*.5;body(topX,0,z,topW,h,depth,wall,(Math.round(xc*103)^row*811)|0,row<2,coverage);}
-        else {body(xc,0,z,w,h*.85,depth,wall,(Math.round(xc*107)^row*821)|0,row<2,coverage);topW=w*.34;body(xc,h*.85,z,topW,h*.15,depth*.65,roof,(Math.round(xc*109)^row*823)|0,false,coverage);}
-        add(topX,h,z,topW+.3,.35,depth*(family===1?.82:family===3?.65:1)+.4,roof);
+        else if(family===3) {body(xc,0,z,w,h*.85,depth,wall,(Math.round(xc*107)^row*821)|0,row<2,coverage);topW=w*.34;body(xc,h*.85,z,topW,h*.15,depth*.65,roof,(Math.round(xc*109)^row*823)|0,false,coverage);}
+        else {topX=xc-w*.21;topW=w*.43;body(xc,0,z,w,h*.78,depth,wall,(Math.round(xc*113)^row*827)|0,row<2,coverage);body(topX,h*.78,z,topW,h*.22,depth*.72,wall,(Math.round(xc*127)^row*829)|0,false,coverage);}
+        add(topX,h,z,topW+.3,.35,depth*(family===1?.82:family===3?.65:family===4?.72:1)+.4,roof);
         if (row === 0 && !rearFill) {
           if(family===0)add(xc, h + 0.35, z, w * 0.62, 0.75, depth * 0.62, roof);
           if (nearBuildings++ % 3 === 0 && family===0) add(xc, h + 1.1, z, w * 0.38, 0.28, depth * 0.45, roof);

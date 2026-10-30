@@ -1,12 +1,22 @@
 import * as THREE from 'three';
-import { LANDMARKS, stopIndex, RIVER_Z } from './layout.js';
+import { LANDMARKS, stopIndex, RIVER_Z, copan, glasgowSites } from './layout.js';
 import { PALETTE as P } from './palette.js';
 import { GLASS_REFLECTION } from './glass-reflection.js';
 
 // Finish only the existing visible landmark envelopes, retaining all shared batches.
 export function polishLandmarkMaterials(world,stops,pts,env){
   const x=key=>pts[stopIndex(stops,LANDMARKS[key])].x;
-  const bounds=[new THREE.Vector4(x('wembley')-21,x('wembley')+21,RIVER_Z-40,RIVER_Z-12),new THREE.Vector4(x('bigben')-4,x('bigben')+38,RIVER_Z-21,RIVER_Z-11),new THREE.Vector4(x('masp')-21,x('masp')+21,RIVER_Z-25,RIVER_Z-11)];
+  const g=pts[stopIndex(stops,LANDMARKS.glasgow)],sites=glasgowSites(stops,pts),cp=copan(stops,pts);
+  const bounds=[
+    new THREE.Vector4(x('wembley')-21,x('wembley')+21,RIVER_Z-40,RIVER_Z-12),
+    new THREE.Vector4(x('bigben')-4,x('bigben')+38,RIVER_Z-21,RIVER_Z-11),
+    new THREE.Vector4(x('masp')-21,x('masp')+21,RIVER_Z-25,RIVER_Z-11),
+    new THREE.Vector4(cp.x-cp.len/2-cp.depth/2-.3,cp.x+cp.len/2+cp.depth/2+.3,cp.z-cp.amp-cp.depth/2-.3,cp.z+cp.amp+cp.depth/2+.3),
+    new THREE.Vector4(x('se')-16,x('se')+16,RIVER_Z-25.5,RIVER_Z-7),
+    new THREE.Vector4(g.x-16,g.x+16,g.z-44,g.z-35),
+    new THREE.Vector4(sites.museum.x-16,sites.museum.x+16,sites.museum.z-8,sites.museum.z+8),
+    new THREE.Vector4(sites.uni.x-37,sites.uni.x+37,sites.uni.z-8,sites.uni.z+8),
+  ];
   const finishes=new Map([[P.cream,[.64,.04,0]],[P.arch,[.34,.4,0]],[P.sand,[.82,0,0]],[P.sandd,[.82,0,0]],[P.slate,[.55,.05,0]],[P.gilt,[.3,.55,0]],[P.masp,[.4,.28,0]],[P.concrete,[.74,0,0]],[P.glass,[.18,.05,1]]]);
   const materials=new Set();world.traverse(o=>{if(o.material)materials.add(o.material)});let count=0;
   for(const material of materials){
@@ -16,7 +26,7 @@ export function polishLandmarkMaterials(world,stops,pts,env){
     const before=material.onBeforeCompile,key=material.customProgramCacheKey.bind(material);
     material.onBeforeCompile=shader=>{
       before(shader);shader.uniforms.uLandmarkNight=material.userData.uLandmarkNight;shader.uniforms.uLandmarkBounds={value:bounds};shader.uniforms.uLandmarkFinish={value:new THREE.Vector3(...finish)};
-      shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>\nuniform float uLandmarkNight;uniform vec4 uLandmarkBounds[3];uniform vec3 uLandmarkFinish;\n${GLASS_REFLECTION}\nfloat landmarkMask(vec3 p){float m=0.0;for(int i=0;i<3;i++){vec4 b=uLandmarkBounds[i];m=max(m,step(b.x,p.x)*step(p.x,b.y)*step(b.z,p.z)*step(p.z,b.w));}return m;}`)
+      shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>\nuniform float uLandmarkNight;uniform vec4 uLandmarkBounds[8];uniform vec3 uLandmarkFinish;\n${GLASS_REFLECTION}\nfloat landmarkMask(vec3 p){float m=0.0;for(int i=0;i<8;i++){vec4 b=uLandmarkBounds[i];m=max(m,step(b.x,p.x)*step(p.x,b.y)*step(b.z,p.z)*step(p.z,b.w));}return m;}`)
         .replace('diffuseColor.rgb *= vLN.y', 't *= 1.0-landmarkMask(vWP)*0.65;\ndiffuseColor.rgb *= vLN.y')
         .replace('#include <lights_fragment_maps>','vec3 lmRad=radiance,lmIrr=iblIrradiance;\n#include <lights_fragment_maps>\nfloat lmEnv=landmarkMask(vWP);radiance=mix(lmRad,radiance,lmEnv);iblIrradiance=mix(lmIrr,iblIrradiance,lmEnv);')
         .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,uLandmarkFinish.x,landmarkMask(vWP));')

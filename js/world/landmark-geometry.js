@@ -463,6 +463,11 @@ export function createCopan({x,z,len,amp,depth,h}){
     sweep(k>0?[[D-.72,F],[D-.72,h-.5]]:[[-D+.72,h-.5],[-D+.72,F]],path,N,S.glass,glass,2,false);
   }
   for(let y=F;y<h-.5;y+=3)sweep(rect(-D,D,y,y+.65),path,N,S.plaster,white);   // one continuous projecting ribbon per floor
+  for(let i=1;i<12;i++){
+    const t=i/12,[x,z]=path(t),[ax,az]=path(Math.min(1,t+.002)),[bx,bz]=path(Math.max(0,t-.002)),len=Math.hypot(ax-bx,az-bz);
+    const nx=-(az-bz)/len,nz=(ax-bx)/len;
+    box(x+nx*(D-.58),F,z+nz*(D-.58),.16,h-F-.5,.18,S.trim,[.8,.84,.9],1);
+  }
   sweep(rect(-D-.3,D+.3,h-.5,h),path,N,S.plaster,white);                       // flat roof slab
   const [ax,az]=path(.27),[bx,bz]=path(.66);
   box(ax,h,az,3,2.2,3,S.stone,[.8,.84,.9]);box(ax,h+2.2,az,3.3,.2,3.3,S.trim,pale,1);
