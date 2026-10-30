@@ -187,7 +187,7 @@ def roof(n, kind):
         for i in range(4):
             m.box("mass", "unit", (-1.35 + i * .9, .35, 0), (.8, .7, .7))
             m.cyl("trim", "fan", (-1.35 + i * .9, .72, 0), .28, .03, 14)
-        m.cyl("mass", "fan_hub", (-1.35 + i * .9, .742, 0), .07, .018, 10)
+            m.cyl("mass", "fan_hub", (-1.35 + i * .9, .742, 0), .07, .018, 10)
         m.box("trim", "rack", (0, .04, 0), (3.8, .08, .9))
     elif kind == "tank":
         for sx in (-.6, .6):
