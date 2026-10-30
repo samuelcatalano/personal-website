@@ -10,19 +10,19 @@
   "outputs": {
     "land-rover-range-rover": {
       "path": "assets/processed/vehicles/land-rover-range-rover.glb",
-      "bytes": 4291748,
-      "sha256": "555cc8657815176301ec56f996bf766ae06b9fc2fae5da779263b215c208f8ed",
+      "bytes": 4291240,
+      "sha256": "3ae1d6fdec67a1098dfe5437fb3785e7d11027ee2c7de58f32d66f5b571bd074",
       "source": "assets/vehicles/land-rover-range-rover.glb",
       "sourceBytes": 9855300,
-      "simplify": "ratio 0.1, error 0.008, crease=50:CarPaint"
+      "simplify": "ratio 0.1, error 0.008"
     },
     "mercedes-e63-amg-s-wagon": {
       "path": "assets/processed/vehicles/mercedes-e63-amg-s-wagon.glb",
-      "bytes": 2284112,
-      "sha256": "78a3a38022a623ffae97b9f7c25e0509f1806818b3dc26a0067846300408ec31",
+      "bytes": 3843620,
+      "sha256": "9044722dd2192acd5a79756de2afcd30770a00b64298dbfd80304ce4fcd7fd04",
       "source": "assets/vehicles/mercedes-e63-amg-s-wagon.glb",
       "sourceBytes": 24674016,
-      "simplify": "ratio 0.1, error 0.004, smooth,crease=40"
+      "simplify": "ratio 0.1, error 0.004, smooth normals"
     },
     "mini-cooper-2011.lod0": {
       "path": "assets/processed/vehicles/mini-cooper-2011.lod0.glb",
@@ -42,27 +42,27 @@
     },
     "nissan-qashqai": {
       "path": "assets/processed/vehicles/nissan-qashqai.glb",
-      "bytes": 1992640,
-      "sha256": "c65208215a56f332c1abbfcb10ad3a9ad2cf5fb9fe82a3482c5fed13380ec1ca",
+      "bytes": 1989244,
+      "sha256": "d12db1a95b625fb447fd289ccf0012809180e00c85bee1257279b7b078f6f3d4",
       "source": "assets/vehicles/nissan-qashqai.glb",
       "sourceBytes": 6183952,
-      "simplify": "ratio 0.1, error 0.008, crease=50:qcarpaint_red1"
+      "simplify": "ratio 0.1, error 0.008"
     },
     "toyota-corolla": {
       "path": "assets/processed/vehicles/toyota-corolla.glb",
-      "bytes": 3840372,
-      "sha256": "c306b5c47a27044233c3a6f0b07b601f6d638c496baf31b152a7bd6ccaad0dd5",
+      "bytes": 3839292,
+      "sha256": "ec70d1dae0e71559ae86ad2dc608addf746dd24106b4754f4eb7636dd7b739fc",
       "source": "assets/vehicles/toyota-corolla.glb",
       "sourceBytes": 14256100,
-      "simplify": "ratio 0.1, error 0.008, crease=50:Paint_Color"
+      "simplify": "ratio 0.1, error 0.008"
     },
     "vw-t-cross": {
       "path": "assets/processed/vehicles/vw-t-cross.glb",
-      "bytes": 3646464,
-      "sha256": "aa54068913d6980916683e4c471a15ca688057107f66f7e9e1cb12cff56179ed",
+      "bytes": 3644456,
+      "sha256": "b08c6387e78b09ef8ddb2beadeb09da9244a8213f7400a98be906edac2c46217",
       "source": "assets/vehicles/vw-t-cross.glb",
       "sourceBytes": 8678004,
-      "simplify": "ratio 0.1, error 0.002, crease=50:carpaint"
+      "simplify": "ratio 0.1, error 0.002"
     }
   }
 }
