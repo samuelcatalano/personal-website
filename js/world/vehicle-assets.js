@@ -47,7 +47,7 @@ export function adoptVisual(vehicle, visual, keep) {
 // project's shared materials (so night glow, cabin light and destination displays keep working through sky.update).
 export const BUS_VARIANTS = {
   london: { body: '#9e2a2b', accent: '#6a1c1e', dest: ['london', '19', 'Finsbury Park', '#ffb347'] }, // no stripe: BusStripe falls back to the body red
-  'sao-paulo': { body: '#a5cb38', accent: '#303b38', sweep: '#2088c8', dest: ['sao-paulo', '', '', '#ffb347'] },
+  'sao-paulo': { body: '#0a8f3c', accent: '#9bd02a', sweep: '#e6eee6', dest: ['sao-paulo', '', '', '#ffb347'] },
   // stylised First-Glasgow-style repaint (colour blocking only, no logos/text): purple body and white roof, white + lilac diagonal sweep, pale-violet rear, magenta line; the London roundel is painted out
   glasgow: { body: '#5b2a86', accent: '#33174f', stripe: '#e0398f', skirtF: '#33174f', sweep: '#f1eef6', lilac: '#b79ad6', rear: '#7b4bb0', mark: '#7b4bb0', mark2: '#7b4bb0', dest: ['glasgow', '6', 'Renfrew Street', '#ff7a1a'] },
 };
@@ -177,7 +177,7 @@ function axleWheels(key, src, axles) {
   src.updateMatrixWorld(true);
   const res = { axles: [], body: new Map(), materials: new Map() }, push = (m, k, g) => (m.get(k) ?? m.set(k, []).get(k)).push(g);
   if (axles?.markers) { // São Paulo axle markers are empty; split embedded wheel triangles around all three pairs
-    const pairs = [['FL', 'FR'], ['ML', 'MR'], ['RL', 'RR']], centers = pairs.map((pair) => {
+    const pairs = [['FL', 'FR'], ['ML', 'MR'], ['RL', 'RR'], ['TL', 'TR']].filter((p) => src.getObjectByName(p[0])), centers = pairs.map((pair) => {
       const a = src.getObjectByName(pair[0]).getWorldPosition(new THREE.Vector3()), b = src.getObjectByName(pair[1]).getWorldPosition(new THREE.Vector3());
       return { name: pair.join('-'), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, z: [a.z, b.z] };
     }), r = axles.radius ?? 0.52, parts = pairs.map(() => []), v = new THREE.Vector3();

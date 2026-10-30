@@ -9,9 +9,9 @@ import bpy
 from mathutils import Vector
 
 
-ROLE_MESH_BUDGET = 9
-ROLES = {"BusBody", "BusDisplay", "BusGlass", "BusHeadlight", "BusMetal", "BusRubber", "BusSweep", "BusTaillight", "BusTrim"}
-PIVOTS = {"FL", "FR", "ML", "MR", "RL", "RR"}
+ROLE_MESH_BUDGET = 10
+ROLES = {"BusAccent", "BusBody", "BusDisplay", "BusGlass", "BusHeadlight", "BusMetal", "BusRubber", "BusSweep", "BusTaillight", "BusTrim"}
+PIVOTS = {"FL", "FR", "ML", "MR", "RL", "RR", "TL", "TR"}
 
 
 def main():
@@ -45,7 +45,7 @@ def main():
     assert "Object_12" not in {o.name for o in meshes}, "source plane survived"
     assert max(dimensions) < 20, f"stray geometry enlarged bounds: {tuple(dimensions)}"
     assert abs(lo.z) < 0.02, f"ground origin is {lo.z:.3f} m"
-    assert abs(dimensions.x - 16.758) < 0.05 and abs(dimensions.y - 2.634) < 0.05 and abs(dimensions.z - 3.101) < 0.05
+    assert abs(dimensions.x - 16.758) < 0.05 and abs(dimensions.y - 2.70) < 0.05 and abs(dimensions.z - 3.101) < 0.05
     assert roles == ROLES, f"unexpected material roles: {sorted(roles)}"
     assert not images, f"unexpected external or embedded images: {images}"
     assert set(pivots) == PIVOTS, f"wheel pivot markers missing: {sorted(PIVOTS - set(pivots))}"

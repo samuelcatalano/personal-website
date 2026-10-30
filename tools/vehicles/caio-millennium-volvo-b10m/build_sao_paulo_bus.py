@@ -27,7 +27,7 @@ ROOT = Path(__file__).resolve().parents[3]
 OUTPUT_DEFAULT = ROOT / "assets/vehicles/sao-paulo-bus.glb"
 
 PALETTE = {  # review colours only: the runtime swaps these for the shared project materials by role name
-    "BusBody": (0.125, 0.638, 0.026, 1), "BusSweep": (0.005, 0.25, 0.82, 1),
+    "BusBody": (0.003, 0.27, 0.045, 1), "BusAccent": (0.33, 0.66, 0.02, 1), "BusSweep": (0.80, 0.86, 0.80, 1),
     "BusTrim": (0.018, 0.024, 0.031, 1), "BusGlass": (0.003, 0.008, 0.012, 1), "BusRubber": (0.025, 0.028, 0.031, 1),
     "BusMetal": (0.58, 0.61, 0.64, 1), "BusHeadlight": (0.95, 0.89, 0.63, 1), "BusTaillight": (0.72, 0.025, 0.018, 1),
     "BusDisplay": (0.012, 0.018, 0.022, 1),
@@ -35,16 +35,29 @@ PALETTE = {  # review colours only: the runtime swaps these for the shared proje
 ROLE_ORDER = list(PALETTE)
 
 # ---- body envelope -------------------------------------------------------------------------------------------------------
-LEVELS = [0.28, 0.34, 0.42, 0.55, 0.75, 1.0, 1.28, 1.8, 2.3, 2.5, 2.65, 2.78, 2.87, 2.94]
-HALF_W = [1.17, 1.205, 1.225, 1.225, 1.225, 1.225, 1.225, 1.225, 1.225, 1.215, 1.19, 1.13, 1.04, 0.80]
-D_FRONT = [-0.42, -0.30, -0.18, -0.07, -0.02, 0.0, -0.04, -0.19, -0.32, -0.35, -0.40, -0.48, -0.62, -0.85]  # raked windscreen
-D_REAR = [0.40, 0.28, 0.15, 0.05, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.03, 0.10, 0.25, 0.50]
+_L0 = [0.28, 0.34, 0.42, 0.55, 0.75, 1.0, 1.28, 1.8, 2.3, 2.5, 2.65, 2.78, 2.87, 2.94]
+_W0 = [1.17, 1.205, 1.225, 1.225, 1.225, 1.225, 1.225, 1.225, 1.225, 1.215, 1.19, 1.13, 1.04, 0.80]
+_DF0 = [-0.42, -0.30, -0.18, -0.07, -0.02, 0.0, -0.04, -0.19, -0.32, -0.35, -0.40, -0.48, -0.62, -0.85]  # raked windscreen
+_DR0 = [0.40, 0.28, 0.15, 0.05, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.03, 0.10, 0.25, 0.50]
+LEVELS = [0.28, 0.34, 0.42, 0.55, 0.75, 1.0, 1.18, 1.27, 1.30, 1.8, 2.3, 2.46, 2.5, 2.65, 2.78, 2.87, 2.94]
+
+
+def _interp(table, z):
+    for i in range(len(_L0) - 1):
+        if z <= _L0[i + 1] + 1e-9:
+            return table[i] + (table[i + 1] - table[i]) * (z - _L0[i]) / (_L0[i + 1] - _L0[i])
+    return table[-1]
+
+
+HALF_W = [_interp(_W0, z) for z in LEVELS]
+D_FRONT = [_interp(_DF0, z) for z in LEVELS]
+D_REAR = [_interp(_DR0, z) for z in LEVELS]
 D_FLAT = [0.0] * len(LEVELS)
 ACCENT_TOP = 0.55  # dark (BusTrim) skirt below this level
 W = 1.225
 X_NOSE, X_TAIL = 8.344, -8.379
 FRONT_BODY_REAR, REAR_BODY_FRONT = -0.95, -1.90
-AXLES = {"F": 5.8, "M": 0.75, "R": -5.3}
+AXLES = {"F": 5.8, "M": 0.75, "R": -4.6, "T": -5.85}  # T = rear tandem
 WHEEL_Y, WHEEL_Z, WHEEL_R = 0.98, 0.52, 0.52
 ARCH_R = 0.60
 
@@ -131,6 +144,30 @@ def contour_pt(end, spec, z, xe, r):
     return Vector((cx + end * rr * math.cos(th), cy + side * rr * math.sin(th), z)), Vector((end * math.cos(th), side * math.sin(th), 0))
 
 
+FRONT_COLS = set(range(0, 9)) | {35, 36, 37}  # front face + first 45 degrees of both corner arcs
+FRONT_CORNER = {9, 10, 11, 32, 33, 34}  # outer corner arcs
+
+
+def band_role(z0, z1, i, is_front):
+    """Livery by height: dark skirt, green lower body, light belt stripe, black glazing band, lime roof lip; black front mask."""
+    zm = (z0 + z1) / 2
+    if is_front and i in FRONT_COLS:
+        return "BusAccent" if (0.55 < zm < 1.0 or zm > 2.5) else "BusTrim"
+    if is_front and i in FRONT_CORNER and 0.55 < zm < 1.18:
+        return "BusAccent"
+    if zm < 0.42:
+        return "BusTrim"
+    if not is_front and 16 <= i <= 30 and 1.18 < zm < 2.5:
+        return "BusBody"  # rear panel stays painted around the rear window
+    if zm < 1.18:
+        return "BusBody"
+    if zm < 1.27:
+        return "BusSweep"
+    if zm < 2.5:
+        return "BusTrim"
+    return "BusAccent"
+
+
 def build_body(name, x_front, x_rear, rf, rr, rake_front):
     """Lofted shell: horizontal rounded-rectangle slices stacked over LEVELS."""
     bm = bmesh.new()
@@ -159,11 +196,11 @@ def build_body(name, x_front, x_rear, rf, rr, rake_front):
         rows.append([bm.verts.new(p) for p in pts])
     n = len(rows[0])
     for j in range(len(rows) - 1):
-        accent = LEVELS[j + 1] <= ACCENT_TOP + 1e-9
+        z0, z1 = LEVELS[j], LEVELS[j + 1]
         for i in range(n):
             f = bm.faces.new((rows[j][i], rows[j][(i + 1) % n], rows[j + 1][(i + 1) % n], rows[j + 1][i]))
-            f.material_index = ROLE_ORDER.index("BusTrim" if accent else "BusBody")
-    for row, flip, role in ((rows[0], True, "BusTrim"), (rows[-1], False, "BusBody")):
+            f.material_index = ROLE_ORDER.index(band_role(z0, z1, i, rake_front))
+    for row, flip, role in ((rows[0], True, "BusTrim"), (rows[-1], False, "BusAccent")):
         f = bm.faces.new(row[::-1] if flip else row)
         f.material_index = ROLE_ORDER.index(role)
     bmesh.ops.recalc_face_normals(bm, faces=list(bm.faces))
@@ -266,19 +303,19 @@ def lathe(role, profile, cx, cy, cz, sign, segs=36, ref_dy=0.0):
 
 
 def build_wheels():
+    """Chunky tyre with sidewall rib, silver steel disc with a raised hub and a ring of lug nuts."""
+    tyre = [(0.285, -0.16), (0.36, -0.163), (0.44, -0.162), (0.495, -0.15), (0.518, -0.11), (0.52, -0.07), (0.52, 0.07), (0.518, 0.11),
+            (0.495, 0.15), (0.44, 0.162), (0.425, 0.172), (0.405, 0.172), (0.39, 0.163), (0.36, 0.163), (0.285, 0.16)]
+    rim = [(0.285, 0.16), (0.272, 0.146), (0.235, 0.132), (0.17, 0.128), (0.15, 0.146), (0.10, 0.15), (0.088, 0.172), (0.0, 0.176)]
     for ax, x in AXLES.items():
         for side, sign in (("L", 1), ("R", -1)):
             cy = sign * WHEEL_Y
-            tyre = [(0.31, -0.15), (0.40, -0.152), (0.485, -0.145), (0.515, -0.11), (0.52, -0.06), (0.52, 0.06), (0.515, 0.11), (0.485, 0.145), (0.40, 0.152), (0.31, 0.15)]
-            lathe("BusRubber", tyre, x, cy, WHEEL_Z, sign)
-            rim = [(0.31, 0.15), (0.295, 0.138), (0.215, 0.125), (0.13, 0.14), (0.085, 0.152), (0.0, 0.152)]
-            lathe("BusMetal", rim, x, cy, WHEEL_Z, sign, 36, ref_dy=-3.0)
-            inner = [(0.31, -0.15), (0.0, -0.15)]
-            lathe("BusRubber", inner, x, cy, WHEEL_Z, sign, 36, ref_dy=3.0)
-            for k in range(8):  # lug nuts
-                a = 2 * math.pi * k / 8
-                lx, lz = x + 0.115 * math.cos(a), WHEEL_Z + 0.115 * math.sin(a)
-                lathe("BusRubber", [(0.0, 0.15), (0.022, 0.15), (0.022, 0.172), (0.0, 0.172)], lx, cy, lz, sign, 6, ref_dy=0.161)
+            lathe("BusRubber", tyre, x, cy, WHEEL_Z, sign, 40)
+            lathe("BusMetal", rim, x, cy, WHEEL_Z, sign, 40, ref_dy=-3.0)
+            lathe("BusRubber", [(0.285, -0.16), (0.0, -0.16)], x, cy, WHEEL_Z, sign, 40, ref_dy=3.0)
+            for k in range(10):  # lug nuts on the hub ring
+                a = 2 * math.pi * k / 10
+                lathe("BusRubber", [(0.0, 0.148), (0.024, 0.148), (0.024, 0.18), (0.0, 0.18)], x + 0.122 * math.cos(a), cy, WHEEL_Z + 0.122 * math.sin(a), sign, 6, ref_dy=0.164)
 
 
 def wheel_arches():
@@ -324,50 +361,74 @@ def build_bellows():
             c = f.calc_center_median()
             if f.normal.dot(c - Vector((c.x, 0.0, 1.55))) < 0:  # open tube: point every face away from the bus axis
                 f.normal_flip()
-    merge("BusTrim", bm)
+    merge("BusMetal", bm)
     add_box("BusMetal", REAR_BODY_FRONT + 0.02, FRONT_BODY_REAR - 0.02, -0.95, 0.95, 0.30, 0.38)  # turntable floor plate
     add_box("BusMetal", REAR_BODY_FRONT + 0.02, FRONT_BODY_REAR - 0.02, -0.90, 0.90, 2.76, 2.82)  # roof cover plate
 
 
 # ---- features -------------------------------------------------------------------------------------------------------------
 def windows():
-    def spread(x0, x1, n, pillar=0.10):
+    def spread(x0, x1, n, pillar=0.07):
         w = (x1 - x0 - pillar * (n - 1)) / n
         return [(x0 + k * (w + pillar), x0 + k * (w + pillar) + w) for k in range(n)]
 
-    z0, z1 = 1.28, 2.30
-    left = spread(-0.75, 7.40, 7) + spread(-8.05, -2.05, 5)
-    right = spread(4.05, 6.40, 2) + spread(-0.75, 2.75, 3) + spread(-8.05, -4.15, 3) + spread(-2.85, -2.05, 1)
+    z0, z1 = 1.30, 2.46
+    DOORS = ((6.45, 7.50), (2.80, 3.95), (-3.85, -2.80))
+    left = spread(-0.78, 7.45, 8) + spread(-8.05, -2.05, 6)
+    right = spread(4.0, 6.35, 2) + spread(-0.78, 2.72, 3) + spread(-8.05, -4.0, 4) + spread(-2.72, -2.05, 1)
     for sign, items in ((1, left), (-1, right)):
         for a, b in items:
             side_cut(sign, "BusTrim", a, b, z0, z1, 0.05)
             side_quad(sign, "BusGlass", a, b, z0 + 0.012, z1 - 0.012, 0.016)
-    # doors on the right (kerb) side: two sliding leaves, body-coloured lower panel, glazed upper, metal seam
-    for a, b in ((6.50, 7.50), (2.85, 3.95), (-4.00, -2.95)):
-        side_cut(-1, "BusTrim", a, b, 0.36, 2.34, 0.06)
+    # doors on the right (kerb) side: tall double-leaf, fully glazed, black frames, light centre seam and kick plates
+    for a, b in DOORS:
+        side_cut(-1, "BusTrim", a, b, 0.36, 2.48, 0.06)
         mid, gap = (a + b) / 2, 0.012
-        for la, lb in ((a + 0.04, mid - gap), (mid + gap, b - 0.04)):
-            side_quad(-1, "BusGlass", la, lb, 0.98, 2.28, 0.034)
-            add_box("BusBody", la, lb, -(W - 0.06), -(W - 0.03), 0.40, 0.95)
-        add_box("BusMetal", mid - gap, mid + gap, -(W - 0.062), -(W - 0.022), 0.40, 2.30)
-        add_box("BusMetal", a + 0.03, b - 0.03, -(W - 0.062), -(W - 0.022), 0.955, 0.985)  # leaf waist rail
-    # engine louvres, left side of the rear section
-    side_cut(1, "BusTrim", -7.35, -6.15, 0.60, 1.18, 0.05)
-    for k in range(6):
-        z = 0.66 + k * 0.088
-        add_box("BusBody", -7.30, -6.20, W - 0.05, W - 0.025, z, z + 0.04)
+        for la, lb in ((a + 0.05, mid - gap), (mid + gap, b - 0.05)):
+            side_quad(-1, "BusGlass", la, lb, 0.62, 2.43, 0.034)
+            add_box("BusBody", la, lb, -(W - 0.06), -(W - 0.03), 0.40, 0.60)  # kick panel
+        add_box("BusSweep", mid - gap, mid + gap, -(W - 0.062), -(W - 0.022), 0.40, 2.44)
+        add_box("BusAccent", a + 0.05, b - 0.05, -(W - 0.062), -(W - 0.03), 0.62, 0.65)  # lower rail
+    # roundels with 'SP': white disc recessed into the lower panel, dark block letters recessed deeper
+    for sign, x in ((-1, 4.6), (1, 4.6), (-1, -7.3), (1, -7.3)):
+        add_roundel(sign, x, 0.80)
+
+
+def add_roundel(sign, x, z, r=0.27):
+    bm = bmesh.new()
+    y0, y1 = sorted((sign * (W - 0.006), sign * (W + 0.2)))
+    seg = 28
+    a = [bm.verts.new((x + r * math.cos(2 * math.pi * k / seg), y0, z + r * math.sin(2 * math.pi * k / seg))) for k in range(seg)]
+    b = [bm.verts.new((v.co.x, y1, v.co.z)) for v in a]
+    bm.faces.new(a)
+    bm.faces.new(b[::-1])
+    for k in range(seg):
+        bm.faces.new((a[k], a[(k + 1) % seg], b[(k + 1) % seg], b[k]))
+    bmesh.ops.recalc_face_normals(bm, faces=list(bm.faces))
+    CUTTERS.append((bm, "BusSweep"))
+    # 'SP' in a 3x5 block font, mirrored on the left side so it reads correctly from outside
+    glyph = {"S": ["###", "#..", "###", "..#", "###"], "P": ["###", "#.#", "###", "#..", "#.."]}
+    cell, ox = 0.04, -0.125
+    for ch in "SP":
+        for ry, row in enumerate(glyph[ch]):
+            for cx, c in enumerate(row):
+                if c != "#":
+                    continue
+                u = (ox + (0 if ch == "S" else 0.17) + cx * cell) * (1 if sign < 0 else -1)
+                u2 = (ox + (0 if ch == "S" else 0.17) + (cx + 1) * cell) * (1 if sign < 0 else -1)
+                xa, xb = sorted((x + u, x + u2))
+                zt = z + 0.1 - ry * cell
+                cut_box("BusTrim", xa, xb, *sorted((sign * (W - 0.012), sign * (W + 0.2))), zt - cell, zt)
 
 
 def front_end():
     # raked, wrap-around windscreen
-    zs = [1.18, 1.28, 1.8, 2.3, 2.42]
+    zs = [1.20, 1.30, 1.8, 2.3, 2.46]
     specs = front_specs(-0.70, 0.70, 7, arc_to=45)
     front_slab("BusTrim", specs, zs, 0.04, 0.2)
-    front_panel("BusGlass", specs, [1.20, 1.28, 1.8, 2.3, 2.40], 0.02)
+    front_panel("BusGlass", specs, [1.22, 1.30, 1.8, 2.3, 2.44], 0.02)
     # centre post and wipers
-    zc = [1.20, 1.8, 2.40]
-    mid = contour_pt(1, ("y", 0.0), 1.8, X_NOSE, 0.5)[0]
-    for z_a, z_b in ((1.20, 2.40),):
+    for z_a, z_b in ((1.22, 2.44),):
         a = contour_pt(1, ("y", 0), z_a, X_NOSE, 0.5)[0]
         b = contour_pt(1, ("y", 0), z_b, X_NOSE, 0.5)[0]
         bm = bmesh.new()
@@ -379,7 +440,7 @@ def front_end():
         merge("BusTrim", bm)
     # destination blind above the screen
     dspecs = ys(-0.62, 0.62, 2)
-    dz = [2.50, 2.65, 2.82]
+    dz = [2.54, 2.65, 2.78, 2.88]
     front_slab("BusTrim", dspecs, dz, 0.06, 0.2)
     front_panel("BusDisplay", dspecs, dz, 0.03, uv=True)
     # headlamp clusters (wrapping the corner), right and left
@@ -406,17 +467,17 @@ def front_end():
         front_panel("BusHeadlight", sp, [0.40, 0.52], 0.015)
     # mirrors
     for side in (-1, 1):
-        add_box("BusTrim", 7.92, 7.99, side * 1.00, side * 1.30, 2.26, 2.32)
-        add_box("BusTrim", 7.90, 8.03, side * 1.285, side * 1.317, 1.98, 2.40, bevel=0.012)
+        add_box("BusTrim", 7.86, 7.97, side * 0.98, side * 1.33, 2.20, 2.30, bevel=0.01)  # wide arm
+        add_box("BusTrim", 7.84, 8.06, side * 1.29, side * 1.35, 1.72, 2.40, bevel=0.015)  # mirror head
     # side destination (right, above the front door)
-    side_cut(-1, "BusTrim", 6.70, 7.30, 2.35, 2.54, 0.04)
-    mkface(add_bm("BusDisplay"), [(6.72, -(W - 0.025), 2.37), (7.28, -(W - 0.025), 2.37), (7.28, -(W - 0.025), 2.52), (6.72, -(W - 0.025), 2.52)], hint=(0, -1, 0))
+    side_cut(-1, "BusTrim", 6.70, 7.30, 2.52, 2.78, 0.04)
+    mkface(add_bm("BusDisplay"), [(6.72, -(W - 0.025), 2.54), (7.28, -(W - 0.025), 2.54), (7.28, -(W - 0.025), 2.76), (6.72, -(W - 0.025), 2.76)], hint=(0, -1, 0))
     bm = ADD["BusDisplay"]
     uvl = bm.loops.layers.uv.verify()
     for f in bm.faces:
         if abs(f.normal.y) > 0.9:
             for loop in f.loops:
-                loop[uvl].uv = ((loop.vert.co.x - 6.72) / 0.56 if f.normal.y > 0 else 1 - (loop.vert.co.x - 6.72) / 0.56, (loop.vert.co.z - 2.37) / 0.15)
+                loop[uvl].uv = ((loop.vert.co.x - 6.72) / 0.56 if f.normal.y > 0 else 1 - (loop.vert.co.x - 6.72) / 0.56, (loop.vert.co.z - 2.54) / 0.22)
 
 
 def rear_end():
@@ -431,13 +492,14 @@ def rear_end():
         a, b = sorted((side * 0.52, side * 0.70))
         cut_box("BusTrim", X_TAIL - 0.2, X_TAIL + 0.05, a, b, 0.62, 1.50)
         mkface(add_bm("BusTaillight"), [(X_TAIL + 0.03, a + 0.012, 0.64), (X_TAIL + 0.03, b - 0.012, 0.64), (X_TAIL + 0.03, b - 0.012, 1.48), (X_TAIL + 0.03, a + 0.012, 1.48)], hint=(-1, 0, 0))
-    cut_box("BusTrim", X_TAIL - 0.2, X_TAIL + 0.03, -0.20, 0.20, 0.36, 0.50)
-    mkface(add_bm("BusMetal"), [(X_TAIL + 0.012, -0.18, 0.375), (X_TAIL + 0.012, 0.18, 0.375), (X_TAIL + 0.012, 0.18, 0.485), (X_TAIL + 0.012, -0.18, 0.485)], hint=(-1, 0, 0))
+    cut_box("BusTrim", X_TAIL - 0.2, X_TAIL + 0.03, -0.26, 0.26, 0.58, 0.74)
+    mkface(add_bm("BusSweep"), [(X_TAIL + 0.012, -0.24, 0.60), (X_TAIL + 0.012, 0.24, 0.60), (X_TAIL + 0.012, 0.24, 0.72), (X_TAIL + 0.012, -0.24, 0.72)], hint=(-1, 0, 0))
 
 
 def roof():
     for x0, x1 in ((2.0, 5.3), (-7.6, -3.3)):
         add_box("BusMetal", x0, x1, -0.62, 0.62, 2.90, 3.10, bevel=0.07)
+        add_box("BusAccent", x0 - 0.35, x0, -0.5, 0.5, 2.90, 2.98, bevel=0.03)
     add_box("BusMetal", 6.2, 6.7, -0.30, 0.30, 2.93, 3.01, bevel=0.03)
     add_box("BusTrim", -3.3, -3.0, -0.10, 0.10, 2.92, 3.00, bevel=0.02)
 
@@ -541,7 +603,6 @@ def main():
     rear_end()
     roof()
     wheel_arches()
-    sweep_cutters()
     build_wheels()
     build_bellows()
 
