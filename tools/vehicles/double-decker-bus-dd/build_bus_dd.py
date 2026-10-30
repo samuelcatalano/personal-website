@@ -13,7 +13,8 @@ OUT = a[0] if a else os.path.join(ROOT, 'assets/vehicles/double-decker-bus.glb')
 
 W, ZR = 1.26, 4.10                     # hull half width, roof height
 WR = 0.445
-WHEELS = dict(FL=(3.015, 0.998, 0.140), FR=(3.015, -0.998, 0.140), RL=(-2.826, 0.950, 0.180), RR=(-2.826, -0.950, 0.180))
+# Wheel faces must sit ahead of the 1.26 m hull side so the lower black skirt cannot cut across them.
+WHEELS = dict(FL=(3.015, 1.140, 0.140), FR=(3.015, -1.140, 0.140), RL=(-2.826, 1.110, 0.180), RR=(-2.826, -1.110, 0.180))
 SKIRT_Z, LIP_Z, STRIPE = 0.66, 0.46, (0.80, 0.90)
 SWEEP_K, T_FRONT, T_WHITE, T_LILAC = 0.68, 3.0, 2.55, 2.0          # diagonal bands: t = x + K (z - 0.3); front colour, white, lilac, rear
 BUCKETS = ['BusBody', 'BusAccent', 'BusStripe', 'BusTrim', 'BusGlass', 'BusRubber', 'BusMetal', 'BusHeadlight', 'BusTaillight', 'BusDisplay', 'BusInterior',
@@ -44,7 +45,7 @@ MATS = dict(BusBody=mat('BusBody', '#c9252b', 0.38), BusAccent=mat('BusAccent', 
             BusInterior=mat('BusInterior', '#2a2622', 0.9),
             # city-specific regions (a city that does not set one falls back to body / accent in the runtime): front skirt, sweep, lilac band, rear block, roundel ring + bar
             BusSkirtF=mat('BusSkirtF', '#8e1a1f', 0.4), BusSweep=mat('BusSweep', '#c9252b', 0.4), BusLilac=mat('BusLilac', '#c9252b', 0.4), BusRear=mat('BusRear', '#c9252b', 0.4),
-            BusMark=mat('BusMark', '#f2f2f0', 0.4), BusMark2=mat('BusMark2', '#1c3f94', 0.4), BusWheel=mat('BusWheel', '#c3c8cd', 0.38, 0.5))
+            BusMark=mat('BusMark', '#f2f2f0', 0.4), BusMark2=mat('BusMark2', '#1c3f94', 0.4), BusWheel=mat('BusWheel', '#aeb4ba', 0.5, 0.25))
 
 # ---- 1. hull: side profile (x, z) extruded across the width, then bevelled (big plan-view radius on the nose / tail chains, small on the rest)
 RAD = 0.74                                                       # plan-view corner radius at nose and tail (pill ends)
@@ -273,10 +274,10 @@ for sg in (1, -1):
 # roof: air-conditioning pod and two vents
 box('BusSweep', (-4.2, -0.70, ZR + 0.03), (-1.6, 0.70, ZR + 0.19)); box('BusTrim', (-4.1, -0.55, ZR + 0.19), (-1.7, 0.55, ZR + 0.195)); box('BusSweep', (1.0, -0.45, ZR + 0.06), (2.0, 0.45, ZR + 0.14))
 
-# ---- 5. wheels: chunky tyre (sidewall step, rim-protector ridge, tread grooves), deep-dished steel disc with 10 hand holes, nut ring and a raised hub cap; axis = Y, origin = wheel centre
+# ---- 5. wheels: chunky tyre (sidewall step, rim-protector ridge, tread grooves), pressed-steel dish, nut ring and raised hub cap; axis = Y, origin = wheel centre
 TYRE_SEG, RIM_SEG = 48, 30
 def wheel(name, c, hw, sign):
-    mesh = bpy.data.meshes.new(name); w = bmesh.new(); R, RIM = WR, WR * 0.62
+    mesh = bpy.data.meshes.new(name); w = bmesh.new(); R, RIM = WR, WR * 0.52
     outer = [(RIM * 0.96, 0.80), (RIM * 1.06, 0.82), (RIM * 1.10, 0.97), (RIM * 1.22, 0.99), (R * 0.84, 1.0), (R * 0.955, 0.94), (R * 0.995, 0.72), (R, 0.45), (R, 0.34), (R * 0.985, 0.29), (R * 0.985, 0.23), (R, 0.18), (R, 0.07)]
     inner = [(R, -0.07), (R, -0.5), (R * 0.9, -1.0), (RIM * 0.96, -0.80)]       # inboard half is hidden: kept coarse
     prof = [(r, sign * k * hw) for r, k in outer + [(R, 0.0)] + inner]
@@ -290,11 +291,16 @@ def wheel(name, c, hw, sign):
     rr = [[w.verts.new((RIM * k * math.cos(2 * math.pi * i / RIM_SEG), sign * (y0 + d), RIM * k * math.sin(2 * math.pi * i / RIM_SEG))) for k, d in rp] for i in range(RIM_SEG)]
     ctr = w.verts.new((0, sign * (y0 + 0.022), 0))
     for i in range(RIM_SEG):
-        r0, r1 = rr[i], rr[(i + 1) % RIM_SEG]; hole = i % 3 == 1
+        r0, r1 = rr[i], rr[(i + 1) % RIM_SEG]
         for j in range(len(rp) - 1):
-            mi_ = 2 if (hole and j == 3) else 1 if j in (7, 8, 9, 10) else 3
+            mi_ = 1 if j in (7, 8, 9, 10) else 3
             w.faces.new((r0[j], r1[j], r1[j + 1], r0[j + 1])).material_index = mi_
         w.faces.new((r0[-1], r1[-1], ctr)).material_index = 1
+    for k in range(10):    # dark stamped ventilation slots, separated from the lug ring
+        a = 2 * math.pi * k / 10; cx, cz = RIM * 0.74 * math.cos(a), RIM * 0.74 * math.sin(a)
+        corners = [(-0.020, -0.012), (0.020, -0.012), (0.020, 0.012), (-0.020, 0.012)]
+        verts = [w.verts.new((cx + dr * math.cos(a) - dt * math.sin(a), sign * (y0 - 0.048), cz + dr * math.sin(a) + dt * math.cos(a))) for dr, dt in corners]
+        w.faces.new(verts).material_index = 2
     for k in range(10):    # wheel nuts: low pentagonal prisms on the dish floor
         a = 2 * math.pi * (k + 0.5) / 10; cx, cz = RIM * 0.56 * math.cos(a), RIM * 0.56 * math.sin(a); yb, yt = sign * (y0 - 0.060), sign * (y0 - 0.036)
         lo = [w.verts.new((cx + 0.017 * math.cos(2 * math.pi * m / 5), yb, cz + 0.017 * math.sin(2 * math.pi * m / 5))) for m in range(5)]

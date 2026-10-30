@@ -32,11 +32,20 @@ print(js(r'''(async () => {
   check(Math.abs(miniBox.min.y) < 1e-6, 'mini wheels must rest on the road');
   check(miniSize.x > 3.6 && miniSize.x < 4.0 && miniSize.y < 1.8 && miniSize.z < 2, `mini must be ~3.85m long (${miniSize.x.toFixed(2)})`);
   check(tris(mini) <= 10000, `procedural Mini fallback ≤ 10k tris (${tris(mini)})`);
-  const assets = await import('./js/world/vehicle-assets.js?wheel-direction-test-1');
+  const assets = await import('./js/world/vehicle-assets.js?fleet-finish-test-2');
+  const fleetCatalog = await assets.loadFleetCatalog(), fleetModel = fleetCatalog[0], fleetA = new THREE.Group(), fleetB = new THREE.Group();
+  await Promise.all([assets.upgradeFleet(fleetA, fleetModel, { body: '#142b4a' }), assets.upgradeFleet(fleetB, fleetModel, { body: '#a31d2a' })]);
+  const fleetPaints = root => { const found = []; root.traverse(o => { if (o.isMesh && fleetModel.paintMaterials.includes(o.material.name)) found.push(o.material); }); return found; };
+  const paintA = fleetPaints(fleetA), paintB = fleetPaints(fleetB);
+  const priorNight = document.body.classList.contains('theme-night');
+  assets.updateVehicleEnv(0); const paintDayReflection = paintA[0]?.envMapIntensity;
+  assets.updateVehicleEnv(1); const paintNightReflection = paintA[0]?.envMapIntensity;
+  assets.updateVehicleEnv(priorNight ? 1 : 0);
+  check(paintA.length > 0 && paintA.every(m => m.name === fleetModel.paintMaterials[0] && m.color.getHexString() === '142b4a' && m.metalness <= 0.15 && m.clearcoat <= 0.4 && m.clearcoatRoughness >= 0.14) && paintB.length > 0 && paintB.every(m => m.color.getHexString() === 'a31d2a' && m.metalness <= 0.15 && m.clearcoat <= 0.4 && m.clearcoatRoughness >= 0.14 && !paintA.includes(m)) && paintDayReflection > paintNightReflection, 'fleet paint keeps authored roles, subdued automotive clearcoat, per-instance colour and day/night reflections');
   const authoredMini = await assets.loadVehicleAsset('mini');
   check(authoredMini, 'authored Mini GLB loads');
   let authoredMiniTris = 0; authoredMini.traverse(m => { if (m.isMesh) authoredMiniTris += (m.geometry.index?.count ?? m.geometry.attributes.position.count) / 3; });
-  check(authoredMiniTris >= 100000, `Mini GLB preserves the high-resolution source mesh (${authoredMiniTris} tris)`);
+  check(authoredMiniTris >= 900000, `Mini defaults to the full-resolution source GLB (${authoredMiniTris} tris)`);
   for (const name of ['FL', 'FR', 'RL', 'RR']) {
     const wheel = authoredMini.getObjectByName(name); let tyreTris = 0;
     wheel?.traverse(m => { if (m.isMesh && m.material.name === 'CarTrim') tyreTris += (m.geometry.index?.count ?? m.geometry.attributes.position.count) / 3; });
@@ -48,7 +57,6 @@ print(js(r'''(async () => {
   const glass = glassOf(miniA), glassB = glassOf(miniB);
   check(glass.length > 0 && glassB.length > 0 && glass.every(m => m === glass[0]) && glassB.every(m => m === glass[0]), 'Mini glass uses one shared runtime material');
   check(glass[0].transparent && glass[0].opacity > 0.65 && glass[0].opacity < 0.8 && glass[0].color.b > glass[0].color.r, 'Mini glass has a dark smoky tint and visible cabin');
-  const priorNight = document.body.classList.contains('theme-night');
   assets.updateVehicleEnv(0);
   const dayReflection = glass[0].envMapIntensity;
   check(dayReflection === glass[0].userData.envDay, 'Mini glass starts reflection check in day state');
@@ -155,6 +163,11 @@ print(js(r'''(async () => {
   check(sharedBusTris > 8000, `shared authored London/Glasgow GLB stays above 8k triangles (${sharedBusTris})`);
   const busTireTris = ['FL', 'FR', 'RL', 'RR'].map(name => { let n = 0; sharedBus.getObjectByName(name)?.traverse(m => { if (m.isMesh && m.material.name === 'BusRubber') n += (m.geometry.index?.count ?? m.geometry.attributes.position.count) / 3; }); return n; });
   check(busTireTris.every(n => n >= 800), `London/Glasgow tires use the higher-resolution grooved meshes (${busTireTris})`);
+  const busRimRatios = ['FL', 'FR', 'RL', 'RR'].map(name => { let rim=0, tyre=0; sharedBus.getObjectByName(name)?.traverse(m => { if (!m.isMesh || !m.geometry.attributes.position) return; const p=m.geometry.attributes.position; let r=0; for(let i=0;i<p.count;i++) r=Math.max(r,Math.hypot(p.getX(i),p.getZ(i))); if(m.material.name==='BusWheel') rim=Math.max(rim,r); if(m.material.name==='BusRubber') tyre=Math.max(tyre,r); }); return rim/tyre; });
+  check(busRimRatios.every(r => r > 0.45 && r < 0.62), `steel dishes stay within the tire face so a substantial rubber sidewall reads (${busRimRatios})`);
+  sharedBus.updateMatrixWorld(true); const busSide = new THREE.Box3().setFromObject(sharedBus.getObjectByName('BusBody'));
+  const wheelSides = ['FL', 'FR', 'RL', 'RR'].map(name => new THREE.Box3().setFromObject(sharedBus.getObjectByName(name)));
+  check(wheelSides[0].min.z < busSide.min.z - 0.01 && wheelSides[1].max.z > busSide.max.z + 0.01 && wheelSides[2].min.z < busSide.min.z - 0.01 && wheelSides[3].max.z > busSide.max.z + 0.01, 'bus wheel faces must sit outside the hull skirt');
   // simulate 150 s at 30 fps: lanes, footprints, speed profile (zebra slow-down), finite positions
   const prev = traffic.map(v => v.position.clone()), prevVis = traffic.map(() => false), minD = [], maxD = [];
   traffic.forEach(() => { minD.push(1e9); maxD.push(0); });
@@ -204,4 +217,14 @@ print(js(r'''(async () => {
   const a330 = buildVehicle('a330'), ab = bounds(a330).getSize(new THREE.Vector3());
   check(ab.x > 36 && ab.x < 42 && tris(a330) <= 5000 && a330.userData.shadow && a330.userData.nav && a330.userData.strobe, `A330 36-42 m, <=5k tris (${ab.x.toFixed(1)}, ${tris(a330)})`);
   return { pass: true, bus: [Number(busSize.x.toFixed(2)), Number(busSize.y.toFixed(2))], traffic: traffic.length, frames, safetyCorrections };
+})()'''))
+
+goto_url('http://localhost:8000/?glb=processed&test=processed-asset-opt-in')
+wait_for_load()
+print(js(r'''(async()=>{
+  const A=await import('./js/world/vehicle-assets.js?processed-opt-in-test');
+  const g=await A.loadVehicleAsset('mini');let tris=0;
+  g.traverse(o=>{if(o.isMesh)tris+=(o.geometry.index?.count??o.geometry.attributes.position.count)/3});
+  if(tris!==324297)throw Error(`?glb=processed must opt into the reduced Mini (${tris} tris)`);
+  return {processedOptIn:true,triangles:tris};
 })()'''))

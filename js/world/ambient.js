@@ -4,7 +4,7 @@ import { buildVehicle } from './vehicles.js';
 import { upgradeBus, reskinBus, upgradeMini, upgradeCab, loadFleetCatalog, loadVehicleAsset, regionalFleetModel, upgradeFleet, rollWheels } from './vehicle-assets.js';
 import { RIVER_Z, LANDMARKS, ukStart, stopIndex, swapAt, secondaryBusAssetAt, scotRange, riverEnd, riverStart } from './layout.js';
 import { stopMarks, fineMarks, routeT } from '../scroll.js';
-import { addBeams } from './beams.js';
+import { addBeams, refitBeams } from './beams.js';
 import { fadeVehicle, disposeFade } from './fade.js';
 const cab = () => buildVehicle('cab'); // London black cab (LEVC TX)
 const car = (type, color) => buildVehicle(type, { color });
@@ -46,10 +46,7 @@ function updateRegionalBus(v, target, dt, isDisposed) {
       else {
         v.modelAsset = swap.asset; v.mesh.userData.regionAsset = swap.asset; v.mesh.userData.regionTransitions = (v.mesh.userData.regionTransitions ?? 0) + 1; v.len = v.mesh.userData.length;
         if (Number.isFinite(swap.wheelRotation)) v.mesh.userData.wheels.forEach((w) => { w.rotation.z = swap.wheelRotation; });
-        const beams = v.mesh.children.filter((c) => c.name === 'beam');
-        beams.forEach((b) => { b.traverse((o) => { if (o.isPoints) o.geometry.dispose(); }); b.removeFromParent(); });
-        addBeams(v.mesh, v.mesh.userData.front, v.mesh.userData.beamY);
-        v.tail = v.mesh.children.at(-1);
+        v.tail = refitBeams(v.mesh);
       }
       v.mesh.scale.setScalar(0.001); swap.phase = 'in'; swap.time = 0;
     });
@@ -108,14 +105,15 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
   const ready = Promise.all(traffic.map(async (v, i) => {
     if (v.type === 'caio') { // Sao Paulo residents are always the Caio (same shared geometry as the regional bus), with beams re-fitted to its bounds
       await upgradeBus(v.mesh, 'sao-paulo', { hero: false, isDisposed, asset: 'sao-paulo' });
-      if (v.mesh.userData.visualAsset === 'sao-paulo') { v.len = v.mesh.userData.length; v.mesh.children.filter((c) => c.name === 'beam').forEach((b) => { b.traverse((o) => { if (o.isPoints) o.geometry.dispose(); }); b.removeFromParent(); }); addBeams(v.mesh, v.mesh.userData.front, v.mesh.userData.beamY); v.tail = v.mesh.children.at(-1); }
+      if (v.mesh.userData.visualAsset === 'sao-paulo') { v.len = v.mesh.userData.length; v.tail = refitBeams(v.mesh); }
     } else if (v.type === 'london' || v.type === 'glasgow') {
       if (v.regionBus) await loadVehicleAsset('sao-paulo');
       await upgradeBus(v.mesh, v.type, { hero: false, isDisposed });
       if (v.regionBus) { v.modelAsset = 'bus'; v.mesh.userData.regionAsset = 'bus'; v.modelReady = true; }
+      v.tail = refitBeams(v.mesh);
     }
-    else if (v.type === 'cab') await upgradeCab(v.mesh, { isDisposed });
-    else if (v.type === 'mini') await upgradeMini(v.mesh, { hero: false, ...v.palette, isDisposed });
+    else if (v.type === 'cab') { await upgradeCab(v.mesh, { isDisposed }); v.tail = refitBeams(v.mesh); }
+    else if (v.type === 'mini') { await upgradeMini(v.mesh, { hero: false, ...v.palette, isDisposed }); v.tail = refitBeams(v.mesh); }
     else {
       const catalog = await loadFleetCatalog(), slot = traffic.slice(0, i).filter((p) => p.type === 'car' && p.uk === v.uk).length;
       const model = regionalFleetModel(catalog, v.uk ? 'uk' : 'br', slot);
@@ -123,16 +121,13 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
       await upgradeFleet(v.mesh, model, { body: v.body, isDisposed });
       if (disposed || !v.mesh.userData.fleetModel) return;
       v.len = v.mesh.userData.length;
-      const [pool, tail] = v.mesh.children.filter((c) => c.name === 'beam');
-      pool.position.x = v.mesh.userData.front - 0.3;
-      tail.position.x = model.beamAnchors.rear[0][0];
-      tail.children.forEach((lamp, j) => { lamp.position.z = model.beamAnchors.rear[j][2]; });
+      v.tail = refitBeams(v.mesh);
     }
   }));
   const bridgeReady = Promise.all(bridge.map(async (b) => {
     const catalog = await loadFleetCatalog(), model = regionalFleetModel(catalog, 'br', b.slot);
     if (model && !disposed) await upgradeFleet(b.mesh, model, { body: b.body, isDisposed });
-    if (!disposed && b.mesh.userData.fleetModel) b.len = b.mesh.userData.length;
+    if (!disposed && b.mesh.userData.fleetModel) { b.len = b.mesh.userData.length; b.tail = refitBeams(b.mesh); }
   }));
   const zebras = stops.map((_, i) => curve.getPointAt(Math.min(1, i / (stops.length - 1) + ZEBRA_AT / len)));
   const auto = traffic.filter((v) => !v.relative);

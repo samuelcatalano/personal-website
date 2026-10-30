@@ -24,32 +24,40 @@ const blob = tex(64, 64, (g) => { const r = g.createRadialGradient(32, 32, 0, 32
 const gm = new THREE.ShaderMaterial({
   transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, toneMapped: false,
   uniforms: { uOp: { value: 0 }, uPx: { value: 1 } },
-  vertexShader: `uniform float uPx; attribute vec3 aCol; varying vec3 vC; void main(){ vC = aCol; vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * mv; gl_PointSize = clamp(0.9 * projectionMatrix[1][1] * uPx / max(-mv.z, 1.0), 2.0, 40.0); }`,
+  vertexShader: `uniform float uPx; attribute vec3 aCol; varying vec3 vC; void main(){ vC = aCol; vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * mv; gl_PointSize = clamp(0.05 * projectionMatrix[1][1] * uPx / max(-mv.z, 1.0), 1.0, 3.0); }`,
   fragmentShader: 'uniform float uOp; varying vec3 vC; void main(){ float r = length(gl_PointCoord - 0.5) * 2.0; float a = pow(max(0.0, 1.0 - r), 2.0) * uOp; gl_FragColor = vec4(vC * a, a); }',
 });
 const M = { pool: mat(lit, 0xfff0dc), tail: mat(blob, 0xff2a1a) };
-const OP = { pool: 0.3, tail: 0.1 };
+const OP = { pool: 0.3, tail: 0.055 };
 const pool = new THREE.PlaneGeometry(L, W).rotateX(-Math.PI / 2).translate(L / 2, 0, 0);
-const tailPool = new THREE.PlaneGeometry(2, 1.8).rotateX(-Math.PI / 2).translate(-1.4, 0, 0);
+// Two subdued wet-road reflections, anchored directly below the tail lamps instead of free-floating red blobs.
+const tailPool = new THREE.PlaneGeometry(0.7, 0.55).rotateX(-Math.PI / 2).translate(-0.2, 0, 0);
 // One road pool per vehicle, one tail glow per lamp, at the lamps' lateral position (≈68 % of the half-width), not from the vehicle's centre line.
 const box = new THREE.Box3();
-export function addBeams(vehicle, front, y = 0.65) {
+export function addBeams(vehicle, front, y = 0.65, anchors) {
   box.makeEmpty(); vehicle.updateMatrixWorld(true);
   vehicle.traverse((o) => { if (o.isMesh && o.name !== 'beam') { o.geometry.computeBoundingBox(); box.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld.clone().premultiply(vehicle.matrixWorld.clone().invert()))); } });
   const half = box.isEmpty() ? 0.9 : (box.max.z - box.min.z) / 2, lamp = Math.min(1.1, half * 0.68);
-  const tail = new THREE.Group(); tail.name = 'beam'; tail.position.set(-front, 0.04, 0);
-  for (const s of [-1, 1]) {
-    const t = new THREE.Mesh(tailPool, M.tail); t.position.z = s * lamp; t.scale.z = 0.5; // lamp lenses glow on the model itself
+  const frontLamps = anchors?.front ?? [[front, y, -lamp], [front, y, lamp]], rearLamps = anchors?.rear ?? [[-front, y, -lamp], [-front, y, lamp]];
+  const tail = new THREE.Group(); tail.name = 'beam'; tail.position.set(rearLamps[0][0], 0.04, 0);
+  for (const [, , z] of rearLamps) {
+    const t = new THREE.Mesh(tailPool, M.tail); t.position.z = z; t.scale.z = 0.5; // road reflection below the actual lens
     t.name = 'beam'; t.renderOrder = 5; t.frustumCulled = false; tail.add(t);
   }
-  const p = new THREE.Mesh(pool, M.pool); p.position.set(front - 0.3, 0.04, 0); p.scale.z = Math.max(0.75, lamp / LAMP) ** 0.5; p.name = 'beam'; p.renderOrder = 5; p.frustumCulled = false;
-  tail.userData.swell = (k) => tail.children.forEach((t) => t.scale.set(k, 1, 0.5 * k)); // brake lights grow in place
+  const p = new THREE.Mesh(pool, M.pool); p.position.set(frontLamps[0][0] - 0.3, 0.04, 0); p.scale.z = Math.max(0.75, lamp / LAMP) ** 0.5; p.name = 'beam'; p.renderOrder = 5; p.frustumCulled = false;
+  tail.userData.swell = (k) => tail.children.forEach((t) => t.scale.set(1, 1, 0.5 * k)); // braking widens the reflection without moving it behind the car
   const pos = [], col = [];
-  for (const s of [-1, 1]) { pos.push(0.2, y - 0.04, s * lamp / p.scale.z, -2 * front + 0.35, y - 0.04, s * lamp / p.scale.z); col.push(1, 0.9, 0.7, 1, 0.12, 0.06); }
+  for (const [x, ly, z] of frontLamps) { pos.push(x - p.position.x, ly - 0.04, z / p.scale.z); col.push(0, 0, 0); }
+  for (const [x, ly, z] of rearLamps) { pos.push(x - p.position.x, ly - 0.04, z / p.scale.z); col.push(1, 0.12, 0.06); }
   // glow points are children of the pool (p), so ambient.js keeps tail as the last vehicle child
   const gp = new THREE.Points(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)).setAttribute('aCol', new THREE.Float32BufferAttribute(col, 3)), gm);
   gp.name = 'beam'; gp.frustumCulled = false; gp.renderOrder = 6;
-  p.add(gp); vehicle.add(p, tail);
+  gp.visible = !!vehicle.userData.fleetModel; p.add(gp); vehicle.add(p, tail);
+}
+export function refitBeams(vehicle) {
+  vehicle.children.filter((c) => c.name === 'beam').forEach((b) => { b.traverse((o) => { if (o.isPoints) o.geometry.dispose(); }); b.removeFromParent(); });
+  addBeams(vehicle, vehicle.userData.front, vehicle.userData.beamY, vehicle.userData.beamAnchors);
+  return vehicle.children.at(-1);
 }
 export function updateBeams(night) {
   for (const k in M) { M[k].opacity = night * OP[k]; M[k].visible = night > 0.02; }

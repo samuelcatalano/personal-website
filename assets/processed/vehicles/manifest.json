@@ -1,36 +1,36 @@
 {
-  "generated": "2026-10-29",
+  "generated": "2026-10-30",
   "tool": "tools/pipeline/optimise.mjs",
   "versions": {
     "@gltf-transform/cli": "4.5.1",
     "meshoptimizer": "see tools/pipeline/package-lock.json"
   },
-  "note": "Meshopt byte compression, no quantization, materials not deduplicated (runtime addresses them by source name). Runtime loads these by default; ?glb=raw forces the raw GLB. honda-hr-v stays raw: unwelded flat-shaded triangles cannot be simplified.",
+  "note": "Meshopt byte compression, no quantization, materials not deduplicated (runtime addresses them by source name). Use ?glb=processed to opt into these simplified assets; raw source GLBs are the default for authored vehicles. honda-hr-v stays raw: unwelded flat-shaded triangles cannot be simplified.",
   "cacheBust": "PIPELINE_V in js/world/vehicle-assets.js",
   "outputs": {
     "land-rover-range-rover": {
       "path": "assets/processed/vehicles/land-rover-range-rover.glb",
-      "bytes": 4291240,
-      "sha256": "3ae1d6fdec67a1098dfe5437fb3785e7d11027ee2c7de58f32d66f5b571bd074",
+      "bytes": 4628972,
+      "sha256": "3985bbdccff848de0c97c72e3af5f898f53a25d3ae6db4c52e5cace84c96d926",
       "source": "assets/vehicles/land-rover-range-rover.glb",
       "sourceBytes": 9855300,
-      "simplify": "ratio 0.1, error 0.008"
+      "simplify": "ratio 0.3, error 0.008"
     },
     "mercedes-e63-amg-s-wagon": {
       "path": "assets/processed/vehicles/mercedes-e63-amg-s-wagon.glb",
-      "bytes": 3843620,
-      "sha256": "9044722dd2192acd5a79756de2afcd30770a00b64298dbfd80304ce4fcd7fd04",
+      "bytes": 7461392,
+      "sha256": "5ff5480d4b8f57f263dbcef913370fa7e68d40cf8a697c4239b9cd230c2c46a6",
       "source": "assets/vehicles/mercedes-e63-amg-s-wagon.glb",
       "sourceBytes": 24674016,
-      "simplify": "ratio 0.1, error 0.004, smooth normals"
+      "simplify": "ratio 0.3, error 0.004"
     },
     "mini-cooper-2011.lod0": {
       "path": "assets/processed/vehicles/mini-cooper-2011.lod0.glb",
-      "bytes": 2130868,
-      "sha256": "f25bebcc180275fe8e69fa5d0dc54b156daa65b5494b914818eff5f2b945b523",
+      "bytes": 3590716,
+      "sha256": "81586637ef9e00ac97b5ccddf3b1d010a9a3b195cd48e2d8acf2a00c4fd2b18d",
       "source": "assets/vehicles/mini-cooper-2011.glb",
       "sourceBytes": 20512356,
-      "simplify": "ratio 0.12, error 0.0005"
+      "simplify": "ratio 0.3, error 0.0005"
     },
     "mini-cooper-2011.lod1": {
       "path": "assets/processed/vehicles/mini-cooper-2011.lod1.glb",
@@ -42,27 +42,27 @@
     },
     "nissan-qashqai": {
       "path": "assets/processed/vehicles/nissan-qashqai.glb",
-      "bytes": 1989244,
-      "sha256": "d12db1a95b625fb447fd289ccf0012809180e00c85bee1257279b7b078f6f3d4",
+      "bytes": 2373764,
+      "sha256": "97c7225653e153cbe4a2bcea1d8166ef11a1a48b68aaedcbd089777c78b00d05",
       "source": "assets/vehicles/nissan-qashqai.glb",
       "sourceBytes": 6183952,
-      "simplify": "ratio 0.1, error 0.008"
+      "simplify": "ratio 0.3, error 0.008"
     },
     "toyota-corolla": {
       "path": "assets/processed/vehicles/toyota-corolla.glb",
-      "bytes": 3839292,
-      "sha256": "ec70d1dae0e71559ae86ad2dc608addf746dd24106b4754f4eb7636dd7b739fc",
+      "bytes": 4164244,
+      "sha256": "dde923ee327f0a7e0504d7df85b8f11743389b63466ae0c67c519762a5cdcf44",
       "source": "assets/vehicles/toyota-corolla.glb",
       "sourceBytes": 14256100,
-      "simplify": "ratio 0.1, error 0.008"
+      "simplify": "ratio 0.3, error 0.008"
     },
     "vw-t-cross": {
       "path": "assets/processed/vehicles/vw-t-cross.glb",
-      "bytes": 3644456,
-      "sha256": "b08c6387e78b09ef8ddb2beadeb09da9244a8213f7400a98be906edac2c46217",
+      "bytes": 3692748,
+      "sha256": "bce737d33338e69c72ca9adad8b0e0612b81506d122911cd941102c6584335fe",
       "source": "assets/vehicles/vw-t-cross.glb",
       "sourceBytes": 8678004,
-      "simplify": "ratio 0.1, error 0.002"
+      "simplify": "ratio 0.3, error 0.002"
     }
   }
 }

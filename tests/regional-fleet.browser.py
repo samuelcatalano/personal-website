@@ -11,15 +11,17 @@ print(js(r'''(async () => {
  check(!A.regionalFleetModel([], 'br', 0), 'missing catalog keeps fallback');
  for (const m of catalog) {
   const src = await A.loadVehicleAsset(m.id); check(src && src === await A.loadVehicleAsset(m.id), m.id+' loads once');
+  let sourceTris=0;src.traverse(x=>{if(x.isMesh)sourceTris+=(x.geometry.index?.count??x.geometry.attributes.position.count)/3});
+  check(sourceTris===m.triangles, m.id+' defaults to full-resolution source GLB');
   const a = new THREE.Group(), b = new THREE.Group();
   await Promise.all([A.upgradeFleet(a,m,{body:'#142b4a'}), A.upgradeFleet(b,m,{body:'#a31d2a'})]);
   const meshes = o => {const r=[];o.traverse(x=>{if(x.isMesh)r.push(x)});return r};
-  const am=meshes(a), bm=meshes(b), names=[...new Set(am.map(x=>x.material.name))].sort();
-  check(JSON.stringify(names)===JSON.stringify([...m.materials].sort()) && a.userData.wheels.length===2 && a.userData.wheels.every(w=>w.children.length>0&&w.children.every(x=>x.material.isMaterial)), m.id+' source materials and two spinning axles');
+  const am=meshes(a), bm=meshes(b), roles=[...new Set(am.map(x=>x.userData.role))].sort(), expectedRoles=[...new Set(m.materials.map(n=>n.replace(/\.\d+$/, '')))].sort();
+  check(JSON.stringify(roles)===JSON.stringify(expectedRoles) && a.userData.wheels.length===2 && a.userData.wheels.every(w=>w.children.length>0&&w.children.every(x=>x.material.isMaterial)), m.id+' source material roles and two spinning axles');
   if(m.id==='honda-hr-v')check(am.some(x=>x.material.name.endsWith('Calipers'))&&a.userData.wheels.every(w=>w.children.every(x=>!x.material.name.endsWith('Calipers'))),'Honda brake calipers stay on the body');
   check(am.every((x,i)=>x.geometry===bm[i].geometry), 'shared source geometry '+m.id);
   const paintA=am.filter(x=>m.paintMaterials.includes(x.material.name)),paintB=bm.filter(x=>m.paintMaterials.includes(x.material.name));
-  check(paintA.length>0&&paintA.every(x=>x.material.color.getHexString()==='142b4a'&&x.material.metalness>=.7)&&paintB.every(x=>x.material.color.getHexString()==='a31d2a'&&x.material!==paintA.find(y=>y.material.name===x.material.name)?.material), 'isolated metallic per-car paint '+m.id);
+  check(paintA.length>0&&paintA.every(x=>x.material.color.getHexString()==='142b4a'&&x.material.metalness<=.15&&x.material.clearcoat<=.4&&x.material.clearcoatRoughness>=.14)&&paintB.every(x=>x.material.color.getHexString()==='a31d2a'&&x.material!==paintA.find(y=>y.material.name===x.material.name)?.material), 'isolated automotive per-car paint '+m.id);
   check(am.filter(x=>!m.paintMaterials.includes(x.material.name)).every((x,i)=>x.material===bm.filter(y=>!m.paintMaterials.includes(y.material.name))[i]?.material), 'shared nonpaint materials '+m.id);
   const box=new THREE.Box3().setFromObject(a), size=box.getSize(new THREE.Vector3());
   check(Math.abs(size.x-m.dimensions.length)<.03 && Math.abs(box.min.y)<.02 && Math.abs(size.y-m.dimensions.height)<.04, 'metre bounds '+m.id);
@@ -35,7 +37,7 @@ print(js(r'''(async () => {
  const cars=traffic.filter(x=>x.userData.fleetModel);check(cars.length===9,'nine regional traffic slots');
  check(cars.every(x=>catalog.find(m=>m.id===x.userData.fleetModel).region.includes(traffic.indexOf(x)>=16?'br':'uk')),'regional selection');
  const colors=new Set(['151a20','b9bec5','a31d2a','142b4a','173b2d']);
- check(cars.every(x=>{const m=catalog.find(y=>y.id===x.userData.fleetModel);let paint=[];x.traverse(o=>{if(o.isMesh&&m.paintMaterials.includes(o.material.name))paint.push(o.material)});return paint.length&&paint.every(p=>colors.has(p.color.getHexString())&&p.metalness>=.7)}),'metallic palette without pink');
+ check(cars.every(x=>{const m=catalog.find(y=>y.id===x.userData.fleetModel);let paint=[];x.traverse(o=>{if(o.isMesh&&m.paintMaterials.includes(o.material.name))paint.push(o.material)});return paint.length&&paint.every(p=>colors.has(p.color.getHexString())&&p.metalness<=.15&&p.clearcoat<=.4&&p.clearcoatRoughness>=.14)}),'automotive palette without pink');
  const before=traffic.map(x=>x.position.clone());for(let i=0;i<120;i++)ambient.update({time:i/30,t:.5,dt:1/30});
  check(traffic.some((x,i)=>x.visible&&x.position.distanceTo(before[i])>1),'traffic moves');
  {const roll=x=>x.userData.wheels?.length===2&&x.userData.wheels.every(w=>Math.abs(w.rotation.z)>0.5),moved=traffic.filter((x,i)=>x.visible&&x.position.distanceTo(before[i])>1);check(moved.filter(x=>x.userData.fleetModel).every(roll)&&moved.some(x=>!x.userData.fleetModel&&roll(x)),'ambient vehicles roll their wheels');}
@@ -51,7 +53,7 @@ print(js(r'''(async () => {
 # Fresh module/cache and real request failures: fallback must retain its noncream palette.
 try:
     cdp('Network.enable')
-    cdp('Network.setBlockedURLs', urls=['*assets/vehicles/*.glb'])
+    cdp('Network.setBlockedURLs', urls=['*assets/vehicles/*.glb', '*assets/processed/vehicles/*.glb'])
     cdp('Page.reload', ignoreCache=True)
     import time
     time.sleep(0.3)

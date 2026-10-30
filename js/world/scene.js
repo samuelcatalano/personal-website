@@ -36,7 +36,7 @@ import { createPeople } from './people.js';
 import { createSigns } from './signs.js';
 import { buildFigure } from './figure.js';
 import { SECTION_SHOT, shotFor, blendShots, spring, approach, nextTier } from './camera.js';
-import { updateBeams, addBeams } from './beams.js';
+import { updateBeams, addBeams, refitBeams } from './beams.js';
 import { createLampPools } from './lamps.js';
 import { createPost } from './post.js';
 import { createRoadMarks } from './roadmarks.js';
@@ -129,7 +129,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   scene.add(water.mesh);
   units.push(await createSigns(scene, { stops, curve }));
   let disposed = false, raf = 0;
-  initVehicleEnv(renderer); upgradeMini(mini, { isDisposed: () => disposed }); upgradeBus(londonBus, 'london', { isDisposed: () => disposed }); upgradeBus(glasgowBus, 'glasgow', { isDisposed: () => disposed }); // authored shared London/Glasgow bus GLB
+  initVehicleEnv(renderer); upgradeMini(mini, { isDisposed: () => disposed }).then(() => refitBeams(mini)); upgradeBus(londonBus, 'london', { isDisposed: () => disposed }).then(() => refitBeams(londonBus)); upgradeBus(glasgowBus, 'glasgow', { isDisposed: () => disposed }).then(() => refitBeams(glasgowBus)); // authored shared London/Glasgow bus GLB
   loadVehicleAsset('a330').then((glb) => { if (glb && !disposed) adoptVisual(plane, glb, ['nav', 'strobe']); }); // authored A330 (tools/vehicles/a330); procedural stays on failure
   const wake = () => { if (!disposed && !raf && !document.hidden) raf = requestAnimationFrame(frame); };
   initGlbLoader(renderer);

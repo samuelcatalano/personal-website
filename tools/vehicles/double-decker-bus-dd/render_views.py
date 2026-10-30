@@ -8,7 +8,7 @@ PAL = dict(london=dict(body='#b52a2d', accent='#7e1c20', stripe=None), glasgow=d
 def lin(h): c = [int(h[i:i + 2], 16) / 255 for i in (1, 3, 5)]; return (*[((x + .055) / 1.055) ** 2.4 if x > .04045 else x / 12.92 for x in c], 1)
 # approximate runtime finishes: paint = glossy standard, trim/tyre dark, glass bluish translucent, chrome, lamps and blind emissive
 FIN = dict(BusBody=(PAL['body'], .28, .1, 1), BusAccent=(PAL['accent'], .28, .1, 1), BusStripe=(PAL['stripe'] or PAL['body'], .28, .1, 1), BusSkirtF=(PAL.get('skirtF', PAL['accent']), .28, .1, 1), BusSweep=(PAL.get('sweep', PAL['body']), .28, .1, 1), BusLilac=(PAL.get('lilac', PAL['body']), .28, .1, 1), BusRear=(PAL.get('rear', PAL['body']), .28, .1, 1), BusTrim=('#1b1d21', .7, 0, 1), BusGlass=('#3d5262', .2, .3, .55),
-           BusRubber=('#242629', .85, 0, 1), BusWheel=('#c3c8cd', .38, .5, 1), BusMetal=('#d8dadc', .3, .25, 1), BusHeadlight=('#fff3d6', .2, 0, 1), BusTaillight=('#c01414', .3, 0, 1), BusDisplay=('#ffb347', .5, 0, 1), BusMark=(PAL.get('mark', '#f2f2f0'), .4, 0, 1), BusMark2=(PAL.get('mark2', '#1c3f94'), .4, 0, 1), BusInterior=(os.environ.get('INTC', '#2a2622'), .9, 0, 1))
+           BusRubber=('#242629', .85, 0, 1), BusWheel=('#aeb4ba', .5, .25, 1), BusMetal=('#d8dadc', .3, .25, 1), BusHeadlight=('#fff3d6', .2, 0, 1), BusTaillight=('#c01414', .3, 0, 1), BusDisplay=('#ffb347', .5, 0, 1), BusMark=(PAL.get('mark', '#f2f2f0'), .4, 0, 1), BusMark2=(PAL.get('mark2', '#1c3f94'), .4, 0, 1), BusInterior=(os.environ.get('INTC', '#2a2622'), .9, 0, 1))
 for m in bpy.data.materials:
     k = m.name.split('.')[0]
     if k not in FIN: continue
