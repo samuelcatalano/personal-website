@@ -6,13 +6,16 @@ export function house(add, q, x, z, o, w, d, n, fh = 3.1, lo = false) {
   const F = (cx, y, bw, bh, front, col, back = -front / 2) => add(cx, y, f + o * (front + back) / 2, bw - (Math.abs(Math.abs(cx - x) + bw / 2 - w / 2) < 0.03 ? 0.1 : 0), bh, front - back, col); // end-bay trim flush with a side wall is pulled in 5 cm
   const wall = pick(WALLS), roof = pick(ROOFS), door = pick(DOORS), dc = q() < 0.5 ? 0 : nc - 1, bal = n > 2 && q() < 0.4, bc = q() * nc | 0;
   add(x, 0, z, w, h, d, wall);
+  F(x, 0.28, w - 0.12, fh - 0.42, 0.1, P.brick, 0.04); // brick street-level frontage, behind the openings
   add(x, 0, z, w + 0.2, 0.5, d + 0.2, P.taupe);
   add(x, h - 0.3, z, w + 0.2, 0.36, d + 0.4, W);
   add(x, h + 0.06, z, w, 1, d + 0.8, roof);
   const A = lo ? () => {} : add; // lo (camera-side rows): one low roof slab, no steps/chimney/dormers, so nothing rises into the frame
   A(x, h + 1.06, z, w * 0.8, 1, d * 0.8, roof);
   const broadCap = q() >= 0.5;
-  A(x, h + 2.06, z, w * (broadCap ? 0.6 : 0.4), 0.8, d * (broadCap ? 0.6 : 0.55), roof);
+  const capW = w * (broadCap ? 0.6 : 0.4), capD = d * (broadCap ? 0.6 : 0.55);
+  A(x, h + 2.06, z, capW, 0.74, capD, roof);
+  A(x, h + 2.8, z, 0.12, 0.06, capD * 0.92, P.ink); // slate ridge sits within the existing roof silhouette
   const cx = x + (q() < 0.5 ? -1 : 1) * (w / 2 - 0.7), cz = z - o * d * 0.2;
   A(cx, h + 1.06, cz, 0.9, 1.5, 0.9, P.brick);
   const P0 = d * 0.4 + 0.45; // dormer front, behind the eave
@@ -29,7 +32,8 @@ export function house(add, q, x, z, o, w, d, n, fh = 3.1, lo = false) {
       if (!k && c === dc) {
         F(wx, 0, 1.9, 0.3, 0.7, W);
         F(wx, 0.3, 1.5, 2.4, 0.16, W);
-        F(wx, 0.3, 1.1, 2.1, 0.2, door);
+        F(wx, 0.3, 1.1, 2.1, 0.12, door, -0.06);
+        for (const y0 of [0.62, 1.72]) F(wx, y0, 0.72, 0.48, 0.18, P.ink, 0.13);
         F(wx, 2.45, 0.9, 0.22, 0.24, P.glass);
         F(wx, 2.72, 2, 0.3, 0.4, W);
         F(wx, 3.02, 1.5, 0.22, 0.4, W);
@@ -42,7 +46,8 @@ export function house(add, q, x, z, o, w, d, n, fh = 3.1, lo = false) {
         for (const j of [-1.1, -0.55, 0, 0.55, 1.1]) F(wx + j, y + 0.44, 0.07, 0.56, 0.9, W, 0.83);
       } else F(wx, y + 0.46, 1.8, 0.12, 0.4, W); // top 0.02 under the 0.6 lintel/roof-cap planes
       F(wx, y + 0.6, 1.5, 2.2, 0.14, W);
-      F(wx, y + 0.8, 1.1, 1.8, 0.18, q() < 0.08 ? P.lit : P.glass, 0.02);
+      F(wx, y + 0.8, 1.1, 1.8, 0.1, q() < 0.08 ? P.lit : P.glass, 0.02);
+      F(wx, y + 0.43, 1.7, 0.14, 0.3, W, 0.12);
       F(wx, y + 0.83, 0.08, 1.74, 0.24, W, 0.16);
       F(wx, y + 2.0, 1.16, 0.08, 0.24, W, 0.16);
     }
