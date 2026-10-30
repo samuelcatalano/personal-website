@@ -26,3 +26,10 @@
 - The test confirms the 9×7×9.3 body remains one box, added geometry stays within the prior bounds (including roof top 12.16 and balcony projection), and the low-roof path stays at its prior ceiling.
 - All colors use the shared palette; geometry is still emitted through the existing `add` callback. No random draws were added.
 - No visual capture, browser run, mobile check, or performance measurement was run; the requested focused Node suites were the validation boundary. The added facade/sill/panel/ridge boxes increase geometry emitted by this legacy generator, so their gameplay-scale appearance and runtime cost remain visually unmeasured.
+
+## Round 1 review follow-up
+
+- Finding 1 was checked against the runtime box builder in `js/world/voxel.js`: its unit box geometry is translated by `+0.5` on Y and instanced at `b.y`, so the `add` callback treats Y as the box base. `F` forwards Y unchanged to `add`. The existing door at `y=0.3, h=2.1` therefore occupies `0.3..2.4`; moving the brick face to `y=(fh-0.42)/2` would move it upward instead of correcting it. Kept the brick face at `y=0.28`; its tested interval is `0.28..2.96`, within the 3.1 m ground floor.
+- Finding 2 was fixed: the bound assertions now check lower Y as well as upper Y and run across all 32 seeded outputs. The brick assertion confirms it ends within the first floor.
+- `node --test tests/houses.test.mjs`: passed (1 test).
+- `node --test tests/glasgow.test.mjs`: passed (4 tests).
