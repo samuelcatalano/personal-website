@@ -25,7 +25,8 @@ hs.HEAD_BONE = "head"
 hs.SPINE_BONE = "spine_03"  # the MPFB game_engine rig names this bone "head" (UAL uses "Head")
 
 FOOT_KEEP = float(os.environ.get("FOOT_KEEP", 0.0))  # feet keep more detail so the shoe shell has no torn toe
-DECIMATE = 0.20  # collapse ratio for each body; the garments are shelled off the same low-res copy
+HEAD_KEEP = float(os.environ.get("HEAD_KEEP", 0.5))  # the head resists the collapse by this much, so the face is less faceted
+DECIMATE = float(os.environ.get("DECIMATE", 0.28))  # collapse ratio for each body; the garments are shelled off the same low-res copy
 GARMENT_SPECS = {
     # the jacket is cut above the shoulder tops (1.56 m on the rest pose, measured), so no skin shows at the shoulders
     "jacket": dict(keep=["pelvis", "spine_01", "spine_02", "spine_03", "clavicle_l", "clavicle_r",
@@ -146,11 +147,11 @@ def ramp(x):
     return min(1.0, max(0.0, (x - 0.1) / 0.8))
 
 
-def protection(bw):
+def protection(bw, body):
     # per body vertex: 1 keeps it through the decimation, 0 lets the collapse take it. The hands fade in across the wrist,
     # so the forearm thins out gradually instead of stepping down there
-    return [max(ramp(w.get("hand_l", 0.0) + w.get("hand_r", 0.0)),
-                FOOT_KEEP * ramp(sum(w.get(n, 0.0) for n in ("foot_l", "foot_r", "ball_l", "ball_r")))) for w in bw]
+    return [max(ramp(w.get("hand_l", 0.0) + w.get("hand_r", 0.0)), HEAD_KEEP * ramp(w.get("head", 0.0)) * smooth01((v.co.z - 1.575) / 0.02),
+                FOOT_KEEP * ramp(sum(w.get(n, 0.0) for n in ("foot_l", "foot_r", "ball_l", "ball_r")))) for w, v in zip(bw, body.data.vertices)]
 
 
 def decimate(body, ratio, protect):
@@ -499,14 +500,14 @@ def merge_to_npc(name, parts, arm):
     return ob
 
 
-EYE_R = 0.011  # eyeball radius (m): the eye openings measured on the bodies are 2.0-2.5 cm wide
-PROUD = 0.003  # the eyeball front pole stands this far (m) in front of the skin at the socket rim
+EYE_R = 0.93  # eyeball radius as a fraction of the MPFB helper eyeball fitted on each body (the helper is a stylised 1.6 cm ball)
 IRIS = dict(NPC_F="#4a2c17", NPC_G="#5d7f4a", NPC_H="#2e2118", NPC_A="#3b6f8f", NPC_B="#4a2c17", NPC_C="#5d7f4a", NPC_D="#2e2118", NPC_E="#6a8fb5")
 
 
 def face_colours(verts, sk, fem=False, smile=0.0):
     # vertex-colour modelling of the head, no extra geometry: tints multiply the skin, each a gaussian around a landmark
     # (rest pose, metres). smile 0..1 lifts the mouth corners and adds a nasolabial line; the cheek flush scales with skin tone
+    smile = min(1.0, 0.45 + 0.55 * smile)  # a friendly resting face: never below a slight smile
     lum = 0.2126 * sk[0] + 0.7152 * sk[1] + 0.0722 * sk[2]  # linear luminance of the skin
     flush = 0.35 + 0.30 * (1.0 - lum)  # a darker skin takes a stronger flush, so the colour still reads
     LM = [((0.0, 1.648), (0.010, 0.010), (1.05, 0.80, 0.78), 0.6, -0.12),  # nose tip: warmer
@@ -551,142 +552,98 @@ def face_colours(verts, sk, fem=False, smile=0.0):
 
 
 def eye_sockets(bvh, name):
-    # the eye opening of each side, measured on the decimated body. The masked eye geometry leaves the skin closed, so the
-    # socket is a recess: front rays pass the skin there and hit the socket floor ~2.5 cm behind the rim. Grid of front-ray
-    # hits over the eye band; cells deeper than -0.131 (midway between rim -0.145 and floor -0.119) are grouped, and per
-    # side the group nearest the rest-pose eye is the opening. Returns per side: centre x, z, width, height, rim and floor y.
-    X = [-0.060 + 0.001 * i for i in range(121)]
-    Z = [1.630 + 0.001 * j for j in range(101)]
-    hit = {}
-    for i, x in enumerate(X):
-        for j, z in enumerate(Z):
-            loc = bvh.ray_cast(Vector((x, -1.0, z)), Vector((0, 1, 0)))[0]
-            hit[(i, j)] = None if loc is None else loc.y
-    deep = {k for k, y in hit.items() if y is not None and y > -0.131}
-    comps, seen = [], set()
-    for k in deep:
-        if k in seen:
-            continue
-        comp, stack = [], [k]
-        seen.add(k)
-        while stack:
-            c = stack.pop()
-            comp.append(c)
-            for n in ((c[0] + 1, c[1]), (c[0] - 1, c[1]), (c[0], c[1] + 1), (c[0], c[1] - 1)):
-                if n in deep and n not in seen:
-                    seen.add(n)
-                    stack.append(n)
-        if len(comp) >= 10:
-            comps.append(comp)
+    # the true eye of each side: MPFB morphs its eyeball helper geometry (vertex groups helper-l/r-eye, 72 verts) with every macro,
+    # so each body's own helper verts hold its eye. A least-squares sphere fit per side gives centre and radius. a_body is the
+    # NPC_A body with the groups; every json body has the same topology, so the indices carry over. Returns {sx: dict(c, r)}.
+    import numpy as np
+    global _EYE_IDX
+    if _EYE_IDX is None:
+        gi = {g.name: g.index for g in a_body.vertex_groups}
+        _EYE_IDX = {sx: [v.index for v in a_body.data.vertices if any(x.group == gi[n] for x in v.groups)]
+                    for sx, n in ((1, "helper-l-eye"), (-1, "helper-r-eye"))}
+    P = np.array([v.co[:] for v in _BODY_FOR_EYES.data.vertices])
     out = {}
-    for sx in (-1, 1):
-        def dist(comp):
-            cx = sum(X[i] for i, _ in comp) / len(comp)
-            cz = sum(Z[j] for _, j in comp) / len(comp)
-            return (cx - sx * 0.0325) ** 2 + (cz - 1.685) ** 2
-        side = [c for c in comps if sum(X[i] for i, _ in c) * sx > 0]
-        if not side:
-            out[sx] = dict(x=sx * 0.0325, z=1.685, w=0.022, h=0.007, rim=-0.145, floor=-0.119)
-            print("SOCKET", name, sx, "not found, default", flush=True)
-            continue
-        comp = min(side, key=dist)
-        xs = [X[i] for i, _ in comp]
-        zs = [Z[j] for _, j in comp]
-        cs = set(comp)
-        rim = sorted(hit[n] for c in comp for n in ((c[0] + 1, c[1]), (c[0] - 1, c[1]), (c[0], c[1] + 1), (c[0], c[1] - 1))
-                     if n not in cs and n not in deep and hit.get(n) is not None)
-        floor = sorted(hit[c] for c in comp)
-        out[sx] = dict(x=(min(xs) + max(xs)) / 2, z=(min(zs) + max(zs)) / 2, w=max(xs) - min(xs) + 0.001,
-                       h=max(zs) - min(zs) + 0.001, rim=rim[len(rim) // 2], floor=floor[len(floor) // 2])
-        print("SOCKET", name, sx, "x %.4f z %.4f w %.4f h %.4f rim %.4f floor %.4f" % (
-            out[sx]["x"], out[sx]["z"], out[sx]["w"], out[sx]["h"], out[sx]["rim"], out[sx]["floor"]), flush=True)
+    for sx, idx in _EYE_IDX.items():
+        Q = P[idx]
+        sol = np.linalg.lstsq(np.c_[2 * Q, np.ones(len(Q))], (Q ** 2).sum(1), rcond=None)[0]
+        c = Vector(sol[:3].tolist())
+        r = float(np.sqrt(sol[3] + sol[:3] @ sol[:3]))
+        out[sx] = dict(c=c, r=r)
+        print("EYEFIT", name, "L" if sx > 0 else "R", "centre x %.4f y %.4f z %.4f r %.4f" % (c.x, c.y, c.z, r), flush=True)
     return out
 
 
+_EYE_IDX = None
+_BODY_FOR_EYES = None  # set by build_npc: the full-resolution body whose helper verts are fitted
+
+
 def face_parts(npc, bvh, socks):
-    # two eyeballs (8 x 6 sphere, front pole = pupil, first ring = iris), a skin lid shell around each with the opening
-    # between the lids left open, a skin plug that closes the socket's void around the eye, and a brow bar per side,
-    # all rigid on the head bone. Each eye sits in its measured socket (eye_sockets), its front PROUD in front of the rim
+    # per side: an eyeball at its fitted helper position (14 x 12 sphere, front pole = pupil, first rings = iris), a skin lid shell
+    # 0.8 mm outside it with the opening between the lids left open (dark lash line along the upper edge), and a brow ribbon
+    # that follows the skin; all rigid on the head bone
     white, dark, iris = hex_linear("#f2f0ec"), hex_linear("#0c0a0a"), hex_linear(IRIS[npc["name"]])
     sk = hex_linear(npc['skin'])
+    fem = npc.get("fem", False)
     lid_up = tuple(c * 0.84 for c in sk[:3]) + (1.0,)  # 10% darker in sRGB is ~16% in linear
     lid_lo = tuple(c * 0.88 for c in sk[:3]) + (1.0,)  # a darker lower lid reads as the eye bag
-    brow_c = tuple(0.65 * h + 0.35 * s for h, s in zip(hex_linear(npc['hair'][1]), sk[:3])) + (1.0,)
+    lash = tuple(c * 0.30 for c in sk[:3]) + (1.0,)
+    brow_c = tuple(0.8 * h + 0.2 * s for h, s in zip(hex_linear(npc['hair'][1]), sk[:3])) + (1.0,)
     out = []
-    ER = EYE_R
-
-    def surf(x, z):
-        # front-most hit over a small ring: the socket opening would otherwise return the hole's back wall
-        ys = [h.y for dx, dz in ((0, 0), (.012, 0), (-.012, 0), (0, .012), (0, -.012), (.02, 0), (-.02, 0))
-              for h in [bvh.ray_cast(Vector((x + dx, -1.0, z + dz)), Vector((0, 1, 0)))[0]] if h]
-        return min(ys) if ys else -0.148
-
+    from mathutils import Matrix
+    rot = Matrix.Rotation(1.5708, 3, "X")
     for sx in (-1, 1):
-        s = socks[sx]
-        ex, ez = s["x"], s["z"]
-        hw = s["h"] / 2 + 0.0015  # half height of the window between the lids (the opening plus 1.5 mm of lid)
-        centre = Vector((ex, s["rim"] - PROUD + ER, ez))
+        c, ER = socks[sx]["c"], socks[sx]["r"] * EYE_R
         bm = bmesh.new()
-        bmesh.ops.create_uvsphere(bm, u_segments=12, v_segments=8, radius=ER)
-        bmesh.ops.rotate(bm, verts=bm.verts, cent=(0, 0, 0), matrix=__import__("mathutils").Matrix.Rotation(1.5708, 3, "X"))
+        bmesh.ops.create_uvsphere(bm, u_segments=16, v_segments=16, radius=ER)
+        bmesh.ops.rotate(bm, verts=bm.verts, cent=(0, 0, 0), matrix=rot)
         cols, verts = [], []
         for v in bm.verts:
-            c = v.co.copy()
-            front = -c.y / ER  # 1 at the front pole
-            cols.append(dark if front > 0.97 else iris if front > 0.7 else white)  # pupil: the pole only
-            verts.append(c + centre)
+            front = -v.co.y / ER  # 1 at the front pole
+            cols.append(dark if front > 0.985 else iris if front > 0.84 else white)
+            verts.append(v.co + c)
         bm.faces.ensure_lookup_table()
         idx = {v: i for i, v in enumerate(bm.verts)}
         faces = [tuple(idx[v] for v in f.verts) for f in bm.faces]
         bm.free()
         out.append(part(verts, faces, [{"head": 1.0}] * len(verts), cols))
-        eye_pts = verts
-        # lids: a skin-coloured shell 1 mm outside the eyeball; the band between the lids is left open
-        RL = ER + 0.0010
+        # lids: a skin-coloured front-hemisphere shell 0.8 mm outside the eyeball; the band between the lids is left open
+        RL = ER + 0.0008
+        z_lo, z_hi = -0.0050 * ER / 0.015, 0.0026 * ER / 0.015  # the opening, relative to the eye centre
         bm = bmesh.new()
-        bmesh.ops.create_uvsphere(bm, u_segments=14, v_segments=10, radius=RL)
-        bmesh.ops.rotate(bm, verts=bm.verts, cent=(0, 0, 0), matrix=__import__("mathutils").Matrix.Rotation(1.5708, 3, "X"))
+        bmesh.ops.create_uvsphere(bm, u_segments=16, v_segments=16, radius=RL)
+        bmesh.ops.rotate(bm, verts=bm.verts, cent=(0, 0, 0), matrix=rot)
         bm.faces.ensure_lookup_table()
-        drop = []
-        for f in bm.faces:
-            c = f.calc_center_median()
-            if -c.y < 0.05 * RL or (-hw < c.z < hw):
-                drop.append(f)
+        drop = [f for f in bm.faces if -f.calc_center_median().y < 0.05 * RL or z_lo < f.calc_center_median().z < z_hi]
         bmesh.ops.delete(bm, geom=drop, context="FACES")
         bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
         lv, lc = [], []
         for v in bm.verts:
-            lv.append(v.co + centre)
-            lc.append(lid_up if v.co.z > 0 else lid_lo)
+            lv.append(v.co + c)
+            edge = 0 < v.co.z < z_hi + 0.0035  # first ring above the opening: the lash line
+            lc.append(lash if edge else lid_up if v.co.z > 0 else lid_lo)
         idx = {v: i for i, v in enumerate(bm.verts)}
         lf = [tuple(idx[v] for v in f.verts) for f in bm.faces]
         bm.free()
         out.append(part(lv, lf, [{"head": 1.0}] * len(lv), lc))
-        # plug: a skin patch just behind the rim, filling the opening so the dark socket behind it does not show; the eye
-        # stands in front of it
-        px, pz = s["w"] / 2 + 0.002, hw + 0.002
-        nx, nz = 4, 2
-        pv = [Vector((ex - px + 2 * px * i / nx, s["rim"] + 0.0005, ez - pz + 2 * pz * j / nz))
-              for j in range(nz + 1) for i in range(nx + 1)]
-        pf = [(j * (nx + 1) + i, j * (nx + 1) + i + 1, (j + 1) * (nx + 1) + i + 1, (j + 1) * (nx + 1) + i)
-              for j in range(nz) for i in range(nx)]
-        out.append(part(pv, pf, [{"head": 1.0}] * len(pv), face_colours(pv, sk, npc.get("fem", False), npc.get("smile", 0.0))))
-        # brow: a thin tilted box 3 cm wide, 1.1 cm above the upper lid edge, coloured like the hair
-        hx, hy, hz = 0.0150, 0.0030, (0.0014 if npc.get("fem") else 0.0024)
-        bx, bz = ex + sx * 0.002, ez + hw + 0.011 + hz
-        by = surf(bx, bz) - 0.001
-        bv = []
-        for dx in (-hx, hx):
-            for dy in (-hy, hy):
-                for dz in (-hz, hz):
-                    bv.append((bx + dx, by + dy, bz + dz + (0.0012 * (dx / hx) * sx)))  # outer end up, a neutral lift
-        bf = [(0, 1, 3, 2), (4, 6, 7, 5), (0, 4, 5, 1), (2, 3, 7, 6), (0, 2, 6, 4), (1, 5, 7, 3)]
-        # taper: the inner end (towards the nose) a shade darker, the tail lighter, so the bar reads as a brow, not a slab
-        bcol = [tuple(min(1.0, ci * (0.85 if dx * sx < 0 else 1.10)) for ci in brow_c[:3]) + (1.0,) for dx in [-hx] * 4 + [hx] * 4]
-        out.append(dict(part(bv, bf, [{"head": 1.0}] * 8, bcol), tag=1.0))
-        # DIAG: how far the eyeball and lids stand in front of the skin (m, positive = proud)
-        prot = max(surf(v.x, v.z) - v.y for v in eye_pts + lv)
-        print("EYEFIT", npc["name"], sx, "centre y %.4f z %.4f" % (centre.y, centre.z), "proud_max %.4f" % prot, flush=True)
+        # brow: a ribbon of 7 stations from the inner end (towards the nose) to the tail, each station ray-cast onto the skin
+        # and lifted 0.7 mm off it. A gentle arch (neutral to slightly raised), thinner for women, tapering at both ends
+        N = 7
+        top, bot = [], []
+        for i in range(N):
+            t = i / (N - 1)
+            x = c.x + sx * (-0.016 + 0.040 * t)
+            arch = 0.0215 + 0.0040 * math.sin(math.pi * min(1.0, t * 1.15)) - 0.0010 * t
+            hw = (0.0022 if fem else 0.0028) * (0.55 + 0.45 * math.sin(math.pi * (0.1 + 0.8 * t))) * (1.0 - 0.35 * t ** 3)
+            for dz, lst in ((hw, top), (-hw, bot)):
+                z = c.z + arch + dz
+                hit = bvh.ray_cast(Vector((x, -1.0, z)), Vector((0, 1, 0)))
+                lst.append(hit[0] + hit[1] * 0.0007 if hit[0] else Vector((x, c.y - ER, z)))
+        bv = bot + top
+        bf = [(i, i + 1, N + i + 1, N + i) for i in range(N - 1)]
+        if sx > 0:
+            bf = [f[::-1] for f in bf]
+        bcol = [tuple(min(1.0, ci * (0.80 + 0.30 * (i % N) / (N - 1))) for ci in brow_c[:3]) + (1.0,) for i in range(2 * N)]
+        out.append(dict(part(bv, bf, [{"head": 1.0}] * (2 * N), bcol), tag=1.0))
     return out
 
 
@@ -753,7 +710,7 @@ def build_npc(npc, body, bw, arm, segs):
     for v in body.data.vertices:
         kd.insert(v.co, v.index)
     kd.balance()
-    lo = decimate(body, DECIMATE, protection(bw))
+    lo = decimate(body, DECIMATE, protection(bw, body))
     lo_w = [nearest_weights(kd, bw, v.co) for v in lo.vertices]
     B = {b.name: (b.head_local.copy(), b.tail_local.copy()) for b in arm.data.bones}
     H = types.SimpleNamespace(B=B, part=part, sw=lambda co: seg_weights(segs, co))
@@ -834,6 +791,8 @@ def build_npc(npc, body, bw, arm, segs):
         bpy.data.meshes.remove(me)
     style, hcol = npc["hair"]
     bvh_lo = BVHTree.FromPolygons([v.co.copy() for v in lo.vertices], [tuple(q.vertices) for q in lo.polygons])
+    global _BODY_FOR_EYES
+    _BODY_FOR_EYES = body
     parts += face_parts(npc, bvh_lo, eye_sockets(bvh_lo, npc["name"]))
     parts.append(hair_part(body, arm, style, hex_linear(hcol), lo))
     bpy.data.meshes.remove(lo)
