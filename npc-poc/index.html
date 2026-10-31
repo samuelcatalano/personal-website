@@ -28,6 +28,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
+import { tintNpc, mulberry32 } from '../js/world/npc3d.js';
 
 const params = new URLSearchParams(location.search);
 const COUNT = Math.max(1, Number(params.get('count') || 1));
@@ -37,7 +38,7 @@ const WARMUP = 60;
 const SAMPLES = Number(params.get('frames') || 240);
 const GLB = '../assets/npc/npc_pack.glb' + (params.get('v') ? `?v=${params.get('v')}` : '');
 
-// Five NPCs in one GLB, one shared armature. height = target metres; measured = body height the mesh was built at.
+// Eight NPCs in one GLB, one shared armature. height = target metres; measured = body height the mesh was built at.
 // speed scales the shared walk clip, so the five cadences differ.
 const VARIANTS = [
   { name: 'NPC_A', height: 1.80, measured: 1.799, speed: 1.00 },
@@ -45,6 +46,9 @@ const VARIANTS = [
   { name: 'NPC_C', height: 1.78, measured: 1.787, speed: 0.92 },
   { name: 'NPC_D', height: 1.86, measured: 1.806, speed: 1.04 },
   { name: 'NPC_E', height: 1.68, measured: 1.806, speed: 0.96 },
+  { name: 'NPC_F', height: 1.62, measured: 1.806, speed: 0.98 },
+  { name: 'NPC_G', height: 1.66, measured: 1.806, speed: 1.06 },
+  { name: 'NPC_H', height: 1.72, measured: 1.806, speed: 0.94 },
 ];
 
 const hud = document.getElementById('hud');
@@ -99,6 +103,7 @@ for (let i = 0; i < COUNT; i++) {
   action.time = Math.random() * clip.duration;
   action.play();
   inst.scale.setScalar(v.height / v.measured);
+  if (params.get('tint') !== '0') tintNpc(inst, mulberry32(1000 + i)); // ?tint=0 shows the built colours
   const col = i % cols, row = Math.floor(i / cols);
   inst.position.set((col - (cols - 1) / 2) * 1.0, 0, row * 0.9 - (Math.ceil(COUNT / cols) - 1) * 0.45);
   inst.traverse(o => { if (o.isMesh) { o.castShadow = SHADOWS; o.receiveShadow = false; } });

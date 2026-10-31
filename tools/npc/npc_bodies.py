@@ -16,11 +16,10 @@ from bl_ext.user_default.mpfb.services.targetservice import TargetService  # noq
 
 BASE = {"gender": 1.0, "age": 0.54, "weight": 0.45, "muscle": 0.5, "height": 0.56,
         "african": 0.1, "asian": 0.1, "caucasian": 0.8}
-VARIANTS = {  # adult ages only: a young age macro changes the proportions and the shared rig would no longer fit
-    "NPC_B": {"age": 0.50, "weight": 0.30, "muscle": 0.35},
-    "NPC_C": {"age": 0.70, "weight": 0.70, "muscle": 0.40},
-    "NPC_D": {"age": 0.50, "weight": 0.55, "muscle": 0.62},
-    "NPC_E": {"age": 0.50, "weight": 0.35, "muscle": 0.45},
+VARIANTS = {
+    "NPC_F": {"gender": 0.0, "age": 0.50, "weight": 0.40, "muscle": 0.35, "height": 0.50},
+    "NPC_G": {"gender": 0.0, "age": 0.55, "weight": 0.55, "muscle": 0.30, "height": 0.56},
+    "NPC_H": {"gender": 0.05, "age": 0.48, "weight": 0.30, "muscle": 0.40, "height": 0.62},
 }
 
 
@@ -54,4 +53,4 @@ for name, override in VARIANTS.items():
     coords = [[round(c, 5) for c in v.co] for v in body.data.vertices]
     with open(f"{OUT}/body_{name}.json", "w") as f:
         json.dump(coords, f)
-    print("BODY", name, "verts", len(coords), "dims", [round(c, 3) for c in body.dimensions], flush=True)
+    print("BODY", name, "zrange", round(min(v.co.z for v in body.data.vertices),3), round(max(v.co.z for v in body.data.vertices),3), "verts", len(coords), "dims", [round(c, 3) for c in body.dimensions], flush=True)
