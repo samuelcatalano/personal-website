@@ -1,0 +1,14 @@
+--- a/tools/npc/npc_build.py
++++ b/tools/npc/npc_build.py
+@@ -191,9 +191,9 @@
+     for z in (zlo, zhi):
+         geom = list(bm.verts) + list(bm.edges) + list(bm.faces)
+         bmesh.ops.bisect_plane(bm, geom=geom, plane_co=(0.0, 0.0, z), plane_no=(0.0, 0.0, 1.0), dist=1e-6)
+-    for v in bm.verts:  # snap the bisect seam to the exact heights
++    for v in bm.verts:  # snap float noise only: a 2 mm snap flattened slivers onto the hem plane, and flat faces shade as notches
+         for z in (zlo, zhi):
+-            if abs(v.co.z - z) < 2e-3:
++            if abs(v.co.z - z) < 1e-5:
+                 v.co.z = z
+     outside = [f for f in bm.faces if not zlo - 1e-6 <= f.calc_center_median().z <= zhi + 1e-6]
+     bmesh.ops.delete(bm, geom=outside, context="FACES")

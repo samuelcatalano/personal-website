@@ -1,0 +1,120 @@
+--- a/tools/npc/npc_build.py
++++ b/tools/npc/npc_build.py
+@@ -47,7 +47,7 @@
+          c=dict(body="#2e4468", sleeve="#243653", accent="#ebe7dc", trim="#1b2740", zip="#0e1420",
+                 base="#3b3e46", stripe="#ebe7dc"),
+          shoe=dict(kind="sneaker", colour="#efede7", sole="#2b2e35", accent="#8d9bb5", lace="#2b2e35")),
+-    dict(name="NPC_B", json=True, hair=("curls", "#1c1613"), skin="#935a37",
++    dict(name="NPC_B", json=True, hair=("curls", "#1c1613"), skin="#935a37", smile=0.5,
+          top="puffer", bottom="jeans",
+          c=dict(body="#7d2b3a", sleeve="#5e202d", base="#2b3a56"),
+          shoe=dict(kind="boot", colour="#2b2119", sole="#c99a67", accent="#3a2c21", lace="#8a7255")),
+@@ -55,7 +55,7 @@
+          top="hoodie", bottom="cargo",
+          c=dict(body="#6a7a52", sleeve="#566444", accent="#ebe5d3", trim="#4c593b", base="#5d584b"),
+          shoe=dict(kind="runner", colour="#8e929b", sole="#f4f2ec", accent="#cfd2d8", lace="#f0eee8")),
+-    dict(name="NPC_D", json=True, hair=("bald_horseshoe", "#5e5e66"), skin="#b67650",
++    dict(name="NPC_D", json=True, hair=("bald_horseshoe", "#5e5e66"), skin="#b67650", smile=0.4,
+          top="sweater_print", bottom="jeans",
+          c=dict(body="#c79b30", sleeve="#b58a29", accent="#22314c", print2="#f2eee3", trim="#94711f", base="#82a0c4"),
+          shoe=dict(kind="runner", colour="#d65a2c", sole="#f2eee3", accent="#f2eee3", lace="#f8f4ea")),
+@@ -64,7 +64,7 @@
+          c=dict(body="#ebe6d8", sleeve="#e3ddcc", accent="#c9c1ac", base="#a65c36", belt="#4a3220", buckle="#bfb7a0",
+                 roll_t=0.34),
+          shoe=dict(kind="sneaker", colour="#4a3426", sole="#e8e3d3", accent="#33231a", lace="#e9e2d0")),
+-    dict(name="NPC_F", json=True, fem=True, hair=("wavy_long", "#2a1a12"), skin="#e9b896",
++    dict(name="NPC_F", json=True, fem=True, hair=("wavy_long", "#2a1a12"), skin="#e9b896", smile=0.8,
+          top="sweater_print", bottom="chinos",
+          c=dict(body="#b4486b", sleeve="#a03d5e", accent="#2a2f3f", print2="#f4ece4", trim="#7e2c47", base="#2b3140", belt="#3a2a22", buckle="#c9b88a", zip="#111111", stripe="#ffffff"),
+          shoe=dict(kind="sneaker", colour="#f2efe9", sole="#2b2b30", accent="#c98aa0", lace="#2b2b30")),
+@@ -72,7 +72,7 @@
+          top="puffer", bottom="jeans",
+          c=dict(body="#2f6f7a", sleeve="#24565f", accent="#ffffff", trim="#1c3f46", base="#1d2431", belt="#222222", buckle="#aaaaaa", zip="#111111", stripe="#ffffff", print2="#ffffff"),
+          shoe=dict(kind="boot", colour="#5a3a26", sole="#c99a67", accent="#3a2619", lace="#9a8060")),
+-    dict(name="NPC_H", json=True, fem=True, hair=("pixie", "#6b3a1f"), skin="#7a4a30",
++    dict(name="NPC_H", json=True, fem=True, hair=("pixie", "#6b3a1f"), skin="#7a4a30", smile=0.6,
+          top="zip_jacket", bottom="cargo",
+          c=dict(body="#e6d8b8", sleeve="#d6c6a2", accent="#3a3a3a", trim="#b8a47c", zip="#2a2a2a", base="#6a5f48", stripe="#3a3a3a", print2="#ffffff", belt="#2a2a2a", buckle="#aaaaaa"),
+          shoe=dict(kind="runner", colour="#d9a441", sole="#f2eee3", accent="#f2eee3", lace="#ffffff")),
+@@ -470,14 +470,30 @@
+     float(os.environ.get("EYE_Y", -0.165)), 0.0085  # rest-pose face front is y ~ -0.148 at the socket (measured by ray cast)
+ 
+ 
+-def face_colours(verts, sk, fem=False):
+-    # vertex-colour modelling of the head: tints blended by a gaussian around landmarks (rest pose, metres)
+-    LM = [((0.0, 1.617), (0.022, 0.0065), (1.00, 0.52, 0.52) if not fem else (1.00, 0.36, 0.40), 0.9 if not fem else 1.0, -0.12),   # lips: redder
+-          ((0.0, 1.648), (0.010, 0.010), (1.05, 0.80, 0.78), 0.6, -0.12),    # nose tip: warmer
+-          ((0.052, 1.652), (0.020, 0.016), (1.04, 0.74, 0.74), 0.5, -0.10),  # cheeks: flushed
+-          ((-0.052, 1.652), (0.020, 0.016), (1.04, 0.74, 0.74), 0.5, -0.10),
+-          ((0.034, 1.673), (0.016, 0.006), (0.88, 0.76, 0.78), 0.5, -0.12),  # under-eye shade
+-          ((-0.034, 1.673), (0.016, 0.006), (0.88, 0.76, 0.78), 0.5, -0.12)]
++def face_colours(verts, sk, fem=False, smile=0.0):
++    # vertex-colour modelling of the head, no extra geometry: tints multiply the skin, each a gaussian around a landmark
++    # (rest pose, metres). smile 0..1 lifts the mouth corners and adds a nasolabial line; the cheek flush scales with skin tone
++    lum = 0.2126 * sk[0] + 0.7152 * sk[1] + 0.0722 * sk[2]  # linear luminance of the skin
++    flush = 0.35 + 0.30 * (1.0 - lum)  # a darker skin takes a stronger flush, so the colour still reads
++    LM = [((0.0, 1.648), (0.010, 0.010), (1.05, 0.80, 0.78), 0.6, -0.12),  # nose tip: warmer
++          ((0.0095, 1.641), (0.005, 0.005), (0.78, 0.66, 0.64), 0.6, -0.10),  # nostrils: shadow
++          ((-0.0095, 1.641), (0.005, 0.005), (0.78, 0.66, 0.64), 0.6, -0.10),
++          ((0.0, 1.634), (0.0045, 0.007), (0.90, 0.80, 0.78), 0.35, -0.10),  # philtrum groove
++          ((0.052, 1.652), (0.024, 0.018), (1.04, 0.74, 0.74), flush, -0.10),  # cheeks: flushed, graded by skin tone
++          ((-0.052, 1.652), (0.024, 0.018), (1.04, 0.74, 0.74), flush, -0.10),
++          ((0.032, 1.668), (0.016, 0.008), (0.86, 0.80, 0.84), 0.7, -0.12),  # eye bags: soft, cool
++          ((-0.032, 1.668), (0.016, 0.008), (0.86, 0.80, 0.84), 0.7, -0.12),
++          ((0.034, 1.694), (0.024, 0.006), (0.90, 0.86, 0.84), 0.45, -0.12),  # brow-ridge shadow
++          ((-0.034, 1.694), (0.024, 0.006), (0.90, 0.86, 0.84), 0.45, -0.12),
++          ((0.080, 1.668), (0.010, 0.022), (0.84, 0.74, 0.72), 0.4, 0.04),  # inner ear: the hollow
++          ((-0.080, 1.668), (0.010, 0.022), (0.84, 0.74, 0.72), 0.4, 0.04)]
++    lip, lip_k = ((1.00, 0.36, 0.40), 1.0) if fem else ((1.00, 0.52, 0.52), 0.9)  # lips: redder
++
++    def seg_d(px, pz, ax, az, bx, bz):  # distance from (px, pz) to the segment a-b, in the x-z plane
++        dx, dz = bx - ax, bz - az
++        t = min(1.0, max(0.0, ((px - ax) * dx + (pz - az) * dz) / (dx * dx + dz * dz)))
++        return math.hypot(px - ax - t * dx, pz - az - t * dz)
++
+     out = []
+     for v in verts:
+         c = list(sk[:3])
+@@ -485,6 +501,13 @@
+             if v.y < ymax:
+                 w = k * math.exp(-((v.x - lx) / sx_) ** 2 - ((v.z - lz) / sz_) ** 2)
+                 c = [ci * (1 + w * (t - 1)) for ci, t in zip(c, tint)]
++        if v.y < -0.10:  # mouth: the smile lifts the slit to its corners (3.5 mm at smile 1); then corner shade and smile line
++            ax = abs(v.x)
++            zl = v.z - 0.0035 * smile * min(1.0, (ax / 0.024) ** 2)
++            for tint, w in ((lip, lip_k * math.exp(-(v.x / 0.022) ** 2 - ((zl - 1.617) / 0.0065) ** 2)),
++                            ((0.84, 0.72, 0.72), 0.5 * math.exp(-((ax - 0.026) / 0.007) ** 2 - ((zl - 1.620) / 0.007) ** 2)),
++                            ((0.84, 0.74, 0.72), 0.45 * smile * math.exp(-(seg_d(ax, zl, 0.013, 1.646, 0.027, 1.622) / 0.0045) ** 2))):
++                c = [ci * (1 + w * (t - 1)) for ci, t in zip(c, tint)]
+         if abs(v.x) > 0.06 and 1.63 < v.z < 1.72 and abs(v.y) < 0.06:  # ears: warmer
+             c = [ci * t for ci, t in zip(c, (1.03, 0.82, 0.80))]
+         t = min(1.0, max(0.0, (1.585 - v.z) / 0.04))  # neck: a little darker than the face
+@@ -498,7 +521,7 @@
+     white, dark, iris = hex_linear("#f2f0ec"), hex_linear("#0c0a0a"), hex_linear(IRIS[npc["name"]])
+     sk = hex_linear(npc['skin'])
+     lid_up = tuple(c * 0.84 for c in sk[:3]) + (1.0,)  # 10% darker in sRGB is ~16% in linear
+-    lid_lo = tuple(c * 0.92 for c in sk[:3]) + (1.0,)
++    lid_lo = tuple(c * 0.88 for c in sk[:3]) + (1.0,)  # a darker lower lid reads as the eye bag
+     brow_c = tuple(0.65 * h + 0.35 * s for h, s in zip(hex_linear(npc['hair'][1]), sk[:3])) + (1.0,)
+     out = []
+     ER = 0.009 if npc.get("fem") else EYE_R
+@@ -554,7 +577,9 @@
+                 for dz in (-hz, hz):
+                     bv.append((bx + dx, by + dy, bz + dz + (0.0012 * (dx / hx) * -sx)))  # outer end lower
+         bf = [(0, 1, 3, 2), (4, 6, 7, 5), (0, 4, 5, 1), (2, 3, 7, 6), (0, 2, 6, 4), (1, 5, 7, 3)]
+-        out.append(dict(part(bv, bf, [{"head": 1.0}] * 8, brow_c), tag=1.0))
++        # taper: the inner end (towards the nose) a shade darker, the tail lighter, so the bar reads as a brow, not a slab
++        bcol = [tuple(min(1.0, ci * (0.85 if dx * sx < 0 else 1.10)) for ci in brow_c[:3]) + (1.0,) for dx in [-hx] * 4 + [hx] * 4]
++        out.append(dict(part(bv, bf, [{"head": 1.0}] * 8, bcol), tag=1.0))
+     return out
+ 
+ 
+@@ -636,7 +661,7 @@
+     body_faces = [f for f in body_faces if not all(0.24 < lo.vertices[i].co.z < specs["jacket"]["zlo"] + 0.05 and abs(lo.vertices[i].co.x) < 0.2
+                                                    and max((lo_w[i].get(n, 0.0) for n in arm_hand), default=0.0) < 0.1 for i in f)]
+     b_verts, b_faces, b_w = compact([v.co.copy() for v in lo.vertices], body_faces, lo_w)
+-    bcols = face_colours(b_verts, hex_linear(npc["skin"]), npc.get("fem", False))
++    bcols = face_colours(b_verts, hex_linear(npc["skin"]), npc.get("fem", False), npc.get("smile", 0.0))
+     used_ = sorted({i for f in body_faces for i in f})
+     btag = [0.0] * len(used_)
+     for k_, i_ in enumerate(used_):  # vertices under a garment take its colour, so a gap in the shell shows cloth, not skin
