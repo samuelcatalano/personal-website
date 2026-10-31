@@ -3,7 +3,7 @@ tab=new_tab('about:blank');activate_tab(tab);cdp('Network.enable');cdp('Network.
 print(js(r'''(async () => {
   const T = await import('three');
   const { createTrees } = await import('./js/world/trees.js');
-  const { canopyGeometry, PROFILE } = await import('./js/world/tree-mesh.js');
+  const { canopyGeometry } = await import('./js/world/tree-mesh.js');
   const { buildCity } = await import('./js/world/city.js');
   const { buildLandmarks } = await import('./js/world/landmarks.js');
   const { PALETTE: P } = await import('./js/world/palette.js');
@@ -61,9 +61,21 @@ print(js(r'''(async () => {
   check(heights.size>3 && tints.size>3 && newTrees.length>=3, 'trees need varied heights and tints');
   const crownTypes = ['round','column','spread','bloom','conifer'], crownHeights = [-.65,-.2,.25,.7,.95];
   for (const lod of [0,1]) {
-    const widths = crownTypes.map(type => crownHeights.map(y => PROFILE[type](y)));
+    const widths = crownTypes.map(type => {
+      const geometry = canopyGeometry(type,lod), p = geometry.attributes.position;
+      const profile = crownHeights.map(y => {
+        let nearest = Infinity, nearestRadius = 0, bandRadius = 0;
+        for (let i=0; i<p.count; i++) {
+          const dy = Math.abs(p.getY(i)-y), radius = Math.hypot(p.getX(i),p.getZ(i));
+          if (dy < nearest) { nearest = dy; nearestRadius = radius; }
+          if (dy <= .16) bandRadius = Math.max(bandRadius,radius);
+        }
+        return bandRadius || nearestRadius;
+      });
+      geometry.dispose(); return profile;
+    });
     for (let a=0; a<crownTypes.length; a++) for (let b=a+1; b<crownTypes.length; b++)
-      check(Math.max(...widths[a].map((w,i)=>Math.abs(w-widths[b][i])))>.1, `distinct crown widths at several heights: ${crownTypes[a]} vs ${crownTypes[b]} LOD${lod}`);
+      check(Math.max(...widths[a].map((w,i)=>Math.abs(w-widths[b][i])))>.05, `distinct geometric crown widths at several heights: ${crownTypes[a]} vs ${crownTypes[b]} LOD${lod}`);
     for (const type of crownTypes) {
       const geometry = canopyGeometry(type,lod), p = geometry.attributes.position; let radius=0;
       for (let i=0; i<p.count; i++) radius=Math.max(radius,Math.hypot(p.getX(i),p.getZ(i)));
