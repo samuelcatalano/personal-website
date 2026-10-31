@@ -22,7 +22,7 @@ from bl_ext.user_default.mpfb.services.targetservice import TargetService  # noq
 
 def macro_dict(height):
     d = TargetService.get_default_macro_info_dict()
-    vals = {"gender": 1.0, "age": 0.54, "weight": 0.45, "muscle": 0.5, "height": height,
+    vals = {"gender": 1.0, "age": 0.50, "weight": 0.40, "muscle": 0.55, "height": height, "proportions": 0.85,  # slim, idealised proportions (longer legs)
             "african": 0.1, "asian": 0.1, "caucasian": 0.8}
 
     def walk(dct):

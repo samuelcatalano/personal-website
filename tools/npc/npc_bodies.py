@@ -14,16 +14,16 @@ addon_utils.enable("bl_ext.user_default.mpfb", default_set=True)
 from bl_ext.user_default.mpfb.services.humanservice import HumanService  # noqa: E402
 from bl_ext.user_default.mpfb.services.targetservice import TargetService  # noqa: E402
 
-BASE = {"gender": 1.0, "age": 0.54, "weight": 0.45, "muscle": 0.5, "height": 0.56,
+BASE = {"gender": 1.0, "age": 0.50, "weight": 0.40, "muscle": 0.55, "height": 0.56, "proportions": 0.85,  # same as npc_walk_check (the rig)
         "african": 0.1, "asian": 0.1, "caucasian": 0.8}
-VARIANTS = {  # B..E restored from 9d04c99 (they were dropped when F..H were added)
-    "NPC_B": {"age": 0.50, "weight": 0.30, "muscle": 0.35},
-    "NPC_C": {"age": 0.70, "weight": 0.70, "muscle": 0.40},
-    "NPC_D": {"age": 0.50, "weight": 0.55, "muscle": 0.62},
-    "NPC_E": {"age": 0.50, "weight": 0.35, "muscle": 0.45},
-    "NPC_F": {"gender": 0.0, "age": 0.50, "weight": 0.40, "muscle": 0.35, "height": 0.50},
-    "NPC_G": {"gender": 0.0, "age": 0.55, "weight": 0.55, "muscle": 0.30, "height": 0.56},
-    "NPC_H": {"gender": 0.05, "age": 0.48, "weight": 0.30, "muscle": 0.40, "height": 0.62},
+VARIANTS = {  # street crowd: mostly slim young adults, varied ancestry (the face shape follows it); the rig is NPC_A's
+    "NPC_B": {"age": 0.45, "weight": 0.35, "muscle": 0.55, "african": 0.85, "asian": 0.05, "caucasian": 0.10},
+    "NPC_C": {"age": 0.55, "weight": 0.48, "muscle": 0.45, "african": 0.05, "asian": 0.15, "caucasian": 0.80},
+    "NPC_D": {"age": 0.62, "weight": 0.50, "muscle": 0.55, "african": 0.60, "asian": 0.10, "caucasian": 0.30},
+    "NPC_E": {"age": 0.45, "weight": 0.32, "muscle": 0.50, "african": 0.05, "asian": 0.05, "caucasian": 0.90},
+    "NPC_F": {"gender": 0.0, "age": 0.45, "weight": 0.36, "muscle": 0.40, "height": 0.50, "african": 0.05, "asian": 0.10, "caucasian": 0.85},
+    "NPC_G": {"gender": 0.0, "age": 0.50, "weight": 0.42, "muscle": 0.38, "height": 0.56, "african": 0.10, "asian": 0.60, "caucasian": 0.30},
+    "NPC_H": {"gender": 0.05, "age": 0.45, "weight": 0.30, "muscle": 0.42, "height": 0.62, "african": 0.85, "asian": 0.05, "caucasian": 0.10},
 }
 
 
