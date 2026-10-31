@@ -79,3 +79,9 @@ Rebuild command: `blender -b --factory-startup -P tools/buildings/townhouse-kit/
 | Midrise facade module library | `assets/processed/buildings/midrise-kit.glb` | Generated in-project by `tools/buildings/midrise-kit/build_midrise_kit.py` (Blender; original authored geometry and simple role materials; no external meshes or textures) | Project-owned |
 
 Rebuild commands: `blender -b --factory-startup -P tools/buildings/shop-kit/build_shop_kit.py` and `blender -b --factory-startup -P tools/buildings/midrise-kit/build_midrise_kit.py`.
+
+## NPC POC (North Star, five skinned NPCs) — 2026-10-31
+
+| Asset | Path | Source | Licence |
+| --- | --- | --- | --- |
+| NPC pack: NPC_A to NPC_E, one shared armature (53 bones), walk clip `NPC_Walk` | `assets/npc/npc_pack.glb` | Generated in-project. Bodies: MPFB 2.0.18 macros (`tools/npc/npc_bodies.py`). Walk: Quaternius UAL1 `Walk_Loop`, retargeted in world space (`tools/npc/npc_retarget.py`, `tools/npc/npc_walk_check.py`). Garments, hair and vertex colours: procedural (`tools/npc/npc_build.py`, `tools/npc/hair_styles.py`, project code). Rebuild with `NPC_OUT=<dir> NPC_UAL=<UAL1_Standard.glb> blender -b --factory-startup -P tools/npc/npc_walk_check.py`, then `-P tools/npc/npc_bodies.py`, then `-P tools/npc/npc_build.py`. | Derived. MPFB base mesh: CC0 1.0 (asset licence, checked 2026-10-31; the MPFB code is GPL-3.0-or-later and is not distributed). UAL1 animation: CC0 1.0 (Quaternius `License.txt` in the pack). |
