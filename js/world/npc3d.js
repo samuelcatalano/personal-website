@@ -1,5 +1,5 @@
 // POC: walking NPCs (one GLB, one shared rig, one walk clip) on the pavement beside the bus route.
-// Opt-in with ?npc3d=1. Debug: ?npcnear=1 puts 12 of them 6-12 m ahead of the scroll point and aims an eye-level camera at walker ?npcshot=k. The sprite crowd, layout and scene stay as they are.
+// Opt-in with ?npc3d=1. Debug: ?npcnear=1 puts 24 of them 5-30 m ahead of the scroll point under a pavement-level camera (?npcshot=k aims at walker k). The sprite crowd, layout and scene stay as they are.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
@@ -104,7 +104,7 @@ export function tintNpc(inst, rng) {
   });
 }
 
-export async function createNpc3d(scene, { curve, count = NEAR ? 12 : 40 }) {
+export async function createNpc3d(scene, { curve, count = NEAR ? 24 : 40 }) {
   const gltf = await new GLTFLoader().loadAsync(GLB);
   const clip = gltf.animations.find((a) => a.name === 'NPC_Walk');
   // one template per variant: the shared armature plus only that variant's mesh
@@ -114,7 +114,7 @@ export async function createNpc3d(scene, { curve, count = NEAR ? 12 : 40 }) {
     return t;
   });
   const L = curve.getLength(), rng = mulberry32(777);
-  const [lo, hi] = NEAR ? [6, 12] : [-BACK, AHEAD]; // walker window, metres ahead of the camera along the route
+  const [lo, hi] = NEAR ? [5, 30] : [-BACK, AHEAD]; // walker window, metres ahead of the camera along the route
   const wrap = (v) => lo + ((((v - lo) % (hi - lo)) + (hi - lo)) % (hi - lo));
   const walkers = [];
   for (let i = 0; i < count; i++) {
@@ -159,9 +159,11 @@ export async function createNpc3d(scene, { curve, count = NEAR ? 12 : 40 }) {
         shadow.setMatrixAt(i, dummy.matrix);
       });
       shadow.instanceMatrix.needsUpdate = true;
-      if (NEAR) { // debug: camera at the scroll point, eye level 1.5 m, aimed at walker ?npcshot=k (default 0), about 9 m away; the site camera stays far
-        const a = curve.getPointAt(here / L), w = walkers[SHOT % walkers.length];
-        f.camera.position.set(a.x, 1.5, a.z); f.camera.lookAt(w.inst.position.x, 1.0, w.inst.position.z);
+      if (NEAR) { // debug: pavement-level camera (eye 1.65 m) on the +side pavement, looking along the route at the walkers 5-30 m ahead; ?npcshot=k aims at walker k instead
+        const a = curve.getPointAt(here / L), t = curve.getTangentAt(here / L), side = (IN + OUT) / 2;
+        f.camera.position.set(a.x - t.z * side, 1.65, a.z + t.x * side);
+        if (SHOT) { const w = walkers[SHOT % walkers.length]; f.camera.lookAt(w.inst.position.x, 1.0, w.inst.position.z); }
+        else { const b = curve.getPointAt(Math.min(1, (here + 14) / L)); f.camera.lookAt(b.x - t.z * side, 1.0, b.z + t.x * side); }
       }
     },
     dispose() {
