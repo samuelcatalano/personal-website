@@ -3,6 +3,7 @@
 import bpy, json, os, sys
 import numpy as np
 OUT=os.environ["NPC_OUT"]; XS=float(os.environ.get("XS","1.0"))
+FOOT_S=float(os.environ.get("FOOT_S","0.93")); HAND_S=float(os.environ.get("HAND_S","0.94"))  # female foot/hand scale about the joint
 bpy.ops.wm.open_mainfile(filepath=f"{OUT}/npc_a_walk.blend")
 arm=next(o for o in bpy.data.objects if o.type=="ARMATURE")
 arm.animation_data.action=None
@@ -36,5 +37,13 @@ for nm in sys.argv[sys.argv.index("--")+1:]:
         num+=Wt[:,k:k+1]*d; den+=Wt[:,k]
     P=P+num/np.maximum(den,1e-6)[:,None]*(den>1e-6)[:,None]
     if XS!=1.0: P[:,0]*=XS
+    # female feet and hands: the uniform scale up to the rig height enlarges them (foot 27 cm before the runtime scale);
+    # shrink each about its own joint (ankle = foot bone head, wrist = hand bone head), weighted by the skin weights
+    for grp,piv,k in (("foot","foot",FOOT_S),("ball","foot",FOOT_S),("hand","hand",HAND_S)):
+        for sd in "lr":
+            names_=[n for n in names if n==f"{grp}_{sd}" or (grp=="hand" and n.endswith(f"_{sd}") and n.split("_")[0] in ("thumb","index","middle","ring","pinky"))]
+            w=sum(Wt[:,names.index(n)] for n in names_)
+            c=np.array(arm.data.bones[f"{piv}_{sd}"].head_local)
+            P=P+(w[:,None]*(k-1.0))*(P-c)
     json.dump([[round(float(c),5) for c in v] for v in P],open(f"{OUT}/body_NPC_{nm}.json","w"))
     print("WARP",nm,"s",round(s,3),"pz",[round(x,3) for x in pz],"az",[round(x,3) for x in az],flush=True)
