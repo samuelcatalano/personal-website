@@ -47,7 +47,7 @@ NPCS = [  # NPC_A is the body already in npc_a_walk.blend; the others come from 
          c=dict(body="#2e4468", sleeve="#243653", accent="#ebe7dc", trim="#1b2740", zip="#0e1420",
                 base="#3b3e46", stripe="#ebe7dc"),
          shoe=dict(kind="sneaker", colour="#efede7", sole="#2b2e35", accent="#8d9bb5", lace="#2b2e35")),
-    dict(name="NPC_B", json=True, hair=("curls", "#1c1613"), skin="#935a37",
+    dict(name="NPC_B", json=True, hair=("curls", "#1c1613"), skin="#935a37", smile=0.5,
          top="puffer", bottom="jeans",
          c=dict(body="#7d2b3a", sleeve="#5e202d", base="#2b3a56"),
          shoe=dict(kind="boot", colour="#2b2119", sole="#c99a67", accent="#3a2c21", lace="#8a7255")),
@@ -55,7 +55,7 @@ NPCS = [  # NPC_A is the body already in npc_a_walk.blend; the others come from 
          top="hoodie", bottom="cargo",
          c=dict(body="#6a7a52", sleeve="#566444", accent="#ebe5d3", trim="#4c593b", base="#5d584b"),
          shoe=dict(kind="runner", colour="#8e929b", sole="#f4f2ec", accent="#cfd2d8", lace="#f0eee8")),
-    dict(name="NPC_D", json=True, hair=("bald_horseshoe", "#5e5e66"), skin="#b67650",
+    dict(name="NPC_D", json=True, hair=("bald_horseshoe", "#5e5e66"), skin="#b67650", smile=0.4,
          top="sweater_print", bottom="jeans",
          c=dict(body="#c79b30", sleeve="#b58a29", accent="#22314c", print2="#f2eee3", trim="#94711f", base="#82a0c4"),
          shoe=dict(kind="runner", colour="#d65a2c", sole="#f2eee3", accent="#f2eee3", lace="#f8f4ea")),
@@ -64,7 +64,7 @@ NPCS = [  # NPC_A is the body already in npc_a_walk.blend; the others come from 
          c=dict(body="#ebe6d8", sleeve="#e3ddcc", accent="#c9c1ac", base="#a65c36", belt="#4a3220", buckle="#bfb7a0",
                 roll_t=0.34),
          shoe=dict(kind="sneaker", colour="#4a3426", sole="#e8e3d3", accent="#33231a", lace="#e9e2d0")),
-    dict(name="NPC_F", json=True, fem=True, hair=("wavy_long", "#2a1a12"), skin="#e9b896",
+    dict(name="NPC_F", json=True, fem=True, hair=("wavy_long", "#2a1a12"), skin="#e9b896", smile=0.8,
          top="sweater_print", bottom="chinos",
          c=dict(body="#b4486b", sleeve="#a03d5e", accent="#2a2f3f", print2="#f4ece4", trim="#7e2c47", base="#2b3140", belt="#3a2a22", buckle="#c9b88a", zip="#111111", stripe="#ffffff"),
          shoe=dict(kind="sneaker", colour="#f2efe9", sole="#2b2b30", accent="#c98aa0", lace="#2b2b30")),
@@ -72,7 +72,7 @@ NPCS = [  # NPC_A is the body already in npc_a_walk.blend; the others come from 
          top="puffer", bottom="jeans",
          c=dict(body="#2f6f7a", sleeve="#24565f", accent="#ffffff", trim="#1c3f46", base="#1d2431", belt="#222222", buckle="#aaaaaa", zip="#111111", stripe="#ffffff", print2="#ffffff"),
          shoe=dict(kind="boot", colour="#5a3a26", sole="#c99a67", accent="#3a2619", lace="#9a8060")),
-    dict(name="NPC_H", json=True, fem=True, hair=("pixie", "#6b3a1f"), skin="#7a4a30",
+    dict(name="NPC_H", json=True, fem=True, hair=("pixie", "#6b3a1f"), skin="#7a4a30", smile=0.6,
          top="zip_jacket", bottom="cargo",
          c=dict(body="#e6d8b8", sleeve="#d6c6a2", accent="#3a3a3a", trim="#b8a47c", zip="#2a2a2a", base="#6a5f48", stripe="#3a3a3a", print2="#ffffff", belt="#2a2a2a", buckle="#aaaaaa"),
          shoe=dict(kind="runner", colour="#d9a441", sole="#f2eee3", accent="#f2eee3", lace="#ffffff")),
@@ -227,6 +227,39 @@ def flare_hem(me, zlo, amount):
     me.update()
 
 
+BUST_OFF, BUST_SMOOTH, BUST_IT = 0.010, 1.0, 3  # female tops: 10 mm more air over the bust and belly; Laplacian factor and passes
+
+
+def bust_pass(me):
+    # female tops hang looser over the bust and belly: each vertex stands off by BUST_OFF horizontally from the torso axis (as in
+    # flare_hem), full from z 1.05 to 1.26 and gone by 1.40. The sides fade out between |x| 0.12 and 0.20, so the sleeves keep
+    # their fit. Then a Laplacian pass (BUST_IT iterations, factor BUST_SMOOTH) softens the shell over the same band
+    def side(v):
+        return 1.0 - smooth01((abs(v.co.x) - 0.12) / 0.08)
+    for v in me.vertices:
+        w = smooth01((v.co.z - 0.95) / 0.10) * (1.0 - smooth01((v.co.z - 1.26) / 0.14)) * side(v)
+        if w <= 0.0:
+            continue
+        d = Vector((v.co.x, v.co.y - 0.03, 0.0))  # 0.03: the torso axis
+        if d.length_squared < 1e-8:
+            d = Vector((0.0, -1.0, 0.0))
+        v.co += d.normalized() * BUST_OFF * w
+    nb = [set() for _ in me.vertices]
+    for p in me.polygons:
+        for a, b in p.edge_keys:
+            nb[a].add(b)
+            nb[b].add(a)
+    for _ in range(BUST_IT):
+        co = [v.co.copy() for v in me.vertices]
+        for v in me.vertices:
+            w = BUST_SMOOTH * smooth01((v.co.z - 1.00) / 0.05) * (1.0 - smooth01((v.co.z - 1.25) / 0.08)) * side(v)
+            if w <= 0.0 or not nb[v.index]:
+                continue
+            m = sum((co[j] for j in nb[v.index]), Vector()) / len(nb[v.index])
+            v.co = co[v.index] + (m - co[v.index]) * w
+    me.update()
+
+
 def garment_shell(lo, ok, body, spec):
     # shrunk onto the body and thickened inwards; no subdivision, which would quadruple the triangles. The jacket keeps
     # any face that touches its region, so thin sleeves survive decimation; jeans and sneakers keep only whole faces,
@@ -254,6 +287,8 @@ def garment_shell(lo, ok, body, spec):
     baked = bpy.data.meshes.new_from_object(ob.evaluated_get(bpy.context.evaluated_depsgraph_get()))
     bpy.data.objects.remove(ob)
     bpy.data.meshes.remove(me)
+    if spec.get("bust"):
+        bust_pass(baked)
     out = cut_z(baked, spec["zlo"], spec["zhi"])
     if spec.get("flare"):
         flare_hem(out, spec["zlo"], spec["flare"])
@@ -293,11 +328,12 @@ def foot_at(pts, y):
     return min(p.x for p in sel), max(p.x for p in sel), max(p.z for p in sel)
 
 
-def shoe(body, bw, side, st, calf):
+def shoe(body, bw, side, st, calf, fem=False):
     # closed low-poly shoe per foot: 9 stations heel -> toe (cosine spacing), 22-point rings. Ring = flat sole (thickness per kind,
     # toe spring, rounded edge) whose wall runs 3 mm up the upper, then the upper: foot envelope plus a margin, a toe box (P["toe"]
     # above the sole, rounded nose), the collar on the ankle. Above the ankle the shaft is shifted onto the rest-pose calf line
-    # (calf = knee, ankle of this leg). Length = foot length + 5 mm, so women get shorter shoes.
+    # (calf = knee, ankle of this leg). Length = this foot's own span, heel to toe (no extra allowance), x body height/1.8 for women,
+    # centred on the foot. ponytail: the rig foot_l/ball_l bones span only 20.6 cm, so a bone-based length would leave the mesh foot out.
     # Weights: foot -> ball across y -0.13..-0.16 so the toe bends at the ball; the collar blends calf -> foot.
     # Sole = part 0 (fixed colour), upper = 0.75.
     sx = 1 if side == "l" else -1
@@ -306,8 +342,10 @@ def shoe(body, bw, side, st, calf):
     fb, bb, calf_n = f"foot_{side}", f"ball_{side}", f"calf_{side}"
     pts = [Vector((v.co.x * sx, v.co.y, v.co.z)) for v in body.data.vertices
            if v.co.x * sx > 0 and v.co.z < 0.16 and bw[v.index].get(fb, 0.0) + bw[v.index].get(bb, 0.0) > 0.5]
-    y_front = min(p.y for p in pts) - 0.003
-    y_back = max(p.y for p in pts) + 0.002
+    span = max(p.y for p in pts) - min(p.y for p in pts)
+    L = span * (max(v.co.z for v in body.data.vertices) / 1.8 if fem else 1.0)
+    y_mid = 0.5 * (max(p.y for p in pts) + min(p.y for p in pts))
+    y_front, y_back = y_mid - 0.5 * L, y_mid + 0.5 * L
     y_rf, y_rb, y_nose = y_front + TOE_ROUND, y_back - HEEL_ROUND, y_front + NOSE_ROUND
     margin = 0.010 if kind == "sneaker" else 0.012
     colour, sole_c = hex_linear(st["colour"]), hex_linear(st["sole"])
@@ -461,29 +499,48 @@ def merge_to_npc(name, parts, arm):
     return ob
 
 
-PROUD = 0.1
-CAP = float(os.environ.get("CAP", 0.0025))
-LID_UP, LID_LO = 0.48, -0.62  # lid edges as a fraction of the eye radius above/below the centre
-BROW_DZ = float(os.environ.get("BROW_DZ", 0.0170))
+EYE_R = 0.011  # eyeball radius (m): the eye openings measured on the bodies are 2.0-2.5 cm wide
+PROUD = 0.003  # the eyeball front pole stands this far (m) in front of the skin at the socket rim
 IRIS = dict(NPC_F="#4a2c17", NPC_G="#5d7f4a", NPC_H="#2e2118", NPC_A="#3b6f8f", NPC_B="#4a2c17", NPC_C="#5d7f4a", NPC_D="#2e2118", NPC_E="#6a8fb5")
-EYE_X, EYE_Z, EYE_Y, EYE_R = float(os.environ.get("EYE_X", 0.034)), float(os.environ.get("EYE_Z", 1.685)), \
-    float(os.environ.get("EYE_Y", -0.165)), 0.0085  # rest-pose face front is y ~ -0.148 at the socket (measured by ray cast)
 
 
-def face_colours(verts, sk, fem=False):
-    # vertex-colour modelling of the head: tints blended by a gaussian around landmarks (rest pose, metres)
-    LM = [((0.0, 1.617), (0.022, 0.0065), (1.00, 0.52, 0.52) if not fem else (1.00, 0.36, 0.40), 0.9 if not fem else 1.0, -0.12),   # lips: redder
-          ((0.0, 1.648), (0.010, 0.010), (1.05, 0.80, 0.78), 0.6, -0.12),    # nose tip: warmer
-          ((0.052, 1.652), (0.020, 0.016), (1.04, 0.74, 0.74), 0.5, -0.10),  # cheeks: flushed
-          ((-0.052, 1.652), (0.020, 0.016), (1.04, 0.74, 0.74), 0.5, -0.10),
-          ((0.034, 1.673), (0.016, 0.006), (0.88, 0.76, 0.78), 0.5, -0.12),  # under-eye shade
-          ((-0.034, 1.673), (0.016, 0.006), (0.88, 0.76, 0.78), 0.5, -0.12)]
+def face_colours(verts, sk, fem=False, smile=0.0):
+    # vertex-colour modelling of the head, no extra geometry: tints multiply the skin, each a gaussian around a landmark
+    # (rest pose, metres). smile 0..1 lifts the mouth corners and adds a nasolabial line; the cheek flush scales with skin tone
+    lum = 0.2126 * sk[0] + 0.7152 * sk[1] + 0.0722 * sk[2]  # linear luminance of the skin
+    flush = 0.35 + 0.30 * (1.0 - lum)  # a darker skin takes a stronger flush, so the colour still reads
+    LM = [((0.0, 1.648), (0.010, 0.010), (1.05, 0.80, 0.78), 0.6, -0.12),  # nose tip: warmer
+          ((0.0095, 1.641), (0.005, 0.005), (0.78, 0.66, 0.64), 0.6, -0.10),  # nostrils: shadow
+          ((-0.0095, 1.641), (0.005, 0.005), (0.78, 0.66, 0.64), 0.6, -0.10),
+          ((0.0, 1.634), (0.0045, 0.007), (0.90, 0.80, 0.78), 0.35, -0.10),  # philtrum groove
+          ((0.052, 1.652), (0.024, 0.018), (1.04, 0.74, 0.74), flush, -0.10),  # cheeks: flushed, graded by skin tone
+          ((-0.052, 1.652), (0.024, 0.018), (1.04, 0.74, 0.74), flush, -0.10),
+          ((0.032, 1.668), (0.016, 0.008), (0.86, 0.80, 0.84), 0.7, -0.12),  # eye bags: soft, cool
+          ((-0.032, 1.668), (0.016, 0.008), (0.86, 0.80, 0.84), 0.7, -0.12),
+          ((0.034, 1.694), (0.024, 0.006), (0.90, 0.86, 0.84), 0.45, -0.12),  # brow-ridge shadow
+          ((-0.034, 1.694), (0.024, 0.006), (0.90, 0.86, 0.84), 0.45, -0.12),
+          ((0.080, 1.668), (0.010, 0.022), (0.84, 0.74, 0.72), 0.4, 0.04),  # inner ear: the hollow
+          ((-0.080, 1.668), (0.010, 0.022), (0.84, 0.74, 0.72), 0.4, 0.04)]
+    lip, lip_k = ((1.00, 0.36, 0.40), 1.0) if fem else ((1.00, 0.52, 0.52), 0.9)  # lips: redder
+
+    def seg_d(px, pz, ax, az, bx, bz):  # distance from (px, pz) to the segment a-b, in the x-z plane
+        dx, dz = bx - ax, bz - az
+        t = min(1.0, max(0.0, ((px - ax) * dx + (pz - az) * dz) / (dx * dx + dz * dz)))
+        return math.hypot(px - ax - t * dx, pz - az - t * dz)
+
     out = []
     for v in verts:
         c = list(sk[:3])
         for (lx, lz), (sx_, sz_), tint, k, ymax in LM:
             if v.y < ymax:
                 w = k * math.exp(-((v.x - lx) / sx_) ** 2 - ((v.z - lz) / sz_) ** 2)
+                c = [ci * (1 + w * (t - 1)) for ci, t in zip(c, tint)]
+        if v.y < -0.10:  # mouth: the smile lifts the slit to its corners (3.5 mm at smile 1); then corner shade and smile line
+            ax = abs(v.x)
+            zl = v.z - 0.0035 * smile * min(1.0, (ax / 0.024) ** 2)
+            for tint, w in ((lip, lip_k * math.exp(-(v.x / 0.022) ** 2 - ((zl - 1.617) / 0.0065) ** 2)),
+                            ((0.84, 0.72, 0.72), 0.5 * math.exp(-((ax - 0.026) / 0.007) ** 2 - ((zl - 1.620) / 0.007) ** 2)),
+                            ((0.84, 0.74, 0.72), 0.45 * smile * math.exp(-(seg_d(ax, zl, 0.013, 1.646, 0.027, 1.622) / 0.0045) ** 2))):
                 c = [ci * (1 + w * (t - 1)) for ci, t in zip(c, tint)]
         if abs(v.x) > 0.06 and 1.63 < v.z < 1.72 and abs(v.y) < 0.06:  # ears: warmer
             c = [ci * t for ci, t in zip(c, (1.03, 0.82, 0.80))]
@@ -493,22 +550,82 @@ def face_colours(verts, sk, fem=False):
     return out
 
 
-def face_parts(npc, bvh):
-    # two eyeballs (8 x 6 sphere, front pole = pupil, first ring = iris) and two brow bars, all rigid on the head bone
+def eye_sockets(bvh, name):
+    # the eye opening of each side, measured on the decimated body. The masked eye geometry leaves the skin closed, so the
+    # socket is a recess: front rays pass the skin there and hit the socket floor ~2.5 cm behind the rim. Grid of front-ray
+    # hits over the eye band; cells deeper than -0.131 (midway between rim -0.145 and floor -0.119) are grouped, and per
+    # side the group nearest the rest-pose eye is the opening. Returns per side: centre x, z, width, height, rim and floor y.
+    X = [-0.060 + 0.001 * i for i in range(121)]
+    Z = [1.630 + 0.001 * j for j in range(101)]
+    hit = {}
+    for i, x in enumerate(X):
+        for j, z in enumerate(Z):
+            loc = bvh.ray_cast(Vector((x, -1.0, z)), Vector((0, 1, 0)))[0]
+            hit[(i, j)] = None if loc is None else loc.y
+    deep = {k for k, y in hit.items() if y is not None and y > -0.131}
+    comps, seen = [], set()
+    for k in deep:
+        if k in seen:
+            continue
+        comp, stack = [], [k]
+        seen.add(k)
+        while stack:
+            c = stack.pop()
+            comp.append(c)
+            for n in ((c[0] + 1, c[1]), (c[0] - 1, c[1]), (c[0], c[1] + 1), (c[0], c[1] - 1)):
+                if n in deep and n not in seen:
+                    seen.add(n)
+                    stack.append(n)
+        if len(comp) >= 10:
+            comps.append(comp)
+    out = {}
+    for sx in (-1, 1):
+        def dist(comp):
+            cx = sum(X[i] for i, _ in comp) / len(comp)
+            cz = sum(Z[j] for _, j in comp) / len(comp)
+            return (cx - sx * 0.0325) ** 2 + (cz - 1.685) ** 2
+        side = [c for c in comps if sum(X[i] for i, _ in c) * sx > 0]
+        if not side:
+            out[sx] = dict(x=sx * 0.0325, z=1.685, w=0.022, h=0.007, rim=-0.145, floor=-0.119)
+            print("SOCKET", name, sx, "not found, default", flush=True)
+            continue
+        comp = min(side, key=dist)
+        xs = [X[i] for i, _ in comp]
+        zs = [Z[j] for _, j in comp]
+        cs = set(comp)
+        rim = sorted(hit[n] for c in comp for n in ((c[0] + 1, c[1]), (c[0] - 1, c[1]), (c[0], c[1] + 1), (c[0], c[1] - 1))
+                     if n not in cs and n not in deep and hit.get(n) is not None)
+        floor = sorted(hit[c] for c in comp)
+        out[sx] = dict(x=(min(xs) + max(xs)) / 2, z=(min(zs) + max(zs)) / 2, w=max(xs) - min(xs) + 0.001,
+                       h=max(zs) - min(zs) + 0.001, rim=rim[len(rim) // 2], floor=floor[len(floor) // 2])
+        print("SOCKET", name, sx, "x %.4f z %.4f w %.4f h %.4f rim %.4f floor %.4f" % (
+            out[sx]["x"], out[sx]["z"], out[sx]["w"], out[sx]["h"], out[sx]["rim"], out[sx]["floor"]), flush=True)
+    return out
+
+
+def face_parts(npc, bvh, socks):
+    # two eyeballs (8 x 6 sphere, front pole = pupil, first ring = iris), a skin lid shell around each with the opening
+    # between the lids left open, a skin plug that closes the socket's void around the eye, and a brow bar per side,
+    # all rigid on the head bone. Each eye sits in its measured socket (eye_sockets), its front PROUD in front of the rim
     white, dark, iris = hex_linear("#f2f0ec"), hex_linear("#0c0a0a"), hex_linear(IRIS[npc["name"]])
     sk = hex_linear(npc['skin'])
     lid_up = tuple(c * 0.84 for c in sk[:3]) + (1.0,)  # 10% darker in sRGB is ~16% in linear
-    lid_lo = tuple(c * 0.92 for c in sk[:3]) + (1.0,)
+    lid_lo = tuple(c * 0.88 for c in sk[:3]) + (1.0,)  # a darker lower lid reads as the eye bag
     brow_c = tuple(0.65 * h + 0.35 * s for h, s in zip(hex_linear(npc['hair'][1]), sk[:3])) + (1.0,)
     out = []
-    ER = 0.009 if npc.get("fem") else EYE_R
+    ER = EYE_R
+
     def surf(x, z):
-        # front-most hit over a small ring: the socket slit would otherwise return the hole's back wall
+        # front-most hit over a small ring: the socket opening would otherwise return the hole's back wall
         ys = [h.y for dx, dz in ((0, 0), (.012, 0), (-.012, 0), (0, .012), (0, -.012), (.02, 0), (-.02, 0))
               for h in [bvh.ray_cast(Vector((x + dx, -1.0, z + dz)), Vector((0, 1, 0)))[0]] if h]
         return min(ys) if ys else -0.148
+
     for sx in (-1, 1):
-        ey = surf(sx * EYE_X, EYE_Z) + ER - CAP  # front pole only CAP (2 mm) past the face surface
+        s = socks[sx]
+        ex, ez = s["x"], s["z"]
+        hw = s["h"] / 2 + 0.0015  # half height of the window between the lids (the opening plus 1.5 mm of lid)
+        centre = Vector((ex, s["rim"] - PROUD + ER, ez))
         bm = bmesh.new()
         bmesh.ops.create_uvsphere(bm, u_segments=12, v_segments=8, radius=ER)
         bmesh.ops.rotate(bm, verts=bm.verts, cent=(0, 0, 0), matrix=__import__("mathutils").Matrix.Rotation(1.5708, 3, "X"))
@@ -516,14 +633,15 @@ def face_parts(npc, bvh):
         for v in bm.verts:
             c = v.co.copy()
             front = -c.y / ER  # 1 at the front pole
-            cols.append(dark if front > 0.9 else iris if front > 0.7 else white)
-            verts.append(c + Vector((sx * EYE_X, ey, EYE_Z)))
+            cols.append(dark if front > 0.97 else iris if front > 0.7 else white)  # pupil: the pole only
+            verts.append(c + centre)
         bm.faces.ensure_lookup_table()
         idx = {v: i for i, v in enumerate(bm.verts)}
         faces = [tuple(idx[v] for v in f.verts) for f in bm.faces]
         bm.free()
         out.append(part(verts, faces, [{"head": 1.0}] * len(verts), cols))
-        # lids: a skin-coloured shell 1 mm outside the eyeball; the band between the lid edges is left open
+        eye_pts = verts
+        # lids: a skin-coloured shell 1 mm outside the eyeball; the band between the lids is left open
         RL = ER + 0.0010
         bm = bmesh.new()
         bmesh.ops.create_uvsphere(bm, u_segments=14, v_segments=10, radius=RL)
@@ -532,29 +650,43 @@ def face_parts(npc, bvh):
         drop = []
         for f in bm.faces:
             c = f.calc_center_median()
-            if -c.y < 0.05 * RL or (LID_LO * ER < c.z < LID_UP * ER):
+            if -c.y < 0.05 * RL or (-hw < c.z < hw):
                 drop.append(f)
         bmesh.ops.delete(bm, geom=drop, context="FACES")
         bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
         lv, lc = [], []
         for v in bm.verts:
-            lv.append(v.co + Vector((sx * EYE_X, ey + (RL - ER) * 0.0, EYE_Z)))
+            lv.append(v.co + centre)
             lc.append(lid_up if v.co.z > 0 else lid_lo)
         idx = {v: i for i, v in enumerate(bm.verts)}
         lf = [tuple(idx[v] for v in f.verts) for f in bm.faces]
         bm.free()
         out.append(part(lv, lf, [{"head": 1.0}] * len(lv), lc))
-        # brow: a thin tilted box 3 cm wide, above the eye, coloured like the hair
+        # plug: a skin patch just behind the rim, filling the opening so the dark socket behind it does not show; the eye
+        # stands in front of it
+        px, pz = s["w"] / 2 + 0.002, hw + 0.002
+        nx, nz = 4, 2
+        pv = [Vector((ex - px + 2 * px * i / nx, s["rim"] + 0.0005, ez - pz + 2 * pz * j / nz))
+              for j in range(nz + 1) for i in range(nx + 1)]
+        pf = [(j * (nx + 1) + i, j * (nx + 1) + i + 1, (j + 1) * (nx + 1) + i + 1, (j + 1) * (nx + 1) + i)
+              for j in range(nz) for i in range(nx)]
+        out.append(part(pv, pf, [{"head": 1.0}] * len(pv), face_colours(pv, sk, npc.get("fem", False), npc.get("smile", 0.0))))
+        # brow: a thin tilted box 3 cm wide, 1.1 cm above the upper lid edge, coloured like the hair
         hx, hy, hz = 0.0150, 0.0030, (0.0014 if npc.get("fem") else 0.0024)
-        bx, bz = sx * (EYE_X + 0.002), EYE_Z + BROW_DZ
+        bx, bz = ex + sx * 0.002, ez + hw + 0.011 + hz
         by = surf(bx, bz) - 0.001
         bv = []
         for dx in (-hx, hx):
             for dy in (-hy, hy):
                 for dz in (-hz, hz):
-                    bv.append((bx + dx, by + dy, bz + dz + (0.0012 * (dx / hx) * -sx)))  # outer end lower
+                    bv.append((bx + dx, by + dy, bz + dz + (0.0012 * (dx / hx) * sx)))  # outer end up, a neutral lift
         bf = [(0, 1, 3, 2), (4, 6, 7, 5), (0, 4, 5, 1), (2, 3, 7, 6), (0, 2, 6, 4), (1, 5, 7, 3)]
-        out.append(dict(part(bv, bf, [{"head": 1.0}] * 8, brow_c), tag=1.0))
+        # taper: the inner end (towards the nose) a shade darker, the tail lighter, so the bar reads as a brow, not a slab
+        bcol = [tuple(min(1.0, ci * (0.85 if dx * sx < 0 else 1.10)) for ci in brow_c[:3]) + (1.0,) for dx in [-hx] * 4 + [hx] * 4]
+        out.append(dict(part(bv, bf, [{"head": 1.0}] * 8, bcol), tag=1.0))
+        # DIAG: how far the eyeball and lids stand in front of the skin (m, positive = proud)
+        prot = max(surf(v.x, v.z) - v.y for v in eye_pts + lv)
+        print("EYEFIT", npc["name"], sx, "centre y %.4f z %.4f" % (centre.y, centre.z), "proud_max %.4f" % prot, flush=True)
     return out
 
 
@@ -573,18 +705,47 @@ def flatten_groin(body):
 
 
 def drop_bridges(q):
-    # trouser faces that reach from one leg to the other below z 0.75 (mean) are the crotch bridge: removed, so the legs
-    # stay apart under the seat (the diagnostic counts them; they are not visible from the walk camera)
-    keep = [f for f in q["faces"] if not (min(q["verts"][i][0] for i in f) < 0.0 < max(q["verts"][i][0] for i in f)
-                                          and sum(q["verts"][i][2] for i in f) / len(f) < 0.75)]
-    if len(keep) == len(q["faces"]):
-        return q
-    used = sorted({i for f in keep for i in f})
-    remap = {old: new for new, old in enumerate(used)}
-    col = q["colour"] if isinstance(q["colour"], list) else [q["colour"]] * len(q["verts"])
-    return dict(q, verts=[q["verts"][i] for i in used], faces=[tuple(remap[i] for i in f) for f in keep],
-                weights=[q["weights"][i] for i in used], colour=[col[i] for i in used])
+    # a trouser face that reaches from one leg to the other and dips below z 0.75 is the crotch bridge: clipped at 0.75,
+    # so the part above (the seam, 0.77-0.85) stays closed and the legs stay apart below it. Dropping whole faces opened
+    # holes in the seam; a mean-height test let the low corners through. ponytail: cut edges are not welded to neighbours.
+    ZCUT = 0.75
+    V, W = q["verts"], q["weights"]
+    col = q["colour"] if isinstance(q["colour"], list) else [q["colour"]] * len(V)
 
+    def bridge(f):
+        return min(V[i][0] for i in f) < 0.0 < max(V[i][0] for i in f) and min(V[i][2] for i in f) < ZCUT
+
+    if not any(bridge(f) for f in q["faces"]):
+        return q
+    verts, wts, cols, cut = [tuple(v) for v in V], list(W), list(col), {}
+
+    def at_cut(a, b):  # the point where edge a-b crosses z 0.75; both faces that use the edge share it
+        key = (min(a, b), max(a, b))
+        if key not in cut:
+            t = (ZCUT - V[a][2]) / (V[b][2] - V[a][2])
+            verts.append((V[a][0] + t * (V[b][0] - V[a][0]), V[a][1] + t * (V[b][1] - V[a][1]), ZCUT))
+            wts.append({n: W[a].get(n, 0.0) * (1 - t) + W[b].get(n, 0.0) * t for n in W[a].keys() | W[b].keys()})
+            cols.append(tuple(col[a][k] + t * (col[b][k] - col[a][k]) for k in range(len(col[a]))))
+            cut[key] = len(verts) - 1
+        return cut[key]
+
+    faces = []
+    for f in q["faces"]:
+        if not bridge(f):
+            faces.append(f)
+            continue
+        out = []  # Sutherland-Hodgman clip of the face to z >= 0.75, then a fan
+        for k in range(len(f)):
+            a, b = f[k], f[(k + 1) % len(f)]
+            if V[a][2] >= ZCUT:
+                out.append(a)
+            if (V[a][2] - ZCUT) * (V[b][2] - ZCUT) < 0.0:
+                out.append(at_cut(a, b))
+        faces += [(out[0], out[j], out[j + 1]) for j in range(1, len(out) - 1)]
+    used = sorted({i for f in faces for i in f})
+    remap = {old: new for new, old in enumerate(used)}
+    return dict(q, verts=[verts[i] for i in used], faces=[tuple(remap[i] for i in f) for f in faces],
+                weights=[wts[i] for i in used], colour=[cols[i] for i in used])
 
 def build_npc(npc, body, bw, arm, segs):
     flatten_groin(body)
@@ -605,6 +766,8 @@ def build_npc(npc, body, bw, arm, segs):
         specs["jacket"].update(offset=0.026, thick=0.014)
     hem = TOP_HEM[kind_t] - (FEMALE_HEM_DROP if npc.get("fem") else 0.0)
     specs["jacket"].update(zlo=hem, flare=HEM_FLARE)
+    if npc.get("fem"):
+        specs["jacket"].update(bust=True)  # NPC_F, G, H: the top stands off the bust (bust_pass)
     specs["jeans"].update(zhi=hem + TROUSER_UNDER_HEM)  # the trousers rise under the hem, so no skin shows between them
     if kind_t == "shirt":
         specs["jacket"].update(offset=0.016)
@@ -636,7 +799,7 @@ def build_npc(npc, body, bw, arm, segs):
     body_faces = [f for f in body_faces if not all(0.24 < lo.vertices[i].co.z < specs["jacket"]["zlo"] + 0.05 and abs(lo.vertices[i].co.x) < 0.2
                                                    and max((lo_w[i].get(n, 0.0) for n in arm_hand), default=0.0) < 0.1 for i in f)]
     b_verts, b_faces, b_w = compact([v.co.copy() for v in lo.vertices], body_faces, lo_w)
-    bcols = face_colours(b_verts, hex_linear(npc["skin"]), npc.get("fem", False))
+    bcols = face_colours(b_verts, hex_linear(npc["skin"]), npc.get("fem", False), npc.get("smile", 0.0))
     used_ = sorted({i for f in body_faces for i in f})
     btag = [0.0] * len(used_)
     for k_, i_ in enumerate(used_):  # vertices under a garment take its colour, so a gap in the shell shows cloth, not skin
@@ -652,7 +815,7 @@ def build_npc(npc, body, bw, arm, segs):
                 btag[k_] = 0.5
     parts = [dict(part(b_verts, b_faces, b_w, bcols), tag=btag)]
     for side in ("l", "r"):
-        parts.append(shoe(body, bw, side, npc["shoe"], B[f"calf_{side}"]))
+        parts.append(shoe(body, bw, side, npc["shoe"], B[f"calf_{side}"], fem=npc.get("fem", False)))
     body_bvh = BVHTree.FromPolygons([v.co.copy() for v in body.data.vertices], [tuple(p.vertices) for p in body.data.polygons])
     lin = {k: hex_linear(v) for k, v in oc.items() if isinstance(v, str)}
     lin["zlo"], lin["zhi"] = specs["jacket"]["zlo"], specs["jeans"]["zhi"]
@@ -670,7 +833,8 @@ def build_npc(npc, body, bw, arm, segs):
             parts += [dict(drop_bridges(q), tag=0.5) for q in cs.dress_bottom(H, me, kind_b, lb, body_bvh)]
         bpy.data.meshes.remove(me)
     style, hcol = npc["hair"]
-    parts += face_parts(npc, BVHTree.FromPolygons([v.co.copy() for v in lo.vertices], [tuple(q.vertices) for q in lo.polygons]))
+    bvh_lo = BVHTree.FromPolygons([v.co.copy() for v in lo.vertices], [tuple(q.vertices) for q in lo.polygons])
+    parts += face_parts(npc, bvh_lo, eye_sockets(bvh_lo, npc["name"]))
     parts.append(hair_part(body, arm, style, hex_linear(hcol), lo))
     bpy.data.meshes.remove(lo)
     ob = merge_to_npc(npc["name"], parts, arm)
