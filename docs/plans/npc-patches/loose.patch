@@ -1,0 +1,60 @@
+--- a/tools/npc/npc_build.py
++++ b/tools/npc/npc_build.py
+@@ -227,6 +227,39 @@
+     me.update()
+ 
+ 
++BUST_OFF, BUST_SMOOTH, BUST_IT = 0.010, 1.0, 3  # female tops: 10 mm more air over the bust and belly; Laplacian factor and passes
++
++
++def bust_pass(me):
++    # female tops hang looser over the bust and belly: each vertex stands off by BUST_OFF horizontally from the torso axis (as in
++    # flare_hem), full from z 1.05 to 1.26 and gone by 1.40. The sides fade out between |x| 0.12 and 0.20, so the sleeves keep
++    # their fit. Then a Laplacian pass (BUST_IT iterations, factor BUST_SMOOTH) softens the shell over the same band
++    def side(v):
++        return 1.0 - smooth01((abs(v.co.x) - 0.12) / 0.08)
++    for v in me.vertices:
++        w = smooth01((v.co.z - 0.95) / 0.10) * (1.0 - smooth01((v.co.z - 1.26) / 0.14)) * side(v)
++        if w <= 0.0:
++            continue
++        d = Vector((v.co.x, v.co.y - 0.03, 0.0))  # 0.03: the torso axis
++        if d.length_squared < 1e-8:
++            d = Vector((0.0, -1.0, 0.0))
++        v.co += d.normalized() * BUST_OFF * w
++    nb = [set() for _ in me.vertices]
++    for p in me.polygons:
++        for a, b in p.edge_keys:
++            nb[a].add(b)
++            nb[b].add(a)
++    for _ in range(BUST_IT):
++        co = [v.co.copy() for v in me.vertices]
++        for v in me.vertices:
++            w = BUST_SMOOTH * smooth01((v.co.z - 1.00) / 0.05) * (1.0 - smooth01((v.co.z - 1.25) / 0.08)) * side(v)
++            if w <= 0.0 or not nb[v.index]:
++                continue
++            m = sum((co[j] for j in nb[v.index]), Vector()) / len(nb[v.index])
++            v.co = co[v.index] + (m - co[v.index]) * w
++    me.update()
++
++
+ def garment_shell(lo, ok, body, spec):
+     # shrunk onto the body and thickened inwards; no subdivision, which would quadruple the triangles. The jacket keeps
+     # any face that touches its region, so thin sleeves survive decimation; jeans and sneakers keep only whole faces,
+@@ -254,6 +287,8 @@
+     baked = bpy.data.meshes.new_from_object(ob.evaluated_get(bpy.context.evaluated_depsgraph_get()))
+     bpy.data.objects.remove(ob)
+     bpy.data.meshes.remove(me)
++    if spec.get("bust"):
++        bust_pass(baked)
+     out = cut_z(baked, spec["zlo"], spec["zhi"])
+     if spec.get("flare"):
+         flare_hem(out, spec["zlo"], spec["flare"])
+@@ -605,6 +640,8 @@
+         specs["jacket"].update(offset=0.026, thick=0.014)
+     hem = TOP_HEM[kind_t] - (FEMALE_HEM_DROP if npc.get("fem") else 0.0)
+     specs["jacket"].update(zlo=hem, flare=HEM_FLARE)
++    if npc.get("fem"):
++        specs["jacket"].update(bust=True)  # NPC_F, G, H: the top stands off the bust (bust_pass)
+     specs["jeans"].update(zhi=hem + TROUSER_UNDER_HEM)  # the trousers rise under the hem, so no skin shows between them
+     if kind_t == "shirt":
+         specs["jacket"].update(offset=0.016)

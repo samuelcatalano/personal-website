@@ -1,0 +1,59 @@
+--- a/tools/npc/npc_build.py
++++ b/tools/npc/npc_build.py
+@@ -573,17 +573,47 @@
+ 
+ 
+ def drop_bridges(q):
+-    # trouser faces that reach from one leg to the other below z 0.75 (mean) are the crotch bridge: removed, so the legs
+-    # stay apart under the seat (the diagnostic counts them; they are not visible from the walk camera)
+-    keep = [f for f in q["faces"] if not (min(q["verts"][i][0] for i in f) < 0.0 < max(q["verts"][i][0] for i in f)
+-                                          and sum(q["verts"][i][2] for i in f) / len(f) < 0.75)]
+-    if len(keep) == len(q["faces"]):
++    # a trouser face that reaches from one leg to the other and dips below z 0.75 is the crotch bridge: clipped at 0.75,
++    # so the part above (the seam, 0.77-0.85) stays closed and the legs stay apart below it. Dropping whole faces opened
++    # holes in the seam; a mean-height test let the low corners through. ponytail: cut edges are not welded to neighbours.
++    ZCUT = 0.75
++    V, W = q["verts"], q["weights"]
++    col = q["colour"] if isinstance(q["colour"], list) else [q["colour"]] * len(V)
++
++    def bridge(f):
++        return min(V[i][0] for i in f) < 0.0 < max(V[i][0] for i in f) and min(V[i][2] for i in f) < ZCUT
++
++    if not any(bridge(f) for f in q["faces"]):
+         return q
+-    used = sorted({i for f in keep for i in f})
++    verts, wts, cols, cut = [tuple(v) for v in V], list(W), list(col), {}
++
++    def at_cut(a, b):  # the point where edge a-b crosses z 0.75; both faces that use the edge share it
++        key = (min(a, b), max(a, b))
++        if key not in cut:
++            t = (ZCUT - V[a][2]) / (V[b][2] - V[a][2])
++            verts.append((V[a][0] + t * (V[b][0] - V[a][0]), V[a][1] + t * (V[b][1] - V[a][1]), ZCUT))
++            wts.append({n: W[a].get(n, 0.0) * (1 - t) + W[b].get(n, 0.0) * t for n in W[a].keys() | W[b].keys()})
++            cols.append(tuple(col[a][k] + t * (col[b][k] - col[a][k]) for k in range(len(col[a]))))
++            cut[key] = len(verts) - 1
++        return cut[key]
++
++    faces = []
++    for f in q["faces"]:
++        if not bridge(f):
++            faces.append(f)
++            continue
++        out = []  # Sutherland-Hodgman clip of the face to z >= 0.75, then a fan
++        for k in range(len(f)):
++            a, b = f[k], f[(k + 1) % len(f)]
++            if V[a][2] >= ZCUT:
++                out.append(a)
++            if (V[a][2] - ZCUT) * (V[b][2] - ZCUT) < 0.0:
++                out.append(at_cut(a, b))
++        faces += [(out[0], out[j], out[j + 1]) for j in range(1, len(out) - 1)]
++    used = sorted({i for f in faces for i in f})
+     remap = {old: new for new, old in enumerate(used)}
+-    col = q["colour"] if isinstance(q["colour"], list) else [q["colour"]] * len(q["verts"])
+-    return dict(q, verts=[q["verts"][i] for i in used], faces=[tuple(remap[i] for i in f) for f in keep],
+-                weights=[q["weights"][i] for i in used], colour=[col[i] for i in used])
++    return dict(q, verts=[verts[i] for i in used], faces=[tuple(remap[i] for i in f) for f in faces],
++                weights=[wts[i] for i in used], colour=[cols[i] for i in used])
+ 
+ 
+ def build_npc(npc, body, bw, arm, segs):

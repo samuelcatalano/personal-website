@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NPC POC: skinned walk test</title>
+<style>
+  :root { color-scheme: light; }
+  html, body { margin: 0; height: 100%; background: #d9dde2; overflow: hidden; font-family: system-ui, sans-serif; }
+  canvas { display: block; }
+  #hud { position: fixed; top: 12px; left: 12px; padding: 10px 12px; background: rgba(255,255,255,.85);
+         font: 12px/1.45 ui-monospace, Menlo, monospace; color: #1d2630; border-radius: 6px; max-width: 46ch; }
+  #hud b { font-weight: 600; }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="hud">loading…</div>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
+import { tintNpc, mulberry32 } from '../js/world/npc3d.js';
+
+const params = new URLSearchParams(location.search);
+const COUNT = Math.max(1, Number(params.get('count') || 1));
+const SHADOWS = params.get('shadows') === '1';
+const BENCH = params.get('bench') === '1';
+const WARMUP = 60;
+const SAMPLES = Number(params.get('frames') || 240);
+const GLB = '../assets/npc/npc_pack.glb' + (params.get('v') ? `?v=${params.get('v')}` : '');
+
+// Eight NPCs in one GLB, one shared armature. height = target metres; measured = body height the mesh was built at.
+// speed scales the shared walk clip, so the five cadences differ.
+const VARIANTS = [
+  { name: 'NPC_A', height: 1.80, measured: 1.799, speed: 1.00 },
+  { name: 'NPC_B', height: 1.72, measured: 1.813, speed: 1.08 },
+  { name: 'NPC_C', height: 1.78, measured: 1.787, speed: 0.92 },
+  { name: 'NPC_D', height: 1.86, measured: 1.806, speed: 1.04 },
+  { name: 'NPC_E', height: 1.68, measured: 1.806, speed: 0.96 },
+  { name: 'NPC_F', height: 1.62, measured: 1.806, speed: 0.98 },
+  { name: 'NPC_G', height: 1.66, measured: 1.806, speed: 1.06 },
+  { name: 'NPC_H', height: 1.72, measured: 1.806, speed: 0.94 },
+];
+
+const hud = document.getElementById('hud');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = SHADOWS;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xd9dde2);
+const camera = new THREE.PerspectiveCamera(32, innerWidth / innerHeight, 0.1, 200);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 0.95, 0);
+camera.position.set(0, 1.3, 5.6);
+controls.update();
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x556070, 1.6));
+const sun = new THREE.DirectionalLight(0xffffff, 2.2);
+sun.position.set(4, 8, 5);
+sun.castShadow = SHADOWS;
+if (SHADOWS) Object.assign(sun.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8 });
+scene.add(sun);
+
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(40, 40),
+  new THREE.MeshStandardMaterial({ color: 0x8c949c, roughness: 0.9 }));
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = SHADOWS;
+scene.add(ground);
+
+const t0 = performance.now();
+const gltf = await new GLTFLoader().loadAsync(GLB);
+const loadMs = performance.now() - t0;
+const glbBytes = (await fetch(GLB).then(r => r.arrayBuffer())).byteLength;
+const clip = gltf.animations.find(a => a.name === 'NPC_Walk');
+
+// one template per variant: the shared armature plus only that variant's mesh
+const templates = VARIANTS.map(v => {
+  const t = SkeletonUtils.clone(gltf.scene);
+  for (const w of VARIANTS) if (w.name !== v.name) t.getObjectByName(w.name)?.removeFromParent();
+  return t;
+});
+
+const npcs = [];
+const cols = Math.ceil(Math.sqrt(COUNT));
+for (let i = 0; i < COUNT; i++) {
+  const v = VARIANTS[i % VARIANTS.length];
+  const inst = SkeletonUtils.clone(templates[i % VARIANTS.length]);
+  const mixer = new THREE.AnimationMixer(inst);
+  const action = mixer.clipAction(clip);
+  action.timeScale = v.speed;
+  action.time = Math.random() * clip.duration;
+  action.play();
+  inst.scale.setScalar(v.height / v.measured);
+  if (params.get('tint') !== '0') tintNpc(inst, mulberry32(1000 + i)); // ?tint=0 shows the built colours
+  const col = i % cols, row = Math.floor(i / cols);
+  inst.position.set((col - (cols - 1) / 2) * 1.0, 0, row * 0.9 - (Math.ceil(COUNT / cols) - 1) * 0.45);
+  inst.traverse(o => { if (o.isMesh) { o.castShadow = SHADOWS; o.receiveShadow = false; } });
+  scene.add(inst);
+  npcs.push({ inst, mixer, variant: v.name });
+}
+if (npcs.length === 1) npcs[0].inst.position.set(0, 0, 0);
+
+let skinned = 0, bones = 0, tris = 0;
+npcs.forEach(n => n.inst.traverse(o => {
+  if (o.isSkinnedMesh) {
+    skinned++;
+    bones += o.skeleton.bones.length;
+    tris += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3;
+  }
+}));
+
+const samples = [], cpuSamples = [];
+let last = performance.now(), frameN = 0, benchDone = false;
+function status(ms) {
+  const info = renderer.info.render, mm = renderer.info.memory;
+  const names = [...new Set(npcs.map(n => n.variant))].join(' ');
+  return `<b>NPC POC</b> count=${COUNT} shadows=${SHADOWS ? 1 : 0}<br>` +
+    `frame ${ms.toFixed(1)} ms · ${(1000 / ms).toFixed(0)} fps<br>` +
+    `draw calls ${info.calls} · tris ${info.triangles}<br>` +
+    `skinned ${skinned} · bones ${bones} · mixers ${npcs.length}<br>` +
+    `geometries ${mm.geometries} · textures ${mm.textures} · glb ${(glbBytes / 1024).toFixed(0)} KiB · load ${loadMs.toFixed(0)} ms<br>` +
+    `variants: ${names}`;
+}
+
+function pct(arr, p) {
+  const s = [...arr].sort((a, b) => a - b);
+  return s[Math.min(s.length - 1, Math.floor(p * (s.length - 1)))];
+}
+
+renderer.setAnimationLoop(() => {
+  const now = performance.now();
+  const ms = now - last;
+  last = now;
+  const dt = Math.min(ms / 1000, 0.1);
+  const c0 = performance.now();  // CPU time: animation and command submission; the GPU runs behind it
+  for (const n of npcs) n.mixer.update(dt);
+  controls.update();
+  renderer.render(scene, camera);
+  const cpu = performance.now() - c0;
+  frameN++;
+  if (BENCH && !benchDone) {
+    if (frameN > WARMUP) { samples.push(ms); cpuSamples.push(cpu); }
+    if (samples.length >= SAMPLES) {
+      benchDone = true;
+      const mean = samples.reduce((a, b) => a + b, 0) / samples.length;
+      window.__bench = {
+        count: COUNT, frames: samples.length,
+        medianMs: +pct(samples, 0.5).toFixed(2), p95Ms: +pct(samples, 0.95).toFixed(2), meanMs: +mean.toFixed(2),
+        cpuMedianMs: +pct(cpuSamples, 0.5).toFixed(3), cpuP95Ms: +pct(cpuSamples, 0.95).toFixed(3),
+        calls: renderer.info.render.calls, triangles: renderer.info.render.triangles,
+        skinnedMeshes: skinned, bones, mixers: npcs.length, meshTrisPerNpc: Math.round(tris / Math.max(1, skinned)),
+        geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures,
+        glbKiB: +(glbBytes / 1024).toFixed(1), loadMs: +loadMs.toFixed(0), shadows: SHADOWS,
+        dpr: renderer.getPixelRatio(), viewport: [innerWidth, innerHeight],
+      };
+      hud.innerHTML = '<b>benchmark done</b><br><pre>' + JSON.stringify(window.__bench, null, 1) + '</pre>';
+    }
+  }
+  if (frameN % 20 === 0) hud.innerHTML = status(ms);
+});
+window.__ready = true;
+window.__poc = { THREE, scene, camera, npcs, templates };  // debug handle for the POC only
+</script>
+</body>
+</html>

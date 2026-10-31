@@ -1,0 +1,39 @@
+--- a/tools/npc/npc_build.py
++++ b/tools/npc/npc_build.py
+@@ -293,11 +293,12 @@
+     return min(p.x for p in sel), max(p.x for p in sel), max(p.z for p in sel)
+ 
+ 
+-def shoe(body, bw, side, st, calf):
++def shoe(body, bw, side, st, calf, fem=False):
+     # closed low-poly shoe per foot: 9 stations heel -> toe (cosine spacing), 22-point rings. Ring = flat sole (thickness per kind,
+     # toe spring, rounded edge) whose wall runs 3 mm up the upper, then the upper: foot envelope plus a margin, a toe box (P["toe"]
+     # above the sole, rounded nose), the collar on the ankle. Above the ankle the shaft is shifted onto the rest-pose calf line
+-    # (calf = knee, ankle of this leg). Length = foot length + 5 mm, so women get shorter shoes.
++    # (calf = knee, ankle of this leg). Length = this foot's own span, heel to toe (no extra allowance), x body height/1.8 for women,
++    # centred on the foot. ponytail: the rig foot_l/ball_l bones span only 20.6 cm, so a bone-based length would leave the mesh foot out.
+     # Weights: foot -> ball across y -0.13..-0.16 so the toe bends at the ball; the collar blends calf -> foot.
+     # Sole = part 0 (fixed colour), upper = 0.75.
+     sx = 1 if side == "l" else -1
+@@ -306,8 +307,10 @@
+     fb, bb, calf_n = f"foot_{side}", f"ball_{side}", f"calf_{side}"
+     pts = [Vector((v.co.x * sx, v.co.y, v.co.z)) for v in body.data.vertices
+            if v.co.x * sx > 0 and v.co.z < 0.16 and bw[v.index].get(fb, 0.0) + bw[v.index].get(bb, 0.0) > 0.5]
+-    y_front = min(p.y for p in pts) - 0.003
+-    y_back = max(p.y for p in pts) + 0.002
++    span = max(p.y for p in pts) - min(p.y for p in pts)
++    L = span * (max(v.co.z for v in body.data.vertices) / 1.8 if fem else 1.0)
++    y_mid = 0.5 * (max(p.y for p in pts) + min(p.y for p in pts))
++    y_front, y_back = y_mid - 0.5 * L, y_mid + 0.5 * L
+     y_rf, y_rb, y_nose = y_front + TOE_ROUND, y_back - HEEL_ROUND, y_front + NOSE_ROUND
+     margin = 0.010 if kind == "sneaker" else 0.012
+     colour, sole_c = hex_linear(st["colour"]), hex_linear(st["sole"])
+@@ -652,7 +655,7 @@
+                 btag[k_] = 0.5
+     parts = [dict(part(b_verts, b_faces, b_w, bcols), tag=btag)]
+     for side in ("l", "r"):
+-        parts.append(shoe(body, bw, side, npc["shoe"], B[f"calf_{side}"]))
++        parts.append(shoe(body, bw, side, npc["shoe"], B[f"calf_{side}"], fem=npc.get("fem", False)))
+     body_bvh = BVHTree.FromPolygons([v.co.copy() for v in body.data.vertices], [tuple(p.vertices) for p in body.data.polygons])
+     lin = {k: hex_linear(v) for k, v in oc.items() if isinstance(v, str)}
+     lin["zlo"], lin["zhi"] = specs["jacket"]["zlo"], specs["jeans"]["zhi"]
