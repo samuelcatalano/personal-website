@@ -5,6 +5,7 @@ print(js(r'''(async () => {
   const { createBoxes, buildMeshes } = await import('./js/world/voxel.js');
   const { createPlantGeometry } = await import('./js/world/plant-mesh.js');
   const { buildCity } = await import('./js/world/city.js');
+  const { buildParks } = await import('./js/world/parks.js');
   const { stops } = await import('./js/content.js');
   const { routePoints, routeCurve } = await import('./js/world/layout.js');
   const check = (ok, msg) => { if (!ok) throw Error(msg); };
@@ -16,6 +17,14 @@ print(js(r'''(async () => {
   const kinds = ['flower', 'shrub', 'hedge'];
   check(kinds.every(kind => plants.some(p => p.plant === kind)), 'parks emit flower, shrub and hedge instances');
   check(plants.every(p => p.h < 1 && p.y + p.h <= 1), 'low planting stays below 1 m');
+  const parkLegacy = [], parkBoxes = createBoxes();
+  buildParks((...box) => parkLegacy.push(box), stops, pts, curve, []);
+  buildParks(parkBoxes.add, stops, pts, curve, []);
+  const parkCenters = new Map();
+  for (const p of parkBoxes.list.filter(b => b.plant)) { const key = JSON.stringify([p.x,p.y,p.z]); parkCenters.set(key, (parkCenters.get(key) ?? 0) + 1); }
+  for (const b of parkLegacy) { const key = JSON.stringify(b.slice(0,3)), count = parkCenters.get(key) ?? 0; if (count) parkCenters.set(key, count - 1); }
+  check([...parkCenters.values()].every(count => count === 0), 'each park plant replaces an existing planting box');
+  check(plants.length > parkBoxes.list.filter(b => b.plant).length, 'city forwards additive country pocket-garden planting');
 
   const centers = new Map();
   for (const p of plants) { const key = JSON.stringify([p.x,p.y,p.z]); centers.set(key, (centers.get(key) ?? 0) + 1); }
@@ -24,7 +33,6 @@ print(js(r'''(async () => {
     const key = JSON.stringify(b.slice(0,3)), count = centers.get(key) ?? 0;
     if (count) centers.set(key, count - 1); else expected.push(b);
   }
-  check([...centers.values()].every(count => count === 0), 'each plant record replaces an existing planting box');
   check(JSON.stringify(ordinary.map(b => [b.x,b.y,b.z,b.w,b.h,b.d,b.color,b.ry ?? 0])) === JSON.stringify(expected.map(b => [b[0],b[1],b[2],b[3],b[4],b[5],b[6],b[7] ?? 0])), 'ordinary box records and yaw remain unchanged');
 
   const group = buildMeshes(boxes.list), repeated = buildMeshes(boxes.list), plantMeshes = group.children.filter(m => m.userData.plantKind), boxMeshes = group.children.filter(m => !m.userData.plantKind);
@@ -53,5 +61,5 @@ print(js(r'''(async () => {
       check(m.elements.every((v,j) => Math.abs(v-want.elements[j]) < 1e-4), `box batch transform/yaw remains unchanged for ${color}`);
     });
   }
-  return { pass:true, plants:plants.length, plantBatches:plantMeshes.length, boxBatches:boxMeshes.length, boxes:ordinary.length };
+  return { pass:true, plants:plants.length, parkPlants:parkBoxes.list.filter(b => b.plant).length, plantBatches:plantMeshes.length, boxBatches:boxMeshes.length, boxes:ordinary.length };
 })()'''))

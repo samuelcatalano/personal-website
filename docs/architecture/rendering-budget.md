@@ -259,3 +259,13 @@ Recommended follow-ups (not implemented): 1) the +100 MB heap with kits on is th
 - Depth AO adds 0 to 6 draw calls and no median frame time; p95 is about 2 to 3 ms higher in one clean `ao=0` pair (20.7 vs 18.0), so it is not proven to meet the +1 ms desktop limit on software GL. The pass can be turned off with `?ao=0`; confirm on real GPU before treating it as GO.
 - Runs that stall (about 94 frames, p99 above 40 s) happen about one in four on a freshly opened tab; discard them and repeat.
 - Heap peaks 485 to 570 MB with all kits (was 472 to 517 MB without), consistent with the earlier kit note of about +100 MB.
+
+## Tree and planting refresh — 2026-10-31
+
+Focused desktop/browser validation after the vegetation update:
+
+- `tests/trees.browser.py`: 322 trees across 33 chunks, five crown families, 190,828 LOD0 canopy triangles across instances, and 15,650 route/path samples. Existing three-LOD selection and bounds checks pass.
+- `tests/plantings.browser.py`: the city box path contains 577 low-plant records in three shared instanced batches (552 park records plus 25 country-garden additions forwarded through the city builder); its ordinary box path remains at 52 batches / 32,663 box instances. No per-instance geometry or material is created. Hero-realm merged planting is separate from these counts.
+- One consolidated clear-weather desktop capture covers stops 5, 9.5, 10, and 11 in day and night. Visual review found distinct crowns and legible planting; the sampled landmark silhouettes remain unobstructed. Evidence: [desktop contact sheet](../evidence/vegetation-visual-upgrade/desktop-contact-sheet.jpg).
+
+No matched before/after renderer profile was collected, so draw-call delta, GPU/frame-time impact, and memory delta are unknown. Counts above are focused structural checks, not whole-scene totals or a performance guarantee. The captures were taken with pre-existing architecture edits also present in the working tree, so they are visual evidence of the integrated desktop state, not an isolated vegetation A/B.

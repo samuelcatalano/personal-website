@@ -20,7 +20,7 @@ Budgets are set by **screen size × importance**, not by maximizing resolution. 
 | Airplane | 80–300 px, brief | ≤ 4k | ≤ 6 | none | fuselage 16 |
 | Standard building | 50–400 px | existing archetype budgets (see rendering-budget) | chunk mass/trim/glass | 2 mats / 4 maps | — |
 | Public realm prop | 5–40 px | ≤ 200 each, instanced | per type batch | none | 6–8 |
-| Vegetation | 15–120 px | billboard 2 tris, instanced | 1–2 | 1254² painted atlas | — |
+| Vegetation | 15–120 px | procedural LOD0/LOD1 crowns + LOD2 impostors; low planting instanced by kind | chunked tree family/LOD batches; 3 planting-kind batches | procedural 512×128 leaf-card texture + 640×128 five-family impostor atlas; no new files | — |
 | Background object | < 30 px | boxes | instanced buckets | none | — |
 
 The source-faithful hero Mini uses 96 circumferential tire segments and shallow tread grooves; this is a per-asset exception to the typical wheel segment counts above.
@@ -28,7 +28,7 @@ The source-faithful hero Mini uses 96 circumferential tire segments and shallow 
 ## Resolution
 
 - Architecture atlas 512² at metric UVs: sufficient (texel ≈ 2 cm/px at 1 m tiling). Keep.
-- Tree atlas 1254² (≈ 570×585 px per sprite): sufficient for crowns up to ~250 px on screen. Do not upscale.
+- Detailed LOD0/LOD1 crowns use a procedural 512×128 leaf-card texture. LOD2 uses a separate procedural 640×128 impostor atlas with five 128×128 family tiles. Neither atlas needs upscaling or external image assets.
 - Clock faces 256²: sufficient (≤ 60 px on screen).
 - Pedestrian atlas: existing HD path; keep.
 - No 4K textures. No new texture unless a measured surface shows pixelation at its normal shot.

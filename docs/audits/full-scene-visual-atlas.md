@@ -123,3 +123,7 @@ BEFORE / AFTER (left/right, 1440×900 day, UI hidden):
 ## Vehicles / Heathrow / night lighting — 2026-10-21
 
 Heathrow removed (site rebuilt as riverside); A330 now an independent 40 m flyover (B+); Mini A-, LEVC cab B+, New Routemaster A-, Glasgow StreetDeck B+ (distinct model, swap hidden in a railway arch); traffic 20 vehicles with speed profiles. Night: Estaiada, Tower Bridge, Riverside and Wembley arch lit (B+/A-). Spec: [vehicles/Heathrow/night design](../superpowers/specs/2026-10-21-vehicles-heathrow-night-design.md).
+
+## Trees and existing plantings — 2026-10-31
+
+Updated desktop assessment: tree crowns **B+** (five readable silhouettes with detailed near geometry and family-matched distant impostors); park/hero/country planting **B+** (shared low-poly flower, shrub, and hedge meshes add depth to existing beds). Existing understory ellipsoids and ground-cover palette remain. A single clear-weather contact sheet covers São Paulo, London, the countryside transition, and Glasgow, day/night. In the sampled views, London Eye, Big Ben, Estaiada, and Glasgow landmarks remain legible. This is a visual review, not an isolated before/after comparison; no performance grade is assigned without a matched renderer profile. See the [capture and structural counts](../architecture/rendering-budget.md#tree-and-planting-refresh--2026-10-31).

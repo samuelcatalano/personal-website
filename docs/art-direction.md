@@ -66,3 +66,7 @@ The final five normal/diagnostic smoke views (main, skyline, Wembley, London, MA
 ## Glasgow and horizon update — 2026-10-23
 
 The user reopened the rural Glasgow/country fill and distant horizon: replace farms, wind turbines and broad green backdrops with varied urban houses, sandstone tenements and midrise flats, paved streets and small bounded gardens. Preserve the route, roads, lot footprints, landmark sightlines, walking paths and roof shapes. The aggregate triangle-count ceiling was removed, so it is no longer a pass/fail gate; roof geometry remains unchanged. No GO is declared before root validation.
+
+## Tree and planting refresh — 2026-10-31
+
+The owner reopened the graphical quality of existing trees and plantings. Tree placement, centres, height/clearance envelopes, paths, garden footprints, and landmark views remain fixed. Five procedural crown families (round, columnar, spreading, flowering, conifer) now have distinct LOD0/LOD1 geometry and matching LOD2 impostor silhouettes. Existing park beds use shared instanced flowers, shrubs, and hedges; hero and rural pocket gardens reuse low planting within their existing lawns. Variation is deterministic; no external image assets or dependencies were added. This update supersedes the prior tree note only where it described a single billboarding style or a single understory batch.
