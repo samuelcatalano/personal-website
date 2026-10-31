@@ -19,9 +19,9 @@ export function shopRecipe(plot,neighbors=[]){
   return {floors:Math.max(2,Math.round(plot.height/3.15)),ground:Math.min(3.2,plot.height*.5),bays,entry:Math.floor((bays-1)/2)+seed%2*(bays%2===0?1:0),palette:seed%3,windowSeed:seed%7,exposedWest:exposed(-1),exposedEast:exposed(1)};
 }
 // Four local compositions reuse the commercial family; selection never consumes city RNG.
-export function heroShopRecipe(plot,neighbors=[]){
+export function heroShopRecipe(plot,neighbors=[],compositionOverride){
   const r=shopRecipe(plot,neighbors);let seed=2166136261;for(const c of plot.id)seed=Math.imul(seed^c.charCodeAt(0),16777619)>>>0;
-  const composition=((seed>>>7)+Math.round(plot.x/9)+Math.round(plot.z/7))&3;
+  const composition=Number.isInteger(compositionOverride)?((compositionOverride%4)+4)%4:((seed>>>7)+Math.round(plot.x/9)+Math.round(plot.z/7))&3;
   const styles=[
     {bays:2,storeBays:3,entry:1,windowWidth:2.4,windowHeight:1.4,ground:2.9,baseSurface:S.stone,upperSurface:S.plaster,canopy:false,parapet:.24,cornice:'slim',tint:[.78,.94,1.05]},
     {bays:Math.max(3,Math.floor(plot.width/2.4)),storeBays:2,entry:0,windowWidth:1.08,windowHeight:1.9,ground:2.85,baseSurface:S.stone,upperSurface:S.brick,canopy:'entry',parapet:.4,tint:[1.12,.78,.64]},

@@ -14,6 +14,8 @@ Approved delivered scope: townhouse/terrace, shop/mixed low-rise, midrise, offic
 
 **2026-10-29 exception:** the owner approved Asset Pipeline Phase 4. Tree LOD0/LOD1/LOD2 is authorized within the existing planting data and 160 m batches; this does not reopen building LODs, map/layout changes or broader city rollout. Runtime details are recorded in [the asset-pipeline architecture](blender-asset-pipeline.md#phase-4-runtime-slice--2026-10-29).
 
+**2026-10-31 exception:** the owner reopened graphical work for all buildings and houses only. This supersedes the visual-work restriction above for architecture; map/layout, roads, routes, landmark positions/sightlines, vehicles, pedestrians, vegetation, props, global lighting, and mobile remain outside this authorization. The completed refresh is documented below.
+
 Production flow and policies below remain authoritative. Dated boundaries and intermediate NO-GO notes are delivery history, superseded by the user's final visual approval. See [final measurements and release gate](rendering-budget.md#final-milestone-validation--2026-10-21) and [art direction](../art-direction.md).
 
 Known limits: physical mobile not validated; WebGL/browser scheduling, runtime/GPU and random cloud counts affect observed metrics; submitted triangles include multiple passes, not unique geometry; London Eye remains segmented. No physical-VRAM or universal-FPS guarantee. Five smoke shots (main/skyline/Wembley/London/MASP) show no new visual regression; final technical release remains blocked as above.
@@ -105,8 +107,26 @@ The user authorized variation of the nine existing `SHOP_LOT_IDS` / `SHOP_INTEGR
 
 The existing four merged batches stay at12 renderables,2 materials/4 maps. Nine-lot geometry falls10,906→8,874 triangles. Footprint/height ceilings and party-wall exposure remain intact.476 other architectural mesh fingerprints and the exact initial camera match the task baseline. Visual GO subsequently approved by the user; the facade system is now frozen.
 
+## Architecture visual refresh — 2026-10-31
+
+The owner authorized a complete graphical refresh across building and house families, reopening the architecture-only freeze. Existing plot descriptors, footprints, heights, route/layout, batching, shared materials, culling and LOD remain the source of truth. The five structural families now expose twelve deterministic visual archetypes, selected from the plot ID and region:
+
+- Townhouse/terrace: brick terrace, side-gable terrace, hip-roof terrace.
+- Shop/mixed low-rise: high-street shop, wraparound shop.
+- Midrise: stone tenement, banded apartment.
+- Office: horizontal office, vertical office.
+- Tower: straight, stepped, asymmetric.
+
+Regional tinting covers São Paulo, London, countryside and Glasgow. Existing Blender kits gained restrained facade/roof details within their modules and three semantic buckets. The standalone house generator gained recessed openings, brick ground floors, sills and a roof ridge without changing its callers or seeded random sequence. Backdrop profiles and existing building-landmark materials were extended; Copan received eleven facade fins within its existing bounds. No external assets or dependencies were added.
+
+Current desktop citywide measurement (`tests/citywide.browser.py`): 628 converted lots in 183 chunks; 549 active architecture renderables; 781,928 submitted geometry triangles; 142.35 MiB geometry attributes; 2 shared materials and 4 maps. The historical 2026-10-29 measurement was 794,730 triangles / 144 MiB, but it is not a same-commit baseline, so the difference is not attributed to this refresh. The five kit GLBs themselves increased by 896 triangles (+6.1%) and 96,000 bytes, with material/module counts unchanged. Frame time was not measured.
+
+Targeted family tests, citywide bounds/resources/determinism, desktop console smoke and one six-view capture pass at stops 5, 9.5 and 11 (day/night) passed. Captures are machine-local under `/tmp/architecture-final/`. Physical GPU timing, mobile, rain variants, the full regression suite and individual facade close-ups were not checked; no production-readiness claim is implied.
+
 
 ## Final runtime inventory
+
+The counts in this inventory are the 2026-10-21 snapshot. The 2026-10-31 citywide measurement and its live test results above supersede those counts for current rollout coverage.
 
 - Existing descriptors remain source of truth:483 ordinary plots plus8 decorative Paulista envelopes.439 ordinary +6 decorative envelopes use the citywide pipeline;35 previously approved buildings (including the other2 decorative envelopes) remain controls, and11 special generic plots remain deliberately preserved.
 - Citywide groups:148 occupied32×32 cells,444 active bucket meshes; all architecture including preserved/control groups totals488 mesh objects. The final validation does not alter any of their buffers, recipes, LOD, shadows or placement.
