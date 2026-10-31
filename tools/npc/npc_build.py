@@ -25,7 +25,7 @@ hs.HEAD_BONE = "head"
 hs.SPINE_BONE = "spine_03"  # the MPFB game_engine rig names this bone "head" (UAL uses "Head")
 
 FOOT_KEEP = float(os.environ.get("FOOT_KEEP", 0.0))  # feet keep more detail so the shoe shell has no torn toe
-HEAD_KEEP = float(os.environ.get("HEAD_KEEP", 0.5))  # the head resists the collapse by this much, so the face is less faceted
+HEAD_KEEP = float(os.environ.get("HEAD_KEEP", 0.95))  # the head resists the collapse by this much, so the face is less faceted
 LIMB_KEEP = float(os.environ.get("LIMB_KEEP", 0.6))  # knees/elbows: rings kept on the limbs so the trousers and sleeves bend round, not as boards
 LIMB_BONES = ("thigh_l", "thigh_r", "calf_l", "calf_r", "upperarm_l", "upperarm_r", "lowerarm_l", "lowerarm_r")
 DECIMATE = float(os.environ.get("DECIMATE", 0.28))  # collapse ratio for each body; the garments are shelled off the same low-res copy
@@ -572,7 +572,7 @@ def face_colours(verts, sk, fem=False, smile=0.0):
           ((-0.034, 1.694), (0.024, 0.006), (0.90, 0.86, 0.84), 0.45, -0.12),
           ((0.080, 1.668), (0.010, 0.022), (0.84, 0.74, 0.72), 0.4, 0.04),  # inner ear: the hollow
           ((-0.080, 1.668), (0.010, 0.022), (0.84, 0.74, 0.72), 0.4, 0.04)]
-    lip, lip_k = ((1.00, 0.36, 0.40), 1.0) if fem else ((1.00, 0.52, 0.52), 0.9)  # lips: redder
+    lip, lip_k = ((0.98, 0.50, 0.52), 0.8) if fem else ((0.92, 0.66, 0.64), 0.6)  # lips: a thin, wide band (a round blob read as an open "O" mouth)
 
     def seg_d(px, pz, ax, az, bx, bz):  # distance from (px, pz) to the segment a-b, in the x-z plane
         dx, dz = bx - ax, bz - az
@@ -589,7 +589,7 @@ def face_colours(verts, sk, fem=False, smile=0.0):
         if v.y < -0.10:  # mouth: the smile lifts the slit to its corners (3.5 mm at smile 1); then corner shade and smile line
             ax = abs(v.x)
             zl = v.z - 0.0035 * smile * min(1.0, (ax / 0.024) ** 2)
-            for tint, w in ((lip, lip_k * math.exp(-(v.x / 0.022) ** 2 - ((zl - 1.617) / 0.0065) ** 2)),
+            for tint, w in ((lip, lip_k * math.exp(-(v.x / 0.025) ** 4 - ((zl - 1.617) / 0.0042) ** 2)),
                             ((0.84, 0.72, 0.72), 0.5 * math.exp(-((ax - 0.026) / 0.007) ** 2 - ((zl - 1.620) / 0.007) ** 2)),
                             ((0.84, 0.74, 0.72), 0.45 * smile * math.exp(-(seg_d(ax, zl, 0.013, 1.646, 0.027, 1.622) / 0.0045) ** 2))):
                 c = [ci * (1 + w * (t - 1)) for ci, t in zip(c, tint)]
