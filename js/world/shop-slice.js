@@ -87,6 +87,11 @@ export function createShopSlice(plot,neighbors=[],recipe=shopRecipe(plot,neighbo
     if(exposed)facade(face,d,recipe.composition===undefined?Math.max(2,Math.round(d/2.6)):recipe.bays,!!recipe.wrap);
     else{quad([[side*w/2,0,-front],[side*w/2,0,front],[side*w/2,recipe.ground,front],[side*w/2,recipe.ground,-front]],[side,0,0],recipe.baseSurface??S.brick);quad([[side*w/2,recipe.ground,-front],[side*w/2,recipe.ground,front],[side*w/2,roofY,front],[side*w/2,roofY,-front]],[side,0,0],recipe.upperSurface??S.plaster);}
   }
+  if(recipe.arcade){
+    const bays=recipe.storeBays??recipe.bays,span=w,step=span/bays,z=front-.03,h=recipe.ground-.18;
+    for(let i=0;i<=bays;i++)box(-span/2+i*step,h/2,z,.20,h,.30,S.stone,1);
+    box(0,recipe.ground-.09,z,w,.18,.30,S.stone,1);
+  }
   box(0,recipe.ground+.04,0,w+.13,.13,d+.13,S.stone,1);
   box(0,roofY-.10,0,w+.18,recipe.cornice==='slim'?.08:.18,d+.18,S.trim);
   box(0,roofY+.025,0,w,.05,d,S.roof);
@@ -97,6 +102,7 @@ export function createShopSlice(plot,neighbors=[],recipe=shopRecipe(plot,neighbo
   for(const xx of [-w/2+.08,w/2-.08])box(xx,roofY+.06+parapet,0,.22,.06,d-.22,S.stone,1);
   if(recipe.roofCap==='stepped')box(0,roofY+.36,front-.08,w*.42,.28,.20,S.stone);
   if(recipe.roofCap==='pavilion'){box(-w*.15,roofY+.24,-d*.13,w*.48,.42,d*.42,S.roof);box(-w*.15,roofY+.47,-d*.13,w*.52,.04,d*.46,S.stone,1);}
+  if(recipe.cornerPub){const x=w*.38,z=front-.40;box(x,roofY+.20,z,.62,.40,.62,S.stone);box(x,roofY+.43,z,.70,.06,.70,S.trim,1);}
   // The awning projects inside the existing lot, so the sidewalk stays clear.
   if(recipe.canopy==='entry'){
     const entry=(recipe.entry-((recipe.storeBays??recipe.bays)-1)/2)*w/(recipe.storeBays??recipe.bays);box(entry,2.84,front-.3,1.8,.12,.85,S.roof);

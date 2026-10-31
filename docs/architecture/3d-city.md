@@ -109,7 +109,7 @@ The existing four merged batches stay at12 renderables,2 materials/4 maps. Nine-
 
 ## Architecture visual refresh — 2026-10-31
 
-The owner authorized a complete graphical refresh across building and house families, reopening the architecture-only freeze. Existing plot descriptors, footprints, heights, route/layout, batching, shared materials, culling and LOD remain the source of truth. The five structural families now expose twelve deterministic visual archetypes, selected from the plot ID and region:
+The owner authorized a complete graphical refresh across building and house families, reopening the architecture-only freeze. Existing plot descriptors, footprints, heights, route/layout, batching, shared materials, culling and LOD remain the source of truth. The initial refresh introduced twelve deterministic visual archetypes, selected from the plot ID and region:
 
 - Townhouse/terrace: brick terrace, side-gable terrace, hip-roof terrace.
 - Shop/mixed low-rise: high-street shop, wraparound shop.
@@ -122,6 +122,14 @@ Regional tinting covers São Paulo, London, countryside and Glasgow. Existing Bl
 Current desktop citywide measurement (`tests/citywide.browser.py`): 628 converted lots in 183 chunks; 549 active architecture renderables; 781,928 submitted geometry triangles; 142.35 MiB geometry attributes; 2 shared materials and 4 maps. The historical 2026-10-29 measurement was 794,730 triangles / 144 MiB, but it is not a same-commit baseline, so the difference is not attributed to this refresh. The five kit GLBs themselves increased by 896 triangles (+6.1%) and 96,000 bytes, with material/module counts unchanged. Frame time was not measured.
 
 Targeted family tests, citywide bounds/resources/determinism, desktop console smoke and one six-view capture pass at stops 5, 9.5 and 11 (day/night) passed. Captures are machine-local under `/tmp/architecture-final/`. Physical GPU timing, mobile, rain variants, the full regression suite and individual facade close-ups were not checked; no production-readiness claim is implied.
+
+## Architectural variety and infill — 2026-10-31
+
+The catalog now has 24 geometry-backed profiles: the twelve existing styles plus twelve regional compositions. The city gained 24 separated urban lots and eight low rural rear-row homes. Placement uses the existing plot callback, regional rollout and shared mass/trim/glass chunks; the Copan source and geometry were not modified. New urban lot descriptors have unique IDs, deterministic profiles and no descriptor overlap; their positions remain outside the existing landmark, park and pedestrian masks. Selected desktop approach/pass/recede captures for São Paulo, London, Glasgow and Wembley were reviewed in day and night; the landmarks remained readable in those views.
+
+`tests/citywide.browser.py` now reports 660 converted lots, 185 chunks, 555 architecture renderables, 830,256 submitted geometry triangles and 161.15 MiB of geometry attributes (2 shared materials / 4 maps). Against the previous documented sample of 628 lots, 183 chunks, 549 renderables, 781,928 triangles and 142.35 MiB, this is +32 lots, +6 renderables, +48,328 triangles (+6.2%) and +18.80 MiB (+13.2%). The geometry payload remains below the existing 180 MiB check. This is a structural before/after comparison, not a paired frame-time benchmark; frame time was not measured.
+
+Focused Node tests passed 31/31. Desktop browser checks passed for the 24-profile catalog, visual-family diversity, citywide bounds/resources and the city builder; no browser errors were reported. The 14-view day/night route capture is under `/tmp/architecture-density-final/`; a four-view Glasgow recheck after correcting two profile assignments is under `/tmp/architecture-density-glasgow-final/`. Mobile, rain and physical-GPU timing were not checked.
 
 
 ## Final runtime inventory

@@ -248,6 +248,42 @@ test('outskirts: each former-countryside stretch is built up with houses, and no
   }
 });
 
+test('countryside rear infill is stable, bounded, clear of existing plots, and still draws without a callback', async () => {
+  const { buildCountry } = await import('../js/world/country.js');
+  const { stops } = await import('../js/content.js');
+  const { routePoints, regions } = await import('../js/world/layout.js');
+  const ranges = regions(stops, routePoints(stops.length)).map((r) => r.ctry);
+  const curve = { getPointAt: (t) => ({ x: t * 1000, z: 0 }) };
+  const collect = (range, leg) => {
+    const plots = [];
+    buildCountry(() => {}, curve, () => {}, range, leg, (p) => plots.push(p));
+    return plots;
+  };
+  const plots = ranges.flatMap(collect), infill = plots.filter((p) => p.id.startsWith('country-infill-'));
+  const repeated = ranges.flatMap(collect).filter((p) => p.id.startsWith('country-infill-'));
+  assert.equal(infill.length, 8);
+  assert.deepEqual(infill, repeated);
+  assert.equal(new Set(infill.map((p) => p.id)).size, infill.length);
+  const styles = [...new Set(plots.map((p) => p.archetype).filter(Boolean))].sort();
+  assert.deepEqual(styles, ['country-garden-flat', 'country-garden-pair', 'country-slate-cottage']);
+  const gardenFlat = plots.find((p) => p.id === 'country-flat-0-5-0');
+  assert.equal(gardenFlat?.archetype, 'country-garden-flat');
+  for (const p of infill) {
+    assert.ok(ranges.some(([c0, c1]) => p.x >= c0 + 12 && p.x <= c1 - 12));
+    assert.ok(['country-garden-pair', 'country-slate-cottage'].includes(p.archetype));
+    assert.ok(p.z + p.depth / 2 <= -99.98, `infill ${p.id} clears the side-street path`);
+    assert.ok(p.z + p.depth / 2 + 1.8 <= -99.98, `infill path ${p.id} clears the side-street terminus`);
+    assert.ok(p.z - p.depth / 2 - 0.4 >= -121, `infill ${p.id} roof stays before the horizon`);
+    for (const other of plots.filter((q) => q !== p)) {
+      assert.ok(Math.abs(p.x - other.x) >= (p.width + other.width) / 2 || Math.abs(p.z - other.z) >= (p.depth + other.depth) / 2, `infill ${p.id} does not overlap ${other.id}`);
+    }
+  }
+  const boxes = [];
+  ranges.forEach((range, leg) => buildCountry((x, y, z, w, h, d) => boxes.push({ x, y, z, w, h, d }), curve, () => {}, range, leg));
+  for (const p of infill) assert.ok(boxes.some((b) => b.x === p.x && b.y === 0 && b.z === p.z && b.w === p.width && b.d === p.depth), `legacy output draws ${p.id}`);
+  assert.ok(boxes.some((b) => b.x === gardenFlat.x && b.y === 0 && b.z === gardenFlat.z && b.w === gardenFlat.width && b.d === gardenFlat.depth && b.h === gardenFlat.height), 'garden-flat archetype preserves its legacy footprint and height');
+});
+
 test('swapAt derives from the first UK stop', async () => {
   const { swapAt, ukStart } = await import('../js/world/layout.js');
   const { stops: STOPS } = await import('../js/content.js');

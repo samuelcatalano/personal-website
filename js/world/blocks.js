@@ -49,7 +49,20 @@ export function buildBlocks(add, stops, pts, curve, occ, onBuildingPlot, onArchi
   // Plots touching MASP's west side are dropped after generation (the RNG sequence of the rest of the city stays untouched).
   const maspW = onArchitecturePlot && ((p) => (p.x + p.width / 2 > X('masp') - 40 && p.x - p.width / 2 < X('masp') - 19 && p.z + p.depth / 2 > -80 && p.z < -56)
     || (p.kind === 'midrise' && p.x - p.width / 2 > X('masp') + 24 && p.x - p.width / 2 < X('masp') + 36 && p.z > -56 && p.z < -40)); // east: the house that overlapped the right column
-  if (maspW) { const emit = onArchitecturePlot; onArchitecturePlot = (p) => { if (!maspW(p)) emit(p); }; }
+  const explicitStyles = new Map([
+    ['block--295-34', ['paulista-arcade-shop', 'paulista']], ['block--180-45', ['paulista-brise-apartment', 'paulista']],
+    ['block--295--49', ['paulista-finned-tower', 'paulista']],
+  ]);
+  if (onArchitecturePlot) {
+    const emit = onArchitecturePlot;
+    onArchitecturePlot = (p) => {
+      if (maspW?.(p)) return;
+      const style = explicitStyles.get(p.id)
+        ?? (p.kind === 'midrise' && p.x >= 340 && p.x < 350 && p.z >= 40 && p.z < 50 ? ['glasgow-blonde-bay-tenement', 'glasgow'] : undefined)
+        ?? (p.kind === 'terrace' && p.x >= 420 && p.x < 430 && p.z >= 40 && p.z < 50 ? ['glasgow-sandstone-gabled-row', 'glasgow'] : undefined);
+      emit(style ? { ...p, archetype: style[0], region: style[1] } : p);
+    };
+  }
   const H = (k, a, b, z0, z1) => [X(k) - a, X(k) + b, z0, z1], path = Array.from({ length: 241 }, (_, i) => curve.getPointAt(i / 240));
   const zAt = (x) => path.reduce((a, p) => Math.abs(p.x - x) < Math.abs(a.x - x) ? p : a).z;
   const hard = [
@@ -204,5 +217,31 @@ export function buildBlocks(add, stops, pts, curve, occ, onBuildingPlot, onArchi
       const r = rng(10262026 + i);
       draw(add, x, z, [width, depth, Math.floor(height / 3.1), 3.1, [CR, SS, B, LS][i % 4], W, kind === 'terrace' ? 3 : 0, 1], r, r, height < 7, false);
     }
+  }
+
+  // The rear skyline has a few separated infill pockets; reserved landmark, park, and route masks stay unchanged.
+  const densityR = rng(49218), densityKinds = { shop: 2, midrise: 0, terrace: 3, office: 1 };
+  const densityLots = [
+    { id: 'paulista-density-arcade', x: -325, z: -127, width: 10, depth: 8, floors: 2, floorHeight: 3.4, kind: 'shop', region: 'paulista', archetype: 'paulista-arcade-shop', wall: CR },
+    { id: 'paulista-density-brise', x: -313, z: -127, width: 10, depth: 8, floors: 4, floorHeight: 3.2, kind: 'midrise', region: 'paulista', archetype: 'paulista-brise-apartment', wall: SS },
+    { id: 'paulista-density-finned-tower', x: -301, z: -127, width: 12, depth: 10, floors: 14, floorHeight: 3.2, kind: 'office', region: 'paulista', archetype: 'paulista-finned-tower', wall: CM },
+    { id: 'paulista-density-midrise', x: -289, z: -127, width: 10, depth: 8, floors: 5, floorHeight: 3.2, kind: 'midrise', region: 'paulista', wall: TC },
+    { id: 'paulista-density-terrace-0', x: -97, z: -127, width: 8, depth: 8, floors: 3, floorHeight: 3.2, kind: 'terrace', region: 'paulista', wall: CR },
+    { id: 'paulista-density-terrace-1', x: -85, z: -127, width: 8, depth: 8, floors: 4, floorHeight: 3.2, kind: 'terrace', region: 'paulista', wall: OC },
+    { id: 'london-density-terrace', x: 3, z: -127, width: 8, depth: 8, floors: 3, floorHeight: 3.2, kind: 'terrace', region: 'london', archetype: 'london-bay-terrace', wall: B },
+    { id: 'london-density-pub', x: 15, z: -127, width: 10, depth: 8, floors: 2, floorHeight: 3.4, kind: 'shop', region: 'london', archetype: 'london-corner-pub', wall: LS },
+    { id: 'london-density-mansion', x: 27, z: -127, width: 10, depth: 8, floors: 4, floorHeight: 3.2, kind: 'midrise', region: 'london', archetype: 'london-mansion-block', wall: CR },
+    { id: 'london-density-house', x: 39, z: -127, width: 8, depth: 8, floors: 4, floorHeight: 3.2, kind: 'terrace', region: 'london', wall: B },
+    { id: 'glasgow-density-tenement', x: 474, z: -127, width: 12, depth: 9, floors: 5, floorHeight: 3.2, kind: 'midrise', region: 'glasgow', archetype: 'glasgow-red-stepped-tenement', wall: P.redSand },
+    ...[595, 607, 619, 631, 643, 655, 667, 679, 691, 703, 713, 723, 733].map((x, i) => ({
+      id: `london-return-density-${i}`, x, z: -127, width: 8, depth: 8, floors: 2 + (i % 4), floorHeight: 3.2, kind: i % 3 === 0 ? 'terrace' : 'midrise', region: 'london', wall: [B, LS, CR, OW][i % 4],
+    })),
+  ];
+  for (const p of densityLots) {
+    const bounds = [p.x - p.width / 2, p.x + p.width / 2, p.z - p.depth / 2, p.z + p.depth / 2];
+    if ([...hard, ...cut, ...occ, ...free, ...placed].some((o) => hit(bounds, o)) || path.some((q) => hit(bounds, [q.x, q.x, q.z, q.z], 25))) continue;
+    const emit = onArchitecturePlot && ((plot) => onArchitecturePlot({ ...plot, region: p.region, ...(p.archetype ? { archetype: p.archetype } : {}) }));
+    draw(add, p.x, p.z, [p.width, p.depth, p.floors, p.floorHeight, p.wall, W, densityKinds[p.kind], 1], densityR, densityR, false, false, emit, p.id);
+    occ.push(bounds);
   }
 }

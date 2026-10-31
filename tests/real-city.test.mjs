@@ -60,6 +60,16 @@ test('architecture callback replaces the city blocks while preserving safe plots
   assert.ok(new Set(plots.map(p => p.kind)).has('midrise'));
   assert.ok(new Set(plots.map(p => p.kind)).has('terrace'));
   assert.equal(new Set(plots.map(p => p.id)).size, plots.length, 'plot ids remain unique');
+  const density = plots.filter(p => p.id.includes('density-'));
+  assert.equal(density.length, 24, '24 explicit architectural infill lots are included');
+  assert.deepEqual(density, collect().plots.filter(p => p.id.includes('density-')), 'density lots are deterministic');
+  for (const p of density) for (const q of plots) if (q !== p) {
+    assert.ok(!overlaps(p, [q.x - q.width / 2, q.x + q.width / 2, q.z - q.depth / 2, q.z + q.depth / 2]), `${p.id} does not overlap ${q.id}`);
+  }
+  const namedStyles = new Set(plots.map(p => p.archetype).filter(Boolean));
+  for (const name of ['paulista-arcade-shop', 'paulista-brise-apartment', 'paulista-finned-tower', 'london-bay-terrace', 'london-corner-pub', 'london-mansion-block', 'glasgow-blonde-bay-tenement', 'glasgow-red-stepped-tenement', 'glasgow-sandstone-gabled-row']) {
+    assert.ok(namedStyles.has(name), `density lots expose ${name}`);
+  }
   for (const p of plots) {
     assert.ok([p.x, p.z, p.width, p.depth, p.height].every(Number.isFinite));
     assert.ok(p.width > 0 && p.depth > 0 && p.height > 0);

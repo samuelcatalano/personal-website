@@ -22,7 +22,7 @@ export function townhouseRecipe(plot,neighbors=[]) {
 function townhouseGeometry(plot,recipe,level=0,storage=null,modular=false) {
   const {x,z,width,depth,height}=plot;
   if (![x,z,width,depth,height].every(Number.isFinite)||width<4.8||depth<5.5||height<recipe.ridge+.08-1e-6) throw new TypeError('Townhouse recipe does not fit plot');
-  const w=width-.3,d=depth-.3,front=d/2,openings=[];
+  const w=width-.3,d=depth-(recipe.bayWindows?.5:.3),front=d/2,openings=[];
   const buckets=storage?storage.map(b=>{b.count=0;return b}):Array.from({length:3},()=>({position:[],normal:[],uv:[],surface:[],color:[]}));
   function quad(points,normal,surface,bucket=0,uv) {
     points=points.map(p=>new THREE.Vector3(...p));
@@ -76,6 +76,7 @@ function townhouseGeometry(plot,recipe,level=0,storage=null,modular=false) {
         piece(o.u,o.y,-.185,o.w,o.h,.03,S.door,0);
       }else if(o.type!=='door'){
         if(level===0&&!modular)piece(o.u,lo-f/2,.06,o.w+.22,.10,.15,S.stone);
+        if(recipe.bayWindows&&frontFace&&o.y>recipe.ground){box(o.u,o.y,front+.12,o.w+.28,o.h+.22,.24,S.stone,1);box(o.u,o.y,front+.12,o.w,o.h,.18,S.glass,2);}
         if(modular)return;
         piece(o.u,o.y,.005,.065,o.h,.075,S.trim);
         const lit=(index+(frontFace?1:0)+recipe.windowSeed)%3===0;
@@ -99,7 +100,7 @@ function townhouseGeometry(plot,recipe,level=0,storage=null,modular=false) {
   quad([[w/2,0,-d/2],[w/2,0,d/2],[w/2,recipe.eaves,d/2],[w/2,recipe.eaves,-d/2]],[1,0,0],S.plaster);
   if(level===0&&recipe.bands!==false)for(const y of [recipe.ground,recipe.ground+recipe.upper])box(0,y,0,w+.14,.12,d+.14,S.stone,1);
   if(!modular)box(0,recipe.eaves-.09,0,width-.04,.18,depth-.04,S.trim);
-  const half=width/2-.02,rz=depth/2-.02,dy=recipe.ridge-recipe.eaves,slope=Math.hypot(half,dy);
+  const half=width/2-.02,rz=(recipe.bayWindows?d:depth)/2-.02,dy=recipe.ridge-recipe.eaves,slope=Math.hypot(half,dy);
   if(recipe.roof==='side'||recipe.roof==='hip'){ // ridge parallel to the street (rollout variety); 'hip' also slopes the two ends
     const a=recipe.roof==='hip'?Math.max(0,half-rz):half,sz=Math.hypot(rz,dy);
     for(const side of [-1,1]){
@@ -120,7 +121,23 @@ function townhouseGeometry(plot,recipe,level=0,storage=null,modular=false) {
     // The duplicate ridge point closes one triangle without a through-building tunnel.
     quad([[-w/2,gableEdge,zz],[w/2,gableEdge,zz],[0,recipe.ridge,zz],[0,recipe.ridge,zz]],[0,0,n],S.plaster);
   }
-  box(0,recipe.ridge+.02,0,.14,.12,depth-.04,S.roof);
+  box(0,recipe.ridge+.02,0,.14,.12,(recipe.bayWindows?d:depth)-.04,S.roof);
+  }
+  if(recipe.entryGable){
+    const door=frontHoles.find(o=>o.type==='door'),cx=door?.u??0,base=Math.max(2.30,Math.min(2.72,recipe.ground-.30)),peak=base+.34,z0=front-.12,z1=front+.12,leftNormal=new THREE.Vector3(peak-base,-.76,0).normalize().toArray(),rightNormal=new THREE.Vector3(peak-base,.76,0).normalize().toArray();
+    for(const x of [cx-.62,cx+.62])box(x,base/2,(z0+z1)/2,.12,base,.24,S.stone,1);
+    quad([[cx-.76,base,z1],[cx+.76,base,z1],[cx,peak,z1],[cx,peak,z1]],[0,0,1],S.stone,1);
+    quad([[cx-.76,base,z0],[cx,peak,z0],[cx,peak,z1],[cx-.76,base,z1]],leftNormal,S.roof,0);
+    quad([[cx,peak,z0],[cx+.76,base,z0],[cx+.76,base,z1],[cx,peak,z1]],rightNormal,S.roof,0);
+  }
+  if(recipe.chimney){
+    const top=height-.02,base=recipe.eaves+dy*.35;
+    box(-w*.31,(top+base)/2,-d*.18,.55,top-base,.55,S.brick);
+    box(-w*.31,top-.08,-d*.18,.68,.16,.68,S.stone,1);
+  }
+  if(recipe.gardenPair){
+    const z=rz*.48,y=recipe.eaves+dy*(1-z/rz),h=Math.min(.34,dy*.35);
+    for(const x of [-w*.25,w*.25]){box(x,y+h/2,z,.82,h,.75,S.stone);box(x,y+h+.03,z,.9,.06,.8,S.trim,1);}
   }
   const geometries=buckets.map(data=>{
     const geometry=new THREE.BufferGeometry();

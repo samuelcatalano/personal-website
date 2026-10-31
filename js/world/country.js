@@ -20,6 +20,7 @@ const pickDoor = (r) => [P.red, P.maroon, P.navy, P.white][r() * 4 | 0];
 export function buildCountry(add, curve, tree, [c0, c1], leg = 0, onArchitecturePlot) {
   const r = rng(4417 + leg * 977), q = rng(6101 + leg * 31), path = Array.from({ length: 241 }, (_, i) => curve.getPointAt(i / 240));
   const zr = (x) => path.reduce((a, p) => Math.abs(p.x - x) < Math.abs(a.x - x) ? p : a).z, a = c0 + 12, b = c1 - 12; // 12 m margins: neighbours (London sub terraces, Glasgow edge) own the ends
+  const countryFlatPlot = onArchitecturePlot && ((p) => onArchitecturePlot(p.id === 'country-flat-0-5-0' ? { ...p, archetype: 'country-garden-flat' } : p));
   const oak = () => ({ h: 2.6 + r() * 1.2, crown: 1.8 + r() * 0.8 }), pick = (arr) => arr[r() * arr.length | 0];
   const SX = []; for (let x = a + 14 + r() * 8; x < b - 8; x += 30 + r() * 12) SX.push(x); // side streets, shared by all rows
   for (let x = c0; x < c1 - 0.1; x += 10) { // paved urban ground: near side, road far side to the near bank (river path starts at -29.3), far bank
@@ -55,7 +56,7 @@ export function buildCountry(add, curve, tree, [c0, c1], leg = 0, onArchitecture
         x += 12; continue;
       }
       const n = f0 + (r() * (f1 - f0 + 1) | 0);
-      if (flats) draw(add, xc, z, [w, d, n, 3.2, pick(FLATS), P.white, 0, 1], r, q, false, false, onArchitecturePlot, `country-flat-${leg}-${rowKey}-${lot++}`);
+      if (flats) draw(add, xc, z, [w, d, n, 3.2, pick(FLATS), P.white, 0, 1], r, q, false, false, countryFlatPlot, `country-flat-${leg}-${rowKey}-${lot++}`);
       else if (r() < rich) {
         const floors = lo ? 2 : n;
         if (onArchitecturePlot) onArchitecturePlot({ id: `country-house-${leg}-${rowKey}-${lot++}`, kind: 'terrace', x: xc, z, width: w, depth: d, height: floors * 3.1 + (lo ? 0.6 : 2.7) });
@@ -76,5 +77,18 @@ export function buildCountry(add, curve, tree, [c0, c1], leg = 0, onArchitecture
   row(() => -86, 1, [3, 4], 0, 0.45, 0.05, 0); // D: flats behind C
   row(() => -101, 1, [3, 5], 0, 0.6, 0.01, 0.35); // dense outer residential skyline
   row(() => -114, 1, [3, 5], 0, 0.6, 0.01, 0.35); // back row ends before the distant horizon at z=-121
+  // The cross streets end at z=-100; their rear-row gaps fit low cottages without crossing paths or existing lots.
+  const infillR = rng(73193 + leg * 997), infillGeometryR = rng(83219 + leg * 1009);
+  let infillId = 0;
+  const addInfill = (x, z, depth, archetype) => {
+    const width = 5.1 + infillR() * 0.35, height = 2 * 2.8 + 1.3;
+    if (onArchitecturePlot) onArchitecturePlot({ id: `country-infill-${leg}-${infillId++}`, kind: 'terrace', archetype, x, z, width, depth, height });
+    else villa(add, infillGeometryR, x, z, 1, width, depth, 2);
+    add(x, -0.02, z + depth / 2 + 1.2, width, 0.12, 1.2, P.stone);
+  };
+  for (const s of SX) {
+    addInfill(s, -105, 6.2, 'country-garden-pair');
+    addInfill(s, -114.2, 7.4, 'country-slate-cottage');
+  }
   return [];
 }

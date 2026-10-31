@@ -66,6 +66,11 @@ export function createMidriseSlice(plot,recipe=midriseRecipe(plot)) {
         if(lo>recipe.ground)panel(o.u,lo-.30,.012,o.w,.34,S.brick,0);
       }
     }
+    if(recipe.bayWindows&&front)for(const o of holes)if(o.type==='window'&&o.y>recipe.ground){
+      box(o.u,o.y,d/2+.03,o.w+.28,o.h+.24,.28,S.stone,1);
+      box(o.u,o.y,d/2+.03,o.w,o.h,.18,S.glass,2);
+    }
+    if(recipe.brise&&front)for(let f=1;f<recipe.floors;f++)box(0,recipe.ground+f*upper-.08,d/2,w+.08,.14,.32,S.stone,1);
     // Continuous piers establish a vertical order distinct from the terrace rhythm.
     if(recipe.emphasis!=='horizontal')for(let i=0;i<=bays;i++){
       const u=-span/2+.14+i*(span-.28)/bays,y=(recipe.ground+roofY)/2,h=roofY-recipe.ground;
@@ -90,6 +95,21 @@ export function createMidriseSlice(plot,recipe=midriseRecipe(plot)) {
   // Roof silhouette variants: setback penthouse (1), tank + stair pair (2); 0 keeps the plain parapet roof.
   if(recipe.penthouse===1){box(w*.08,roofY+.55,-d*.12,w*.58,1.0,d*.46,S.plaster);box(w*.08,roofY+1.03,-d*.12,w*.62,.07,d*.5,S.stone,1);}
   else if(recipe.penthouse===2){box(-w*.24,roofY+.5,d*.1,1.9,1.0,1.9,S.roof);box(w*.22,roofY+.4,-d*.1,2.2,.8,1.6,S.stone);}
+  if(recipe.mansion){
+    const base=roofY+.64,peak=roofY+.98,z=d/2-.08,half=w*.28;
+    box(0,roofY+.78,d*.18,w*.42,.28,d*.5,S.plaster);
+    box(0,base-.07,z,half*2+.18,.14,.20,S.stone,1);
+    quad([[-half,base,z],[half,base,z],[0,peak,z],[0,peak,z]],[0,0,1],S.stone,1);
+  }
+  if(recipe.steppedRoof){
+    const base=roofY+.36,z=d/2-.18,span=w/3;
+    for(let i=0;i<3;i++){const h=i===1?.56:.28,x=(i-1)*span;box(x,base+h/2,z,span,h,.30,S.brick);box(x,base+h-.035,z,span,.07,.34,S.stone,1);}
+  }
+  if(recipe.gardenRoof){
+    for(const x of [-w*.34,w*.34])box(x,roofY+.48,-d*.12,.82,.34,.72,S.stone);
+    for(const x of [-w*.24,w*.24])for(const z of [-d*.18,d*.18])box(x,roofY+.77,z,.10,.24,.10,S.stone,1);
+    for(const x of [-w*.24,w*.24])box(x,roofY+.91,0,.10,.08,d*.42,S.trim,1);
+  }
   // Recessed human-scale entrance and canopy stay inside the source footprint.
   const entrance=(Math.floor(recipe.bays/2)-(recipe.bays-1)/2)*w/recipe.bays;
   if(!recipe.noCanopy)box(entrance,2.92,d/2-.27,2.65,.14,.82,S.roof);
