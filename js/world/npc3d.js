@@ -62,6 +62,38 @@ vec3 decorate(vec3 c, vec3 p, vec4 d) {
   if (t == 4) return mix(c, dk, sleeve * step(abs(fract((p.y + p.x * 0.6) * 9.0) - 0.5), 0.07));
   return mix(c, dk, (1.0 - sleeve) * step(1.33, p.y));
 }
+// cloth relief (metres of height, bind pose): folds at the knees, ankles, elbows and waist, soft drape, hair strands.
+// It bends the shading normal (screen-space derivatives, as three's bump map), so the folds catch the sun.
+float fold(float u, float f, float ph, float c, float w) { // a band of folds around u = c: irregular spacing and depth
+  float d = smoothstep(w, 0.0, abs(u - c));
+  return d * sin(u * f + ph) * (0.55 + 0.9 * gn(vec3(u * f * 0.35, ph, c * 9.0)));
+}
+float relief(int k, vec3 p) {
+  float n = gn(p * 6.0), m = gn(p * 17.0 + 3.1);
+  if (k == 1) {
+    float a = atan(p.z, abs(p.x) - 0.09); // angle around the leg: folds run diagonally, not as rings
+    float ph = 7.0 * n + 2.2 * sin(a * 2.0 + 3.0 * m);
+    return 0.0030 * fold(p.y, 85.0, ph, 0.50, 0.09) + 0.0036 * fold(p.y, 120.0, ph + 1.7, 0.16, 0.10)
+      + 0.0018 * fold(p.y, 60.0, ph, 0.86, 0.07) + 0.0016 * gn(p * 13.0);
+  }
+  if (k == 0) {
+    float ax = abs(p.x), sl = smoothstep(0.195, 0.215, ax);
+    float s = dot(vec2(ax - 0.19, p.y - 1.45), vec2(0.55, -0.835)); // along the A-pose arm, from the shoulder
+    float a = atan(p.z, dot(vec2(ax - 0.19, p.y - 1.45), vec2(0.835, 0.55)));
+    float ph = 6.0 * n + 2.0 * sin(a * 2.0 + 3.0 * m);
+    return sl * (0.0032 * fold(s, 80.0, ph, 0.30, 0.10) + 0.0024 * fold(s, 105.0, ph + 2.0, 0.55, 0.06))
+      + (1.0 - sl) * (0.0022 * fold(p.y, 70.0, 6.0 * n + 2.0 * sin(atan(p.z, p.x) * 3.0), 0.99, 0.10)
+      + 0.0016 * fold(p.y + 0.6 * ax, 45.0, 5.0 * m, 1.36, 0.06)) + 0.0024 * gn(p * 10.0);
+  }
+  if (k == 3) return 0.0007 * gn(p * vec3(320.0, 45.0, 320.0));
+  return 0.0;
+}
+vec3 bumped(vec3 pos, vec3 nrm, float h, float fd) {
+  vec3 sx = dFdx(pos), sy = dFdy(pos), r1 = cross(sy, nrm), r2 = cross(nrm, sx);
+  float det = dot(sx, r1) * fd;
+  vec3 g = sign(det) * (dFdx(h) * r1 + dFdy(h) * r2);
+  return normalize(abs(det) * nrm - g);
+}
 float grain(int k, vec3 p) {
   if (k == 1) return 1.0 + 0.10 * (gn(p * 18.0) - 0.5) + 0.05 * (gn(p * 90.0) - 0.5) + 0.035 * sin((p.x + p.y + p.z * 1.7) * 900.0);
   if (k == 0) return 1.0 + 0.07 * (gn(p * 25.0) - 0.5) + 0.04 * (gn(p * 140.0) - 0.5) + 0.025 * sin(atan(p.x, p.y) * 160.0);
@@ -120,7 +152,9 @@ export function tintNpc(inst, rng) {
           diffuseColor.rgb = tints[k].rgb * clamp(lum / means[k], 0.35, 2.2);
         }
         if (k == 0 && deco.w > 0.5) diffuseColor.rgb = decorate(diffuseColor.rgb, vRest, deco);
-        diffuseColor.rgb *= grain(k, vRest);`);
+        diffuseColor.rgb *= grain(k, vRest);`)
+        .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+        { int kk = int(floor(vPart * 4.0 + 0.5)) - 1; if (kk >= 0) normal = bumped(-vViewPosition, normal, relief(kk, vRest) * 1.0, faceDirection); }`);
     };
   });
 }
