@@ -26,6 +26,8 @@ hs.SPINE_BONE = "spine_03"  # the MPFB game_engine rig names this bone "head" (U
 
 FOOT_KEEP = float(os.environ.get("FOOT_KEEP", 0.0))  # feet keep more detail so the shoe shell has no torn toe
 HEAD_KEEP = float(os.environ.get("HEAD_KEEP", 0.5))  # the head resists the collapse by this much, so the face is less faceted
+LIMB_KEEP = float(os.environ.get("LIMB_KEEP", 0.6))  # knees/elbows: rings kept on the limbs so the trousers and sleeves bend round, not as boards
+LIMB_BONES = ("thigh_l", "thigh_r", "calf_l", "calf_r", "upperarm_l", "upperarm_r", "lowerarm_l", "lowerarm_r")
 DECIMATE = float(os.environ.get("DECIMATE", 0.28))  # collapse ratio for each body; the garments are shelled off the same low-res copy
 GARMENT_SPECS = {
     # the jacket is cut above the shoulder tops (1.56 m on the rest pose, measured), so no skin shows at the shoulders
@@ -142,6 +144,53 @@ def seg_weights(segs, co, k=3):
     return {name: w / tot for w, name in inv}
 
 
+def limb_of(bone):
+    # body region of a bone: each arm (upper arm to fingers), each leg (thigh to toes), or the torso (spine, clavicles, neck, head)
+    side = bone[-1] if bone[-2:] in ("_l", "_r") else ""
+    base = bone.split("_")[0]
+    if side and base in ("upperarm", "lowerarm", "hand", "thumb", "index", "middle", "ring", "pinky"):
+        return "arm" + side
+    if side and base in ("thigh", "calf", "foot", "ball"):
+        return "leg" + side
+    return "torso"
+
+
+def surface_weights(body, bw, segs):
+    # garments take the body's own skin weights: the nearest point on the full-res body surface, its polygon's vertex
+    # weights interpolated (mean value coordinates). Blended bone segments (seg_weights) bent the trousers like rigid
+    # tubes with a kink at the knee and pulled the hems apart. The search stays inside the region of the vertex's nearest
+    # bone segment (torso, each arm, each leg), so a sleeve lying on the ribs does not take the spine's weights.
+    from mathutils.interpolate import poly_3d_calc
+    vs = [v.co.copy() for v in body.data.vertices]
+    polys = [tuple(p.vertices) for p in body.data.polygons]
+    groups = {}
+    for p in polys:
+        acc = {}
+        for i in p:
+            for n, val in bw[i].items():
+                acc[n] = acc.get(n, 0.0) + val
+        groups.setdefault(limb_of(max(acc, key=acc.get)) if acc else "torso", []).append(p)
+    bvhs = {g: (BVHTree.FromPolygons(vs, ps), ps) for g, ps in groups.items()}
+
+    def sw(co):
+        co = Vector(co)
+        bone = min(segs, key=lambda s_: seg_dist(co, s_[1], s_[2]))[0]
+        bvh, ps = bvhs.get(limb_of(bone), bvhs["torso"])
+        hit = bvh.find_nearest(co)
+        if hit[2] is None:
+            return seg_weights(segs, co)
+        idx = ps[hit[2]]
+        ws = poly_3d_calc([vs[i] for i in idx], hit[0])
+        out = {}
+        for i, a in zip(idx, ws):
+            for n, val in bw[i].items():
+                out[n] = out.get(n, 0.0) + a * val
+        top = sorted(out.items(), key=lambda kv: -kv[1])[:4]  # four influences per vertex (glTF JOINTS_0)
+        tot = sum(v for _, v in top) or 1.0
+        return {n: v / tot for n, v in top if v > 1e-4}
+    return sw
+
+
 def ramp(x):
     # 0 below a bone weight of 0.1, 1 above 0.9: the protection fades in over the edge of a bone's region
     return min(1.0, max(0.0, (x - 0.1) / 0.8))
@@ -151,6 +200,7 @@ def protection(bw, body):
     # per body vertex: 1 keeps it through the decimation, 0 lets the collapse take it. The hands fade in across the wrist,
     # so the forearm thins out gradually instead of stepping down there
     return [max(ramp(w.get("hand_l", 0.0) + w.get("hand_r", 0.0)), HEAD_KEEP * ramp(w.get("head", 0.0)) * smooth01((v.co.z - 1.575) / 0.02),
+                LIMB_KEEP * ramp(sum(w.get(n, 0.0) for n in LIMB_BONES)),
                 FOOT_KEEP * ramp(sum(w.get(n, 0.0) for n in ("foot_l", "foot_r", "ball_l", "ball_r")))) for w, v in zip(bw, body.data.vertices)]
 
 
@@ -713,7 +763,7 @@ def build_npc(npc, body, bw, arm, segs):
     lo = decimate(body, DECIMATE, protection(bw, body))
     lo_w = [nearest_weights(kd, bw, v.co) for v in lo.vertices]
     B = {b.name: (b.head_local.copy(), b.tail_local.copy()) for b in arm.data.bones}
-    H = types.SimpleNamespace(B=B, part=part, sw=lambda co: seg_weights(segs, co))
+    H = types.SimpleNamespace(B=B, part=part, sw=surface_weights(body, bw, segs) if os.environ.get("NPC_SEGW") != "1" else (lambda co: seg_weights(segs, co)))  # NPC_SEGW=1: old rigid bone-segment weights
     oc = npc["c"]
     specs = {g: dict(s) for g, s in GARMENT_SPECS.items()}
     kind_t, kind_b = npc["top"], npc["bottom"]
@@ -751,9 +801,10 @@ def build_npc(npc, body, bw, arm, segs):
     body_faces = [tuple(p.vertices) for p in lo.polygons if not all(i in hide for i in p.vertices)]
     body_faces = [f for f in body_faces if not crosses_gap(lo, f)]
     # decimated hip/leg faces poke through the trousers shell (wedges at the groin); the shell closes the leg, so drop
-    # body faces wholly below the hem and away from the hands
+    # body faces wholly below the hem and away from the hands (feet and ankles too: the closed shoes and the trouser hems cover them;
+    # at push-off the bent foot skin poked out of the shoe collar)
     arm_hand = ("hand_l", "hand_r", "lowerarm_l", "lowerarm_r", "upperarm_l", "upperarm_r")
-    body_faces = [f for f in body_faces if not all(0.24 < lo.vertices[i].co.z < specs["jacket"]["zlo"] + 0.05 and abs(lo.vertices[i].co.x) < 0.2
+    body_faces = [f for f in body_faces if not all(lo.vertices[i].co.z < specs["jacket"]["zlo"] + 0.05 and abs(lo.vertices[i].co.x) < 0.2
                                                    and max((lo_w[i].get(n, 0.0) for n in arm_hand), default=0.0) < 0.1 for i in f)]
     b_verts, b_faces, b_w = compact([v.co.copy() for v in lo.vertices], body_faces, lo_w)
     bcols = face_colours(b_verts, hex_linear(npc["skin"]), npc.get("fem", False), npc.get("smile", 0.0))
@@ -849,6 +900,10 @@ faces_base = [tuple(p.vertices) for p in a_body.data.polygons]
 segs = [(b.name, b.head_local.copy(), b.tail_local.copy()) for b in arm.data.bones]  # rest bone segments
 
 built = []
+# build in the rest pose: NPC_A's body still carries its Armature modifier, and the decimation evaluates it, so with an
+# action on the rig NPC_A was baked in a walk frame (arms bent into the jacket, no hand weights)
+arm.data.pose_position = "REST"
+layer.update()
 for npc in NPCS:
     body = variant_body(npc, faces_base) if npc["json"] else a_body
     built.append(build_npc(npc, body, bw, arm, segs))
@@ -861,6 +916,7 @@ bpy.data.objects.remove(a_body)
 for o in list(bpy.data.objects):
     if o.type in ("CAMERA", "LIGHT"):
         bpy.data.objects.remove(o)
+arm.data.pose_position = "POSE"
 arm.animation_data.action = clip
 arm.animation_data.action_slot = clip.slots[0]
 export_glb(f"{OUT}/npc_pack.glb", built, arm)

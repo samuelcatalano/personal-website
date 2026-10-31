@@ -1,4 +1,4 @@
-// POC: walking NPCs (one GLB, one shared rig, one walk clip) on the pavement beside the bus route.
+// POC: walking NPCs (one GLB, one shared rig, three walk clips) on the pavement beside the bus route.
 // Opt-in with ?npc3d=1. Debug: ?npcnear=1 puts 24 of them 5-30 m ahead of the scroll point under a pavement-level camera (?npcshot=k aims at walker k). The sprite crowd, layout and scene stay as they are.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -22,8 +22,10 @@ const VARIANTS = NPC_VARIANTS;
 // World unit = metre (ROAD is in metres). sprites.js scales each person to look.height, so a sprite body is 1.6-1.9 m tall.
 // Lanes mirror crowd.js: inner and outer pavement, walking opposite ways on each side of the route.
 const IN = ROAD.padIn + 0.4, OUT = ROAD.padIn + 1.05, LANES = [[IN, 1], [OUT, -1], [-IN, -1], [-OUT, 1]];
-const WALK = 1.2; // m/s before the variant scale (1.1-1.3 m/s, the sprites' adult band)
-const CLIP_SPEED = 0.905; // m/s: stance-foot speed of NPC_Walk at timeScale 1 (measured: Root static, feet planted); cadence = walk / this, so the feet do not slide
+const CADENCE = 1.2; // playback rate before the variant scale: 1.29 s clips -> ~1.1 s gait cycle (~110 steps/min)
+// m/s: stance-foot speed of each clip at timeScale 1 (Root static, feet planted; tools/npc gait retarget). The walk speed is
+// this times the playback rate, so planted feet do not slide; walkers stroll at ~0.7-1.0 m/s. Each walker draws one clip.
+const CLIP_SPEED = { NPC_Walk: 0.62, NPC_Walk2: 0.65, NPC_Walk3: 0.75 };
 const FEET = 0.02; // pavement top, as people.js
 const BACK = 30, AHEAD = 90; // walkers live in a window along the route around the camera (m); the far walkers are recycled inside it
 const PART_MEANS = new WeakMap(); // geometry -> mean luminance of [top, trousers, shoes, hair]
@@ -106,7 +108,7 @@ export function tintNpc(inst, rng) {
 
 export async function createNpc3d(scene, { curve, count = NEAR ? 24 : 40 }) {
   const gltf = await new GLTFLoader().loadAsync(GLB);
-  const clip = gltf.animations.find((a) => a.name === 'NPC_Walk');
+  const clips = gltf.animations.filter((a) => a.name in CLIP_SPEED);
   // one template per variant: the shared armature plus only that variant's mesh
   const templates = VARIANTS.map((v) => {
     const t = SkeletonUtils.clone(gltf.scene);
@@ -121,9 +123,11 @@ export async function createNpc3d(scene, { curve, count = NEAR ? 24 : 40 }) {
     const k = i % VARIANTS.length, v = VARIANTS[k], [off, dir] = LANES[i % LANES.length];
     const inst = SkeletonUtils.clone(templates[k]);
     const mixer = new THREE.AnimationMixer(inst);
-    const ws = WALK * v.speed; // walk speed, m/s
+    const clip = clips[Math.floor(rng() * clips.length)];
+    const ts = CADENCE * v.speed * (0.94 + 0.12 * rng()); // per-walker cadence
+    const ws = CLIP_SPEED[clip.name] * ts; // walk speed, m/s: the stride matches it, so planted feet do not slide
     const action = mixer.clipAction(clip);
-    action.timeScale = ws / CLIP_SPEED; // the stride matches the speed: planted feet do not slide
+    action.timeScale = ts;
     action.time = rng() * clip.duration;
     action.play();
     inst.scale.setScalar(v.height / v.measured);

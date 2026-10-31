@@ -19,20 +19,22 @@ const clips = g.animations; const V = NPC_VARIANTS;
 const tmpl = V.map(v => { const t = SkeletonUtils.clone(g.scene); for (const w of V) if (w.name !== v.name) t.getObjectByName(w.name)?.removeFromParent(); return t; });
 function make(k, i, t) {
   const v = V[k], inst = SkeletonUtils.clone(tmpl[k]), m = new THREE.AnimationMixer(inst);
-  const clip = clips.find(c => c.name === (v.clip || 'NPC_Walk')) || clips[0];
+  const walks = clips.filter(c => c.name.startsWith('NPC_Walk')), clip = MODE === 'crowd' ? walks[i % walks.length] : (clips.find(c => c.name === (P.get('clip') || v.clip || 'NPC_Walk')) || clips[0]); // ?clip=NPC_Walk2
   const a = m.clipAction(clip); a.play(); m.setTime(t * clip.duration);
   inst.scale.setScalar(v.height / v.measured); if (P.get('tint') !== '0') tintNpc(inst, mulberry32(1000 + i));
   return { inst, m, clip, v };
 }
-if (MODE === 'sheet') {
-  const views = [[0, 1.0, 4.2, 0.95, 26], [0.8, 1.0, 4.2, 0.95, 26], [1.57, 1.0, 4.2, 0.95, 26], [3.14, 1.0, 4.2, 0.95, 26], [0, 1.62, 0.75, 1.62, 22], [0.6, 1.62, 0.75, 1.62, 22]];
+const JOINTS = MODE === 'joints'; // close-ups: side lower leg at t = 0, .25, .5, .75; front lower leg at .25; side elbow at .25
+if (MODE === 'sheet' || JOINTS) {
+  const views = JOINTS ? [[1.57, 0.35, 1.3, 0.35, 30, 0], [1.57, 0.35, 1.3, 0.35, 30, 0.25], [1.57, 0.35, 1.3, 0.35, 30, 0.5], [1.57, 0.35, 1.3, 0.35, 30, 0.75], [0.25, 0.35, 1.3, 0.35, 30, 0.25], [1.57, 1.05, 1.0, 1.05, 30, 0.25]] : [[0, 1.0, 4.2, 0.95, 26], [0.8, 1.0, 4.2, 0.95, 26], [1.57, 1.0, 4.2, 0.95, 26], [3.14, 1.0, 4.2, 0.95, 26], [0, 1.62, 0.75, 1.62, 22], [0.6, 1.62, 0.75, 1.62, 22]];
   const rows = V.length, cw = W / views.length, ch = H / rows; r.setScissorTest(true); r.autoClear = false;
   const cam = new THREE.PerspectiveCamera(26, cw / ch, 0.05, 50);
   const npcs = V.map((_, k) => make(k, k, T));
   for (let k = 0; k < rows; k++) {
     scene.add(npcs[k].inst); npcs[k].inst.updateMatrixWorld(true);
     const s = npcs[k].inst.scale.x;
-    views.forEach(([az, cy, d, ty, fov], c) => {
+    views.forEach(([az, cy, d, ty, fov, ph], c) => {
+      if (ph !== undefined) { npcs[k].m.setTime(ph * npcs[k].clip.duration); npcs[k].inst.updateMatrixWorld(true); }
       cam.fov = fov; cam.aspect = cw / ch; cam.updateProjectionMatrix();
       cam.position.set(Math.sin(az) * d, cy * s, Math.cos(az) * d); cam.lookAt(0, ty * s, 0);
       sun.position.set(Math.sin(az - 0.7) * 6, 8, Math.cos(az - 0.7) * 6);

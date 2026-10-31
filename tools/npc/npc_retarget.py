@@ -24,7 +24,8 @@ GAIT = dict(hip_f=0.75, hip_b=0.50,  # thigh swing scale, forward / backward of 
             knee_k=0.74,  # scale of the source knee bend in swing and at heel strike
             elbow_base=4.0, elbow_k=0.45, elbow_fw=6.0,  # elbow flexion = base + k * source bend + fw * hand-forward weight
             abd_k=0.30, abd_min=3.0,  # upper arm abduction = max(min, k * source abduction)
-            swing_k=1.0, swing_c=-8.0)  # arm swing amplitude scale about the centre angle (deg, + forward)
+            swing_k=1.0, swing_c=-8.0,  # arm swing amplitude scale about the centre angle (deg, + forward)
+            ank_air=8.0, ank_k=0.25, ank_dorsi=-12.0, ank_h0=0.015, ank_h1=0.035)  # swing foot: plantarflexion soft limit (deg) and its fade-in over the ball height (m)  # arm swing amplitude scale about the centre angle (deg, + forward)
 
 
 def retarget_walk(src, dst, frames, action_name, ground_ik=True, **params):
@@ -39,12 +40,14 @@ def retarget_walk(src, dst, frames, action_name, ground_ik=True, **params):
     dst_head0 = dw @ dst.data.bones[PELVIS].head_local
     scale = dst_head0.z / src_head0.z  # leg-length ratio, so the bob keeps its size relative to the body
     floor = min((dw @ dst.data.bones[b].head_local).z for b in BALLS)
+    toe_floor = min((dw @ dst.data.bones[b].tail_local).z for b in BALLS)  # rest height of the toe tips
     order = sorted(dst.pose.bones, key=lambda pb: len(pb.parent_recursive))
     for pb in order:
         pb.rotation_mode = "QUATERNION"
 
     newrot = {}
     ARMQ = {}
+    FOOTQ = {}
     fsrc = 1.0 if (sw @ src.data.bones["ball_l"].head_local).y > (sw @ src.data.bones["foot_l"].head_local).y else -1.0
     fdst = 1.0 if (dw @ dst.data.bones["ball_l"].head_local).y > (dw @ dst.data.bones["foot_l"].head_local).y else -1.0
     TORSO = {"spine_02", "spine_03", "clavicle_l", "clavicle_r", "neck_01", "neck_02", "neck_03", "head"}
@@ -164,6 +167,36 @@ def retarget_walk(src, dst, frames, action_name, ground_ik=True, **params):
                 cands = [Quaternion(lat, sg * bend) @ dt for sg in (1.0, -1.0)]
                 tgt = min(cands, key=lambda v: v.dot(Vector((0, fdst, 0))))  # the calf folds back, away from the forward axis
                 rot = (rot @ Y).rotation_difference(tgt) @ rot
+            if name in ("foot_l", "foot_r"):  # ankle: in the air the foot is set against the new shin, near neutral
+                # The foot used to copy the source foot's world rotation; with the tamed knee (87 -> 62 deg) that left the foot
+                # 60-75 deg plantarflexed in early swing (toes straight down, the shoe standing on end). Natural gait: up to
+                # ~20 deg plantarflexion at toe-off, ~neutral in mid-swing for toe clearance. On the floor the source world
+                # rotation is kept (flat stance, heel rise at push-off).
+                side = name[-1]
+                up = -(newrot["calf_" + side] @ Y)  # ankle -> knee
+                fv = rot @ Y  # ankle -> ball
+                up0 = -(dst_rest["calf_" + side] @ Y)
+                p = math.degrees(up.angle(fv)) - math.degrees(up0.angle(dst_rest[name] @ Y))  # + = plantarflexed vs rest
+                _, h, _ = src_knee(side)
+                w = max(0.0, min(1.0, (h - G["ank_h0"]) / G["ank_h1"]))  # 0 with the ball on the floor, 1 once it is up
+                lim = G["ank_air"] + G["ank_k"] * max(0.0, p - G["ank_air"])  # soft limit: the excess over ank_air is scaled down
+                want = max(G["ank_dorsi"], min(p, lim))
+                n = up.cross(fv)
+                FOOTQ[side] = Quaternion(n.normalized(), -D(w * (p - want))) if n.length > 1e-6 else Quaternion()
+                rot = FOOTQ[side] @ rot
+            if name in ("ball_l", "ball_r") and name[-1] in FOOTQ:  # the toes turn with the corrected foot
+                rot = FOOTQ[name[-1]] @ rot
+            if name in ("ball_l", "ball_r"):  # toe contact: at push-off the toes bend up at the ball instead of going into the floor
+                hd = dw @ pb.matrix.to_translation()  # ball joint, already moved by the foot
+                ln = dst.data.bones[name].length
+                dv = rot @ Y
+                zmin = toe_floor - hd.z
+                if dv.z * ln < zmin:  # tip below its rest height: pitch the toes up about the joint just enough
+                    tz = max(-1.0, min(1.0, zmin / ln))
+                    hz = Vector((dv.x, dv.y, 0.0))
+                    if hz.length > 1e-6:
+                        tgt = hz.normalized() * math.sqrt(max(0.0, 1.0 - tz * tz)) + Vector((0, 0, tz))
+                        rot = dv.rotation_difference(tgt) @ rot
             if ovr and name in ovr:  # ground IK (second pass): thigh and calf set by ik_override
                 rot = ovr[name]
             newrot[name] = rot
