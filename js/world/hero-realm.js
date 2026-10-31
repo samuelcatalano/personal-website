@@ -1,18 +1,21 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { SURFACE as S, townhouseMaterials } from './building-slice-materials.js';
+import { createPlantGeometry } from './plant-mesh.js';
 
 export const HERO_BOUNDS=Object.freeze({x0:-293,x1:-273,z0:-24,z1:24});
 
 export function createHeroRealm(){
   const buckets=[[],[],[]],obstacles=[],group=new THREE.Group();group.name='hero-public-realm';group.position.set(-283,0,0);
-  const stone=[.97,.99,1],edge=[.76,.81,.85],wood=[.52,.30,.12],iron=[.22,.27,.30],leaf=[.23,.48,.12];
+  const stone=[.97,.99,1],edge=[.76,.81,.85],wood=[.52,.30,.12],iron=[.22,.27,.30];
   function add(geometry,x,y,z,surface,tint,bucket=1){
     if(geometry.index){const source=geometry;geometry=source.toNonIndexed();source.dispose();}
     geometry.translate(x,y,z);
-    const p=geometry.attributes.position,n=geometry.attributes.normal,uv=geometry.attributes.uv,colors=[],surfaces=[];
+    const p=geometry.attributes.position,n=geometry.attributes.normal,color=geometry.attributes.color,colors=[],surfaces=[];
+    if(!geometry.attributes.uv)geometry.setAttribute('uv',new THREE.Float32BufferAttribute(new Float32Array(p.count*2),2));
+    const uv=geometry.attributes.uv;
     for(let i=0;i<p.count;i++){
-      colors.push(...tint);surfaces.push(surface);
+      colors.push(...(color?[color.getX(i),color.getY(i),color.getZ(i)]:tint));surfaces.push(surface);
       if(Math.abs(n.getY(i))>.7)uv.setXY(i,p.getX(i),p.getZ(i));
       else uv.setXY(i,n.getZ(i)*p.getX(i)-n.getX(i)*p.getZ(i),p.getY(i));
     }
@@ -20,6 +23,7 @@ export function createHeroRealm(){
   }
   const box=(x,y,z,w,h,d,surface=S.stone,tint=stone,bucket=1)=>add(new THREE.BoxGeometry(w,h,d),x,y,z,surface,tint,bucket);
   const cylinder=(x,y,z,r,h,surface,tint,bucket=1)=>add(new THREE.CylinderGeometry(r,r,h,24),x,y,z,surface,tint,bucket);
+  const plant=(kind,x,y,z,w,h,d)=>{const geometry=createPlantGeometry(kind);geometry.scale(w,h,d);add(geometry,x,y,z,S.plaster,[1,1,1]);};
   const obstacle=(kind,x,z,w,d)=>obstacles.push({kind,rect:{x0:x-w/2,x1:x+w/2,z0:z-d/2,z1:z+d/2}});
   box(0,.015,0,20,.09,48,S.stone,stone,0);
   // A broad central spine and cross-axis retain the original garden circulation.
@@ -38,10 +42,7 @@ export function createHeroRealm(){
   // Low planting at the lawn ends enriches the existing beds, away from both walking axes.
   for(const x of [-5.6,5.6])for(const z of [-18.5,18.5]){
     box(x,.16,z,2.5,.20,.95,S.stone,stone,0);
-    for(let i=0;i<3;i++){
-      const geometry=new THREE.SphereGeometry(1,7,4);geometry.scale(.48,.25,.34);
-      add(geometry,x+(i-1)*.62,.43,z,S.plaster,i%2?[.42,.58,.24]:leaf);
-    }
+    for(let i=0;i<3;i++)plant(i===1?'shrub':'flower',x+(i-1)*.62,.175,z,.7,.52,.58);
     obstacle('planting',x,z,2.6,1);
   }
   // A circular stone basin replaces the stacked voxel fountain at the same centre.
@@ -61,10 +62,7 @@ export function createHeroRealm(){
   for(const x of [-5.7,5.7])for(const z of [-4.8,4.8])bench(x,z,z<0?-1:1);
   for(const x of [-8.6,8.6])for(const z of [-19,19]){
     cylinder(x,.40,z,.72,.64,S.stone,stone);
-    for(let i=0;i<3;i++){
-      const geometry=new THREE.SphereGeometry(1,8,5);geometry.scale(.6,.42,.6);
-      add(geometry,x+Math.cos(i*2.1)*.20,.88+i*.08,z+Math.sin(i*2.1)*.20,S.plaster,leaf);
-    }
+    for(let i=0;i<3;i++)plant('shrub',x+Math.cos(i*2.1)*.20,.5125+i*.08,z+Math.sin(i*2.1)*.20,.75,.75,.75);
     obstacle('planter',x,z,1.9,1.9);
   }
   for(const x of [-8.8,8.8])for(const z of [-8.2,8.2]){

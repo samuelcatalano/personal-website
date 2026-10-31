@@ -4,6 +4,8 @@ import { house } from './houses.js';
 import { draw } from './blocks.js';
 const FLATS = [P.cream, P.sandstone, P.stone, P.terracotta, P.ochre, P.offWhite, P.redBrown, P.londonStock];
 const WALL = [P.cream, P.brick, P.redBrown, P.londonStock, P.pinkStucco, P.blueStucco, P.mintStucco, P.lemonStucco, P.offWhite], ROOF = [P.brick, P.ink, P.roof, P.slate];
+const gardenVariation = (x, z, slot = 0) => Math.abs(Math.sin(x * 12.9898 + z * 78.233 + slot * 37.719) * 43758.5453) % 1;
+const GARDEN_TINTS = [P.white, P.offWhite, P.tileCream, P.gravel];
 // Cheap semi/terrace (~14 boxes): body, eaves, pitched roof block, chimney, door, windows. Front faces o (+1: +z); the plain stand-in for houses.js `house` on rows far from the camera.
 function villa(add, r, x, z, o, w, d, n) {
   const h = n * 2.8, f = z + o * d / 2, wall = WALL[r() * WALL.length | 0], roof = ROOF[r() * ROOF.length | 0], nc = w > 7.4 ? 3 : 2;
@@ -44,6 +46,12 @@ export function buildCountry(add, curve, tree, [c0, c1], leg = 0, onArchitecture
         add(xc, 0.01, z, 8, 0.06, 6, P.grass);
         tree(add, xc - 3, z + (r() - 0.5) * 2, oak()); tree(add, xc + 3, z + (r() - 0.5) * 2, oak());
         add(xc, 0.45, z - o * d * 0.5, 1.6, 0.1, 0.45, P.oak); add(xc, 0.55, z - o * d * 0.5 - o * 0.2, 1.6, 0.38, 0.08, P.oak);
+        if (add.plant) {
+          const tint = slot => GARDEN_TINTS[gardenVariation(xc, z, slot) * GARDEN_TINTS.length | 0], yaw = slot => (gardenVariation(xc, z, slot + 6) - 0.5) * 0.12;
+          let slot = 0;
+          for (const dx of [-1.2, 1.2]) for (const dz of [-2.35, 2.35]) { add.plant('shrub', xc + dx, 0.05, z + dz, 0.9, 0.76, 0.56, tint(slot), yaw(slot)); slot++; }
+          for (const dz of [-2.5, 2.5]) { add.plant('flower', xc, 0.05, z + dz, 0.72, 0.85, 0.62, tint(slot), yaw(slot)); slot++; }
+        }
         x += 12; continue;
       }
       const n = f0 + (r() * (f1 - f0 + 1) | 0);
