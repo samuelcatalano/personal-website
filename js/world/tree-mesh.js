@@ -27,10 +27,13 @@ export function leafTexture() {
 // Crown species. Family order = impostor atlas tile order. `profile(y)` scales the horizontal radius along the crown height (y in [-1, 1]).
 export const FAMILIES = ['round', 'column', 'spread', 'bloom', 'conifer'];
 export const PROFILE = {
-  round: () => 1, spread: () => 1, bloom: () => 1,
+  round: () => 1,
   column: (y) => (y > 0.2 ? 1 - 0.55 * ((y - 0.2) / 0.8) ** 2 : 1), // pointed top (poplar / cypress / palm-like)
+  spread: (y) => y < -0.45 ? 0.65 + 0.35 * ((y + 1) / 0.55) : y < 0.25 ? 1 : 1 - 0.52 * ((y - 0.25) / 0.75) ** 2, // wide lower crown with a shallow dome
+  bloom: (y) => 0.46 + 0.54 * Math.exp(-(((y - 0.15) / 0.9) ** 2)), // fuller upper crown for flowering canopies
   conifer: (y) => 0.1 + 0.9 * (1 - y) / 2, // cone, widest at the skirt
 };
+const CLUMP = { round: [1, 1], column: [0.7, 1.15], spread: [1.12, 0.55], bloom: [0.92, 0.82], conifer: [0.74, 1.15] }; // horizontal and vertical inner-mass spread
 const TILE = 128, TILES = FAMILIES.length;
 
 // Neutral greys only (shade, no hue): the instance tint colours the impostor exactly like the leaf cards, so near and far trees match.
@@ -72,10 +75,10 @@ const CROWN = { small: [4, 1, 60], medium: [5, 2, 80], large: [6, 3, 104], round
 // Crown = a few solid inner masses (shade + volume) covered with alpha-tested leaf cards (fringed silhouette, small-leaf detail).
 // Normals point out of the crown ("foliage normals") so light wraps it softly; colour darkens towards the inside/underside.
 export function canopyGeometry(type, lod = 0) {
-  const [count, seed, fullCards] = CROWN[type], cards=lod?Math.ceil(fullCards*.48):fullCards, masses = [], pos = [], uv = [], jit = [], ctr = [];
+  const [count, seed, fullCards] = CROWN[type], [xScale,yScale] = CLUMP[type] ?? CLUMP.round, cards=lod?Math.ceil(fullCards*.48):fullCards, masses = [], pos = [], uv = [], jit = [], ctr = [];
   for (let k = 0; k < count; k++) {
     const th = (k + hash(k, seed, 1) * 0.6) / count * Math.PI * 2, ph = Math.acos(1 - 2 * (0.15 + hash(seed, k, 2) * 0.7)), shell = k ? 0.4 + 0.16 * hash(k, k, seed) : 0;
-    masses.push([Math.sin(ph) * Math.cos(th) * shell, Math.cos(ph) * shell * 0.8 + (k ? 0 : 0.05), Math.sin(ph) * Math.sin(th) * shell, k ? 0.5 + hash(k, 3, seed) * 0.12 : 0.62]);
+    masses.push([Math.sin(ph) * Math.cos(th) * shell * xScale, Math.cos(ph) * shell * 0.8 * yScale + (k ? 0 : 0.05), Math.sin(ph) * Math.sin(th) * shell * xScale, k ? 0.5 + hash(k, 3, seed) * 0.12 : 0.62]);
   }
   for (const [cx, cy, cz, r] of masses) { // inner masses: low-poly, solid texel
     const g = new THREE.IcosahedronGeometry(r * 0.92, 1).toNonIndexed(), p = g.attributes.position;

@@ -3,6 +3,7 @@ tab=new_tab('about:blank');activate_tab(tab);cdp('Network.enable');cdp('Network.
 print(js(r'''(async () => {
   const T = await import('three');
   const { createTrees } = await import('./js/world/trees.js');
+  const { canopyGeometry, PROFILE } = await import('./js/world/tree-mesh.js');
   const { buildCity } = await import('./js/world/city.js');
   const { buildLandmarks } = await import('./js/world/landmarks.js');
   const { PALETTE: P } = await import('./js/world/palette.js');
@@ -58,6 +59,18 @@ print(js(r'''(async () => {
   for (const r of ['sp','london','glasgow']) { const set = new Set(placements.filter(p => regionOf(p.x,p.z)===r).length ? [r] : []); check(set.size, 'region has trees: '+r); }
   check(fams.size >= 4, 'at least four tree families in use: '+[...fams.keys()]);
   check(heights.size>3 && tints.size>3 && newTrees.length>=3, 'trees need varied heights and tints');
+  const crownTypes = ['round','column','spread','bloom','conifer'], crownHeights = [-.65,-.2,.25,.7,.95];
+  for (const lod of [0,1]) {
+    const widths = crownTypes.map(type => crownHeights.map(y => PROFILE[type](y)));
+    for (let a=0; a<crownTypes.length; a++) for (let b=a+1; b<crownTypes.length; b++)
+      check(Math.max(...widths[a].map((w,i)=>Math.abs(w-widths[b][i])))>.1, `distinct crown widths at several heights: ${crownTypes[a]} vs ${crownTypes[b]} LOD${lod}`);
+    for (const type of crownTypes) {
+      const geometry = canopyGeometry(type,lod), p = geometry.attributes.position; let radius=0;
+      for (let i=0; i<p.count; i++) radius=Math.max(radius,Math.hypot(p.getX(i),p.getZ(i)));
+      check(geometry.boundingBox.min.y>=-1-1e-4 && geometry.boundingBox.max.y<=1+1e-4 && radius<=1+1e-4, `crown ${type} LOD${lod} stays in the unit envelope`);
+      geometry.dispose();
+    }
+  }
   const reducedTris=batches.reduce((n,b)=>n+b.lods[1].canopy.geometry.attributes.position.count/3*b.lods[1].canopy.count,0);
   check(stats.tris>reducedTris,'LOD1 reduces canopy detail without constraining the authored LOD0 triangle count');
   let samples = 0;
