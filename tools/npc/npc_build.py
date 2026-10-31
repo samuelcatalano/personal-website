@@ -79,6 +79,23 @@ NPCS = [  # NPC_A is the body already in npc_a_walk.blend; the others come from 
          top="zip_jacket", bottom="cargo",
          c=dict(body="#e6d8b8", sleeve="#d6c6a2", accent="#3a3a3a", trim="#b8a47c", zip="#2a2a2a", base="#6a5f48", stripe="#3a3a3a", print2="#ffffff", belt="#2a2a2a", buckle="#aaaaaa"),
          shoe=dict(kind="runner", colour="#d9a441", sole="#f2eee3", accent="#f2eee3", lace="#ffffff")),
+    # I..L: four more people for crowd variety (2026-10-31)
+    dict(name="NPC_I", json=True, hair=("pixie", "#141210"), skin="#d9a77e", smile=0.5,
+         top="sweater_print", bottom="jeans",
+         c=dict(body="#2b2d33", sleeve="#24262b", accent="#c46a2c", print2="#e8e4da", trim="#1c1d21", base="#3d5878"),
+         shoe=dict(kind="sneaker", colour="#f0eee8", sole="#2b2b30", accent="#b8bcc4", lace="#f0eee8")),
+    dict(name="NPC_J", json=True, hair=("curls", "#7a3c22"), skin="#efc1a2", smile=0.45,
+         top="shirt", bottom="chinos",
+         c=dict(body="#8fa6c4", sleeve="#8299b8", accent="#6f86a6", base="#8a7a5e", belt="#3a2a1e", buckle="#b8b0a0", roll_t=0.34),
+         shoe=dict(kind="boot", colour="#5a3a26", sole="#2b2119", accent="#3a2619", lace="#9a8060")),
+    dict(name="NPC_K", json=True, fem=True, hair=("ponytail", "#17110d"), skin="#8a5638", smile=0.7,
+         top="zip_jacket", bottom="jeans",
+         c=dict(body="#7a2f2f", sleeve="#6a2828", accent="#e8e4da", trim="#521f1f", zip="#1a1a1a", base="#4a6a8e", stripe="#e8e4da", print2="#ffffff", belt="#222222", buckle="#aaaaaa"),
+         shoe=dict(kind="sneaker", colour="#f2efe9", sole="#d8d4cc", accent="#7a2f2f", lace="#f2efe9")),
+    dict(name="NPC_L", json=True, fem=True, hair=("wavy_long", "#2a1f17"), skin="#e3b08a", smile=0.7,
+         top="hoodie", bottom="jeans",
+         c=dict(body="#9a9ea6", sleeve="#8d9198", accent="#e8e4da", trim="#7a7e86", base="#2f4562", belt="#222222", buckle="#aaaaaa", zip="#111111", stripe="#ffffff", print2="#ffffff"),
+         shoe=dict(kind="runner", colour="#1b1b1d", sole="#f2eee3", accent="#f2eee3", lace="#f2eee3")),
 ]
 
 bpy.ops.wm.open_mainfile(filepath=f"{OUT}/npc_a_walk.blend")  # body on the rig, NPC_Walk already retargeted
@@ -551,7 +568,7 @@ def merge_to_npc(name, parts, arm):
 
 
 EYE_R = 0.93  # eyeball radius as a fraction of the MPFB helper eyeball fitted on each body (the helper is a stylised 1.6 cm ball)
-IRIS = dict(NPC_F="#4a2c17", NPC_G="#5d7f4a", NPC_H="#2e2118", NPC_A="#3b6f8f", NPC_B="#4a2c17", NPC_C="#5d7f4a", NPC_D="#2e2118", NPC_E="#6a8fb5")
+IRIS = dict(NPC_F="#4a2c17", NPC_G="#5d7f4a", NPC_H="#2e2118", NPC_A="#3b6f8f", NPC_B="#4a2c17", NPC_C="#5d7f4a", NPC_D="#2e2118", NPC_E="#6a8fb5", NPC_I="#2a1c12", NPC_J="#5d7f4a", NPC_K="#2e2118", NPC_L="#4a2c17")
 
 
 def face_colours(verts, sk, fem=False, smile=0.0):

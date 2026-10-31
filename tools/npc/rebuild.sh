@@ -9,8 +9,9 @@ run() { python3 bl_run.py "$@"; }
 if [ "${1:-}" != build ]; then
   run npc_walk_check.py > "$NPC_OUT/walk.log" 2>&1 || { tail -5 "$NPC_OUT/walk.log"; exit 1; }
   NPC_OUT="$NPC_OUT/raw" run npc_bodies.py > "$NPC_OUT/bodies.log" 2>&1 || { tail -5 "$NPC_OUT/bodies.log"; exit 1; }
-  cp "$NPC_OUT"/raw/body_NPC_{B,C,D,E}.json "$NPC_OUT/"
-  RAW="$NPC_OUT/raw" run warp.py -- F G H > "$NPC_OUT/warp.log" 2>&1 || { tail -5 "$NPC_OUT/warp.log"; exit 1; }
+  # every body is fitted to the rig (NPC_A's joints); men keep their feet and hands, women's shrink (warp.py FOOT_S/HAND_S)
+  FOOT_S=1 HAND_S=1 RAW="$NPC_OUT/raw" run warp.py -- B C D E I J > "$NPC_OUT/warp_m.log" 2>&1 || { tail -5 "$NPC_OUT/warp_m.log"; exit 1; }
+  RAW="$NPC_OUT/raw" run warp.py -- F G H K L > "$NPC_OUT/warp.log" 2>&1 || { tail -5 "$NPC_OUT/warp.log"; exit 1; }
 fi
 run npc_build.py > "$NPC_OUT/build.log" 2>&1 || { tail -8 "$NPC_OUT/build.log"; exit 1; }
 grep -E "KNEE SUM" "$NPC_OUT/walk.log" 2>/dev/null || true

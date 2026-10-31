@@ -24,6 +24,10 @@ VARIANTS = {  # street crowd: mostly slim young adults, varied ancestry (the fac
     "NPC_F": {"gender": 0.0, "age": 0.45, "weight": 0.36, "muscle": 0.40, "height": 0.50, "african": 0.05, "asian": 0.10, "caucasian": 0.85},
     "NPC_G": {"gender": 0.0, "age": 0.50, "weight": 0.42, "muscle": 0.38, "height": 0.56, "african": 0.10, "asian": 0.60, "caucasian": 0.30},
     "NPC_H": {"gender": 0.05, "age": 0.45, "weight": 0.30, "muscle": 0.42, "height": 0.62, "african": 0.85, "asian": 0.05, "caucasian": 0.10},
+    "NPC_I": {"age": 0.42, "weight": 0.36, "muscle": 0.50, "african": 0.05, "asian": 0.85, "caucasian": 0.10},
+    "NPC_J": {"age": 0.58, "weight": 0.44, "muscle": 0.50, "african": 0.02, "asian": 0.03, "caucasian": 0.95},
+    "NPC_K": {"gender": 0.0, "age": 0.42, "weight": 0.38, "muscle": 0.42, "height": 0.58, "african": 0.85, "asian": 0.05, "caucasian": 0.10},
+    "NPC_L": {"gender": 0.0, "age": 0.40, "weight": 0.33, "muscle": 0.40, "height": 0.52, "african": 0.05, "asian": 0.20, "caucasian": 0.75},
 }
 
 
