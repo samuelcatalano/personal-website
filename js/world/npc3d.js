@@ -40,7 +40,8 @@ const TOPS = ['#2c2f36', '#3a3f47', '#1f2a3d', '#4a4f57', '#6b6f75', '#5a4636', 
 const TROUSERS = ['#3d5878', '#4a6a8e', '#2f4562', '#5d7a9c', '#3d5878', '#262a31', '#2c3036', '#55595f', '#8a7a5e', '#4b4b3a', '#6f8aa8'];
 const SHOES = ['#f0eee8', '#1b1b1d', '#2a2a2c', '#5a3a26', '#8a8a86', '#1b1b1d'];
 const HAIRS = ['#14110f', '#1f1813', '#2f2018', '#3b2a1e', '#4e3626', '#6b4a30', '#8a6a44', '#b08d5c', '#7a3c22', '#8f8f8f'];
-const KEEP = 0.08; // chance that a part keeps the colour it was built with
+const KEEP = 0.08;
+const DECOS = ['#e8e4da', '#1c1d21', '#b8452a', '#c9a24a', '#5b7fa6', '#8d9196', '#f2f0ea']; // chance that a part keeps the colour it was built with
 
 // fabric grain without textures: value noise on the bind-pose position (metres). Trousers get a denim twill and mottling,
 // tops a knit/fleece mottle with faint vertical ribs, hair fine strands; skin and the rest stay as built (k < 0).
@@ -49,6 +50,18 @@ float gh(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.54
 float gn(vec3 p) { vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
   return mix(mix(mix(gh(i), gh(i + vec3(1,0,0)), f.x), mix(gh(i + vec3(0,1,0)), gh(i + vec3(1,1,0)), f.x), f.y),
              mix(mix(gh(i + vec3(0,0,1)), gh(i + vec3(1,0,1)), f.x), mix(gh(i + vec3(0,1,1)), gh(i + vec3(1,1,1)), f.x), f.y), f.z); }
+// bind pose (metres, y up, the body faces +z, arms out in an A-pose): chest ~ y 1.2-1.42, sleeves |x| > 0.21
+vec3 decorate(vec3 c, vec3 p, vec4 d) {
+  float ax = abs(p.x), lum = dot(c, vec3(0.2126, 0.7152, 0.0722)) / max(1e-3, dot(d.rgb, vec3(0.2126, 0.7152, 0.0722)));
+  vec3 dk = d.rgb * clamp(lum, 0.6, 1.4); // the decoration keeps the cloth's shading
+  float sleeve = smoothstep(0.195, 0.215, ax);
+  int t = int(d.w + 0.5);
+  if (t == 1) return mix(c, dk, (1.0 - sleeve) * step(1.21, p.y) * step(p.y, 1.29));
+  if (t == 2) { float r = length(vec2(p.x + 0.055, p.y - 1.33)); return mix(c, dk, step(0.0, p.z) * (1.0 - sleeve) * (step(r, 0.032) - step(r, 0.022) + step(r, 0.012))); }
+  if (t == 3) return mix(c, dk, sleeve);
+  if (t == 4) return mix(c, dk, sleeve * step(abs(fract((p.y + p.x * 0.6) * 9.0) - 0.5), 0.07));
+  return mix(c, dk, (1.0 - sleeve) * step(1.33, p.y));
+}
 float grain(int k, vec3 p) {
   if (k == 1) return 1.0 + 0.10 * (gn(p * 18.0) - 0.5) + 0.05 * (gn(p * 90.0) - 0.5) + 0.035 * sin((p.x + p.y + p.z * 1.7) * 900.0);
   if (k == 0) return 1.0 + 0.07 * (gn(p * 25.0) - 0.5) + 0.04 * (gn(p * 140.0) - 0.5) + 0.025 * sin(atan(p.x, p.y) * 160.0);
@@ -84,6 +97,10 @@ function partMeans(geo) {
 export function tintNpc(inst, rng) {
   const pick = (list) => (rng() < KEEP ? new THREE.Vector4(0, 0, 0, 0) : (({ r, g, b }) => new THREE.Vector4(r, g, b, 1))(new THREE.Color(list[Math.floor(rng() * list.length)])));
   const tint = [pick(TOPS), pick(TROUSERS), pick(SHOES), pick(HAIRS)];
+  // top decoration (street-crowd look): 0 plain, 1 chest band, 2 chest logo, 3 contrast sleeves, 4 sleeve stripes, 5 two-tone yoke
+  const kind = rng() < 0.3 ? 0 : 1 + Math.floor(rng() * 5);
+  const dc = new THREE.Color(DECOS[Math.floor(rng() * DECOS.length)]);
+  const deco = new THREE.Vector4(dc.r, dc.g, dc.b, kind);
   inst.traverse((o) => {
     if (!o.isMesh || !o.geometry.attributes._part) return;
     const means = partMeans(o.geometry);
@@ -92,15 +109,17 @@ export function tintNpc(inst, rng) {
     o.material.onBeforeCompile = (sh) => {
       sh.uniforms.tints = { value: tint };
       sh.uniforms.means = { value: means };
+      sh.uniforms.deco = { value: deco };
       sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float _part;\nvarying float vPart;\nvarying vec3 vRest;')
         .replace('#include <color_vertex>', '#include <color_vertex>\nvPart = _part;\nvRest = position;'); // bind-pose position: the grain sticks to the cloth
-      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec4 tints[4];\nuniform vec4 means;\nvarying float vPart;\nvarying vec3 vRest;\n' + GRAIN)
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec4 tints[4];\nuniform vec4 deco;\nuniform vec4 means;\nvarying float vPart;\nvarying vec3 vRest;\n' + GRAIN)
         .replace('#include <color_fragment>', `#include <color_fragment>
         int k = int(floor(vPart * 4.0 + 0.5)) - 1;
         if (k >= 0 && tints[k].w > 0.5) {
           float lum = dot(vColor.rgb, vec3(0.2126, 0.7152, 0.0722));
           diffuseColor.rgb = tints[k].rgb * clamp(lum / means[k], 0.35, 2.2);
         }
+        if (k == 0 && deco.w > 0.5) diffuseColor.rgb = decorate(diffuseColor.rgb, vRest, deco);
         diffuseColor.rgb *= grain(k, vRest);`);
     };
   });
