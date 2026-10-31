@@ -61,23 +61,14 @@ new = [o for o in bpy.data.objects if o not in before]
 src = next(o for o in new if o.type == "ARMATURE")
 from ual_names import to_unreal_names  # noqa: E402
 print("CHECK renamed UAL bones", to_unreal_names(src), flush=True)
-walk = bpy.data.actions["Walk_Loop"]
+# clip name -> (UAL action, retarget parameters); NPC_Walk is the original, the others are variations
+CLIPS = {"NPC_Walk": ("Walk_Loop", {}), "NPC_Walk2": ("Walk_Formal_Loop", dict(swing_k=1.8, elbow_base=8.0)),
+         "NPC_Walk3": ("Walk_Loop", dict(swing_k=1.35, elbow_base=9.0, hip_f=0.8, hip_b=0.55))}
+CLIP_NAMES = list(CLIPS)
 src.animation_data_create()
-src.animation_data.action = walk
-src.animation_data.action_slot = walk.slots[0]
-
-for f in range(0, 33, 8):
-    scene.frame_set(f)
-    layer.update()
-    r = src.pose.bones["root"].matrix.to_translation()
-    p = src.pose.bones["pelvis"].matrix.to_translation()
-    print("CHECK src f", f, "root", tuple(round(c, 3) for c in r), "pelvis", tuple(round(c, 3) for c in p), flush=True)
-
-act = retarget_walk(src, dst, range(0, 32), "NPC_Walk", ground_ik=IK)
-print("CHECK action", act.name, "frames", act.frame_range[0], act.frame_range[1], "ik", IK, flush=True)
-
-
-def knee_report(dst, frames):
+FR = range(0, 32)
+def knee_report(dst, frames, tag="KNEE"):
+    gt = tag.replace("KNEE", "GAIT")
     # Evaluated pose, world space, per frame: knee offset in x from the hip-ankle line (mm, signed; + = +x),
     # knee hinge (bend plane normal) vs the pelvis lateral axis (deg), flexion (deg), toe-out (deg, + = outward),
     # lowest ball joint above the rest floor (mm), root position.
@@ -94,7 +85,7 @@ def knee_report(dst, frames):
             return (dw @ dst.pose.bones[name].matrix).to_translation()
 
         px = ((dw @ dst.pose.bones["pelvis"].matrix).to_3x3() @ Vector((1, 0, 0))).normalized()
-        r = {"f": f, "root": P("Root")}
+        r = {"f": f, "root": P("Root" if "Root" in dst.pose.bones else "root")}
         for s in "lr":
             hip, knee, ank, ball = P("thigh_" + s), P("calf_" + s), P("foot_" + s), P("ball_" + s)
             kz = (knee.z - hip.z) / (ank.z - hip.z)
@@ -105,32 +96,99 @@ def knee_report(dst, frames):
             fy = (dw @ dst.pose.bones["foot_" + s].matrix).to_3x3() @ Vector((0, 1, 0))  # foot bone axis (toe direction)
             yaw = math.degrees(math.atan2(fy.x, fy.y * fwd)) if abs(fy.z) < 0.6 else float("nan")  # pitched foot: no yaw
             r["yaw" + s] = yaw if s == "l" else -yaw
+            sh, el, wr = P("upperarm_" + s), P("lowerarm_" + s), P("hand_" + s)
+            th = knee - hip
+            r["hip" + s] = math.degrees(math.atan2(th.y * fwd, -th.z))  # + = thigh swung forward
+            r["hipab" + s] = math.degrees(math.atan2((th.x if s == "l" else -th.x), -th.z))  # + = knee out from the hip (bow)
+            r["elb" + s] = 180 - math.degrees((sh - el).normalized().angle((wr - el).normalized()))
+            ua = el - sh
+            r["abd" + s] = math.degrees(math.atan2((ua.x if s == "l" else -ua.x), -ua.z))  # + = elbow out from the shoulder
+            r["asw" + s] = math.degrees(math.atan2(ua.y * fwd, -ua.z))  # + = upper arm swung forward
+        for b in ("upperarm", "lowerarm", "thigh", "calf"):  # roll of the bone about its own axis, relative to its parent (swing-twist)
+            for s in "lr":
+                q = dst.pose.bones[f"{b}_{s}"].rotation_quaternion
+                r[f"tw_{b}{s}"] = math.degrees(2 * math.atan2(q.y, q.w))
         r["gerr"] = abs(min(P("ball_l").z, P("ball_r").z) - floor) * 1000
         rows.append(r)
-    print("KNEE f   devL   devR  hingeL hingeR flexL flexR  yawL  yawR  gerr", flush=True)
+    print(f"{tag} f   devL   devR  hingeL hingeR flexL flexR  yawL  yawR  gerr", flush=True)
     for r in rows:
-        print(f"KNEE {r['f']:2d} {r['devl']:+6.1f} {r['devr']:+6.1f} {r['hingel']:6.1f} {r['hinger']:6.1f}"
+        print(f"{tag} {r['f']:2d} {r['devl']:+6.1f} {r['devr']:+6.1f} {r['hingel']:6.1f} {r['hinger']:6.1f}"
               f" {r['flexl']:5.1f} {r['flexr']:5.1f} {r['yawl']:5.1f} {r['yawr']:5.1f} {r['gerr']:5.2f}", flush=True)
     for s in "lr":
         devs = [r["dev" + s] for r in rows]
         bent = [r["hinge" + s] for r in rows if r["flex" + s] > 5.0]
         yaws = [abs(r["yaw" + s]) for r in rows if not math.isnan(r["yaw" + s])]
-        print(f"KNEE SUM {s}: max|dev| {max(abs(d) for d in devs):.1f} mm, mean dev {sum(devs) / len(devs):+.1f} mm,"
+        print(f"{tag} SUM {s}: max|dev| {max(abs(d) for d in devs):.1f} mm, mean dev {sum(devs) / len(devs):+.1f} mm,"
               f" hinge max {max(bent):.1f} deg (flex>5, n={len(bent)}), yaw max {max(yaws):.1f} deg (n={len(yaws)})",
               flush=True)
+    print(f"{gt} f  kneeL kneeR  hipL  hipR hipabL hipabR elbL elbR abdL abdR aswL aswR", flush=True)
+    for r in rows:
+        print(f"{gt} {r['f']:2d} {r['flexl']:5.1f} {r['flexr']:5.1f} {r['hipl']:5.1f} {r['hipr']:5.1f} {r['hipabl']:6.1f} {r['hipabr']:6.1f}"
+              f" {r['elbl']:4.0f} {r['elbr']:4.0f} {r['abdl']:4.1f} {r['abdr']:4.1f} {r['aswl']:5.1f} {r['aswr']:5.1f}", flush=True)
+    def rng(k):
+        v = [r[k + s] for r in rows for s in "lr"]
+        return f"{min(v):.1f}..{max(v):.1f}"
+    print(f"{gt} SUM knee {rng('flex')} (nat 0..65) hip {rng('hip')} (nat -10..+30) hipab {rng('hipab')} (nat ~0..4)"
+          f" elbow {rng('elb')} (nat 10..30) arm abd {rng('abd')} (nat <10) arm swing {rng('asw')}", flush=True)
+    def twr(b):
+        v = [r[f"tw_{b}{s}"] for r in rows for s in "lr"]
+        v = [((x + 180) % 360) - 180 for x in v]
+        return f"{min(v):.0f}..{max(v):.0f}"
+    print(f"{gt} SUM bone roll vs parent (deg): upperarm {twr('upperarm')} lowerarm {twr('lowerarm')} thigh {twr('thigh')} calf {twr('calf')}", flush=True)
     g = [r["gerr"] for r in rows]
-    print(f"KNEE SUM ground: max {max(g):.2f} mm, mean {sum(g) / len(g):.2f} mm", flush=True)
-    print(f"KNEE SUM root f0 {tuple(round(c, 4) for c in rows[0]['root'])} f{rows[-1]['f']} "
+    print(f"{tag} SUM ground: max {max(g):.2f} mm, mean {sum(g) / len(g):.2f} mm", flush=True)
+    print(f"{tag} SUM root f0 {tuple(round(c, 4) for c in rows[0]['root'])} f{rows[-1]['f']} "
           f"{tuple(round(c, 4) for c in rows[-1]['root'])}", flush=True)
 
 
-knee_report(dst, range(0, 32))
+def stance_speed(dst, frames, fps):
+    # CLIP stance-foot speed (m/s): how fast the planted feet slide backward under the root; the runtime moves the NPC at this speed
+    dw = dst.matrix_world.copy()
+    fwd = 1.0 if (dw @ dst.data.bones["ball_l"].head_local).y > (dw @ dst.data.bones["foot_l"].head_local).y else -1.0
+    floor = min((dw @ dst.data.bones[b].head_local).z for b in ("ball_l", "ball_r"))
+    ys = {s: [] for s in "lr"}
+    for f in frames:
+        scene.frame_set(f)
+        layer.update()
+        for s in "lr":
+            m = (dw @ dst.pose.bones["ball_" + s].matrix).to_translation()
+            ys[s].append((m.y * fwd, m.z - floor))
+    v, n = [], len(ys["l"])
+    for s in "lr":
+        for i in range(n):
+            (y0, z0), (y1, z1) = ys[s][i], ys[s][(i + 1) % n]
+            if max(z0, z1) < 0.012:
+                v.append(-(y1 - y0) * fps)
+    return sum(v) / len(v), len(v)
+
+
+for clip_name, (ual, prm) in CLIPS.items():
+    walk = bpy.data.actions[ual]
+    src.animation_data.action = walk
+    src.animation_data.action_slot = walk.slots[0]
+    scene.frame_set(0)
+    print("CHECK clip", clip_name, "from", ual, "src frames", tuple(walk.frame_range), "fps", scene.render.fps, flush=True)
+    knee_report(src, FR, "SRC-" + clip_name + "-KNEE")
+    if dst.animation_data:
+        dst.animation_data.action = None
+    act = retarget_walk(src, dst, FR, clip_name, ground_ik=IK, **prm)
+    print("CHECK action", act.name, "frames", act.frame_range[0], act.frame_range[1], "ik", IK, flush=True)
+    knee_report(dst, FR, "KNEE" if clip_name == "NPC_Walk" else clip_name + "-KNEE")
+    sp, nn = stance_speed(dst, FR, scene.render.fps)
+    print(f"CLIP {clip_name} stance-foot speed {sp:.3f} m/s (n={nn}) duration {len(FR) / scene.render.fps:.3f} s", flush=True)
 
 for o in new:
     bpy.data.objects.remove(o, do_unlink=True)
 for a in list(bpy.data.actions):
-    if a.name != "NPC_Walk":
+    if a.name not in CLIP_NAMES:
         bpy.data.actions.remove(a)
+dst.animation_data.action = bpy.data.actions["NPC_Walk"]
+dst.animation_data.action_slot = dst.animation_data.action.slots[0]
+for nm in CLIP_NAMES:  # every clip also sits on its own NLA track: the glTF exporter writes each track as an animation
+    tr = dst.animation_data.nla_tracks.new()
+    tr.name = nm
+    st = tr.strips.new(nm, 0, bpy.data.actions[nm])
+    st.action_slot = bpy.data.actions[nm].slots[0]
 
 cam_d = bpy.data.cameras.new("cam")
 cam = bpy.data.objects.new("cam", cam_d)
