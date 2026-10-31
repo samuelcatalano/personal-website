@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PARKS, PLAZAS, RING, KEEP, WALK_INSET, buildParks } from '../js/world/parks.js';
+import { PARKS, PLAZAS, SQUARES, RING, KEEP, WALK_INSET, buildParks } from '../js/world/parks.js';
 import { walkPaths } from '../js/world/crowd.js';
 import { routePoints, isWembleyBenchmark } from '../js/world/layout.js';
 import { PALETTE } from '../js/world/palette.js';
@@ -62,6 +62,59 @@ test('tree renderer receives every park tree without changing layout', () => {
   assert.deepEqual(replaced.filter(b => ![PALETTE.trunk, PALETTE.leaf, PALETTE.grass].includes(b[6])), baseline.filter(b => ![PALETTE.trunk, PALETTE.leaf, PALETTE.grass].includes(b[6])), 'non-tree park geometry remains identical');
   assert.ok(placements.length >= baseline.filter(b => b[6] === PALETTE.trunk).length, 'every original park tree reaches the renderer');
   assert.ok(placements.length > 7, 'the change extends beyond the pilot garden');
+});
+
+test('park planting records replace only their old boxes and keep stable tree and path clearances', () => {
+  const curve = { getPointAt: () => ({ x: 0, z: 0 }), getTangentAt: () => ({ x: 1, z: 0 }) };
+  const capture = plants => {
+    const out = { boxes: [], plants: [], trees: [], treeBoxes: new Set() };
+    out.draw = (...box) => out.boxes.push(box);
+    if (plants) out.draw.plant = (kind, x, y, z, w, h, d, tint, yaw = 0) => out.plants.push({ kind, x, y, z, w, h, d, tint, yaw });
+    out.onTree = (x, z, shape) => {
+      out.trees.push({ x, z, ...shape });
+      const start = out.boxes.length;
+      tree(out.draw, x, z, shape);
+      for (const box of out.boxes.slice(start)) out.treeBoxes.add(JSON.stringify(box));
+    };
+    return out;
+  };
+  const legacy = capture(false), actual = capture(true), repeated = capture(true);
+  buildParks(legacy.draw, stops, pts, curve, [], legacy.onTree);
+  buildParks(actual.draw, stops, pts, curve, [], actual.onTree);
+  buildParks(repeated.draw, stops, pts, curve, [], () => {});
+
+  assert.ok(actual.plants.length > 0, 'existing beds and planters emit plant records');
+  assert.deepEqual([...new Set(actual.plants.map(p => p.kind))].sort(), ['flower', 'hedge', 'shrub']);
+  assert.deepEqual(actual.plants, repeated.plants, 'plant tint and yaw are deterministic');
+  assert.deepEqual(actual.trees, legacy.trees, 'tree positions and shapes stay unchanged');
+
+  const replacements = new Map();
+  for (const p of actual.plants) {
+    const key = JSON.stringify([p.x, p.y, p.z]);
+    replacements.set(key, (replacements.get(key) ?? 0) + 1);
+  }
+  const oldBoxes = legacy.boxes.filter(box => {
+    if (legacy.treeBoxes.has(JSON.stringify(box))) return false;
+    const key = JSON.stringify(box.slice(0, 3)), count = replacements.get(key) ?? 0;
+    if (!count) return true;
+    replacements.set(key, count - 1);
+    return false;
+  });
+  assert.ok([...replacements.values()].every(count => count === 0), 'each plant replaces an existing planting box');
+  assert.deepEqual(actual.boxes.filter(box => !actual.treeBoxes.has(JSON.stringify(box))), oldBoxes, 'all other park boxes stay unchanged');
+
+  const homes = [...PARKS, ...SQUARES.map(q => ({ x0: q.x0, x1: q.x1, z0: q.z0, z1: q.z1 })), ...loops.map(l => l.rect)];
+  for (const p of actual.plants) {
+    const c = Math.abs(Math.cos(p.yaw)), s = Math.abs(Math.sin(p.yaw)), hx = (c * p.w + s * p.d) / 2, hz = (s * p.w + c * p.d) / 2;
+    const old = legacy.boxes.find(box => !legacy.treeBoxes.has(JSON.stringify(box)) && JSON.stringify(box.slice(0, 3)) === JSON.stringify([p.x, p.y, p.z]));
+    assert.ok(old && hx <= old[3] / 2 + 1e-6 && hz <= old[5] / 2 + 1e-6, `${p.kind} stays within its former planting footprint`);
+    assert.ok(p.h < 1 && p.y + p.h <= 1, `${p.kind} stays below 1 m`);
+    assert.ok(homes.some(r => p.x - hx >= r.x0 && p.x + hx <= r.x1 && p.z - hz >= r.z0 && p.z + hz <= r.z1), `${p.kind} stays in an existing bed or park: ${JSON.stringify(p)}`);
+    for (const loop of loops) {
+      const r = loop.rect, intersects = p.x + hx > r.x0 && p.x - hx < r.x1 && p.z + hz > r.z0 && p.z - hz < r.z1;
+      if (intersects) assert.ok(Math.min(p.x - hx - r.x0, r.x1 - p.x - hx, p.z - hz - r.z0, r.z1 - p.z - hz) >= KEEP, `${p.kind} keeps ${loop.name} clearance`);
+    }
+  }
 });
 
 test('Wembley benchmark trees stay inside the existing park and outside paths and building lots', () => {

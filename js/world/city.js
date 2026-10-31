@@ -195,6 +195,7 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
     }
   }
   const addOff = (x, y, z, w, h, d, ...rest) => { if (!onOverpass(x, z, Math.min(w, d) / 2)) add(x, y, z, w, h, d, ...rest); };
+  if (add.plant) addOff.plant = (kind, x, y, z, w, h, d, tint, yaw = 0) => { if (!onOverpass(x, z, Math.hypot(w, d) / 2)) add.plant(kind, x, y, z, w, h, d, tint, yaw); };
   const plotOff = onArchitecturePlot && ((p) => { if (!onOverpass(p.x, p.z, Math.max(p.width, p.depth) / 2)) onArchitecturePlot(p); });
   rgs.forEach((rg, leg) => buildCountry(addOff, curve, drawTree, rg.ctry, leg, plotOff));
   buildGlasgowEdges(addOff, stops, pts, curve, drawTree, plotOff);

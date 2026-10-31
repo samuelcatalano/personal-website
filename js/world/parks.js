@@ -55,6 +55,8 @@ export const SQUARES = [
 const TILE = [P.tileCream, P.tileTerra], BED = [P.red, P.tulip, P.white, P.violet, P.bloomPink], AWN = [[P.red, P.white], [P.teal, P.white], [P.tulip, P.white], [P.violet, P.white]], UMB = [P.red, P.tulip, P.violet, P.white, P.teal];
 const { patch: LAWN, gravel: GRAVEL, hedge: HEDGE, leaf: LEAF, stone: STONE, oak: OAK, iron: IRON, glass: WATER, dirt: SOIL } = P;
 const BLOOM = [P.red, P.tulip, P.violet, P.red], FRESH = P.gravel;
+const PLANT_TINTS = [P.white, P.offWhite, P.tileCream, P.gravel];
+const variation = (x, z, slot = 0) => Math.abs(Math.sin(x * 12.9898 + z * 78.233 + slot * 37.719) * 43758.5453) % 1;
 export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) {
   const spots = furnitureSpots(stops, curve).map((o) => o.xz), r = rng(9157), made = [];
   const loops = walkPaths(stops, pts).filter((p) => p.type === 'loop');
@@ -77,6 +79,11 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
     // box in park space: u along the long side, v across; lu/lv are its sizes
     const B = (u, v, y, lu, h, lv, c) => (wide ? add(cx + u, y, cz + v, lu, h, lv, c) : add(cx + v, y, cz + u, lv, h, lu, c));
     const world = (u, v) => (wide ? [cx + u, cz + v] : [cx + v, cz + u]);
+    const plantAt = (kind, u, v, y, lu, h, lv, tint, yaw, legacy) => {
+      if (!add.plant) return B(u, v, y, ...legacy);
+      const [x, z] = world(u, v);
+      add.plant(kind, x, y, z, lu, h, lv, tint, yaw + (wide ? 0 : Math.PI / 2));
+    };
     const clearOfSigns = (u, v) => { const [x, z] = world(u, v); return spots.every(([a, b]) => Math.hypot(a - x, b - z) > CLEAR); };
     const fur = [], benches = []; // plaza dressing footprints [u0,u1,v0,v1]: the extras below only go where nothing stands
     const mainPath = !park.nopath && S >= 6, cross = mainPath && S >= 10 && L >= 16, plaza = park.fountain || park.pond, taken = [];
@@ -128,17 +135,28 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
     }
     if (park.benchmarkTrees && onTree) for (const [x, scale] of [[688, 0.84], [708, 1], [728, 1.12]]) onTree(x, park.z1 - 1.5, { h: 2.7 * scale, crown: 1.8 * scale });
     const beds = park.beds ?? (cross ? 2 : 1);
-    for (let i = 0; i < beds; i++) { // flower beds: soil strip with four colour blocks
+    for (let i = 0; i < beds; i++) { // flower beds: soil strip with clustered low plants
       const at = spot(1.6, 40, 0.65); if (!at) continue;
       const [u, v] = at;
       B(u, v, 0.05, 2.6, 0.12, 1.2, SOIL);
       for(const f of [-1,1]) { B(u,v+f*.56,.05,2.64,.16,.12,STONE);B(u+f*1.26,v,.05,.12,.16,1,STONE); } // rims sit 0.02 proud of the soil: no shared planes
-      BLOOM.forEach((c, k) => B(u - 0.825 + k * 0.55, v, 0.12, 0.5, 0.28, 0.95, c));
+      BLOOM.forEach((c, k) => {
+        const x = u - 0.825 + k * 0.55, shade = variation(...world(x, v), k);
+        plantAt('flower', x, v, 0.12, 0.42, 0.28, 0.8, PLANT_TINTS[Math.floor(shade * PLANT_TINTS.length)], (shade - 0.5) * 0.12, [0.5, 0.28, 0.95, c]);
+      });
     }
     for (let i = 0; i < Math.max(2, Math.round(L / 9)); i++) { // bushes and low hedge runs
       const run = i % 3 === 0 && !park.quiet, at = spot(0.9, 20, run ? 2.6 : 0.7); if (!at) continue; // hedge runs are up to 5 m long: keep their whole length inside
       const [u, v] = at;
-      if (run) B(u, v, 0.05, 3 + r() * 2, 0.8, 0.7, HEDGE); else B(u, v, 0.05, 1 + r() * 0.5, 0.7 + r() * 0.3, 1 + r() * 0.4, i % 2 ? LEAF : HEDGE);
+      const shade = variation(...world(u, v), i), tint = PLANT_TINTS[Math.floor(shade * PLANT_TINTS.length)], yaw = (shade - 0.5) * 0.12;
+      if (run) {
+        const w = 3 + r() * 2, plantD = 0.56, plantYaw = (shade - 0.5) * 0.04, maxW = (2 * (L / 2 - Math.abs(u)) - Math.abs(Math.sin(plantYaw)) * plantD) / Math.cos(plantYaw);
+        plantAt('hedge', u, v, 0.05, Math.min(w * 0.95, maxW), 0.8, plantD, tint, plantYaw, [w, 0.8, 0.7, HEDGE]);
+      }
+      else {
+        const w = 1 + r() * 0.5, h = 0.7 + r() * 0.3, d = 1 + r() * 0.4, c = i % 2 ? LEAF : HEDGE;
+        plantAt('shrub', u, v, 0.05, w * 0.9, Math.min(h, 0.9), d * 0.9, tint, yaw, [w, h, d, c]);
+      }
     }
     const bench = (u, v, f) => { for (const s of [-1, 0, 1]) { B(u, v + s * 0.15, 0.45, 1.6, 0.075, 0.12, OAK); B(u, v + f * 0.2, 0.58 + (s + 1) * 0.12, 1.6, 0.085, 0.08, OAK); }
       for (const d of [-0.65, 0.65]) B(u + d, v, 0.09, 0.12, 0.36, 0.38, IRON); fur.push([u - 0.9, u + 0.9, v - 0.4, v + 0.4]); benches.push([u, v]); };
@@ -172,8 +190,13 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
       && !hit(u, v, hu, hv) && !taken.some(([a, b, d]) => Math.hypot(a - u, b - v) < d * 0.6 + Math.max(hu, hv)) && clearOfSigns(u, v);
     const planter = (u, v, k, lu = 1.6, lv = 0.8) => { // raised stone box, soil, then blooms (or a clipped hedge every third)
       B(u, v, 0.05, lu, 0.42, lv, STONE); B(u, v, 0.48, lu - 0.12, 0.04, lv - 0.12, SOIL);
-      if (k % 3 === 2) B(u, v, 0.5, lu - 0.3, 0.45, lv - 0.3, HEDGE);
-      else for (const s of [-1, 1]) B(u + s * (lu - 0.3) / 4, v, 0.5, (lu - 0.3) / 2, 0.2, lv - 0.3, BLOOM[(k + (s > 0)) % 4]);
+      if (k % 3 === 2) {
+        const shade = variation(...world(u, v), k);
+        plantAt('hedge', u, v, 0.5, (lu - 0.3) * 0.9, 0.45, (lv - 0.3) * 0.8, PLANT_TINTS[Math.floor(shade * PLANT_TINTS.length)], (shade - 0.5) * 0.12, [lu - 0.3, 0.45, lv - 0.3, HEDGE]);
+      } else for (const s of [-1, 1]) {
+        const x = u + s * (lu - 0.3) / 4, shade = variation(...world(x, v), k + (s > 0)), c = BLOOM[(k + (s > 0)) % 4];
+        plantAt('flower', x, v, 0.5, (lu - 0.3) * 0.46, 0.2, (lv - 0.3) * 0.9, PLANT_TINTS[Math.floor(shade * PLANT_TINTS.length)], (shade - 0.5) * 0.12, [ (lu - 0.3) / 2, 0.2, lv - 0.3, c ]);
+      }
       fur.push([u - lu / 2, u + lu / 2, v - lv / 2, v + lv / 2]);
     };
     if (park.paved) for (let u = -L / 2 + 3; u < L / 2 - 1.5; u += 6) B(u, 0, 0.06, 0.9, 0.03, S - 0.4, (Math.round((u + L / 2) / 6) % 2) ? FRESH : STONE); // paved promenade: alternating bands
@@ -229,7 +252,11 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
         const fit = (hx, hz) => hz <= (D - 2 * iz) / 2 + 0.01 && !hit(hx, hz);
         if (c === 'B' && fit(2.6, 1) && !(rows.length === 1 && D < 5)) { // raised bed, five saturated colour blocks
           draw(x, 0.05, z, 5.2, 0.55, 1.8, STONE); draw(x, 0.55, z, 5, 0.06, 1.6, SOIL);
-          for (let b = 0; b < 5; b++) draw(x - 2 + b, 0.6, z, 0.96, 0.5, 1.5, BED[(b + k) % 5]);
+          for (let b = 0; b < 5; b++) {
+            const px = x - 2 + b, shade = variation(px, z, k + b), tint = PLANT_TINTS[Math.floor(shade * PLANT_TINTS.length)], color = BED[(b + k) % 5];
+            if (draw.plant) draw.plant('flower', px, 0.6, z, 0.88, 0.38, 1.35, tint, (shade - 0.5) * 0.12);
+            else draw(px, 0.6, z, 0.96, 0.5, 1.5, color);
+          }
         } else if (c === 'T' && tall && fit(3.4, 1)) for (const s of [-1, 1]) { // planted tree in a square planter
           const tx = x + s * 2.2; draw(tx, 0.05, z, 1.5, 0.47, 1.5, STONE); draw(tx, 0.48, z, 1.3, 0.05, 1.3, SOIL);
           const sh = { h: 2.9 + ((k * 7 + s) & 3) * 0.12, crown: 2.1 };
