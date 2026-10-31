@@ -31,12 +31,28 @@ const PART_MEANS = new WeakMap(); // geometry -> mean luminance of [top, trouser
 // Per-instance colour looks: the build tags every vertex with a part id (_part: 0 fixed, .25 top, .5 trousers, .75 shoes, 1 hair).
 // A tinted part is repainted with the palette colour times its own vertex luminance over the part's mean, so shading, cuffs and
 // hair gradients survive. Skin, eyes and fine detail stay as built. Each instance gets a cloned material (same draw calls, same program).
-// muted, saturated enough to read as cloth: no pale greys (they turned to plastic) and no near-black trousers
-const TOPS = ['#5d7a5a', '#a4502f', '#1f3556', '#c79a2c', '#4f6f8f', '#7a2434', '#2d7378', '#d8cdb4', '#33363d', '#8a9a6b', '#9a6f8a', '#c0793a'];
-const TROUSERS = ['#2f4a78', '#2b3350', '#b09a73', '#5d6670', '#5a6040', '#6b5a45', '#7a4a32'];
-const SHOES = ['#f0eee8', '#1b1b1d', '#5a3a26', '#b3321f'];
-const HAIRS = ['#14110f', '#2f2018', '#4e3626', '#7a3c22', '#c9a35d', '#9a9a9a'];
-const KEEP = 0.25; // chance that a part keeps the colour it was built with
+// street-crowd palette (reference: a "Walking People" crowd): mostly dark and neutral tops with a few warm accents,
+// trousers mostly denim; repeated entries weight the draw
+const TOPS = ['#2c2f36', '#3a3f47', '#1f2a3d', '#4a4f57', '#6b6f75', '#5a4636', '#7a2f2f', '#9c4a24', '#3f4a3a', '#55603f',
+  '#8a8f96', '#2a3a52', '#6e5a4a', '#b8b2a6', '#c46a2c', '#4b2f3a', '#2e3b33', '#d9d4ca'];
+const TROUSERS = ['#3d5878', '#4a6a8e', '#2f4562', '#5d7a9c', '#3d5878', '#262a31', '#2c3036', '#55595f', '#8a7a5e', '#4b4b3a', '#6f8aa8'];
+const SHOES = ['#f0eee8', '#1b1b1d', '#2a2a2c', '#5a3a26', '#8a8a86', '#1b1b1d'];
+const HAIRS = ['#14110f', '#1f1813', '#2f2018', '#3b2a1e', '#4e3626', '#6b4a30', '#8a6a44', '#b08d5c', '#7a3c22', '#8f8f8f'];
+const KEEP = 0.08; // chance that a part keeps the colour it was built with
+
+// fabric grain without textures: value noise on the bind-pose position (metres). Trousers get a denim twill and mottling,
+// tops a knit/fleece mottle with faint vertical ribs, hair fine strands; skin and the rest stay as built (k < 0).
+const GRAIN = `
+float gh(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+float gn(vec3 p) { vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(gh(i), gh(i + vec3(1,0,0)), f.x), mix(gh(i + vec3(0,1,0)), gh(i + vec3(1,1,0)), f.x), f.y),
+             mix(mix(gh(i + vec3(0,0,1)), gh(i + vec3(1,0,1)), f.x), mix(gh(i + vec3(0,1,1)), gh(i + vec3(1,1,1)), f.x), f.y), f.z); }
+float grain(int k, vec3 p) {
+  if (k == 1) return 1.0 + 0.10 * (gn(p * 18.0) - 0.5) + 0.05 * (gn(p * 90.0) - 0.5) + 0.035 * sin((p.x + p.y + p.z * 1.7) * 900.0);
+  if (k == 0) return 1.0 + 0.07 * (gn(p * 25.0) - 0.5) + 0.04 * (gn(p * 140.0) - 0.5) + 0.025 * sin(atan(p.x, p.y) * 160.0);
+  if (k == 3) return 1.0 + 0.16 * (gn(p * vec3(260.0, 260.0, 30.0)) - 0.5);
+  return 1.0;
+}`;
 
 export function mulberry32(a) {
   return () => {
@@ -74,15 +90,16 @@ export function tintNpc(inst, rng) {
     o.material.onBeforeCompile = (sh) => {
       sh.uniforms.tints = { value: tint };
       sh.uniforms.means = { value: means };
-      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float _part;\nvarying float vPart;')
-        .replace('#include <color_vertex>', '#include <color_vertex>\nvPart = _part;');
-      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec4 tints[4];\nuniform vec4 means;\nvarying float vPart;')
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float _part;\nvarying float vPart;\nvarying vec3 vRest;')
+        .replace('#include <color_vertex>', '#include <color_vertex>\nvPart = _part;\nvRest = position;'); // bind-pose position: the grain sticks to the cloth
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec4 tints[4];\nuniform vec4 means;\nvarying float vPart;\nvarying vec3 vRest;\n' + GRAIN)
         .replace('#include <color_fragment>', `#include <color_fragment>
         int k = int(floor(vPart * 4.0 + 0.5)) - 1;
         if (k >= 0 && tints[k].w > 0.5) {
           float lum = dot(vColor.rgb, vec3(0.2126, 0.7152, 0.0722));
           diffuseColor.rgb = tints[k].rgb * clamp(lum / means[k], 0.35, 2.2);
-        }`);
+        }
+        diffuseColor.rgb *= grain(k, vRest);`);
     };
   });
 }

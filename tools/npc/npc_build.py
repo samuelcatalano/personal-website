@@ -39,7 +39,7 @@ GARMENT_SPECS = {
 }
 COVER_TOP = {"jacket": float(os.environ.get("COVER_TOP", 1.50))}  # body stays visible above this, so the neck opening shows skin
 # tops hang to the upper thigh, under the crotch (m, 1.8 m reference); women's tops 2.5 cm longer; trousers rise 10 cm under the hem
-TOP_HEM = dict(sweater_print=0.74, hoodie=0.74, zip_jacket=0.76, puffer=0.80, shirt=0.78)
+TOP_HEM = dict(sweater_print=0.90, hoodie=0.89, zip_jacket=0.90, puffer=0.88, shirt=0.89)
 FEMALE_HEM_DROP, TROUSER_UNDER_HEM, HEM_FLARE = 0.025, 0.10, 0.010  # flare: 10 mm outward at the hem, flat to 10 cm above it, gone by 28 cm
 NPCS = [  # NPC_A is the body already in npc_a_walk.blend; the others come from body_<name>.json
     dict(name="NPC_A", json=False, hair=("wavy_long", "#4a3322"), skin="#cd8d68",
