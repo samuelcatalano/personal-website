@@ -18,7 +18,17 @@ ROOT = "Root"
 BALLS = ("ball_l", "ball_r")
 
 
-def retarget_walk(src, dst, frames, action_name, ground_ik=True):
+# Gait shaping (deg). The UAL walks march: thigh +47/-24, knee 87 in swing, elbows 32-41 (+14 added here), arms 8-23 out. Natural gait:
+# hip +30/-10, swing knee ~62, elbow 10-30, upper arm under 10 from the body. Per-clip overrides go through `params`.
+GAIT = dict(hip_f=0.75, hip_b=0.50,  # thigh swing scale, forward / backward of vertical
+            knee_k=0.74,  # scale of the source knee bend in swing and at heel strike
+            elbow_base=4.0, elbow_k=0.45, elbow_fw=6.0,  # elbow flexion = base + k * source bend + fw * hand-forward weight
+            abd_k=0.30, abd_min=3.0,  # upper arm abduction = max(min, k * source abduction)
+            swing_k=1.0, swing_c=-8.0)  # arm swing amplitude scale about the centre angle (deg, + forward)
+
+
+def retarget_walk(src, dst, frames, action_name, ground_ik=True, **params):
+    G = dict(GAIT, **params)
     scene = bpy.context.scene
     layer = bpy.context.view_layer
     sw, dw = src.matrix_world.copy(), dst.matrix_world.copy()
@@ -34,6 +44,7 @@ def retarget_walk(src, dst, frames, action_name, ground_ik=True):
         pb.rotation_mode = "QUATERNION"
 
     newrot = {}
+    ARMQ = {}
     fsrc = 1.0 if (sw @ src.data.bones["ball_l"].head_local).y > (sw @ src.data.bones["foot_l"].head_local).y else -1.0
     fdst = 1.0 if (dw @ dst.data.bones["ball_l"].head_local).y > (dw @ dst.data.bones["foot_l"].head_local).y else -1.0
     TORSO = {"spine_02", "spine_03", "clavicle_l", "clavicle_r", "neck_01", "neck_02", "neck_03", "head"}
@@ -72,7 +83,7 @@ def retarget_walk(src, dst, frames, action_name, ground_ik=True):
         w = max(w_air, w_reach)
         d = ks - ks_rest[side]
         stance = KNEE_STAND + 0.1 * d  # a planted leg under the hip: nearly straight
-        return stance + w * (kd_rest[side] + d - stance)
+        return stance + w * (G["knee_k"] * (kd_rest[side] + d) - stance)
 
     def pose(shift, ovr=None):
         hl =(sw @ src.pose.bones["hand_l"].matrix).to_translation().y
@@ -92,11 +103,35 @@ def retarget_walk(src, dst, frames, action_name, ground_ik=True):
             rot = delta @ dst_rest[name]
             if name in SPLAY:  # legs: start from the vertical rest (see SPLAY above)
                 rot = Quaternion((0, 1, 0), SPLAY[name]) @ rot
+            if name in ("thigh_l", "thigh_r"):  # tame the march: scale the sagittal thigh angle, forward and backward of vertical
+                v = rot @ Y
+                al = math.atan2(v.y * fdst, -v.z)
+                rot = rx(fdst * (al * (G["hip_f"] if al > 0 else G["hip_b"]) - al)) @ rot
             if name in ARM:  # rests differ (UAL T-pose, MPFB A-pose): aim the bone along the source bone, not the source rotation delta
                 kid = ARM[name]
                 sdir = (sw @ src.pose.bones[SRC_OF.get(kid, kid)].matrix).to_translation() - s_world.to_translation()
                 rdir = dw.to_3x3() @ (dst.data.bones[kid].head_local - dst.data.bones[name].head_local)
                 rot = rdir.rotation_difference(sdir) @ dst_rest[name]
+                side = name[-1]
+                if name.startswith("upperarm"):  # relaxed arm: pull the abduction in, scale the swing; the forearm turns with it
+                    v = rot @ Y
+                    sgn = 1.0 if side == "l" else -1.0
+                    ab = math.atan2(v.x * sgn, -v.z)
+                    sw_ = math.atan2(v.y * fdst, -v.z)
+                    dab = max(D(G["abd_min"]), G["abd_k"] * ab) - ab if ab > 0 else 0.0
+                    dsw = (D(G["swing_c"]) + G["swing_k"] * (sw_ - D(G["swing_c"]))) - sw_
+                    ARMQ[side] = rx(fdst * dsw) @ Quaternion((0, 1, 0), sgn * -dab)
+                rot = ARMQ[side] @ rot
+                if name.startswith("lowerarm"):  # elbow flexion set from the source bend (never hyperextended)
+                    ua = newrot["upperarm_" + side] @ Y
+                    la = rot @ Y
+                    e = ua.angle(la)
+                    fw = hn if side == "l" else -hn
+                    e2 = D(G["elbow_base"] + G["elbow_fw"] * max(fw, 0.0)) + G["elbow_k"] * e
+                    ax = ua.cross(la)
+                    if ax.length > 1e-6:
+                        tgt = Quaternion(ax.normalized(), e2) @ ua
+                        rot = la.rotation_difference(tgt) @ rot
             elif any(p.name in ("hand_l", "hand_r") for p in pb.parent_recursive) or name in ("hand_l", "hand_r"):
                 par = pb.parent.name  # hand and fingers keep their rest pose relative to the forearm
                 rot = newrot[par] @ dst_rest[par].inverted() @ dst_rest[name]
@@ -109,9 +144,6 @@ def retarget_walk(src, dst, frames, action_name, ground_ik=True):
             if name in ("clavicle_l", "clavicle_r"):  # shoulders back: the clavicle tip moves toward the back
                 rot = rz(-fdst * D(SHOULDER_BACK) * (1.0 if name.endswith("_l") else -1.0)) @ rot
             if name in TORSO or name in ARM or name in ("upperarm_l", "upperarm_r"):
-                if name in ARM and name.startswith("lowerarm"):
-                    fw = hn if name.endswith("_l") else -hn
-                    rot = rx(fdst * D(14.0 + 9.0 * max(fw, 0.0) - 3.0 * min(fw, 0.0))) @ rot
                 rot = e_t @ rot
                 if name in HEADG:
                     rot = e_h @ rot
