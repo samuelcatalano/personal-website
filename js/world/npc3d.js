@@ -178,12 +178,13 @@ export async function createNpc3d(scene, { curve, count = NEAR ? 24 : 40 }) {
     const mixer = new THREE.AnimationMixer(inst);
     const clip = clips[Math.floor(rng() * clips.length)];
     const ts = CADENCE * v.speed * (0.94 + 0.12 * rng()); // per-walker cadence
-    const ws = CLIP_SPEED[clip.name] * ts; // walk speed, m/s: the stride matches it, so planted feet do not slide
+    const sc = (v.height / v.measured) * (0.96 + 0.08 * rng()), wide = 0.94 + 0.12 * rng(); // per-walker height ±4%, width ±6%
+    const ws = CLIP_SPEED[clip.name] * ts * sc; // walk speed, m/s: the scaled stride matches it, so planted feet do not slide
     const action = mixer.clipAction(clip);
     action.timeScale = ts;
     action.time = rng() * clip.duration;
     action.play();
-    inst.scale.setScalar(v.height / v.measured);
+    inst.scale.set(sc * wide, sc, sc * wide);
     inst.traverse((o) => { if (o.isMesh) o.receiveShadow = true; }); // takes the building shadows; casting would add a shadow-pass per NPC
     tintNpc(inst, mulberry32(1000 + i)); // seeded: a refresh shows the same crowd
     scene.add(inst);

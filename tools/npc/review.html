@@ -21,7 +21,7 @@ function make(k, i, t) {
   const v = V[k], inst = SkeletonUtils.clone(tmpl[k]), m = new THREE.AnimationMixer(inst);
   const walks = clips.filter(c => c.name.startsWith('NPC_Walk')), clip = MODE === 'crowd' ? walks[i % walks.length] : (clips.find(c => c.name === (P.get('clip') || v.clip || 'NPC_Walk')) || clips[0]); // ?clip=NPC_Walk2
   const a = m.clipAction(clip); a.play(); m.setTime(t * clip.duration);
-  inst.scale.setScalar(v.height / v.measured); if (P.get('tint') !== '0') tintNpc(inst, mulberry32(1000 + i));
+  { const sc = v.height / v.measured, wide = MODE === 'crowd' ? 0.94 + 0.12 * Math.random() : 1; inst.scale.set(sc * wide, sc, sc * wide); } if (P.get('tint') !== '0') tintNpc(inst, mulberry32(1000 + i));
   return { inst, m, clip, v };
 }
 const JOINTS = MODE === 'joints'; // close-ups: side lower leg at t = 0, .25, .5, .75; front lower leg at .25; side elbow at .25
