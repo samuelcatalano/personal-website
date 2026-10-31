@@ -16,7 +16,11 @@ from bl_ext.user_default.mpfb.services.targetservice import TargetService  # noq
 
 BASE = {"gender": 1.0, "age": 0.54, "weight": 0.45, "muscle": 0.5, "height": 0.56,
         "african": 0.1, "asian": 0.1, "caucasian": 0.8}
-VARIANTS = {
+VARIANTS = {  # B..E restored from 9d04c99 (they were dropped when F..H were added)
+    "NPC_B": {"age": 0.50, "weight": 0.30, "muscle": 0.35},
+    "NPC_C": {"age": 0.70, "weight": 0.70, "muscle": 0.40},
+    "NPC_D": {"age": 0.50, "weight": 0.55, "muscle": 0.62},
+    "NPC_E": {"age": 0.50, "weight": 0.35, "muscle": 0.45},
     "NPC_F": {"gender": 0.0, "age": 0.50, "weight": 0.40, "muscle": 0.35, "height": 0.50},
     "NPC_G": {"gender": 0.0, "age": 0.55, "weight": 0.55, "muscle": 0.30, "height": 0.56},
     "NPC_H": {"gender": 0.05, "age": 0.48, "weight": 0.30, "muscle": 0.40, "height": 0.62},

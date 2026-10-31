@@ -8,7 +8,7 @@ import { ROAD } from './layout.js'; // read only: the sprite crowd's lane offset
 const GLB = new URL('../../assets/npc/npc_pack.glb', import.meta.url).href;
 const NEAR = new URLSearchParams(location.search).has('npcnear'), SHOT = Number(new URLSearchParams(location.search).get('npcshot')) || 0; // debug only
 const REDUCED = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches; // read once at load
-const VARIANTS = [ // height: metres; measured: the body height each mesh was built at; speed: scales the walk speed
+export const NPC_VARIANTS = [ // height: metres; measured: the body height each mesh was built at; speed: scales the walk speed
   { name: 'NPC_A', height: 1.80, measured: 1.799, speed: 1.00 },
   { name: 'NPC_B', height: 1.72, measured: 1.813, speed: 1.08 },
   { name: 'NPC_C', height: 1.78, measured: 1.787, speed: 0.92 },
@@ -18,6 +18,7 @@ const VARIANTS = [ // height: metres; measured: the body height each mesh was bu
   { name: 'NPC_G', height: 1.66, measured: 1.806, speed: 1.06 },
   { name: 'NPC_H', height: 1.72, measured: 1.806, speed: 0.94 },
 ];
+const VARIANTS = NPC_VARIANTS;
 // World unit = metre (ROAD is in metres). sprites.js scales each person to look.height, so a sprite body is 1.6-1.9 m tall.
 // Lanes mirror crowd.js: inner and outer pavement, walking opposite ways on each side of the route.
 const IN = ROAD.padIn + 0.4, OUT = ROAD.padIn + 1.05, LANES = [[IN, 1], [OUT, -1], [-IN, -1], [-OUT, 1]];

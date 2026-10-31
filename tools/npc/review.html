@@ -1,0 +1,61 @@
+<!doctype html><html><body style="margin:0;background:#9aa0a6">
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.min.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }</script>
+<script type="module">
+// review page (scratch): ?mode=sheet&t=0.3  -> rows = NPCs, cols = front / 3-4 / side / back / face front / face 3-4
+//                        ?mode=crowd&n=80   -> "Walking People" style crowd walking towards the camera, sun shadows
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
+import { tintNpc, mulberry32, NPC_VARIANTS } from '/js/world/npc3d.js';
+const P = new URLSearchParams(location.search), MODE = P.get('mode') || 'sheet', T = +(P.get('t') || 0.3);
+const W = innerWidth, H = innerHeight;
+const r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); r.setSize(W, H); r.setPixelRatio(1);
+r.shadowMap.enabled = MODE === 'crowd'; r.shadowMap.type = THREE.PCFSoftShadowMap; document.body.append(r.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(MODE === 'crowd' ? 0xb8bcc0 : 0x9aa0a6);
+scene.add(new THREE.HemisphereLight(0xdfe8f5, 0x6a6258, 1.5));
+const sun = new THREE.DirectionalLight(0xfff4e6, 2.6); sun.position.set(-6, 10, 6); scene.add(sun); scene.add(sun.target);
+const g = await new GLTFLoader().loadAsync('/__glb');
+const clips = g.animations; const V = NPC_VARIANTS;
+const tmpl = V.map(v => { const t = SkeletonUtils.clone(g.scene); for (const w of V) if (w.name !== v.name) t.getObjectByName(w.name)?.removeFromParent(); return t; });
+function make(k, i, t) {
+  const v = V[k], inst = SkeletonUtils.clone(tmpl[k]), m = new THREE.AnimationMixer(inst);
+  const clip = clips.find(c => c.name === (v.clip || 'NPC_Walk')) || clips[0];
+  const a = m.clipAction(clip); a.play(); m.setTime(t * clip.duration);
+  inst.scale.setScalar(v.height / v.measured); if (P.get('tint') !== '0') tintNpc(inst, mulberry32(1000 + i));
+  return { inst, m, clip, v };
+}
+if (MODE === 'sheet') {
+  const views = [[0, 1.0, 4.2, 0.95, 26], [0.8, 1.0, 4.2, 0.95, 26], [1.57, 1.0, 4.2, 0.95, 26], [3.14, 1.0, 4.2, 0.95, 26], [0, 1.62, 0.75, 1.62, 22], [0.6, 1.62, 0.75, 1.62, 22]];
+  const rows = V.length, cw = W / views.length, ch = H / rows; r.setScissorTest(true); r.autoClear = false;
+  const cam = new THREE.PerspectiveCamera(26, cw / ch, 0.05, 50);
+  const npcs = V.map((_, k) => make(k, k, T));
+  for (let k = 0; k < rows; k++) {
+    scene.add(npcs[k].inst); npcs[k].inst.updateMatrixWorld(true);
+    const s = npcs[k].inst.scale.x;
+    views.forEach(([az, cy, d, ty, fov], c) => {
+      cam.fov = fov; cam.aspect = cw / ch; cam.updateProjectionMatrix();
+      cam.position.set(Math.sin(az) * d, cy * s, Math.cos(az) * d); cam.lookAt(0, ty * s, 0);
+      sun.position.set(Math.sin(az - 0.7) * 6, 8, Math.cos(az - 0.7) * 6);
+      const x = c * cw, y = (rows - 1 - k) * ch; r.setViewport(x, y, cw, ch); r.setScissor(x, y, cw, ch); r.clear(); r.render(scene, cam);
+    });
+    scene.remove(npcs[k].inst);
+  }
+  document.title = 'done';
+} else {
+  const N = +(P.get('n') || 80), rng = mulberry32(5);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({ color: 0xb0b2b4, roughness: 1 }));
+  ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+  sun.castShadow = true; sun.shadow.mapSize.set(4096, 4096); Object.assign(sun.shadow.camera, { left: -25, right: 25, top: 25, bottom: -25, far: 80 }); sun.shadow.bias = -0.0005;
+  sun.position.set(-8, 14, -10); sun.target.position.set(0, 0, 10);
+  const all = [];
+  for (let i = 0; i < N; i++) {
+    const k = Math.floor(rng() * V.length), n = make(k, i, rng());
+    n.inst.position.set((rng() - 0.5) * 14 + (rng() - 0.5) * 0.4, 0, 1.0 + Math.pow(rng(), 0.8) * 34);
+    n.inst.rotation.y = Math.PI + (rng() - 0.5) * 0.12; // walking towards the camera
+    n.inst.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    scene.add(n.inst); all.push(n);
+  }
+  const cam = new THREE.PerspectiveCamera(30, W / H, 0.1, 200); cam.position.set(0.3, 2.1, -4.2); cam.lookAt(0, 1.0, 12);
+  r.render(scene, cam); document.title = 'done';
+}
+</script></body></html>

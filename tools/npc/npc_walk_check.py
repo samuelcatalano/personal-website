@@ -59,6 +59,8 @@ before = set(bpy.data.objects)
 bpy.ops.import_scene.gltf(filepath=UAL)
 new = [o for o in bpy.data.objects if o not in before]
 src = next(o for o in new if o.type == "ARMATURE")
+from ual_names import to_unreal_names  # noqa: E402
+print("CHECK renamed UAL bones", to_unreal_names(src), flush=True)
 walk = bpy.data.actions["Walk_Loop"]
 src.animation_data_create()
 src.animation_data.action = walk
