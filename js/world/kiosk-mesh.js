@@ -43,6 +43,7 @@ export function buildKiosks(spots) {
     new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.15, metalness: 0.3 }),
     new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6 }),
   ];
+  mats[1].userData.glow = true; mats[1].userData.glowK = 0.3; mats[1].userData.glowColor = new THREE.Color('#ffc477'); // lit interior at night (sky.js emissive loop); dark glass by day
   mats[2].userData.glow = true; mats[2].userData.glowK = 1.2; mats[2].userData.glowColor = new THREE.Color('#ffe6a0');
   [bg, gg, sg].forEach((g, j) => {
     const m = new THREE.InstancedMesh(g, mats[j], spots.length); m.name = ['phone-body', 'phone-glass', 'phone-sign'][j];

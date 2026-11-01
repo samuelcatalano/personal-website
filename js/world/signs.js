@@ -19,8 +19,8 @@ export async function createSigns(scene, { stops, curve }) {
   for (const { i, kind, xz: [x, z] } of spots) {
     if (kind === 'plaque') {
       const { brand } = stops[i];
-      const pole = new THREE.Mesh(new THREE.BoxGeometry(0.16, 3.4, 0.16), new THREE.MeshLambertMaterial({ color: 0x8e8375 }));
-      pole.position.set(x, 1.7, z);
+      const pole = new THREE.Mesh(new THREE.BoxGeometry(0.16, 2.9, 0.16), new THREE.MeshLambertMaterial({ color: 0x8e8375 }));
+      pole.position.set(x, 1.45, z); // tops out at the sprite's lower edge (2.9): a taller pole poked through the plaque's colour stripe
       const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: paintPlaque(brand.initials, brand.color), toneMapped: false }));
       sprite.position.set(x, 3.7, z);
       sprite.scale.set(1.6, 1.6, 1);
