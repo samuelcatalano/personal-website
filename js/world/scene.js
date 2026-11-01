@@ -60,6 +60,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   scene.background = new THREE.Color(0xa8d0f2);
   scene.fog = new THREE.Fog(0xa8d0f2, 240, 900);
   const camera = new THREE.PerspectiveCamera(40, 1, 1, 1400);
+  if (new URLSearchParams(location.search).has('qa')) globalThis.__qaCamera = camera; // QA captures (tools/qa/route-capture.mjs) record the camera
   const hemi = new THREE.HemisphereLight(0xb9d4ea, 0x8d8574, 1);
   const sun = new THREE.DirectionalLight(0xfff0d0, 2.4);
   sun.castShadow = true;
