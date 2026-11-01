@@ -119,7 +119,7 @@ const CAB_FINISH = {
 const ROLES = {
   ...CAB_FINISH,
   BusBody: (v) => busPaint(v.body), BusAccent: (v) => busPaint(v.accent), BusStripe: (v) => busPaint(v.stripe ?? v.body), BusSkirtF: (v) => busPaint(v.skirtF ?? v.accent), BusSweep: (v) => busPaint(v.sweep ?? v.body), BusLilac: (v) => busPaint(v.lilac ?? v.body), BusRear: (v) => busPaint(v.rear ?? v.body), BusMark: (v) => busPaint(v.mark ?? '#f0efe9'), BusMark2: (v) => busPaint(v.mark2 ?? '#1c3f94'), BusTrim: () => fixed('dark'), BusGlass: () => glass('busGlass', '#07121a', 0.96, 0.6),
-  BusRubber: () => fixed('tyre'), BusMetal: () => fixed('chrome'), BusWheel: () => phys('busWheel', () => new THREE.MeshPhysicalMaterial({ color: '#aeb4ba', roughness: 0.5, metalness: 0.25, envMapIntensity: 0.25 })), // pressed-steel bus rim, kept matte enough to read under night lighting BusHeadlight: () => fixed('head'), BusTaillight: () => fixed('tail'),
+  BusRubber: () => fixed('tyre'), BusMetal: () => fixed('chrome'), BusWheel: () => phys('busWheel', () => new THREE.MeshPhysicalMaterial({ color: '#aeb4ba', roughness: 0.5, metalness: 0.25, envMapIntensity: 0.25 })), BusHeadlight: () => fixed('head'), BusTaillight: () => fixed('tail'), // pressed-steel bus rim (BusWheel), kept matte enough to read under night lighting
   BusDisplay: (v) => destMat(...v.dest), BusInterior: () => fixed('dark'), // the authored glazing is large: the shared warm 'cabin' glow would flood it cream at night, so the glow comes from busGlass only
   CarBody: (v) => carPaint(v.body), CarRoof: (v) => carPaint(v.roof), CarStripe: () => carPaint('#f2f0e9'), CarGlass: CAR_FINISH.CarGlass, CarTrim: CAR_FINISH.CarTrim, CarInterior: () => phys('miniInterior', () => new THREE.MeshStandardMaterial({ color: '#655d51', roughness: 0.85, envMapIntensity: 0.18 })), CarPlate: () => fixed('plate'), CarRim: CAR_FINISH.CarRim,
   CarChrome: CAR_FINISH.CarChrome, CarHeadlight: () => fixed('head'), CarTaillight: () => fixed('tail'),
@@ -286,6 +286,18 @@ function axleWheels(key, src, axles) {
   }
   return axleCache.set(key, res).get(key);
 }
+// The Caio's tail-lamp quads are wound to face into the bus (the GLB relied on doubleSided); the shared single-sided 'tail' material needs them facing the rear (-x).
+const faceRear = (g) => {
+  if (g.userData.rearFaced) return; g.userData.rearFaced = true;
+  const n = g.attributes.normal, ix = g.index; let sx = 0; for (let i = 0; i < n.count; i++) sx += n.getX(i);
+  if (sx <= 0 || !ix) return;
+  for (let i = 0; i < n.count; i++) n.setX(i, -n.getX(i));
+  const a = ix.array; for (let i = 0; i < a.length; i += 3) { const t = a[i + 1]; a[i + 1] = a[i + 2]; a[i + 2] = t; }
+  n.needsUpdate = ix.needsUpdate = true;
+};
+// The authored display UVs follow glTF (v = 0 at the top) but destMat's canvas texture keeps three's flipY default, so the board rendered upside down.
+// Flip v once on the shared geometry (all clones share it) and keep the single shared, night-glowing destMat material.
+const flipDisplayV = (g) => { if (g.userData.vFlipped) return; const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setY(i, 1 - uv.getY(i)); uv.needsUpdate = true; g.userData.vFlipped = true; };
 // Swap a procedural vehicle's body for a shared authored GLB (geometry shared, materials per palette). Procedural stays on failure.
 function upgrade(vehicle, key, v, hero, isDisposed = () => false, axles) {
   return loadVehicleAsset(key).then((src) => {
@@ -320,6 +332,8 @@ function upgrade(vehicle, key, v, hero, isDisposed = () => false, axles) {
       if (o.name === 'miniRearClear') return;
       const name = o.material.name.replace(/\.\d+$/, '');
       o.userData.role = name; // reskinBus maps it back to a livery
+      if (name === 'BusDisplay') flipDisplayV(o.geometry);
+      if (name === 'BusTaillight') faceRear(o.geometry);
       if (paintMaterials.has(name)) o.material = fleetPaint(name, v.body);
       else if (FLEET_FINISH[name] ?? ROLES[name]) o.material = (FLEET_FINISH[name] ?? ROLES[name])(v);
       else if (!v.parked && /^(REAR_TAIL_LIGHT|M_2022_Honda_HR_V_eHEV_BrakeLightsBase)$/i.test(name)) o.material = rearLight(o.material);
