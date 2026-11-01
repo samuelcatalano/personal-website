@@ -3,7 +3,8 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
-import { ROAD } from './layout.js'; // read only: the sprite crowd's lane offsets
+import { ROAD } from './layout.js';
+import { crowdPlan } from './crowd.js'; // read only: the sprite crowd's people and paths
 
 const GLB = new URL('../../assets/npc/npc_pack.glb', import.meta.url).href;
 const NEAR = new URLSearchParams(location.search).has('npcnear'), SHOT = Number(new URLSearchParams(location.search).get('npcshot')) || 0; // debug only
@@ -243,66 +244,97 @@ function hideSprites(scene) {
   }
 }
 
-export async function createNpc3d(scene, { curve, count = NEAR ? 24 : (globalThis.innerWidth < 700 ? 16 : 32) }) { // ~7 draw calls per textured walker: fewer on phones
+// The 3D walkers follow the sprite crowd's own simulation (people.js, paths from crowd.js): the same 1000 people on the same lanes,
+// loops and plazas at the same speeds; a pool of 3D bodies is given to the people nearest the camera (ahead weighs more than
+// behind), so the city stays as populated as before and nobody pops in or out near the camera. The sprites are not drawn.
+const FEMALE = new Set(['NPC_F', 'NPC_G', 'NPC_H', 'NPC_K', 'NPC_L', 'NPC_P', 'NPC_R', 'NPC_T', 'NPC_KA', 'NPC_KC']);
+const PAVE_TOP = 0.17; // pavement slab top (city.js: bottom 0.07, 0.10 thick); the crowd's lanes run on it
+export async function createNpc3d(scene, { curve, pts, stops, count = globalThis.innerWidth < 700 ? 28 : 56 }) { // ~7 draw calls per walker
   hideSprites(scene);
+  const crowd = scene.getObjectByName('crowd');
+  const plan = crowdPlan(stops, pts, 1017); // people.js seed: index i here is sprite i there
   const gltf = await new GLTFLoader().loadAsync(GLB);
   const clips = gltf.animations.filter((a) => a.name in CLIP_SPEED);
-  // one template per variant: its own armature (adult or child rig: clip tracks bind by bone name) plus only that variant's mesh
   const templates = VARIANTS.map((v) => personTemplate(gltf.scene, v));
-  const L = curve.getLength(), rng = mulberry32(777);
-  const [lo, hi] = NEAR ? [5, 30] : [-BACK, AHEAD]; // walker window, metres ahead of the camera along the route
-  const wrap = (v) => lo + ((((v - lo) % (hi - lo)) + (hi - lo)) % (hi - lo));
+  const rng = mulberry32(777);
+  const kindOf = (v) => (v.rig === 'child' ? 'kid' : FEMALE.has(v.name) ? 'woman' : 'man');
+  // the pool: as many of each kind as the crowd has (70% adults, half women; kids 30%: fewer here, our kids are 1.2-1.4 m)
+  const kinds = { man: [], woman: [], kid: [] };
+  VARIANTS.forEach((v, k) => kinds[kindOf(v)].push(k));
   const walkers = [];
   for (let i = 0; i < count; i++) {
-    const k = i % VARIANTS.length, v = VARIANTS[k], [off, dir] = LANES[i % LANES.length];
+    const kind = i % 8 === 7 ? 'kid' : i % 2 ? 'woman' : 'man', list = kinds[kind], k = list[Math.floor(i / 2) % list.length], v = VARIANTS[k];
     const inst = shareSkeleton(SkeletonUtils.clone(templates[k]));
     const mixer = new THREE.AnimationMixer(inst);
-    const mine = clips.filter((c) => c.name.endsWith('_C') === (v.rig === 'child')), clip = mine[Math.floor(rng() * mine.length)]; // kids draw from the _C clips
-    const ts = CADENCE * v.speed * (0.94 + 0.12 * rng()); // per-walker cadence
-    const sc = (v.height / v.measured) * (0.96 + 0.08 * rng()), wide = 0.94 + 0.12 * rng(); // per-walker height ±4%, width ±6%
-    const ws = CLIP_SPEED[clip.name] * ts * sc; // walk speed, m/s: the scaled stride matches it, so planted feet do not slide
+    const mine = clips.filter((c) => c.name.endsWith('_C') === (v.rig === 'child')), clip = mine[Math.floor(rng() * mine.length)];
     const action = mixer.clipAction(clip);
-    action.timeScale = ts;
     action.time = rng() * clip.duration;
     action.play();
+    const sc = (v.height / v.measured) * (0.96 + 0.08 * rng()), wide = 0.94 + 0.12 * rng();
     inst.scale.set(sc * wide, sc, sc * wide);
-    inst.traverse((o) => { if (o.isMesh) o.receiveShadow = true; }); // takes the building shadows; casting would add a shadow-pass per NPC
-    tintNpc(inst, mulberry32(1000 + i)); // seeded: a refresh shows the same crowd
+    inst.visible = false;
+    inst.traverse((o) => { if (o.isMesh) { o.receiveShadow = true; o.frustumCulled = false; } });
+    tintNpc(inst, mulberry32(1000 + i));
     scene.add(inst);
-    walkers.push({ inst, mixer, off, dir, ws, x: null, jit: rng() });
+    walkers.push({ inst, mixer, action, kind, stride: CLIP_SPEED[clip.name] * sc, who: -1, x: 0, y: 0, z: 0, yaw: 0 });
   }
-  // one blob per walker like the sprite crowd's (one draw call); hidden walkers get a zero scale
   const shadow = new THREE.InstancedMesh(new THREE.CircleGeometry(0.3, 14).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#2a2622', transparent: true, opacity: 0.22, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 }), count);
   Object.assign(shadow, { name: 'npc3d-shadow', frustumCulled: false, renderOrder: 0 });
   scene.add(shadow);
-  const dummy = new THREE.Object3D();
+  const dummy = new THREE.Object3D(), fwd = new THREE.Vector3();
+  const A = crowd.instanceMatrix.array, I = crowd.geometry.attributes.aInfo.array, N = plan.length;
+  const groundOf = (i) => plan[i].path.y ?? (plan[i].path.type === 'lane' ? PAVE_TOP : FEET);
+  const owner = new Int32Array(N).fill(-1), score = new Float32Array(N), order = Array.from({ length: N }, (_, i) => i);
+  let tick = 0;
+  const assign = (cam) => { // nearest people (ahead of the camera counts 3x closer) get a body; a kept walker only leaves past 1.4x the cut
+    cam.getWorldDirection(fwd);
+    for (let i = 0; i < N; i++) {
+      const a = i * 16;
+      if (A[a] === 0) { score[i] = Infinity; continue; } // the sprite sim hides people far from the camera
+      const dx = A[a + 12] - cam.position.x, dz = A[a + 14] - cam.position.z, d = Math.hypot(dx, dz);
+      score[i] = d * (dx * fwd.x + dz * fwd.z < 0 ? 3 : 1);
+    }
+    order.sort((p, q) => score[p] - score[q]);
+    const cut = score[order[Math.min(count, N) - 1]] * 1.4;
+    for (const w of walkers) if (w.who >= 0 && !(score[w.who] <= cut)) { owner[w.who] = -1; w.who = -1; w.inst.visible = false; }
+    for (let r = 0; r < Math.min(count, N); r++) {
+      const i = order[r];
+      if (owner[i] >= 0 || score[i] === Infinity) continue;
+      const lk = plan[i].look.kind, want = lk === 'girl' || lk === 'boy' ? 'kid' : lk;
+      const free = walkers.find((w) => w.who < 0 && w.kind === want) || walkers.find((w) => w.who < 0 && (w.kind === 'kid') === (want === 'kid'));
+      if (!free) continue;
+      free.who = i; owner[i] = walkers.indexOf(free);
+      free.x = A[i * 16 + 12]; free.z = A[i * 16 + 14]; free.y = groundOf(i); free.yaw = Math.atan2(I[4 * i + 1], I[4 * i + 2]);
+      free.inst.visible = true;
+    }
+  };
   return {
     update(f) {
-      const here = Math.min(1, Math.max(0, f.progress)) * L; // the camera's place on the route (scroll progress), in metres
-      const dt = REDUCED && !NEAR ? 0 : f.dt; // reduced motion: they stand still in place (frozen stride), as the sprite crowd does
-      walkers.forEach((w, i) => {
-        if (w.x === null) w.x = here + lo + w.jit * (hi - lo); // first frame: spread over the window
-        w.x += w.dir * w.ws * dt; // absolute route position: the crowd stays put while the camera moves
-        w.x = here + wrap(w.x - here); // recycle the walkers that leave the window inside it
-        const inRoute = w.x >= 0 && w.x <= L; // past the route ends there is no pavement: hide, do not pile up at the ends
-        w.inst.visible = inRoute;
-        dummy.scale.setScalar(inRoute ? 1 : 0);
-        if (inRoute) {
-          w.mixer.update(dt);
-          const u = w.x / L, p = curve.getPointAt(u), t = curve.getTangentAt(u);
-          w.inst.position.set(p.x - t.z * w.off, FEET, p.z + t.x * w.off); // same side convention as people.js
-          w.inst.rotation.y = Math.atan2(t.x * w.dir, t.z * w.dir); // the model walks along +Z; turn it onto the walking direction
-          dummy.position.set(w.inst.position.x, FEET + 0.01, w.inst.position.z);
-        }
-        dummy.updateMatrix();
-        shadow.setMatrixAt(i, dummy.matrix);
+      const dt = REDUCED ? 0 : f.dt;
+      if (tick++ % 12 === 0) assign(f.camera);
+      walkers.forEach((w, n) => {
+        if (w.who < 0) { dummy.scale.setScalar(0); dummy.updateMatrix(); shadow.setMatrixAt(n, dummy.matrix); return; }
+        const i = w.who, a = i * 16, fx = I[4 * i + 1], fz = I[4 * i + 2], sp = plan[i].look.speed;
+        // the sprite sim slides each sprite back and forth a few cm per frame (planted-foot lock); the body walks at the person's
+        // speed along its facing and is pulled gently onto the sprite's place, so it neither jitters nor drifts off its path
+        w.x += fx * sp * dt; w.z += fz * sp * dt;
+        const k = Math.min(1, dt * 2.5);
+        w.x += (A[a + 12] - w.x) * k; w.z += (A[a + 14] - w.z) * k;
+        if (Math.hypot(A[a + 12] - w.x, A[a + 14] - w.z) > 2) { w.x = A[a + 12]; w.z = A[a + 14]; } // a path jump (lane ends)
+        let dy = Math.atan2(fx, fz) - w.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+        w.yaw += dy * Math.min(1, dt * 8); // turns at path corners take ~0.3 s
+        w.y = groundOf(i);
+        w.action.timeScale = Math.min(1.75, sp / w.stride); // stride matches speed (no foot slide) up to a brisk 2.6 steps/s
+        w.mixer.update(dt);
+        w.inst.position.set(w.x, w.y, w.z);
+        w.inst.rotation.y = w.yaw;
+        dummy.position.set(w.x, w.y + 0.01, w.z); dummy.scale.setScalar(1); dummy.updateMatrix();
+        shadow.setMatrixAt(n, dummy.matrix);
       });
       shadow.instanceMatrix.needsUpdate = true;
-      if (NEAR) { // debug: pavement-level camera (eye 1.65 m) on the +side pavement, looking along the route at the walkers 5-30 m ahead; ?npcshot=k aims at walker k instead
-        const a = curve.getPointAt(here / L), t = curve.getTangentAt(here / L), side = (IN + OUT) / 2;
-        f.camera.position.set(a.x - t.z * side, 1.65, a.z + t.x * side);
-        if (SHOT) { const w = walkers[SHOT % walkers.length]; f.camera.lookAt(w.inst.position.x, 1.0, w.inst.position.z); }
-        else { const b = curve.getPointAt(Math.min(1, (here + 14) / L)); f.camera.lookAt(b.x - t.z * side, 1.0, b.z + t.x * side); }
+      if (NEAR) { // debug: eye-level camera 6 m behind walker ?npcshot=k (default 0), looking past it
+        const w = walkers[SHOT % walkers.length];
+        if (w.who >= 0) { f.camera.position.set(w.x - Math.sin(w.yaw) * 6 + Math.cos(w.yaw) * 1.5, w.y + 1.6, w.z - Math.cos(w.yaw) * 6 - Math.sin(w.yaw) * 1.5); f.camera.lookAt(w.x, w.y + 1.0, w.z); }
       }
     },
     dispose() {

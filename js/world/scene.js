@@ -126,7 +126,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   scene.add(world, eye, details, plane, shadow, bus, roadMarks);
   const units = [createAmbient(scene, { curve, pts, stops, reducedMotion }), createParked(scene, { curve, pts, stops, pilotCrossings })];
   const people = createPeople(scene, { curve, pts, stops, reducedMotion });
-  if (new URLSearchParams(location.search).has('npc3d')) units.push(await createNpc3d(scene, { curve })); // POC, opt-in
+  if (new URLSearchParams(location.search).has('npc3d')) units.push(await createNpc3d(scene, { curve, pts, stops })); // POC, opt-in
   const water = createWater({ x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z: RIVER_Z, width: 22, reducedMotion });
   scene.add(water.mesh);
   units.push(await createSigns(scene, { stops, curve }));
