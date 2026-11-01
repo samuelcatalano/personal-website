@@ -69,7 +69,7 @@ function makeMaps() {
     const image=i===3?document.createElement('canvas'):canvas;
     if(i===3){image.width=image.height=256;image.getContext('2d').drawImage(canvas,0,0,256,256);}
     const texture=new THREE.CanvasTexture(image);texture.name=['slice-albedo','slice-normal','slice-orm','slice-emissive'][i];
-    texture.colorSpace=i===0||i===3?THREE.SRGBColorSpace:THREE.NoColorSpace;texture.anisotropy=4;
+    texture.colorSpace=i===0||i===3?THREE.SRGBColorSpace:THREE.NoColorSpace;texture.anisotropy=16; // desktop: window panes and facade grain stay crisp at grazing angles (moire at distance with 4)
     return texture;
   });
 }
