@@ -234,7 +234,17 @@ export function tintNpc(inst, rng) {
   });
 }
 
+// With the 3D walkers on, the 2D sprite crowd (people.js: InstancedMeshes 'crowd' and 'crowd-shadow') is hidden entirely, so
+// only one style of person shows. people.js keeps updating them (cheap); they are just not drawn.
+function hideSprites(scene) {
+  for (const name of ['crowd', 'crowd-shadow']) {
+    const o = scene.getObjectByName(name);
+    if (o) o.visible = false;
+  }
+}
+
 export async function createNpc3d(scene, { curve, count = NEAR ? 24 : (globalThis.innerWidth < 700 ? 16 : 32) }) { // ~7 draw calls per textured walker: fewer on phones
+  hideSprites(scene);
   const gltf = await new GLTFLoader().loadAsync(GLB);
   const clips = gltf.animations.filter((a) => a.name in CLIP_SPEED);
   // one template per variant: its own armature (adult or child rig: clip tracks bind by bone name) plus only that variant's mesh
