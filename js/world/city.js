@@ -73,7 +73,7 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
   const free = (x, z) => spots.every(([a, b]) => Math.hypot(a - x, b - z) > CLEAR); // ponytail: skip, not shift
   const lamps = [], occ = [], obst = [], r = rng(2026), hq = rng(8821), hq2 = rng(4417), noop = () => {}, mx = pts[stopIndex(stops, LANDMARKS.masp)].x, gl = pts[stopIndex(stops, LANDMARKS.glasgow)], ukId = stops[ukStart(stops)].id, LM = new Set([...Object.values(LANDMARKS), ukId]); // ukId: far side of the first UK stop keeps skipping frontage draws (blocks.js riverfront infill owns it)
   const span = pts.length * STOP_SPACING + GAP_TOTAL + 120, rgs = regions(stops, pts);
-  const seX = pts[stopIndex(stops, LANDMARKS.se)].x, ukX = pts[ukStart(stops)].x;
+  const seX = pts[stopIndex(stops, LANDMARKS.se)].x, ukX = pts[ukStart(stops)].x, eyeX = pts[stopIndex(stops, LANDMARKS.eye)].x;
   // Skirt: ground runs 600 m past both route ends and 300 m south, so no sky shows under the skyline at the hero's left edge.
   // ponytail: flat pave to the fog; real terrain/horizon dressing if the camera ever tilts to the world's rim.
   add(GAP_TOTAL / 2, -1, 100, span + 1200, 1, 400, P.pave);
@@ -112,7 +112,7 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
     if (i % 16 === 8) {
       for (const side of [-1, 1]) {
         const x = p.x + nx * side * 9.4, z = p.z + nz * side * 9.4;
-        if (!free(x, z)) continue;
+        if (!free(x, z) || Math.hypot(x - eyeX, z - (RIVER_Z + 20.4)) < 7) continue; // London Eye A-frame feet (landmark-geometry.js: local z +7.4, x ±3.6)
         lampPost(x, z, Math.atan2(nz * side, -nx * side), x >= ukX - 15 ? 'uk' : 'br'); // arm (local +x) reaches over the road
         obst.push([x, z]);
         lamps.push([x, z]);
@@ -184,7 +184,7 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
     kiosks.push([x, z]);
   }
   // North Star avenue rows: dense street trees on the verge strip every ~7 m, same frontage exclusions as the houses (MASP/Sé/Glasgow/Tower sightlines, Wembley); own hash, layout rng untouched
-  const lastX = pts[pts.length - 1].x, towX = towerX(stops, pts), bbX = pts[stopIndex(stops, LANDMARKS.bigben)].x, eyeX = pts[stopIndex(stops, LANDMARKS.eye)].x;
+  const lastX = pts[pts.length - 1].x, towX = towerX(stops, pts), bbX = pts[stopIndex(stops, LANDMARKS.bigben)].x;
   const blocked = (x, side) => side < 0 ? (x > bbX - 15 && x < eyeX + 17) || Math.abs(x - mx) < 29.5 || Math.abs(x - seX) < 29.5 || Math.abs(x - gl.x) < 25 || Math.abs(x - towX + 3) < 33 : Math.abs(x - seX) < 29.5 || Math.abs(x - ukX) < 23 || Math.abs(x - lastX) < 35; // ponytail: x-only test, mirrors the frontage rules above
   for (const u of ticks(7)) {
     const p = curve.getPointAt(u), t = curve.getTangentAt(u);
