@@ -300,7 +300,7 @@ export function createTowerBridge(x,z){
 // ---- Catedral da Se: neo-gothic nave, buttresses, green dome on a drum, two spired towers ----
 export function createSe(x,z){
   const {box,add,beam,gothic,finish,pale,slate}=landmark('se',x,z);
-  const stoneT=[.98,.99,1.03],verd=[2.1,2.55,2.1],gilt=[.86,.76,.52],dark=[.5,.55,.62];
+  const stoneT=[1.14,1.06,.92],verd=[2.1,2.55,2.1],gilt=[.86,.76,.52],dark=[.5,.55,.62];
   box(0,0,0,30,12,14,S.stone,stoneT);box(0,11.8,0,30.6,.35,14.6,S.trim,pale,1);
   for(const sx of [-1,1])box(sx*11.4,12.15,-1,7.0,.12,12.8,S.roof,slate);
   box(0,12,0,15.6,3.5,14,S.stone,stoneT);
@@ -437,7 +437,7 @@ export function createLondonEye(x,z){
   for(const s of [-1,1])rim.push(flat(new THREE.TorusGeometry(R,.26,5,64).translate(0,0,s*.7)));
   for(let i=0;i<24;i++){const a=i/24*Math.PI*2,c=Math.cos(a)*R,s=Math.sin(a)*R;rim.push(cyl(v(c,s,-.7),v(c,s,.7),.07));}
   for(let i=0;i<16;i++)for(const sz of [-1,1]){const a=i/16*Math.PI*2+(sz>0?Math.PI/16:0);frame.push(cyl(v(Math.cos(a)*1.1,Math.sin(a)*1.1,sz*1.1),v(Math.cos(a)*R,Math.sin(a)*R,sz*.7),.05));}
-  frame.push(flat(new THREE.CylinderGeometry(1.1,1.1,2.4,12).rotateX(Math.PI/2)),flat(new THREE.CylinderGeometry(.5,1.1,.6,12).rotateX(Math.PI/2).translate(0,0,1.5)),cyl(v(0,0,-3.2),v(0,0,1.4),.4,8));
+  frame.push(flat(new THREE.CylinderGeometry(1.1,1.1,2.4,12).rotateX(Math.PI/2)),flat(new THREE.CylinderGeometry(.5,1.1,.6,12).rotateX(Math.PI/2).translate(0,0,1.5)),cyl(v(0,0,-1.4),v(0,0,3.2),.4,8));
   const mk=(parts,mat,name,cast=true)=>{const g=mergeGeometries(parts,false);parts.forEach(p=>p.dispose());const m=new THREE.Mesh(g,mat);m.name=name;m.castShadow=cast;m.receiveShadow=true;wheel.add(m);return m;};
   mk(rim,blockMaterial(P.eyeRim,{glow:true,k:1}),'eye-rim');
   mk(frame,new THREE.MeshStandardMaterial({color:P.white,roughness:.6}),'eye-spokes',false);
@@ -447,8 +447,9 @@ export function createLondonEye(x,z){
   wheel.name='eye-wheel';wheel.position.set(x,18,z);
   wheel.userData.dispose=()=>wheel.traverse(o=>{if(o.isMesh){o.geometry.dispose();o.material.dispose();}});
   const {beam,box,finish,pale}=landmark('eyeframe',x,z);
-  for(const sx of [-1,1]){beam(v(0,18,-3.1),v(sx*3.6,.4,-7.4),.5,pale,1,8);}
-  beam(v(-2.1,9.6,-5.2),v(2.1,9.6,-5.2),.22,pale,1,6);box(0,17.2,-3.1,1.2,1.6,1.2,S.trim,pale,1);box(0,0,-7.4,10.4,.8,3,S.stone);
+  // A-frame stands on the bank side (+z, away from the river) like the real Eye: the wheel is cantilevered over the water, so the feet never sit in the Thames.
+  for(const sx of [-1,1]){beam(v(0,18,3.1),v(sx*3.6,.4,7.4),.5,pale,1,8);}
+  beam(v(-2.1,9.6,5.2),v(2.1,9.6,5.2),.22,pale,1,6);box(0,17.2,3.1,1.2,1.6,1.2,S.trim,pale,1);box(0,0,7.4,10.4,.8,3,S.stone);
   return {wheel,frame:finish()};
 }
 
