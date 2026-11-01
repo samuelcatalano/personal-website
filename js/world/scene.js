@@ -69,7 +69,9 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   Object.assign(sun.shadow, { bias: -0.0002, normalBias: 0.05 });
   sun.shadow.mapSize.set(2048, 2048); // desktop: 7.8 cm texels over the ±80 m frustum (1024 gave 15.6 cm: soft, detached small shadows)
   Object.assign(sun.shadow.camera, { left: -80, right: 80, top: 80, bottom: -80, far: 300 });
-  const SUN = SUN_DIR.clone().multiplyScalar(95), LD = SUN.clone().normalize(), TEXEL = 160 / 1024;
+  const SUN = SUN_DIR.clone().multiplyScalar(95), LD = SUN.clone().normalize();
+  const TEXEL_X = (sun.shadow.camera.right - sun.shadow.camera.left) / sun.shadow.mapSize.x;
+  const TEXEL_Y = (sun.shadow.camera.top - sun.shadow.camera.bottom) / sun.shadow.mapSize.y;
   const LU = new THREE.Vector3(0, 1, 0).cross(LD).normalize(), LV = LD.clone().cross(LU);
   scene.add(hemi, sun, sun.target);
   const n = stops.length, pts = routePoints(n), marks = stopMarks(pts);
@@ -275,7 +277,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     bridgeCars.update(dt);
     architecture.userData.update?.(camera);
     // snap the shadow centre to whole shadow texels in light space, so shadow edges don't shimmer while moving
-    const a = Math.round(bp.dot(LU) / TEXEL) * TEXEL, b = Math.round(bp.dot(LV) / TEXEL) * TEXEL;
+    const a = Math.round(bp.dot(LU) / TEXEL_X) * TEXEL_X, b = Math.round(bp.dot(LV) / TEXEL_Y) * TEXEL_Y;
     sun.target.position.copy(LU).multiplyScalar(a).addScaledVector(LV, b).addScaledVector(LD, bp.dot(LD));
     sun.position.copy(sun.target.position).add(SUN);
     eye.rotation.z = clock * 0.1; motion.uT.value = clock;

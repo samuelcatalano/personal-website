@@ -48,7 +48,7 @@ An experimental MASP LOD1 rebake was superseded after matched forced-LOD capture
 | --- | --- | --- | --- | --- |
 | GFX-004 | P1 | Sé / MASP startup | Fixed; automated startup scenarios passed | First RAF can run before asynchronous authored GLBs replace procedural groups. Gate first render while the asset attempts settle; preserve a bounded failure fallback and prevent late replacement. |
 | GFX-005 | P1 | Sé LOD | Fixed and visually checked | Distant LOD simplifies dome profile, facade depth and tracery enough to change landmark appearance. Keep the detailed authored LOD at all distances; measure impact and verify in desktop scene. |
-| GFX-006 | P2 | Shadow snapping | Confirmed in code, visual impact unverified | The 2048 shadow map uses the earlier `160 / 1024` snapping step, equivalent to two current shadow texels. Inspect shadow motion before changing it. |
+| GFX-006 | P2 | Shadow snapping | Corrected; static views checked | Snapping now uses the shadow frustum and actual 2048 map dimensions. Motion-specific visual benefit remains unmeasured. |
 
 User screenshots on 2026-11-01 document the procedural-to-authored swaps and two Sé representations. Their priority takes precedence over remaining audit items.
 
@@ -73,3 +73,7 @@ Landmark milestone: commit `6a95915`. The five-second fallback and pending-reque
 ## Regional towers
 
 The reported towers are in the London return section, not the Glasgow region. Camera projection identified the prominent `block-623--38`, `block-672--46`, `block-693--52` and the immediately adjacent rear `block-595--80`. Their heights changed respectively from 86.4/57.6/57.6/79.2 m to 21.6/18/21.6/25.2 m, retaining footprints, plot IDs and RNG consumption. Three other rear towers remain at 50.4/72/61.2 m. Day/night views at matching stops and viewport: [12 day](../evidence/2026-11-01-landmark-audit/towers-12-day.jpg), [12 night](../evidence/2026-11-01-landmark-audit/towers-12-night.jpg), [13 day](../evidence/2026-11-01-landmark-audit/towers-13-day.jpg), [13 night](../evidence/2026-11-01-landmark-audit/towers-13-night.jpg). Moving vehicles and weather details were not frozen; camera pose was not independently logged in these captures. Targeted Node tests, `citywide.browser.py` and `diversity.browser.py` passed. Independent code review found no concrete issue.
+
+## Shadow snapping
+
+The light-space snapping increment now derives from the orthographic frustum and shadow map dimensions: 0.078125 m per axis for the current 160 m / 2048 map, replacing a two-texel step. Direction, map size and frustum are unchanged. Review confirmed the calculation; desktop static views at stops 0, 1 and 5 showed no obvious regression ([stop 1 comparison](../evidence/2026-11-01-landmark-audit/shadow-snap-stop1.jpg)). These stills do not prove reduced shimmer during movement.
