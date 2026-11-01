@@ -85,3 +85,7 @@ Previously, failed NPC GLB loading rejected the entire world startup. The loader
 ## Vehicle visual replacement during fade — GFX-008 (P2)
 
 An ambient vehicle changing its body, beams or bus livery during an active fade could escape the existing fade state or restore the old paint. The shared update helper restores the original materials, performs the change, and reapplies the same fade factor; it only traverses on mutation. Node tests and a browser test using actual Three.js objects passed. [Controlled desktop comparison](../evidence/2026-11-01-landmark-audit/vehicle-fade.jpg): same route camera, regional bus held at a diagnostic position, fade factor 0.5 and Glasgow reskin; before the paint opacity was 1, after it was 0.5. Traffic positions were not frozen, and natural route-trigger coverage remains open.
+
+## Reproducible desktop sampling
+
+`tools/qa/hardware-stats.py` samples the active Chrome desktop at 1600 × 900, verifies a clean source worktree and visible scene frames, and records renderer identification, rAF intervals, draw/triangle calls, resident geometry/texture counts and GLB resource timing. The revision-to-server correspondence and completion of unrelated asynchronous assets must still be verified by the operator; the graphics tier can change automatically. Timing is rAF cadence, not GPU execution time. [Clean-worktree baseline at 6a95915](../evidence/2026-11-01-landmark-audit/hardware-baseline-6a95915.json) was captured on Apple M3 Max; comparison against final committed state remains pending.
