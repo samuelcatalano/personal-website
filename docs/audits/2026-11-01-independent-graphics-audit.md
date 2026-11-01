@@ -89,3 +89,11 @@ An ambient vehicle changing its body, beams or bus livery during an active fade 
 ## Reproducible desktop sampling
 
 `tools/qa/hardware-stats.py` samples the active Chrome desktop at 1600 × 900, verifies a clean source worktree and visible scene frames, and records renderer identification, rAF intervals, draw/triangle calls, resident geometry/texture counts and GLB resource timing. The revision-to-server correspondence and completion of unrelated asynchronous assets must still be verified by the operator; the graphics tier can change automatically. Timing is rAF cadence, not GPU execution time. [Clean-worktree baseline at 6a95915](../evidence/2026-11-01-landmark-audit/hardware-baseline-6a95915.json) was captured on Apple M3 Max; comparison against final committed state remains pending.
+
+## Crowd visibility after camera jumps — GFX-009 (P2)
+
+The 3D crowd could select walkers using stale sprite visibility after a large camera move; frozen and reduced-motion scenes also skipped visibility updates. Sprite visibility now updates first, invisible candidates are excluded, and stationary poses remain frozen. Seven targeted Node cases and desktop browser scenarios for an 897 m camera jump with zero delta and reduced motion passed, as did `people.browser.py`. Commits: `da22cc7`. Close visual review of NPC faces and walking remains open.
+
+## Failed bus model replacement — GFX-010 (P2)
+
+A failed São Paulo bus upgrade could apply its light metadata to the already loaded London model. The metadata update now requires the requested asset to be active. Desktop `vehicles.browser.py` passed, including the failed replacement scenario; an actual visible lighting defect from this path was not established. Commit: `c88e3d1`.
