@@ -81,12 +81,12 @@ export async function createTrees(placements, regionOf = null) {
   const low = placements.flatMap((p, i) => (i % 3 === 0 && (p.base ?? 0.1) < 0.3 ? [{ p, i, side: -1 }, { p, i, side: 1 }] : []));
   let shrubs;
   if (low.length) {
-    shrubs = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 7, 4), new THREE.MeshLambertMaterial({ color: 0xffffff }), low.length);
+    shrubs = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), new THREE.MeshLambertMaterial({ color: 0xffffff, flatShading: true }), low.length); // faceted: a smooth pale sphere read as a boulder
     shrubs.name = 'tree-understory'; shrubs.receiveShadow = true;
     low.forEach(({ p, i, side }, k) => {
       const radius = p.crown * 0.16;
       o.position.set(p.x + side * p.crown * 0.17, (p.base ?? 0.1) + 0.24, p.z + Math.sin(i) * p.crown * 0.05); o.rotation.set(0, 0, 0); o.scale.set(radius, 0.22, radius * 0.83); o.updateMatrix();
-      shrubs.setMatrixAt(k, o.matrix); shrubs.setColorAt(k, new THREE.Color([0x527047, 0x718446, 0x87985a][Math.floor(i / 3) % 3]));
+      shrubs.setMatrixAt(k, o.matrix); shrubs.setColorAt(k, new THREE.Color([0x3a5a32, 0x4a6a34, 0x55703c][Math.floor(i / 3) % 3]).offsetHSL(0, 0, ((i * 0.618) % 1 - 0.5) * 0.06)); // under the canopy: darker, greener, varied
     });
     shrubs.userData.sourceIndices = low.map((e) => e.i); shrubs.computeBoundingBox(); shrubs.computeBoundingSphere(); group.add(shrubs);
   }
