@@ -137,6 +137,43 @@ def tag_parts(ob):
         a.data[v.index].value = 0.5 if leg / tot > 0.5 else 0.25
 
 
+PLAIN = ("male_casualsuit02", "male_casualsuit04", "male_casualsuit06")  # tees with a printed logo / stripes: made plain
+
+
+def plain_top(ob, suit):
+    # Repaint the tee part of a suit texture as plain grey fabric: inside the UV islands of the top faces (_part 0.25) the
+    # colour becomes the luminance after a median filter (the logo, the print and the sleeve stripes are thin shapes and go;
+    # the folds and the shading stay), normalised so the runtime can multiply any colour onto it. The denim is untouched.
+    from PIL import Image, ImageDraw, ImageFilter, ImageOps
+    mat = ob.data.materials[0]
+    node = next(n for n in mat.node_tree.nodes if n.type == "TEX_IMAGE" and n.image.colorspace_settings.name != "Non-Color")
+    src = Image.open(mhmat_maps(find("clothes", suit, ".mhmat"))["diffuseTexture"]).convert("RGB").resize((1024, 1024))
+    W, H = src.size
+    mask = Image.new("L", src.size, 0)
+    dr = ImageDraw.Draw(mask)
+    uv, part = ob.data.uv_layers.active.data, ob.data.attributes["_part"].data
+    for poly in ob.data.polygons:
+        if all(part[v].value < 0.3 for v in poly.vertices):
+            dr.polygon([(uv[li].uv[0] * W, (1.0 - uv[li].uv[1]) * H) for li in poly.loop_indices], fill=255)
+    mask = mask.filter(ImageFilter.MaxFilter(11))  # cover the island borders and the printed hem line
+    import numpy as np
+    L0, M = np.asarray(ImageOps.grayscale(src), dtype=np.float32), np.asarray(mask) > 0
+    lo, hi = np.percentile(L0[M], 25), np.percentile(L0[M], 70)  # the print is far brighter or darker than the cloth: clip it away
+    lum = Image.fromarray(np.clip(L0, lo, hi).astype(np.uint8)).filter(ImageFilter.MedianFilter(31)).filter(ImageFilter.GaussianBlur(3))
+    L = np.asarray(lum, dtype=np.float32)
+    L = np.clip(L / max(1.0, float(np.median(L[M]))) * 0.78, 0.0, 1.0) * 255.0  # median of the tee -> 0.78 grey
+    out = np.asarray(src, dtype=np.float32).copy()
+    out[M] = L[M][:, None]
+    r, g, b = out[..., 0], out[..., 1], out[..., 2]
+    orange = (r - b > 70) & (r > g) & (r > 120)  # the printed orange hem/sleeve lines sit just outside the tee islands
+    out[orange] = 0.78 * 255.0
+    path = os.path.join(OUT, f"plain_{suit}.png")
+    Image.fromarray(out.astype(np.uint8)).save(path)
+    node.image = image(path, TEX["default"])
+    mat.name = f"mh_clothes_{suit}_plain"  # the runtime paints a colour on the plain tops
+    print("MH plain top", suit, "mask px", int(M.sum()), flush=True)
+
+
 def hide_covered(skin_ob, garments, reach=0.06):
     # drop skin faces that lie under a garment: from each vertex a ray along its normal hits the garment within `reach` (m).
     # MPFB hides the base mesh under clothes, but not the low-poly body proxy, which then showed through tees and jeans.
@@ -178,6 +215,8 @@ for npc, look in PEOPLE.items():
     proxy = add(body, npc, "proxymeshes", look["proxy"], "Proxymeshes", mat_key=f"mh_skin_{look['skin']}", maps=skin, edge=TEX["skin"])
     parts = [add(body, npc, "clothes", c, "Clothes") for c in look["clothes"]]
     tag_parts(parts[0])  # the suit (the shoes stay as they are)
+    if look["clothes"][0] in PLAIN and not parts[0].data.materials[0].name.endswith("_plain"):
+        plain_top(parts[0], look["clothes"][0])
     parts.append(add(body, npc, "hair", look["hair"], "Hair", alpha=True))
     parts.append(add(body, npc, "eyebrows", look["brows"], "Eyebrows", alpha=True))
     # no eyelashes: 370 triangles each, invisible at street distance

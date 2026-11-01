@@ -144,24 +144,31 @@ function partMeans(geo) {
 // give every mesh of `inst` its own tinted material; rng picks the palette entries
 // textured pack (MakeHuman assets, one mesh NPC_X per person, materials mh_<type>_<asset>): per walker, the saturated cloth (tees, jackets, shirts)
 // turns to another hue while the dull denim keeps its own; hair takes a natural colour by its luminance; skin and shoes stay
+const TEE = ['#141416', '#f2f1ec', '#b3221d', '#e2b41e', '#2453a6', '#2f6b3a', '#e07a1f', '#c86b8a', '#5b6470', '#1d2b44',
+  '#7a1f2b', '#6b4a2f', '#3aa0c8', '#8a3fa0', '#d9d2c0', '#3b3b3b']; // plain tees: black, white, red, yellow, blue, green, orange, pink...
 function tintTextured(inst, rng) {
+  const tee = new THREE.Color(TEE[Math.floor(rng() * TEE.length)]);
   const hue = rng() < 0.25 ? 0 : (rng() * 2 - 1) * Math.PI, gain = 0.7 + 0.35 * rng(), chroma = 0.25 + 0.6 * rng(); // muted street colours
   const hair = new THREE.Color(HAIRS[Math.floor(rng() * HAIRS.length)]);
   inst.traverse((o) => {
     if (!o.isMesh || !o.material.map) return;
     const m = o.material.name; // materials are named mh_<type>_<asset> by tools/npc/npc_mh_build.py
-    const kind = /^mh_clothes_(?!shoes)/.test(m) ? 'cloth' : /^mh_(hair|eyebrows)_/.test(m) ? 'hair' : '';
-    if (!kind || (kind === 'cloth' && (!hue || !o.geometry.attributes._part))) return;
+    const kind = /^mh_clothes_.*_plain$/.test(m) ? 'plain' : /^mh_clothes_(?!shoes)/.test(m) ? 'cloth' : /^mh_(hair|eyebrows)_/.test(m) ? 'hair' : '';
+    if (!kind || (kind === 'cloth' && !hue) || (kind !== 'hair' && !o.geometry.attributes._part)) return;
     o.material = o.material.clone();
     o.material.onBeforeCompile = (sh) => {
       sh.uniforms.npcHue = { value: hue };
       sh.uniforms.npcGain = { value: gain };
       sh.uniforms.npcChroma = { value: chroma };
       sh.uniforms.npcHair = { value: hair };
-      if (kind === 'cloth') sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float _part;\nvarying float vTop;')
+      sh.uniforms.npcTee = { value: tee };
+      if (kind !== 'hair') sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float _part;\nvarying float vTop;')
         .replace('#include <uv_vertex>', '#include <uv_vertex>\nvTop = step(_part, 0.3);');
-      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float npcHue;\nuniform float npcGain;\nuniform float npcChroma;\nuniform vec3 npcHair;' + (kind === 'cloth' ? '\nvarying float vTop;' : ''))
-        .replace('#include <map_fragment>', kind === 'cloth' ? `#include <map_fragment>
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float npcHue;\nuniform float npcGain;\nuniform float npcChroma;\nuniform vec3 npcHair;\nuniform vec3 npcTee;' + (kind !== 'hair' ? '\nvarying float vTop;' : ''))
+        .replace('#include <map_fragment>', kind === 'plain' ? `#include <map_fragment>
+        { vec3 c = diffuseColor.rgb; float mx = max(c.r, max(c.g, c.b)), sat = (mx - min(c.r, min(c.g, c.b))) / max(mx, 1e-4);
+          float grey = (1.0 - smoothstep(0.05, 0.12, sat)) * smoothstep(0.35, 0.5, mx); // the build's plain grey (denim is bluer)
+          diffuseColor.rgb = mix(c, npcTee * clamp(c.g / 0.6, 0.3, 1.25), max(vTop, grey)); } // plain grey tee -> colour` : kind === 'cloth' ? `#include <map_fragment>
         { vec3 c = diffuseColor.rgb; float mx = max(c.r, max(c.g, c.b)), mn = min(c.r, min(c.g, c.b)), sat = (mx - mn) / max(mx, 1e-4);
           vec3 yiq = mat3(0.299, 0.596, 0.211, 0.587, -0.274, -0.523, 0.114, -0.322, 0.312) * c;
           float h = atan(yiq.z, yiq.y) + npcHue, ch = length(yiq.yz) * npcChroma;
