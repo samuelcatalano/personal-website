@@ -65,3 +65,41 @@ The owner wants the human body CORRECT: arms, legs, knees, elbows, neck, head, f
 
 ### State of the repo
 Last commit `1698e8f`. Uncommitted: `js/world/npc3d.js` city tuning and this doc. Run `git status` first.
+
+## Update 2026-11-01 (textured pack)
+
+### Pipeline
+- Blender side runs on the pip `bpy` 5.2.3 module: `tools/npc/bl_run.py`.
+- One-command rebuild: `tools/npc/rebuild.sh` (env: `NPC_OUT`, `NPC_UAL`, optional `MH_ASSETS`).
+- UAL1 input comes from the Rigify-named glTF mirror; `tools/npc/ual_names.py` maps the clip and bone names.
+- Textured shipping pack: `tools/npc/npc_mh_build.py`. The procedural pack (`npc_build.py`) still builds, and the runtime supports both.
+
+### Review and bench tools
+- `tools/npc/review.mjs` + `tools/npc/review.html`: modes `sheet`, `crowd`, `joints`; query params `?clip=` and `?tint=0`.
+- `tools/npc/bench.mjs`: SwiftShader run. Relative numbers only, not comparable to a real GPU.
+
+### Gait
+- Retarget sets the swing foot against the shin (soft plantarflexion limit).
+- Toes keep floor contact at push-off.
+- 4 deg hip adduction: ankles 24 -> 12 cm apart, no knock-knees.
+- Ranges: knee 2-62 deg, hip -10/+39 deg, elbow 18-28 deg.
+- Three clips `NPC_Walk`, `NPC_Walk2`, `NPC_Walk3`; stance speeds 0.62 / 0.65 / 0.75 m/s at timeScale 1.
+
+### Shipping pack
+- Textured MakeHuman CC0 pack: 12 people (`NPC_A`..`NPC_L`).
+- MPFB-fitted low-poly body proxy, suit, shoes, hair, brows, eyes. One joined mesh and one skeleton per person.
+- About 6-11k triangles and about 7 draw calls per walker. Textures ship as WebP, pack about 6.3 MB.
+- Logos are removed at build time from plain tees. At runtime, plain tees take a 16-colour palette; other tops get a muted hue shift; hair is recoloured.
+
+### Runtime
+- `js/world/npc3d.js` is opt-in via `?npc3d=1`.
+- 32 walkers (16 below 700 px viewport width).
+- `?npcnear=1` gives a pavement-level camera for close inspection.
+
+### Licences
+- MakeHuman system assets are CC0 (official pack page and file headers). Recorded in `ASSET_SOURCES.md`.
+
+### Open items
+- LOD or sprite swap for far walkers.
+- Measurement on a real GPU and on a real phone (current numbers are SwiftShader only).
+- Lighthouse not run.
