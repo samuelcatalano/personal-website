@@ -28,6 +28,13 @@ PEOPLE = {  # skin, body proxy, clothes (suit + shoes), hair, brows, lashes, eye
     "NPC_J": dict(skin="middleage_caucasian_male", proxy=M, clothes=["male_worksuit01", "shoes03"], hair="short02", brows="eyebrow007", eyes="bluegreen"),
     "NPC_K": dict(skin="young_african_female", proxy=F, clothes=["male_casualsuit04", "shoes01"], hair="braid01", brows="eyebrow009", eyes="brown"),
     "NPC_L": dict(skin="young_caucasian_female2", proxy=F, clothes=["male_casualsuit03", "shoes04"], hair="bob02", brows="eyebrow008", eyes="lightblue"),
+    # variety: reuse another person's body json (body=), new skin / hair / clothes
+    "NPC_O": dict(body="NPC_J", skin="old_caucasian_male", proxy=M, clothes=["male_casualsuit05", "shoes04"], hair="short01", brows="eyebrow007", eyes="grey"),
+    "NPC_P": dict(body="NPC_F", skin="young_asian_female", proxy=F, clothes=["male_casualsuit04", "shoes06"], hair="long01", brows="eyebrow011", eyes="brown"),
+    "NPC_Q": dict(body="NPC_E", skin="young_african_male", proxy=M, clothes=["male_casualsuit02", "shoes01"], hair="short02", brows="eyebrow003", eyes="brown"),
+    "NPC_R": dict(body="NPC_K", skin="middleage_african_female", proxy=F, clothes=["male_casualsuit06", "shoes03"], hair="afro01", brows="eyebrow012", eyes="brownlight"),
+    "NPC_S": dict(body="NPC_C", skin="young_caucasian_male2", proxy=M, clothes=["male_casualsuit03", "shoes06"], hair="short04", brows="eyebrow001", eyes="blue"),
+    "NPC_T": dict(body="NPC_G", skin="young_caucasian_female2", proxy=F, clothes=["male_casualsuit05", "shoes01"], hair="ponytail01", brows="eyebrow010", eyes="green"),
 }
 
 addon_utils.enable("bl_ext.user_default.mpfb", default_set=True)
@@ -203,8 +210,9 @@ for npc, look in PEOPLE.items():
     body = base.copy()
     body.data = base.data.copy()
     bpy.context.scene.collection.objects.link(body)
-    if npc != "NPC_A":
-        coords = json.load(open(f"{OUT}/body_{npc}.json"))
+    src = look.get("body", npc)
+    if src != "NPC_A":
+        coords = json.load(open(f"{OUT}/body_{src}.json"))
         for v, c in zip(body.data.vertices, coords):
             v.co = c
     else:

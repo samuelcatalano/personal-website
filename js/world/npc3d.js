@@ -21,6 +21,12 @@ export const NPC_VARIANTS = [ // height: metres; measured: the body height each 
   { name: 'NPC_J', height: 1.82, measured: 1.806, speed: 0.97 },
   { name: 'NPC_K', height: 1.68, measured: 1.806, speed: 1.03 },
   { name: 'NPC_L', height: 1.64, measured: 1.806, speed: 0.99 },
+  { name: 'NPC_O', height: 1.73, measured: 1.806, speed: 0.95 },
+  { name: 'NPC_P', height: 1.70, measured: 1.806, speed: 1.05 },
+  { name: 'NPC_Q', height: 1.90, measured: 1.806, speed: 1.01 },
+  { name: 'NPC_R', height: 1.58, measured: 1.806, speed: 0.96 },
+  { name: 'NPC_S', height: 1.84, measured: 1.806, speed: 1.04 },
+  { name: 'NPC_T', height: 1.60, measured: 1.806, speed: 0.99 },
 ];
 const VARIANTS = NPC_VARIANTS;
 // World unit = metre (ROAD is in metres). sprites.js scales each person to look.height, so a sprite body is 1.6-1.9 m tall.
