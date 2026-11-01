@@ -331,10 +331,7 @@ export async function createNpc3d(scene, { curve, pts, stops, count = globalThis
     }
     order.sort((p, q) => score[p] - score[q]);
     const cut = score[order[Math.min(count, N) - 1]] * 1.4;
-    for (const w of walkers) if (w.who >= 0 && !(score[w.who] <= cut)) { owner[w.who] = -1; w.who = -1; w.inst.visible = false; }
-    // the nearest CASTERS walkers cast real sun shadows (the city's shadow map); the rest keep only the contact blob
-    let c = 0;
-    for (let r = 0; r < N && c < CASTERS; r++) { const n = owner[order[r]]; if (n >= 0) { walkers[n].cast = true; c++; } }
+    for (const w of walkers) if (w.who >= 0 && (!Number.isFinite(score[w.who]) || score[w.who] > cut)) { owner[w.who] = -1; w.who = -1; w.inst.visible = false; }
     for (let r = 0; r < Math.min(count, N); r++) {
       const i = order[r];
       if (owner[i] >= 0 || score[i] === Infinity) continue;
@@ -345,6 +342,9 @@ export async function createNpc3d(scene, { curve, pts, stops, count = globalThis
       free.x = A[i * 16 + 12]; free.z = A[i * 16 + 14]; free.y = groundOf(i); free.yaw = Math.atan2(I[4 * i + 1], I[4 * i + 2]);
       free.inst.visible = true;
     }
+    // the nearest CASTERS walkers cast real sun shadows (the city's shadow map); the rest keep only the contact blob
+    let c = 0;
+    for (let r = 0; r < N && c < CASTERS; r++) { const n = owner[order[r]]; if (n >= 0) { walkers[n].cast = true; c++; } }
     for (const w of walkers) { const on = !!w.cast && w.who >= 0; if (on !== w.casting) { w.casting = on; w.inst.traverse((o) => { if (o.isMesh) o.castShadow = on; }); } w.cast = false; }
   };
   hideSprites(scene);

@@ -14,14 +14,15 @@ print(js(r'''(async () => {
     const crowd = people.meshes[0], info = crowd.geometry.getAttribute('aInfo'), before = [Float32Array.from(crowd.instanceMatrix.array), Float32Array.from(info.array)];
     people.update(0.5, cam);
     const changed = crowd.instanceMatrix.array.some((v, k) => v !== before[0][k]) || info.array.some((v, k) => v !== before[1][k]);
-    return { scene, people, changed };
+    const moved = crowd.instanceMatrix.array.some((v, k) => (k % 16 === 12 || k % 16 === 14) && v !== before[0][k]);
+    return { scene, people, changed, moved };
   };
   const { scene, people, changed } = run(false);
   check(people.count === 1000, 'expected 1000 people');
   const plan = crowdPlan(stops, pts, 1017);
   check(plan.every((p,i) => Math.abs(people.meshes[0].instanceMatrix.array[i*16+13] - (p.path.y ?? .02)) < 1e-6), 'feet must follow paving height');
   check(changed, 'update(0.5) must move some people');
-  check(!run(true).changed, 'reduced motion must not move anyone');
+  check(!run(true).moved, 'reduced motion must not move anyone');
   const meshes = []; scene.traverse((o) => { if (o.isInstancedMesh) meshes.push(o); });
   check(meshes.length <= 3, 'at most 3 instanced meshes');
   const samples = Array.from({ length: 3001 }, (_, i) => curve.getPoint(i / 3000)), head = meshes.find((m) => m.name === 'crowd'), a = head.instanceMatrix.array;

@@ -86,7 +86,7 @@ gl_Position = projectionMatrix * mvPosition;`);
   shadow.instanceMatrix = crowd.instanceMatrix; // same position + scale, no second buffer
   scene.add(crowd, shadow);
   const A = crowd.instanceMatrix.array, I = info.array;
-  const st = plan.map((q, i) => ({ s: q.s0 * perim(q.path), d: q.s0 * 40, vis: true, h: q.look.height }));
+  const st = plan.map((q, i) => ({ s: q.s0 * perim(q.path), d: q.s0 * 40, vis: true, h: q.look.height, frame: STAND, lock: 0 }));
   for (let i = 0; i < N; i++) { A.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], i * 16); }
   const show = (i, vis, sx = 0, sz = 0) => { const a = i * 16, h = vis ? st[i].h : 0; A[a] = A[a + 5] = A[a + 10] = h; A[a + 12] = out.x + sx; A[a + 13] = plan[i].path.y ?? FEET; A[a + 14] = out.z + sz; };
   const vw = new Uint8Array(N); // current view per person, with hysteresis so sector changes do not flicker
@@ -97,18 +97,18 @@ gl_Position = projectionMatrix * mvPosition;`);
   return {
     count: N, meshes: [crowd, shadow], ready, get atlasMs() { return atlasMs; },
     update(dt, cam) {
-      if (reducedMotion || dt <= 0) return;
+      if (reducedMotion || dt < 0) dt = 0;
       plan.forEach(({ look: k, path }, i) => {
         const s = st[i]; s.s += path.dir * k.speed * dt; s.d += k.speed * dt;
         place(path, s.s);
         const near = Math.hypot(out.x - cam.x, out.z - cam.z) <= NEAR;
         if (!near) { show(i, false); return; }
-        const ph = s.d / cycle[i] * FRAMES, fi = Math.floor(ph), lock = -(ph - fi - 0.5) * (cycle[i] / FRAMES) * LOCK; // pose is sampled at the frame centre; slide the sprite back so the planted foot stays put between frames
-        show(i, true, out.fx * lock, out.fz * lock);
+        if (dt > 0) { const ph = s.d / cycle[i] * FRAMES, fi = Math.floor(ph); s.frame = ((fi % FRAMES) + FRAMES) % FRAMES; s.lock = -(ph - fi - 0.5) * (cycle[i] / FRAMES) * LOCK; }
+        show(i, true, out.fx * s.lock, out.fz * s.lock);
         // side view mostly perpendicular to the camera, front when walking toward it, back when walking away (45 degree sectors, hysteresis at the edges)
         const c = (out.fx * (out.x - cam.x) + out.fz * (out.z - cam.z)) / (Math.hypot(out.x - cam.x, out.z - cam.z) || 1), v = vw[i];
         vw[i] = v === 0 ? (c < -0.76 ? 1 : c > 0.76 ? 2 : 0) : v === 1 ? (c > -0.6 ? 0 : 1) : (c < 0.6 ? 0 : 2);
-        face(i, ((fi % FRAMES) + FRAMES) % FRAMES, vw[i]);
+        face(i, s.frame, vw[i]);
       });
       flag();
     },

@@ -96,3 +96,36 @@ test('partial walker assembly removes walkers and disposes shared assets once', 
   assert.deepEqual(disposed, { geometry: 1, material: 1, texture: 1, image: 1 });
   assert.doesNotThrow(() => unit.update({}));
 });
+
+test('camera jumps use the current crowd and hide walkers with no visible candidate', async () => {
+  const mesh = { name: 'fixture', isMesh: true, material: { dispose() {} } };
+  const root = () => ({ children: [], traverse(fn) { fn(mesh); }, getObjectByProperty() { return { material: { map: true } }; },
+    scale: { set() {} }, position: { set(x, y, z) { Object.assign(this, { x, y, z }); } }, rotation: {} });
+  const s = setup(Promise.resolve({ scene: root(), animations: [{ name: 'NPC_Walk', duration: 1 }] }));
+  const A = new Float32Array(32), I = new Float32Array(8);
+  A[0] = 1; A[28] = 1000; I[2] = I[6] = 1;
+  s.crowd.instanceMatrix.array = A;
+  s.crowd.geometry.attributes.aInfo.array = I;
+  s.context.crowdPlan = () => Array.from({ length: 2 }, () => ({ look: { kind: 'man', speed: 1 }, path: {} }));
+  s.context.SkeletonUtils.clone = root;
+  s.context.THREE.Color = class {};
+  s.context.THREE.AnimationMixer = class { clipAction() { return { play() {} }; } update() {} };
+  s.context.THREE.Vector3 = class { constructor(x = 0, y = 0, z = 0) { Object.assign(this, { x, y, z }); } copy(v) { Object.assign(this, v); } };
+  s.context.THREE.Object3D = class { constructor() { this.scale = { setScalar() {} }; this.position = { set() {} }; this.matrix = {}; } updateMatrix() {} };
+  s.context.THREE.InstancedMesh = class { constructor() { this.instanceMatrix = {}; } setMatrixAt() {} };
+  const added = []; s.scene.add = (o) => added.push(o);
+  const unit = await s.create(s.scene, { stops: [], pts: [], count: 1 });
+  const walker = added[0], camera = { position: { x: 0, z: 0 }, getWorldDirection(v) { v.x = 1; v.z = 0; } };
+  const frame = { camera, dt: 0.016 };
+  unit.update(frame);
+  assert.equal(walker.position.x, 0);
+  assert.equal(mesh.castShadow, true);
+  camera.position.x = 1000; A[0] = 0; A[16] = 1;
+  unit.update(frame);
+  assert.equal(walker.position.x, 1000);
+  assert.equal(mesh.castShadow, true);
+  camera.position.x = 2000; A[16] = 0;
+  unit.update(frame);
+  assert.equal(walker.visible, false);
+  assert.equal(mesh.castShadow, false);
+});

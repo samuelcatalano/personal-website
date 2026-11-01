@@ -284,8 +284,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     updatePlane(t);
     const f = { camera, time: clock, dt, progress: p, t, active: nearestStop(p, n, marks), bus: busPos };
     onProgress(p);
-    for (const u of units) u.update(f);
     people.update(dt, camera.position);
+    for (const u of units) u.update(f);
     trees?.userData.update(camera, clock);
     night = reducedMotion || dt === 0 ? nightTarget : approach(night, nightTarget, dt, 1.4);
     const mood = moodAt(t);
