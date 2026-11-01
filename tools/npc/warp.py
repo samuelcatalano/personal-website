@@ -4,7 +4,7 @@ import bpy, json, os, sys
 import numpy as np
 OUT=os.environ["NPC_OUT"]; XS=float(os.environ.get("XS","1.0"))
 FOOT_S=float(os.environ.get("FOOT_S","0.93")); HAND_S=float(os.environ.get("HAND_S","0.94"))  # female foot/hand scale about the joint
-bpy.ops.wm.open_mainfile(filepath=f"{OUT}/npc_a_walk.blend")
+bpy.ops.wm.open_mainfile(filepath=f"{OUT}/{os.environ.get('NPC_BLEND', 'npc_a_walk.blend')}")  # NPC_BLEND=npc_child_walk.blend fits kids to the child rig
 arm=next(o for o in bpy.data.objects if o.type=="ARMATURE")
 arm.animation_data.action=None
 for pb in arm.pose.bones: pb.location=(0,0,0); pb.rotation_quaternion=(1,0,0,0); pb.scale=(1,1,1)

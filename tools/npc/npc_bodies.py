@@ -30,6 +30,17 @@ VARIANTS = {  # street crowd: mostly slim young adults, varied ancestry (the fac
     "NPC_L": {"gender": 0.0, "age": 0.40, "weight": 0.33, "muscle": 0.40, "height": 0.52, "african": 0.05, "asian": 0.20, "caucasian": 0.75},
 }
 
+# NPC_RIG=child: the three children (7-10 years, age macro 0.1875 = 11 y), fitted to the child rig of npc_walk_check.py (NPC_RIG=child)
+CHILD_BASE = {"gender": 0.5, "age": 0.16, "weight": 0.45, "muscle": 0.4, "height": 0.5, "proportions": 0.5,
+              "african": 0.1, "asian": 0.1, "caucasian": 0.8}
+KIDS = {
+    "NPC_KA": {"gender": 0.0, "age": 0.17, "weight": 0.45, "african": 0.05, "asian": 0.10, "caucasian": 0.85},
+    "NPC_KB": {"gender": 1.0, "age": 0.15, "weight": 0.42, "african": 0.85, "asian": 0.05, "caucasian": 0.10},
+    "NPC_KC": {"gender": 0.0, "age": 0.14, "weight": 0.40, "african": 0.05, "asian": 0.70, "caucasian": 0.25},
+}
+if os.environ.get("NPC_RIG") == "child":
+    BASE, VARIANTS = CHILD_BASE, KIDS
+
 
 def macro_dict(vals):
     d = TargetService.get_default_macro_info_dict()

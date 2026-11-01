@@ -15,18 +15,22 @@ export const NPC_VARIANTS = [ // height: metres; measured: the body height each 
   { name: 'NPC_D', height: 1.86, measured: 1.806, speed: 1.04 },
   { name: 'NPC_E', height: 1.68, measured: 1.806, speed: 0.96 },
   { name: 'NPC_F', height: 1.62, measured: 1.806, speed: 0.98 },
+  // children (7-10 y), one in ~7: the pack's second armature (ChildRig) and its _C clips; a child's cadence is higher
+  { name: 'NPC_KA', rig: 'child', height: 1.30, measured: 1.245, speed: 1.20 },
   { name: 'NPC_G', height: 1.66, measured: 1.806, speed: 1.06 },
   { name: 'NPC_H', height: 1.72, measured: 1.806, speed: 0.94 },
   { name: 'NPC_I', height: 1.74, measured: 1.806, speed: 1.02 },
   { name: 'NPC_J', height: 1.82, measured: 1.806, speed: 0.97 },
   { name: 'NPC_K', height: 1.68, measured: 1.806, speed: 1.03 },
   { name: 'NPC_L', height: 1.64, measured: 1.806, speed: 0.99 },
+  { name: 'NPC_KB', rig: 'child', height: 1.38, measured: 1.245, speed: 1.25 },
   { name: 'NPC_O', height: 1.73, measured: 1.806, speed: 0.95 },
   { name: 'NPC_P', height: 1.70, measured: 1.806, speed: 1.05 },
   { name: 'NPC_Q', height: 1.90, measured: 1.806, speed: 1.01 },
   { name: 'NPC_R', height: 1.58, measured: 1.806, speed: 0.96 },
   { name: 'NPC_S', height: 1.84, measured: 1.806, speed: 1.04 },
   { name: 'NPC_T', height: 1.60, measured: 1.806, speed: 0.99 },
+  { name: 'NPC_KC', rig: 'child', height: 1.22, measured: 1.245, speed: 1.15 },
 ];
 const VARIANTS = NPC_VARIANTS;
 // World unit = metre (ROAD is in metres). sprites.js scales each person to look.height, so a sprite body is 1.6-1.9 m tall.
@@ -35,7 +39,7 @@ const IN = ROAD.padIn + 0.4, OUT = ROAD.padIn + 1.05, LANES = [[IN, 1], [OUT, -1
 const CADENCE = 1.2; // playback rate before the variant scale: 1.29 s clips -> ~1.1 s gait cycle (~110 steps/min)
 // m/s: stance-foot speed of each clip at timeScale 1 (Root static, feet planted; tools/npc gait retarget). The walk speed is
 // this times the playback rate, so planted feet do not slide; walkers stroll at ~0.7-1.0 m/s. Each walker draws one clip.
-const CLIP_SPEED = { NPC_Walk: 0.62, NPC_Walk2: 0.65, NPC_Walk3: 0.75 };
+const CLIP_SPEED = { NPC_Walk: 0.62, NPC_Walk2: 0.65, NPC_Walk3: 0.75, NPC_Walk_C: 0.417, NPC_Walk2_C: 0.438, NPC_Walk3_C: 0.433 }; // _C: the child rig (at its measured 1.245 m)
 const FEET = 0.02; // pavement top, as people.js
 const BACK = 30, AHEAD = 90; // walkers live in a window along the route around the camera (m); the far walkers are recycled inside it
 const PART_MEANS = new WeakMap(); // geometry -> mean luminance of [top, trousers, shoes, hair]
@@ -121,6 +125,16 @@ export function shareSkeleton(inst) {
     else if (o.skeleton.bones[0] === sk.bones[0]) o.skeleton = sk;
   });
   return inst;
+}
+
+// a person = NPC_X (+ NPC_X_<asset> in the textured pack) under its own armature: the other rig and the other people are dropped
+export function personTemplate(root, v, variants = VARIANTS) {
+  const t = SkeletonUtils.clone(root), drop = [];
+  const own = t.children.find((c) => c.getObjectByName(v.name));
+  t.children.forEach((c) => { if (c !== own && c.isObject3D && c.children.some((k) => k.isBone)) drop.push(c); });
+  t.traverse((o) => { if (variants.some((w) => w.name !== v.name && (o.name === w.name || o.name.startsWith(w.name + '_')))) drop.push(o); });
+  drop.forEach((o) => o.removeFromParent());
+  return t;
 }
 
 export function mulberry32(a) {
@@ -223,12 +237,8 @@ export function tintNpc(inst, rng) {
 export async function createNpc3d(scene, { curve, count = NEAR ? 24 : (globalThis.innerWidth < 700 ? 16 : 32) }) { // ~7 draw calls per textured walker: fewer on phones
   const gltf = await new GLTFLoader().loadAsync(GLB);
   const clips = gltf.animations.filter((a) => a.name in CLIP_SPEED);
-  // one template per variant: the shared armature plus only that variant's mesh
-  const templates = VARIANTS.map((v) => {
-    const t = SkeletonUtils.clone(gltf.scene);
-    const drop = []; t.traverse((o) => { if (VARIANTS.some((w) => w.name !== v.name && (o.name === w.name || o.name.startsWith(w.name + '_')))) drop.push(o); }); drop.forEach((o) => o.removeFromParent()); // a person = NPC_X (+ NPC_X_<asset> in the textured pack)
-    return t;
-  });
+  // one template per variant: its own armature (adult or child rig: clip tracks bind by bone name) plus only that variant's mesh
+  const templates = VARIANTS.map((v) => personTemplate(gltf.scene, v));
   const L = curve.getLength(), rng = mulberry32(777);
   const [lo, hi] = NEAR ? [5, 30] : [-BACK, AHEAD]; // walker window, metres ahead of the camera along the route
   const wrap = (v) => lo + ((((v - lo) % (hi - lo)) + (hi - lo)) % (hi - lo));
@@ -237,7 +247,7 @@ export async function createNpc3d(scene, { curve, count = NEAR ? 24 : (globalThi
     const k = i % VARIANTS.length, v = VARIANTS[k], [off, dir] = LANES[i % LANES.length];
     const inst = shareSkeleton(SkeletonUtils.clone(templates[k]));
     const mixer = new THREE.AnimationMixer(inst);
-    const clip = clips[Math.floor(rng() * clips.length)];
+    const mine = clips.filter((c) => c.name.endsWith('_C') === (v.rig === 'child')), clip = mine[Math.floor(rng() * mine.length)]; // kids draw from the _C clips
     const ts = CADENCE * v.speed * (0.94 + 0.12 * rng()); // per-walker cadence
     const sc = (v.height / v.measured) * (0.96 + 0.08 * rng()), wide = 0.94 + 0.12 * rng(); // per-walker height ±4%, width ±6%
     const ws = CLIP_SPEED[clip.name] * ts * sc; // walk speed, m/s: the scaled stride matches it, so planted feet do not slide

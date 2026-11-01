@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
-import { tintNpc, mulberry32, NPC_VARIANTS } from '/js/world/npc3d.js';
+import { tintNpc, mulberry32, personTemplate, NPC_VARIANTS } from '/js/world/npc3d.js';
 const P = new URLSearchParams(location.search), MODE = P.get('mode') || 'sheet', T = +(P.get('t') || 0.3);
 const W = innerWidth, H = innerHeight;
 const r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); r.setSize(W, H); r.setPixelRatio(1);
@@ -16,10 +16,10 @@ scene.add(new THREE.HemisphereLight(0xdfe8f5, 0x6a6258, 1.5));
 const sun = new THREE.DirectionalLight(0xfff4e6, 2.6); sun.position.set(-6, 10, 6); scene.add(sun); scene.add(sun.target);
 const g = await new GLTFLoader().loadAsync('/__glb');
 const clips = g.animations; const V = NPC_VARIANTS;
-const tmpl = V.map(v => { const t = SkeletonUtils.clone(g.scene); const drop = []; t.traverse(o => { if (V.some(w => w.name !== v.name && (o.name === w.name || o.name.startsWith(w.name + '_')))) drop.push(o); }); drop.forEach(o => o.removeFromParent()); return t; });
+const tmpl = V.map(v => personTemplate(g.scene, v));
 function make(k, i, t) {
   const v = V[k], inst = SkeletonUtils.clone(tmpl[k]), m = new THREE.AnimationMixer(inst);
-  const walks = clips.filter(c => c.name.startsWith('NPC_Walk')), clip = MODE === 'crowd' ? walks[i % walks.length] : (clips.find(c => c.name === (P.get('clip') || v.clip || 'NPC_Walk')) || clips[0]); // ?clip=NPC_Walk2
+  const walks = clips.filter(c => c.name.startsWith('NPC_Walk') && c.name.endsWith('_C') === (v.rig === 'child')), clip = MODE === 'crowd' ? walks[i % walks.length] : (clips.find(c => c.name === (P.get('clip') || v.clip || (v.rig === 'child' ? 'NPC_Walk_C' : 'NPC_Walk'))) || clips[0]); // ?clip=NPC_Walk2
   const a = m.clipAction(clip); a.play(); m.setTime(t * clip.duration);
   { const sc = v.height / v.measured, wide = MODE === 'crowd' ? 0.94 + 0.12 * Math.random() : 1; inst.scale.set(sc * wide, sc, sc * wide); } if (P.get('tint') !== '0') tintNpc(inst, mulberry32(1000 + i));
   return { inst, m, clip, v };
@@ -27,12 +27,12 @@ function make(k, i, t) {
 const JOINTS = MODE === 'joints'; // close-ups: side lower leg at t = 0, .25, .5, .75; front lower leg at .25; side elbow at .25
 if (MODE === 'sheet' || JOINTS) {
   const views = JOINTS ? [[1.57, 0.35, 1.3, 0.35, 30, 0], [1.57, 0.35, 1.3, 0.35, 30, 0.25], [1.57, 0.35, 1.3, 0.35, 30, 0.5], [1.57, 0.35, 1.3, 0.35, 30, 0.75], [0.25, 0.35, 1.3, 0.35, 30, 0.25], [1.57, 1.05, 1.0, 1.05, 30, 0.25]] : [[0, 1.0, 4.2, 0.95, 26], [0.8, 1.0, 4.2, 0.95, 26], [1.57, 1.0, 4.2, 0.95, 26], [3.14, 1.0, 4.2, 0.95, 26], [0, 1.62, 0.75, 1.62, 22], [0.6, 1.62, 0.75, 1.62, 22]];
-  const rows = V.length, cw = W / views.length, ch = H / rows; r.setScissorTest(true); r.autoClear = false;
+  const VI = V.map((_, k) => k).filter(k => !P.get('only') || P.get('only').split(',').includes(V[k].name)), rows = VI.length, cw = W / views.length, ch = H / rows; r.setScissorTest(true); r.autoClear = false;
   const cam = new THREE.PerspectiveCamera(26, cw / ch, 0.05, 50);
-  const npcs = V.map((_, k) => make(k, k, T));
+  const npcs = VI.map(k => make(k, k, T)); // ?only=NPC_KA,NPC_KB limits the rows
   for (let k = 0; k < rows; k++) {
     scene.add(npcs[k].inst); npcs[k].inst.updateMatrixWorld(true);
-    const s = npcs[k].inst.scale.x;
+    const s = npcs[k].inst.scale.x * npcs[k].v.measured / 1.8; // camera heights are for a 1.8 m body
     views.forEach(([az, cy, d, ty, fov, ph], c) => {
       if (ph !== undefined) { npcs[k].m.setTime(ph * npcs[k].clip.duration); npcs[k].inst.updateMatrixWorld(true); }
       cam.fov = fov; cam.aspect = cw / ch; cam.updateProjectionMatrix();

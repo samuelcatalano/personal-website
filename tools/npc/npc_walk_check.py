@@ -10,6 +10,8 @@ import bpy
 from mathutils import Vector
 
 OUT = os.environ["NPC_OUT"]  # .blend, PNG and GLB outputs
+CHILD = os.environ.get("NPC_RIG", "adult") == "child"  # child rig: kid macros, clips suffixed _C, npc_child_walk.blend
+SUF = "_C" if CHILD else ""
 IK = os.environ.get("NPC_IK", "1") == "1"  # 0: retarget without the ground IK pass (pre-IK comparison)
 UAL = os.environ["NPC_UAL"]  # UAL1_Standard.glb, Quaternius, CC0 1.0
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -24,6 +26,8 @@ def macro_dict(height):
     d = TargetService.get_default_macro_info_dict()
     vals = {"gender": 1.0, "age": 0.50, "weight": 0.40, "muscle": 0.55, "height": height, "proportions": 0.85,  # slim, idealised proportions (longer legs)
             "african": 0.1, "asian": 0.1, "caucasian": 0.8}
+    if CHILD:  # age 0.1875 = 11 years in MPFB; 0.16 ~ 9; proportions default (a child's own)
+        vals.update(gender=0.5, age=float(os.environ.get("NPC_CHILD_AGE", 0.16)), weight=0.45, muscle=0.4, proportions=0.5)
 
     def walk(dct):
         for k in list(dct.keys()):
@@ -43,7 +47,7 @@ layer = bpy.context.view_layer
 
 bpy.ops.object.select_all(action="SELECT")
 bpy.ops.object.delete()
-HumanService.create_human(macro_detail_dict=macro_dict(0.56))
+HumanService.create_human(macro_detail_dict=macro_dict(0.5 if CHILD else 0.56))
 body = max((o for o in bpy.data.objects if o.type == "MESH"), key=lambda o: len(o.data.vertices))
 HumanService.add_builtin_rig(body, "game_engine")
 dst = next(o for o in bpy.data.objects if o.type == "ARMATURE")
@@ -64,6 +68,7 @@ print("CHECK renamed UAL bones", to_unreal_names(src), flush=True)
 # clip name -> (UAL action, retarget parameters); NPC_Walk is the original, the others are variations
 CLIPS = {"NPC_Walk": ("Walk_Loop", {}), "NPC_Walk2": ("Walk_Formal_Loop", dict(swing_k=1.8, elbow_base=8.0)),
          "NPC_Walk3": ("Walk_Loop", dict(swing_k=1.35, elbow_base=9.0, hip_f=0.8, hip_b=0.55))}
+CLIPS = {k + SUF: v for k, v in CLIPS.items()}
 CLIP_NAMES = list(CLIPS)
 src.animation_data_create()
 FR = range(0, 32)
@@ -173,7 +178,7 @@ for clip_name, (ual, prm) in CLIPS.items():
         dst.animation_data.action = None
     act = retarget_walk(src, dst, FR, clip_name, ground_ik=IK, **prm)
     print("CHECK action", act.name, "frames", act.frame_range[0], act.frame_range[1], "ik", IK, flush=True)
-    knee_report(dst, FR, "KNEE" if clip_name == "NPC_Walk" else clip_name + "-KNEE")
+    knee_report(dst, FR, "KNEE" if clip_name == "NPC_Walk" + SUF else clip_name + "-KNEE")
     sp, nn = stance_speed(dst, FR, scene.render.fps)
     print(f"CLIP {clip_name} stance-foot speed {sp:.3f} m/s (n={nn}) duration {len(FR) / scene.render.fps:.3f} s", flush=True)
 
@@ -182,7 +187,7 @@ for o in new:
 for a in list(bpy.data.actions):
     if a.name not in CLIP_NAMES:
         bpy.data.actions.remove(a)
-dst.animation_data.action = bpy.data.actions["NPC_Walk"]
+dst.animation_data.action = bpy.data.actions["NPC_Walk" + SUF]
 dst.animation_data.action_slot = dst.animation_data.action.slots[0]
 for nm in CLIP_NAMES:  # every clip also sits on its own NLA track: the glTF exporter writes each track as an animation
     tr = dst.animation_data.nla_tracks.new()
@@ -209,9 +214,9 @@ scene.render.resolution_x = 384
 scene.render.resolution_y = 576
 for f in (0, 16):
     scene.frame_set(f)
-    scene.render.filepath = f"{OUT}/walk_check_f{f:02d}.png"
+    scene.render.filepath = f"{OUT}/walk_check{SUF.lower()}_f{f:02d}.png"
     bpy.ops.render.render(write_still=True)
     print("CHECK rendered", f, flush=True)
 
-bpy.ops.wm.save_as_mainfile(filepath=f"{OUT}/npc_a_walk.blend")
+bpy.ops.wm.save_as_mainfile(filepath=f"{OUT}/" + ("npc_child_walk.blend" if CHILD else "npc_a_walk.blend"))
 print("CHECK saved", flush=True)

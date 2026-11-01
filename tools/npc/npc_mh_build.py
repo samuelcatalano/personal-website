@@ -35,6 +35,11 @@ PEOPLE = {  # skin, body proxy, clothes (suit + shoes), hair, brows, lashes, eye
     "NPC_R": dict(body="NPC_K", skin="middleage_african_female", proxy=F, clothes=["male_casualsuit06", "shoes03"], hair="afro01", brows="eyebrow012", eyes="brownlight"),
     "NPC_S": dict(body="NPC_C", skin="young_caucasian_male2", proxy=M, clothes=["male_casualsuit03", "shoes06"], hair="short04", brows="eyebrow001", eyes="blue"),
     "NPC_T": dict(body="NPC_G", skin="young_caucasian_female2", proxy=F, clothes=["male_casualsuit05", "shoes01"], hair="ponytail01", brows="eyebrow010", eyes="green"),
+    # children (7-10 y): a second rig, the child armature of npc_child_walk.blend (npc_walk_check.py NPC_RIG=child, clips *_C);
+    # their bodies come from npc_bodies.py/warp.py NPC_RIG=child. The pack holds both armatures; a template keeps its own.
+    "NPC_KA": dict(rig="child", skin="young_caucasian_female", proxy=F, clothes=["male_casualsuit02", "shoes05"], hair="long01", brows="eyebrow010", eyes="brown"),
+    "NPC_KB": dict(rig="child", skin="young_african_male", proxy=M, clothes=["male_casualsuit04", "shoes03"], hair="short02", brows="eyebrow003", eyes="brown"),
+    "NPC_KC": dict(rig="child", skin="young_asian_female", proxy=F, clothes=["male_casualsuit06", "shoes06"], hair="ponytail01", brows="eyebrow011", eyes="brown"),
 }
 
 addon_utils.enable("bl_ext.user_default.mpfb", default_set=True)
@@ -48,9 +53,24 @@ bpy.ops.wm.open_mainfile(filepath=f"{OUT}/npc_a_walk.blend")
 layer = bpy.context.view_layer
 arm = next(o for o in bpy.data.objects if o.type == "ARMATURE")
 base = max((o for o in bpy.data.objects if o.type == "MESH"), key=lambda o: len(o.data.vertices))
-arm.data.pose_position = "REST"  # fit and bind in the rest pose (see npc_build.py)
+RIGS = {"adult": (arm, base)}
+if any(p.get("rig") == "child" and (not ONLY or n == ONLY) for n, p in PEOPLE.items()):
+    with bpy.data.libraries.load(f"{OUT}/npc_child_walk.blend") as (src_d, dst_d):  # the child rig: armature, base body, its clips
+        dst_d.objects = [n for n in src_d.objects if n in ("Human", "Human.rig")]
+        dst_d.actions = list(src_d.actions)
+    carm = next(o for o in dst_d.objects if o.type == "ARMATURE")
+    cbase = next(o for o in dst_d.objects if o.type == "MESH")
+    carm.name = carm.data.name = "ChildRig"  # distinct node names: three.js binds clip tracks by node name inside one template
+    cbase.name = "Child"
+    for o in (carm, cbase):
+        bpy.context.scene.collection.objects.link(o)
+    RIGS["child"] = (carm, cbase)  # its clips ride on the NLA tracks saved in the blend (one glTF animation each)
+BASE_CO = {}
+for r, (a_, b_) in RIGS.items():
+    a_.data.pose_position = "REST"  # fit and bind in the rest pose (see npc_build.py)
 layer.update()
-base_co = [v.co.copy() for v in base.data.vertices]
+for r, (a_, b_) in RIGS.items():
+    BASE_CO[r] = [v.co.copy() for v in b_.data.vertices]
 _IMAGES, _MATS = {}, {}
 KEEP = {"clothes": float(os.environ.get("MH_KEEP_CLOTHES", 0.5)), "shoes": float(os.environ.get("MH_KEEP_SHOES", 0.3)),
         "hair": float(os.environ.get("MH_KEEP_HAIR", 0.7))}  # decimation ratio per asset type
@@ -207,6 +227,8 @@ exported = []
 for npc, look in PEOPLE.items():
     if ONLY and npc != ONLY:
         continue
+    arm, base = RIGS[look.get("rig", "adult")]
+    base_co = BASE_CO[look.get("rig", "adult")]
     body = base.copy()
     body.data = base.data.copy()
     bpy.context.scene.collection.objects.link(body)
@@ -259,14 +281,15 @@ for npc, look in PEOPLE.items():
     exported += [proxy] + parts
     print("MH person", npc, "tris", tris, "parts", len(parts) + 1, flush=True)
 
-for o in exported:  # under the shared rig only now: MPFB looks for a person's existing proxy among the rig's children
-    o.parent = arm
+for o in exported:  # under the person's rig only now: MPFB looks for a person's existing proxy among the rig's children
+    o.parent = RIGS[PEOPLE[o.name.split("_")[0] + "_" + o.name.split("_")[1]].get("rig", "adult")][0]
     o.matrix_parent_inverse.identity()
-arm.data.pose_position = "POSE"
 bpy.ops.object.select_all(action="DESELECT")
 for o in exported:
     o.select_set(True)
-arm.select_set(True)
+for a_, _b in RIGS.values():
+    a_.data.pose_position = "POSE"
+    a_.select_set(True)
 layer.objects.active = arm
 path = f"{OUT}/npc_pack_mh.glb"
 bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", use_selection=True, export_animations=True, export_skins=True,
