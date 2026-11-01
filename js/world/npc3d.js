@@ -248,6 +248,7 @@ function hideSprites(scene) {
 // loops and plazas at the same speeds; a pool of 3D bodies is given to the people nearest the camera (ahead weighs more than
 // behind), so the city stays as populated as before and nobody pops in or out near the camera. The sprites are not drawn.
 const FEMALE = new Set(['NPC_F', 'NPC_G', 'NPC_H', 'NPC_K', 'NPC_L', 'NPC_P', 'NPC_R', 'NPC_T', 'NPC_KA', 'NPC_KC']);
+const CASTERS = 16; // walkers nearest the camera that cast sun shadows (desktop)
 const PAVE_TOP = 0.17; // pavement slab top (city.js: bottom 0.07, 0.10 thick); the crowd's lanes run on it
 export async function createNpc3d(scene, { curve, pts, stops, count = globalThis.innerWidth < 700 ? 28 : 56 }) { // ~7 draw calls per walker
   hideSprites(scene);
@@ -255,6 +256,12 @@ export async function createNpc3d(scene, { curve, pts, stops, count = globalThis
   const plan = crowdPlan(stops, pts, 1017); // people.js seed: index i here is sprite i there
   const gltf = await new GLTFLoader().loadAsync(GLB);
   const clips = gltf.animations.filter((a) => a.name in CLIP_SPEED);
+  // hair and brow cards: alpha-tested, not blended (blending sorted the cards against each other and against the sky/glass,
+  // so strands flickered and showed the head through the hair); opaque cards also write depth and take shadows correctly
+  gltf.scene.traverse((o) => {
+    if (!o.isMesh) return;
+    for (const m of [o.material].flat()) if (m.transparent && m.map) Object.assign(m, { transparent: false, alphaTest: 0.45, depthWrite: true });
+  });
   const templates = VARIANTS.map((v) => personTemplate(gltf.scene, v));
   const rng = mulberry32(777);
   const kindOf = (v) => (v.rig === 'child' ? 'kid' : FEMALE.has(v.name) ? 'woman' : 'man');
@@ -297,6 +304,9 @@ export async function createNpc3d(scene, { curve, pts, stops, count = globalThis
     order.sort((p, q) => score[p] - score[q]);
     const cut = score[order[Math.min(count, N) - 1]] * 1.4;
     for (const w of walkers) if (w.who >= 0 && !(score[w.who] <= cut)) { owner[w.who] = -1; w.who = -1; w.inst.visible = false; }
+    // the nearest CASTERS walkers cast real sun shadows (the city's shadow map); the rest keep only the contact blob
+    let c = 0;
+    for (let r = 0; r < N && c < CASTERS; r++) { const n = owner[order[r]]; if (n >= 0) { walkers[n].cast = true; c++; } }
     for (let r = 0; r < Math.min(count, N); r++) {
       const i = order[r];
       if (owner[i] >= 0 || score[i] === Infinity) continue;
@@ -307,6 +317,7 @@ export async function createNpc3d(scene, { curve, pts, stops, count = globalThis
       free.x = A[i * 16 + 12]; free.z = A[i * 16 + 14]; free.y = groundOf(i); free.yaw = Math.atan2(I[4 * i + 1], I[4 * i + 2]);
       free.inst.visible = true;
     }
+    for (const w of walkers) { const on = !!w.cast && w.who >= 0; if (on !== w.casting) { w.casting = on; w.inst.traverse((o) => { if (o.isMesh) o.castShadow = on; }); } w.cast = false; }
   };
   return {
     update(f) {
