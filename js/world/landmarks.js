@@ -15,7 +15,7 @@ function clockFaces(x, z) {
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = 256;
   const c = canvas.getContext('2d');
-  c.fillStyle = '#f4f0e2'; c.fillRect(0, 0, 256, 256);
+  c.fillStyle = '#f4f0e2'; c.beginPath(); c.arc(128, 128, 126, 0, PI * 2); c.fill(); // round dial on a clear canvas: a square plane showed cream corners over the authored GLB bezel
   c.strokeStyle = '#4d4030'; c.lineWidth = 8; c.beginPath(); c.arc(128, 128, 116, 0, PI * 2); c.stroke();
   c.strokeStyle = '#6d604b'; c.lineWidth = 3;
   for (let i = 0; i < 60; i++) {
@@ -35,7 +35,7 @@ function clockFaces(x, z) {
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   const geo = new THREE.PlaneGeometry(3.55, 3.55);
-  const mesh = new THREE.InstancedMesh(geo, new THREE.MeshBasicMaterial({ map: texture }), 4);
+  const mesh = new THREE.InstancedMesh(geo, new THREE.MeshBasicMaterial({ map: texture, alphaTest: 0.5 }), 4);
   [[x, z + 3.06, 0], [x, z - 3.06, PI], [x + 3.06, z, PI / 2], [x - 3.06, z, -PI / 2]]
     .forEach(([fx, fz, ry], i) => mesh.setMatrixAt(i, m.compose(p.set(fx, 21, fz), q.setFromAxisAngle(UP, ry), s)));
   mesh.name = 'bigben-four-clock-faces';
