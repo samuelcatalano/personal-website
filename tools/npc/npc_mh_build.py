@@ -37,9 +37,9 @@ PEOPLE = {  # skin, body proxy, clothes (suit + shoes), hair, brows, lashes, eye
     "NPC_T": dict(body="NPC_G", skin="young_caucasian_female2", proxy=F, clothes=["male_casualsuit05", "shoes01"], hair="ponytail01", brows="eyebrow010", eyes="green"),
     # children (7-10 y): a second rig, the child armature of npc_child_walk.blend (npc_walk_check.py NPC_RIG=child, clips *_C);
     # their bodies come from npc_bodies.py/warp.py NPC_RIG=child. The pack holds both armatures; a template keeps its own.
-    "NPC_KA": dict(rig="child", skin="young_caucasian_female", proxy=F, clothes=["male_casualsuit02", "shoes05"], hair="long01", brows="eyebrow010", eyes="brown"),
-    "NPC_KB": dict(rig="child", skin="young_african_male", proxy=M, clothes=["male_casualsuit04", "shoes03"], hair="short02", brows="eyebrow003", eyes="brown"),
-    "NPC_KC": dict(rig="child", skin="young_asian_female", proxy=F, clothes=["male_casualsuit06", "shoes06"], hair="ponytail01", brows="eyebrow011", eyes="brown"),
+    "NPC_KA": dict(rig="child", skin="young_caucasian_female", proxy=F, clothes=["male_casualsuit02", "shoes05"], hair="long01", brows="eyebrow010", eyes="brownlight"),
+    "NPC_KB": dict(rig="child", skin="young_african_male", proxy=M, clothes=["male_casualsuit04", "shoes03"], hair="short02", brows="eyebrow003", eyes="brownlight"),
+    "NPC_KC": dict(rig="child", skin="young_asian_female", proxy=F, clothes=["male_casualsuit06", "shoes06"], hair="ponytail01", brows="eyebrow011", eyes="brownlight"),
 }
 
 addon_utils.enable("bl_ext.user_default.mpfb", default_set=True)
