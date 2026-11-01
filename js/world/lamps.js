@@ -1,6 +1,8 @@
 import * as THREE from 'three';
+import { allLampSpots } from './street-lamp.js';
 // Additive light pools under street lamps: one InstancedMesh, opacity follows night.
-export function createLampPools(scene, lamps, size = 10) {
+export function createLampPools(scene, streetLamps, size = 10) {
+  const seen = new Set(), lamps = [...streetLamps, ...allLampSpots()].filter(([x, z]) => { const k = `${Math.round(x * 4)},${Math.round(z * 4)}`; return !seen.has(k) && seen.add(k); }); // park and Glasgow lamps get a pool too
   const c = document.createElement('canvas');
   c.width = c.height = 128;
   const g = c.getContext('2d'), gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
