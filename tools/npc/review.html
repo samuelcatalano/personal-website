@@ -16,7 +16,7 @@ scene.add(new THREE.HemisphereLight(0xdfe8f5, 0x6a6258, 1.5));
 const sun = new THREE.DirectionalLight(0xfff4e6, 2.6); sun.position.set(-6, 10, 6); scene.add(sun); scene.add(sun.target);
 const g = await new GLTFLoader().loadAsync('/__glb');
 const clips = g.animations; const V = NPC_VARIANTS;
-const tmpl = V.map(v => { const t = SkeletonUtils.clone(g.scene); for (const w of V) if (w.name !== v.name) t.getObjectByName(w.name)?.removeFromParent(); return t; });
+const tmpl = V.map(v => { const t = SkeletonUtils.clone(g.scene); const drop = []; t.traverse(o => { if (V.some(w => w.name !== v.name && (o.name === w.name || o.name.startsWith(w.name + '_')))) drop.push(o); }); drop.forEach(o => o.removeFromParent()); return t; });
 function make(k, i, t) {
   const v = V[k], inst = SkeletonUtils.clone(tmpl[k]), m = new THREE.AnimationMixer(inst);
   const walks = clips.filter(c => c.name.startsWith('NPC_Walk')), clip = MODE === 'crowd' ? walks[i % walks.length] : (clips.find(c => c.name === (P.get('clip') || v.clip || 'NPC_Walk')) || clips[0]); // ?clip=NPC_Walk2

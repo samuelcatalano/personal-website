@@ -130,7 +130,38 @@ function partMeans(geo) {
 }
 
 // give every mesh of `inst` its own tinted material; rng picks the palette entries
+// textured pack (MakeHuman assets, meshes NPC_X_<type>_<asset>): per walker, the saturated cloth (tees, jackets, shirts)
+// turns to another hue while the dull denim keeps its own; hair takes a natural colour by its luminance; skin and shoes stay
+function tintTextured(inst, rng) {
+  const hue = rng() < 0.25 ? 0 : (rng() * 2 - 1) * Math.PI, gain = 0.7 + 0.35 * rng(), chroma = 0.25 + 0.6 * rng(); // muted street colours
+  const hair = new THREE.Color(HAIRS[Math.floor(rng() * HAIRS.length)]);
+  inst.traverse((o) => {
+    if (!o.isMesh || !o.material.map) return;
+    const kind = /_clothes_(?!shoes)/.test(o.name) ? 'cloth' : /_(hair|eyebrows)_/.test(o.name) ? 'hair' : '';
+    if (!kind || (kind === 'cloth' && (!hue || !o.geometry.attributes._part))) return;
+    o.material = o.material.clone();
+    o.material.onBeforeCompile = (sh) => {
+      sh.uniforms.npcHue = { value: hue };
+      sh.uniforms.npcGain = { value: gain };
+      sh.uniforms.npcChroma = { value: chroma };
+      sh.uniforms.npcHair = { value: hair };
+      if (kind === 'cloth') sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float _part;\nvarying float vTop;')
+        .replace('#include <uv_vertex>', '#include <uv_vertex>\nvTop = step(_part, 0.3);');
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float npcHue;\nuniform float npcGain;\nuniform float npcChroma;\nuniform vec3 npcHair;' + (kind === 'cloth' ? '\nvarying float vTop;' : ''))
+        .replace('#include <map_fragment>', kind === 'cloth' ? `#include <map_fragment>
+        { vec3 c = diffuseColor.rgb; float mx = max(c.r, max(c.g, c.b)), mn = min(c.r, min(c.g, c.b)), sat = (mx - mn) / max(mx, 1e-4);
+          vec3 yiq = mat3(0.299, 0.596, 0.211, 0.587, -0.274, -0.523, 0.114, -0.322, 0.312) * c;
+          float h = atan(yiq.z, yiq.y) + npcHue, ch = length(yiq.yz) * npcChroma;
+          vec3 r = mat3(1.0, 1.0, 1.0, 0.956, -0.272, -1.106, 0.621, -0.647, 1.703) * vec3(yiq.x * npcGain, ch * cos(h), ch * sin(h));
+          diffuseColor.rgb = mix(c, max(r, 0.0), vTop * smoothstep(0.12, 0.30, sat)); }` : `#include <map_fragment>
+        diffuseColor.rgb = npcHair * clamp(dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722)) / 0.30, 0.25, 2.2);`);
+    };
+    o.material.customProgramCacheKey = () => 'npc-' + kind;
+  });
+}
+
 export function tintNpc(inst, rng) {
+  if (inst.getObjectByProperty('isMesh', true)?.material.map) return tintTextured(inst, rng); // textured (MakeHuman) pack
   const pick = (list) => (rng() < KEEP ? new THREE.Vector4(0, 0, 0, 0) : (({ r, g, b }) => new THREE.Vector4(r, g, b, 1))(new THREE.Color(list[Math.floor(rng() * list.length)])));
   const tint = [pick(TOPS), pick(TROUSERS), pick(SHOES), pick(HAIRS)];
   // top decoration (street-crowd look): 0 plain, 1 chest band, 2 chest logo, 3 contrast sleeves, 4 sleeve stripes, 5 two-tone yoke
@@ -169,7 +200,7 @@ export async function createNpc3d(scene, { curve, count = NEAR ? 24 : 40 }) {
   // one template per variant: the shared armature plus only that variant's mesh
   const templates = VARIANTS.map((v) => {
     const t = SkeletonUtils.clone(gltf.scene);
-    for (const w of VARIANTS) if (w.name !== v.name) t.getObjectByName(w.name)?.removeFromParent();
+    const drop = []; t.traverse((o) => { if (VARIANTS.some((w) => w.name !== v.name && (o.name === w.name || o.name.startsWith(w.name + '_')))) drop.push(o); }); drop.forEach((o) => o.removeFromParent()); // a person = NPC_X (+ NPC_X_<asset> in the textured pack)
     return t;
   });
   const L = curve.getLength(), rng = mulberry32(777);

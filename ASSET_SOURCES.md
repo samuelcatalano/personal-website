@@ -85,3 +85,10 @@ Rebuild commands: `blender -b --factory-startup -P tools/buildings/shop-kit/buil
 | Asset | Path | Source | Licence |
 | --- | --- | --- | --- |
 | NPC pack: NPC_A to NPC_E, one shared armature (53 bones), walk clip `NPC_Walk` | `assets/npc/npc_pack.glb` | Generated in-project. Bodies: MPFB 2.0.18 macros (`tools/npc/npc_bodies.py`). Walk: Quaternius UAL1 `Walk_Loop`, retargeted in world space (`tools/npc/npc_retarget.py`, `tools/npc/npc_walk_check.py`). Garments, hair and vertex colours: procedural (`tools/npc/npc_build.py`, `tools/npc/hair_styles.py`, project code). Rebuild with `NPC_OUT=<dir> NPC_UAL=<UAL1_Standard.glb> blender -b --factory-startup -P tools/npc/npc_walk_check.py`, then `-P tools/npc/npc_bodies.py`, then `-P tools/npc/npc_build.py`. | Derived. MPFB base mesh: CC0 1.0 (asset licence, checked 2026-10-31; the MPFB code is GPL-3.0-or-later and is not distributed). UAL1 animation: CC0 1.0 (Quaternius `License.txt` in the pack). |
+
+
+### NPC textured pack (MakeHuman system assets) — 2026-11-01
+
+| Asset | Path | Source | Licence |
+| --- | --- | --- | --- |
+| NPC pack v2: 12 people (NPC_A..L), each a low-poly body proxy (male1591 / female1605) with a skin, a clothes suit, shoes, hair, eyebrows, eyelashes and eyes; one shared armature and the clips NPC_Walk/2/3 | `assets/npc/npc_pack.glb` | MakeHuman system assets pack (`makehuman_system_assets_cc0.zip`, official page https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html, every item listed as CC0; each .mhclo/.mhmat header: "explicitly released as CC0 in september 2020"). Fitted by MPFB 2.0.18 in `tools/npc/npc_mh_build.py`; textures downscaled (skin 1024, others 512, normals 256) and stored as WebP. Bodies, rig and walk clips as in the NPC POC row above. Assets used: skins young/middleage african/asian/caucasian; clothes male_casualsuit01-06, male_worksuit01, female_casualsuit01, shoes01-06; hair short01-04, afro01, long01, ponytail01, braid01, bob02; eyebrow001-012; eyelashes01; eyes low-poly (brown, brownlight, green, blue, bluegreen, lightblue). | CC0 1.0 (checked 2026-11-01 on the official pack page and in the asset files). |
