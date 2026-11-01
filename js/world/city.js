@@ -179,7 +179,7 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
   for (let tries = 0; kiosks.length < 15 && tries < 400; tries++) {
     const u = u0 + kq() * (1 - u0), side = kq() < 0.5 ? -1 : 1, p = curve.getPointAt(u), t = curve.getTangentAt(u);
     const x = p.x - t.z * side * RD.furniture, z = p.z + t.x * side * RD.furniture;
-    if (!free(x, z) || [...obst, ...kiosks].some(([a, b]) => Math.hypot(a - x, b - z) < 3.5)) continue;
+    if (!free(x, z) || onOverpass(x, z, 1) || [...obst, ...kiosks].some(([a, b]) => Math.hypot(a - x, b - z) < 3.5)) continue;
     phoneBox(add, x, z, Math.atan2(t.z * side, -t.x * side)); // door faces the road
     kiosks.push([x, z]);
   }
