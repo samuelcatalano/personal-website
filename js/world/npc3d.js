@@ -293,6 +293,7 @@ export async function createNpc3d(scene, { curve, pts, stops, count = globalThis
   const groundOf = (i) => plan[i].path.y ?? (plan[i].path.type === 'lane' ? PAVE_TOP : FEET);
   const owner = new Int32Array(N).fill(-1), score = new Float32Array(N), order = Array.from({ length: N }, (_, i) => i);
   let tick = 0;
+  const lastCam = new THREE.Vector3(Infinity, 0, Infinity);
   const assign = (cam) => { // nearest people (ahead of the camera counts 3x closer) get a body; a kept walker only leaves past 1.4x the cut
     cam.getWorldDirection(fwd);
     for (let i = 0; i < N; i++) {
@@ -322,7 +323,8 @@ export async function createNpc3d(scene, { curve, pts, stops, count = globalThis
   return {
     update(f) {
       const dt = REDUCED ? 0 : f.dt;
-      if (tick++ % 12 === 0) assign(f.camera);
+      const cp = f.camera.position, jump = Math.hypot(cp.x - lastCam.x, cp.z - lastCam.z) > 15; // a fast scroll: hand the bodies over now
+      if (tick++ % 12 === 0 || jump) { assign(f.camera); lastCam.copy(cp); }
       walkers.forEach((w, n) => {
         if (w.who < 0) { dummy.scale.setScalar(0); dummy.updateMatrix(); shadow.setMatrixAt(n, dummy.matrix); return; }
         const i = w.who, a = i * 16, fx = I[4 * i + 1], fz = I[4 * i + 2], sp = plan[i].look.speed;
