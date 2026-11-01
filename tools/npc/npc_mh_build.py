@@ -45,6 +45,8 @@ arm.data.pose_position = "REST"  # fit and bind in the rest pose (see npc_build.
 layer.update()
 base_co = [v.co.copy() for v in base.data.vertices]
 _IMAGES, _MATS = {}, {}
+KEEP = {"clothes": float(os.environ.get("MH_KEEP_CLOTHES", 0.5)), "shoes": float(os.environ.get("MH_KEEP_SHOES", 0.3)),
+        "hair": float(os.environ.get("MH_KEEP_HAIR", 0.7))}  # decimation ratio per asset type
 
 
 def find(kind, name, ext):
@@ -112,12 +114,16 @@ def add(body, npc, kind, name, asset_type, alpha=False, mat_key=None, maps=None,
         mm = find(kind, name, ".mhmat")
         maps = mhmat_maps(mm) if mm else {}
     ob.data.materials.clear()
-    ob.data.materials.append(material(mat_key or f"mh_{name}", maps, alpha, edge))
+    ob.data.materials.append(material(mat_key or f"mh_{asset_type.lower()}_{name}", maps, alpha, edge))  # the type in the name: the runtime tints by it
     ob.name = f"{npc}_{asset_type.lower()}_{name}"
+    ratio = KEEP.get("shoes" if name.startswith("shoes") else asset_type.lower(), 1.0)
+    if ratio < 1.0:  # collapse decimation, applied by the export (budget: ~8k tris per person, the pack ~4-5 MB)
+        d = ob.modifiers.new("decimate", "DECIMATE")
+        d.ratio = ratio
     return ob
 
 
-LEGS = ("thigh_l", "thigh_r", "calf_l", "calf_r", "foot_l", "foot_r", "ball_l", "ball_r", "pelvis")
+LEGS = ("thigh_l", "thigh_r", "calf_l", "calf_r", "foot_l", "foot_r", "ball_l", "ball_r")  # no pelvis: the tee hem rides on it and turned trouser-blue
 
 
 def tag_parts(ob):
@@ -174,14 +180,29 @@ for npc, look in PEOPLE.items():
     tag_parts(parts[0])  # the suit (the shoes stay as they are)
     parts.append(add(body, npc, "hair", look["hair"], "Hair", alpha=True))
     parts.append(add(body, npc, "eyebrows", look["brows"], "Eyebrows", alpha=True))
-    parts.append(add(body, npc, "eyelashes", "eyelashes01", "Eyelashes", alpha=True))
+    # no eyelashes: 370 triangles each, invisible at street distance
     for mod in list(proxy.modifiers):  # MPFB's per-garment masks hid NPC_A's whole proxy at export; hide_covered does that job
         if mod.type == "MASK":
             proxy.modifiers.remove(mod)
     print("MH hidden skin faces", npc, hide_covered(proxy, parts[:len(look["clothes"])]), flush=True)
     eye_png = os.path.join(MH, "eyes", "materials", f"{look['eyes']}_eye.png")
     parts.append(add(body, npc, "eyes", "low-poly", "Eyes", mat_key=f"mh_eyes_{look['eyes']}", maps={"diffuseTexture": eye_png}))
+    # one object per person: one glTF mesh (a primitive per material) bound to one skin, so the runtime updates one skeleton
+    # per walker instead of one per garment (6x the bone matrices before)
+    dg = bpy.context.evaluated_depsgraph_get()
+    tris = sum(sum(len(p.vertices) - 2 for p in o.evaluated_get(dg).data.polygons) for o in [proxy] + parts)
+    for o in [proxy] + parts:
+        bpy.context.view_layer.objects.active = o
+        for mod in list(o.modifiers):
+            if mod.type in ("DECIMATE", "MASK"):
+                bpy.ops.object.modifier_apply(modifier=mod.name)
+    bpy.ops.object.select_all(action="DESELECT")
+    for o in [proxy] + parts:
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = proxy
+    bpy.ops.object.join()
     proxy.name = npc
+    parts = []
     body.hide_set(True)
     body.hide_render = True
     for o in [body, proxy] + parts:  # out of the rig's family until the export: MPFB replaces a proxy it finds among its relatives
@@ -189,7 +210,6 @@ for npc, look in PEOPLE.items():
         o.parent = None
         o.matrix_world = mw
     exported += [proxy] + parts
-    tris = sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in [proxy] + parts)
     print("MH person", npc, "tris", tris, "parts", len(parts) + 1, flush=True)
 
 for o in exported:  # under the shared rig only now: MPFB looks for a person's existing proxy among the rig's children

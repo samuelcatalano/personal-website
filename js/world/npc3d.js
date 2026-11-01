@@ -105,6 +105,18 @@ float grain(int k, vec3 p) {
   return 1.0;
 }`;
 
+// SkeletonUtils.clone gives every primitive of a person its own Skeleton copy over the same bones; one shared Skeleton is
+// updated once per frame (WebGLRenderer checks skeleton.frame), so a 6-material walker pays for one set of bone matrices
+export function shareSkeleton(inst) {
+  let sk = null;
+  inst.traverse((o) => {
+    if (!o.isSkinnedMesh) return;
+    if (!sk) sk = o.skeleton;
+    else if (o.skeleton.bones[0] === sk.bones[0]) o.skeleton = sk;
+  });
+  return inst;
+}
+
 export function mulberry32(a) {
   return () => {
     a = (a + 0x6D2B79F5) | 0;
@@ -130,14 +142,15 @@ function partMeans(geo) {
 }
 
 // give every mesh of `inst` its own tinted material; rng picks the palette entries
-// textured pack (MakeHuman assets, meshes NPC_X_<type>_<asset>): per walker, the saturated cloth (tees, jackets, shirts)
+// textured pack (MakeHuman assets, one mesh NPC_X per person, materials mh_<type>_<asset>): per walker, the saturated cloth (tees, jackets, shirts)
 // turns to another hue while the dull denim keeps its own; hair takes a natural colour by its luminance; skin and shoes stay
 function tintTextured(inst, rng) {
   const hue = rng() < 0.25 ? 0 : (rng() * 2 - 1) * Math.PI, gain = 0.7 + 0.35 * rng(), chroma = 0.25 + 0.6 * rng(); // muted street colours
   const hair = new THREE.Color(HAIRS[Math.floor(rng() * HAIRS.length)]);
   inst.traverse((o) => {
     if (!o.isMesh || !o.material.map) return;
-    const kind = /_clothes_(?!shoes)/.test(o.name) ? 'cloth' : /_(hair|eyebrows)_/.test(o.name) ? 'hair' : '';
+    const m = o.material.name; // materials are named mh_<type>_<asset> by tools/npc/npc_mh_build.py
+    const kind = /^mh_clothes_(?!shoes)/.test(m) ? 'cloth' : /^mh_(hair|eyebrows)_/.test(m) ? 'hair' : '';
     if (!kind || (kind === 'cloth' && (!hue || !o.geometry.attributes._part))) return;
     o.material = o.material.clone();
     o.material.onBeforeCompile = (sh) => {
@@ -194,7 +207,7 @@ export function tintNpc(inst, rng) {
   });
 }
 
-export async function createNpc3d(scene, { curve, count = NEAR ? 24 : 40 }) {
+export async function createNpc3d(scene, { curve, count = NEAR ? 24 : (globalThis.innerWidth < 700 ? 16 : 32) }) { // ~7 draw calls per textured walker: fewer on phones
   const gltf = await new GLTFLoader().loadAsync(GLB);
   const clips = gltf.animations.filter((a) => a.name in CLIP_SPEED);
   // one template per variant: the shared armature plus only that variant's mesh
@@ -209,7 +222,7 @@ export async function createNpc3d(scene, { curve, count = NEAR ? 24 : 40 }) {
   const walkers = [];
   for (let i = 0; i < count; i++) {
     const k = i % VARIANTS.length, v = VARIANTS[k], [off, dir] = LANES[i % LANES.length];
-    const inst = SkeletonUtils.clone(templates[k]);
+    const inst = shareSkeleton(SkeletonUtils.clone(templates[k]));
     const mixer = new THREE.AnimationMixer(inst);
     const clip = clips[Math.floor(rng() * clips.length)];
     const ts = CADENCE * v.speed * (0.94 + 0.12 * rng()); // per-walker cadence
