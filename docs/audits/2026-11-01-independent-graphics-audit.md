@@ -17,8 +17,8 @@ Chrome 156 reported ANGLE Metal on Apple M3 Max; viewport 1728 × 907. Initial c
 
 | ID | Priority | System | Status | Evidence and next step |
 | --- | --- | --- | --- | --- |
-| GFX-001 | P2 | MASP LOD | Fix in progress | Matched forced-LOD captures showed a visible facade change and missing benches. Runtime now retains detailed LOD0; final validation pending. |
-| GFX-002 | P2 | Regional buildings | Investigating | Stops 12–13 show tall towers. Candidate plots near x=631–696 are in the London return region; map screen objects to IDs before selecting a contextual correction. |
+| GFX-001 | P2 | MASP LOD | Fixed and visually checked | Matched forced-LOD captures showed a visible facade change and missing benches. Runtime now retains detailed LOD0; final validation pending. |
+| GFX-002 | P2 | Regional buildings | Fixed; visual route views checked | Projected plot positions onto the camera and capped four isolated towers in the London return area; the background towers remain. |
 | GFX-003 | P2 | Vegetation lighting | Hypothesis | Tree impostors have baked shading, camera-facing Lambert normals and different shadow participation from LOD0/1. Isolate transitions before changing illumination. |
 
 ## Prior audit verification
@@ -46,8 +46,8 @@ An experimental MASP LOD1 rebake was superseded after matched forced-LOD capture
 
 | ID | Priority | System | Status | Evidence |
 | --- | --- | --- | --- | --- |
-| GFX-004 | P1 | Sé / MASP startup | Fix in progress | First RAF can run before asynchronous authored GLBs replace procedural groups. Gate first render while the asset attempts settle; preserve a bounded failure fallback and prevent late replacement. |
-| GFX-005 | P1 | Sé LOD | Fix in progress | Distant LOD simplifies dome profile, facade depth and tracery enough to change landmark appearance. Keep the detailed authored LOD at all distances; measure impact and verify in desktop scene. |
+| GFX-004 | P1 | Sé / MASP startup | Fixed; automated startup scenarios passed | First RAF can run before asynchronous authored GLBs replace procedural groups. Gate first render while the asset attempts settle; preserve a bounded failure fallback and prevent late replacement. |
+| GFX-005 | P1 | Sé LOD | Fixed and visually checked | Distant LOD simplifies dome profile, facade depth and tracery enough to change landmark appearance. Keep the detailed authored LOD at all distances; measure impact and verify in desktop scene. |
 | GFX-006 | P2 | Shadow snapping | Confirmed in code, visual impact unverified | The 2048 shadow map uses the earlier `160 / 1024` snapping step, equivalent to two current shadow texels. Inspect shadow motion before changing it. |
 
 User screenshots on 2026-11-01 document the procedural-to-authored swaps and two Sé representations. Their priority takes precedence over remaining audit items.
@@ -67,3 +67,9 @@ MASP in the same locked desktop camera: [day](../evidence/2026-11-01-landmark-au
 Startup validation: `tests/landmark-startup.browser.py` passed successful loads, failed loads, requests that never resolve, late responses, one landmark ready while the other waits, and the corresponding mixed late-response case. The first scene frame waits for the two attempts. On failure or a five-second timeout, procedural geometry is retained for that visit; a late result does not replace it. An unresolved underlying request can remain pending until page unload. The individual Sé and MASP browser tests passed; the full Node suite passed with zero failures after these changes.
 
 Hardware comparison on the same Apple M3 Max / Chrome desktop viewport: two short runs per state gave medians of 8.3–8.4 ms at stops 5, 11 and 13. Baseline p95 ranged from 8.4 to 16.7 ms; current p95 was 16.7–17.2 ms. These are refresh-paced `requestAnimationFrame` intervals over 120 samples, not GPU execution times; the variability and differing scene work prevent a reliable attribution or a claim of no regression. Further controlled profiling is open. The baseline was served from detached worktree `f125de9` on port 8001; the current worktree was served on port 8000.
+
+Landmark milestone: commit `6a95915`. The five-second fallback and pending-request limitation remain as described above; these checks do not close the rest of the audit.
+
+## Regional towers
+
+The reported towers are in the London return section, not the Glasgow region. Camera projection identified the prominent `block-623--38`, `block-672--46`, `block-693--52` and the immediately adjacent rear `block-595--80`. Their heights changed respectively from 86.4/57.6/57.6/79.2 m to 21.6/18/21.6/25.2 m, retaining footprints, plot IDs and RNG consumption. Three other rear towers remain at 50.4/72/61.2 m. Day/night views at matching stops and viewport: [12 day](../evidence/2026-11-01-landmark-audit/towers-12-day.jpg), [12 night](../evidence/2026-11-01-landmark-audit/towers-12-night.jpg), [13 day](../evidence/2026-11-01-landmark-audit/towers-13-day.jpg), [13 night](../evidence/2026-11-01-landmark-audit/towers-13-night.jpg). Moving vehicles and weather details were not frozen; camera pose was not independently logged in these captures. Targeted Node tests, `citywide.browser.py` and `diversity.browser.py` passed. Independent code review found no concrete issue.

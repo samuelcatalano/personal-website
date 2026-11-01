@@ -1,13 +1,42 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { stops } from '../js/content.js';
-import { buildBlocks } from '../js/world/blocks.js';
+import { buildBlocks, draw } from '../js/world/blocks.js';
 import { routePoints, stopIndex, glasgowSites, copan, regions } from '../js/world/layout.js';
 
 const pts = routePoints(stops.length);
 const curve = { getPointAt(u) { const f = u * (pts.length - 1), i = Math.min(Math.floor(f), pts.length - 2), t = f - i; return { x: pts[i].x + (pts[i + 1].x - pts[i].x) * t, z: pts[i].z + (pts[i + 1].z - pts[i].z) * t }; } };
 const plotsFor = () => { const plots = []; buildBlocks(() => {}, stops, pts, curve, [], (p) => plots.push(p)); return plots; };
 const overlaps = (p, b, e = 0) => p.x - p.width / 2 < b[1] + e && b[0] - e < p.x + p.width / 2 && p.z - p.depth / 2 < b[3] + e && b[2] - e < p.z + p.depth / 2;
+
+test('confirmed foreground offices keep their capped mass, descriptor and RNG stream', () => {
+  const fixtures = [
+    ['block-623--38', 24, 6],
+    ['block-672--46', 16, 5],
+    ['block-693--52', 16, 6],
+    ['block-595--80', 22, 7],
+    ['block-681--93', 20, 20],
+  ];
+  for (const [id, sourceFloors, expectedFloors] of fixtures) {
+    let descriptor, descriptorRngCalls = 0;
+    draw(() => {}, 0, 0, [12, 12, sourceFloors, 3.6, 'wall', 'trim', 1, 1], () => { descriptorRngCalls++; return 1; }, () => {}, false, false, p => { descriptor = p; }, id);
+    const boxes = [];
+    let geometryRngCalls = 0;
+    draw((...box) => boxes.push(box), 0, 0, [12, 12, sourceFloors, 3.6, 'wall', 'trim', 1, 1], () => { geometryRngCalls++; return 1; }, () => {}, false, false, undefined, id);
+
+    assert.equal(descriptor.id, id);
+    assert.equal(descriptor.kind, 'office');
+    assert.equal(descriptor.height, expectedFloors * 3.6, `${id} architecture height`);
+    assert.equal(boxes[0][3], 12);
+    assert.equal(boxes[0][4], expectedFloors * 3.6, `${id} mass height`);
+    assert.equal(boxes[0][5], 12);
+    assert.equal(boxes[1][1], expectedFloors * 3.6, `${id} roof elevation`);
+    assert.equal(descriptor.width, 12);
+    assert.equal(descriptor.depth, 12);
+    assert.equal(descriptorRngCalls, sourceFloors * 4, `${id} descriptor RNG draws`);
+    assert.equal(geometryRngCalls, sourceFloors * 4, `${id} geometry RNG draws`);
+  }
+});
 
 test('pilot plots replace three procedural buildings', () => {
   const plots = plotsFor();

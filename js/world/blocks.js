@@ -4,6 +4,7 @@ import { PALETTE as P } from './palette.js';
 import { PARKS } from './parks.js';
 import { walkPaths } from './crowd.js';
 const { concrete: C, cream: CR, white: W, stone: S, sandstone: SS, brick: B, glass: G, terracotta: TC, ochre: OC, mint: MN, salmon: SA, skyBlue: SB, offWhite: OW, concreteDark: CD, concreteMid: CM, redBrown: RB, londonStock: LS, teal: TL, bronze: BZ } = P, AWN = [P.red, P.slate, P.sand];
+const FOREGROUND_OFFICE_FLOORS = new Map([['block-623--38', 6], ['block-672--46', 5], ['block-693--52', 6], ['block-595--80', 7]]);
 // [unit w, depth, floors lo..hi, floor h, walls, trim, kind: 0 flats 1 glass 2 shops 3 terrace]. Walls are picked with the existing r() draw.
 const PRE = [
   [10, 10, 3, 4, 3, [CR, SS, S, TC, OC, OW], W, 0], [10, 10, 2, 2, 3.4, [CR, SS, W, MN, SA, SB], S, 2], [14, 12, 8, 15, 3, [C, SS, CR, CD, CM], W, 0],
@@ -15,7 +16,8 @@ const ROWS = [
   [0, -80, [0, 2, 3, 2], [4, 5, 6]], [0, -93, [3, 2, 3, 3], [6, 6, 5, 6]],
 ];
 export function draw(add, x, z, [w0, d, n, fh, wall, trim, kind, u], r, q, near, civic, onArchitecturePlot, id = 'block') {
-  const floors = civic ? Math.min(n, Math.floor(16 / fh)) : n;
+  const floorCap = civic ? Math.floor(16 / fh) : kind === 1 ? FOREGROUND_OFFICE_FLOORS.get(id) : undefined;
+  const floors = Math.min(n, floorCap ?? n);
   const w = w0 * u, h = floors * fh, zf = z + d / 2, nb = Math.round(w / 3.4), pw = w / nb, left = x - w / 2;
   const render = onArchitecturePlot ? () => {} : add;
   if (kind > 2) { // London terrace: one townhouse per unit; r() drawn as before so later placements stay put
