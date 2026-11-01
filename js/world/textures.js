@@ -17,7 +17,7 @@ function noiseTexture() {
   noise = new THREE.CanvasTexture(c);
   noise.wrapS = noise.wrapT = THREE.RepeatWrapping;
   noise.minFilter = THREE.LinearMipmapLinearFilter;
-  noise.anisotropy = 4;
+  noise.anisotropy = 16; // three clamps to the GPU maximum
   noise.colorSpace = THREE.SRGBColorSpace;
   return noise;
 }

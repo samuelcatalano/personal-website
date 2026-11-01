@@ -69,7 +69,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
   }),500);halo.material.blending=THREE.AdditiveBlending;halo.renderOrder=997;
   // Smooth broad maria and limb shading, always a full disc; no discrete crater dots.
   const moonM=sprite(disc(g=>{
-    const im=g.createImageData(256,256),maria=[[-.25,.22,.38,.28],[.18,.4,.3,.3],[.34,-.12,.31,.4],[-.31,-.35,.28,.22]];
+    const im=g.createImageData(256,256),maria=[[-.2,.16,.46,.3],[.1,.32,.3,.2],[.32,-.06,.3,.4],[-.12,-.42,.36,.14]];
     for(let y=0;y<256;y++)for(let x=0;x<256;x++){
       const px=(x-128)/100,py=(y-128)/100,r=Math.hypot(px,py),k=(y*256+x)*4;
       let shade=0;for(const [mx,my,rx,ry] of maria)shade+=Math.exp(-((px-mx)**2/rx**2+(py-my)**2/ry**2)*2)*.26;
