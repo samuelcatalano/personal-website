@@ -367,7 +367,7 @@ export const reskinBus = (vehicle, variant) => updateFadedVehicle(vehicle, () =>
 export async function upgradeBus(vehicle, variant, { hero = true, isDisposed, asset = 'bus' } = {}) {
   const isSaoPaulo = asset.startsWith('sao-paulo');
   await upgrade(vehicle, asset, BUS_VARIANTS[variant], hero, isDisposed, isSaoPaulo ? { markers: true, radius: 0.52 } : undefined);
-  if (!isSaoPaulo || isDisposed?.()) return;
+  if (!isSaoPaulo || isDisposed?.() || vehicle.userData.visualAsset !== asset) return;
   const glb = vehicle.getObjectByName(vehicle.name + '-glb'); if (!glb) return;
   const box = new THREE.Box3().setFromObject(glb.clone()), size = box.getSize(new THREE.Vector3()), lampY = 0.95, lampZ = size.z * 0.34;
   Object.assign(vehicle.userData, { length: size.x, dimensions: size.toArray(), front: box.max.x, beamY: lampY, beamAnchors: { front: [[box.max.x, lampY, -lampZ], [box.max.x, lampY, lampZ]], rear: [[box.min.x, lampY, -lampZ], [box.min.x, lampY, lampZ]] } });

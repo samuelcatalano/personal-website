@@ -96,6 +96,12 @@ print(js(r'''(async () => {
   const fallback = buildVehicle('glasgow', { hero: true }), fallbackMeshes = fallback.children.length;
   await assets.upgradeBus(fallback, 'sao-paulo', { hero: false, asset: 'missing' });
   check(fallback.children.length === fallbackMeshes && fallback.userData.length > 10 && fallback.userData.visualAsset === undefined, 'missing regional GLB leaves the procedural vehicle fallback intact');
+  const previous = buildVehicle('london', { hero: true });
+  await assets.upgradeBus(previous, 'london', { hero: false });
+  const oldVisual = previous.getObjectByName(previous.name + '-glb');
+  const oldMetadata = JSON.stringify({ length: previous.userData.length, dimensions: previous.userData.dimensions, front: previous.userData.front, beamY: previous.userData.beamY, beamAnchors: previous.userData.beamAnchors });
+  await assets.upgradeBus(previous, 'sao-paulo', { hero: false, asset: 'sao-paulo-missing' });
+  check(previous.userData.visualAsset === 'bus' && previous.getObjectByName(previous.name + '-glb') === oldVisual && JSON.stringify({ length: previous.userData.length, dimensions: previous.userData.dimensions, front: previous.userData.front, beamY: previous.userData.beamY, beamAnchors: previous.userData.beamAnchors }) === oldMetadata, 'failed São Paulo upgrade preserves the previous bus and its beam metadata');
   const swap = swapAt(stops), archIn = 0.7, archOut = 0.8, eps = 1e-8;
   const heroCandidates = { mini: buildVehicle('mini', { hero: true }), london: buildVehicle('london', { hero: true }), glasgow: buildVehicle('glasgow', { hero: true }) };
   const candidates = Object.values(heroCandidates), heroPose = createHeroGroup(candidates);
