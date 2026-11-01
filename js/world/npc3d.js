@@ -244,6 +244,22 @@ function hideSprites(scene) {
   }
 }
 
+function disposeNpcObjects(roots) {
+  const geometries = new Set(), materials = new Set(), textures = new Set();
+  for (const root of roots) root?.traverse((o) => {
+    if (o.geometry) geometries.add(o.geometry);
+    for (const m of [o.material].flat()) if (m) materials.add(m);
+  });
+  for (const m of materials) {
+    for (const value of Object.values(m)) if (value?.isTexture) textures.add(value);
+    m.dispose();
+  }
+  const images = new Set();
+  for (const texture of textures) { texture.dispose(); if (texture.source?.data?.close) images.add(texture.source.data); }
+  for (const image of images) image.close();
+  for (const geometry of geometries) geometry.dispose();
+}
+
 // The 3D walkers follow the sprite crowd's own simulation (people.js, paths from crowd.js): the same 1000 people on the same lanes,
 // loops and plazas at the same speeds; a pool of 3D bodies is given to the people nearest the camera (ahead weighs more than
 // behind), so the city stays as populated as before and nobody pops in or out near the camera. The sprites are not drawn.
@@ -251,10 +267,21 @@ const FEMALE = new Set(['NPC_F', 'NPC_G', 'NPC_H', 'NPC_K', 'NPC_L', 'NPC_P', 'N
 const CASTERS = 16; // walkers nearest the camera that cast sun shadows (desktop)
 const PAVE_TOP = 0.17; // pavement slab top (city.js: bottom 0.07, 0.10 thick); the crowd's lanes run on it
 export async function createNpc3d(scene, { curve, pts, stops, count = globalThis.innerWidth < 700 ? 28 : 56 }) { // ~7 draw calls per walker
-  hideSprites(scene);
   const crowd = scene.getObjectByName('crowd');
   const plan = crowdPlan(stops, pts, 1017); // people.js seed: index i here is sprite i there
-  const gltf = await new GLTFLoader().loadAsync(GLB);
+  let timer, expired = false;
+  const gltf = await Promise.race([
+    new GLTFLoader().loadAsync(GLB).then((asset) => {
+      if (expired) { disposeNpcObjects([asset.scene]); return null; }
+      return asset;
+    }).catch(() => null),
+    new Promise((resolve) => { timer = setTimeout(() => { expired = true; resolve(null); }, 5000); }),
+  ]);
+  clearTimeout(timer);
+  if (!gltf) return { update() {} };
+  const walkers = [];
+  let shadow;
+  try {
   const clips = gltf.animations.filter((a) => a.name in CLIP_SPEED);
   // hair and brow cards: alpha-tested, not blended (blending sorted the cards against each other and against the sky/glass,
   // so strands flickered and showed the head through the hair); opaque cards also write depth and take shadows correctly
@@ -268,10 +295,10 @@ export async function createNpc3d(scene, { curve, pts, stops, count = globalThis
   // the pool: as many of each kind as the crowd has (70% adults, half women; kids 30%: fewer here, our kids are 1.2-1.4 m)
   const kinds = { man: [], woman: [], kid: [] };
   VARIANTS.forEach((v, k) => kinds[kindOf(v)].push(k));
-  const walkers = [];
   for (let i = 0; i < count; i++) {
     const kind = i % 8 === 7 ? 'kid' : i % 2 ? 'woman' : 'man', list = kinds[kind], k = list[Math.floor(i / 2) % list.length], v = VARIANTS[k];
     const inst = shareSkeleton(SkeletonUtils.clone(templates[k]));
+    const w = { inst }; walkers.push(w);
     const mixer = new THREE.AnimationMixer(inst);
     const mine = clips.filter((c) => c.name.endsWith('_C') === (v.rig === 'child')), clip = mine[Math.floor(rng() * mine.length)];
     const action = mixer.clipAction(clip);
@@ -282,10 +309,10 @@ export async function createNpc3d(scene, { curve, pts, stops, count = globalThis
     inst.visible = false;
     inst.traverse((o) => { if (o.isMesh) { o.receiveShadow = true; o.frustumCulled = false; } });
     tintNpc(inst, mulberry32(1000 + i));
+    Object.assign(w, { mixer, action, kind, stride: CLIP_SPEED[clip.name] * sc, who: -1, x: 0, y: 0, z: 0, yaw: 0 });
     scene.add(inst);
-    walkers.push({ inst, mixer, action, kind, stride: CLIP_SPEED[clip.name] * sc, who: -1, x: 0, y: 0, z: 0, yaw: 0 });
   }
-  const shadow = new THREE.InstancedMesh(new THREE.CircleGeometry(0.3, 14).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#2a2622', transparent: true, opacity: 0.22, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 }), count);
+  shadow = new THREE.InstancedMesh(new THREE.CircleGeometry(0.3, 14).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#2a2622', transparent: true, opacity: 0.22, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 }), count);
   Object.assign(shadow, { name: 'npc3d-shadow', frustumCulled: false, renderOrder: 0 });
   scene.add(shadow);
   const dummy = new THREE.Object3D(), fwd = new THREE.Vector3();
@@ -320,6 +347,7 @@ export async function createNpc3d(scene, { curve, pts, stops, count = globalThis
     }
     for (const w of walkers) { const on = !!w.cast && w.who >= 0; if (on !== w.casting) { w.casting = on; w.inst.traverse((o) => { if (o.isMesh) o.castShadow = on; }); } w.cast = false; }
   };
+  hideSprites(scene);
   return {
     update(f) {
       const dt = REDUCED ? 0 : f.dt;
@@ -355,4 +383,10 @@ export async function createNpc3d(scene, { curve, pts, stops, count = globalThis
       scene.remove(shadow);
     },
   };
+  } catch {
+    for (const w of walkers) scene.remove(w.inst);
+    if (shadow) scene.remove(shadow);
+    disposeNpcObjects([gltf.scene, ...walkers.map((w) => w.inst), shadow]);
+    return { update() {} };
+  }
 }

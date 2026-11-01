@@ -77,3 +77,7 @@ The reported towers are in the London return section, not the Glasgow region. Ca
 ## Shadow snapping
 
 The light-space snapping increment now derives from the orthographic frustum and shadow map dimensions: 0.078125 m per axis for the current 160 m / 2048 map, replacing a two-texel step. Direction, map size and frustum are unchanged. Review confirmed the calculation; desktop static views at stops 0, 1 and 5 showed no obvious regression ([stop 1 comparison](../evidence/2026-11-01-landmark-audit/shadow-snap-stop1.jpg)). These stills do not prove reduced shimmer during movement.
+
+## NPC loading fallback — GFX-007 (P1)
+
+Previously, failed NPC GLB loading rejected the entire world startup. The loader now keeps the sprite crowd on failure, timeout or failed assembly; late GLBs are not adopted and their resources are released. The browser test passed success, failed fetch, timeout and late response; Node tests cover partial assembly cleanup. [Failure comparison](../evidence/2026-11-01-landmark-audit/npc-load-failure.jpg): forced NPC fetch failure before (no WebGL world) and after (3D city with sprite crowd), both desktop day. A load exceeding five seconds uses sprites for that visit; the underlying request itself is not canceled. Visual quality of the five NPC bases and walk animation still requires close, unobstructed review.
