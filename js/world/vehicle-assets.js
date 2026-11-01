@@ -286,6 +286,9 @@ function axleWheels(key, src, axles) {
   }
   return axleCache.set(key, res).get(key);
 }
+// The authored display UVs follow glTF (v = 0 at the top) but destMat's canvas texture keeps three's flipY default, so the board rendered upside down.
+// Flip v once on the shared geometry (all clones share it) and keep the single shared, night-glowing destMat material.
+const flipDisplayV = (g) => { if (g.userData.vFlipped) return; const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setY(i, 1 - uv.getY(i)); uv.needsUpdate = true; g.userData.vFlipped = true; };
 // Swap a procedural vehicle's body for a shared authored GLB (geometry shared, materials per palette). Procedural stays on failure.
 function upgrade(vehicle, key, v, hero, isDisposed = () => false, axles) {
   return loadVehicleAsset(key).then((src) => {
@@ -320,6 +323,7 @@ function upgrade(vehicle, key, v, hero, isDisposed = () => false, axles) {
       if (o.name === 'miniRearClear') return;
       const name = o.material.name.replace(/\.\d+$/, '');
       o.userData.role = name; // reskinBus maps it back to a livery
+      if (name === 'BusDisplay') flipDisplayV(o.geometry);
       if (paintMaterials.has(name)) o.material = fleetPaint(name, v.body);
       else if (FLEET_FINISH[name] ?? ROLES[name]) o.material = (FLEET_FINISH[name] ?? ROLES[name])(v);
       else if (!v.parked && /^(REAR_TAIL_LIGHT|M_2022_Honda_HR_V_eHEV_BrakeLightsBase)$/i.test(name)) o.material = rearLight(o.material);
