@@ -97,3 +97,5 @@ The 3D crowd could select walkers using stale sprite visibility after a large ca
 ## Failed bus model replacement — GFX-010 (P2)
 
 A failed São Paulo bus upgrade could apply its light metadata to the already loaded London model. The metadata update now requires the requested asset to be active. Desktop `vehicles.browser.py` passed, including the failed replacement scenario; an actual visible lighting defect from this path was not established. Commit: `c88e3d1`.
+
+A subsequent clean-worktree sample at `3599e49` is recorded in [hardware current](../evidence/2026-11-01-landmark-audit/hardware-current-3599e49.json). At stops 5/11/13, median frame intervals were 8.35/8.3/8.4 ms and p95 16.7/16.7/16.8 ms. Draws per world frame were approximately 1214/1143/1142 and submitted triangles 10.81/9.56/8.39 million. The comparable `6a95915` baseline, automated quality tier, asynchronous loading and limited samples constrain attribution; these measurements do not establish GPU execution time or guarantee absence of regression.
