@@ -128,7 +128,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   scene.add(world, eye, details, plane, shadow, bus, roadMarks);
   const units = [createAmbient(scene, { curve, pts, stops, reducedMotion }), createParked(scene, { curve, pts, stops, pilotCrossings })];
   const people = createPeople(scene, { curve, pts, stops, reducedMotion });
-  if (new URLSearchParams(location.search).has('npc3d')) units.push(await createNpc3d(scene, { curve, pts, stops })); // POC, opt-in
+  const npc3d = new URLSearchParams(location.search).get('npc3d'); // 3D pedestrians: on by default on desktop; ?npc3d=0 forces the sprites, ?npc3d=1 forces 3D
+  if (npc3d === null ? matchMedia('(min-width: 768px) and (pointer: fine)').matches : npc3d !== '0') units.push(await createNpc3d(scene, { curve, pts, stops }));
   const water = createWater({ x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z: RIVER_Z, width: 22, reducedMotion });
   scene.add(water.mesh);
   units.push(await createSigns(scene, { stops, curve }));
