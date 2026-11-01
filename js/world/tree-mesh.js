@@ -10,16 +10,18 @@ const hash = (x, y, z) => { const s = Math.sin(x * 127.1 + y * 311.7 + z * 74.7)
 // Grey values are shade only; hue comes from the instance tint.
 export function leafTexture() {
   const cv = document.createElement('canvas'); cv.width = 512; cv.height = 128;
-  const g = cv.getContext('2d'); g.fillStyle = '#d2d2d2'; g.fillRect(384, 0, 128, 128);
+  const g = cv.getContext('2d'); g.fillStyle = '#d2d2d2'; g.fillRect(392, 8, 112, 112); // solid tile keeps an 8 px transparent margin: mip/bilinear blending with the last clump tile otherwise leaves a hairline on every card edge
   for (let t = 0; t < 3; t++) {
-    const cx = t * 128 + 64, cy = 64; g.fillStyle = '#6f6f6f'; g.beginPath(); g.arc(cx, cy, 38, 0, Math.PI * 2); g.fill(); // dark core: no holes inside the clump
+    g.save(); g.beginPath(); g.rect(t * 128 + 3, 3, 122, 122); g.clip(); // leaves never spill into the neighbouring tile
+    const cx = t * 128 + 64, cy = 64; g.fillStyle = '#6f6f6f'; g.beginPath(); g.arc(cx, cy, 34, 0, Math.PI * 2); g.fill(); // dark core: no holes inside the clump
     for (let i = 0; i < 110; i++) { // back leaves first (darker, central), front leaves last (lighter, towards the rim): depth inside each card
-      const f = i / 110, ang = hash(i, t, 2) * Math.PI * 2, rad = (0.2 + 0.8 * Math.sqrt(hash(i, t, 3))) * (46 + 12 * f), a = hash(i, t, 6) * Math.PI * 2, l = 12 + hash(i, t, 8) * 7, k = 105 + f * 140 + hash(i, t, 9) * 30; // wide grey range: dark gaps between leaves, bright sunlit tips
+      const f = i / 110, ang = hash(i, t, 2) * Math.PI * 2, rad = (0.2 + 0.8 * Math.sqrt(hash(i, t, 3))) * (40 + 8 * f), a = hash(i, t, 6) * Math.PI * 2, l = 11 + hash(i, t, 8) * 6, k = 105 + f * 140 + hash(i, t, 9) * 30; // wide grey range: dark gaps between leaves, bright sunlit tips
       const w = hash(i, t, 5) - 0.5; // slight warm/cool shift per leaf
       g.save(); g.translate(cx + Math.cos(ang) * rad, cy + Math.sin(ang) * rad * 0.92); g.rotate(a);
       g.fillStyle = `rgb(${k + w * 18 | 0},${k | 0},${k - w * 22 | 0})`; g.beginPath(); g.moveTo(-l, 0); g.quadraticCurveTo(0, -l * 0.7, l, 0); g.quadraticCurveTo(0, l * 0.7, -l, 0); g.fill();
       g.strokeStyle = 'rgba(0,0,0,0.28)'; g.lineWidth = 1; g.stroke(); g.beginPath(); g.moveTo(-l * 0.8, 0); g.lineTo(l * 0.8, 0); g.strokeStyle = 'rgba(0,0,0,0.16)'; g.stroke(); g.restore(); // rim + midrib
     }
+    g.restore();
   }
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
 }
@@ -49,7 +51,8 @@ export function impostorTexture() {
       return { u, x: cx + a * Math.max(0, (conifer ? prof(u) : half) * 60 - br * 0.8), y: 52 - u * (50 - br) };
     }).sort((p, q) => q.y - p.y);
     for (const { u, x, y } of blobs) {
-      const lit = (u + 1) / 2, hi = 150 + lit * 85, lo = 95 + lit * 55, gr = g.createRadialGradient(x - 3, y - 4, 1, x, y, br + 4);
+      const lit = (u + 1) / 2, hi = 175 + lit * 80, lo = 115 + lit * 55, // ~20% lighter than the first pass: a flat card faces the camera, so the sun grazes it and the far trees read darker/olive next to the lit LOD1 crowns
+      gr = g.createRadialGradient(x - 3, y - 4, 1, x, y, br + 4);
       gr.addColorStop(0, `rgb(${hi},${hi},${hi})`); gr.addColorStop(0.6, `rgb(${(hi + lo) / 2 | 0},${(hi + lo) / 2 | 0},${(hi + lo) / 2 | 0})`); gr.addColorStop(1, `rgb(${lo | 0},${lo | 0},${lo | 0})`);
       g.fillStyle = gr; g.beginPath(); g.ellipse(x, y, br + 3, br + 1, 0, 0, Math.PI * 2); g.fill();
     }
@@ -127,6 +130,7 @@ export function trunkGeometry(type,lod=0) {
   };
   const R = { small: 0.1, medium: 0.12, large: 0.14 }[type], forks = { small: 3, medium: 4, large: 5 }[type], s = { small: 1, medium: 2, large: 3 }[type], rootCount=lod?3:5;
   const parts = [limb(R * 1.45, R * 1.05, [0, 0, 0], [0.03, 0.3, 0.02], lod?6:8), limb(R * 1.05, R * 0.8, [0.03, 0.3, 0.02], [-0.02, 0.58, 0.04], lod?6:8)];
+  for (const [c, r] of [[[0.03, 0.3, 0.02], R * 1.05], [[-0.02, 0.58, 0.04], R * 0.8]]) parts.push(new THREE.IcosahedronGeometry(r * 1.02, 1).translate(...c).toNonIndexed()); // knuckles close the wedge that open tubes leave at a bend
   for (let i = 0; i < rootCount; i++) { // surface roots
     const a = i * Math.PI * 2 / 5 + hash(i, s, 1) * 0.6, l = 0.32 + hash(i, s, 2) * 0.14;
     parts.push(limb(R * 0.75, R * 0.12, [Math.cos(a) * R * 0.6, 0.14, Math.sin(a) * R * 0.6], [Math.cos(a) * l, -0.01, Math.sin(a) * l], lod?3:5));
