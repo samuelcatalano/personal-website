@@ -113,7 +113,7 @@ export function canopyGeometry(type, lod = 0) {
     const my = (ctr[i * 3 + 1] - yc) * ys, hk = prof(my) / rad / rad2, m = new THREE.Vector3(ctr[i * 3] * hk, my, ctr[i * 3 + 2] * hk), cl = v.clone().sub(m).normalize(); // out of this vertex's clump
     v.normalize().multiplyScalar(0.25).addScaledVector(cl, 0.75); // clump + crown normal: the sun models each lump, the crown stays one volume
     v.set(v.x, v.y * 0.8 + 0.25, v.z).normalize().toArray(nrm, i * 3); // tilted up so tops catch the sky
-    const k = 1.08 * jit[i] * (0.55 + 0.48 * out ** 2) * (0.90 + 0.24 * THREE.MathUtils.clamp((y + 1) / 2, 0, 1)); // inner/underside shade, sunlit top
+    const k = (type === 'conifer' ? 1.3 : 1.08) * jit[i] * (0.55 + 0.48 * out ** 2) * (0.90 + 0.24 * THREE.MathUtils.clamp((y + 1) / 2, 0, 1)); // inner/underside shade, sunlit top; conifers (darkest tints) +20% so they keep some green at night instead of a black cut-out
     col.set([k * 0.95, k, k * (0.86 + 0.06 * (1 - out))], i * 3); // inner shade slightly cooler
   }
   g.setAttribute('normal', new THREE.BufferAttribute(nrm, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3));
