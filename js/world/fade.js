@@ -4,12 +4,13 @@
 const each = (m) => (Array.isArray(m) ? m : [m]);
 export function fadeVehicle(root, f) {
   const st = root.userData.fade ??= { on: false, list: [], clones: new Map() };
+  st.factor = f;
   const k = f * f * (3 - 2 * f); // ease-in-out
   if (f >= 1 || f <= 0) {
     if (st.on) { for (const e of st.list) { e.o.material = e.orig; if (e.shadow) e.o.castShadow = true; } st.on = false; }
     return;
   }
-  if (!st.on) { // cheap; also catches meshes the GLB upgrade swaps in later
+  if (!st.on) {
     st.list.length = 0;
     root.traverse((o) => {
       if (!o.material) return;
@@ -31,5 +32,10 @@ export function fadeVehicle(root, f) {
     const c = each(e.cl)[i]; c.opacity = m.opacity * k; c.visible = m.visible;
     if (m.uniforms?.uOp) { c.uniforms.uOp.value = m.uniforms.uOp.value * k; c.uniforms.uPx.value = m.uniforms.uPx.value; } // beams.js glow points (ShaderMaterial)
   });
+}
+export function updateFadedVehicle(root, update) {
+  const factor = root.userData.fade?.on ? root.userData.fade.factor : null;
+  if (factor !== null) fadeVehicle(root, 1);
+  try { update(); } finally { if (factor !== null) fadeVehicle(root, factor); }
 }
 export const disposeFade = (root) => { const st = root.userData.fade; if (st) for (const c of st.clones.values()) c.dispose(); };

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { updateFadedVehicle } from './fade.js';
 // Baked headlamp road light + tail glow, shared geometry/materials, children of each vehicle. x = forward.
 const tex = (w, h, draw) => {
   const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
@@ -55,8 +56,10 @@ export function addBeams(vehicle, front, y = 0.65, anchors) {
   gp.visible = !!vehicle.userData.fleetModel; p.add(gp); vehicle.add(p, tail);
 }
 export function refitBeams(vehicle) {
-  vehicle.children.filter((c) => c.name === 'beam').forEach((b) => { b.traverse((o) => { if (o.isPoints) o.geometry.dispose(); }); b.removeFromParent(); });
-  addBeams(vehicle, vehicle.userData.front, vehicle.userData.beamY, vehicle.userData.beamAnchors);
+  updateFadedVehicle(vehicle, () => {
+    vehicle.children.filter((c) => c.name === 'beam').forEach((b) => { b.traverse((o) => { if (o.isPoints) o.geometry.dispose(); }); b.removeFromParent(); });
+    addBeams(vehicle, vehicle.userData.front, vehicle.userData.beamY, vehicle.userData.beamAnchors);
+  });
   return vehicle.children.at(-1);
 }
 export function updateBeams(night) {

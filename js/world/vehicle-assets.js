@@ -5,6 +5,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { fixed, paint } from './vehicles.js';
 import { destMat } from './buses.js';
+import { updateFadedVehicle } from './fade.js';
 // Authored vehicle GLBs (tools/vehicles/*), loaded once and shared. Resolves null on failure so callers keep their procedural model.
 const URLS = { a330: 'a330.glb', bus: 'double-decker-bus.glb', 'sao-paulo': 'sao-paulo-bus.glb', mini: 'mini-cooper-2011.glb', cab: 'london-cab.glb' };
 // Authored source GLBs are the default for correct body normals; ?glb=processed opts into the simplified Meshopt assets.
@@ -39,9 +40,11 @@ export function loadVehicleAsset(type) {
 }
 // Swap a procedural vehicle's body for the GLB, keeping its behaviour children (nav lights, beams...) named in `keep`.
 export function adoptVisual(vehicle, visual, keep) {
-  for (const c of [...vehicle.children]) if (!keep.includes(c.name)) vehicle.remove(c);
-  visual.name = vehicle.name + '-glb';
-  vehicle.add(visual);
+  updateFadedVehicle(vehicle, () => {
+    for (const c of [...vehicle.children]) if (!keep.includes(c.name)) vehicle.remove(c);
+    visual.name = vehicle.name + '-glb';
+    vehicle.add(visual);
+  });
 }
 // One double-decker geometry; London/Glasgow differ only by palette. GLB material names are semantic and are replaced by the
 // project's shared materials (so night glow, cabin light and destination displays keep working through sky.update).
@@ -360,7 +363,7 @@ function upgrade(vehicle, key, v, hero, isDisposed = () => false, axles) {
   });
 }
 // Re-livery an upgraded bus in place (shared cached materials, no allocation): ambient buses wear the livery of the region they are driving in.
-export const reskinBus = (vehicle, variant) => vehicle.traverse((o) => { if (o.isMesh && o.userData.role) o.material = ROLES[o.userData.role]?.(BUS_VARIANTS[variant]) ?? o.material; });
+export const reskinBus = (vehicle, variant) => updateFadedVehicle(vehicle, () => vehicle.traverse((o) => { if (o.isMesh && o.userData.role) o.material = ROLES[o.userData.role]?.(BUS_VARIANTS[variant]) ?? o.material; }));
 export async function upgradeBus(vehicle, variant, { hero = true, isDisposed, asset = 'bus' } = {}) {
   const isSaoPaulo = asset.startsWith('sao-paulo');
   await upgrade(vehicle, asset, BUS_VARIANTS[variant], hero, isDisposed, isSaoPaulo ? { markers: true, radius: 0.52 } : undefined);
