@@ -18,7 +18,7 @@ M, F = "male1591", "female1605"
 PEOPLE = {  # skin, body proxy, clothes (suit + shoes), hair, brows, lashes, eye colour
     "NPC_A": dict(skin="young_caucasian_male", proxy=M, clothes=["male_casualsuit04", "shoes06"], hair="short02", brows="eyebrow001", eyes="brown"),
     "NPC_B": dict(skin="young_african_male", proxy=M, clothes=["male_casualsuit05", "shoes03"], hair="afro01", brows="eyebrow003", eyes="brown"),
-    "NPC_C": dict(skin="young_caucasian_male2", proxy=M, clothes=["male_casualsuit01", "shoes01"], hair="short01", brows="eyebrow002", eyes="green"),
+    "NPC_C": dict(skin="young_caucasian_male2", proxy=M, clothes=["male_casualsuit06", "shoes01"], hair="short01", brows="eyebrow002", eyes="green"),
     "NPC_D": dict(skin="middleage_african_male", proxy=M, clothes=["male_casualsuit03", "shoes04"], hair="short04", brows="eyebrow005", eyes="brownlight"),
     "NPC_E": dict(skin="young_caucasian_male", proxy=M, clothes=["male_casualsuit06", "shoes05"], hair="short03", brows="eyebrow004", eyes="blue"),
     "NPC_F": dict(skin="young_caucasian_female", proxy=F, clothes=["male_casualsuit02", "shoes05"], hair="long01", brows="eyebrow010", eyes="brown"),

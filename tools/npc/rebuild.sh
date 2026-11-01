@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Full NPC pack rebuild with the pip bpy module (see bl_run.py). Usage: NPC_OUT=<dir> NPC_UAL=<UAL1 glb/gltf> tools/npc/rebuild.sh [build]
+# Full NPC pack rebuild with the pip bpy module (see bl_run.py). Usage: NPC_OUT=<dir> NPC_UAL=<UAL1 glb/gltf> [MH_ASSETS=<makehuman_system_assets_cc0 dir>] tools/npc/rebuild.sh [build]
 #   no arg: walk retarget -> bodies (raw) -> female warp -> build;  "build": only npc_build.py (reuses npc_a_walk.blend and bodies)
 # Logs go to $NPC_OUT/*.log; the pack is $NPC_OUT/npc_pack.glb.
 set -euo pipefail
@@ -14,5 +14,9 @@ if [ "${1:-}" != build ]; then
   RAW="$NPC_OUT/raw" run warp.py -- F G H K L > "$NPC_OUT/warp.log" 2>&1 || { tail -5 "$NPC_OUT/warp.log"; exit 1; }
 fi
 run npc_build.py > "$NPC_OUT/build.log" 2>&1 || { tail -8 "$NPC_OUT/build.log"; exit 1; }
+if [ -n "${MH_ASSETS:-}" ]; then  # textured pack (MakeHuman CC0 assets): $NPC_OUT/npc_pack_mh.glb is the one the site ships
+  run npc_mh_build.py > "$NPC_OUT/mh.log" 2>&1 || { tail -8 "$NPC_OUT/mh.log"; exit 1; }
+  ls -l "$NPC_OUT/npc_pack_mh.glb"
+fi
 grep -E "KNEE SUM" "$NPC_OUT/walk.log" 2>/dev/null || true
 ls -l "$NPC_OUT/npc_pack.glb"

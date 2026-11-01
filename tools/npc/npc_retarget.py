@@ -25,7 +25,8 @@ GAIT = dict(hip_f=0.75, hip_b=0.50,  # thigh swing scale, forward / backward of 
             elbow_base=4.0, elbow_k=0.45, elbow_fw=6.0,  # elbow flexion = base + k * source bend + fw * hand-forward weight
             abd_k=0.30, abd_min=3.0,  # upper arm abduction = max(min, k * source abduction)
             swing_k=1.0, swing_c=-8.0,  # arm swing amplitude scale about the centre angle (deg, + forward)
-            ank_air=8.0, ank_k=0.25, ank_dorsi=-12.0, ank_h0=0.015, ank_h1=0.035)  # swing foot: plantarflexion soft limit (deg) and its fade-in over the ball height (m)  # arm swing amplitude scale about the centre angle (deg, + forward)
+            hip_add=4.0, ank_air=8.0,  # hip_add: leg adduction at the hip (deg)
+             ank_k=0.25, ank_dorsi=-12.0, ank_h0=0.015, ank_h1=0.035)  # swing foot: plantarflexion soft limit (deg) and its fade-in over the ball height (m)  # arm swing amplitude scale about the centre angle (deg, + forward)
 
 
 def retarget_walk(src, dst, frames, action_name, ground_ik=True, **params):
@@ -110,6 +111,9 @@ def retarget_walk(src, dst, frames, action_name, ground_ik=True, **params):
                 v = rot @ Y
                 al = math.atan2(v.y * fdst, -v.z)
                 rot = rx(fdst * (al * (G["hip_f"] if al > 0 else G["hip_b"]) - al)) @ rot
+                # narrow the step: the A-pose leaves the ankles ~24 cm apart (natural step width 5-13 cm), which with the
+                # thighs converging to the knees read as knock-knees; adduct the whole leg at the hip so the foot lands nearer the midline
+                rot = Quaternion((0, 1, 0), D(G["hip_add"]) * (1.0 if name.endswith("_l") else -1.0)) @ rot
             if name in ARM:  # rests differ (UAL T-pose, MPFB A-pose): aim the bone along the source bone, not the source rotation delta
                 kid = ARM[name]
                 sdir = (sw @ src.pose.bones[SRC_OF.get(kid, kid)].matrix).to_translation() - s_world.to_translation()
