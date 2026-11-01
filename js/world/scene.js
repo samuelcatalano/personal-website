@@ -46,6 +46,7 @@ import { createUnderpass } from './underpass.js';
 import { createUnderpassTraffic } from './underpass-traffic.js';
 import { upgradeWellington } from './wellington-asset.js';
 const BUS_LANE = 1.75, SCROLL_SMOOTH = 0.18, ARC = 10;
+const LANDMARK_STARTUP_TIMEOUT = 5000; // ponytail: slower landmark GLBs use procedural geometry for this visit
 export const createHeroGroup = (candidates) => new THREE.Group().add(...candidates);
 export const applyHeroPose = (group, position, lateral, heading) => {
   group.position.copy(position).add(lateral);
@@ -60,8 +61,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   scene.background = new THREE.Color(0xa8d0f2);
   scene.fog = new THREE.Fog(0xa8d0f2, 240, 900);
   const camera = new THREE.PerspectiveCamera(40, 1, 1, 1400);
-  if (new URLSearchParams(location.search).has('qa')) globalThis.__qaCamera = camera; // QA captures (tools/qa/route-capture.mjs) record the camera
-  if (new URLSearchParams(location.search).has("qa")) globalThis.__qaRenderer = renderer;
+  const qa = new URLSearchParams(location.search).has('qa');
+  if (qa) { globalThis.__qaCamera = camera; globalThis.__qaRenderer = renderer; globalThis.__qaWorldFrames = 0; } // QA captures (tools/qa/route-capture.mjs) record the camera
   const hemi = new THREE.HemisphereLight(0xb9d4ea, 0x8d8574, 1);
   const sun = new THREE.DirectionalLight(0xfff0d0, 2.4);
   sun.castShadow = true;
@@ -133,23 +134,25 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const water = createWater({ x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z: RIVER_Z, width: 22, reducedMotion });
   scene.add(water.mesh);
   units.push(await createSigns(scene, { stops, curve }));
-  let disposed = false, raf = 0;
+  let disposed = false, raf = 0, landmarksReady = false, startupLandmarksCancelled = false;
   initVehicleEnv(renderer); upgradeMini(mini, { isDisposed: () => disposed }).then(() => refitBeams(mini)); upgradeBus(londonBus, 'london', { isDisposed: () => disposed }).then(() => refitBeams(londonBus)); upgradeBus(glasgowBus, 'glasgow', { isDisposed: () => disposed }).then(() => refitBeams(glasgowBus)); // authored shared London/Glasgow bus GLB
   loadVehicleAsset('a330').then((glb) => { if (glb && !disposed) adoptVisual(plane, glb, ['nav', 'strobe']); }); // authored A330 (tools/vehicles/a330); procedural stays on failure
-  const wake = () => { if (!disposed && !raf && !document.hidden) raf = requestAnimationFrame(frame); };
+  const wake = () => { if (landmarksReady && !disposed && !raf && !document.hidden) raf = requestAnimationFrame(frame); };
   initGlbLoader(renderer);
+  const startupLandmarks = [];
   let bigBenLod = null; // authored Big Ben LOD0/LOD1 (tools/landmarks/bigben); the procedural group stays hidden underneath as fallback
   const bigben = details.getObjectByName('bigben-geometry');
   if (bigben && !bigBenForced()) upgradeBigBen(bigben, { isDisposed: () => disposed, track: (m) => sky.track(m), env: landmarkEnv }).then((l) => { bigBenLod = l; wake(); });
   let seLod = null; // authored Catedral da Se (tools/landmarks/se), same fallback rule
   const se = details.getObjectByName('se-geometry');
-  if (se && !seForced()) upgradeSe(se, { isDisposed: () => disposed, track: (m) => sky.track(m), env: landmarkEnv }).then((l) => { seLod = l; wake(); });
+  if (se && !seForced()) startupLandmarks.push(upgradeSe(se, { isDisposed: () => disposed || startupLandmarksCancelled, track: (m) => sky.track(m), env: landmarkEnv }).then((l) => { seLod = l; wake(); }));
   let towerBridgeLod = null; // authored Tower Bridge LOD0/LOD1 (tools/landmarks/towerbridge); procedural group stays hidden underneath as fallback
   const towerbridge = details.getObjectByName('towerbridge-geometry');
   if (towerbridge && !towerBridgeForced()) upgradeTowerBridge(towerbridge, { isDisposed: () => disposed, track: (m) => sky.track(m), env: landmarkEnv }).then((l) => { towerBridgeLod = l; wake(); });
-  let maspLod = null; // authored MASP LOD0/LOD1 (tools/landmarks/masp); procedural group stays hidden underneath as fallback
+  let maspLod = null; // authored MASP LOD0 (tools/landmarks/masp); procedural group stays hidden underneath as fallback
   const masp = details.getObjectByName('masp-geometry');
-  if (masp && !maspForced()) upgradeMasp(masp, { isDisposed: () => disposed, track: (m) => sky.track(m), env: landmarkEnv }).then((l) => { maspLod = l; wake(); });
+  if (masp && !maspForced()) startupLandmarks.push(upgradeMasp(masp, { isDisposed: () => disposed || startupLandmarksCancelled, track: (m) => sky.track(m), env: landmarkEnv }).then((l) => { maspLod = l; wake(); }));
+  if (new URLSearchParams(location.search).has('qa')) globalThis.__qaLandmarks = { se, masp, startupLandmarks };
   const wellington = details.getObjectByName('wellington-geometry');
   if (wellington) upgradeWellington(wellington, () => disposed).then(wake);
   const figure = buildFigure(wake);
@@ -302,11 +305,19 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       if (fpsT >= 2) { post.setTier(nextTier(post.tier, [fpsN / fpsT])); fpsT = fpsN = 0; }
     }
     post.render(dt);
+    if (qa) globalThis.__qaWorldFrames++;
     if (!reducedMotion) wake();
   }
   const visibility = () => { last = 0; wake(); };
   addEventListener('resize', resize);
   document.addEventListener('visibilitychange', visibility);
+  let startupTimeout;
+  await Promise.race([
+    Promise.allSettled(startupLandmarks),
+    new Promise(resolve => { startupTimeout = setTimeout(() => { startupLandmarksCancelled = true; resolve(); }, LANDMARK_STARTUP_TIMEOUT); }),
+  ]);
+  clearTimeout(startupTimeout);
+  landmarksReady = true;
   resize();
   return {
     setProgress(p) { target = p; wake(); },

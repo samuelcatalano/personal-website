@@ -1,5 +1,5 @@
 # browser-harness < tests/se-asset.browser.py (local preview; use a fresh cache-disabled tab; URL env overrides http://localhost:8000/)
-# Authored Catedral da Se (tools/landmarks/se): LOD0/LOD1 GLBs (Meshopt + KTX2), one atlas material, envelope, night glow flag, LOD swap by distance, procedural fallback.
+# Authored Catedral da Se (tools/landmarks/se): runtime loads only LOD0 (Meshopt + KTX2), one atlas material, envelope, night glow flag, fixed appearance across distances, procedural fallback.
 import os, time
 URL = os.environ.get('URL', 'http://localhost:8000/')
 t = new_tab('about:blank'); activate_tab(t if isinstance(t, str) else t.get('targetId', t))
@@ -11,7 +11,7 @@ print(js(r'''(async () => {
   const check = (v, m) => { if (!v) throw Error(m); };
   const { initGlbLoader } = await import('/js/world/glb-loader.js');
   const r = new THREE.WebGLRenderer(); initGlbLoader(r); // KTX2 needs a renderer
-  const lods = await loadSeAsset(); check(lods && lods.length === 2, 'both LODs load (Meshopt + KTX2)');
+  const lods = await loadSeAsset(); check(lods && lods.length === 1, 'only LOD0 loads (Meshopt + KTX2)');
   const out = [];
   for (const [i, lod] of lods.entries()) {
     const meshes = []; lod.traverse((o) => { if (o.isMesh) meshes.push(o); });
@@ -28,7 +28,7 @@ print(js(r'''(async () => {
   }
   return JSON.stringify({ pass: true, out });
 })()'''))
-# integration: procedural group hidden under the GLB, LOD swap with hysteresis, fallback on a failed load, ?landmarks=procedural
+# integration: procedural group hidden under LOD0, LOD0 stays visible at every distance, fallback on a failed load, ?landmarks=procedural
 print(js(r"""(async () => {
   const THREE = await import('three');
   const check = (v, m) => { if (!v) throw Error(m); };
@@ -38,12 +38,12 @@ print(js(r"""(async () => {
   const lod = await mod.upgradeSe(group, { isDisposed: () => false, track: (m) => tracked.push(m), env: { register: (m, o) => regs.push([m, o]) } });
   check(lod, 'upgrade returns an updater');
   check(proc.every((c) => !c.visible), 'procedural meshes hidden when the GLB is active');
-  const glb = group.children.filter((c) => c.name.startsWith('se-glb-lod')); check(glb.length === 2, 'two LOD roots added');
-  check(tracked.length === 2 && regs.length === 2 && regs.every(([, o]) => o.metal === 1), 'glow materials tracked (sky) and registered with the landmark env');
+  const glb = group.children.filter((c) => c.name.startsWith('se-glb-lod')); check(glb.length === 1, 'one LOD root added');
+  check(tracked.length === 1 && regs.length === 1 && regs.every(([, o]) => o.metal === 1), 'glow material tracked (sky) and registered with the landmark env');
   const at = (x, y, z) => { lod.update(new THREE.Vector3(x, y, z)); return glb.map((g) => g.visible ? 1 : 0).join(''); };
   // box front edge is z=11 (local), so camera z = 11 + d
   const L = [at(100, 0, 11 + 100), at(100, 0, 11 + 155), at(100, 0, 11 + 200), at(100, 0, 11 + 155), at(100, 0, 11 + 100)];
-  check(L.join() === '10,10,01,01,10', 'LOD0 near, hysteresis band keeps the previous level, LOD1 far: ' + L.join());
+  check(L.join() === '1,1,1,1,1', 'LOD0 stays visible at every distance: ' + L.join());
   // failed load -> null and the procedural group stays visible
   const realFetch = window.fetch; window.fetch = () => Promise.reject(new Error('offline'));
   let kept;
