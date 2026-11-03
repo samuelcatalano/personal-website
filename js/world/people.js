@@ -2,12 +2,50 @@ import * as THREE from 'three';
 import { crowdPlan, chooseVariants } from './crowd.js';
 import * as SP from './sprites.js';
 import { estaiadaRoute } from './landmark-geometry.js';
-import { LANDMARKS, RIVER_Z, stopIndex } from './layout.js';
+import { LANDMARKS, RIVER_Z, stopIndex, underpassFrames } from './layout.js';
+import { HX as UNDERPASS_HALF_LENGTH, ARCH_HALF_WIDTH } from './underpass.js';
 const { FRAMES, COLS, FB_COLS, ROWS, strideOf } = SP;
 // Walking-emoji pedestrians: canvas-drawn sprites (side, front and back views) in two atlas textures, ONE InstancedMesh of cylindrical billboards (+ one for soft shadows). Paths come from crowd.js (pure data).
 const NEAR = 140, INSET = 0.6, FEET = 0.02, SEED = 1017, VARIANTS = 28, STAND = 2, LOCK = 0.6; // sprite looks; the standing frame (legs passing)
+const PORTAL_MARGIN = 0.2, PORTAL_BLEND = 6, FRAME_MARGIN = 2; // keep the whole walker inside the masonry opening
+const LOOP_TURN_RADIUS = 0.75; // soften rectangular plaza turns without changing their footprint
 // The sharp atlas (about 80 MB of textures) only where the screen and GPU can afford it; phones get the 1x one (about 40 MB).
 const sharp = () => { try { const gl = document.createElement('canvas').getContext('webgl2'); return !matchMedia('(max-width: 767px)').matches && (navigator.deviceMemory ?? 8) >= 4 && !!gl && gl.getParameter(gl.MAX_TEXTURE_SIZE) >= 4096; } catch { return false; } };
+
+function loopPerimeter(p) {
+  const i = p.inset ?? INSET, w = p.rect.x1 - p.rect.x0 - 2 * i, h = p.rect.z1 - p.rect.z0 - 2 * i;
+  const r = Math.max(0, Math.min(LOOP_TURN_RADIUS, w / 2, h / 2));
+  return 2 * (w + h) - 8 * r + 2 * Math.PI * r;
+}
+
+function loopAt(p, s) {
+  const { x0, x1, z0, z1 } = p.rect, i = p.inset ?? INSET, a = x0 + i, b = x1 - i, c = z0 + i, d = z1 - i;
+  const w = b - a, h = d - c, r = Math.max(0, Math.min(LOOP_TURN_RADIUS, w / 2, h / 2));
+  const straightX = Math.max(0, w - 2 * r), straightZ = Math.max(0, h - 2 * r), arc = r * Math.PI / 2;
+  const length = 2 * (straightX + straightZ) + 4 * arc;
+  if (!(length > 0)) return { x: a, z: c, fx: p.dir ?? 1, fz: 0 };
+  let t = ((s % length) + length) % length, x, z, fx, fz;
+  if (t < straightX) { x = a + r + t; z = c; fx = 1; fz = 0; }
+  else if ((t -= straightX) < arc) {
+    const angle = -Math.PI / 2 + t / r;
+    x = b - r + r * Math.cos(angle); z = c + r + r * Math.sin(angle); fx = -Math.sin(angle); fz = Math.cos(angle);
+  } else if ((t -= arc) < straightZ) { x = b; z = c + r + t; fx = 0; fz = 1; }
+  else if ((t -= straightZ) < arc) {
+    const angle = t / r;
+    x = b - r + r * Math.cos(angle); z = d - r + r * Math.sin(angle); fx = -Math.sin(angle); fz = Math.cos(angle);
+  } else if ((t -= arc) < straightX) { x = b - r - t; z = d; fx = -1; fz = 0; }
+  else if ((t -= straightX) < arc) {
+    const angle = Math.PI / 2 + t / r;
+    x = a + r + r * Math.cos(angle); z = d - r + r * Math.sin(angle); fx = -Math.sin(angle); fz = Math.cos(angle);
+  } else if ((t -= arc) < straightZ) { x = a; z = d - r - t; fx = 0; fz = -1; }
+  else {
+    const angle = Math.PI + (t - straightZ) / r;
+    x = a + r + r * Math.cos(angle); z = c + r + r * Math.sin(angle); fx = -Math.sin(angle); fz = Math.cos(angle);
+  }
+  const dir = p.dir ?? 1;
+  return { x, z, fx: fx * dir, fz: fz * dir };
+}
+
 export function createPeople(scene, { curve, pts, stops, reducedMotion = false, hd = sharp() }) {
   SP.setScale(hd ? 1.4 : 1);
   const { CELL_W, CELL_H, GROUND, S, FB_W, SIDE_W, FB_TEX_W, TEX_H } = SP;
@@ -16,6 +54,7 @@ export function createPeople(scene, { curve, pts, stops, reducedMotion = false, 
   const fine = Array.from({ length: 4001 }, (_, k) => curve.getPoint(k / 4000)), cum = [0];
   for (let k = 1; k < fine.length; k++) cum.push(cum[k - 1] + fine[k].distanceTo(fine[k - 1]));
   const L = cum[cum.length - 1], M = Math.floor(L), PX = [], PZ = [];
+  const passages = underpassFrames(curve, stops);
   for (let m = 0, k = 0; m <= M + 1; m++) {
     while (k < fine.length - 2 && cum[k + 1] < m) k++;
     const f = (m - cum[k]) / (cum[k + 1] - cum[k] || 1);
@@ -26,25 +65,27 @@ export function createPeople(scene, { curve, pts, stops, reducedMotion = false, 
   let mj = 0; for (let m = 1; m <= M; m++) if (dj(m) < dj(mj)) mj = m;
   const MOUTH = 5.5, G0 = mj + MOUTH, SPAN = L - 2 * MOUTH; // walkable run: from the mouth's far edge all the way round to its near edge
   const out = { x: 0, z: 0, fx: 0, fz: 1 };
-  const lane = (p, s) => { // same side convention as furnitureSpots/city.js: normal = (-t.z, t.x), offset > 0 on that side
+  const lane = (p, s, look) => { // same side convention as furnitureSpots/city.js: normal = (-t.z, t.x), offset > 0 on that side
     let turn = 1;
     if (p.offset < 0) { const u = ((s % (2 * SPAN)) + 2 * SPAN) % (2 * SPAN); turn = u < SPAN ? 1 : -1; s = G0 + (u < SPAN ? u : 2 * SPAN - u); } // ping-pong between the mouth edges
     const w = ((s % L) + L) % L, i = Math.min(Math.floor(w), M - 1), f = w - i;
     let tx = PX[i + 1] - PX[i], tz = PZ[i + 1] - PZ[i]; const l = Math.hypot(tx, tz) || 1; tx /= l; tz /= l;
-    out.x = PX[i] + (PX[i + 1] - PX[i]) * f - tz * p.offset; out.z = PZ[i] + (PZ[i + 1] - PZ[i]) * f + tx * p.offset;
-    out.fx = tx * p.dir * turn; out.fz = tz * p.dir * turn;
+    const x = PX[i] + (PX[i + 1] - PX[i]) * f, z = PZ[i] + (PZ[i + 1] - PZ[i]) * f;
+    let offset = p.offset;
+    let slope = 0;
+    const half = CELL_W / S * look.height / 2, safe = Math.sign(offset) * (ARCH_HALF_WIDTH - half - PORTAL_MARGIN - 0.05), core = UNDERPASS_HALF_LENGTH + half + PORTAL_MARGIN + FRAME_MARGIN;
+    for (const a of passages) {
+      const along = (x - a.x) * a.tx + (z - a.z) * a.tz, t = Math.max(0, Math.min(1, (core + PORTAL_BLEND - Math.abs(along)) / PORTAL_BLEND)), blend = t * t * (3 - 2 * t), previous = offset;
+      offset += (safe - previous) * blend;
+      slope = slope * (1 - blend) - (safe - previous) * Math.sign(along) * 6 * t * (1 - t) * (tx * a.tx + tz * a.tz) / PORTAL_BLEND;
+    }
+    out.x = x - tz * offset; out.z = z + tx * offset;
+    const fx = tx - tz * slope, fz = tz + tx * slope, fl = Math.hypot(fx, fz) || 1;
+    out.fx = fx / fl * p.dir * turn; out.fz = fz / fl * p.dir * turn;
   };
-  const loop = (p, s) => {
-    const { x0, x1, z0, z1 } = p.rect, i0 = p.inset ?? INSET, a = x0 + i0, b = x1 - i0, c = z0 + i0, d = z1 - i0, w = b - a, h = d - c;
-    let t = ((s % (2 * (w + h))) + 2 * (w + h)) % (2 * (w + h)), fx = 1, fz = 0;
-    if (t < w) { out.x = a + t; out.z = c; }
-    else if ((t -= w) < h) { out.x = b; out.z = c + t; fx = 0; fz = 1; }
-    else if ((t -= h) < w) { out.x = b - t; out.z = d; fx = -1; }
-    else { t -= w; out.x = a; out.z = d - t; fx = 0; fz = -1; }
-    out.fx = fx * p.dir; out.fz = fz * p.dir;
-  };
-  const place = (p, s) => (p.type === 'lane' ? lane : loop)(p, s);
-  const perim = (p) => (p.type === 'lane' ? L : 2 * (p.rect.x1 - p.rect.x0 + p.rect.z1 - p.rect.z0 - 4 * (p.inset ?? INSET)));
+  const loop = (p, s) => Object.assign(out, loopAt(p, s));
+  const place = (p, s, look) => p.type === 'lane' ? lane(p, s, look) : loop(p, s);
+  const perim = (p) => (p.type === 'lane' ? L : loopPerimeter(p));
 
   // Atlas: VARIANTS looks x FRAMES walk frames; every person maps to its nearest look.
   const { variants, of } = chooseVariants(plan.map((q) => q.look), VARIANTS);
@@ -92,7 +133,7 @@ gl_Position = projectionMatrix * mvPosition;`);
   const vw = new Uint8Array(N); // current view per person, with hysteresis so sector changes do not flicker
   const face = (i, frame, view = 0) => { I[4 * i] = (view ? of[i] * 2 + view - 1 : of[i]) * FRAMES + frame; I[4 * i + 1] = out.fx; I[4 * i + 2] = out.fz; I[4 * i + 3] = view; };
   const flag = () => { crowd.instanceMatrix.needsUpdate = true; info.needsUpdate = true; };
-  plan.forEach((p, i) => { place(p.path, st[i].s); show(i, true); face(i, STAND); });
+  plan.forEach((p, i) => { place(p.path, st[i].s, p.look); show(i, true); face(i, STAND); });
   flag();
   return {
     count: N, meshes: [crowd, shadow], ready, get atlasMs() { return atlasMs; },
@@ -100,7 +141,7 @@ gl_Position = projectionMatrix * mvPosition;`);
       if (reducedMotion || dt < 0) dt = 0;
       plan.forEach(({ look: k, path }, i) => {
         const s = st[i]; s.s += path.dir * k.speed * dt; s.d += k.speed * dt;
-        place(path, s.s);
+        place(path, s.s, k);
         const near = Math.hypot(out.x - cam.x, out.z - cam.z) <= NEAR;
         if (!near) { show(i, false); return; }
         if (dt > 0) { const ph = s.d / cycle[i] * FRAMES, fi = Math.floor(ph); s.frame = ((fi % FRAMES) + FRAMES) % FRAMES; s.lock = -(ph - fi - 0.5) * (cycle[i] / FRAMES) * LOCK; }

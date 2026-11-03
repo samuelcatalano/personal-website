@@ -15,13 +15,27 @@ export function makeLook(r) {
     : kind === 'woman' ? (x < 0.6 ? 'long' : x < 0.8 ? 'bun' : 'ponytail')
     : kind === 'boy' ? 'short' : (x < 0.6 ? 'long' : 'ponytail');
   const hair = adult && r() < 0.12 ? GREY : pick(r, HAIR); // always draws the same rolls
+  const speed = adult ? between(r, 0.72, 0.82) : between(r, 0.56, 0.64); // shared by sprites and scaled 3D walkers
   return {
     kind, height, skin: pick(r, SKIN), hair, hairStyle, top: pick(r, TOPS), bottom: pick(r, BOTTOMS), shoes: pick(r, SHOES),
-    shoulder: height * (female ? 0.24 : adult ? 0.26 : 0.24), speed: adult ? between(r, 1.1, 1.5) : between(r, 0.9, 1.3),
+    shoulder: height * (female ? 0.24 : adult ? 0.26 : 0.24), speed,
   };
 }
 // Lane offsets sit on the pavement (ROAD.padIn..padOut), inside the sign posts at ROAD.furniture; inner and outer lanes walk opposite ways.
 const IN = ROAD.padIn + 0.4, OUT = ROAD.padIn + 1.05, LANES = [[IN, 1], [OUT, -1], [-IN, -1], [-OUT, 1]];
+const LONDON_HOTSPOTS = new Set(['thames', 'thames-front']);
+const THAMES_TRACKS = Object.freeze({
+  '1:adult': Object.freeze({ inset: 0.65, speed: 0.78 }),
+  '1:child': Object.freeze({ inset: 1.17, speed: 0.6 }),
+  '-1:adult': Object.freeze({ inset: 1.69, speed: 0.76 }),
+  '-1:child': Object.freeze({ inset: 2.21, speed: 0.62 }),
+});
+const THAMES_FRONT_TRACK_INSET = Object.freeze({ 1: 0.05, '-1': 0.57 });
+const THAMES_FRONT_SPEED = 0.62;
+const DENSE_WANDER = new Set(['glasgow-cross', 'glasgow-axis', 'glasgow-west', 'glasgow-east', 'glasgow-front', 'masp-west', 'masp-east', 'masp-front']);
+const crowdWeight = (path) => LONDON_HOTSPOTS.has(path.name) ? 4 : DENSE_WANDER.has(path.name) ? 3 : 1;
+const crowdKind = (look) => /boy|girl/.test(look.kind) ? 'child' : 'adult';
+const thamesTrack = (look, dir) => THAMES_TRACKS[`${dir}:${crowdKind(look)}`];
 // Plaza rectangles (world x/z), checked free of boxes with a three stub; z is relative to the river line the landmarks hang on.
 export function walkPaths(stops, pts) {
   const X = (k) => pts[stopIndex(stops, L[k])].x, cp = copan(stops, pts), wx = pts[pts.length - 1].x;
@@ -52,31 +66,63 @@ export function walkPaths(stops, pts) {
   ];
 }
 export function crowdPlan(stops, pts, seed, count = 1000) {
-  const r = rng(seed), paths = walkPaths(stops, pts), lanes = paths.filter((p) => p.type === 'lane'), loops = paths.filter((p) => p.type === 'loop'), wander = paths.filter((p) => p.type === 'wander');
+  const r = rng(seed), paths = walkPaths(stops, pts), lanes = paths.filter((p) => p.type === 'lane'), loops = paths.filter((p) => p.type === 'loop');
   const baseCount = Math.min(count, 600);
   const keys = [], plan = Array.from({ length: baseCount }, (_, i) => {
     const look = makeLook(r), onLane = i % 10 < 7;
     let path, key;
     if (onLane) { const l = pick(r, lanes); path = { ...l, offset: l.offset + between(r, -0.3, 0.3) }; key = `lane${l.offset}`; } // spread across the pavement, not single file
-    else { const l = pick(r, loops), dir = r() < 0.5 ? 1 : -1; path = { ...l, dir, inset: between(r, 0.6, 1.6) }; key = `${l.name}`; } // loops get a per-person direction and inset
-    keys.push(key + path.dir);
+    else {
+      const l = pick(r, loops), dir = r() < 0.5 ? 1 : -1, inset = between(r, 0.6, 1.6);
+      const track = l.name === 'thames' ? thamesTrack(look, dir) : null;
+      if (track) look.speed = track.speed;
+      path = { ...l, dir, inset: track?.inset ?? inset };
+      key = `${l.name}`;
+    } // loops get a per-person direction and inset; Thames uses one safe track per direction and type
+    keys.push(key === 'thames' ? `${key}${path.dir}:${crowdKind(look)}` : key + path.dir);
     return { look, path, s0: r() };
   });
   const groups = new Map(); // stratify s0 inside each lane / loop so people are evenly spread along it, not clumped
   keys.forEach((k, i) => groups.set(k, [...(groups.get(k) || []), i]));
   for (const ids of groups.values()) ids.forEach((i, j) => { plan[i].s0 = (j + 0.15 + 0.7 * plan[i].s0) / ids.length; });
-  const extraKeys = [];
+  const extraPaths = paths.filter((p) => p.type === 'wander' || LONDON_HOTSPOTS.has(p.name)).flatMap((p) => Array(crowdWeight(p)).fill(p)), extraGroups = new Map(), denseGroups = new Map(); // priority changes where overflow walkers go, not the total
   for (let i = baseCount; i < count; i++) {
-    const l = wander[(i - 600) % wander.length], dir = r() < 0.5 ? 1 : -1;
+    const l = extraPaths[(i - baseCount) % extraPaths.length], dir = r() < 0.5 ? 1 : -1;
     const minSide = Math.min(l.rect.x1 - l.rect.x0, l.rect.z1 - l.rect.z0);
     const maxInset = Math.max(0.35, Math.min(6, (minSide - 1) / 2));
-    const path = { ...l, dir, inset: between(r, 0.35, maxInset) };
-    plan.push({ look: makeLook(r), path, s0: r() });
-    extraKeys.push(`${l.name}${dir}`);
+    const sampledInset = l.name === 'thames' ? between(r, 0.6, 1.6) : between(r, 0.35, maxInset);
+    const look = makeLook(r), track = l.name === 'thames' ? thamesTrack(look, dir) : null;
+    if (track) look.speed = track.speed;
+    else if (l.name === 'thames-front') look.speed = THAMES_FRONT_SPEED;
+    const inset = l.name === 'thames-front' ? THAMES_FRONT_TRACK_INSET[dir] : track?.inset ?? sampledInset;
+    const path = { ...l, dir, inset };
+    plan.push({ look, path, s0: r() });
+    const groups = crowdWeight(l) > 1 && !LONDON_HOTSPOTS.has(l.name) ? denseGroups : extraGroups, key = `${l.name}${dir}`, index = plan.length - 1;
+    groups.set(key, [...(groups.get(key) || []), index]);
   }
-  const extraGroups = new Map();
-  extraKeys.forEach((k, j) => { const i = baseCount + j; extraGroups.set(k, [...(extraGroups.get(k) || []), i]); });
   for (const ids of extraGroups.values()) ids.forEach((i, j) => { plan[i].s0 = (j + 0.15 + 0.7 * plan[i].s0) / ids.length; });
+  for (const ids of denseGroups.values()) {
+    const clusters = Math.ceil(ids.length / 3);
+    ids.forEach((i, j) => {
+      const cluster = Math.floor(j / 3), size = Math.min(3, ids.length - cluster * 3);
+      const within = (j % 3 + 0.15 + 0.7 * plan[i].s0) / size;
+      plan[i].s0 = (cluster + 0.5 + (within - 0.5) * 0.4) / clusters;
+    });
+  }
+  const thamesGroups = new Map();
+  plan.forEach((p, i) => {
+    if (p.path.name !== 'thames') return;
+    const key = `${p.path.name}${p.path.dir}:${crowdKind(p.look)}`;
+    thamesGroups.set(key, [...(thamesGroups.get(key) || []), i]);
+  });
+  for (const ids of thamesGroups.values()) {
+    const clusters = Math.ceil(ids.length / 3);
+    ids.forEach((i, j) => {
+      const cluster = Math.floor(j / 3), size = Math.min(3, ids.length - cluster * 3);
+      const within = (j % 3 + 0.15 + 0.7 * plan[i].s0) / size;
+      plan[i].s0 = (cluster + 0.5 + (within - 0.5) * 0.4) / clusters;
+    });
+  }
   return plan;
 }
 // Sprite atlas variants: greedy k-center over a look distance, so every skin tone, kind and hair style shows up; each person maps to the nearest variant.

@@ -6,8 +6,8 @@ import { underpassFrames, UNDERPASS } from './layout.js';
 // Countryside embankment carrying a two-lane road over the route with a masonry arch underpass across the road at each Glasgow livery boundary (scotRange). The bus is
 // completely inside the tunnel for a moment, so scene.js swaps London <-> Glasgow there and the camera never sees the model pop.
 // Local frame: x along the road, z across it (embankment), y up. 5 meshes per crossing (stone / light stone / lawn / asphalt / lines), shared block materials.
-export const HX = 7.5, W = 9, H = 7.5; // tunnel half length, masonry half width, deck height
-const AW = 5.5, AWALL = 3.4, AB = 3.0; // opening: half width, vertical wall height, elliptical crown rise
+export const HX = 7.5, W = 9, H = 7.5, ARCH_HALF_WIDTH = 5.5; // tunnel half length, masonry half width, deck height, clear arch half width
+const AW = ARCH_HALF_WIDTH, AWALL = 3.4, AB = 3.0; // opening half width, vertical wall height, elliptical crown rise
 export const CLEARANCE = AWALL + AB * Math.sqrt(1 - (3.05 / AW) ** 2); // headroom over the outer edge of a bus in its lane (~5.9 m)
 export const ROAD_HW = 3; // half width of the overpass road: two 3 m lanes
 export const END = UNDERPASS.end;
