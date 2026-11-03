@@ -3,9 +3,9 @@
 # twist the limbs. Each bone's world rotation change is measured against its own source rest and applied to
 # the target's rest. The pelvis follows the source pelvis, scaled by leg length. Every frame the lowest ball
 # joint is held at its rest height, so the feet neither sink nor float.
-# Posture: the spine keeps a quarter of the source chest pitch and is set upright (TILT); the clavicles yaw back 4 deg;
+# Posture: the spine keeps 40% of the source chest pitch and is set upright (TILT); the clavicles yaw back 4 deg;
 # a planted knee under the hip stays near straight (KNEE_STAND) and keeps the source bend when reaching or lifted.
-# Knee targets are smoothed around the loop. The pelvis follows the per-frame ground lock with a 3-tap smooth, and each planted
+# Knee targets are smoothed around the loop with a 5-tap kernel. The pelvis follows the per-frame ground lock with a 3-tap smooth, and each planted
 # foot (source foot height under 1 cm, weight CW) is then put exactly on the floor by a 2-bone leg solve (ik_override, pass 2).
 # Legs: the MPFB A-pose splay is removed (SPLAY: thigh and calf start vertical), and the knee bends about the pelvis lateral axis.
 import bpy
@@ -22,9 +22,9 @@ BALLS = ("ball_l", "ball_r")
 # hip +30/-10, swing knee ~62, elbow 10-30, upper arm under 10 from the body. Per-clip overrides go through `params`.
 GAIT = dict(hip_f=0.75, hip_b=0.50,  # thigh swing scale, forward / backward of vertical
             knee_k=0.74,  # scale of the source knee bend in swing and at heel strike
-            elbow_base=4.0, elbow_k=0.45, elbow_fw=6.0,  # elbow flexion = base + k * source bend + fw * hand-forward weight
-            abd_k=0.30, abd_min=3.0,  # upper arm abduction = max(min, k * source abduction)
-            swing_k=1.0, swing_c=-8.0,  # arm swing amplitude scale about the centre angle (deg, + forward)
+            elbow_base=5.0, elbow_k=0.45, elbow_fw=6.0,  # elbow flexion = base + k * source bend + fw * hand-forward weight
+            abd_k=0.40, abd_min=3.5,  # upper arm abduction = max(min, k * source abduction)
+            swing_k=1.15, swing_c=-8.0,  # arm swing amplitude scale about the centre angle (deg, + forward)
             hip_add=4.0, ank_air=8.0,  # hip_add: leg adduction at the hip (deg)
              ank_k=0.25, ank_dorsi=-12.0, ank_h0=0.015, ank_h1=0.035)  # swing foot: plantarflexion soft limit (deg) and its fade-in over the ball height (m)  # arm swing amplitude scale about the centre angle (deg, + forward)
 
@@ -95,7 +95,7 @@ def retarget_walk(src, dst, frames, action_name, ground_ik=True, **params):
         hn = max(-1.0, min(1.0, (hl - hr) * fsrc / 0.30))  # +1: left hand forward
         pz = (sw @ src.pose.bones[PELVIS].matrix).to_translation().z
         bob = max(-1.0, min(1.0, (pz - 0.8915) / 0.0205))
-        twist = fdst * D(5.0) * hn  # shoulders counter-rotate against the hips
+        twist = fdst * D(7.0) * hn  # shoulders counter-rotate against the hips
         e_t = rz(twist) @ rx(-fdst * D(1.0))  # plus a small relaxed forward lean
         e_h = rz(-0.6 * twist) @ rx(-fdst * D(0.8) * bob) @ Quaternion((0, 1, 0), D(1.5) * hn)
         for pb in order:
@@ -144,8 +144,8 @@ def retarget_walk(src, dst, frames, action_name, ground_ik=True, **params):
                 rot = newrot[par] @ dst_rest[par].inverted() @ dst_rest[name]
             if name in HEADG:  # the source head looks ~14 deg down; keep only 15% of its motion so the face looks forward
                 rot = dst_rest[name].slerp(rot, 0.15)
-            if name in SPINE:  # the source chest pitches ~15 deg forward on its walk; keep a quarter of that
-                rot = dst_rest[name].slerp(rot, 0.25)
+            if name in SPINE:  # the source chest pitches ~15 deg forward on its walk; keep 40% of that
+                rot = dst_rest[name].slerp(rot, 0.40)
             if name in TILT:  # set the rest S-curve upright: each segment is tilted in world space
                 rot = rx(-fdst * D(TILT[name])) @ rot
             if name in ("clavicle_l", "clavicle_r"):  # shoulders back: the clavicle tip moves toward the back
@@ -245,10 +245,10 @@ def retarget_walk(src, dst, frames, action_name, ground_ik=True, **params):
         raw[f] = {s: knee_want(s) for s in "lr"}
         # planted weight from the source foot height: 1 on the floor, 0 once the foot is 3 cm up
         CW[f] = {s: max(0.0, min(1.0, (0.03 - src_knee(s)[1]) / 0.02)) for s in "lr"}
-    K = (1, 2, 3, 4, 3, 2, 1)
+    K = (1, 2, 3, 2, 1)
     KW = {}
     for i, f in enumerate(frames):
-        KW[f] = {s: sum(k * raw[frames[(i + j - 3) % len(frames)]][s] for j, k in enumerate(K)) / sum(K) for s in "lr"}
+        KW[f] = {s: sum(k * raw[frames[(i + j - 2) % len(frames)]][s] for j, k in enumerate(K)) / sum(K) for s in "lr"}
 
     # ground lock per frame (pelvis height that puts the lowest ball on the floor), then only a 3-tap smooth around the loop;
     # the planted feet are then put exactly on the floor by ik_override, so the smoothing error is absorbed by the legs

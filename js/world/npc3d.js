@@ -1,4 +1,4 @@
-// POC: walking NPCs (one GLB, one shared rig, three walk clips) on the pavement beside the bus route.
+// POC: walking NPCs (one GLB, adult and child rigs) on the pavement beside the bus route.
 // Opt-in with ?npc3d=1. Debug: ?npcnear=1 puts 24 of them 5-30 m ahead of the scroll point under a pavement-level camera (?npcshot=k aims at walker k). The sprite crowd, layout and scene stay as they are.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -38,13 +38,11 @@ const VARIANTS = NPC_VARIANTS;
 // World unit = metre (ROAD is in metres). sprites.js scales each person to look.height, so a sprite body is 1.6-1.9 m tall.
 // Lanes mirror crowd.js: inner and outer pavement, walking opposite ways on each side of the route.
 const IN = ROAD.padIn + 0.4, OUT = ROAD.padIn + 1.05, LANES = [[IN, 1], [OUT, -1], [-IN, -1], [-OUT, 1]];
-const CADENCE = 1.2; // playback rate before the variant scale: 1.29 s clips -> ~1.1 s gait cycle (~110 steps/min)
-// m/s: stance-foot speed of each clip at timeScale 1 (Root static, feet planted; tools/npc gait retarget). The walk speed is
-// this times the playback rate, so planted feet do not slide; walkers stroll at ~0.7-1.0 m/s. Each walker draws one clip.
-const CLIP_SPEED = { NPC_Walk: 0.605, NPC_Walk2: 0.600, NPC_Walk3: 0.608, NPC_Walk_C: 0.417, NPC_Walk2_C: 0.438, NPC_Walk3_C: 0.433 }; // _C: the child rig (at its measured 1.245 m)
-function clipsForRig(clips, rig) { return clips.filter((clip) => clip.name.endsWith('_C') === (rig === 'child')); }
+// m/s at timeScale 1, measured from the retargeted clip with planted feet.
+const CLIP_SPEED = { NPC_Walk: 0.621, NPC_Walk2: 0.628, NPC_Walk3: 0.592, NPC_Walk_C: 0.402, NPC_Walk2_C: 0.407, NPC_Walk3_C: 0.418 };
+function clipsForRig(clips, rig) { return clips.filter((clip) => clip.name.endsWith('_C') === (rig === 'child') && clip.name !== (rig === 'child' ? 'NPC_Walk2_C' : 'NPC_Walk2') && clip.name !== (rig === 'child' ? 'NPC_Walk_C' : '')); } // the formal cycle is stiff; the short child stride exceeds the playback cap
 function clipStride(name, scale, wide) { return CLIP_SPEED[name] * scale * wide; }
-function clipTimeScale(speed, stride) { return Math.min(1.75, speed / stride); }
+function clipTimeScale(speed, stride) { return Math.min(1.76, speed / stride); }
 function poolKinds(count) {
   const children = Math.round(count * 0.3);
   let adults = 0;
@@ -276,7 +274,7 @@ function disposeNpcObjects(roots) {
 // current frustum or the 160 m cap; free slots go to the nearest visible candidates (ahead weighs more than behind). Sprites are hidden.
 const FEMALE = new Set(['NPC_F', 'NPC_G', 'NPC_H', 'NPC_K', 'NPC_L', 'NPC_P', 'NPC_R', 'NPC_T', 'NPC_KA', 'NPC_KC']);
 const CASTERS = 16; // walkers nearest the camera that cast sun shadows (desktop)
-const PAVE_TOP = 0.17; // pavement slab top (city.js: bottom 0.07, 0.10 thick); the crowd's lanes run on it
+const PAVE_TOP = 0.1; // pavement slab top (city.js: bottom -0.02, 0.12 thick); the crowd's lanes run on it
 export async function createNpc3d(scene, { curve, pts, stops, count = globalThis.innerWidth < 700 ? 28 : 56 }) { // ~7 draw calls per walker
   const crowd = scene.getObjectByName('crowd');
   const plan = crowdPlan(stops, pts, 1017); // people.js seed: index i here is sprite i there
@@ -328,7 +326,7 @@ export async function createNpc3d(scene, { curve, pts, stops, count = globalThis
   Object.assign(shadow, { name: 'npc3d-shadow', frustumCulled: false, renderOrder: 0 });
   scene.add(shadow);
   const dummy = new THREE.Object3D(), fwd = new THREE.Vector3();
-  const A = crowd.instanceMatrix.array, I = crowd.geometry.attributes.aInfo.array, N = plan.length;
+  const A = crowd.instanceMatrix.array, route = crowd.userData.route, N = plan.length;
   const groundOf = (i) => plan[i].path.y ?? (plan[i].path.type === 'lane' ? PAVE_TOP : FEET);
   const owner = new Int32Array(N).fill(-1), score = new Float32Array(N), order = Array.from({ length: N }, (_, i) => i);
   const frustum = new THREE.Frustum(), viewProjection = new THREE.Matrix4(), bodySphere = new THREE.Sphere(new THREE.Vector3(), 0);
@@ -359,8 +357,7 @@ export async function createNpc3d(scene, { curve, pts, stops, count = globalThis
     updateFrustum(cam);
     cam.getWorldDirection(fwd);
     for (let i = 0; i < N; i++) {
-      const a = i * 16;
-      const dx = A[a + 12] - cam.position.x, dz = A[a + 14] - cam.position.z, d = Math.hypot(dx, dz);
+      const a = i * 16, dx = route.x[i] - cam.position.x, dz = route.z[i] - cam.position.z, d = Math.hypot(dx, dz);
       score[i] = A[a] === 0 || d > POOL_MAX_DISTANCE ? Infinity : d * (dx * fwd.x + dz * fwd.z < 0 ? 3 : 1);
     }
     order.sort((p, q) => score[p] - score[q]);
@@ -376,14 +373,14 @@ export async function createNpc3d(scene, { curve, pts, stops, count = globalThis
     for (let r = 0; r < N && active < count; r++) {
       const i = order[r];
       if (owner[i] >= 0 || score[i] === Infinity) continue;
-      const a = i * 16, d = Math.hypot(A[a + 12] - cam.position.x, A[a + 14] - cam.position.z);
-      if (d > POOL_MAX_DISTANCE || !isVisibleAt(A[a + 12], groundOf(i), A[a + 14], plan[i].look.height)) continue;
+      const d = Math.hypot(route.x[i] - cam.position.x, route.z[i] - cam.position.z);
+      if (d > POOL_MAX_DISTANCE || !isVisibleAt(route.x[i], groundOf(i), route.z[i], plan[i].look.height)) continue;
       const lk = plan[i].look.kind, want = lk === 'girl' || lk === 'boy' ? 'kid' : lk;
       const free = walkers.find((w) => w.who < 0 && w.kind === want) || walkers.find((w) => w.who < 0 && (w.kind === 'kid') === (want === 'kid'));
       if (!free) continue;
       const slot = walkers.indexOf(free), previous = released.get(slot);
       free.who = i; owner[i] = slot;
-      free.x = A[i * 16 + 12]; free.z = A[i * 16 + 14]; free.y = groundOf(i); free.yaw = Math.atan2(I[4 * i + 1], I[4 * i + 2]);
+      free.x = route.x[i]; free.z = route.z[i]; free.y = groundOf(i); free.yaw = Math.atan2(route.fx[i], route.fz[i]);
       free.inst.visible = true;
       active++;
       if (noteEvent) noteEvent(previous ? { type: 'reassignment', fromNpcId: previous.npcId, npcId: i, slot, reason: previous.reason } : { type: 'spawn', npcId: i, slot, reason: 'visible-ranked-candidate' });
@@ -396,12 +393,13 @@ export async function createNpc3d(scene, { curve, pts, stops, count = globalThis
     for (const w of walkers) { const on = !!w.cast && w.who >= 0; if (on !== w.casting) { w.casting = on; w.inst.traverse((o) => { if (o.isMesh) o.castShadow = on; }); } w.cast = false; }
   };
   hideSprites(scene);
+  const walkPace = crowd.userData.walkPace;
   const diagnostic = QA ? {
     snapshot() {
       if (viewCamera) updateFrustum(viewCamera);
       return plan.map(({ path }, id) => {
         const slot = owner[id], walker = slot >= 0 ? walkers[slot] : null, a = id * 16;
-        const x = walker ? walker.x : A[a + 12], y = walker ? walker.y : groundOf(id), z = walker ? walker.z : A[a + 14], h = walker?.height ?? plan[id].look.height;
+        const x = walker ? walker.x : route.x[id], y = walker ? walker.y : groundOf(id), z = walker ? walker.z : route.z[id], h = walker?.height ?? plan[id].look.height;
         const distance = viewCamera ? Math.hypot(x - viewCamera.position.x, z - viewCamera.position.z) : null;
         const onScreen = !!viewCamera && isVisibleAt(x, y, z, h), representation = walker ? 'npc3d-full' : A[a] === 0 ? 'distance-culled' : 'hidden-no-pool-slot';
         return { id, position: { x, y, z }, region: regionOf(path, x), path: { name: path.name || 'sidewalk-lane', type: path.type, dir: path.dir, offset: path.offset ?? null }, distanceMeters: distance, visibility: { inCameraFrustum: onScreen, rendered: !!walker?.inst.visible && onScreen }, renderRepresentation: representation, poolSlot: slot >= 0 ? slot : null };
@@ -418,17 +416,12 @@ export async function createNpc3d(scene, { curve, pts, stops, count = globalThis
       if (tick++ % 12 === 0 || jump) { assign(f.camera); lastCam.copy(cp); }
       walkers.forEach((w, n) => {
         if (w.who < 0) { dummy.scale.setScalar(0); dummy.updateMatrix(); shadow.setMatrixAt(n, dummy.matrix); return; }
-        const i = w.who, a = i * 16, fx = I[4 * i + 1], fz = I[4 * i + 2], sp = plan[i].look.speed;
-        // the sprite sim slides each sprite back and forth a few cm per frame (planted-foot lock); the body walks at the person's
-        // speed along its facing and is pulled gently onto the sprite's place, so it neither jitters nor drifts off its path
-        w.x += fx * sp * dt; w.z += fz * sp * dt;
-        const k = Math.min(1, dt * 2.5);
-        w.x += (A[a + 12] - w.x) * k; w.z += (A[a + 14] - w.z) * k;
-        if (Math.hypot(A[a + 12] - w.x, A[a + 14] - w.z) > 2) { w.x = A[a + 12]; w.z = A[a + 14]; } // a path jump (lane ends)
+        const i = w.who, fx = route.fx[i], fz = route.fz[i], sp = plan[i].look.speed;
+        w.x = route.x[i]; w.z = route.z[i];
         let dy = Math.atan2(fx, fz) - w.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
-        w.yaw += dy * Math.min(1, dt * 8); // turns at path corners take ~0.3 s
+        w.yaw += dy * (1 - Math.exp(-18 * dt)); // keep heading smooth while staying close to the route tangent
         w.y = groundOf(i);
-        w.action.timeScale = clipTimeScale(sp, w.stride); // calibrated stride includes the body's longitudinal scale
+        w.action.timeScale = clipTimeScale(sp * (walkPace?.[i] ?? 1), w.stride); // match foot cadence to eased lane turns
         w.mixer.update(dt);
         w.inst.position.set(w.x, w.y, w.z);
         w.inst.rotation.y = w.yaw;

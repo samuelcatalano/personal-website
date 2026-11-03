@@ -6,7 +6,7 @@ import vm from 'node:vm';
 test('frozen crowd updates visibility after camera moves without advancing its pose', () => {
   class Geometry { translate() { return this; } rotateX() { return this; } setAttribute(k, v) { this[k] = v; } }
   class Attribute { constructor(array) { this.array = array; } setUsage() { return this; } }
-  class Mesh { constructor(geometry, material, n) { this.geometry = geometry; this.material = material; this.instanceMatrix = new Attribute(new Float32Array(n * 16)); } }
+  class Mesh { constructor(geometry, material, n) { this.geometry = geometry; this.material = material; this.userData = {}; this.instanceMatrix = new Attribute(new Float32Array(n * 16)); } }
   const SP = { FRAMES: 8, COLS: 1, FB_COLS: 1, ROWS: 1, strideOf: () => 1, setScale() {}, buildAtlas: () => new Promise(() => {}), CELL_W: 1, CELL_H: 1, GROUND: 1, S: 1 };
   const plan = [0, 1000].map((x) => ({ s0: 0, look: { height: 1, speed: 1 }, path: { type: 'loop', dir: 1, inset: 0, rect: { x0: x, x1: x + 10, z0: 0, z1: 10 } } }));
   const context = vm.createContext({ SP, crowdPlan: () => plan, chooseVariants: () => ({ variants: [], of: [0, 0] }),
@@ -73,4 +73,25 @@ test('rounded loop is deterministic, stays in its rectangle, and keeps position 
   assert.deepEqual(reversePoint.slice(0, 2), forwardPoint.slice(0, 2));
   assert.ok(Math.abs(reversePoint[2] + forwardPoint[2]) < 1e-9 && Math.abs(reversePoint[3] + forwardPoint[3]) < 1e-9);
   assert.deepEqual(sample(17.25), sample(17.25));
+});
+
+test('lane turns cap overspeed and keep the walk pace matched to route distance', () => {
+  class Geometry { translate() { return this; } rotateX() { return this; } setAttribute(k, v) { this[k] = v; } }
+  class Attribute { constructor(array) { this.array = array; } setUsage() { return this; } }
+  class Mesh { constructor(geometry, material, n) { this.geometry = geometry; this.material = material; this.userData = {}; this.instanceMatrix = new Attribute(new Float32Array(n * 16)); } }
+  const plan = [{ s0: 0.004, look: { height: 1.7, speed: 0.76 }, path: { type: 'lane', dir: 1, offset: 1 } }];
+  const SP = { FRAMES: 8, COLS: 1, FB_COLS: 1, ROWS: 1, strideOf: () => 1, setScale() {}, buildAtlas: () => new Promise(() => {}), CELL_W: 1, CELL_H: 1, GROUND: 1, S: 1 };
+  const context = vm.createContext({ SP, crowdPlan: () => plan, chooseVariants: () => ({ variants: [], of: [0] }),
+    estaiadaRoute: () => ({ stations: [{ x: 1000, z: 0 }] }), LANDMARKS: { estaiada: 0 }, ROAD: { padIn: 0.5, furniture: [] }, RIVER_Z: 0, stopIndex: () => 0,
+    underpassFrames: () => [], UNDERPASS_HALF_LENGTH: 7.5, ARCH_HALF_WIDTH: 5.5,
+    THREE: { DataTexture: class {}, PlaneGeometry: Geometry, CircleGeometry: Geometry, InstancedBufferAttribute: Attribute, InstancedMesh: Mesh, MeshLambertMaterial: class {}, MeshBasicMaterial: class {} }, performance });
+  const source = readFileSync(new URL('../js/world/people.js', import.meta.url), 'utf8').replace(/^import .*;.*$/gm, '').replace(/^export /gm, '');
+  vm.runInContext(source, context);
+  const curve = { getPoint(t) { return { x: 100 * t, z: 0, distanceTo(p) { return Math.abs(this.x - p.x); } }; } };
+  const people = context.createPeople({ add() {} }, { curve, pts: [{ x: 0 }], stops: [], hd: false });
+  const crowd = people.meshes[0], route = crowd.userData.route, x = route.x[0], z = route.z[0], dt = 0.01;
+  people.update(dt, { x, z });
+  const speed = Math.hypot(route.x[0] - x, route.z[0] - z) / dt;
+  assert.ok(Math.abs(speed - 0.76) < 0.04, `turn peak should remain at route speed, got ${speed.toFixed(3)} m/s`);
+  assert.equal(crowd.userData.walkPace[0], 1, 'animation pace follows the capped route speed through the turn');
 });

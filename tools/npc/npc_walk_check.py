@@ -67,8 +67,10 @@ from ual_names import to_unreal_names  # noqa: E402
 print("CHECK renamed UAL bones", to_unreal_names(src), flush=True)
 # clip name -> (UAL action, retarget parameters); NPC_Walk is the original, the others are variations
 CLIPS = {"NPC_Walk": ("Walk_Loop", {}), "NPC_Walk2": ("Walk_Formal_Loop", dict(swing_k=1.8, elbow_base=8.0)),
-         "NPC_Walk3": ("Walk_Loop", dict(swing_k=1.35, elbow_base=9.0, hip_f=0.8, hip_b=0.55))}
+         "NPC_Walk3": ("Walk_Loop", dict(swing_k=1.4, elbow_base=6.0, hip_f=0.8, hip_b=0.55))}
 CLIPS = {k + SUF: v for k, v in CLIPS.items()}
+if not CHILD:  # the adult's formal forward swing read as marching; preserve the shorter child's stride
+    CLIPS["NPC_Walk3"] = ("Walk_Loop", dict(swing_k=1.4, elbow_base=6.0, hip_f=0.68, hip_b=0.65))
 CLIP_NAMES = list(CLIPS)
 src.animation_data_create()
 FR = range(0, 32)

@@ -5,6 +5,11 @@ import vm from 'node:vm';
 
 function setup(load, search = '') {
   const crowd = { visible: true, instanceMatrix: { array: [] }, geometry: { attributes: { aInfo: { array: [] } } } }, shadow = { visible: true };
+  const component = (array, stride, offset) => new Proxy({}, { get: (_, i) => array()[Number(i) * stride + offset] });
+  crowd.userData = { route: {
+    x: component(() => crowd.instanceMatrix.array, 16, 12), z: component(() => crowd.instanceMatrix.array, 16, 14),
+    fx: component(() => crowd.geometry.attributes.aInfo.array, 4, 1), fz: component(() => crowd.geometry.attributes.aInfo.array, 4, 2),
+  } };
   const scene = { getObjectByName: (name) => name === 'crowd' ? crowd : shadow, add() {}, remove() {} };
   let deadline;
   class Vector3 {
@@ -177,15 +182,15 @@ test('an in-frustum owner beyond the pool distance releases its slot to a nearby
 test('measured NPC clips keep scale-adjusted stride inside the playback cap for each rig', () => {
   const s = setup(Promise.resolve(null));
   const expected = {
-    NPC_Walk: 0.605, NPC_Walk2: 0.600, NPC_Walk3: 0.608,
-    NPC_Walk_C: 0.417, NPC_Walk2_C: 0.438, NPC_Walk3_C: 0.433,
+    NPC_Walk: 0.621, NPC_Walk2: 0.628, NPC_Walk3: 0.592,
+    NPC_Walk_C: 0.402, NPC_Walk2_C: 0.407, NPC_Walk3_C: 0.418,
   };
   const speeds = vm.runInContext('CLIP_SPEED', s.context);
   assert.deepEqual(Object.fromEntries(Object.entries(speeds)), expected);
   const clips = Object.keys(expected).map((name) => ({ name }));
   for (const [rig, isChild, speed] of [['adult', false, 0.82], ['child', true, 0.64]]) {
     const rigClips = s.context.clipsForRig(clips, rig);
-    assert.deepEqual(rigClips.map((clip) => clip.name), Object.keys(expected).filter((name) => name.endsWith('_C') === isChild));
+    assert.deepEqual(rigClips.map((clip) => clip.name), Object.keys(expected).filter((name) => name.endsWith('_C') === isChild && name !== (isChild ? 'NPC_Walk2_C' : 'NPC_Walk2') && (!isChild || name !== 'NPC_Walk_C')));
     const variants = vm.runInContext('NPC_VARIANTS', s.context).filter((v) => (v.rig === 'child') === isChild);
     const smallestScale = Math.min(...variants.map((v) => v.height / v.measured * 0.96));
     const smallestWide = 0.94;
@@ -193,7 +198,7 @@ test('measured NPC clips keep scale-adjusted stride inside the playback cap for 
       assert.equal(s.context.clipStride(name, 1, 1), expected[name]);
       const stride = s.context.clipStride(name, smallestScale, smallestWide);
       const requiredRate = speed / stride;
-      assert.ok(requiredRate <= 1.75 + 0.02, `${name}/${rig} requires ${requiredRate.toFixed(3)}x at the speed/scale extremes`);
+      assert.ok(requiredRate <= 1.76, `${name}/${rig} requires ${requiredRate.toFixed(3)}x at the speed/scale extremes`);
       assert.ok(Math.abs(s.context.clipTimeScale(speed, stride) - requiredRate) < 1e-9,
         `${name}/${rig} would hit the playback cap at the speed/scale extremes`);
     }
@@ -215,7 +220,7 @@ test('an incompatible adult candidate does not block a later child from using it
   const mesh = { name: 'fixture', isMesh: true, material: { dispose() {} } };
   const root = () => ({ children: [], traverse(fn) { fn(mesh); }, getObjectByProperty() { return { material: { map: true } }; },
     scale: { set() {} }, position: { set(x, y, z) { Object.assign(this, { x, y, z }); } }, rotation: {} });
-  const clips = ['NPC_Walk', 'NPC_Walk_C'].map((name) => ({ name, duration: 1 }));
+  const clips = ['NPC_Walk', 'NPC_Walk_C', 'NPC_Walk3_C'].map((name) => ({ name, duration: 1 }));
   const s = setup(Promise.resolve({ scene: root(), animations: clips }), '?qa=1');
   const A = new Float32Array(9 * 16), I = new Float32Array(9 * 4);
   for (let i = 0; i < 7; i++) { A[i * 16] = 1; A[i * 16 + 12] = -7 + i; }

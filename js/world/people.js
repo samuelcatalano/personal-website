@@ -7,8 +7,11 @@ import { HX as UNDERPASS_HALF_LENGTH, ARCH_HALF_WIDTH } from './underpass.js';
 const { FRAMES, COLS, FB_COLS, ROWS, strideOf } = SP;
 // Walking-emoji pedestrians: canvas-drawn sprites (side, front and back views) in two atlas textures, ONE InstancedMesh of cylindrical billboards (+ one for soft shadows). Paths come from crowd.js (pure data).
 const NEAR = 140, INSET = 0.6, FEET = 0.02, SEED = 1017, VARIANTS = 28, STAND = 2, LOCK = 0.6; // sprite looks; the standing frame (legs passing)
+const TURN_DISTANCE = 1.2;
 const PORTAL_MARGIN = 0.2, PORTAL_BLEND = 6, FRAME_MARGIN = 2; // keep the whole walker inside the masonry opening
 const LOOP_TURN_RADIUS = 0.75; // soften rectangular plaza turns without changing their footprint
+const turnDistance = (d) => { const t = Math.min(1, d / TURN_DISTANCE); return TURN_DISTANCE * t * t * (2 - t); };
+const turnSpeed = (d) => { const t = Math.min(1, d / TURN_DISTANCE); return t * (4 - 3 * t); };
 // The sharp atlas (about 80 MB of textures) only where the screen and GPU can afford it; phones get the 1x one (about 40 MB).
 const sharp = () => { try { const gl = document.createElement('canvas').getContext('webgl2'); return !matchMedia('(max-width: 767px)').matches && (navigator.deviceMemory ?? 8) >= 4 && !!gl && gl.getParameter(gl.MAX_TEXTURE_SIZE) >= 4096; } catch { return false; } };
 
@@ -64,10 +67,12 @@ export function createPeople(scene, { curve, pts, stops, reducedMotion = false, 
   const J = estaiadaRoute(pts[stopIndex(stops, LANDMARKS.estaiada)].x, curve, RIVER_Z).stations.at(-1), dj = (m) => Math.hypot(PX[m] - J.x, PZ[m] - J.z);
   let mj = 0; for (let m = 1; m <= M; m++) if (dj(m) < dj(mj)) mj = m;
   const MOUTH = 5.5, G0 = mj + MOUTH, SPAN = L - 2 * MOUTH; // walkable run: from the mouth's far edge all the way round to its near edge
-  const out = { x: 0, z: 0, fx: 0, fz: 1 };
+  const out = { x: 0, z: 0, fx: 0, fz: 1, speed: 1 };
   const lane = (p, s, look) => { // same side convention as furnitureSpots/city.js: normal = (-t.z, t.x), offset > 0 on that side
-    let turn = 1;
-    if (p.offset < 0) { const u = ((s % (2 * SPAN)) + 2 * SPAN) % (2 * SPAN); turn = u < SPAN ? 1 : -1; s = G0 + (u < SPAN ? u : 2 * SPAN - u); } // ping-pong between the mouth edges
+    const start = p.offset < 0 ? G0 : 0, span = p.offset < 0 ? SPAN : L;
+    const u = ((s % (2 * span)) + 2 * span) % (2 * span), forward = u < span, d = forward ? u : 2 * span - u;
+    const turn = forward ? 1 : -1, pace = d < TURN_DISTANCE ? turnSpeed(d) : d > span - TURN_DISTANCE ? turnSpeed(span - d) : 1;
+    s = start + (d < TURN_DISTANCE ? turnDistance(d) : d > span - TURN_DISTANCE ? span - turnDistance(span - d) : d); // ease to a near-stop at route ends before turning back
     const w = ((s % L) + L) % L, i = Math.min(Math.floor(w), M - 1), f = w - i;
     let tx = PX[i + 1] - PX[i], tz = PZ[i + 1] - PZ[i]; const l = Math.hypot(tx, tz) || 1; tx /= l; tz /= l;
     const x = PX[i] + (PX[i + 1] - PX[i]) * f, z = PZ[i] + (PZ[i + 1] - PZ[i]) * f;
@@ -81,11 +86,11 @@ export function createPeople(scene, { curve, pts, stops, reducedMotion = false, 
     }
     out.x = x - tz * offset; out.z = z + tx * offset;
     const fx = tx - tz * slope, fz = tz + tx * slope, fl = Math.hypot(fx, fz) || 1;
-    out.fx = fx / fl * p.dir * turn; out.fz = fz / fl * p.dir * turn;
+    out.fx = fx / fl * p.dir * turn; out.fz = fz / fl * p.dir * turn; out.speed = pace;
   };
-  const loop = (p, s) => Object.assign(out, loopAt(p, s));
+  const loop = (p, s) => { Object.assign(out, loopAt(p, s)); out.speed = 1; };
   const place = (p, s, look) => p.type === 'lane' ? lane(p, s, look) : loop(p, s);
-  const perim = (p) => (p.type === 'lane' ? L : loopPerimeter(p));
+  const perim = (p) => (p.type === 'lane' ? 2 * (p.offset < 0 ? SPAN : L) : loopPerimeter(p));
 
   // Atlas: VARIANTS looks x FRAMES walk frames; every person maps to its nearest look.
   const { variants, of } = chooseVariants(plan.map((q) => q.look), VARIANTS);
@@ -127,24 +132,32 @@ gl_Position = projectionMatrix * mvPosition;`);
   shadow.instanceMatrix = crowd.instanceMatrix; // same position + scale, no second buffer
   scene.add(crowd, shadow);
   const A = crowd.instanceMatrix.array, I = info.array;
-  const st = plan.map((q, i) => ({ s: q.s0 * perim(q.path), d: q.s0 * 40, vis: true, h: q.look.height, frame: STAND, lock: 0 }));
+  const walkPace = crowd.userData.walkPace = new Float32Array(N);
+  const px = new Float32Array(N), pz = new Float32Array(N), fx = new Float32Array(N), fz = new Float32Array(N);
+  crowd.userData.route = { x: px, z: pz, fx, fz };
+  const st = plan.map((q, i) => ({ s: q.s0 * perim(q.path), d: q.s0 * 40, pace: 1, vis: true, h: q.look.height, frame: STAND, lock: 0 }));
   for (let i = 0; i < N; i++) { A.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], i * 16); }
   const show = (i, vis, sx = 0, sz = 0) => { const a = i * 16, h = vis ? st[i].h : 0; A[a] = A[a + 5] = A[a + 10] = h; A[a + 12] = out.x + sx; A[a + 13] = plan[i].path.y ?? FEET; A[a + 14] = out.z + sz; };
   const vw = new Uint8Array(N); // current view per person, with hysteresis so sector changes do not flicker
   const face = (i, frame, view = 0) => { I[4 * i] = (view ? of[i] * 2 + view - 1 : of[i]) * FRAMES + frame; I[4 * i + 1] = out.fx; I[4 * i + 2] = out.fz; I[4 * i + 3] = view; };
   const flag = () => { crowd.instanceMatrix.needsUpdate = true; info.needsUpdate = true; };
-  plan.forEach((p, i) => { place(p.path, st[i].s, p.look); show(i, true); face(i, STAND); });
+  plan.forEach((p, i) => { place(p.path, st[i].s, p.look); st[i].pace = out.speed; px[i] = out.x; pz[i] = out.z; fx[i] = out.fx; fz[i] = out.fz; walkPace[i] = Math.min(1, out.speed); show(i, true); face(i, STAND); });
   flag();
   return {
     count: N, meshes: [crowd, shadow], ready, get atlasMs() { return atlasMs; },
     update(dt, cam) {
       if (reducedMotion || dt < 0) dt = 0;
       plan.forEach(({ look: k, path }, i) => {
-        const s = st[i]; s.s += path.dir * k.speed * dt; s.d += k.speed * dt;
+        const s = st[i]; s.s += path.dir * k.speed * dt / Math.max(1, s.pace);
         place(path, s.s, k);
+        s.pace = out.speed; walkPace[i] = Math.min(1, out.speed); s.d += k.speed * walkPace[i] * dt;
+        px[i] = out.x; pz[i] = out.z; fx[i] = out.fx; fz[i] = out.fz;
         const near = Math.hypot(out.x - cam.x, out.z - cam.z) <= NEAR;
         if (!near) { show(i, false); return; }
-        if (dt > 0) { const ph = s.d / cycle[i] * FRAMES, fi = Math.floor(ph); s.frame = ((fi % FRAMES) + FRAMES) % FRAMES; s.lock = -(ph - fi - 0.5) * (cycle[i] / FRAMES) * LOCK; }
+        if (dt > 0) {
+          if (out.speed < 0.08) { s.frame = STAND; s.lock = 0; }
+          else { const ph = s.d / cycle[i] * FRAMES, fi = Math.floor(ph); s.frame = ((fi % FRAMES) + FRAMES) % FRAMES; s.lock = -(ph - fi - 0.5) * (cycle[i] / FRAMES) * LOCK; }
+        }
         show(i, true, out.fx * s.lock, out.fz * s.lock);
         // side view mostly perpendicular to the camera, front when walking toward it, back when walking away (45 degree sectors, hysteresis at the edges)
         const c = (out.fx * (out.x - cam.x) + out.fz * (out.z - cam.z)) / (Math.hypot(out.x - cam.x, out.z - cam.z) || 1), v = vw[i];
