@@ -24,6 +24,6 @@ print(js(r'''(async () => {
   const spots = furnitureSpots(stops, curve);
   const props = a.filter(box => [PALETTE.trunk, PALETTE.leaf, PALETTE.red].includes(box.color) && box.w < 3 || (box.w === 0.16 && box.h === 3));
   const bad = props.filter(box => spots.some(s => Math.hypot(s.xz[0] - box.x, s.xz[1] - box.z) < 2.5));
-  check(spots.length > stops.length && props.length > 0 && bad.length === 0, `furniture overlaps plaque/sign: ${bad.length}`);
+  check(spots.length > stops.length && props.length > 0 && bad.length === 0, `furniture overlaps reserved clearance: ${bad.length}`);
   return { pass: true, props: props.length, boxes: a.length, heroBoxes: hero.length, colors: [...new Set(a.map(b => b.color))].length, heroStone };
 })()'''))

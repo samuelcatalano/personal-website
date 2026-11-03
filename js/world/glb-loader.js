@@ -5,6 +5,7 @@ import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
 // so scene.js calls initGlbLoader(renderer) once; GLBs without KTX2 textures load fine either way.
 let renderer, ktx2;
 export const initGlbLoader = (r) => { renderer = r; };
+export const isGlbLoaderReady = () => Boolean(renderer);
 // The Basis transcoder ships with the pinned three build; resolve it through the importmap so the version never drifts.
 const transcoderPath = () => new URL('./', import.meta.resolve('three/addons/libs/basis/basis_transcoder.js')).href;
 export function loadGlb(url) {

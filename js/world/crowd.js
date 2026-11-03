@@ -22,7 +22,7 @@ export function makeLook(r) {
   };
 }
 // Lane offsets sit on the pavement (ROAD.padIn..padOut), inside the sign posts at ROAD.furniture; inner and outer lanes walk opposite ways.
-const IN = ROAD.padIn + 0.4, OUT = ROAD.padIn + 1.05, LANES = [[IN, 1], [OUT, -1], [-IN, -1], [-OUT, 1]];
+const IN = ROAD.padIn + 0.35, OUT = ROAD.padIn + 1.35, LANES = [[IN, 1], [OUT, -1], [-IN, -1], [-OUT, 1]];
 const LONDON_HOTSPOTS = new Set(['thames', 'thames-front']);
 const THAMES_TRACKS = Object.freeze({
   '1:adult': Object.freeze({ inset: 0.65, speed: 0.78 }),
@@ -71,7 +71,7 @@ export function crowdPlan(stops, pts, seed, count = 1000) {
   const keys = [], plan = Array.from({ length: baseCount }, (_, i) => {
     const look = makeLook(r), onLane = i % 10 < 7;
     let path, key;
-    if (onLane) { const l = pick(r, lanes); path = { ...l, offset: l.offset + between(r, -0.3, 0.3) }; key = `lane${l.offset}`; } // spread across the pavement, not single file
+    if (onLane) { const l = pick(r, lanes); path = { ...l, offset: l.offset + between(r, -0.08, 0.08) }; key = `lane${l.offset}`; } // separate counterflow lanes while retaining small personal offsets
     else {
       const l = pick(r, loops), dir = r() < 0.5 ? 1 : -1, inset = between(r, 0.6, 1.6);
       const track = l.name === 'thames' ? thamesTrack(look, dir) : null;

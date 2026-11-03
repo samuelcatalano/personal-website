@@ -23,7 +23,7 @@ export function createParked(scene, { curve, pts, stops, pilotCrossings }) {
   const ready = loadFleetCatalog().then((catalog) => Promise.all(spots.map(async (c, i) => {
     const model = regionalFleetModel(catalog, c.uk ? 'uk' : 'br', spots.slice(0, i).filter((o) => o.uk === c.uk).length + (c.uk ? 1 : 0));
     if (!model || disposed) return;
-    const car = new THREE.Group(); car.name = 'parked'; car.position.set(c.x, 0, c.z); car.rotation.y = c.yaw;
+    const car = new THREE.Group(); car.name = 'parked'; car.position.set(c.x, 0.07, c.z); car.rotation.y = c.yaw;
     await upgradeFleet(car, model, { body: c.paint, parked: true, isDisposed: () => disposed });
     if (!disposed && car.userData.fleetModel) group.add(car);
   })));

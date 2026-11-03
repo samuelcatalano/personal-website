@@ -8,7 +8,7 @@ The recorded REA of bridglabs.com described a Vite + React 19 shell, a lazy Thre
 
 - Static HTML, CSS and native ES modules; no build step or npm.
 - Three.js `0.169.0` is pinned in the import map in `index.html`, loaded from jsDelivr only when WebGL is available.
-- Inter is loaded from Google Fonts. Company plaques and Big Ben clock faces use canvas textures; roadside year/section signs were removed. Current visual state and final technical gate: [3D city architecture](architecture/3d-city.md).
+- Inter is loaded from Google Fonts. Big Ben clock faces use canvas textures; branded career plaques were removed by owner request on 2026-11-03. Existing transit and route signage remains unchanged; roadside year/section signs were already removed. Current visual state and final technical gate: [3D city architecture](architecture/3d-city.md).
 - GitHub Pages serves the repository root. Site links and assets use relative paths.
 - User-facing copy and journey stop data live in `js/content.js` in English and Portuguese.
 
@@ -35,7 +35,7 @@ js/world/glasgow.js        George Square, City Chambers and Duke of Wellington s
 js/world/saopaulo.js       São Paulo landmarks and Brazil-era skyline
 js/world/{bus,figure}.js   vehicles and closing figure
 js/world/{people,crowd,sprites}.js deterministic pedestrian plan, movement and atlas sprites
-js/world/{signs,phone,houses}.js signs, phone boxes and house geometry helpers
+js/world/{phone,houses}.js phone boxes and house geometry helpers
 js/world/{sky,water,ambient,beams,textures,palette,post}.js environment, lighting effects, materials and postprocessing
 tests/*.test.mjs           node:test checks for content, route/camera logic and procedural geometry
 tests/*.browser.py         browser checks for scene, landmarks, vehicles, people, fallback and visual regressions
@@ -43,7 +43,7 @@ tests/*.browser.py         browser checks for scene, landmarks, vehicles, people
 
 ## Data and interfaces
 
-- `stops` is the ordered route and panel index. Each item has `id`, `section`, `year`, and `country`; journey stops also have a `brand` monogram/color. Stops do not carry a `t`: route progress is derived from array position. Localized panel copy is in `i18n[lang].sections` and `i18n[lang].stops`.
+- `stops` is the ordered route and panel index. Each item has `id`, `section`, `year`, and `country`; journey stops also have a `brand` monogram/color for the accessible HTML panel. The 11 branded 3D career plaques no longer render; their former anchors remain placement clearances without replacement objects. Stops do not carry a `t`: route progress is derived from array position. Localized panel copy is in `i18n[lang].sections` and `i18n[lang].stops`.
 - `sectionStart(section)` returns the first stop index for a section. `SECTIONS` defines the section order used by navigation and content tests.
 - `scroll.js` exports `progressFromScroll(scrollY, scrollHeight, viewport)`, `nearestStop(progress, count)`, `routeT(progress, count)`, `scrollYForStop(index, count, scrollHeight, viewport)` and `watchScroll(callback)`. The callback receives progress only.
 - `initUI({ onGoto, onTheme })` renders the current panel and returns `{ theme, setActive(index) }`. Language and theme preferences use guarded `localStorage` access. Keyboard `j`/`k`, buttons and section links navigate by stop index.
@@ -53,7 +53,7 @@ tests/*.browser.py         browser checks for scene, landmarks, vehicles, people
 
 `main.js` sets the scroll track to `stops.length * 100vh`, paints the panel immediately, probes `webgl2`, then dynamically imports `world/scene.js`. A failed probe or world import adds `no-webgl`; the canvas is hidden and the CSS gradient remains behind the usable HTML panel. The fallback does not draw a static skyline.
 
-`scene.js` builds a Catmull–Rom route from one world point per stop and assembles the city, landmarks, vehicles, people, water, plaques, sky and closing figure. Existing lot descriptors remain source of truth. The approved five archetypes use deterministic recipes, shared atlas/materials and chunk-local mass/trim/glass merging; compatible citywide rollout is complete. Supported townhouse geometry uses cached LOD0/1 and AABB hysteresis. Standard culling remains per pass. See [current architecture](architecture/3d-city.md) and [final observed budgets](architecture/rendering-budget.md) for counts, controls, preserved lots and release status; the old16-batch pilot is no longer the production path. Landmark modernization is dedicated geometry sharing existing surfaces; map topology, route and approved lot envelopes remain preserved.
+`scene.js` builds a Catmull–Rom route from one world point per stop and assembles the city, landmarks, vehicles, people, water, sky and closing figure. Existing lot descriptors remain source of truth. The approved five archetypes use deterministic recipes, shared atlas/materials and chunk-local mass/trim/glass merging; compatible citywide rollout is complete. Supported townhouse geometry uses cached LOD0/1 and AABB hysteresis. Standard culling remains per pass. See [current architecture](architecture/3d-city.md) and [final observed budgets](architecture/rendering-budget.md) for counts, controls, preserved lots and release status; the old16-batch pilot is no longer the production path. Landmark modernization is dedicated geometry sharing existing surfaces; map topology, route and approved lot envelopes remain preserved.
 
 The rear infill street stays behind z=-100 and clears the university, museum backdrop and countryside hills. `backdrop.js` adds six denser staggered neighborhood rows behind z=-110, with simpler muted blocks farther away, green transitions around the countryside, and ground extending beyond the fog horizon. Its separate instanced group casts no shadows; tests cap it below 2,500 boxes. Fog fades from 240 to 900 m by day and 180 to 680 m by night, scaled by the regional mood. New raised scenery stays behind the backmost landmark footprint or entirely west of all route cameras and landmark footprints. The latter fills the starting-side neighborhood and a small corner shop without intersecting any landmark sightline. Urban paving fills the distant blocks while countryside bands remain green; paving tiles meet without coplanar overlap.
 

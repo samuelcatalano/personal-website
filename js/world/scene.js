@@ -34,7 +34,6 @@ import { createParked } from './parked.js';
 import { parkingBays } from './bays.js';
 import { createPeople } from './people.js';
 import { createNpc3d } from './npc3d.js';
-import { createSigns } from './signs.js';
 import { buildFigure } from './figure.js';
 import { SECTION_SHOT, shotFor, blendShots, spring, approach, nextTier } from './camera.js';
 import { updateBeams, addBeams, refitBeams } from './beams.js';
@@ -56,6 +55,7 @@ export const applyHeroPose = (group, position, lateral, heading) => {
 export async function createWorld(canvas, stops, { reducedMotion = false, onProgress = () => {} } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   Object.assign(renderer, { toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: EXPOSURE, outputColorSpace: THREE.SRGBColorSpace });
+  initGlbLoader(renderer);
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xa8d0f2);
@@ -136,12 +136,10 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   if (npc3d === null ? matchMedia('(min-width: 768px) and (pointer: fine)').matches : npc3d !== '0') units.push(await createNpc3d(scene, { curve, pts, stops }));
   const water = createWater({ x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z: RIVER_Z, width: 22, reducedMotion });
   scene.add(water.mesh);
-  units.push(await createSigns(scene, { stops, curve }));
   let disposed = false, raf = 0, landmarksReady = false, startupLandmarksCancelled = false;
   initVehicleEnv(renderer); upgradeMini(mini, { isDisposed: () => disposed }).then(() => refitBeams(mini)); upgradeBus(londonBus, 'london', { isDisposed: () => disposed }).then(() => refitBeams(londonBus)); upgradeBus(glasgowBus, 'glasgow', { isDisposed: () => disposed }).then(() => refitBeams(glasgowBus)); // authored shared London/Glasgow bus GLB
   loadVehicleAsset('a330').then((glb) => { if (glb && !disposed) adoptVisual(plane, glb, ['nav', 'strobe']); }); // authored A330 (tools/vehicles/a330); procedural stays on failure
   const wake = () => { if (landmarksReady && !disposed && !raf && !document.hidden) raf = requestAnimationFrame(frame); };
-  initGlbLoader(renderer);
   const startupLandmarks = [];
   let bigBenLod = null; // authored Big Ben LOD0/LOD1 (tools/landmarks/bigben); the procedural group stays hidden underneath as fallback
   const bigben = details.getObjectByName('bigben-geometry');
@@ -223,6 +221,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const bp = curve.getPointAt(t), tan = curve.getTangentAt(t);
     lateral.set(tan.z, 0, -tan.x).normalize().multiplyScalar(BUS_LANE);
     applyHeroPose(bus, bp, lateral, Math.atan2(-tan.z, tan.x));
+    bus.position.y += 0.07;
     Object.assign(busPos, { x: bp.x + lateral.x, y: bp.y, z: bp.z + lateral.z });
     if (prevBus.x !== null) { // hero wheels roll with the distance travelled along the road (signed: scrolling back unrolls them)
       const ds = (busPos.x - prevBus.x) * tan.x + (busPos.z - prevBus.z) * tan.z;

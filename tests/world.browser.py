@@ -29,30 +29,6 @@ try:
 finally:
     js("window.__renderWorld?.dispose(); delete window.__renderWorld; delete window.__renderCanvas; delete window.__waitForBuffer")
     cdp('Emulation.clearDeviceMetricsOverride')
-print(js("""(async () => {
-  const THREE = await import('three');
-  const { createSigns } = await import('./js/world/signs.js');
-  const { routePoints, routeCurve } = await import('./js/world/layout.js');
-  const { stops } = await import('./js/content.js');
-  const pts = routePoints(stops.length);
-  const curve = routeCurve(THREE, pts);
-  const scene = new THREE.Scene();
-  const signs = await createSigns(scene, { stops, curve });
-  const before = scene.children.filter(o => o.isSprite).map(o => o.position.toArray().join());
-  signs.update({ progress: 0.5, active: 3, bus: { x: 99, y: 0, z: 99 } });
-  const moved = scene.children.filter(o => o.isSprite).some((o, i) => o.position.toArray().join() !== before[i]);
-  const distance = moved ? 1 : 0;
-  if (moved) throw Error('Company plaques must stay planted');
-  const plaques = stops.filter(s => s.brand).length;
-  if (before.length !== plaques || scene.children.length !== plaques * 2) throw Error('Only company plaques and their poles should remain');
-  scene.traverse(o => {
-    o.geometry?.dispose();
-    for (const material of (Array.isArray(o.material) ? o.material : [o.material])) {
-      material?.map?.dispose(); material?.dispose();
-    }
-  });
-  return { signBoundaryPositionDelta: distance };
-})()"""))
 cdp('Emulation.setDeviceMetricsOverride', width=375, height=812, deviceScaleFactor=1, mobile=True)
 try:
     print(js("""(async () => {

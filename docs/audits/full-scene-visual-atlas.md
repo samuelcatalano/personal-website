@@ -127,3 +127,7 @@ Heathrow removed (site rebuilt as riverside); A330 now an independent 40 m flyov
 ## Trees and existing plantings — 2026-10-31
 
 Updated desktop assessment: tree crowns **B+** (five readable silhouettes with detailed near geometry and family-matched distant impostors); park/hero/country planting **B+** (shared low-poly flower, shrub, and hedge meshes add depth to existing beds). Existing understory ellipsoids and ground-cover palette remain. A single clear-weather contact sheet covers São Paulo, London, the countryside transition, and Glasgow, day/night. In the sampled views, London Eye, Big Ben, Estaiada, and Glasgow landmarks remain legible. This is a visual review, not an isolated before/after comparison; no performance grade is assigned without a matched renderer profile. See the [capture and structural counts](../architecture/rendering-budget.md#tree-and-planting-refresh--2026-10-31).
+
+## Career plaques — 2026-11-03
+
+Owner-authorized removal of all 11 branded career plaques is implemented in scene assembly; there are no replacement objects. Former anchors remain placement clearances. Transit/route signage and the accessible HTML career panel (localized details and decorative initials) remain unchanged. This records scope and source state, not a new visual approval or measured performance result.

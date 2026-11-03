@@ -77,13 +77,13 @@ export const scotRange = (stops) => {
   const pts = routePoints(stops.length), e = stopIndex(stops, LANDMARKS.eye), g = stopIndex(stops, LANDMARKS.glasgow), [out, back] = regions(stops, pts);
   return [(e + ((out.ctry[0] + out.ctry[1]) / 2 - pts[e].x) / (pts[g].x - pts[e].x)) / (stops.length - 1), (g + (back.scot[1] - pts[g].x) / (pts[g + 1].x - pts[g].x)) / (stops.length - 1)];
 };
-// Plaque + year-sign anchors [x, z, kind]; shared by signs.js (placement) and city.js (clearance).
+// Furniture and former career-plaque anchors retained as placement clearances.
 export function furnitureSpots(stops, curve) {
   const out = [], n = stops.length - 1;
   stops.forEach((s, i) => {
     const p = curve.getPointAt(i / n), t = curve.getTangentAt(i / n), last = i === n;
     const at = (k, a) => [p.x - t.z * k + t.x * a, p.z + t.x * k + t.z * a];
-    if (s.brand) out.push({ i, kind: 'plaque', xz: at(11.5, 7) });
+    if (s.brand) out.push({ i, kind: 'clearance', xz: at(11.5, 7) });
     out.push({ i, kind: 'sign', xz: at(last ? 9 : ROAD.furniture, last ? 2 : -5) });
   });
   return out;

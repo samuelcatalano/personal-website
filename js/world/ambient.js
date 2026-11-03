@@ -87,7 +87,7 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
   // Ponte Estaiada, two cars each way: 'in' cars take the avenue's oncoming lane, turn onto the S-ramp and cross to the far-bank ground;
   // 'out' cars come back over the river, down the ramp and away along the avenue. Spawns/despawns only happen BRIDGE_FAR m from the player.
   const er = estaiadaRoute(pts[stopIndex(stops, LANDMARKS.estaiada)].x, curve, RIVER_Z), uIn = er.uj + 9 / len, uOut = er.uj - 9 / len;
-  const laneAt = (u, o = new THREE.Vector3()) => { const p = curve.getPointAt(Math.min(1, Math.max(0, u))), t = curve.getTangentAt(Math.min(1, Math.max(0, u))); return o.set(p.x - 1.75 * t.z, p.y, p.z + 1.75 * t.x); }; // oncoming lane
+  const laneAt = (u, o = new THREE.Vector3()) => { const p = curve.getPointAt(Math.min(1, Math.max(0, u))), t = curve.getTangentAt(Math.min(1, Math.max(0, u))); return o.set(p.x - 1.75 * t.z, p.y + 0.07, p.z + 1.75 * t.x); }; // oncoming lane
   const side = (q, o) => new THREE.Vector3(q.x - q.tz * o, q.y + 0.12, q.z + q.tx * o); // o m right of travel far -> near, on the asphalt
   const paths = {
     in: new THREE.CatmullRomCurve3([3, 2, 1].map((k) => laneAt(er.uj + k * 3 / len)).concat(er.stations.slice().reverse().map((q) => side(q, -1.75)))),
@@ -211,7 +211,7 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
         if (v.livery) { const livery = v.regionBus && t < swap ? 'sao-paulo' : t >= scotIn && t < scotOut ? 'glasgow' : 'london'; if (livery !== v.livery && v.mesh.userData.wheels) { reskinBus(v.mesh, livery); v.livery = livery; } } // buses wear the livery of the region they are in, also after a respawn or past a region border
         const p = curve.getPointAt(t), tan = curve.getTangentAt(t);
         nrm.set(tan.z, 0, -tan.x).normalize();
-        v.mesh.position.copy(p).addScaledVector(nrm, v.lane);
+        v.mesh.position.copy(p).addScaledVector(nrm, v.lane).setY(0.07);
         const ds = (v.mesh.position.x - v.x) * Math.cos(v.mesh.rotation.y) - (v.mesh.position.z - v.z) * Math.sin(v.mesh.rotation.y); // signed travel along the heading
         if (Math.abs(ds) < 5 && !(v.regionBus && v.regionSwap?.phase === 'loading')) rollWheels(v.mesh.userData.wheels ?? [], ds); // wheels roll; skip respawn jumps and the hidden model load
         v.x = v.mesh.position.x; v.z = v.mesh.position.z;

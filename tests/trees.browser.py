@@ -2,7 +2,7 @@
 tab=new_tab('about:blank');activate_tab(tab);cdp('Network.enable');cdp('Network.setCacheDisabled',cacheDisabled=True);goto_url('http://localhost:8000/');wait_for_load()
 print(js(r'''(async () => {
   const T = await import('three');
-  const { createTrees } = await import('./js/world/trees.js');
+  const { createProceduralTrees } = await import('./js/world/trees.js');
   const { canopyGeometry } = await import('./js/world/tree-mesh.js');
   const { buildCity } = await import('./js/world/city.js');
   const { buildLandmarks } = await import('./js/world/landmarks.js');
@@ -20,7 +20,7 @@ print(js(r'''(async () => {
   const countTrunk = (...b) => { if (b[6] === P.trunk) expected++; };
   const countTree = () => expected++;
   buildCity(countTrunk, stops, pts, routeCurve(T,pts), countTree); buildLandmarks(countTrunk, stops, pts, countTree);
-  const regionOf = treeRegion(stops, pts), mesh = await createTrees(placements, regionOf), check = (ok, msg) => { if (!ok) throw Error(msg); };
+  const regionOf = treeRegion(stops, pts), mesh = await createProceduralTrees(placements, regionOf), check = (ok, msg) => { if (!ok) throw Error(msg); };
   const batches = mesh.userData.batches;
   check(batches?.length && batches.every(b => b.lods.length===3 && b.lods[0].canopy && b.lods[1].canopy && b.lods[2].impostor), 'tree chunks expose detailed, simplified and impostor LODs');
   const canopies = batches.flatMap(b => [b.lods[0].canopy]), trunks = batches.flatMap(b => [b.lods[0].trunk]);

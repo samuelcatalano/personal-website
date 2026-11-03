@@ -20,6 +20,10 @@ Production flow and policies below remain authoritative. Dated boundaries and in
 
 Known limits: physical mobile not validated; WebGL/browser scheduling, runtime/GPU and random cloud counts affect observed metrics; submitted triangles include multiple passes, not unique geometry; London Eye remains segmented. No physical-VRAM or universal-FPS guarantee. Five smoke shots (main/skyline/Wembley/London/MASP) show no new visual regression; final technical release remains blocked as above.
 
+## Career-plaque removal — 2026-11-03
+
+The owner authorized removal of all 11 branded career plaques (PUC/AP/IG/TQ/ME/RA/MM/XD/OLM/OLM/TW) from the 3D scene. No replacement objects are authorized yet. The former anchors remain clearance reservations, preserving surrounding placement. Existing transit/route signage and the accessible HTML career panel, including EN/PT details and decorative initials, remain unchanged.
+
 ## Source of truth and flow
 
 Existing lot descriptors remain the source of truth: ID, kind, position, footprint and maximum height. Preserve generated map data, routes, landmarks, walking paths and logic. Replace the authorized lot's renderer, never layer duplicate buildings onto it.

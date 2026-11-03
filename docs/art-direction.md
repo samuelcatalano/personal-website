@@ -70,3 +70,7 @@ The user reopened the rural Glasgow/country fill and distant horizon: replace fa
 ## Tree and planting refresh — 2026-10-31
 
 The owner reopened the graphical quality of existing trees and plantings. Tree placement, centres, height/clearance envelopes, paths, garden footprints, and landmark views remain fixed. Five procedural crown families (round, columnar, spreading, flowering, conifer) now have distinct LOD0/LOD1 geometry and matching LOD2 impostor silhouettes. Existing park beds use shared instanced flowers, shrubs, and hedges; hero and rural pocket gardens reuse low planting within their existing lawns. Variation is deterministic; no external image assets or dependencies were added. This update supersedes the prior tree note only where it described a single billboarding style or a single understory batch.
+
+## Owner-supplied tree models — 2026-11-03
+
+The owner authorized replacing the five procedural tree silhouettes with deterministic authored trees. Desktop review found variants from the supplied Mighty Oak and Tree GN GLBs still read as sparse, fragmented foliage at game scale, so both are excluded from runtime. The full-canopy Realistic Tree is used at existing tree placements with two instanced geometry LODs and a single-tile impostor atlas. Existing tree centres, footprints, paths, height/landmark-clearance envelopes and understory planting remain fixed. Preparation, optimization and attribution are recorded in `tools/vegetation/README.md` and `ASSET_SOURCES.md`.

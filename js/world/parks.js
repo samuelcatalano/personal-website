@@ -228,6 +228,17 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
       if (S < 7 || (mainPath && Math.abs(v) < 3.2) || (cross && Math.abs(u) < 3.2) || !clearOfSigns(u, v) || hit(u, v, 1.2, 1.2, 0) || taken.some(([a, b, d]) => Math.hypot(a - u, b - v) < d + 1.6)) continue;
       taken.push([u, v, 1.6]); onTree(x, z, { h: 2.7 + hs * 0.5, crown: 2 + hs * 0.4 });
     }
+    // Fixed inner-row candidates densify the broad start park without shifting the park RNG.
+    const innerTrees = orig === PARKS[1] ? [-20, -16, -12, -8, -4, 4, 8, 12, 16, 20] : [];
+    if (onTree) for (const u of innerTrees) for (const f of [-1, 1]) {
+      const v = f * (S / 2 - 4.2), [x, z] = world(u, v);
+      if (mainPath && Math.abs(v) < 3.2 || cross && Math.abs(u) < 3.2 || !fits(u, v, 1.2, 1.2)
+        || taken.some(([a, b, d]) => Math.hypot(a - u, b - v) < d + 1.6)
+        || occ.some(([x0, x1, z0, z1]) => x + 1.2 > x0 && x - 1.2 < x1 && z + 1.2 > z0 && z - 1.2 < z1)) continue;
+      const hs = Math.abs(Math.sin(u * 12.9898 + v * 78.233 + park.x0) * 43758.5453) % 1;
+      taken.push([u, v, 1.6]);
+      onTree(x, z, { h: 2.7 + hs * 0.5, crown: 2 + hs * 0.4 });
+    }
     if (hero) onPublicRealm(orig);
     made.push(park);
   }

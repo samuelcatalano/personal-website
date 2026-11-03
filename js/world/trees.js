@@ -1,5 +1,8 @@
 import * as THREE from 'three';
 import { canopyGeometry, trunkGeometry, leafTexture, impostorGeometry, impostorTexture, FAMILIES } from './tree-mesh.js';
+import { isGlbLoaderReady } from './glb-loader.js';
+import { createAuthoredTrees } from './authored-trees.js';
+import { addTreeUnderstory } from './tree-understory.js';
 
 // Five crown families (round broadleaf, columnar, spreading, flowering, conifer), one InstancedMesh per part per family per 160 m chunk (frustum-culled) + one understory batch.
 // Positions and crown footprints come from placements; canopy diameter never exceeds placement.crown. Family, tint and proportions are a pure function of
@@ -26,7 +29,7 @@ function familyOf(region, x, z) {
 const TINTS = [0x73934e, 0x638652, 0x879f58, 0x9a9c57, 0x6e915b, 0x597c4b]; // legacy palette (no region)
 const hsl = {};
 
-export async function createTrees(placements, regionOf = null) {
+export async function createProceduralTrees(placements, regionOf = null) {
   const group = new THREE.Group(); group.name = 'trees';
   const leaves = leafTexture(), canopyMat = new THREE.MeshLambertMaterial({ vertexColors: true, map: leaves, alphaTest: 0.5, side: THREE.DoubleSide }); // leaf cards: alpha-tested, shadows cut out too
   const wind = { value: 0 }; // gentle crown sway: tops move most, phase from instance position; the clock is frozen under reduced motion
@@ -78,18 +81,7 @@ export async function createTrees(placements, regionOf = null) {
     }
   }
   // Understory stays inside existing canopy footprints; no new obstacle/path placement.
-  const low = placements.flatMap((p, i) => (i % 3 === 0 && (p.base ?? 0.1) < 0.3 ? [{ p, i, side: -1 }, { p, i, side: 1 }] : []));
-  let shrubs;
-  if (low.length) {
-    shrubs = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), new THREE.MeshLambertMaterial({ color: 0xffffff, flatShading: true }), low.length); // faceted: a smooth pale sphere read as a boulder
-    shrubs.name = 'tree-understory'; shrubs.receiveShadow = true;
-    low.forEach(({ p, i, side }, k) => {
-      const radius = p.crown * 0.16;
-      o.position.set(p.x + side * p.crown * 0.17, (p.base ?? 0.1) + 0.24, p.z + Math.sin(i) * p.crown * 0.05); o.rotation.set(0, 0, 0); o.scale.set(radius, 0.22, radius * 0.83); o.updateMatrix();
-      shrubs.setMatrixAt(k, o.matrix); shrubs.setColorAt(k, new THREE.Color([0x3a5a32, 0x4a6a34, 0x55703c][Math.floor(i / 3) % 3]).offsetHSL(0, 0, ((i * 0.618) % 1 - 0.5) * 0.06)); // under the canopy: darker, greener, varied
-    });
-    shrubs.userData.sourceIndices = low.map((e) => e.i); shrubs.computeBoundingBox(); shrubs.computeBoundingSphere(); group.add(shrubs);
-  }
+  const shrubs = addTreeUnderstory(group, placements);
   group.userData.batches=batches;
   group.userData.update = (camera, time = 0) => {
     wind.value=time;
@@ -110,4 +102,11 @@ export async function createTrees(placements, regionOf = null) {
     if (shrubs) { shrubs.geometry.dispose(); shrubs.material.dispose(); }
   };
   return group;
+}
+
+export async function createTrees(placements, regionOf = null) {
+  if (isGlbLoaderReady()) {
+    try { return await createAuthoredTrees(placements); } catch { /* Existing procedural forest remains the safe fallback. */ }
+  }
+  return createProceduralTrees(placements, regionOf);
 }

@@ -1,0 +1,21 @@
+{
+  "blender": "5.2.3 LTS",
+  "variants": [
+    {
+      "variant": "realistic-tree",
+      "source": "realistic_tree.glb",
+      "lod0": 4200,
+      "lod1": 1100
+    }
+  ],
+  "impostorAtlas": "tree-impostors.png",
+  "tile": 128,
+  "assets": {
+    "realistic-tree.glb": {
+      "bytes": 1222136
+    },
+    "tree-impostors.png": {
+      "bytes": 21490
+    }
+  }
+}
