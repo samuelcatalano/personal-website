@@ -101,8 +101,9 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const t = treePlacements[i], radius = t.crown / 2;
     if (infill.some(p => Math.abs(t.x - p.x) < p.width / 2 + radius && Math.abs(t.z - p.z) < p.depth / 2 + radius)) treePlacements.splice(i, 1);
   }
+  const lampClearance = lampSpots(), kioskClearance = kioskSpots();
   const arc = parkingBays(curve, pts, stops, pilotCrossings); // shared by the street props and the road marks
-  const streetProps = placeStreetProps({ stops, pts, curve, arc, pilotCrossings, boxes: list, trees: treePlacements, lamps: lampSpots(), kiosks: kioskSpots(), plots: [...architecturePlots, ...buildingPlots], exclude: publicRealmZones });
+  const streetProps = placeStreetProps({ stops, pts, curve, arc, pilotCrossings, boxes: list, trees: treePlacements, lamps: lampClearance, kiosks: kioskClearance, plots: [...architecturePlots, ...buildingPlots], exclude: publicRealmZones });
   let trees;
   try { trees = await createTrees(treePlacements, treeRegion(stops, pts)); scene.add(trees); }
   catch { treePlacements.forEach(({ x, z, ...shape }) => tree(add, x, z, shape)); } // retain trees if the texture cannot load
@@ -122,7 +123,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const frustum = new THREE.Frustum(), pv = new THREE.Matrix4(), sphere = new THREE.Sphere(), ray = new THREE.Raycaster();
   for (const v of candidates) addBeams(v, v.userData.front, v.userData.beamY);
   const WIN_L = '#2b2621', RG = '#27394b', RB = '#c9ccd1'; // Glasgow Uni windows, Riverside glass + band
-  const world = buildMeshes(list, { glow: [P.lit, '#ffd86b', '#fff7c2', P.arch, WIN_L, RG, RB], glowK: { [P.arch]: 1.1, [WIN_L]: 1.0, [RG]: 0.55, [RB]: 0.2 } });
+  const world = buildMeshes(list, { glow: [P.lit, '#ffd86b', '#fff7c2', P.arch, WIN_L, RG, RB], glowK: { [P.arch]: 1.1, [WIN_L]: 1.0, [RG]: 0.55, [RB]: 0.2 }, grass: { trees: treePlacements, plots: architecturePlots, lamps: lampClearance, kiosks: kioskClearance } });
   world.traverse((o) => { const h = o.material?.color?.getHexString(); if (o.material?.userData.glow) { if (h === WIN_L.slice(1)) o.material.userData.glowColor = new THREE.Color('#ffb04a'); if (h === RG.slice(1)) o.material.userData.glowColor = new THREE.Color('#d8e86a'); if (h === RB.slice(1)) o.material.userData.glowColor = new THREE.Color('#bcd4ff'); } });
   const landmarkEnv = createLandmarkEnv(renderer);
   polishLandmarkMaterials(world,stops,pts,landmarkEnv);

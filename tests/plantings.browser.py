@@ -6,13 +6,18 @@ print(js(r'''(async () => {
   const { createPlantGeometry } = await import('./js/world/plant-mesh.js');
   const { buildCity } = await import('./js/world/city.js');
   const { buildParks } = await import('./js/world/parks.js');
+  const { lampSpots } = await import('./js/world/street-lamp.js');
+  const { kioskSpots } = await import('./js/world/phone.js');
   const { stops } = await import('./js/content.js');
   const { routePoints, routeCurve } = await import('./js/world/layout.js');
   const check = (ok, msg) => { if (!ok) throw Error(msg); };
-  const pts = routePoints(stops.length), curve = routeCurve(T, pts), fallback = [];
-  buildCity((...box) => fallback.push(box), stops, pts, curve);
+  const pts = routePoints(stops.length), curve = routeCurve(T, pts), fallback = [], trees = [], plots = [], fallbackPlots = [];
+  const addTree = (x, z, shape) => trees.push({ x, z, ...shape });
+  buildCity((...box) => fallback.push(box), stops, pts, curve, addTree, null, plot => fallbackPlots.push(plot));
   const boxes = createBoxes();
-  buildCity(boxes.add, stops, pts, curve);
+  buildCity(boxes.add, stops, pts, curve, addTree, null, plot => plots.push(plot));
+  const lamps = lampSpots(), kiosks = kioskSpots();
+  check(JSON.stringify(plots) === JSON.stringify(fallbackPlots), 'real-city building plots remain deterministic');
   const plants = boxes.list.filter(b => b.plant), ordinary = boxes.list.filter(b => !b.plant);
   const kinds = ['flower', 'shrub', 'hedge'];
   check(kinds.every(kind => plants.some(p => p.plant === kind)), 'parks emit flower, shrub and hedge instances');
@@ -35,16 +40,18 @@ print(js(r'''(async () => {
   }
   check(JSON.stringify(ordinary.map(b => [b.x,b.y,b.z,b.w,b.h,b.d,b.color,b.ry ?? 0])) === JSON.stringify(expected.map(b => [b[0],b[1],b[2],b[3],b[4],b[5],b[6],b[7] ?? 0])), 'ordinary box records and yaw remain unchanged');
 
-  const group = buildMeshes(boxes.list), repeated = buildMeshes(boxes.list), plantMeshes = group.children.filter(m => m.userData.plantKind), boxMeshes = group.children.filter(m => !m.userData.plantKind);
+  const grassOptions = { trees, plots, lamps, kiosks };
+  const group = buildMeshes(boxes.list, { grass: grassOptions }), repeated = buildMeshes(boxes.list, { grass: grassOptions }), plantMeshes = group.children.filter(m => m.userData.plantKind), boxMeshes = group.children.filter(m => !m.userData.plantKind);
   check(group.userData.list.length === ordinary.length && group.userData.list.every(b => !b.plant), 'box test list remains box-only');
-  check(plantMeshes.length === kinds.length && new Set(plantMeshes.map(m => m.userData.plantKind)).size === kinds.length, 'one instanced batch per plant kind');
-  check(new Set(plantMeshes.map(m => m.geometry)).size === kinds.length && new Set(plantMeshes.map(m => m.material)).size === kinds.length, 'one shared geometry and material per plant kind');
+  check(plantMeshes.length === kinds.length + 1 && new Set(plantMeshes.map(m => m.userData.plantKind)).size === kinds.length + 1 && plantMeshes.some(m => m.userData.plantKind === 'grass'), 'one instanced batch per plant kind, including grass');
+  check(new Set(plantMeshes.map(m => m.geometry)).size === kinds.length + 1 && new Set(plantMeshes.map(m => m.material)).size === kinds.length + 1, 'one shared geometry and material per plant kind');
   check(boxMeshes.length === new Set(expected.map(b => b[6])).size && boxMeshes.reduce((n,m) => n + m.count, 0) === ordinary.length, 'ordinary box batches retain their color counts');
-  for (const kind of kinds) {
+  for (const kind of [...kinds, 'grass']) {
     const a = plantMeshes.find(m => m.userData.plantKind === kind), b = repeated.children.find(m => m.userData.plantKind === kind), geometry = createPlantGeometry(kind);
     const bounds = geometry.boundingBox;
     check(bounds.min.x >= -0.5-1e-5 && bounds.max.x <= 0.5+1e-5 && bounds.min.z >= -0.5-1e-5 && bounds.max.z <= 0.5+1e-5 && Math.abs(bounds.min.y) < 1e-5 && bounds.max.y <= 1+1e-5, `${kind} normalized ground-origin bounds`);
-    check(a.count === plants.filter(p => p.plant === kind).length && a.instanceColor?.count === a.count, `${kind} uses tinted plant instances`);
+    check(a.count === b.count && (kind === 'grass' || a.count === plants.filter(p => p.plant === kind).length) && a.count > 0 && a.instanceColor?.count === a.count, `${kind} uses deterministic tinted plant instances`);
+    if (kind === 'grass') check(a.geometry.getAttribute('position').count / 3 === 20 && !a.castShadow && !a.receiveShadow, 'grass uses five double-sided 3D blade clumps without shadow-pass cost');
     check(a.geometry === b.geometry && a.material === b.material && a.geometry !== geometry, `${kind} uses cached shared geometry and material`);
     geometry.dispose();
   }
@@ -61,5 +68,10 @@ print(js(r'''(async () => {
       check(m.elements.every((v,j) => Math.abs(v-want.elements[j]) < 1e-4), `box batch transform/yaw remains unchanged for ${color}`);
     });
   }
-  return { pass:true, plants:plants.length, parkPlants:parkBoxes.list.filter(b => b.plant).length, plantBatches:plantMeshes.length, boxBatches:boxMeshes.length, boxes:ordinary.length };
+  const grassMesh = plantMeshes.find(m => m.userData.plantKind === 'grass');
+  const grassPoints = Array.from({ length: grassMesh.count }, (_, i) => { grassMesh.getMatrixAt(i, m); return [m.elements[12], m.elements[14]]; });
+  check(grassPoints.every(([x,z]) => plots.every(p => Math.abs(x-p.x) >= p.width/2+0.5 || Math.abs(z-p.z) >= p.depth/2+0.5)), 'grass clears real-city building footprints');
+  check(grassPoints.every(([x,z]) => lamps.every(([a,b]) => Math.abs(x-a) >= 0.68 || Math.abs(z-b) >= 0.68)), 'grass clears separate streetlamp bases');
+  check(grassPoints.every(([x,z]) => kiosks.every(([a,b]) => Math.abs(x-a) >= 0.95 || Math.abs(z-b) >= 0.95)), 'grass clears separate phone box footprints');
+  return { pass:true, plants:plants.length, trees:trees.length, grassTufts:grassMesh.count, grassTriangles:grassMesh.count * 20, parkPlants:parkBoxes.list.filter(b => b.plant).length, plantBatches:plantMeshes.length, boxBatches:boxMeshes.length, boxes:ordinary.length };
 })()'''))

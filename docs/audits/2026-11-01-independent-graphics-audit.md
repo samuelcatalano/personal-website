@@ -99,3 +99,25 @@ The 3D crowd could select walkers using stale sprite visibility after a large ca
 A failed São Paulo bus upgrade could apply its light metadata to the already loaded London model. The metadata update now requires the requested asset to be active. Desktop `vehicles.browser.py` passed, including the failed replacement scenario; an actual visible lighting defect from this path was not established. Commit: `c88e3d1`.
 
 A subsequent clean-worktree sample at `3599e49` is recorded in [hardware current](../evidence/2026-11-01-landmark-audit/hardware-current-3599e49.json). At stops 5/11/13, median frame intervals were 8.35/8.3/8.4 ms and p95 16.7/16.7/16.8 ms. Draws per world frame were approximately 1214/1143/1142 and submitted triangles 10.81/9.56/8.39 million. The comparable `6a95915` baseline, automated quality tier, asynchronous loading and limited samples constrain attribution; these measurements do not establish GPU execution time or guarantee absence of regression.
+
+## 2026-11-03 continuation — vegetation and render defects
+
+Desktop-only work on the existing `feat/site-gamefication` checkout; no commit made. The user requested a real tree/grass approach and a continuation of the graphics audit. The local preview remained available on port 8000.
+
+### Vegetation
+
+Inspection confirmed the existing trees are actual volumetric geometry for LOD0/LOD1 across five procedural crown families; the distant LOD2 atlas impostor is intentional. No tree asset replacement was needed. The flat green ground was the missing piece: `plant-mesh.js` now supplies each grass tuft with five curved ribbon blades (20 triangles), and `voxel.js` places them deterministically on existing low green ground boxes in a shared instanced batch. The placement mask excludes voxel obstacles, existing plants and trees, real-city building plots, streetlamp bases and phone-box footprints. The lamp and kiosk position lists are copied before their builders consume them.
+
+`tests/plantings.browser.py` passed on desktop: 16,531 tufts / 330,620 triangles, one grass batch, four shared planting batches total; ordinary box transforms remain unchanged. The grass batch has shadow casting/receiving disabled. Matched desktop captures cover all 18 integer stops plus stop 9.5, day and night (38 images) at `/tmp/codex-graphics-route-after-20261103/`; a focused post-mask recapture of stops 5, 9.5 and 11, day and night, is at `/tmp/codex-vegetation-grass-verified/`. The sampled blades are visible on lawns and green verges; paths and the sampled landmark silhouettes remain clear. Static stops do not validate grass during camera motion.
+
+The 16,531 count is a structural source-path count, not the final visible-instance count. One city-wide `InstancedMesh` has coarse object-level frustum culling, so all 330,620 grass triangles may be submitted whenever its combined bounds are visible. No paired frame-time, GPU, memory or draw-call profile was collected; this pass makes no performance guarantee. Mobile was not captured or tested.
+
+### Other confirmed rendering findings
+
+- **Bus glazing:** `BusGlass` used a near-black tint and 0.96 base opacity while the Fresnel shader pushes grazing angles to 1. The shared material was adjusted to a lighter blue-green tint and 0.82 opacity; the existing night saloon glow and cache remain. Current London/Glasgow day/night captures show the windows stay tinted and the existing glow remains; the night glass is still intentionally dark. No separate bus-only automated test was added.
+- **NPC clothing / cuffs:** Blender inspection confirms a V-shaped clothing patch comes from diffuse texture `plain_male_casualsuit04`; `plain_top()` repaints only faces whose vertices are all inside the torso UV/part mask, leaving mixed boundary faces. A second artifact is proxy skin crossing shirt cuffs because `hide_covered()` retains partly covered faces. Several geometry edits were tested in temporary Blender previews but caused holes, stains, flaps or doubled sleeves. No unvalidated GLB or source edit was accepted. NPC appearance remains open.
+- **Trees:** the prior LOD review found no reproducible pop; only a hypothesis about impostor lighting remains. The audit did not alter tree placement or lighting.
+
+### Audit status
+
+The complete fixed-stop route was recaptured in desktop day/night after the prior fixes, and selected vegetation views were rechecked after correcting the obstacle-list lifetime. This still does not cover continuous approach/pass/recede motion, unobstructed NPC close-ups and walk-cycle review, or a controlled hardware performance comparison against the same revision. The overall graphics audit remains **in progress**; no mobile validation or performance guarantee is claimed.

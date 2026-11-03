@@ -20,7 +20,7 @@ Budgets are set by **screen size × importance**, not by maximizing resolution. 
 | Airplane | 80–300 px, brief | ≤ 4k | ≤ 6 | none | fuselage 16 |
 | Standard building | 50–400 px | existing archetype budgets (see rendering-budget) | chunk mass/trim/glass | 2 mats / 4 maps | — |
 | Public realm prop | 5–40 px | ≤ 200 each, instanced | per type batch | none | 6–8 |
-| Vegetation | 15–120 px | procedural LOD0/LOD1 crowns + LOD2 impostors; low planting instanced by kind | chunked tree family/LOD batches; 3 planting-kind batches | procedural 512×128 leaf-card texture + 640×128 five-family impostor atlas; no new files | — |
+| Vegetation | 15–120 px | procedural LOD0/LOD1 crowns + LOD2 impostors; curved 3D grass-blade tufts; other low planting instanced by kind | chunked tree family/LOD batches; 4 shared planting-kind batches | procedural 512×128 leaf-card texture + 640×128 five-family impostor atlas; no new files | — |
 | Background object | < 30 px | boxes | instanced buckets | none | — |
 
 The source-faithful hero Mini uses 96 circumferential tire segments and shallow tread grooves; this is a per-asset exception to the typical wheel segment counts above.

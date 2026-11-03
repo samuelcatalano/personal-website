@@ -43,6 +43,16 @@ export function createPlantGeometry(kind) {
     ]) octahedron(positions, colors, x,y,z,rx,ry,rz,hex);
   } else if (kind === 'hedge') {
     for (const x of [-0.32,-0.16,0,0.16,0.32]) octahedron(positions, colors, x,0.37,0,0.14,0.37,0.42, x ? P.hedge : P.leaf);
+  } else if (kind === 'grass') {
+    const greens = [P.field2, P.field, P.grass, '#7d9c4e', P.leaf];
+    for (let i = 0; i < 5; i++) {
+      const a = i * Math.PI * 2 / 5 + 0.23, dx = Math.cos(a), dz = Math.sin(a), px = -dz, pz = dx;
+      const bend = 0.32 + (i % 3) * 0.035, height = 0.72 + (i % 3) * 0.09;
+      const section = (r, y, halfWidth) => [[dx*r - px*halfWidth,y,dz*r - pz*halfWidth],[dx*r + px*halfWidth,y,dz*r + pz*halfWidth]];
+      const base = section(0.025, 0, 0.05), mid = section(bend * 0.52, height * 0.55, 0.03), tip = section(bend, height, 0.004);
+      quad(positions, colors, base[0], base[1], mid[1], mid[0], greens[i]);
+      quad(positions, colors, mid[0], mid[1], tip[1], tip[0], greens[i]);
+    }
   } else throw new Error(`Unknown plant kind: ${kind}`);
 
   const geometry = new THREE.BufferGeometry();

@@ -270,6 +270,12 @@ Focused desktop/browser validation after the vegetation update:
 
 No matched before/after renderer profile was collected, so draw-call delta, GPU/frame-time impact, and memory delta are unknown. Counts above are focused structural checks, not whole-scene totals or a performance guarantee. The captures were taken with pre-existing architecture edits also present in the working tree, so they are visual evidence of the integrated desktop state, not an isolated vegetation A/B.
 
+## Real grass blades — 2026-11-03
+
+`tests/plantings.browser.py` builds the city box path with tree placements and reports 16,531 deterministic grass tufts (20 triangles each; 330,620 triangles total), sharing one geometry/material in one additional instanced batch. Existing flowers, shrubs, and hedges remain three separate shared batches. Grass placement uses inset low green ground boxes and skips intersections with box geometry, plant bounds, tree footprints, separately-rendered building plots, streetlamp bases, and phone-box footprints; the grass batch has cast/receive shadows disabled. The test reports the source-path sample only; landmark-added trees and final visible/frustum counts may differ at runtime.
+
+One desktop capture pass covers stops 5, 9.5, and 11 in day/night at `/tmp/codex-vegetation-grass-verified/`. Visual review found blade tufts visible on lawns and roadside green strips, while paved paths and sampled landmark silhouettes remain clear. `tests/plantings.browser.py` passed. This is a structural count, not an isolated before/after GPU benchmark: frame time, physical-GPU cost, and total-scene memory were not measured. Mobile was not checked.
+
 ## Architectural infill — 2026-10-31
 
 The 24 urban lots and eight countryside homes increase the citywide browser measurement from the prior documented 628 lots / 183 chunks / 549 architecture renderables / 781,928 submitted triangles / 142.35 MiB to 660 / 185 / 555 / 830,256 / 161.15 MiB. Delta: +32 lots, +2 chunks, +6 renderables, +48,328 triangles (+6.2%) and +18.80 MiB geometry attributes (+13.2%). The result stays below the existing 180 MiB geometry check and keeps two shared architecture materials / four maps. This is a structural comparison, not a paired frame-time benchmark; frame time and physical-GPU performance were not measured. Desktop citywide and family browser checks passed; the 14-view day/night route capture is in `/tmp/architecture-density-final/` with a four-view Glasgow recheck in `/tmp/architecture-density-glasgow-final/`. Mobile and rain were not checked.
