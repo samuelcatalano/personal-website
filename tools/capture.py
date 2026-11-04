@@ -5,6 +5,15 @@
 #      QUERY (extra query string, e.g. "weather=rain"), GRID=1 (also write grid.png of all shots).
 # Needs the local server: python3 -m http.server 8000
 import os, time
+# Software-GL pages (SwiftShader) can hold Runtime.evaluate past the default 30 s: evaluate calls get a 900 s response timeout.
+def js(expression):
+    r = cdp('Runtime.evaluate', expression=expression, returnByValue=True, awaitPromise=True, _response_timeout=900)
+    if 'exceptionDetails' in r: raise RuntimeError(str(r['exceptionDetails'])[:400])
+    return r['result'].get('value')
+def wait_load():
+    for _ in range(240):
+        if js("document.readyState") == 'complete': break
+        time.sleep(.5)
 OUT = os.environ['OUT']; os.makedirs(OUT, exist_ok=True)
 URL = os.environ.get('URL', 'http://localhost:8000/') + (('?' + os.environ['QUERY']) if os.environ.get('QUERY') else '')
 WAIT, MOBILE = float(os.environ.get('WAIT', 7)), os.environ.get('MOBILE') == '1'
@@ -12,10 +21,10 @@ shots = [(s.split(':') + ['day'])[:2] for s in os.environ.get('SHOTS', '5:day').
 t = new_tab('about:blank'); TAB = t if isinstance(t, str) else t.get('targetId', t); activate_tab(TAB)  # background tabs do not render
 cdp('Network.enable'); cdp('Network.setCacheDisabled', cacheDisabled=True)
 if MOBILE: cdp('Emulation.setDeviceMetricsOverride', width=375, height=812, deviceScaleFactor=2, mobile=True)
-goto_url(URL); wait_for_load()
+goto_url(URL); wait_load()
 files = []
 for stop, theme in shots:
-    js("localStorage.setItem('theme','%s')" % theme); goto_url(URL); wait_for_load()
+    js("localStorage.setItem('theme','%s')" % theme); goto_url(URL); wait_load()
     for _ in range(80):
         if js("document.body.classList.contains('world-ready')"): break
         time.sleep(.5)
