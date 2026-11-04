@@ -6,6 +6,7 @@ print(js(r'''(async () => {
   const check = (ok, message) => { if (!ok) throw Error(message); };
   let ready = false;
   const figure = buildFigure(() => { ready = true; });
+  figure.userData.showMemoji(); // The Memoji is the backup, shown only if the character fails to load.
   const body = figure.getObjectByName('memoji');
   check(figure.isGroup && body?.isMesh && body.geometry.type === 'PlaneGeometry', 'figure must be a Group with a Memoji plane');
   figure.updateMatrixWorld(true);

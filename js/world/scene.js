@@ -52,6 +52,22 @@ export const applyHeroPose = (group, position, lateral, heading) => {
   group.rotation.y = heading;
 };
 
+// Owner's request: the corner where the closing character stands is open pavement, no lawn or trees.
+const BODY_TURN = .42; // radians, marked by the owner: at the frame's edge, facing the camera exactly reads as turned away.
+const CORNER = { x0: 801.6, x1: 816, z0: -1.5, z1: 9 };
+const inClosingCorner = (x, z) => x > CORNER.x0 && x < CORNER.x1 && z > CORNER.z0 && z < CORNER.z1;
+const isGreen = (color) => { const c = new THREE.Color(color); return c.g > c.r * 1.1 && c.g > c.b * 1.1; };
+const clearClosingCorner = (add) => Object.assign((x, y, z, w, h, d, color, ry = 0, ...rest) => {
+  const reach = Math.abs(w * Math.cos(ry)) / 2 + Math.abs(d * Math.sin(ry)) / 2, across = Math.abs(w * Math.sin(ry)) / 2 + Math.abs(d * Math.cos(ry)) / 2;
+  const overlaps = x + reach > CORNER.x0 && x - reach < CORNER.x1 && z + across > CORNER.z0 && z - across < CORNER.z1;
+  if (!overlaps || !isGreen(color)) return add(x, y, z, w, h, d, color, ry, ...rest);
+  // Trim along the box's own length, keeping what lies before the corner; lawns run lengthwise.
+  const cut = (CORNER.x0 - x) / Math.cos(ry), kept = cut + w / 2;
+  if (kept <= 0) return undefined;
+  const middle = (cut - w / 2) / 2;
+  return add(x + middle * Math.cos(ry), y, z - middle * Math.sin(ry), kept, h, d, color, ry, ...rest);
+}, add, { plant: (kind, x, y, z, ...rest) => { if (!inClosingCorner(x, z)) add.plant(kind, x, y, z, ...rest); } });
+
 export async function createWorld(canvas, stops, { reducedMotion = false, onProgress = () => {} } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   Object.assign(renderer, { toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: EXPOSURE, outputColorSpace: THREE.SRGBColorSpace });
@@ -86,27 +102,28 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   backdrop.traverse(o => { o.castShadow = o.receiveShadow = false; });
   scene.add(backdrop);
   const { add, list } = createBoxes();
+  const cornerAdd = clearClosingCorner(add);
   const treePlacements = [], buildingPlots = [], architecturePlots = [], publicRealmZones = [];
-  const { lamps, pilotCrossings } = buildCity(add, stops, pts, curve, (x, z, shape) => treePlacements.push({ x, z, ...shape }), plot => buildingPlots.push(plot), plot => architecturePlots.push(plot), zone => publicRealmZones.push(zone));
+  const { lamps, pilotCrossings } = buildCity(cornerAdd, stops, pts, curve, (x, z, shape) => treePlacements.push({ x, z, ...shape }), plot => buildingPlots.push(plot), plot => architecturePlots.push(plot), zone => publicRealmZones.push(zone));
   const heroRealm=publicRealmZones.length?createHeroRealm():null;
   if(heroRealm)scene.add(heroRealm);
   const realCity = buildRealCity(architecturePlots);
   resetFloodlights(); // landmark builders re-register their night floodlight boxes
-  const { eye, details } = buildLandmarks(add, stops, pts, (x, z, shape) => treePlacements.push({ x, z, ...shape }));
+  const { eye, details } = buildLandmarks(cornerAdd, stops, pts, (x, z, shape) => treePlacements.push({ x, z, ...shape }));
   const plane = buildVehicle('a330'), planeAt = ukStart(stops) / (n - 1), { nav, strobe, shadow } = plane.userData; // flies past the bus at the first UK stop
   plane.visible = shadow.visible = nav.visible = strobe.visible = false;
   // Only the explicitly marked garden lots give way to new buildings.
   const infill = architecturePlots.filter(p => p.replaceGarden);
   for (let i = treePlacements.length - 1; i >= 0; i--) {
     const t = treePlacements[i], radius = t.crown / 2;
-    if (infill.some(p => Math.abs(t.x - p.x) < p.width / 2 + radius && Math.abs(t.z - p.z) < p.depth / 2 + radius)) treePlacements.splice(i, 1);
+    if (inClosingCorner(t.x, t.z) || infill.some(p => Math.abs(t.x - p.x) < p.width / 2 + radius && Math.abs(t.z - p.z) < p.depth / 2 + radius)) treePlacements.splice(i, 1);
   }
   const lampClearance = lampSpots(), kioskClearance = kioskSpots();
   const arc = parkingBays(curve, pts, stops, pilotCrossings); // shared by the street props and the road marks
   const streetProps = placeStreetProps({ stops, pts, curve, arc, pilotCrossings, boxes: list, trees: treePlacements, lamps: lampClearance, kiosks: kioskClearance, plots: [...architecturePlots, ...buildingPlots], exclude: publicRealmZones });
   let trees;
   try { trees = await createTrees(treePlacements, treeRegion(stops, pts)); scene.add(trees); }
-  catch { treePlacements.forEach(({ x, z, ...shape }) => tree(add, x, z, shape)); } // retain trees if the texture cannot load
+  catch { treePlacements.forEach(({ x, z, ...shape }) => tree(cornerAdd, x, z, shape)); } // retain trees if the texture cannot load
   const phones = await buildPhoneBoxes(); if (phones) scene.add(phones);
   const lampPosts = await buildLampPosts(); if (lampPosts) scene.add(lampPosts);
   const propsGroup = await buildStreetProps(streetProps); if (propsGroup) scene.add(propsGroup); // before createSky: the Belisha globes join its night glow loop
@@ -155,9 +172,13 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   if (new URLSearchParams(location.search).has('qa')) globalThis.__qaLandmarks = { se, masp, startupLandmarks };
   const wellington = details.getObjectByName('wellington-geometry');
   if (wellington) upgradeWellington(wellington, () => disposed).then(wake);
-  const figure = buildFigure(wake);
+  const figure = buildFigure(wake, { reducedMotion });
   const end = curve.getPointAt(1), endTan = curve.getTangentAt(1), near = new THREE.Vector3(-endTan.z, 0, endTan.x).normalize();
-  figure.position.set(end.x + endTan.x * 9 + near.x * 2, 0, end.z + endTan.z * 9 + near.z * 2);
+  // ponytail: chosen at load; the phone's panel would cover the desktop corner, so it stays nearer the bus.
+  const [spotT, spotN] = matchMedia('(max-width: 767px)').matches ? [7, 6] : [10.8, 9.6];
+  figure.position.set(end.x + endTan.x * spotT + near.x * spotN, 0, end.z + endTan.z * spotT + near.z * spotN);
+  const toCamT = -1.6 - spotT, toCamN = 31 - spotN; // measured: the closing shot's camera along the route
+  figure.userData.facing = Math.atan2(near.x * toCamN + endTan.x * toCamT, near.z * toCamN + endTan.z * toCamT) + BODY_TURN;
   scene.add(figure);
   const pools = createLampPools(scene, lamps);
   const sky = createSky(scene, { hemi, sun, reducedMotion }), moodAt = createMood(stops), rain = createRain(scene, { reducedMotion, lamps });
@@ -165,6 +186,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   let wet = 0;
   const post = createPost(renderer, scene, camera, { sun, tier: reducedMotion || matchMedia('(max-width: 767px)').matches ? 'medium' : 'high' });
   if (qa) globalThis.__qaPost = post;
+  if (qa) globalThis.__qaFigure = { figure, camera, end, endTan, near };
   let fpsT = 0, fpsN = 0, settle = 3, slowWindows = 0, night = 0, nightTarget = 0, mobile = false;
   const bar = document.querySelector('.bar'), panel = document.querySelector('#panel');
   let fitKey = '';
@@ -285,6 +307,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const f = { camera, time: clock, dt, progress: p, t, active: nearestStop(p, n, marks), bus: busPos };
     onProgress(p);
     people.update(dt, camera.position);
+    figure.userData.update(dt, camera, night);
     for (const u of units) u.update(f);
     trees?.userData.update(camera, clock);
     night = reducedMotion || dt === 0 ? nightTarget : approach(night, nightTarget, dt, 1.4);
@@ -336,6 +359,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     },
     dispose() {
       disposed = true;
+      figure.userData.dispose();
       for (const u of units) u.dispose?.();
       cancelAnimationFrame(raf); raf = 0;
       removeEventListener('resize', resize);
