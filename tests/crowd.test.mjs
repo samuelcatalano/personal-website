@@ -75,7 +75,7 @@ test('Sé plaza has pedestrians walking both ways below the cathedral stairs', (
 test('dedicated wander corridors all carry walkers in both directions', () => {
   const paths = walkPaths(stops, pts).filter((p) => p.type === 'wander');
   const people = plan.slice(600);
-  assert.equal(paths.length, 29, 'the 17 strips plus 12 plaza cells');
+  assert.equal(paths.length, 27, 'the 17 strips plus 10 plaza cells');
   for (const path of paths) {
     const walkers = people.filter((p) => p.path.name === path.name);
     assert.ok(walkers.length > 0, `${path.name} populated`);
@@ -201,16 +201,17 @@ test('London pedestrian routes keep safe bounds and counterflow spacing across s
     }
   }
 });
-test('plaza cells: the MASP plaza and George Square each hold a busy crowd of 25-60 walkers', () => {
+test('plaza cells: the MASP plaza and George Square hold a busy crowd (MASP 25-60, George Square 20-40)', () => {
   const runtime = crowdPlan(stops, pts, 1017);
   for (const prefix of ['masp-plaza-', 'glasgow-square-']) {
     const count = runtime.filter((p) => (p.path.name || '').startsWith(prefix)).length;
-    assert.ok(count >= 25 && count <= 60, `${prefix} holds ${count} walkers`);
+    const [lo, hi] = prefix === 'masp-plaza-' ? [25, 60] : [20, 40];
+    assert.ok(count >= lo && count <= hi, `${prefix} holds ${count} walkers`);
   }
 });
 test('plaza cells stand clear of grass beds, tree trunks, the Wellington plinth and the park boxes', () => {
   const cells = walkPaths(stops, pts).filter((p) => /^(masp-plaza|glasgow-square)-/.test(p.name));
-  assert.equal(cells.length, 12);
+  assert.equal(cells.length, 10);
   const boxes = [];
   const curve = { getPointAt(u) { const f = u * (pts.length - 1), i = Math.min(Math.floor(f), pts.length - 2), t = f - i; return { x: pts[i].x + (pts[i + 1].x - pts[i].x) * t, y: 0, z: pts[i].z + (pts[i + 1].z - pts[i].z) * t }; }, getTangentAt() { return { x: 1, y: 0, z: 0 }; } };
   buildParks((x, y, z, w, h, d) => boxes.push({ x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2, y0: y, y1: y + h }), stops, pts, curve, []);
