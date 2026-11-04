@@ -6,7 +6,7 @@ import { LANDMARKS, ROAD, RIVER_Z, stopIndex, underpassFrames } from './layout.j
 import { HX as UNDERPASS_HALF_LENGTH, ARCH_HALF_WIDTH } from './underpass.js';
 const { FRAMES, COLS, FB_COLS, ROWS, strideOf } = SP;
 // Walking-emoji pedestrians: canvas-drawn sprites (side, front and back views) in two atlas textures, ONE InstancedMesh of cylindrical billboards (+ one for soft shadows). Paths come from crowd.js (pure data).
-const NEAR = 140, INSET = 0.6, FEET = 0.02, PAVE_TOP = 0.1, SEED = 1017, VARIANTS = 28, STAND = 2, LOCK = 0.6; // sprite looks; the standing frame (legs passing)
+const SEP_NEAR = 140, SEP_FAR = 150, VIEW_FAR = 900, VIEW_MARGIN = 3, INSET = 0.6, FEET = 0.02, PAVE_TOP = 0.1, SEED = 1017, VARIANTS = 28, STAND = 2, LOCK = 0.6; // sprite looks; the standing frame (legs passing); VIEW_FAR = scene fog end (nothing visible beyond it); VIEW_MARGIN = sprite radius for the frustum test
 const TURN_DISTANCE = 1.2;
 const CROWD_CELL = 0.9, CROWD_GAP = 0.82, CROWD_PUSH = 0.55; // shortcut: plaza sidesteps cap at 0.55 m, raise only if visual review still shows overlaps
 const KIOSK_CLEARANCE = 1.3; // Kiosk half-diagonal, sprite radius and one maximum lane crowd push
@@ -14,6 +14,13 @@ const PORTAL_MARGIN = 0.2, PORTAL_BLEND = 6, FRAME_MARGIN = 2; // keep the whole
 const LOOP_TURN_RADIUS = 0.75; // soften rectangular plaza turns without changing their footprint
 const turnDistance = (d) => { const t = Math.min(1, d / TURN_DISTANCE); return TURN_DISTANCE * t * t * (2 - t); };
 const turnSpeed = (d) => { const t = Math.min(1, d / TURN_DISTANCE); return t * (4 - 3 * t); };
+// Drawn inside the view distance (no short radius: the fog hides the far edge) and, when a frustum is given, inside its planes with a sprite-sized margin (point at 1 m height).
+const inView = (dx, dz, x, z, frustum) => {
+  if (dx * dx + dz * dz > VIEW_FAR * VIEW_FAR) return false;
+  if (!frustum) return true;
+  for (const p of frustum.planes) { const n = p.normal; if (n.x * x + n.y + n.z * z + p.constant < -VIEW_MARGIN) return false; }
+  return true;
+};
 // The sharp atlas (about 80 MB of textures) only where the screen and GPU can afford it; phones get the 1x one (about 40 MB).
 const sharp = () => { try { const gl = document.createElement('canvas').getContext('webgl2'); return !matchMedia('(max-width: 767px)').matches && (navigator.deviceMemory ?? 8) >= 4 && !!gl && gl.getParameter(gl.MAX_TEXTURE_SIZE) >= 4096; } catch { return false; } };
 
@@ -137,7 +144,7 @@ gl_Position = projectionMatrix * mvPosition;`);
   scene.add(crowd, shadow);
   const A = crowd.instanceMatrix.array, I = info.array;
   const st = plan.map((q, i) => ({ s: q.s0 * perim(q.path), d: q.s0 * 40, pace: 1, vis: true, h: q.look.height, frame: STAND, lock: 0 }));
-  const px = new Float32Array(N), pz = new Float32Array(N), fx = new Float32Array(N), fz = new Float32Array(N), near = new Uint8Array(N), pushX = new Float32Array(N), pushZ = new Float32Array(N), cells = new Map();
+  const px = new Float32Array(N), pz = new Float32Array(N), fx = new Float32Array(N), fz = new Float32Array(N), sep = new Float32Array(N), pushX = new Float32Array(N), pushZ = new Float32Array(N), cells = new Map();
   const laneX = new Float32Array(N), laneZ = new Float32Array(N), laneNX = new Float32Array(N), laneNZ = new Float32Array(N);
   const rememberLane = (i) => { laneX[i] = out.x - out.nx * out.offset; laneZ[i] = out.z - out.nz * out.offset; laneNX[i] = out.nx; laneNZ[i] = out.nz; };
   const avoidKiosks = (i) => {
@@ -173,7 +180,7 @@ gl_Position = projectionMatrix * mvPosition;`);
   flag();
   return {
     count: N, meshes: [crowd, shadow], ready, get atlasMs() { return atlasMs; },
-    update(dt, cam) {
+    update(dt, cam, frustum = null) { // frustum: optional THREE.Frustum-like planes; without it only the view distance applies
       if (reducedMotion || dt < 0) dt = 0;
       plan.forEach(({ look: k, path }, i) => {
         const s = st[i]; s.s += path.dir * k.speed * dt / Math.max(1, s.pace);
@@ -181,9 +188,9 @@ gl_Position = projectionMatrix * mvPosition;`);
         if (path.type === 'lane') rememberLane(i);
         s.pace = out.speed; walkPace[i] = Math.min(1, out.speed); s.d += k.speed * walkPace[i] * dt;
         px[i] = out.x; pz[i] = out.z; fx[i] = out.fx; fz[i] = out.fz;
-        near[i] = Math.hypot(out.x - cam.x, out.z - cam.z) <= NEAR + CROWD_GAP ? 1 : 0;
-        if (!near[i]) return;
-        if (dt > 0) {
+        const t = Math.min(1, Math.max(0, (SEP_FAR - Math.hypot(out.x - cam.x, out.z - cam.z)) / (SEP_FAR - SEP_NEAR)));
+        sep[i] = t * t * (3 - 2 * t); // smoothstep: separation eases out with zero slope at both edges, so no push jump at a distance edge
+        if (dt > 0) { // every walker keeps its walk cycle (cheap), so nobody is frozen at a distance
           if (out.speed < 0.08) { s.frame = STAND; s.lock = 0; }
           else { const ph = s.d / cycle[i] * FRAMES, fi = Math.floor(ph); s.frame = ((fi % FRAMES) + FRAMES) % FRAMES; s.lock = -(ph - fi - 0.5) * (cycle[i] / FRAMES) * LOCK; }
         }
@@ -191,18 +198,18 @@ gl_Position = projectionMatrix * mvPosition;`);
       pushX.fill(0); pushZ.fill(0);
       for (let pass = 0; pass < 6; pass++) {
         cells.clear();
-        for (let i = 0; i < N; i++) if (near[i]) {
+        for (let i = 0; i < N; i++) if (sep[i] > 0) {
           const cx = Math.floor(px[i] / CROWD_CELL), cz = Math.floor(pz[i] / CROWD_CELL), key = `${cx},${cz}`;
           let bucket = cells.get(key); if (!bucket) cells.set(key, bucket = []); bucket.push(i);
         }
-        for (let i = 0; i < N; i++) if (near[i]) {
+        for (let i = 0; i < N; i++) if (sep[i] > 0) {
           const cx = Math.floor(px[i] / CROWD_CELL), cz = Math.floor(pz[i] / CROWD_CELL);
           for (let x = cx - 1; x <= cx + 1; x++) for (let z = cz - 1; z <= cz + 1; z++) for (const j of cells.get(`${x},${z}`) || []) if (j < i) {
             let dx = px[i] - px[j], dz = pz[i] - pz[j], d2 = dx * dx + dz * dz;
             if (d2 >= CROWD_GAP * CROWD_GAP) continue;
             let d = Math.sqrt(d2);
             if (d < 1e-3) { const a = (i * 127 + j * 311) * 0.017; dx = Math.cos(a); dz = Math.sin(a); d = 0; }
-            const amount = (CROWD_GAP - d) * 0.5 / (d || 1);
+            const amount = (CROWD_GAP - d) * 0.5 * Math.min(sep[i], sep[j]) / (d || 1);
             push(i, dx * amount, dz * amount); push(j, -dx * amount, -dz * amount);
           }
         }
@@ -210,8 +217,7 @@ gl_Position = projectionMatrix * mvPosition;`);
       for (let i = 0; i < N; i++) {
         avoidKiosks(i);
         out.x = px[i]; out.z = pz[i]; out.fx = fx[i]; out.fz = fz[i];
-        const visible = near[i] && Math.hypot(px[i] - cam.x, pz[i] - cam.z) <= NEAR;
-        if (!visible) { show(i, false); continue; }
+        if (!inView(px[i] - cam.x, pz[i] - cam.z, px[i], pz[i], frustum)) { show(i, false); continue; }
         const s = st[i]; show(i, true, out.fx * s.lock, out.fz * s.lock);
         // side view mostly perpendicular to the camera, front when walking toward it, back when walking away (45 degree sectors, hysteresis at the edges)
         const c = (out.fx * (out.x - cam.x) + out.fz * (out.z - cam.z)) / (Math.hypot(out.x - cam.x, out.z - cam.z) || 1), v = vw[i];

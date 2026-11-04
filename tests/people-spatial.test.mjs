@@ -95,3 +95,88 @@ test('lane turns cap overspeed and keep the walk pace matched to route distance'
   assert.ok(Math.abs(speed - 0.76) < 0.04, `turn peak should remain at route speed, got ${speed.toFixed(3)} m/s`);
   assert.equal(crowd.userData.walkPace[0], 1, 'animation pace follows the capped route speed through the turn');
 });
+
+// Visibility: walkers are drawn by view distance and frustum only (no short radius), so a crowd is complete on arrival.
+function loadPeople(plan) {
+  class Geometry { translate() { return this; } rotateX() { return this; } setAttribute(k, v) { this[k] = v; } }
+  class Attribute { constructor(array) { this.array = array; } setUsage() { return this; } }
+  class Mesh { constructor(geometry, material, n) { this.geometry = geometry; this.material = material; this.userData = {}; this.instanceMatrix = new Attribute(new Float32Array(n * 16)); } }
+  const SP = { FRAMES: 8, COLS: 1, FB_COLS: 1, ROWS: 1, strideOf: () => 1, setScale() {}, buildAtlas: () => new Promise(() => {}), CELL_W: 1, CELL_H: 1, GROUND: 1, S: 1 };
+  const context = vm.createContext({ SP, crowdPlan: () => plan, chooseVariants: () => ({ variants: [], of: plan.map(() => 0) }),
+    estaiadaRoute: () => ({ stations: [{ x: 0, z: 0 }] }), LANDMARKS: { estaiada: 0 }, RIVER_Z: 0, stopIndex: () => 0,
+    underpassFrames: () => [], UNDERPASS_HALF_LENGTH: 7.5, ARCH_HALF_WIDTH: 5.5,
+    THREE: { DataTexture: class {}, PlaneGeometry: Geometry, CircleGeometry: Geometry, InstancedBufferAttribute: Attribute, InstancedMesh: Mesh, MeshLambertMaterial: class {}, MeshBasicMaterial: class {} }, performance });
+  const source = readFileSync(new URL('../js/world/people.js', import.meta.url), 'utf8').replace(/^import .*;.*$/gm, '').replace(/^export /gm, '');
+  vm.runInContext(source, context);
+  const curve = { getPoint(t) { return { x: 100 * t, z: 0, distanceTo(p) { return Math.abs(this.x - p.x); } }; } };
+  return context.createPeople({ add() {} }, { curve, pts: [{ x: 0 }], stops: [], hd: false });
+}
+// A walker standing exactly at (x, z) on a 10 m loop, walking +x at 1 m/s.
+const walker = (x, z) => ({ s0: 0, look: { height: 1, speed: 1 }, path: { type: 'loop', dir: 1, inset: 0, rect: { x0: x - 0.75, x1: x + 9.25, z0: z, z1: z + 10 } } });
+// THREE.Frustum-shaped planes (inward normals): camera at the origin looking down +x with a 90 degree horizontal view.
+const SQRT_HALF = Math.SQRT1_2;
+const eastView = { planes: [[SQRT_HALF, 0, -SQRT_HALF, 0], [SQRT_HALF, 0, SQRT_HALF, 0], [1, 0, 0, -1], [-1, 0, 0, 2000], [0, 1, 0, 200], [0, -1, 0, 200]]
+  .map(([x, y, z, constant]) => ({ normal: { x, y, z }, constant })) };
+
+test('walkers in view are drawn out to the view distance; walkers outside the frustum are hidden', () => {
+  const people = loadPeople([walker(250, 0), walker(-250, 0), walker(950, 0)]);
+  const A = people.meshes[0].instanceMatrix.array;
+  people.update(0, { x: 0, z: 0 }, eastView);
+  assert.ok(A[0] > 0, 'a walker 250 m ahead inside the view is drawn');
+  assert.equal(A[16], 0, 'a walker behind the camera is outside the frustum and hidden');
+  assert.equal(A[32], 0, 'a walker beyond the 900 m view distance is hidden');
+});
+
+test('without a frustum only the view distance applies', () => {
+  const people = loadPeople([walker(250, 0), walker(950, 0)]);
+  const A = people.meshes[0].instanceMatrix.array;
+  people.update(0, { x: 0, z: 0 });
+  assert.ok(A[0] > 0, 'a walker 250 m away is drawn');
+  assert.equal(A[16], 0, 'a walker 950 m away is hidden');
+});
+
+test('a group 250-265 m ahead is already drawn before the camera gets close', () => {
+  const plan = Array.from({ length: 8 }, (_, k) => walker(250 + k * 2, k % 2 ? 3 : -3));
+  const people = loadPeople(plan);
+  const A = people.meshes[0].instanceMatrix.array;
+  const drawn = () => plan.reduce((count, _, i) => count + (A[i * 16] > 0 ? 1 : 0), 0);
+  people.update(0, { x: 0, z: 0 });
+  const far = drawn();
+  people.update(0, { x: 200, z: 0 });
+  assert.equal(far, 8, `all 8 walkers should be drawn at 250 m, got ${far}`);
+  assert.equal(drawn(), 8);
+});
+
+test('walkers beyond the old 140 m radius keep their walk cycle and keep walking', () => {
+  const people = loadPeople([walker(300, 0)]);
+  const I = people.meshes[0].geometry.aInfo.array, A = people.meshes[0].instanceMatrix.array;
+  people.update(0, { x: 0, z: 0 }, eastView);
+  const x0 = A[12], frames = new Set();
+  for (let k = 0; k < 10; k++) { people.update(0.1, { x: 0, z: 0 }, eastView); frames.add(I[0] % 8); }
+  assert.ok(frames.size > 3, `walk frames should cycle at 300 m, saw ${[...frames]}`);
+  assert.ok(A[12] > x0, 'the walker keeps moving along the route');
+});
+
+test('separation eases out between 140 and 150 m instead of jumping at the edge', () => {
+  const people = loadPeople([walker(0, 0), walker(0, 0)]); // two walkers on the same spot
+  const route = people.meshes[0].userData.route;
+  let last = null, worst = 0;
+  for (let d = 120; d <= 170.0001; d += 0.05) {
+    people.update(0, { x: d, z: 0 });
+    const here = [route.x[0], route.z[0]];
+    if (last) worst = Math.max(worst, Math.hypot(here[0] - last[0], here[1] - last[1]));
+    last = here;
+  }
+  assert.ok(worst < 0.01, `largest step ${worst.toFixed(4)} m for 5 cm of camera travel`);
+});
+
+test('after a camera jump the drawn crowd does not grow over the next 3 s', () => {
+  const plan = Array.from({ length: 40 }, (_, k) => walker(40 + (k % 5) * 20, (k % 8) * 8 - 28));
+  const people = loadPeople(plan);
+  const A = people.meshes[0].instanceMatrix.array;
+  const drawn = () => plan.reduce((count, _, i) => count + (A[i * 16] > 0 ? 1 : 0), 0);
+  let atTenth = 0;
+  for (let f = 1; f <= 180; f++) { people.update(1 / 60, { x: 0, z: 0 }); if (f === 6) atTenth = drawn(); }
+  const atThree = drawn();
+  assert.ok(atThree > 0 && Math.abs(atThree - atTenth) <= 0.1 * atThree, `${atTenth} drawn at 0.1 s, ${atThree} at 3 s`);
+});
