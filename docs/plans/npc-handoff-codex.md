@@ -24,7 +24,7 @@ Working: 8 models (5 men, 3 women) on the shared rig, upright walk with straight
 
 ## Known problems, ranked
 1. NOT yet validated in the real city at city scale (NPCs are dots at the default camera). A Haiku agent was asked to validate with a debug param (`npcnear=1`) and tune `npc3d.js`; check its result in git/diff.
-2. GPU cost and mobile not measured. The 3D walkers are now the only pedestrians (pool 120 desktop / 48 mobile); decide LOD for a larger far crowd.
+2. GPU cost and mobile not measured. The 3D walkers are now the only pedestrians (pool 200 desktop (260 m reach) / 48 mobile (160 m)); decide LOD for a larger far crowd.
 3. Clothes are flat vertex colours (fake fabric patch pending), faces expressionless, tight women's tops (patch `loose`), small hem notches (patch `hem`), narrow bridge faces at the crotch (patch `crotch`), shoe length vs foot (patch `shoelen`).
 4. B and G puffers around 14k tris; no LODs yet; GLB uncompressed (meshopt/KTX2 would be a new dependency: ask).
 5. No `prefers-reduced-motion`/WebGL-off/night-theme verification for the 3D walkers; Lighthouse not run.

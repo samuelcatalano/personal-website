@@ -8,7 +8,7 @@ import { crowdPlan } from './crowd.js'; // read only: the crowd's people and pat
 
 const GLB = new URL('../../assets/npc/npc_pack.glb', import.meta.url).href;
 const QUERY = new URLSearchParams(location.search), NEAR = QUERY.has('npcnear'), SHOT = Number(QUERY.get('npcshot')) || 0; // debug only
-const QA = QUERY.get('qa') === '1', POOL_MAX_DISTANCE = 160, VIEW_MARGIN = 0.65, QA_EVENT_LIMIT = 256;
+const QA = QUERY.get('qa') === '1', POOL_MAX_DISTANCE = +QUERY.get('npcfar') || (globalThis.innerWidth < 700 ? 160 : 260), FAR_ANIM = 60, FINE_DETAIL = 35, VIEW_MARGIN = 0.65, QA_EVENT_LIMIT = 256;
 const REDUCED = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches; // read once at load
 export const NPC_VARIANTS = [ // height: metres; measured: the body height each mesh was built at; speed: scales the walk speed
   { name: 'NPC_A', height: 1.80, measured: 1.799, speed: 1.00 },
@@ -267,7 +267,7 @@ function disposeNpcObjects(roots) {
 const FEMALE = new Set(['NPC_F', 'NPC_G', 'NPC_H', 'NPC_K', 'NPC_L', 'NPC_P', 'NPC_R', 'NPC_T', 'NPC_KA', 'NPC_KC']);
 const CASTERS = 16; // walkers nearest the camera that cast sun shadows (desktop)
 const PAVE_TOP = 0.1; // pavement slab top (city.js: bottom -0.02, 0.12 thick); the crowd's lanes run on it
-export async function createNpc3d(scene, { people, pts, stops, count = +QUERY.get('npccount') || (globalThis.innerWidth < 700 ? 48 : 120) }) { // ~7 draw calls per walker
+export async function createNpc3d(scene, { people, pts, stops, count = +QUERY.get('npccount') || (globalThis.innerWidth < 700 ? 48 : 200) }) { // ~7 draw calls per walker
   const plan = crowdPlan(stops, pts, 1017); // people.js seed: index i here is person i there
   let timer, expired = false;
   const gltf = await Promise.race([
@@ -311,6 +311,7 @@ export async function createNpc3d(scene, { people, pts, stops, count = +QUERY.ge
     inst.traverse((o) => { if (o.isMesh) { o.receiveShadow = true; o.frustumCulled = false; } });
     tintNpc(inst, mulberry32(1000 + i));
     Object.assign(w, { mixer, action, kind, height: v.height, stride: clipStride(clip.name, sc, wide), who: -1, x: 0, y: 0, z: 0, yaw: 0 });
+    w.fine = []; inst.traverse((o) => { if (o.isMesh && /^mh_(eyes|eyebrows)_/.test(o.material.name)) w.fine.push(o); }); // draw-call LOD: eyes and brows only near the camera
     scene.add(inst);
   }
   shadow = new THREE.InstancedMesh(new THREE.CircleGeometry(0.3, 14).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#2a2622', transparent: true, opacity: 0.22, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 }), count);
@@ -412,7 +413,10 @@ export async function createNpc3d(scene, { people, pts, stops, count = +QUERY.ge
         w.yaw += dy * (1 - Math.exp(-18 * dt)); // keep heading smooth while staying close to the route tangent
         w.y = groundOf(i);
         w.action.timeScale = clipTimeScale(sp * (walkPace?.[i] ?? 1), w.stride); // match foot cadence to eased lane turns
-        w.mixer.update(dt);
+        const near = Math.hypot(w.x - cp.x, w.z - cp.z) < FINE_DETAIL;
+        if (near !== w.near) { w.near = near; for (const o of w.fine) o.visible = near; }
+        w.acc = (w.acc || 0) + dt; // animation LOD: beyond FAR_ANIM the pose refreshes every 3rd frame (the bones are most of the CPU cost)
+        if (Math.hypot(w.x - cp.x, w.z - cp.z) < FAR_ANIM || (tick + n) % 3 === 0) { w.mixer.update(w.acc); w.acc = 0; }
         w.inst.position.set(w.x, w.y, w.z);
         w.inst.rotation.y = w.yaw;
         dummy.position.set(w.x, w.y + 0.01, w.z); dummy.scale.setScalar(1); dummy.updateMatrix();
