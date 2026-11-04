@@ -49,6 +49,15 @@ An earlier four-variant run (60 batches, six stops, extra variants alive in the 
 
 `before/` (old code, default weather roll, clear) and `after/` (new code, `weather=clear` pinned). Scroll stops 0, 2 and 4, day theme, 1x sprite atlas. Stop 4 is MASP (`taqtile`). The route starts 60 m before MASP, so the approach sequence is these three frames. Screenshots were taken before the 0.1 s / 3 s and route-start checks ran; the numbers above come from the instrumented runs, not from the screenshots.
 
+## Existing browser suite (`tests/people.browser.py`)
+
+Run on the committed code. The suite stops at its first failing check, so the checks below were run separately (the failing ones removed from a copy):
+
+- "feet must follow paving height": fails before this change too. The check expects 0.02 m for every walker, but 420 lane walkers take `PAVE_TOP` (0.1 m). Not changed.
+- "reduced motion must not move anyone": fails before this change too. The first update settles 64 overlapping walkers by up to 0.29 m; the old code does the same (64, 0.287 m). Not changed.
+- "a visible person is within 5.45 of the road centre": fails after this change at 4.56 m. The walker is a lane walker passing under an underpass, at its designed clear-arch offset (`ARCH_HALF_WIDTH` 5.5 m minus the walker's half-width and margins), 443 m from the camera. The old 140 m gate hid it. The check does not model underpass passages. Not changed; needs a decision (exclude passages, or check against the arch clearance).
+- Count (1000), instanced mesh count (at most 3) and the changed-after-update check pass.
+
 ## Open items
 
 1. `scene.js` line 288 calls `people.update(dt, camera.position)` and does not pass the frustum. Optional one-line change to pass `frustum` (already computed there in the render loop): fewer drawn instances (about 12-19 %), no visible change, since off-screen sprites are clipped by the GPU. Not edited, per the rule for scene.js.
