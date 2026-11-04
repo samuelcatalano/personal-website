@@ -108,6 +108,10 @@ function floodShader(shader, glass) {
 }
 const night = { value: 0 };
 
+// Office recess shading (office glass only): the spandrel shades the top of each pane, the piers shade its sides, each pane carries a small deterministic tone (vPane.z).
+const OFFICE_RECESS=`float recessTop=smoothstep(0.76,1.0,vPane.y);
+        float recessSide=min(1.0,(1.0-smoothstep(0.0,0.14,vPane.x))+(1.0-smoothstep(0.0,0.14,1.0-vPane.x)));
+        outgoingLight*=mix((1.0-0.5*recessTop-0.26*recessSide)*(1.0+(vPane.z-0.5)*0.12),1.0,litWindow*uGlassNight);`;
 function metricAtlas(material) {
   material.customProgramCacheKey=()=> material.name+'-metric-atlas-v7';
   material.onBeforeCompile=shader=>{
@@ -128,7 +132,11 @@ function metricAtlas(material) {
     // subtle ground grime: <=7% darkening on walls, fading over 1.5 m
     shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`#include <map_fragment>
       if(vSliceSurface<4.5&&vSliceSurface!=2.0) diffuseColor.rgb*=1.0-0.07*(1.0-smoothstep(0.0,1.5,vSliceY));`);
-    if(material.name==='slice-glass'){
+    if(material.name==='slice-glass-office'){
+      shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nattribute vec3 aPane; varying vec3 vPane;').replace('#include <begin_vertex>','#include <begin_vertex>\nvPane = aPane;');
+    }
+    if(material.name.startsWith('slice-glass')){
+      const office=material.name==='slice-glass-office';
       // lit panes: whole-pane warm glow with slight per-cell tone shift (no sub-pane grain)
       shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
         { vec2 c=floor(vMapUv/vec2(1.0,2.0)); float h=fract(sin(dot(c,vec2(12.9898,78.233)))*43758.5453);
@@ -136,6 +144,7 @@ function metricAtlas(material) {
       shader.uniforms.uGlassNight=night;
       shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
 uniform float uGlassNight;
+${office?'varying vec3 vPane;':''}
 ${GLASS_REFLECTION}`);
       shader.fragmentShader=shader.fragmentShader.replace('#include <opaque_fragment>',`
         vec3 glassView=normalize(vViewPosition);
@@ -145,9 +154,10 @@ ${GLASS_REFLECTION}`);
         float reflectionWeight=(0.38+grazing*0.36)*(1.0-uGlassNight*litWindow*0.82);
         vec3 paneTint=vColor.rgb/max(dot(vColor.rgb,vec3(.3333)),.01); // per-lot glass family tints the sky reflection too
         outgoingLight=mix(outgoingLight,glassReflection(reflected,uGlassNight)*mix(vec3(1.0),paneTint,.85),reflectionWeight);
+        ${office?OFFICE_RECESS:''}
         #include <opaque_fragment>`);
     }
-    floodShader(shader, material.name==='slice-glass');
+    floodShader(shader, material.name.startsWith('slice-glass'));
   };
   return material;
 }
@@ -159,4 +169,37 @@ export function townhouseMaterials() {
   const glass=metricAtlas(new THREE.MeshStandardMaterial({name:'slice-glass',vertexColors:true,map,roughness:.24,metalness:0,emissiveMap}));
   glass.userData={analyticReflection:true,glow:true,glowColor:new THREE.Color('#fff2dc'),glowK:1.05,uNight:night}; // sky.js drives night for glass + floodlights
   return shared={architecture,glass};
+}
+
+// Office lot only (building-kit.js): its own glass material on the same atlas and maps, so recess shading never reaches the townhouse, shop, midrise or landmark families.
+let officeGlass;
+export function officeFacadeMaterials() {
+  if(officeGlass) return officeGlass;
+  const {glass}=townhouseMaterials();
+  const material=metricAtlas(new THREE.MeshStandardMaterial({name:'slice-glass-office',vertexColors:true,map:glass.map,roughness:.24,metalness:0,emissiveMap:glass.emissiveMap}));
+  material.userData={...glass.userData}; // same night glow (sky.js drives uNight and emissive from this userData)
+  return officeGlass={glass:material};
+}
+const hash3=(x,y,z)=>{const n=Math.sin(x*12.9898+y*78.233+z*37.719)*43758.5453;return n-Math.floor(n);};
+// Pane-local coordinates for the office glass (six vertices per pane quad): x across the pane, y up it, z a deterministic per-pane seed. Positions are not changed.
+function addPaneCoordinates(geometry){
+  const pos=geometry.getAttribute('position');
+  if(pos.count%6)throw new TypeError('Office glass is not made of pane quads');
+  const out=new Float32Array(pos.count*3);
+  for(let q=0;q<pos.count;q+=6){
+    let x0=Infinity,x1=-Infinity,y0=Infinity,y1=-Infinity,z0=Infinity,z1=-Infinity;
+    for(let i=q;i<q+6;i++){x0=Math.min(x0,pos.getX(i));x1=Math.max(x1,pos.getX(i));y0=Math.min(y0,pos.getY(i));y1=Math.max(y1,pos.getY(i));z0=Math.min(z0,pos.getZ(i));z1=Math.max(z1,pos.getZ(i));}
+    const alongX=x1-x0>z1-z0,h0=alongX?x0:z0,hs=Math.max((alongX?x1:z1)-h0,1e-6),vs=Math.max(y1-y0,1e-6),seed=hash3((x0+x1)/2,(y0+y1)/2,(z0+z1)/2);
+    for(let i=q;i<q+6;i++){out[i*3]=((alongX?pos.getX(i):pos.getZ(i))-h0)/hs;out[i*3+1]=(pos.getY(i)-y0)/vs;out[i*3+2]=seed;}
+  }
+  geometry.setAttribute('aPane',new THREE.BufferAttribute(out,3));
+  return geometry;
+}
+// Called by building-kit.js for the approved office lot: adds pane coordinates to the glass bucket and swaps only that bucket's material.
+export function applyOfficeFacade(group){
+  const glass=group.children[2];
+  if(!glass||glass.name!=='office-glass')throw new TypeError('Unexpected office slice layout');
+  addPaneCoordinates(glass.geometry);
+  glass.material=officeFacadeMaterials().glass;
+  return group;
 }

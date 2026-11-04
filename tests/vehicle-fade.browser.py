@@ -31,7 +31,7 @@ print(js(r'''(async () => {
   check(near(pool.position.x, 1.9) && beams[1].position.x === -2, 'refit uses new anchors');
   reskinBus(vehicle, 'glasgow');
   check(newBody.material !== otherPaint && near(newBody.material.opacity, 0.5) && newBody.material.color.equals(otherPaint.color), 'reskin keeps new paint faded');
-  check(otherBody.material === otherPaint && otherPaint.opacity === 1 && sharedPool.opacity === 0.3 && near(sharedGlow.uniforms.uOp.value, 0.8), 'shared materials remain unchanged');
+  check(otherBody.material === otherPaint && otherPaint.opacity === 1 && near(sharedPool.opacity, 0.16) && near(sharedGlow.uniforms.uOp.value, 0.8), 'shared materials remain unchanged');
   fadeVehicle(vehicle, 1);
   check(newBody.material === otherPaint && newBody.castShadow, 'fade completion restores new shared paint and shadow');
   check(pool.material === sharedPool && glow.material === sharedGlow, 'fade completion restores beam materials');

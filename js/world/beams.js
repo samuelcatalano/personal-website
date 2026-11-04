@@ -7,15 +7,16 @@ const tex = (w, h, draw) => {
   return new THREE.CanvasTexture(cv);
 };
 const mat = (map, color) => new THREE.MeshBasicMaterial({ map, color, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
-// Road light from two headlamps (texture space: u = metres ahead / L, v = lateral across W). Each lamp: angular Gaussian
-// (~13 deg) x distance falloff, faded in over the first metres (bonnet cut-off) - reads as a lit patch of road, not a solid cone.
+// Road light from two headlamps (texture space: u = metres ahead / L, v = lateral across W). One lobe per lamp, LAMP either side of the
+// centre line, widening and dimming with range: brightest just past the bonnet, gone by ~9 m, so it reads as light from the lamps, not a decal.
 const L = 13, W = 8, LAMP = 0.75; // pool size (m); lamp lateral offset
-// ponytail: one soft trapezoid footprint (widening with distance, soft sides, fades in past the bonnet and out with range); lamps not simulated separately.
+// ponytail: one shared footprint texture stretched to each vehicle's lamp spacing (scale.z); no per-lamp light, so the ceiling is this fixed lobe shape.
 const lit = tex(128, 64, (g) => {
   const im = g.createImageData(128, 64), ss = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
   for (let y = 0; y < 64; y++) for (let x = 0; x < 128; x++) {
-    const ax = (x + 0.5) / 128 * L, az = Math.abs(((y + 0.5) / 64 - 0.5) * W), hw = 1.1 + ax * 0.26;
-    const a = (1 - ss(0.35, 1, az / hw)) * ss(0, 2.2, ax) * Math.exp(-ax / 6.5) * (1 - ss(L * 0.55, L, ax)) * (0.75 + 0.25 * ss(0.3, 0, az / hw));
+    const ax = (x + 0.5) / 128 * L, z = ((y + 0.5) / 64 - 0.5) * W, s = 0.3 + ax * 0.06; // lobe width grows with range
+    const lobe = Math.exp(-((z - LAMP) ** 2) / (2 * s * s)) + Math.exp(-((z + LAMP) ** 2) / (2 * s * s));
+    const a = Math.min(1, lobe) * ss(0, 1.2, ax) * Math.exp(-ax / 3.2) * (1 - ss(5.5, L * 0.7, ax));
     im.data.set([255, 255, 255, Math.min(1, a) * 255], (y * 128 + x) * 4);
   }
   g.putImageData(im, 0, 0);
@@ -29,7 +30,7 @@ const gm = new THREE.ShaderMaterial({
   fragmentShader: 'uniform float uOp; varying vec3 vC; void main(){ float r = length(gl_PointCoord - 0.5) * 2.0; float a = pow(max(0.0, 1.0 - r), 2.0) * uOp; gl_FragColor = vec4(vC * a, a); }',
 });
 const M = { pool: mat(lit, 0xfff0dc), tail: mat(blob, 0xff2a1a) };
-const OP = { pool: 0.3, tail: 0.055 };
+const OP = { pool: 0.16, tail: 0.055 };
 const pool = new THREE.PlaneGeometry(L, W).rotateX(-Math.PI / 2).translate(L / 2, 0, 0);
 // Two subdued wet-road reflections, anchored directly below the tail lamps instead of free-floating red blobs.
 const tailPool = new THREE.PlaneGeometry(0.7, 0.55).rotateX(-Math.PI / 2).translate(-0.2, 0, 0);
