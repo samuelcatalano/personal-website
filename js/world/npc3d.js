@@ -267,7 +267,7 @@ function disposeNpcObjects(roots) {
 const FEMALE = new Set(['NPC_F', 'NPC_G', 'NPC_H', 'NPC_K', 'NPC_L', 'NPC_P', 'NPC_R', 'NPC_T', 'NPC_KA', 'NPC_KC']);
 const CASTERS = 16; // walkers nearest the camera that cast sun shadows (desktop)
 const PAVE_TOP = 0.1; // pavement slab top (city.js: bottom -0.02, 0.12 thick); the crowd's lanes run on it
-export async function createNpc3d(scene, { people, pts, stops, count = +QUERY.get('npccount') || (globalThis.innerWidth < 700 ? 36 : 90) }) { // ~7 draw calls per walker
+export async function createNpc3d(scene, { people, pts, stops, count = +QUERY.get('npccount') || (globalThis.innerWidth < 700 ? 48 : 120) }) { // ~7 draw calls per walker
   const plan = crowdPlan(stops, pts, 1017); // people.js seed: index i here is person i there
   let timer, expired = false;
   const gltf = await Promise.race([
