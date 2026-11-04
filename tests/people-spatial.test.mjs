@@ -97,7 +97,7 @@ test('lane turns cap overspeed and keep the walk pace matched to route distance'
 });
 
 // Visibility: walkers are drawn by view distance and frustum only (no short radius), so a crowd is complete on arrival.
-function loadPeople(plan) {
+function loadPeople(plan, passages = []) {
   class Geometry { translate() { return this; } rotateX() { return this; } setAttribute(k, v) { this[k] = v; } }
   class Attribute { constructor(array) { this.array = array; } setUsage() { return this; } }
   class Mesh { constructor(geometry, material, n) { this.geometry = geometry; this.material = material; this.userData = {}; this.instanceMatrix = new Attribute(new Float32Array(n * 16)); } }
@@ -109,6 +109,7 @@ function loadPeople(plan) {
   const source = readFileSync(new URL('../js/world/people.js', import.meta.url), 'utf8').replace(/^import .*;.*$/gm, '').replace(/^export /gm, '');
   vm.runInContext(source, context);
   const curve = { getPoint(t) { return { x: 100 * t, z: 0, distanceTo(p) { return Math.abs(this.x - p.x); } }; } };
+  context.underpassFrames = () => passages; // arch frames that the lane squeeze reads
   return context.createPeople({ add() {} }, { curve, pts: [{ x: 0 }], stops: [], hd: false });
 }
 // A walker standing exactly at (x, z) on a 10 m loop, walking +x at 1 m/s.
@@ -179,4 +180,14 @@ test('after a camera jump the drawn crowd does not grow over the next 3 s', () =
   for (let f = 1; f <= 180; f++) { people.update(1 / 60, { x: 0, z: 0 }); if (f === 6) atTenth = drawn(); }
   const atThree = drawn();
   assert.ok(atThree > 0 && Math.abs(atThree - atTenth) <= 0.1 * atThree, `${atTenth} drawn at 0.1 s, ${atThree} at 3 s`);
+});
+
+test('a walker squeezed under an arch is hidden inside its clear opening, not by distance', () => {
+  // Arch centred at x = 50 m: a lane walker at offset 7 m is squeezed to about 4.75 m (inside the 5.5 m clear half-width).
+  const lane = (s0) => ({ s0, look: { height: 1, speed: 1 }, path: { type: 'lane', dir: 1, offset: 7 } });
+  const people = loadPeople([lane(0.25), lane(0.4)], [{ x: 50, z: 0, tx: 1, tz: 0 }]); // walkers at x = 50 (under the arch) and x = 80 (open street)
+  const A = people.meshes[0].instanceMatrix.array;
+  people.update(0, { x: 0, z: 0 });
+  assert.equal(A[0], 0, 'the walker under the arch is hidden');
+  assert.ok(A[16] > 0, 'the walker 30 m past the arch in the open street is drawn');
 });

@@ -217,7 +217,9 @@ gl_Position = projectionMatrix * mvPosition;`);
       for (let i = 0; i < N; i++) {
         avoidKiosks(i);
         out.x = px[i]; out.z = pz[i]; out.fx = fx[i]; out.fz = fz[i];
-        if (!inView(px[i] - cam.x, pz[i] - cam.z, px[i], pz[i], frustum)) { show(i, false); continue; }
+        // A lane walker squeezed under an arch sits inside its clear opening (lateral < ARCH_HALF_WIDTH) and cannot keep road clearance there: hidden while inside it (the portal is its vanishing edge), never by distance.
+        const lateral = Math.abs((px[i] - laneX[i]) * laneNX[i] + (pz[i] - laneZ[i]) * laneNZ[i]);
+        if ((plan[i].path.type === 'lane' && lateral < ARCH_HALF_WIDTH) || !inView(px[i] - cam.x, pz[i] - cam.z, px[i], pz[i], frustum)) { show(i, false); continue; }
         const s = st[i]; show(i, true, out.fx * s.lock, out.fz * s.lock);
         // side view mostly perpendicular to the camera, front when walking toward it, back when walking away (45 degree sectors, hysteresis at the edges)
         const c = (out.fx * (out.x - cam.x) + out.fz * (out.z - cam.z)) / (Math.hypot(out.x - cam.x, out.z - cam.z) || 1), v = vw[i];
