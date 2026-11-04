@@ -32,7 +32,7 @@ const THAMES_TRACKS = Object.freeze({
 });
 const THAMES_FRONT_TRACK_INSET = Object.freeze({ 1: 0.05, '-1': 0.57 });
 const THAMES_FRONT_SPEED = 0.62;
-const DENSE_WANDER = new Set(['glasgow-cross', 'glasgow-axis', 'glasgow-west', 'glasgow-front', 'masp-west', 'masp-east', 'masp-front']);
+const DENSE_WANDER = new Set(['glasgow-cross', 'glasgow-west', 'glasgow-front', 'masp-west', 'masp-east', 'masp-front']);
 // Plaza cells: rect loops tiled over the open paving that the plaza loops and strips leave empty. MASP: x offset from the MASP stop, absolute z. George Square: x offset from the square's centre line, z offset from squareZ. Beds, trunks and the statue plinth stay clear (tests/crowd.test.mjs).
 const MASP_CELLS = [[-17, -10, -50, -45], [11, 17, -30, -26], [-12, -6, -27, -23], [6, 12, -53, -49], [-3, 3, -40, -36], [-6, 0, -50, -46]];
 const SQUARE_MAX = 13; // owner-set crowd size for George Square
@@ -62,7 +62,6 @@ export function walkPaths(stops, pts) {
       ['masp-front', X('masp') - 24, X('masp') + 24.5, -20, -15],
       ['thames-front', X('bigben') - 10, X('eye') + 12, -13, -10.5], ['tower-front', towerX(stops, pts) - 29, towerX(stops, pts) + 19, -13, -10.5],
       ['glasgow-cross', g.x - 17, g.x + 17, squareZ - 1.25, squareZ + 1.25, 0.21],
-      ['glasgow-axis', g.x - 2.3, g.x + 2.3, g.z - 37.5, g.z - 23, 0.21],
       ['glasgow-west', g.x - 26, g.x - 22, g.z - 38, g.z - 12.5],
       ['glasgow-front', g.x - 22, g.x + 22, g.z - 15, g.z - 12.5],
       ['wembley-entry', wx - 19, wx + 20, -54, -47.5], ['wembley-east', wx + 20.5, wx + 26, -69, -28], ['wembley-front', wx - 15, wx + 23, -32, -24],
