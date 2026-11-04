@@ -33,6 +33,9 @@ const THAMES_TRACKS = Object.freeze({
 const THAMES_FRONT_TRACK_INSET = Object.freeze({ 1: 0.05, '-1': 0.57 });
 const THAMES_FRONT_SPEED = 0.62;
 const DENSE_WANDER = new Set(['glasgow-cross', 'glasgow-axis', 'glasgow-west', 'glasgow-east', 'glasgow-front', 'masp-west', 'masp-east', 'masp-front']);
+// Plaza cells: rect loops tiled over the open paving that the plaza loops and strips leave empty. MASP: x offset from the MASP stop, absolute z. George Square: x offset from the square's centre line, z offset from squareZ. Beds, trunks and the statue plinth stay clear (tests/crowd.test.mjs).
+const MASP_CELLS = [[-17, -10, -50, -45], [11, 17, -30, -26], [-12, -6, -27, -23], [6, 12, -53, -49], [-3, 3, -40, -36], [-6, 0, -50, -46]];
+const SQUARE_CELLS = [[-19, -12, -3, 2], [14, 19, -1, 3], [-2, 4, -10, -5], [-7, -2, 1, 5], [3, 9, 0, 5], [-9, -4, -7, -3]];
 const crowdWeight = (path) => LONDON_HOTSPOTS.has(path.name) ? 4 : DENSE_WANDER.has(path.name) ? 3 : 1;
 const crowdKind = (look) => /boy|girl/.test(look.kind) ? 'child' : 'adult';
 const thamesTrack = (look, dir) => THAMES_TRACKS[`${dir}:${crowdKind(look)}`];
@@ -63,6 +66,8 @@ export function walkPaths(stops, pts) {
       ['glasgow-front', g.x - 22, g.x + 22, g.z - 15, g.z - 12.5],
       ['wembley-entry', wx - 19, wx + 20, -54, -47.5], ['wembley-east', wx + 20.5, wx + 26, -69, -28], ['wembley-front', wx - 15, wx + 23, -32, -24],
     ].map(([name, x0, x1, z0, z1, y = 0.02]) => ({ type: 'wander', name, rect: { x0, x1, z0, z1 }, y })),
+    ...MASP_CELLS.map(([a, b, z0, z1], k) => ({ type: 'wander', name: `masp-plaza-${k + 1}`, rect: { x0: X('masp') + a, x1: X('masp') + b, z0, z1 }, y: 0.02 })),
+    ...SQUARE_CELLS.map(([a, b, z0, z1], k) => ({ type: 'wander', name: `glasgow-square-${k + 1}`, rect: { x0: g.x + a, x1: g.x + b, z0: squareZ + z0, z1: squareZ + z1 }, y: 0.16 })), // gravel top is 0.15 m
   ];
 }
 export function crowdPlan(stops, pts, seed, count = 1000) {
