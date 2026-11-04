@@ -92,7 +92,7 @@ export function crowdPlan(stops, pts, seed, count = 1000) {
   for (const ids of groups.values()) ids.forEach((i, j) => { plan[i].s0 = (j + 0.15 + 0.7 * plan[i].s0) / ids.length; });
   const extraPaths = paths.filter((p) => p.type === 'wander' || LONDON_HOTSPOTS.has(p.name)).flatMap((p) => Array(crowdWeight(p)).fill(p)), extraGroups = new Map(), denseGroups = new Map(); // priority changes where overflow walkers go, not the total
   for (let i = baseCount; i < count; i++) {
-    const l = extraPaths[(i - baseCount) % extraPaths.length], dir = r() < 0.5 ? 1 : -1;
+    const l = extraPaths[(i - baseCount) % extraPaths.length], roll = r(), dir = l.type === 'wander' && l.name !== 'thames' ? ((i - baseCount) / extraPaths.length | 0) % 2 ? 1 : -1 : roll < 0.5 ? 1 : -1; // wander cells alternate direction per pass, so every cell carries counterflow whatever the cell count
     const minSide = Math.min(l.rect.x1 - l.rect.x0, l.rect.z1 - l.rect.z0);
     const maxInset = Math.max(0.35, Math.min(6, (minSide - 1) / 2));
     const sampledInset = l.name === 'thames' ? between(r, 0.6, 1.6) : between(r, 0.35, maxInset);
