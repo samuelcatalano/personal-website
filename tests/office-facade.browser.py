@@ -1,5 +1,5 @@
 # With the local preview open: browser-harness < tests/office-facade.browser.py
-# Stop-5 office tower (block--183--37): approved geometry and envelope unchanged, shared architecture kept, and per-pane coordinates for recess shading on the glass.
+# Stop-5 office tower (block--183--37): the depth variant matches its factory output inside the approved envelope, shared architecture is kept, and per-pane coordinates drive the recess shading on the glass.
 assert page_info()['url'].startswith(('http://localhost:', 'http://127.0.0.1:'))
 result = js(r'''(async()=>{
 const T=await import('three'),office=await import('./js/world/office-slice.js'),kit=await import('./js/world/building-kit.js'),mats=await import('./js/world/building-slice-materials.js'),{stops}=await import('./js/content.js'),{routePoints,routeCurve}=await import('./js/world/layout.js'),{buildCity}=await import('./js/world/city.js');
@@ -7,14 +7,14 @@ const check=(v,m)=>{if(!v)throw Error(m)},pts=routePoints(stops.length),plots=[]
 buildCity(()=>{},stops,pts,routeCurve(T,pts),undefined,undefined,p=>plots.push(p));
 check(office.OFFICE_LOT_ID==='block--183--37','approved office lot');
 const p=plots.find(q=>q.id===office.OFFICE_LOT_ID);check(p&&p.kind==='office'&&p.width===11&&p.depth===11&&p.height===31.5,'approved descriptor');
-const ref=office.createOfficeSlice(p),shared=mats.townhouseMaterials();
+const ref=office.createOfficeSlice(p,office.officeDepthRecipe(p)),shared=mats.townhouseMaterials();
 const city=kit.createCityBuildings(plots),group=city.getObjectByName(p.id);
 check(group&&group.userData.archetype==='office-slice'&&group.children.length===3,'office slice replaces the lot in three buckets');
 for(const [k,m] of group.children.entries()){
   const a=m.geometry.attributes.position,b=ref.children[k].geometry.attributes.position;
-  check(a.count===b.count,'vertex count unchanged: '+m.name);
+  check(a.count===b.count,'vertex count matches the depth factory: '+m.name);
   for(let i=0;i<a.count;i++){
-    if(Math.abs(a.getX(i)-b.getX(i))>1e-6||Math.abs(a.getY(i)-b.getY(i))>1e-6||Math.abs(a.getZ(i)-b.getZ(i))>1e-6)throw Error('geometry moved: '+m.name);
+    if(Math.abs(a.getX(i)-b.getX(i))>1e-6||Math.abs(a.getY(i)-b.getY(i))>1e-6||Math.abs(a.getZ(i)-b.getZ(i))>1e-6)throw Error('geometry differs from the depth factory: '+m.name);
     if(Math.abs(a.getX(i))>p.width/2+1e-4||Math.abs(a.getZ(i))>p.depth/2+1e-4||a.getY(i)<-1e-6||a.getY(i)>p.height+1e-4)throw Error('outside the lot envelope: '+m.name);
   }
 }

@@ -8,7 +8,7 @@ import { PALETTE as P } from './palette.js';
 import { SHOP_LOT_IDS, SHOP_INTEGRATION_IDS, HERO_CLEANUP_IDS, HERO_REGION_IDS, createShopChunk, createShopIntegration } from './shop-slice.js';
 import { HERO_LOT_IDS, createHeroIntegration } from './hero-integration.js';
 import { TOWER_LOT_ID, createTowerSlice } from './tower-slice.js';
-import { OFFICE_LOT_ID, createOfficeSlice } from './office-slice.js';
+import { OFFICE_LOT_ID, createOfficeSlice, officeDepthRecipe } from './office-slice.js';
 import { MIDRISE_LOT_ID, MIDRISE_REPLICATION_IDS, createMidriseSlice, createMidriseReplication } from './midrise-slice.js';
 import { TOWNHOUSE_LOT_IDS, createTownhouseChunk, EXPERIMENT_LOT_IDS, createTownhouseExperiment } from './building-slice.js';
 import { applyOfficeFacade } from './building-slice-materials.js';
@@ -227,7 +227,7 @@ export function createCityBuildings(plots,{rollout=true,kits=true}={}) {
     if (SHOP_LOT_IDS.includes(plot.id)) { shopPlots.push(plot); continue; }
     if (HERO_LOT_IDS.includes(plot.id)) { heroPlots.push(plot); continue; }
     if (plot.id === TOWER_LOT_ID) { city.add(createTowerSlice(plot)); continue; }
-    if (plot.id === OFFICE_LOT_ID) { city.add(applyOfficeFacade(createOfficeSlice(plot))); continue; }
+    if (plot.id === OFFICE_LOT_ID) { city.add(applyOfficeFacade(createOfficeSlice(plot, officeDepthRecipe(plot)))); continue; }
     if (plot.id === MIDRISE_LOT_ID) { city.add(createMidriseSlice(plot)); continue; }
     if (MIDRISE_REPLICATION_IDS.includes(plot.id)) { midrisePlots.push(plot); continue; }
     if (rollout && classifyPlot(plot)) { rolloutPlots.push(plot); continue; }
