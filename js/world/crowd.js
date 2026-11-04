@@ -63,7 +63,7 @@ export function walkPaths(stops, pts) {
       ['thames-front', X('bigben') - 10, X('eye') + 12, -13, -10.5], ['tower-front', towerX(stops, pts) - 29, towerX(stops, pts) + 19, -13, -10.5],
       ['glasgow-cross', g.x - 17, g.x + 17, squareZ - 1.25, squareZ + 1.25, 0.21],
       ['glasgow-axis', g.x - 2.3, g.x + 2.3, g.z - 37.5, g.z - 23, 0.21],
-      ['glasgow-west', g.x - 26, g.x - 22, g.z - 38, g.z - 12.5], ['glasgow-east', g.x + 20.7, g.x + 22.5, g.z - 38, g.z - 13],
+      ['glasgow-west', g.x - 26, g.x - 22, g.z - 38, g.z - 12.5], ['glasgow-east', g.x + 20.7, g.x + 22.5, g.z - 38, g.z - 21],
       ['glasgow-front', g.x - 22, g.x + 22, g.z - 15, g.z - 12.5],
       ['wembley-entry', wx - 19, wx + 20, -54, -47.5], ['wembley-east', wx + 20.5, wx + 26, -69, -28], ['wembley-front', wx - 15, wx + 23, -32, -24],
     ].map(([name, x0, x1, z0, z1, y = 0.02]) => ({ type: 'wander', name, rect: { x0, x1, z0, z1 }, y })),
