@@ -6,7 +6,7 @@ import { LANDMARKS, ROAD, RIVER_Z, stopIndex, underpassFrames } from './layout.j
 import { HX as UNDERPASS_HALF_LENGTH, ARCH_HALF_WIDTH } from './underpass.js';
 const { FRAMES, COLS, FB_COLS, ROWS, strideOf } = SP;
 // Walking-emoji pedestrians: canvas-drawn sprites (side, front and back views) in two atlas textures, ONE InstancedMesh of cylindrical billboards (+ one for soft shadows). Paths come from crowd.js (pure data).
-const SEP_NEAR = 140, SEP_FAR = 150, VIEW_FAR = 900, VIEW_MARGIN = 3, INSET = 0.6, FEET = 0.02, PAVE_TOP = 0.1, SEED = 1017, VARIANTS = 28, STAND = 2, LOCK = 0.6; // sprite looks; the standing frame (legs passing); VIEW_FAR = scene fog end (nothing visible beyond it); VIEW_MARGIN = sprite radius for the frustum test
+const SEP_NEAR = 140, SEP_FAR = 150, VIEW_FAR = 1100, VIEW_MARGIN = 3, INSET = 0.6, FEET = 0.02, PAVE_TOP = 0.1, SEED = 1017, VARIANTS = 28, STAND = 2, LOCK = 0.6; // sprite looks; the standing frame (legs passing); VIEW_FAR = past the fog far (sky.js: 820 m x fogK up to 1.3), so no walker is cut while the fog still shows it; VIEW_MARGIN = sprite radius for the frustum test
 const TURN_DISTANCE = 1.2;
 const CROWD_CELL = 0.9, CROWD_GAP = 0.82, CROWD_PUSH = 0.55; // shortcut: plaza sidesteps cap at 0.55 m, raise only if visual review still shows overlaps
 const KIOSK_CLEARANCE = 1.3; // Kiosk half-diagonal, sprite radius and one maximum lane crowd push

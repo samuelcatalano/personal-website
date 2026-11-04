@@ -51,12 +51,12 @@ test('failed NPC loading retains the sprites and returns a safe unit', async () 
   assert.doesNotThrow(() => unit.update({}));
 });
 
-test('a loaded NPC pack replaces the sprites', async () => {
+test('a loaded NPC pack keeps the sprite crowd drawn; only a walker with a 3D body hides its own sprite', async () => {
   const root = { children: [], traverse() {} };
   const s = setup(Promise.resolve({ scene: root, animations: [] }));
   const unit = await s.create(s.scene, { stops: [], pts: [], count: 0 });
-  assert.equal(s.crowd.visible, false);
-  assert.equal(s.shadow.visible, false);
+  assert.notEqual(s.crowd.visible, false, 'sprites are not hidden as a whole, so no walker vanishes at the 3D cap');
+  assert.notEqual(s.shadow.visible, false);
   assert.equal(typeof unit.update, 'function');
   assert.equal(s.context.__npcDiagnostics, undefined, 'normal runtime does not expose NPC diagnostics');
 });

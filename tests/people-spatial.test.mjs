@@ -8,7 +8,7 @@ test('frozen crowd updates visibility after camera moves without advancing its p
   class Attribute { constructor(array) { this.array = array; } setUsage() { return this; } }
   class Mesh { constructor(geometry, material, n) { this.geometry = geometry; this.material = material; this.userData = {}; this.instanceMatrix = new Attribute(new Float32Array(n * 16)); } }
   const SP = { FRAMES: 8, COLS: 1, FB_COLS: 1, ROWS: 1, strideOf: () => 1, setScale() {}, buildAtlas: () => new Promise(() => {}), CELL_W: 1, CELL_H: 1, GROUND: 1, S: 1 };
-  const plan = [0, 1000].map((x) => ({ s0: 0, look: { height: 1, speed: 1 }, path: { type: 'loop', dir: 1, inset: 0, rect: { x0: x, x1: x + 10, z0: 0, z1: 10 } } }));
+  const plan = [0, 1200].map((x) => ({ s0: 0, look: { height: 1, speed: 1 }, path: { type: 'loop', dir: 1, inset: 0, rect: { x0: x, x1: x + 10, z0: 0, z1: 10 } } })); // 1200 m apart: beyond the 1100 m view distance from either camera
   const context = vm.createContext({ SP, crowdPlan: () => plan, chooseVariants: () => ({ variants: [], of: [0, 0] }),
     estaiadaRoute: () => ({ stations: [{ x: 0, z: 0 }] }), LANDMARKS: { estaiada: 0 }, RIVER_Z: 0, stopIndex: () => 0,
     underpassFrames: () => [], UNDERPASS_HALF_LENGTH: 7.5, ARCH_HALF_WIDTH: 5.5,
@@ -23,7 +23,7 @@ test('frozen crowd updates visibility after camera moves without advancing its p
     people.update(0, { x: 0, z: 0 });
     assert.equal(A[0], 1); assert.equal(A[16], 0);
     const pose = I[0];
-    people.update(reducedMotion ? 1 : 0, { x: 1000, z: 0 });
+    people.update(reducedMotion ? 1 : 0, { x: 1200, z: 0 });
     assert.equal(A[0], 0); assert.equal(A[16], 1);
     assert.equal(A[28], farX); assert.equal(I[0] % 8, pose % 8);
   }
@@ -120,20 +120,27 @@ const eastView = { planes: [[SQRT_HALF, 0, -SQRT_HALF, 0], [SQRT_HALF, 0, SQRT_H
   .map(([x, y, z, constant]) => ({ normal: { x, y, z }, constant })) };
 
 test('walkers in view are drawn out to the view distance; walkers outside the frustum are hidden', () => {
-  const people = loadPeople([walker(250, 0), walker(-250, 0), walker(950, 0)]);
+  const people = loadPeople([walker(250, 0), walker(-250, 0), walker(1150, 0)]);
   const A = people.meshes[0].instanceMatrix.array;
   people.update(0, { x: 0, z: 0 }, eastView);
   assert.ok(A[0] > 0, 'a walker 250 m ahead inside the view is drawn');
   assert.equal(A[16], 0, 'a walker behind the camera is outside the frustum and hidden');
-  assert.equal(A[32], 0, 'a walker beyond the 900 m view distance is hidden');
+  assert.equal(A[32], 0, 'a walker beyond the 1100 m view distance is hidden');
 });
 
 test('without a frustum only the view distance applies', () => {
-  const people = loadPeople([walker(250, 0), walker(950, 0)]);
+  const people = loadPeople([walker(250, 0), walker(1150, 0)]);
   const A = people.meshes[0].instanceMatrix.array;
   people.update(0, { x: 0, z: 0 });
   assert.ok(A[0] > 0, 'a walker 250 m away is drawn');
-  assert.equal(A[16], 0, 'a walker 950 m away is hidden');
+  assert.equal(A[16], 0, 'a walker 1150 m away is hidden');
+});
+
+test('sprites stay drawn out to the fog far, so none is cut while the fog still shows it', () => {
+  const people = loadPeople([walker(1000, 0)]); // São Paulo and London moods: fog far = 820 m x fogK 1.3 = 1066 m (sky.js)
+  const A = people.meshes[0].instanceMatrix.array;
+  people.update(0, { x: 0, z: 0 });
+  assert.ok(A[0] > 0, 'a walker 1000 m away is drawn');
 });
 
 test('a group 250-265 m ahead is already drawn before the camera gets close', () => {

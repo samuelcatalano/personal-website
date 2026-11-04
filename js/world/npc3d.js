@@ -245,14 +245,6 @@ export function tintNpc(inst, rng) {
   });
 }
 
-// With the 3D walkers on, the 2D sprite crowd (people.js: InstancedMeshes 'crowd' and 'crowd-shadow') is hidden entirely, so
-// only one style of person shows. people.js keeps updating them (cheap); they are just not drawn.
-function hideSprites(scene) {
-  for (const name of ['crowd', 'crowd-shadow']) {
-    const o = scene.getObjectByName(name);
-    if (o) o.visible = false;
-  }
-}
 
 function disposeNpcObjects(roots) {
   const geometries = new Set(), materials = new Set(), textures = new Set();
@@ -271,7 +263,7 @@ function disposeNpcObjects(roots) {
 }
 
 // The 3D walkers follow the sprite crowd's same 1000 paths and speeds. Visible owners keep their slots until they leave the
-// current frustum or the 160 m cap; free slots go to the nearest visible candidates (ahead weighs more than behind). Sprites are hidden.
+// current frustum or the 160 m cap; free slots go to the nearest visible candidates (ahead weighs more than behind). An owner's sprite is hidden each frame; every other walker stays a sprite, so a walker leaving the pool is drawn again at once.
 const FEMALE = new Set(['NPC_F', 'NPC_G', 'NPC_H', 'NPC_K', 'NPC_L', 'NPC_P', 'NPC_R', 'NPC_T', 'NPC_KA', 'NPC_KC']);
 const CASTERS = 16; // walkers nearest the camera that cast sun shadows (desktop)
 const PAVE_TOP = 0.1; // pavement slab top (city.js: bottom -0.02, 0.12 thick); the crowd's lanes run on it
@@ -392,7 +384,6 @@ export async function createNpc3d(scene, { curve, pts, stops, count = globalThis
     for (let r = 0; r < N && c < CASTERS; r++) { const n = owner[order[r]]; if (n >= 0) { walkers[n].cast = true; c++; } }
     for (const w of walkers) { const on = !!w.cast && w.who >= 0; if (on !== w.casting) { w.casting = on; w.inst.traverse((o) => { if (o.isMesh) o.castShadow = on; }); } w.cast = false; }
   };
-  hideSprites(scene);
   const walkPace = crowd.userData.walkPace;
   const diagnostic = QA ? {
     snapshot() {
@@ -429,6 +420,7 @@ export async function createNpc3d(scene, { curve, pts, stops, count = globalThis
         shadow.setMatrixAt(n, dummy.matrix);
       });
       shadow.instanceMatrix.needsUpdate = true;
+      for (const w of walkers) if (w.who >= 0) { const a = w.who * 16; A[a] = A[a + 5] = A[a + 10] = 0; } // after people.js has rewritten this frame's sprites: the 3D walker replaces its own sprite only
       if (NEAR) { // debug: eye-level camera 6 m behind walker ?npcshot=k (default 0), looking past it
         const w = walkers[SHOT % walkers.length];
         if (w.who >= 0) { f.camera.position.set(w.x - Math.sin(w.yaw) * 6 + Math.cos(w.yaw) * 1.5, w.y + 1.6, w.z - Math.cos(w.yaw) * 6 - Math.sin(w.yaw) * 1.5); f.camera.lookAt(w.x, w.y + 1.0, w.z); }
