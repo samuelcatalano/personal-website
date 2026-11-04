@@ -131,7 +131,7 @@ One day sample per device in the same normal main shot;2s warmup,10s sampling, t
 
 Both scenes contain294 InstancedMeshes and580 resident geometry objects. Renderables count resident scene objects, not only visible submissions. Random clouds/animated content explain some inter-run object/call variation. These are frame intervals including browser scheduling, not isolated GPU timings or a calibrated A/B speedup. Zero console errors observed. The prior18.3ms desktop value remains an operational reference only.
 
-Architectural resources remain2 materials/4 maps/~4.33MiB; scene totals above include vehicles, landscape, landmarks and sprites. Citywide groups:148 cells/444 meshes,530,826 unique LOD0 triangles/~94.07MiB cached attribute payload; all architecture including controls/special groups has488 mesh objects. Townhouse LOD and culling evidence above remains valid; the final suite reran its deterministic contracts, not an extensive moving-camera performance series.
+Architectural resources remain2 materials/4 maps/~4.33MiB; scene totals above include vehicles, landscape, landmarks and pedestrians. Citywide groups:148 cells/444 meshes,530,826 unique LOD0 triangles/~94.07MiB cached attribute payload; all architecture including controls/special groups has488 mesh objects. Townhouse LOD and culling evidence above remains valid; the final suite reran its deterministic contracts, not an extensive moving-camera performance series.
 
 Modernized landmarks: Wembley3 meshes/5,812 unique triangles/8 high submissions; Big Ben-Parliament plus clocks4 meshes/2,496 triangles/10 submissions; MASP3 meshes/552 triangles/8 submissions. Existing pipeline counts include color/normal/shadow; no new materials/maps/lights/passes.
 

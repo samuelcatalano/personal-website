@@ -6,7 +6,8 @@ import vm from 'node:vm';
 function setup(load, search = '') {
   const crowd = { visible: true, instanceMatrix: { array: [] }, geometry: { attributes: { aInfo: { array: [] } } } }, shadow = { visible: true };
   const component = (array, stride, offset) => new Proxy({}, { get: (_, i) => array()[Number(i) * stride + offset] });
-  crowd.userData = { route: {
+  // the tests poke raw arrays: matrix stride 16 holds visibility (offset 0) and position (12, 14), aInfo stride 4 the heading (1, 2)
+  const people = { visible: component(() => crowd.instanceMatrix.array, 16, 0), walkPace: new Proxy({}, { get: () => 1 }), route: {
     x: component(() => crowd.instanceMatrix.array, 16, 12), z: component(() => crowd.instanceMatrix.array, 16, 14),
     fx: component(() => crowd.geometry.attributes.aInfo.array, 4, 1), fz: component(() => crowd.geometry.attributes.aInfo.array, 4, 2),
   } };
@@ -40,10 +41,10 @@ function setup(load, search = '') {
     .replace(/^import .*;.*$/gm, '').replaceAll('import.meta.url', "'file:///npc3d.js'")
     .replace(/^export /gm, '');
   vm.runInContext(source, context);
-  return { crowd, shadow, scene, context, create: context.createNpc3d, expire: () => deadline() };
+  return { crowd, shadow, scene, context, create: (scene, options) => context.createNpc3d(scene, { people, ...options }), expire: () => deadline() };
 }
 
-test('failed NPC loading retains the sprites and returns a safe unit', async () => {
+test('failed NPC loading returns a safe unit', async () => {
   const s = setup(Promise.reject(new Error('offline')));
   const unit = await s.create(s.scene, { stops: [], pts: [] });
   assert.equal(s.crowd.visible, true);
@@ -51,11 +52,11 @@ test('failed NPC loading retains the sprites and returns a safe unit', async () 
   assert.doesNotThrow(() => unit.update({}));
 });
 
-test('a loaded NPC pack keeps the sprite crowd drawn; only a walker with a 3D body hides its own sprite', async () => {
+test('a loaded NPC pack returns an updatable unit and exposes no diagnostics', async () => {
   const root = { children: [], traverse() {} };
   const s = setup(Promise.resolve({ scene: root, animations: [] }));
   const unit = await s.create(s.scene, { stops: [], pts: [], count: 0 });
-  assert.notEqual(s.crowd.visible, false, 'sprites are not hidden as a whole, so no walker vanishes at the 3D cap');
+  assert.notEqual(s.crowd.visible, false, 'the shadow and crowd stubs are left alone');
   assert.notEqual(s.shadow.visible, false);
   assert.equal(typeof unit.update, 'function');
   assert.equal(s.context.__npcDiagnostics, undefined, 'normal runtime does not expose NPC diagnostics');
@@ -80,7 +81,7 @@ test('a stalled NPC load times out and ignores a late result', async () => {
   assert.doesNotThrow(() => unit.update({}));
 });
 
-test('a failed NPC assembly leaves sprites visible and removes partial objects', async () => {
+test('a failed NPC assembly removes partial objects', async () => {
   let disposed = 0;
   const geometry = { dispose() { disposed++; } };
   const material = { dispose() { disposed++; } };

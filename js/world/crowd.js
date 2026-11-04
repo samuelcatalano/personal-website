@@ -1,5 +1,5 @@
 import { ROAD, rng, stopIndex, towerX, copan, glasgowSites, RIVER_Z, LANDMARKS as L } from './layout.js';
-// Pure data (no three): people looks and where they walk. Rendering lives in people.js / sprites.js.
+// Pure data (no three): people looks and where they walk. Simulation in people.js, drawing in npc3d.js.
 export const SKIN = ['#f6d9c4', '#efc3a0', '#d9a579', '#b9824f', '#8a5a35', '#5e3a22', '#3d2517'];
 const HAIR = ['#1b1714', '#3a2415', '#6b4328', '#d9b86a'], GREY = '#b5b5b0';
 const TOPS = ['#a75b49', '#597994', '#71876a', '#b59653', '#f2f2ee', '#222831', '#80667e', '#e87d3e', '#d96a8c', '#5a6b3a', '#4a90a4'];
@@ -15,7 +15,7 @@ export function makeLook(r) {
     : kind === 'woman' ? (x < 0.6 ? 'long' : x < 0.8 ? 'bun' : 'ponytail')
     : kind === 'boy' ? 'short' : (x < 0.6 ? 'long' : 'ponytail');
   const hair = adult && r() < 0.12 ? GREY : pick(r, HAIR); // always draws the same rolls
-  const speed = adult ? between(r, 0.72, 0.82) : between(r, 0.56, 0.64); // shared by sprites and scaled 3D walkers
+  const speed = adult ? between(r, 0.72, 0.82) : between(r, 0.56, 0.64); // scales the 3D walkers' clip speed
   return {
     kind, height, skin: pick(r, SKIN), hair, hairStyle, top: pick(r, TOPS), bottom: pick(r, BOTTOMS), shoes: pick(r, SHOES),
     shoulder: height * (female ? 0.24 : adult ? 0.26 : 0.24), speed,
@@ -129,24 +129,4 @@ export function crowdPlan(stops, pts, seed, count = 1000) {
     });
   }
   return plan;
-}
-// Sprite atlas variants: greedy k-center over a look distance, so every skin tone, kind and hair style shows up; each person maps to the nearest variant.
-const KIDS = /boy|girl/;
-// Sprite hair shape, derived from the look (so crowd.js keeps its rng stream): men quiff / curly / short / afro (dark skin), boys tousled, girls pigtails.
-export function hairShape(l) {
-  const h = Math.floor(l.height * 7919) % 3;
-  if (l.hairStyle === 'ponytail' && KIDS.test(l.kind)) return 'pigtails';
-  if (l.hairStyle !== 'short') return l.hairStyle;
-  if (SKIN.indexOf(l.skin) >= 4) return 'afro';
-  return l.kind === 'boy' ? 'tousled' : ['quiff', 'curly', 'short'][h];
-}
-const dist = (a, b) => (a.kind !== b.kind ? 50 + 60 * (KIDS.test(a.kind) !== KIDS.test(b.kind)) : 0) + 14 * Math.abs(SKIN.indexOf(a.skin) - SKIN.indexOf(b.skin))
-  + 25 * (hairShape(a) !== hairShape(b)) + 14 * (a.hair !== b.hair) + 10 * (a.top !== b.top) + 6 * (a.bottom !== b.bottom) + 3 * (a.shoes !== b.shoes);
-export function chooseVariants(looks, n) {
-  const chosen = [0], near = looks.map((l) => dist(l, looks[0])), of = looks.map(() => 0);
-  while (chosen.length < Math.min(n, looks.length)) {
-    const far = near.indexOf(Math.max(...near)), v = chosen.push(far) - 1;
-    looks.forEach((l, i) => { const d = dist(l, looks[far]); if (d < near[i]) { near[i] = d; of[i] = v; } });
-  }
-  return { variants: chosen.map((i) => looks[i]), of };
 }

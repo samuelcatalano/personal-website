@@ -1,28 +1,16 @@
-import * as THREE from 'three';
-import { crowdPlan, chooseVariants } from './crowd.js';
-import * as SP from './sprites.js';
+import { crowdPlan } from './crowd.js';
 import { estaiadaRoute } from './landmark-geometry.js';
 import { LANDMARKS, ROAD, RIVER_Z, stopIndex, underpassFrames } from './layout.js';
 import { HX as UNDERPASS_HALF_LENGTH, ARCH_HALF_WIDTH } from './underpass.js';
-const { FRAMES, COLS, FB_COLS, ROWS, strideOf } = SP;
-// Walking-emoji pedestrians: canvas-drawn sprites (side, front and back views) in two atlas textures, ONE InstancedMesh of cylindrical billboards (+ one for soft shadows). Paths come from crowd.js (pure data).
-const SEP_NEAR = 140, SEP_FAR = 150, VIEW_FAR = 1100, VIEW_MARGIN = 3, INSET = 0.6, FEET = 0.02, PAVE_TOP = 0.1, SEED = 1017, VARIANTS = 28, STAND = 2, LOCK = 0.6; // sprite looks; the standing frame (legs passing); VIEW_FAR = past the fog far (sky.js: 820 m x fogK up to 1.3), so no walker is cut while the fog still shows it; VIEW_MARGIN = sprite radius for the frustum test
+// Pedestrian simulation (no rendering): every person's route position, heading and walk pace; npc3d.js draws the 3D walkers from it. Paths come from crowd.js (pure data).
+const SEP_NEAR = 140, SEP_FAR = 150, INSET = 0.6, SEED = 1017;
 const TURN_DISTANCE = 1.2;
 const CROWD_CELL = 0.9, CROWD_GAP = 0.82, CROWD_PUSH = 0.55; // shortcut: plaza sidesteps cap at 0.55 m, raise only if visual review still shows overlaps
-const KIOSK_CLEARANCE = 1.3; // Kiosk half-diagonal, sprite radius and one maximum lane crowd push
+const KIOSK_CLEARANCE = 1.3; // Kiosk half-diagonal, walker radius and one maximum lane crowd push
 const PORTAL_MARGIN = 0.2, PORTAL_BLEND = 6, FRAME_MARGIN = 2; // keep the whole walker inside the masonry opening
 const LOOP_TURN_RADIUS = 0.75; // soften rectangular plaza turns without changing their footprint
 const turnDistance = (d) => { const t = Math.min(1, d / TURN_DISTANCE); return TURN_DISTANCE * t * t * (2 - t); };
 const turnSpeed = (d) => { const t = Math.min(1, d / TURN_DISTANCE); return t * (4 - 3 * t); };
-// Drawn inside the view distance (no short radius: the fog hides the far edge) and, when a frustum is given, inside its planes with a sprite-sized margin (point at 1 m height).
-const inView = (dx, dz, x, z, frustum) => {
-  if (dx * dx + dz * dz > VIEW_FAR * VIEW_FAR) return false;
-  if (!frustum) return true;
-  for (const p of frustum.planes) { const n = p.normal; if (n.x * x + n.y + n.z * z + p.constant < -VIEW_MARGIN) return false; }
-  return true;
-};
-// The sharp atlas (about 80 MB of textures) only where the screen and GPU can afford it; phones get the 1x one (about 40 MB).
-const sharp = () => { try { const gl = document.createElement('canvas').getContext('webgl2'); return !matchMedia('(max-width: 767px)').matches && (navigator.deviceMemory ?? 8) >= 4 && !!gl && gl.getParameter(gl.MAX_TEXTURE_SIZE) >= 4096; } catch { return false; } };
 
 function loopPerimeter(p) {
   const i = p.inset ?? INSET, w = p.rect.x1 - p.rect.x0 - 2 * i, h = p.rect.z1 - p.rect.z0 - 2 * i;
@@ -58,9 +46,7 @@ function loopAt(p, s) {
   return { x, z, fx: fx * dir, fz: fz * dir };
 }
 
-export function createPeople(scene, { curve, pts, stops, obstacles = [], reducedMotion = false, hd = sharp() }) {
-  SP.setScale(hd ? 1.4 : 1);
-  const { CELL_W, CELL_H, GROUND, S, FB_W, SIDE_W, FB_TEX_W, TEX_H } = SP;
+export function createPeople({ curve, pts, stops, obstacles = [], reducedMotion = false }) {
   const plan = crowdPlan(stops, pts, SEED), N = plan.length;
   // Arc-length table of the route (curve parameter is per stop, so speed would vary): positions + normals every ~1 m.
   const fine = Array.from({ length: 4001 }, (_, k) => curve.getPoint(k / 4000)), cum = [0];
@@ -87,7 +73,7 @@ export function createPeople(scene, { curve, pts, stops, obstacles = [], reduced
     const x = PX[i] + (PX[i + 1] - PX[i]) * f, z = PZ[i] + (PZ[i + 1] - PZ[i]) * f;
     let offset = p.offset;
     let slope = 0;
-    const half = CELL_W / S * look.height / 2, safe = Math.sign(offset) * (ARCH_HALF_WIDTH - half - PORTAL_MARGIN - 0.05), core = UNDERPASS_HALF_LENGTH + half + PORTAL_MARGIN + FRAME_MARGIN;
+    const half = 0.16 * look.height, safe = Math.sign(offset) * (ARCH_HALF_WIDTH - half - PORTAL_MARGIN - 0.05), core = UNDERPASS_HALF_LENGTH + half + PORTAL_MARGIN + FRAME_MARGIN;
     for (const a of passages) {
       const along = (x - a.x) * a.tx + (z - a.z) * a.tz, t = Math.max(0, Math.min(1, (core + PORTAL_BLEND - Math.abs(along)) / PORTAL_BLEND)), blend = t * t * (3 - 2 * t), previous = offset;
       offset += (safe - previous) * blend;
@@ -102,48 +88,8 @@ export function createPeople(scene, { curve, pts, stops, obstacles = [], reduced
   const place = (p, s, look) => p.type === 'lane' ? lane(p, s, look) : loop(p, s);
   const perim = (p) => (p.type === 'lane' ? 2 * (p.offset < 0 ? SPAN : L) : loopPerimeter(p));
 
-  // Atlas: VARIANTS looks x FRAMES walk frames; every person maps to its nearest look.
-  const { variants, of } = chooseVariants(plan.map((q) => q.look), VARIANTS);
-  const blank = () => new THREE.DataTexture(new Uint8Array(4), 1, 1), pending = { map: blank(), map2: { value: blank() } }; // transparent until the atlas is built (in slices, off the first frame)
-  for (const t of [pending.map, pending.map2.value]) t.needsUpdate = true;
-  const texture = (img) => Object.assign(new THREE.DataTexture(new Uint8Array(img.data.buffer), img.width, img.height), { colorSpace: THREE.SRGBColorSpace, anisotropy: 8, generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter, magFilter: THREE.LinearFilter, needsUpdate: true }); // DataTexture keeps the bled RGB under alpha 0 (canvas uploads would not)
-  let atlasMs = 0;
-  const t0 = performance.now(), ready = SP.buildAtlas(variants).then(({ side, fb }) => { mat.map = texture(side); u.map2.value = texture(fb); atlasMs = performance.now() - t0; });
-  const cycle = plan.map((q) => strideOf(q.look) * q.look.height); // metres per walk cycle: the sprite's own stance travel, so the planted foot does not slide
-  const geo = new THREE.PlaneGeometry(CELL_W / S, CELL_H / S).translate(0, (GROUND - CELL_H / 2) / S, 0); // unit = body height; ground at y 0
-  const info = new THREE.InstancedBufferAttribute(new Float32Array(N * 4), 4).setUsage(THREE.DynamicDrawUsage); // cell index, walk dir x / z, view (0 side, 1 front, 2 back)
-  geo.setAttribute('aInfo', info);
-  const u = { map2: pending.map2 };
-  const mat = new THREE.MeshLambertMaterial({ map: pending.map, transparent: true, alphaTest: 0.3, side: THREE.DoubleSide }) // soft blended edge; alphaToCoverage left fractional alpha in the composer target (no MSAA), which showed as a white rim;
-  mat.onBeforeCompile = (sh) => { // cylindrical billboard + atlas cell + mirror so they face their walking direction as seen from the camera
-    sh.uniforms.map2 = u.map2; sh.uniforms.uCells = { value: new THREE.Vector4(CELL_W, CELL_H, FB_W, TEX_H) }; sh.uniforms.uTex = { value: new THREE.Vector4(SIDE_W, FB_TEX_W, COLS, FB_COLS) };
-    sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', '#include <common>\nattribute vec4 aInfo; uniform vec4 uCells, uTex; varying float vSd;')
-      .replace('#include <beginnormal_vertex>', 'vec3 objectNormal = normalize(vec3(viewMatrix[0][2] * 0.35, 1.0, viewMatrix[2][2] * 0.35));')
-      .replace('#include <uv_vertex>', `#include <uv_vertex>
-vec2 rr = vec2(viewMatrix[0][0], viewMatrix[2][0]); rr /= max(length(rr), 1e-4);
-float sd = aInfo.w < 0.5 ? 1.0 : 0.0;
-vec2 lu = vec2(sd > 0.5 && dot(aInfo.yz, rr) < 0.0 ? 1.0 - uv.x : uv.x, 1.0 - uv.y);
-vSd = sd;
-vec2 px = sd > 0.5 ? vec2(mod(aInfo.x, uTex.z) * uCells.x + lu.x * uCells.x, floor(aInfo.x / uTex.z) * uCells.y + lu.y * uCells.y)
-  : vec2(mod(aInfo.x, uTex.w) * uCells.z + lu.x * uCells.z, floor(aInfo.x / uTex.w) * uCells.y + lu.y * uCells.y);
-vMapUv = px / (sd > 0.5 ? vec2(uTex.x, uCells.w) : vec2(uTex.y, uCells.w));`)
-      .replace('#include <project_vertex>', `float sc = instanceMatrix[0][0];
-vec3 wp = instanceMatrix[3].xyz + vec3(rr.x, 0.0, rr.y) * position.x * (sd > 0.5 ? 1.0 : uCells.z / uCells.x) * sc + vec3(0.0, position.y * sc, 0.0);
-vec4 mvPosition = viewMatrix * vec4(wp, 1.0);
-gl_Position = projectionMatrix * mvPosition;`);
-    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform sampler2D map2; varying float vSd;').replace('#include <map_fragment>', 'vec4 ta = texture2D(map, vMapUv, -0.6), tb = texture2D(map2, vMapUv, -0.6); diffuseColor *= vSd > 0.5 ? ta : tb;'); // sharper mips, so walk frames do not average into a blur; both reads are unconditional on the view
-  };
-  const crowd = new THREE.InstancedMesh(geo, mat, N);
-  Object.assign(crowd, { name: 'crowd', frustumCulled: false, renderOrder: 1 }); // after the shadows
-  const walkPace = crowd.userData.walkPace = new Float32Array(N);
-  crowd.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-  const shadow = new THREE.InstancedMesh(new THREE.CircleGeometry(0.12, 16).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#2a2622', transparent: true, opacity: 0.25, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 }), N);
-  Object.assign(shadow, { name: 'crowd-shadow', frustumCulled: false, renderOrder: 0 });
-  shadow.instanceMatrix = crowd.instanceMatrix; // same position + scale, no second buffer
-  scene.add(crowd, shadow);
-  const A = crowd.instanceMatrix.array, I = info.array;
-  const st = plan.map((q, i) => ({ s: q.s0 * perim(q.path), d: q.s0 * 40, pace: 1, vis: true, h: q.look.height, frame: STAND, lock: 0 }));
+  const walkPace = new Float32Array(N), visible = new Uint8Array(N);
+  const st = plan.map((q) => ({ s: q.s0 * perim(q.path), pace: 1 }));
   const px = new Float32Array(N), pz = new Float32Array(N), fx = new Float32Array(N), fz = new Float32Array(N), sep = new Float32Array(N), pushX = new Float32Array(N), pushZ = new Float32Array(N), cells = new Map();
   const laneX = new Float32Array(N), laneZ = new Float32Array(N), laneNX = new Float32Array(N), laneNZ = new Float32Array(N);
   const rememberLane = (i) => { laneX[i] = out.x - out.nx * out.offset; laneZ[i] = out.z - out.nz * out.offset; laneNX[i] = out.nx; laneNZ[i] = out.nz; };
@@ -164,36 +110,25 @@ gl_Position = projectionMatrix * mvPosition;`);
     shift = Math.max(0, Math.min(shift, offset - ROAD.padIn - 0.35));
     px[i] -= nx * side * shift; pz[i] -= nz * side * shift;
   };
-  crowd.userData.route = { x: px, z: pz, fx, fz };
-  for (let i = 0; i < N; i++) { A.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], i * 16); }
-  const show = (i, vis, sx = 0, sz = 0) => { const a = i * 16, h = vis ? st[i].h : 0; A[a] = A[a + 5] = A[a + 10] = h; A[a + 12] = out.x + sx; A[a + 13] = plan[i].path.y ?? (plan[i].path.type === 'lane' ? PAVE_TOP : FEET); A[a + 14] = out.z + sz; };
   const push = (i, dx, dz) => {
     const ox = pushX[i], oz = pushZ[i]; let x = ox + dx, z = oz + dz;
     const length = Math.hypot(x, z), limit = plan[i].path.type === 'lane' ? 0.2 : CROWD_PUSH;
     if (length > limit) { x *= limit / length; z *= limit / length; }
     px[i] += x - ox; pz[i] += z - oz; pushX[i] = x; pushZ[i] = z;
   };
-  const vw = new Uint8Array(N); // current view per person, with hysteresis so sector changes do not flicker
-  const face = (i, frame, view = 0) => { I[4 * i] = (view ? of[i] * 2 + view - 1 : of[i]) * FRAMES + frame; I[4 * i + 1] = out.fx; I[4 * i + 2] = out.fz; I[4 * i + 3] = view; };
-  const flag = () => { crowd.instanceMatrix.needsUpdate = true; info.needsUpdate = true; };
-  plan.forEach((p, i) => { place(p.path, st[i].s, p.look); st[i].pace = out.speed; px[i] = out.x; pz[i] = out.z; if (p.path.type === 'lane') { rememberLane(i); avoidKiosks(i); out.x = px[i]; out.z = pz[i]; } fx[i] = out.fx; fz[i] = out.fz; walkPace[i] = Math.min(1, out.speed); show(i, true); face(i, STAND); });
-  flag();
+  plan.forEach((p, i) => { place(p.path, st[i].s, p.look); st[i].pace = out.speed; px[i] = out.x; pz[i] = out.z; if (p.path.type === 'lane') { rememberLane(i); avoidKiosks(i); out.x = px[i]; out.z = pz[i]; } fx[i] = out.fx; fz[i] = out.fz; walkPace[i] = Math.min(1, out.speed); visible[i] = 1; });
   return {
-    count: N, meshes: [crowd, shadow], ready, get atlasMs() { return atlasMs; },
-    update(dt, cam, frustum = null) { // frustum: optional THREE.Frustum-like planes; without it only the view distance applies
+    count: N, route: { x: px, z: pz, fx, fz }, walkPace, visible,
+    update(dt, cam) {
       if (reducedMotion || dt < 0) dt = 0;
       plan.forEach(({ look: k, path }, i) => {
         const s = st[i]; s.s += path.dir * k.speed * dt / Math.max(1, s.pace);
         place(path, s.s, k);
         if (path.type === 'lane') rememberLane(i);
-        s.pace = out.speed; walkPace[i] = Math.min(1, out.speed); s.d += k.speed * walkPace[i] * dt;
+        s.pace = out.speed; walkPace[i] = Math.min(1, out.speed);
         px[i] = out.x; pz[i] = out.z; fx[i] = out.fx; fz[i] = out.fz;
         const t = Math.min(1, Math.max(0, (SEP_FAR - Math.hypot(out.x - cam.x, out.z - cam.z)) / (SEP_FAR - SEP_NEAR)));
         sep[i] = t * t * (3 - 2 * t); // smoothstep: separation eases out with zero slope at both edges, so no push jump at a distance edge
-        if (dt > 0) { // every walker keeps its walk cycle (cheap), so nobody is frozen at a distance
-          if (out.speed < 0.08) { s.frame = STAND; s.lock = 0; }
-          else { const ph = s.d / cycle[i] * FRAMES, fi = Math.floor(ph); s.frame = ((fi % FRAMES) + FRAMES) % FRAMES; s.lock = -(ph - fi - 0.5) * (cycle[i] / FRAMES) * LOCK; }
-        }
       });
       pushX.fill(0); pushZ.fill(0);
       for (let pass = 0; pass < 6; pass++) {
@@ -216,17 +151,10 @@ gl_Position = projectionMatrix * mvPosition;`);
       }
       for (let i = 0; i < N; i++) {
         avoidKiosks(i);
-        out.x = px[i]; out.z = pz[i]; out.fx = fx[i]; out.fz = fz[i];
         // A lane walker squeezed under an arch sits inside its clear opening (lateral < ARCH_HALF_WIDTH) and cannot keep road clearance there: hidden while inside it (the portal is its vanishing edge), never by distance.
         const lateral = Math.abs((px[i] - laneX[i]) * laneNX[i] + (pz[i] - laneZ[i]) * laneNZ[i]);
-        if ((plan[i].path.type === 'lane' && lateral < ARCH_HALF_WIDTH) || !inView(px[i] - cam.x, pz[i] - cam.z, px[i], pz[i], frustum)) { show(i, false); continue; }
-        const s = st[i]; show(i, true, out.fx * s.lock, out.fz * s.lock);
-        // side view mostly perpendicular to the camera, front when walking toward it, back when walking away (45 degree sectors, hysteresis at the edges)
-        const c = (out.fx * (out.x - cam.x) + out.fz * (out.z - cam.z)) / (Math.hypot(out.x - cam.x, out.z - cam.z) || 1), v = vw[i];
-        vw[i] = v === 0 ? (c < -0.76 ? 1 : c > 0.76 ? 2 : 0) : v === 1 ? (c > -0.6 ? 0 : 1) : (c < 0.6 ? 0 : 2);
-        face(i, s.frame, vw[i]);
+        visible[i] = plan[i].path.type === 'lane' && lateral < ARCH_HALF_WIDTH ? 0 : 1;
       }
-      flag();
     },
   };
 }

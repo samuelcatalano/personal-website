@@ -1,10 +1,10 @@
 // POC: walking NPCs (one GLB, adult and child rigs) on the pavement beside the bus route.
-// Opt-in with ?npc3d=1. Debug: ?npcnear=1 puts 24 of them 5-30 m ahead of the scroll point under a pavement-level camera (?npcshot=k aims at walker k). The sprite crowd, layout and scene stay as they are.
+// The city's only pedestrians. Debug: ?npcnear=1 puts 24 of them 5-30 m ahead of the scroll point under a pavement-level camera (?npcshot=k aims at walker k).
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { ROAD } from './layout.js';
-import { crowdPlan } from './crowd.js'; // read only: the sprite crowd's people and paths
+import { crowdPlan } from './crowd.js'; // read only: the crowd's people and paths
 
 const GLB = new URL('../../assets/npc/npc_pack.glb', import.meta.url).href;
 const QUERY = new URLSearchParams(location.search), NEAR = QUERY.has('npcnear'), SHOT = Number(QUERY.get('npcshot')) || 0; // debug only
@@ -35,7 +35,7 @@ export const NPC_VARIANTS = [ // height: metres; measured: the body height each 
   { name: 'NPC_KC', rig: 'child', height: 1.22, measured: 1.245, speed: 1.15 },
 ];
 const VARIANTS = NPC_VARIANTS;
-// World unit = metre (ROAD is in metres). sprites.js scales each person to look.height, so a sprite body is 1.6-1.9 m tall.
+// World unit = metre (ROAD is in metres). Each person is scaled to look.height (1.6-1.9 m adults).
 // Lanes mirror crowd.js: inner and outer pavement, walking opposite ways on each side of the route.
 const IN = ROAD.padIn + 0.4, OUT = ROAD.padIn + 1.05, LANES = [[IN, 1], [OUT, -1], [-IN, -1], [-OUT, 1]];
 // m/s at timeScale 1, measured from the retargeted clip with planted feet.
@@ -262,14 +262,13 @@ function disposeNpcObjects(roots) {
   for (const geometry of geometries) geometry.dispose();
 }
 
-// The 3D walkers follow the sprite crowd's same 1000 paths and speeds. Visible owners keep their slots until they leave the
-// current frustum or the 160 m cap; free slots go to the nearest visible candidates (ahead weighs more than behind). An owner's sprite is hidden each frame; every other walker stays a sprite, so a walker leaving the pool is drawn again at once.
+// The 3D walkers follow the crowd simulation's 1000 paths and speeds (people.js). Visible owners keep their slots until they leave the
+// current frustum or the 160 m cap; free slots go to the nearest visible candidates (ahead weighs more than behind).
 const FEMALE = new Set(['NPC_F', 'NPC_G', 'NPC_H', 'NPC_K', 'NPC_L', 'NPC_P', 'NPC_R', 'NPC_T', 'NPC_KA', 'NPC_KC']);
 const CASTERS = 16; // walkers nearest the camera that cast sun shadows (desktop)
 const PAVE_TOP = 0.1; // pavement slab top (city.js: bottom -0.02, 0.12 thick); the crowd's lanes run on it
-export async function createNpc3d(scene, { curve, pts, stops, count = globalThis.innerWidth < 700 ? 28 : 56 }) { // ~7 draw calls per walker
-  const crowd = scene.getObjectByName('crowd');
-  const plan = crowdPlan(stops, pts, 1017); // people.js seed: index i here is sprite i there
+export async function createNpc3d(scene, { people, pts, stops, count = +QUERY.get('npccount') || (globalThis.innerWidth < 700 ? 36 : 90) }) { // ~7 draw calls per walker
+  const plan = crowdPlan(stops, pts, 1017); // people.js seed: index i here is person i there
   let timer, expired = false;
   const gltf = await Promise.race([
     new GLTFLoader().loadAsync(GLB).then((asset) => {
@@ -318,7 +317,7 @@ export async function createNpc3d(scene, { curve, pts, stops, count = globalThis
   Object.assign(shadow, { name: 'npc3d-shadow', frustumCulled: false, renderOrder: 0 });
   scene.add(shadow);
   const dummy = new THREE.Object3D(), fwd = new THREE.Vector3();
-  const A = crowd.instanceMatrix.array, route = crowd.userData.route, N = plan.length;
+  const vis = people.visible, route = people.route, N = plan.length;
   const groundOf = (i) => plan[i].path.y ?? (plan[i].path.type === 'lane' ? PAVE_TOP : FEET);
   const owner = new Int32Array(N).fill(-1), score = new Float32Array(N), order = Array.from({ length: N }, (_, i) => i);
   const frustum = new THREE.Frustum(), viewProjection = new THREE.Matrix4(), bodySphere = new THREE.Sphere(new THREE.Vector3(), 0);
@@ -349,8 +348,8 @@ export async function createNpc3d(scene, { curve, pts, stops, count = globalThis
     updateFrustum(cam);
     cam.getWorldDirection(fwd);
     for (let i = 0; i < N; i++) {
-      const a = i * 16, dx = route.x[i] - cam.position.x, dz = route.z[i] - cam.position.z, d = Math.hypot(dx, dz);
-      score[i] = A[a] === 0 || d > POOL_MAX_DISTANCE ? Infinity : d * (dx * fwd.x + dz * fwd.z < 0 ? 3 : 1);
+      const dx = route.x[i] - cam.position.x, dz = route.z[i] - cam.position.z, d = Math.hypot(dx, dz);
+      score[i] = !vis[i] || d > POOL_MAX_DISTANCE ? Infinity : d * (dx * fwd.x + dz * fwd.z < 0 ? 3 : 1);
     }
     order.sort((p, q) => score[p] - score[q]);
     const released = new Map();
@@ -384,15 +383,15 @@ export async function createNpc3d(scene, { curve, pts, stops, count = globalThis
     for (let r = 0; r < N && c < CASTERS; r++) { const n = owner[order[r]]; if (n >= 0) { walkers[n].cast = true; c++; } }
     for (const w of walkers) { const on = !!w.cast && w.who >= 0; if (on !== w.casting) { w.casting = on; w.inst.traverse((o) => { if (o.isMesh) o.castShadow = on; }); } w.cast = false; }
   };
-  const walkPace = crowd.userData.walkPace;
+  const walkPace = people.walkPace;
   const diagnostic = QA ? {
     snapshot() {
       if (viewCamera) updateFrustum(viewCamera);
       return plan.map(({ path }, id) => {
-        const slot = owner[id], walker = slot >= 0 ? walkers[slot] : null, a = id * 16;
+        const slot = owner[id], walker = slot >= 0 ? walkers[slot] : null;
         const x = walker ? walker.x : route.x[id], y = walker ? walker.y : groundOf(id), z = walker ? walker.z : route.z[id], h = walker?.height ?? plan[id].look.height;
         const distance = viewCamera ? Math.hypot(x - viewCamera.position.x, z - viewCamera.position.z) : null;
-        const onScreen = !!viewCamera && isVisibleAt(x, y, z, h), representation = walker ? 'npc3d-full' : A[a] === 0 ? 'distance-culled' : 'hidden-no-pool-slot';
+        const onScreen = !!viewCamera && isVisibleAt(x, y, z, h), representation = walker ? 'npc3d-full' : !vis[id] ? 'hidden-in-arch' : 'hidden-no-pool-slot';
         return { id, position: { x, y, z }, region: regionOf(path, x), path: { name: path.name || 'sidewalk-lane', type: path.type, dir: path.dir, offset: path.offset ?? null }, distanceMeters: distance, visibility: { inCameraFrustum: onScreen, rendered: !!walker?.inst.visible && onScreen }, renderRepresentation: representation, poolSlot: slot >= 0 ? slot : null };
       });
     },
@@ -420,7 +419,6 @@ export async function createNpc3d(scene, { curve, pts, stops, count = globalThis
         shadow.setMatrixAt(n, dummy.matrix);
       });
       shadow.instanceMatrix.needsUpdate = true;
-      for (const w of walkers) if (w.who >= 0) { const a = w.who * 16; A[a] = A[a + 5] = A[a + 10] = 0; } // after people.js has rewritten this frame's sprites: the 3D walker replaces its own sprite only
       if (NEAR) { // debug: eye-level camera 6 m behind walker ?npcshot=k (default 0), looking past it
         const w = walkers[SHOT % walkers.length];
         if (w.who >= 0) { f.camera.position.set(w.x - Math.sin(w.yaw) * 6 + Math.cos(w.yaw) * 1.5, w.y + 1.6, w.z - Math.cos(w.yaw) * 6 - Math.sin(w.yaw) * 1.5); f.camera.lookAt(w.x, w.y + 1.0, w.z); }

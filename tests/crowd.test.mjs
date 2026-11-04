@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { makeLook, walkPaths, crowdPlan, chooseVariants, hairShape, SKIN } from '../js/world/crowd.js';
+import { makeLook, walkPaths, crowdPlan, SKIN } from '../js/world/crowd.js';
 import { routePoints, rng, stopIndex, LANDMARKS } from '../js/world/layout.js';
 import { buildParks } from '../js/world/parks.js';
 import { stops } from '../js/content.js';
@@ -200,16 +200,6 @@ test('London pedestrian routes keep safe bounds and counterflow spacing across s
       for (const { p, ...point } of positions) assertWalkable(p, point, seed, seconds);
     }
   }
-});
-test('sprite variants cover every skin tone, kind and hair style', () => {
-  const { variants, of } = chooseVariants(looks, 32);
-  assert.equal(variants.length, 32);
-  assert.ok(of.every((v) => v >= 0 && v < 32));
-  assert.ok(of.every((v, i) => variants[v].kind === looks[i].kind), 'variant keeps the kind');
-  assert.equal(new Set(variants.map((l) => l.skin)).size, 7);
-  assert.equal(new Set(variants.map((l) => l.kind)).size, 4);
-  assert.ok(new Set(variants.map((l) => l.hairStyle)).size >= 4);
-  assert.ok(new Set(variants.map(hairShape)).size >= 7, 'quiff, curly, afro, long, bun, pigtails, ...');
 });
 test('plaza cells: the MASP plaza and George Square each hold a busy crowd of 25-60 walkers', () => {
   const runtime = crowdPlan(stops, pts, 1017);

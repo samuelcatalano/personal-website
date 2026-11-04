@@ -8,7 +8,6 @@ print(js(r'''(async () => {
   const { createUnderpass, CLEARANCE, ARCH_HALF_WIDTH } = await import('./js/world/underpass.js');
   const { walkPaths, crowdPlan } = await import('./js/world/crowd.js');
   const { createPeople } = await import('./js/world/people.js');
-  const SP = await import('./js/world/sprites.js');
   const check = (ok, m) => { if (!ok) throw Error(m); };
   const pts = L.routePoints(stops.length), curve = L.routeCurve(T, pts), boxes = [], trees = [], plots = [];
   buildCity((x, y, z, w, h, d) => boxes.push({ x, y, z, w, h, d }), stops, pts, curve, (x, z, s) => trees.push({ x, z, r: (s.crown || 2) / 2 + 0.3 }), null, (p) => plots.push(p));
@@ -30,13 +29,13 @@ print(js(r'''(async () => {
     for (const p of walkPaths(stops, pts)) { const r = p.rect; if (!r) continue; hit((r.x0 + r.x1) / 2, (r.z0 + r.z1) / 2, (r.x1 - r.x0) / 2, (r.z1 - r.z0) / 2, 'walk ' + p.name); }
   });
   check(!bad.length, 'underpass overlaps: ' + [...new Set(bad)].slice(0, 6).join(', '));
-  const people = createPeople(new T.Scene(), { curve, pts, stops, hd: false }), plan = crowdPlan(stops, pts, 1017), crowd = people.meshes[0], A = crowd.instanceMatrix.array;
+  const people = createPeople({ curve, pts, stops }), plan = crowdPlan(stops, pts, 1017), R = people.route;
   const groups = new Set(plan.filter(p => p.path.type === 'lane').map(p => `${Math.sign(p.path.offset)}:${p.path.dir}`)), crossed = up.passes.map(() => new Set()), prev = new Float32Array(plan.length * 2), aperture = ARCH_HALF_WIDTH, margin = 0.2;
   check(groups.size === 4, 'four sidewalk lane directions');
   const sample = () => {
     for (let i = 0; i < plan.length; i++) {
       const p = plan[i]; if (p.path.type !== 'lane') continue;
-      const x = A[i * 16 + 12], z = A[i * 16 + 14], half = SP.CELL_W / SP.S * p.look.height / 2;
+      const x = R.x[i], z = R.z[i], half = 0.16 * p.look.height;
       up.passes.forEach((a, j) => {
         const dx = x - a.x, dz = z - a.z, along = dx * a.tx + dz * a.tz, across = -dx * a.tz + dz * a.tx;
         if (Math.abs(along) <= a.half + half + margin) {
@@ -51,11 +50,11 @@ print(js(r'''(async () => {
   };
   sample();
   for (let step = 0; step < 64; step++) {
-    for (let i = 0; i < plan.length; i++) { prev[i * 2] = A[i * 16 + 12]; prev[i * 2 + 1] = A[i * 16 + 14]; }
+    for (let i = 0; i < plan.length; i++) { prev[i * 2] = R.x[i]; prev[i * 2 + 1] = R.z[i]; }
     people.update(0.25, curve.getPointAt(0.5)); sample();
     for (let i = 0; i < plan.length; i++) {
       const p = plan[i]; if (p.path.type !== 'lane') continue;
-      const x = A[i * 16 + 12], z = A[i * 16 + 14], half = SP.CELL_W / SP.S * p.look.height / 2;
+      const x = R.x[i], z = R.z[i], half = 0.16 * p.look.height;
       for (const a of up.passes) {
         const u0 = (prev[i * 2] - a.x) * a.tx + (prev[i * 2 + 1] - a.z) * a.tz, u1 = (x - a.x) * a.tx + (z - a.z) * a.tz;
         if (Math.min(Math.abs(u0), Math.abs(u1)) < a.half + 8 + half + margin) {

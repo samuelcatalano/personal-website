@@ -80,7 +80,7 @@ The light-space snapping increment now derives from the orthographic frustum and
 
 ## NPC loading fallback — GFX-007 (P1)
 
-Previously, failed NPC GLB loading rejected the entire world startup. The loader now keeps the sprite crowd on failure, timeout or failed assembly; late GLBs are not adopted and their resources are released. The browser test passed success, failed fetch, timeout and late response; Node tests cover partial assembly cleanup. [Failure comparison](../evidence/2026-11-01-landmark-audit/npc-load-failure.jpg): forced NPC fetch failure before (no WebGL world) and after (3D city with sprite crowd), both desktop day. A load exceeding five seconds uses sprites for that visit; the underlying request itself is not canceled. Visual quality of the five NPC bases and walk animation still requires close, unobstructed review.
+Previously, failed NPC GLB loading rejected the entire world startup. The loader now leaves the world running without pedestrians on failure, timeout or failed assembly; late GLBs are not adopted and their resources are released. The browser test passed success, failed fetch, timeout and late response; Node tests cover partial assembly cleanup. [Failure comparison](../evidence/2026-11-01-landmark-audit/npc-load-failure.jpg): forced NPC fetch failure before (no WebGL world) and after (3D city with sprite crowd), both desktop day. A load exceeding five seconds uses sprites for that visit; the underlying request itself is not canceled. Visual quality of the five NPC bases and walk animation still requires close, unobstructed review.
 
 ## Vehicle visual replacement during fade — GFX-008 (P2)
 
@@ -92,7 +92,7 @@ An ambient vehicle changing its body, beams or bus livery during an active fade 
 
 ## Crowd visibility after camera jumps — GFX-009 (P2)
 
-The 3D crowd could select walkers using stale sprite visibility after a large camera move; frozen and reduced-motion scenes also skipped visibility updates. Sprite visibility now updates first, invisible candidates are excluded, and stationary poses remain frozen. Seven targeted Node cases and desktop browser scenarios for an 897 m camera jump with zero delta and reduced motion passed, as did `people.browser.py`. Commits: `da22cc7`. Close visual review of NPC faces and walking remains open.
+The 3D crowd could select walkers using stale visibility after a large camera move; frozen and reduced-motion scenes also skipped visibility updates. The simulation now reports visibility first, so the pool is filled from current data.
 
 ## Failed bus model replacement — GFX-010 (P2)
 

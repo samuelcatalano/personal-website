@@ -34,7 +34,7 @@ js/world/landmarks.js      London landmarks, Heathrow plane, Glasgow and São Pa
 js/world/glasgow.js        George Square, City Chambers and Duke of Wellington statue with traffic cone
 js/world/saopaulo.js       São Paulo landmarks and Brazil-era skyline
 js/world/{bus,figure}.js   vehicles and closing figure
-js/world/{people,crowd,sprites}.js deterministic pedestrian plan, movement and atlas sprites
+js/world/{people,crowd,npc3d}.js deterministic pedestrian plan and movement (people, crowd) and the 3D skinned walkers that draw it (npc3d)
 js/world/{phone,houses}.js phone boxes and house geometry helpers
 js/world/{sky,water,ambient,beams,textures,palette,post}.js environment, lighting effects, materials and postprocessing
 tests/*.test.mjs           node:test checks for content, route/camera logic and procedural geometry
@@ -91,6 +91,6 @@ This is an architectural foundation and citywide building migration, not the fin
 
 The contact UI exposes email, LinkedIn and GitHub only. Do not publish a home address or phone number. The current repository policy in `CLAUDE.md` says any shipped CV must be redacted or omitted.
 
-Public-space pedestrians reuse the existing sprite atlas and bidirectional rectangular walks: 600 original pedestrians plus 400 spread over 17 additional corridors at Sé, MASP, the Thames, George Square and Wembley. Per-person insets, starting positions and speeds vary; raised paving sets the foot height. Population stays the same day and night; reduced motion pauses walking.
+Public-space pedestrians are 3D skinned walkers (assets/npc/npc_pack.glb) on bidirectional rectangular walks: 600 original pedestrians plus 400 spread over 17 additional corridors at Sé, MASP, the Thames, George Square and Wembley. Per-person insets, starting positions and speeds vary; raised paving sets the foot height. Population stays the same day and night; reduced motion pauses walking.
 
 All 163 city, park, countryside and George Square trees use only the two rounded variants in `assets/trees/park-atlas.png`; the pine variants are unused. `trees.js` renders the rounded trees in one instanced batch with a lit alpha-tested material/matching shadow material, plus one low-understory batch (110 instances in the final art inventory). An optional tree callback lets city and landmark builders preserve positions and RNG streams while collecting tree placements. Deterministic height variation stays below the old heights (also capped at 4.4 m including padding); crown width never exceeds the original footprint. If the image cannot load, scene assembly restores voxel trees.

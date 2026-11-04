@@ -23,8 +23,8 @@ Walking-pedestrian quality "North Star" (reference: a Unity "Walking People" sty
 Working: 8 models (5 men, 3 women) on the shared rig, upright walk with straight knees, feet locked to floor (<3 mm), arms swing naturally, faces with eyes/lids/brows, varied hair and beards, outfits (puffer, zip jacket, hoodie, print sweater, shirt), sneakers/boots, per-instance colour tint (dozens of looks). Benchmark (1024x768 DPR2, CPU ms only, GPU not measured, frame pinned by vsync 13.3 ms): 1 NPC 0.2 ms, 10 NPCs 0.5, 40 NPCs 1.4 (1.5 shadows), 80 NPCs 2.5 (3.9 shadows); draw calls 2/11/37/56; triangles 11k/120k/430k/649k; 53 bones each.
 
 ## Known problems, ranked
-1. NOT yet validated in the real city at city scale (NPCs are dots at the default camera, sprite crowd is 1.07 world units tall). A Haiku agent was asked to validate with a debug param (`npcnear=1`) and tune `npc3d.js`; check its result in git/diff.
-2. GPU cost and mobile not measured. Decide LOD / near-only 3D with sprite fallback.
+1. NOT yet validated in the real city at city scale (NPCs are dots at the default camera). A Haiku agent was asked to validate with a debug param (`npcnear=1`) and tune `npc3d.js`; check its result in git/diff.
+2. GPU cost and mobile not measured. The 3D walkers are now the only pedestrians (pool 90 desktop / 36 mobile); decide LOD for a larger far crowd.
 3. Clothes are flat vertex colours (fake fabric patch pending), faces expressionless, tight women's tops (patch `loose`), small hem notches (patch `hem`), narrow bridge faces at the crotch (patch `crotch`), shoe length vs foot (patch `shoelen`).
 4. B and G puffers around 14k tris; no LODs yet; GLB uncompressed (meshopt/KTX2 would be a new dependency: ask).
 5. No `prefers-reduced-motion`/WebGL-off/night-theme verification for the 3D walkers; Lighthouse not run.
@@ -38,7 +38,7 @@ Working: 8 models (5 men, 3 women) on the shared rig, upright walk with straight
 
 ## Next steps (suggested order)
 1. Review/merge the six patches one by one; rebuild into a fresh `NPC_OUT`, view renders, copy GLB to `assets/npc/`.
-2. City validation and tuning (`npc3d.js`): scale, lighting under the city sun, night theme, ground height, stride/speed sync, density near the camera, 3D<->sprite swap by distance.
+2. City validation and tuning (`npc3d.js`): scale, lighting under the city sun, night theme, ground height, stride/speed sync, density near the camera.
 3. Fabric texture feel (vertex colour or small shared texture atlas), face/hair polish at 2-4 m, more variants (10-16) if budget allows.
 4. Re-run benchmark (1/5/10/20/40/80, median/p95, draw calls, tris, bones, textures, memory, shadows, payload) and add a GPU measurement; mobile check.
 5. Update `ASSET_SOURCES.md` numbers, HANDOFF, commit on the branch (no push).
@@ -61,7 +61,7 @@ The owner wants the human body CORRECT: arms, legs, knees, elbows, neck, head, f
 - `fabric.patch`: +-1% grain, folds, shoulder fade, 3-vertex ribs; subtle.
 - `loose.patch`: looser women's tops, modest effect.
 - `hem_rejected_nosnap.patch`: DO NOT APPLY (opens holes). Hem notches come from `cut_z`'s 2 mm snap shading; alternative: push the hem inwards or add a thin dark band.
-- City tuning of `js/world/npc3d.js` (real scale, sprite-like lanes, cadence matched to stride, contact shadow, 40 walkers, `?npcnear=1&npcshot=k` debug) is in the working tree, uncommitted until you commit it.
+- City tuning of `js/world/npc3d.js` (real scale, cadence matched to stride, contact shadow, 40 walkers, `?npcnear=1&npcshot=k` debug) is in the working tree, uncommitted until you commit it.
 
 ### State of the repo
 Last commit `1698e8f`. Uncommitted: `js/world/npc3d.js` city tuning and this doc. Run `git status` first.
@@ -100,6 +100,6 @@ Last commit `1698e8f`. Uncommitted: `js/world/npc3d.js` city tuning and this doc
 - MakeHuman system assets are CC0 (official pack page and file headers). Recorded in `ASSET_SOURCES.md`.
 
 ### Open items
-- LOD or sprite swap for far walkers.
+- LOD for far walkers (there are no sprites any more).
 - Measurement on a real GPU and on a real phone (current numbers are SwiftShader only).
 - Lighthouse not run.
