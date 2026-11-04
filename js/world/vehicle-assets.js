@@ -198,7 +198,7 @@ function texturedRearLight(m) {
   texturedLamps.set(m, copy); return copy;
 }
 const WHEELS = ['FL', 'FR', 'RL', 'RR'];
-export const rollWheels = (wheels, distance) => wheels.forEach((w) => { w.rotation.z -= distance / (w.userData.radius ?? w.position.y); });
+export { rollWheels } from './wheel-roll.js'; // pure kinematics, tested in Node (tests/wheel-roll.test.mjs)
 // Weld UV/normal seams for connectivity only; never cut a tyre or body panel by triangle centroid.
 function wheelComponents(g, classify) {
   const p = g.attributes.position, idx = g.index.array, parent = new Int32Array(p.count), positions = new Map();
@@ -280,12 +280,8 @@ function axleWheels(key, src, axles) {
       res.body.set(o.material.name, /Rubber/.test(o.material.name) ? withDiscs(g, keep, xs, r, axles.halfTrack, 20, y) : sub(keep));
       wheel.forEach((list, a) => list.length && parts[a].push([o.material.name, sub(list), 1]));
     });
-    xs.forEach((x, a) => {
-      const box = new THREE.Box3(), point = new THREE.Vector3();
-      for(const [,g] of parts[a])for(const i of g.index.array)box.expandByPoint(point.fromBufferAttribute(g.attributes.position,i));
-      const center=box.isEmpty()?new THREE.Vector3(x,y,0):box.getCenter(new THREE.Vector3());
-      res.axles.push({ x: center.x, y: center.y, radius: r, parts: parts[a] });
-    });
+    // pivot = the axle centre measured from the tyres (tools/vehicles/regional-fleet/measure_axles.py), not the box of whichever triangles were classified: a partial split cannot move it
+    xs.forEach((x, a) => res.axles.push({ x, y, radius: r, parts: parts[a] }));
   }
   return axleCache.set(key, res).get(key);
 }

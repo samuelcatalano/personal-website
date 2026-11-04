@@ -12,11 +12,11 @@
     "widthIncludingMirrors": 2.016
   },
   "axles": {
-    "front": 1.273,
-    "rear": -1.374,
-    "height": 0.346,
+    "front": 1.282,
+    "rear": -1.366,
+    "height": 0.343,
     "halfTrack": 0.778,
-    "wheelRadius": 0.342,
+    "wheelRadius": 0.343,
     "wheelMaterials": [
       "wluntai_x1"
     ]

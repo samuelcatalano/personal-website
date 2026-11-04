@@ -12,10 +12,10 @@
     "widthIncludingMirrors": 2.1871
   },
   "axles": {
-    "front": 1.52,
-    "rear": -1.35,
+    "front": 1.606,
+    "rear": -1.28,
     "height": 0.411,
-    "halfTrack": 0.95,
+    "halfTrack": 0.818,
     "wheelRadius": 0.411,
     "wheelMaterials": [
       "tire",

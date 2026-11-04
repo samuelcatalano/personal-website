@@ -12,10 +12,10 @@
     "widthIncludingMirrors": 1.9503
   },
   "axles": {
-    "front": 1.38,
-    "rear": -1.38,
+    "front": 1.26,
+    "rear": -1.317,
     "height": 0.345,
-    "halfTrack": 0.86,
+    "halfTrack": 0.771,
     "wheelRadius": 0.345,
     "wheelMaterials": [
       "M_2022_Honda_HR_V_eHEV_Tires",

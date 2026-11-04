@@ -17,11 +17,11 @@
     "widthIncludingMirrors": 2.089
    },
    "axles": {
-    "front": 1.291,
-    "rear": -1.39,
-    "height": 0.338,
-    "halfTrack": 0.795,
-    "wheelRadius": 0.338,
+    "front": 1.381,
+    "rear": -1.301,
+    "height": 0.321,
+    "halfTrack": 0.761,
+    "wheelRadius": 0.321,
     "wheelMaterials": [
      "Index_0_1",
      "Index_1_1",
@@ -100,11 +100,11 @@
     "widthIncludingMirrors": 2.05
    },
    "axles": {
-    "front": 1.259,
-    "rear": -1.386,
-    "height": 0.384,
-    "halfTrack": 0.719,
-    "wheelRadius": 0.334,
+    "front": 1.27,
+    "rear": -1.374,
+    "height": 0.333,
+    "halfTrack": 0.763,
+    "wheelRadius": 0.333,
     "wheelMaterials": [
      "tyre",
      "chrome",
@@ -198,11 +198,11 @@
     "widthIncludingMirrors": 2.016
    },
    "axles": {
-    "front": 1.273,
-    "rear": -1.374,
-    "height": 0.346,
+    "front": 1.282,
+    "rear": -1.366,
+    "height": 0.343,
     "halfTrack": 0.778,
-    "wheelRadius": 0.342,
+    "wheelRadius": 0.343,
     "wheelMaterials": [
      "wluntai_x1"
     ]
@@ -285,10 +285,10 @@
     "widthIncludingMirrors": 1.9503
    },
    "axles": {
-    "front": 1.38,
-    "rear": -1.38,
+    "front": 1.26,
+    "rear": -1.317,
     "height": 0.345,
-    "halfTrack": 0.86,
+    "halfTrack": 0.771,
     "wheelRadius": 0.345,
     "wheelMaterials": [
      "M_2022_Honda_HR_V_eHEV_Tires",
@@ -395,10 +395,10 @@
     "widthIncludingMirrors": 2.1871
    },
    "axles": {
-    "front": 1.52,
-    "rear": -1.35,
+    "front": 1.606,
+    "rear": -1.28,
     "height": 0.411,
-    "halfTrack": 0.95,
+    "halfTrack": 0.818,
     "wheelRadius": 0.411,
     "wheelMaterials": [
      "tire",
@@ -493,10 +493,10 @@
     "widthIncludingMirrors": 2.0175
    },
    "axles": {
-    "front": 1.48,
-    "rear": -1.24,
+    "front": 1.585,
+    "rear": -1.304,
     "height": 0.336,
-    "halfTrack": 0.91,
+    "halfTrack": 0.867,
     "wheelRadius": 0.336,
     "wheelMaterials": [
      "tire",
