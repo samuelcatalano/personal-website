@@ -48,6 +48,6 @@ test('a failed LOD load disposes the other completed resources', async () => {
       return level === 1 ? Promise.reject(new Error('failed LOD1')) : Promise.resolve(asset(level));
     }
   });
-  await assert.rejects(loadReferenceNpcAssets(), /failed LOD1/);
+  await assert.rejects(loadReferenceNpcAssets({ levels: [0, 1, 2] }), /failed LOD1/);
   assert.deepEqual(disposed.sort(), ['geometry0', 'geometry2', 'image0', 'image2', 'material0', 'material2', 'texture0', 'texture2']);
 });

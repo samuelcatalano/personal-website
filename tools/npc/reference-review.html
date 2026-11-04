@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Reference NPC QA</title>
+<style>html,body{margin:0;overflow:hidden;background:#aaa}canvas{display:block}pre{position:fixed;left:8px;top:8px;margin:0;padding:8px;background:#ffffffc9;font:11px monospace;pointer-events:none}</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}</script>
+<pre id="stats"></pre><script type="module">
+import * as THREE from 'three';
+import { loadReferenceNpcAssets } from '../../js/world/reference-npc.js';
+const p = new URLSearchParams(location.search), count = Math.max(0, Math.min(30, Number(p.get('count') ?? 1)));
+const night = p.get('theme') === 'night', portrait = p.has('portrait'), bench = p.has('bench');
+const shadows = p.get('shadows') === '1', distance = Math.max(0, Number(p.get('distance') || 0));
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(1);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.shadowMap.enabled = shadows; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.append(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(night ? 0x17212d : 0x8c9196);
+scene.add(new THREE.HemisphereLight(night ? 0x809ac0 : 0xe6edf5, 0x615646, night ? .45 : 1.4));
+const sun = new THREE.DirectionalLight(night ? 0xaabbd8 : 0xfff4df, night ? .8 : 2.4);
+sun.position.set(-4, 8, 5); sun.castShadow = shadows;
+Object.assign(sun.shadow.camera, { left: -10, right: 10, top: 10, bottom: -10, far: 40 });
+sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -.0005; scene.add(sun);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshStandardMaterial({ color: 0x717778, roughness: .95 }));
+ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+const camera = new THREE.PerspectiveCamera(portrait ? 27 : 40, innerWidth / innerHeight, .02, 200);
+if (portrait) { camera.position.set(0, 1.65, 1.2); camera.lookAt(0, 1.6, 0); }
+else { camera.position.set(8, 5, 10); camera.lookAt(0, .9, 0); }
+const loadStart = performance.now(), library = count ? await loadReferenceNpcAssets() : null, actors = [];
+for (let i = 0; i < count; i++) {
+  const actor = library.create();
+  actor.root.position.set(i === 0 ? 0 : (i % 6 - 2.5) * 1.25, 0, i === 0 ? 0 : (Math.floor(i / 6) - 2) * 1.5);
+  actor.root.traverse(o => { if (o.isMesh) o.castShadow = shadows; });
+  actor.setDistance(distance); actor.mixer.setTime(i * .17); scene.add(actor.root); actors.push(actor);
+}
+const loadMs = performance.now() - loadStart, frameTimes = [], cpuTimes = [], animationTimes = [], gpuTimes = [];
+const gl = renderer.getContext(), gpu = gl.getExtension('EXT_disjoint_timer_query_webgl2'), queries = [];
+const percentile = (values, q) => { const s = [...values].sort((a, b) => a - b); return s.length ? s[Math.floor((s.length - 1) * q)] : null; };
+const summary = values => ({ median: percentile(values, .5), p95: percentile(values, .95), samples: values.length });
+let previous, began, done = false, last = {}, elapsed = 0;
+const info = () => {
+  const geometries = new Set(), materials = new Set(), skeletons = new Set(), textures = new Set();
+  scene.traverse(o => { if (o.geometry) geometries.add(o.geometry); for (const m of [o.material].flat().filter(Boolean)) materials.add(m); if (o.skeleton) skeletons.add(o.skeleton); });
+  materials.forEach(m => Object.values(m).forEach(v => { if (v?.isTexture) textures.add(v); }));
+  let geometryBytes = 0, boneBytes = 0, textureBaseBytes = 0;
+  geometries.forEach(g => { for (const a of Object.values(g.attributes)) geometryBytes += a.array.byteLength; geometryBytes += g.index?.array.byteLength || 0; });
+  skeletons.forEach(s => { boneBytes += s.boneTexture?.image.data.byteLength || 0; });
+  textures.forEach(t => { textureBaseBytes += (t.image?.width || 0) * (t.image?.height || 0) * 4; });
+  return { count, levels: actors.map(a => a.level), skeletons: skeletons.size, materials: materials.size,
+    activeGeometryBytes: geometryBytes, textureBaseBytes, boneTextureBytes: boneBytes, rendererMemory: { ...renderer.info.memory },
+    calls: renderer.info.render.calls, triangles: renderer.info.render.triangles };
+};
+window.__referenceQa = {
+  actors, renderer, scene, camera, info,
+  setDistance(value) { actors.forEach(a => a.setDistance(value)); },
+  setSpeed(value) { window.__referenceSpeed = value; },
+  checkFeet() {
+    const actor = actors[0]; if (!actor) return null;
+    const body = actor.root.getObjectByName('Body'), position = new THREE.Vector3(), rows = [];
+    const saved = actor.mixer.time;
+    for (let phase = 0; phase < 32; phase++) {
+      actor.mixer.setTime(phase / 24); actor.root.updateMatrixWorld(true); body.skeleton.update();
+      let minY = Infinity;
+      for (let i = 0; i < body.geometry.attributes.position.count; i++) {
+        body.getVertexPosition(i, position); body.localToWorld(position); minY = Math.min(minY, position.y);
+      }
+      rows.push(minY - actor.root.position.y);
+    }
+    actor.mixer.setTime(saved);
+    return { min: Math.min(...rows), max: Math.max(...rows), phases: rows.length };
+  },
+};
+function frame(time) {
+  requestAnimationFrame(frame);
+  if (previous === undefined) { previous = began = time; return; }
+  const interval = time - previous, dt = Math.min(.05, interval / 1000); previous = time;
+  elapsed = (time - began) / 1000;
+  const sampled = bench && elapsed >= 2 && elapsed < 12;
+  const start = performance.now();
+  let speed = window.__referenceSpeed ?? Number(p.get('speed') ?? .78);
+  if (p.has('transition')) speed = elapsed < 2 || elapsed > 7 ? 0 : .78;
+  for (const actor of actors) {
+    actor.setSpeed(speed);
+    if (actor.level < 3) actor.mixer.update(dt);
+  }
+  const animationMs = performance.now() - start;
+  let query;
+  if (gpu && sampled && queries.length < 60) { query = gl.createQuery(); gl.beginQuery(gpu.TIME_ELAPSED_EXT, query); }
+  renderer.render(scene, camera);
+  if (query) { gl.endQuery(gpu.TIME_ELAPSED_EXT); queries.push(query); }
+  const cpuMs = performance.now() - start;
+  while (gpu && queries.length && gl.getQueryParameter(queries[0], gl.QUERY_RESULT_AVAILABLE)) {
+    const q = queries.shift(), result = gl.getQueryParameter(q, gl.QUERY_RESULT);
+    if (!gl.getParameter(gpu.GPU_DISJOINT_EXT)) gpuTimes.push(result / 1e6);
+    gl.deleteQuery(q);
+  }
+  if (sampled) { frameTimes.push(interval); cpuTimes.push(cpuMs); animationTimes.push(animationMs); }
+  if (bench && elapsed >= 12 && !done) {
+    done = true;
+    window.__bench = { ...info(), loadMs, viewport: [innerWidth, innerHeight], theme: night ? 'night' : 'day', shadows,
+      frameMs: summary(frameTimes), cpuSubmissionMs: summary(cpuTimes), mixerMs: summary(animationTimes),
+      gpuMs: gpu ? summary(gpuTimes) : null, renderer: gl.getParameter(gl.RENDERER),
+      limits: 'Isolated scene; rAF includes display scheduling. CPU submission is not GPU time; GPU counters only when supported. Geometry and bone bytes are buffer counts. Texture bytes estimate RGBA base levels, excluding mipmaps, targets and driver overhead; not total RAM/VRAM.' };
+  }
+  if (time % 500 < 25) document.getElementById('stats').textContent = JSON.stringify(info(), null, 2);
+  last = { time, speed };
+}
+requestAnimationFrame(frame);
+document.title = 'ready';
+window.addEventListener('pagehide', () => { actors.forEach(a => a.dispose()); library?.dispose(); renderer.dispose(); });
+</script></html>

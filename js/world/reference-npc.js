@@ -24,7 +24,7 @@ function disposeMaterials(root) {
   textures.forEach(t => { t.dispose(); t.source?.data?.close?.(); });
 }
 
-export async function loadReferenceNpcAssets({ levels = [0, 1, 2] } = {}) {
+export async function loadReferenceNpcAssets({ levels = [0] } = {}) {
   const loader = new GLTFLoader();
   const assets = [];
   try {
@@ -75,7 +75,7 @@ export async function loadReferenceNpcAssets({ levels = [0, 1, 2] } = {}) {
           setDistance(distance) {
             const next = referenceLod(distance, Math.max(0, level));
             root.visible = next < 3;
-            if (next !== level && next < 3) parts.forEach((mesh, i) => { mesh.geometry = geometries[next][i]; });
+            if (next !== level && next < geometries.length) parts.forEach((mesh, i) => { mesh.geometry = geometries[next][i]; });
             level = next;
             return level;
           },
