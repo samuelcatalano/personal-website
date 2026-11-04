@@ -175,7 +175,7 @@ test('an in-frustum owner beyond the pool distance releases its slot to a nearby
     getWorldDirection(v) { v.x = 1; v.y = 0; v.z = 0; } };
   const frame = { camera, dt: 0.1 };
   unit.update(frame);
-  A[12] = 200;
+  A[12] = 300; // beyond the 260 m desktop pool reach
   for (let i = 0; i < 12; i++) unit.update(frame);
   assert.equal(walker.position.x, 20, 'the distance cap frees a slot even while the old owner remains inside the camera frustum');
 });
