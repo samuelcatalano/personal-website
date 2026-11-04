@@ -131,3 +131,19 @@ Updated desktop assessment: tree crowns **B+** (five readable silhouettes with d
 ## Career plaques — 2026-11-03
 
 Owner-authorized removal of all 11 branded career plaques is implemented in scene assembly; there are no replacement objects. Former anchors remain placement clearances. Transit/route signage and the accessible HTML career panel (localized details and decorative initials) remain unchanged. This records scope and source state, not a new visual approval or measured performance result.
+
+## Baseline recapture — 2026-11-03 (graphical reform, Task 1)
+
+Addendum only: the grades above are unchanged. Evidence: [evidence index](../evidence/full-scene-graphical-reform/README.md). Recorded at HEAD `e9225d4`, desktop 1728×963 CSS px, stops 5, 9.5 and 11 in day and night, clear and rain, plus two clips.
+
+Newly observed, not graded here:
+
+- Night bloom on the Estaiada X edges at stops 5 and 9.5 ([crop](../evidence/full-scene-graphical-reform/defects/estaiada-night-bloom.jpg)).
+- London Eye pods and rim overexpose at night ([crop](../evidence/full-scene-graphical-reform/defects/eye-pods-night-overexposure.jpg)). In rain the rim has little contrast against the sky ([rain 9.5 day](../evidence/full-scene-graphical-reform/rain/9.5-day.jpg)).
+- The Riverside saw-tooth roof has an emissive outline at night ([crop](../evidence/full-scene-graphical-reform/defects/riverside-roof-emissive-outline.jpg)).
+- A flat elliptical glare pool sits beside the Glasgow bus headlight at night ([crop](../evidence/full-scene-graphical-reform/defects/glasgow-road-glare-pool.jpg)).
+- The MASP underside band reads as an unmodelled flat panel ([crop](../evidence/full-scene-graphical-reform/defects/masp-underside-dark-band.jpg)). Z-fighting is not confirmed.
+
+Correction: the shadow note above ("PCF soft 1024") is stale. `js/world/scene.js` sets a 2048 map on desktop and disables shadows on mobile.
+
+Not covered by this baseline: Copan, Sé, Tower Bridge and Wembley. No performance was measured. The design specification with per-system decisions is [here](../superpowers/specs/2026-11-03-full-scene-graphical-reform-design.md).
