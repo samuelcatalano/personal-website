@@ -35,7 +35,7 @@ const THAMES_FRONT_SPEED = 0.62;
 const DENSE_WANDER = new Set(['glasgow-cross', 'glasgow-axis', 'glasgow-west', 'glasgow-east', 'glasgow-front', 'masp-west', 'masp-east', 'masp-front']);
 // Plaza cells: rect loops tiled over the open paving that the plaza loops and strips leave empty. MASP: x offset from the MASP stop, absolute z. George Square: x offset from the square's centre line, z offset from squareZ. Beds, trunks and the statue plinth stay clear (tests/crowd.test.mjs).
 const MASP_CELLS = [[-17, -10, -50, -45], [11, 17, -30, -26], [-12, -6, -27, -23], [6, 12, -53, -49], [-3, 3, -40, -36], [-6, 0, -50, -46]];
-const SQUARE_CELLS = [[-19, -12, -3, 2], [14, 19, -1, 3], [-2, 4, -10, -5], [-9, -4, -7, -3]]; // four cells (about 28 walkers): the middle ones next to the Wellington plinth crowded into collisions
+const SQUARE_CELLS = [[-19, -12, -3, 2], [14, 19, -1, 3], [-2, 4, -10, -5]]; // three cells (about 21 walkers): the middle ones next to the Wellington plinth crowded into collisions
 const crowdWeight = (path) => LONDON_HOTSPOTS.has(path.name) ? 4 : DENSE_WANDER.has(path.name) ? 3 : 1;
 const crowdKind = (look) => /boy|girl/.test(look.kind) ? 'child' : 'adult';
 const thamesTrack = (look, dir) => THAMES_TRACKS[`${dir}:${crowdKind(look)}`];
