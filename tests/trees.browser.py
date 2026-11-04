@@ -32,6 +32,10 @@ print(js(r'''(async () => {
   const center=b=>b.bounds.getCenter(new T.Vector3());mesh.userData.update({position:center(batches[0])});check(batches[0].level===0,'near tree chunk selects detailed LOD');mesh.userData.update({position:center(batches[0]).add(new T.Vector3(1000,0,0))});check(batches[0].level===2,'far tree chunk selects billboard impostor');mesh.userData.update({position:center(batches[0])});check(batches[0].level===0,'near return restores detailed tree geometry');
   check(!boxes.some(b => b[6] === P.trunk), 'voxel trees remain');
   check(batches.every(b=>[...Object.values(b.lods[0]),...Object.values(b.lods[1])].every(m=>m.castShadow&&m.receiveShadow)&&!b.lods[2].impostor.castShadow&&!b.lods[2].impostor.receiveShadow), 'near foliage shadows remain enabled without billboard shadow planes');
+  const FAM=['round','column','spread','bloom','conifer'],eyeM=new T.Matrix4();let farCards=0;
+  for(const b of batches){const im=b.lods[2].impostor,fam=FAM.indexOf(im.name.split('-')[2]),uv=im.geometry.attributes.uv;for(let i=0;i<uv.count;i++){const u=uv.getX(i);check(u>=fam/5-1e-6&&u<=(fam+1)/5+1e-6,'procedural impostor UV stays in its family tile');}}
+  for(const [dx,dz] of [[1,0],[0,1],[-1,0],[0,-1]]){const ctr=batches[0].bounds.getCenter(new T.Vector3()),eye=new T.Vector3(ctr.x+dx*400,1.6,ctr.z+dz*400);mesh.userData.update({position:eye});for(const b of batches){if(b.level!==2)continue;const im=b.lods[2].impostor;for(let k=0;k<im.count;k++){im.getMatrixAt(k,eyeM);const e=eyeM.elements,nl=Math.hypot(e[8],e[10]),ux=eye.x-e[12],uz=eye.z-e[14],ul=Math.hypot(ux,uz);farCards++;check(nl>0&&ul>0&&(e[8]*ux+e[10]*uz)/(nl*ul)>=Math.cos(Math.PI/36),'procedural impostor misses the camera by more than 5 degrees');}}}
+  check(farCards>0,'procedural impostors are selected at far range');
   const m = new T.Matrix4(), p = new T.Vector3(), q = new T.Quaternion(), scale = new T.Vector3(), heights = new Set(), tints = new Set();
   const stats = {tris: 0};
   for (const c of canopies) {

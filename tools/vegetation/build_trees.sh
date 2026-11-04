@@ -18,7 +18,7 @@ export PATH="$PWD/bin:$PATH"
 for slug in realistic-tree; do
   npx gltf-transform etc1s "$tmp/raw/$slug.raw.glb" "$tmp/$slug-color.glb" --slots "{baseColor,emissive}*" --quality 180 --mipmaps true >/dev/null
   npx gltf-transform etc1s "$tmp/$slug-color.glb" "$tmp/$slug-orm.glb" --slots "{occlusion,metallicRoughness,specularColor,specularIntensity}*" --quality 200 --mipmaps true >/dev/null
-  npx gltf-transform uastc "$tmp/$slug-orm.glb" "$tmp/$slug-normal.glb" --slots "{normal}*" --level 2 --rdo --rdo-lambda .5 --mipmaps true >/dev/null
+  npx gltf-transform uastc "$tmp/$slug-orm.glb" "$tmp/$slug-normal.glb" --slots "normal*" --level 2 --rdo --rdo-lambda .5 --mipmaps true >/dev/null
   node optimise.mjs "$tmp/$slug-normal.glb" "$out_dir/$slug.glb" >/dev/null
 done
 rm -f "$out_dir/mighty-oak.glb" "$out_dir/tree-gn.glb"

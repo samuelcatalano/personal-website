@@ -12,10 +12,10 @@
   "tile": 128,
   "assets": {
     "realistic-tree.glb": {
-      "bytes": 1222136
+      "bytes": 905592
     },
     "tree-impostors.png": {
-      "bytes": 21490
+      "bytes": 20594
     }
   }
 }

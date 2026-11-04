@@ -77,7 +77,7 @@ export async function createProceduralTrees(placements, regionOf = null) {
       trees.push({x,z,base,rw,hq});bounds.expandByPoint(new THREE.Vector3(x-rw,base,z-rw));bounds.expandByPoint(new THREE.Vector3(x+rw,base+.02+hq,z+rw));
     });
     for(const lod of lods)for(const m of Object.values(lod)){m.computeBoundingBox();m.computeBoundingSphere();}
-    batches.push({lods,bounds,trees,level:null,lastCameraX:NaN,lastCameraZ:NaN});
+    batches.push({lods,bounds,trees,level:null,lastCameraX:-Infinity,lastCameraZ:-Infinity});
     }
   }
   // Understory stays inside existing canopy footprints; no new obstacle/path placement.

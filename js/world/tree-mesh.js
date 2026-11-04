@@ -64,9 +64,9 @@ export function impostorTexture() {
   const texture = new THREE.CanvasTexture(cv); texture.colorSpace = THREE.SRGBColorSpace; texture.anisotropy = 4; return texture;
 }
 
-// Quad per family tile; the instance matrix scales it to 2*rw x (ground -> crown top), with the crown filling ~the top 80% of the tile.
-export function impostorGeometry(type) {
-  const index = Number.isInteger(type) ? THREE.MathUtils.clamp(type, 0, TILES - 1) : Math.max(0, FAMILIES.indexOf(type)), w = 1 / TILES, inset = 2 / (TILE * TILES), u0 = index * w + inset, span = w - inset * 2, g = new THREE.PlaneGeometry(1, 1), uv = g.attributes.uv;
+// Quad per atlas tile (family index or tile number; `tiles` = tiles in the atlas). The instance matrix scales it to 2*rw x (ground -> crown top).
+export function impostorGeometry(type, tiles = TILES) {
+  const index = Number.isInteger(type) ? THREE.MathUtils.clamp(type, 0, tiles - 1) : Math.max(0, FAMILIES.indexOf(type)), w = 1 / tiles, inset = 2 / (TILE * tiles), u0 = index * w + inset, span = w - inset * 2, g = new THREE.PlaneGeometry(1, 1), uv = g.attributes.uv;
   for (let i = 0; i < uv.count; i++) uv.setX(i, u0 + uv.getX(i) * span);
   g.translate(0, 0.5, 0); // origin at the quad's foot
   g.attributes.uv.needsUpdate = true; g.computeBoundingBox(); g.computeBoundingSphere(); return g;

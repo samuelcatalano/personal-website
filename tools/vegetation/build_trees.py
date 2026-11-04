@@ -27,6 +27,9 @@ def triangles(mesh):
     return sum(max(0, len(poly.vertices) - 2) for poly in mesh.polygons)
 
 
+ALPHA_CUTOFF = 0.42  # shared by the exported glTF MASK and the runtime cutoff (js/world/authored-trees.js FOLIAGE_CUTOFF)
+
+
 def alpha_mask_foliage():
     for material in bpy.data.materials:
         name = material.name.lower()
@@ -35,8 +38,24 @@ def alpha_mask_foliage():
         if hasattr(material, 'blend_method'):
             material.blend_method = 'CLIP'
         if hasattr(material, 'alpha_threshold'):
-            material.alpha_threshold = 0.42
+            material.alpha_threshold = ALPHA_CUTOFF
         material.use_backface_culling = False
+        tree = material.node_tree
+        bsdf = next((n for n in tree.nodes if n.bl_idname == 'ShaderNodeBsdfPrincipled'), None)
+        if bsdf is None:
+            continue
+        # Alpha clip node (texture alpha > cutoff): the glTF exporter reads this pattern as alphaMode MASK with alphaCutoff, not BLEND.
+        alpha = bsdf.inputs['Alpha']
+        if alpha.is_linked:
+            source = alpha.links[0].from_socket
+            for link in list(alpha.links):
+                tree.links.remove(link)
+            clip = tree.nodes.new('ShaderNodeMath')
+            clip.operation = 'GREATER_THAN'
+            clip.inputs[1].default_value = ALPHA_CUTOFF
+            tree.links.new(source, clip.inputs[0])
+            tree.links.new(clip.outputs[0], alpha)
+        bsdf.inputs['Specular IOR Level'].default_value = 0.0  # atlas keeps albedo only: no reflection of the flat world
 
 
 def resize_source_textures():
@@ -111,18 +130,14 @@ def render_impostor(source, variant, index):
     pts = [source.matrix_world @ Vector(corner) for corner in source.bound_box]
     zmax = max(p.z for p in pts)
     width = max(max(p.x for p in pts) - min(p.x for p in pts), max(p.y for p in pts) - min(p.y for p in pts), 1.0)
-    center = Vector((0, 0, zmax * 0.5))
+    ortho = max(zmax, width) * 1.16
+    center = Vector((0, 0, ortho * 0.5))  # frame bottom at z = 0: the trunk foot sits on the tile's bottom edge, so the runtime card is grounded at the tree base
     bpy.ops.object.camera_add(location=center + Vector((0.12, -2.8, 0.08)))
     camera = bpy.context.object
     camera.rotation_euler = (center - camera.location).to_track_quat('-Z', 'Y').to_euler()
     camera.data.type = 'ORTHO'
-    camera.data.ortho_scale = max(zmax, width) * 1.16
+    camera.data.ortho_scale = ortho
     bpy.context.scene.camera = camera
-
-    bpy.ops.object.light_add(type='SUN', location=(2, -3, 4))
-    sun = bpy.context.object
-    sun.data.energy = 2.2
-    sun.rotation_euler = (Vector((0, 0, 0.45)) - sun.location).to_track_quat('-Z', 'Y').to_euler()
 
     scene = bpy.context.scene
     scene.render.engine = 'BLENDER_EEVEE'
@@ -137,8 +152,9 @@ def render_impostor(source, variant, index):
     scene.world = scene.world or bpy.data.worlds.new('Tree atlas world')
     scene.world.use_nodes = True
     background = scene.world.node_tree.nodes.get('Background')
-    background.inputs['Color'].default_value = (0.36, 0.42, 0.31, 1)
-    background.inputs['Strength'].default_value = 0.85
+    # Flat white world, no sun: the atlas keeps albedo and crown occlusion; the runtime material lights it once (no baked shading).
+    background.inputs['Color'].default_value = (1, 1, 1, 1)
+    background.inputs['Strength'].default_value = 1.0
     render_path = os.path.join(raw_dir, f'{variant}.impostor.png')
     scene.render.filepath = render_path
     bpy.ops.render.render(write_still=True)
@@ -149,7 +165,6 @@ def render_impostor(source, variant, index):
     bpy.data.images.remove(image)
 
     bpy.data.objects.remove(camera, do_unlink=True)
-    bpy.data.objects.remove(sun, do_unlink=True)
     for obj, was_hidden in hidden:
         obj.hide_render = was_hidden
 

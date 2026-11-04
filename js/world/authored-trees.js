@@ -4,7 +4,8 @@ import { impostorGeometry } from './tree-mesh.js';
 import { addTreeUnderstory } from './tree-understory.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
-const VERSION = '4';
+const VERSION = '5';
+const FOLIAGE_CUTOFF = 0.42; // same cutoff as the exported leaf MASK (tools/vegetation/build_trees.py ALPHA_CUTOFF)
 const SOURCES = [
   ['realistic-tree', 'realistic-tree.glb', ['realistic-tree']],
 ];
@@ -147,7 +148,7 @@ export async function createAuthoredTrees(placements) {
     const group = new THREE.Group(); group.name = 'trees';
     const batches = [], object = new THREE.Object3D(), chunks = new Map(), CHUNK = 160;
     // The impostor atlas bakes leaves and bark together, so tint only green pixels.
-    const impostorMat = new THREE.MeshLambertMaterial({ map: atlas, alphaTest: 0.3, side: THREE.DoubleSide }); setPaletteShader(impostorMat, 'impostor'); materials.add(impostorMat); textures.add(atlas);
+    const impostorMat = new THREE.MeshLambertMaterial({ map: atlas, alphaTest: FOLIAGE_CUTOFF, side: THREE.DoubleSide }); setPaletteShader(impostorMat, 'impostor'); materials.add(impostorMat); textures.add(atlas);
     placements.forEach((p, i) => {
       const variantIndex = Math.min(variants.length - 1, Math.floor(rnd(p.x, p.z, 43) * variants.length)), variant = variants[variantIndex], chunk = Math.floor(p.x / CHUNK), key = `${variant.name}:${chunk}`;
       if (!chunks.has(key)) chunks.set(key, { variant, trees: [] });
@@ -158,7 +159,7 @@ export async function createAuthoredTrees(placements) {
       const lods = [
         new THREE.InstancedMesh(variant.lod0, variant.materials, trees.length),
         new THREE.InstancedMesh(variant.lod1, variant.materials, trees.length),
-        new THREE.InstancedMesh(impostorGeometry(variant.atlasIndex), impostorMat, trees.length),
+        new THREE.InstancedMesh(impostorGeometry(variant.atlasIndex, variants.length), impostorMat, trees.length),
       ], bounds = new THREE.Box3(), worldTrees = [];
       geometries.add(lods[2].geometry);
       lods.forEach((mesh, level) => {
@@ -180,7 +181,7 @@ export async function createAuthoredTrees(placements) {
         worldTrees.push({ x: p.x, z: p.z, base, radius, billboardX, billboardY, yaw });
       });
       lods.forEach((mesh) => { mesh.instanceMatrix.needsUpdate = true; mesh.computeBoundingBox(); mesh.computeBoundingSphere(); });
-      batches.push({ lods, bounds, trees: worldTrees, level: null, lastCameraX: NaN, lastCameraZ: NaN });
+      batches.push({ lods, bounds, trees: worldTrees, level: null, lastCameraX: -Infinity, lastCameraZ: -Infinity });
     });
 
     const shrubs = addTreeUnderstory(group, placements);
