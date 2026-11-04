@@ -44,3 +44,27 @@ export function polishLandmarkMaterials(world,stops,pts,env){
   world.userData.updateLandmarkNight=night=>{for(const m of animated)m.userData.uLandmarkNight.value=night;};
   return count;
 }
+// Night strips glow at glowColor * glowK * vertex brightness (sky.js). Cool strips use glowK 3.2, so pylon, deck and roof edges
+// reach luminance ~2.6 and bloom past the 0.95 threshold in post.js (white strokes). Scale this landmark's own strip vertices
+// instead of the shared strip material, so the city and the other landmarks keep their values.
+export function capStripGlow(group,glowK=.9){
+  group.traverse(o=>{
+    if(!o.isMesh||!o.name.endsWith('-lightsCool'))return;
+    const k=Math.min(1,glowK/o.material.userData.glowK),c=o.geometry.attributes.color;
+    for(let i=0;i<c.array.length;i++)c.array[i]*=k;
+    c.needsUpdate=true;
+  });
+  return group;
+}
+// London Eye: the rim and pods were emissive at 1.0-1.2x their pale colour and clipped to white at night. Night keeps the rim
+// lit and gives the pods a dark glass body with a warm glow; in rain the rim is darkened to read against the overcast sky.
+const EYE_WET=new THREE.Color('#5b6b7a'),EYE_GLASS=new THREE.Color('#6f8294');
+export function finishLondonEye(wheel,{rain=0}={}){
+  const rim=wheel.getObjectByName('eye-rim'),pods=wheel.getObjectByName('eye-pods');
+  rim.material.userData.glowK=.45;
+  rim.material.color.lerp(EYE_WET,Math.min(1,2*rain));
+  const glass=new THREE.MeshStandardMaterial({color:EYE_GLASS,roughness:.25,metalness:.15});
+  glass.userData.glow=true;glass.userData.glowColor=new THREE.Color(P.eyePod);glass.userData.glowK=.3; // ponytail: no separate emissive core mesh, extra pod instances breach the Eye triangle budget (tests/landmark-geometry.browser.py)
+  pods.material.dispose();pods.material=glass;
+  return wheel;
+}

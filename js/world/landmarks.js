@@ -9,6 +9,8 @@ import { buildGlasgow } from './glasgow.js';
 import { buildRiverside } from './riverside.js';
 import { buildUniversity } from './university.js';
 import { flag } from './flags.js';
+import { capStripGlow, finishLondonEye } from './landmark-materials.js';
+import { visitWeather } from './weather.js';
 const m = new THREE.Matrix4(), p = new THREE.Vector3(), q = new THREE.Quaternion(), s = new THREE.Vector3(1, 1, 1), UP = new THREE.Vector3(0, 1, 0);
 const PI = Math.PI, at = (stops, pts, key) => pts[stopIndex(stops, LANDMARKS[key])];
 function clockFaces(x, z) {
@@ -52,16 +54,16 @@ export function buildLandmarks(add, stops, pts, onTree) {
   const ben = at(stops, pts, 'bigben');
   details.add(createBigBen(ben.x, RIVER_Z - 16), clockFaces(ben.x, RIVER_Z - 14.5)); // faces follow the tower (TZ in createBigBen)
   details.add(towerBridge(add, { x: towerX(stops, pts) }));
-  const { wheel, frame } = createLondonEye(at(stops, pts, 'eye').x, RIVER_Z + 13); details.add(frame);
+  const { wheel, frame } = createLondonEye(at(stops, pts, 'eye').x, RIVER_Z + 13); finishLondonEye(wheel, { rain: visitWeather.lon.rain }); details.add(frame);
   details.add(createWembley(at(stops, pts, 'wembley').x, RIVER_Z - 26));
   buildGlasgow(add, at(stops, pts, 'glasgow'), onTree, site => details.add(createChambers(site.x, site.z)), site => details.add(createWellington(site.x, site.z)));
   const { museum, uni } = glasgowSites(stops, pts), hill = (dx, w, d, y, h, c) => add(uni.x + dx, y, uni.z, w, h, d, c);
-  buildRiverside(add, museum, site => details.add(createRiverside(site.x, site.z)));
+  buildRiverside(add, museum, site => details.add(capStripGlow(createRiverside(site.x, site.z), .5)));
   hill(0, uni.w + 12, 24, 0, 1.2, P.concrete); hill(0, uni.w + 6, 20, 1.2, 1.3, P.pave); // neutral paved plaza (the old blue-grey read as a canal at the foot of the university) the university stands on
   buildUniversity((x, y, z, w, h, d, c) => add(x, y + uni.lift, z, w, h, d, c), uni, site => details.add(createUniversity(site.x, site.z, uni.lift)));
   flag(add, uni.x, 34.7 + uni.lift, uni.z + 3, 'saltire', 1.1); // finial top
   const backgroundPlots = [];
-  buildSaoPaulo(add, stops, pts, plot => backgroundPlots.push(plot), true, site => details.add(createMasp(site.x, RIVER_Z - 18)), site => details.add(createSe(site.x, RIVER_Z - 18)), site => { const r = estaiadaRoute(site.x, routeCurve(THREE, pts), RIVER_Z); details.add(createEstaiada(site.x, RIVER_Z, r), estaiadaDeck(site.x, RIVER_Z, r)); }, site => details.add(createCopan(site)));
+  buildSaoPaulo(add, stops, pts, plot => backgroundPlots.push(plot), true, site => details.add(createMasp(site.x, RIVER_Z - 18)), site => details.add(createSe(site.x, RIVER_Z - 18)), site => { const r = estaiadaRoute(site.x, routeCurve(THREE, pts), RIVER_Z); details.add(capStripGlow(createEstaiada(site.x, RIVER_Z, r)), estaiadaDeck(site.x, RIVER_Z, r)); }, site => details.add(createCopan(site)));
   const control = backgroundPlots.filter(p => p.id.startsWith('paulista-hero-'));
   if (control.length) details.add(createHeroBackground(control));
   const generic = backgroundPlots.filter(p => !p.id.startsWith('paulista-hero-'));
