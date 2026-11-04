@@ -48,12 +48,14 @@ export function createPost(renderer, scene, camera, { tier = 'high', sun } = {})
     heavy.push(rays);
     heavy.forEach((p) => composer.addPass(p));
   }
-  composer.addPass(new UnrealBloomPass(size, 0.15, 0.2, 0.95));
+  const bloom = new UnrealBloomPass(size, 0.10, 0.2, 0.95); // strength 0.10 (was 0.15): threshold 0.95 kept, so only emissive above it blooms
+  composer.addPass(bloom);
   composer.addPass(new OutputPass());
   const grade = new ShaderPass(Grade); composer.addPass(grade);
   const v = new THREE.Vector3();
   const post = {
     tier,
+    passes: { ao: heavy.find((p) => p instanceof AOPass) ?? null, rays, bloom, grade }, // read by the QA probes (?qa)
     setSize(w, h) { composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h); },
     setTier(t) {
       post.tier = t;

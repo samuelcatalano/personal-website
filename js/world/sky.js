@@ -225,7 +225,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
       stars.material.uniforms.uOp.value=Math.max(0,night*1.4-.4)*clear;
       stars.material.uniforms.uDpr.value=Math.min(globalThis.devicePixelRatio||1,cam?.aspect>1?1.5:1);
       stars.visible=stars.material.uniforms.uOp.value>.005;
-      for (const m of glow) { if (m.userData.uNight) m.userData.uNight.value = night; m.emissive.copy(m.userData.glowColor ?? m.color).multiplyScalar(night * (m.userData.glowK ?? 2.2)); } // each light glows in its own colour, bright enough to bloom
+      for (const m of glow) { if (m.userData.uNight) m.userData.uNight.value = night; m.emissive.copy(m.userData.glowColor ?? m.color).multiplyScalar(night * (m.userData.glowK ?? 1.6)); } // each light glows in its own colour; default 1.6 (was 2.2) keeps lit windows under the bloom glare
     },
     dispose(){
       const geometries=new Set(),materials=new Set(),maps=new Set();

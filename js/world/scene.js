@@ -62,7 +62,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   scene.fog = new THREE.Fog(0xa8d0f2, 240, 900);
   const camera = new THREE.PerspectiveCamera(40, 1, 1, 1400);
   const qa = new URLSearchParams(location.search).has('qa');
-  if (qa) { globalThis.__qaCamera = camera; globalThis.__qaRenderer = renderer; globalThis.__qaWorldFrames = 0; } // QA captures (tools/qa/route-capture.mjs) record the camera
+  if (qa) { globalThis.__qaCamera = camera; globalThis.__qaRenderer = renderer; globalThis.__qaWorldFrames = 0; globalThis.__qaScene = scene; } // QA captures (tools/qa/route-capture.mjs) record the camera
   const hemi = new THREE.HemisphereLight(0xb9d4ea, 0x8d8574, 1);
   const sun = new THREE.DirectionalLight(0xfff0d0, 2.4);
   sun.castShadow = true;
@@ -165,7 +165,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const wetSurfaces = createWetSurfaces(scene, { lamps, reducedMotion });
   let wet = 0;
   const post = createPost(renderer, scene, camera, { sun, tier: reducedMotion || matchMedia('(max-width: 767px)').matches ? 'medium' : 'high' });
-  let fpsT = 0, fpsN = 0, night = 0, nightTarget = 0, mobile = false;
+  if (qa) globalThis.__qaPost = post;
+  let fpsT = 0, fpsN = 0, settle = 3, slowWindows = 0, night = 0, nightTarget = 0, mobile = false;
   const bar = document.querySelector('.bar'), panel = document.querySelector('#panel');
   let fitKey = '';
   // panel size changes per section: ease the view offset to its new value instead of snapping the camera
@@ -302,9 +303,15 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     water.update(clock, night, mood, post.tier, sky.colors);
     world.userData.updateLandmarkNight?.(night);
     updateVehicleEnv(night); landmarkEnv.update(night);
-    if (dt > 0 && post.tier === 'high') {
+    settle = Math.max(0, settle - dt); // ponytail: 3 s settle, then two consecutive slow 2 s windows; shader compiles and asset uploads never change the look
+    if (dt > 0 && settle === 0 && post.tier === 'high') {
       fpsT += dt; fpsN++;
-      if (fpsT >= 2) { post.setTier(nextTier(post.tier, [fpsN / fpsT])); fpsT = fpsN = 0; }
+      if (fpsT >= 2) {
+        const fps = fpsN / fpsT;
+        slowWindows = fps < 40 ? slowWindows + 1 : 0;
+        if (slowWindows >= 2) post.setTier(nextTier(post.tier, [fps]));
+        fpsT = fpsN = 0;
+      }
     }
     post.render(dt);
     if (qa) globalThis.__qaWorldFrames++;

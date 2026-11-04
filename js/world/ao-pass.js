@@ -3,21 +3,34 @@ import { Pass, FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 // Depth-only screen-space AO (high tier). Reads the depth texture of the composer's scene target, so it needs NO extra scene
 // render (GTAOPass re-renders the whole city for its normal pass: +~310 draw calls and ~2x triangles). Half-resolution AO
 // (10 spiral taps, per-pixel rotation) then a depth-aware 5-tap upsample/blur multiplied into the HDR frame before bloom/tone mapping.
-// ponytail: no normals, so flat walls get no self-occlusion; strength stays subtle (creases and street corners only).
+// Normals come from depth samples 4 texels away (smaller-difference side) with an angle bias. Screen derivatives and 1-texel
+// baselines are per-row noisy at grazing angles and printed horizontal bands on sunlit ground. Flat ground gets no self-occlusion; creases still darken.
 const VERT = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }';
 const LIN = `uniform sampler2D tDepth; uniform float uNear, uFar;
 float lz(vec2 uv){ float z = texture2D(tDepth, uv).x * 2.0 - 1.0; return 2.0 * uNear * uFar / (uFar + uNear - z * (uFar - uNear)); }`;
-const AO_FRAG = `${LIN} uniform float uRadius, uP11, uAspect; varying vec2 vUv;
+const AO_FRAG = `${LIN} uniform float uRadius, uAspect; uniform vec4 uProj; uniform vec2 uTexelFull; varying vec2 vUv;
 float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+// view-space position from linear depth; uProj = (P00, P02, P11, P12) of the camera projection (view offsets included)
+vec3 vpos(vec2 uv){ float z = lz(uv); vec2 n = uv * 2.0 - 1.0; return vec3((n.x + uProj.y) * z / uProj.x, (n.y + uProj.w) * z / uProj.z, -z); }
 void main(){
   float zc = lz(vUv);
   if (zc > uFar * 0.5) { gl_FragColor = vec4(1.0); return; }
-  float rUv = uRadius * uP11 * 0.5 / zc; // world radius -> uv height units
+  vec3 P = vpos(vUv);
+  vec2 sx = vec2(4.0 * uTexelFull.x, 0.0), sy = vec2(0.0, 4.0 * uTexelFull.y); // 4-texel baseline: 1 texel is noisy at grazing angles
+  vec3 pr = vpos(vUv + sx) - P, pl = P - vpos(vUv - sx);
+  vec3 pu = vpos(vUv + sy) - P, pd = P - vpos(vUv - sy);
+  vec3 n = cross(dot(pr, pr) < dot(pl, pl) ? pr : pl, dot(pu, pu) < dot(pd, pd) ? pu : pd);
+  float nl = length(n);
+  n = nl > 1e-12 ? n / nl : normalize(-P);
+  if (dot(n, P) > 0.0) n = -n; // face the camera (the eye sits at the origin)
+  float rUv = uRadius * uProj.z * 0.5 / zc; // world radius -> uv height units
   float a0 = hash(gl_FragCoord.xy) * 6.2831853, occ = 0.0;
   for (int i = 0; i < 10; i++) {
     float a = a0 + float(i) * 2.3999632, r = sqrt((float(i) + 0.5) / 10.0) * rUv;
-    float dz = zc - lz(vUv + vec2(cos(a) / uAspect, sin(a)) * r); // > 0: sample is nearer to the camera than this pixel
-    occ += smoothstep(0.06, 0.35, dz) * (1.0 - smoothstep(uRadius, uRadius * 2.5, dz));
+    vec3 v = vpos(vUv + vec2(cos(a) / uAspect, sin(a)) * r) - P;
+    float lv = max(length(v), 1e-3);
+    // sine of the elevation above the tangent plane: only samples that rise clearly off the surface occlude (bias ~3 deg)
+    occ += smoothstep(0.05, 0.3, dot(n, v) / lv) * (1.0 - smoothstep(uRadius, uRadius * 2.5, lv));
   }
   gl_FragColor = vec4(vec3(1.0 - occ / 10.0), 1.0);
 }`;
@@ -37,15 +50,15 @@ export class AOPass extends Pass {
     this.rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.UnsignedByteType, depthBuffer: false });
     const base = { depthTest: false, depthWrite: false, vertexShader: VERT };
     const shared = () => ({ tDepth: { value: null }, uNear: { value: 1 }, uFar: { value: 1 } });
-    this.aoMat = new THREE.ShaderMaterial({ ...base, fragmentShader: AO_FRAG, uniforms: { ...shared(), uRadius: { value: radius }, uP11: { value: 1 }, uAspect: { value: 1 } } });
+    this.aoMat = new THREE.ShaderMaterial({ ...base, fragmentShader: AO_FRAG, uniforms: { ...shared(), uRadius: { value: radius }, uProj: { value: new THREE.Vector4(1, 0, 1, 0) }, uTexelFull: { value: new THREE.Vector2(1, 1) }, uAspect: { value: 1 } } });
     this.compMat = new THREE.ShaderMaterial({ ...base, fragmentShader: COMP_FRAG, uniforms: { ...shared(), tDiffuse: { value: null }, tAO: { value: this.rt.texture }, uTexel: { value: new THREE.Vector2() }, uStrength: { value: strength } } });
     this.quad = new FullScreenQuad(this.aoMat);
   }
-  setSize(w, h) { this.rt.setSize(Math.max(1, w >> 1), Math.max(1, h >> 1)); this.compMat.uniforms.uTexel.value.set(1 / this.rt.width, 1 / this.rt.height); this.aoMat.uniforms.uAspect.value = w / h; }
+  setSize(w, h) { this.rt.setSize(Math.max(1, w >> 1), Math.max(1, h >> 1)); this.compMat.uniforms.uTexel.value.set(1 / this.rt.width, 1 / this.rt.height); this.aoMat.uniforms.uAspect.value = w / h; this.aoMat.uniforms.uTexelFull.value.set(1 / w, 1 / h); }
   render(renderer, writeBuffer, readBuffer) {
-    const cam = this.camera;
+    const cam = this.camera, e = cam.projectionMatrix.elements;
     for (const m of [this.aoMat, this.compMat]) { m.uniforms.tDepth.value = readBuffer.depthTexture; m.uniforms.uNear.value = cam.near; m.uniforms.uFar.value = cam.far; }
-    this.aoMat.uniforms.uP11.value = cam.projectionMatrix.elements[5];
+    this.aoMat.uniforms.uProj.value.set(e[0], e[8], e[5], e[9]);
     this.compMat.uniforms.tDiffuse.value = readBuffer.texture;
     this.quad.material = this.aoMat; renderer.setRenderTarget(this.rt); this.quad.render(renderer);
     this.quad.material = this.compMat; renderer.setRenderTarget(this.renderToScreen ? null : writeBuffer); this.quad.render(renderer);
