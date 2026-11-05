@@ -103,38 +103,80 @@ function landmark(name,x,z,scale=1){
 
 export function createWembley(x,z){
   const {box,add,beam,ring,finish,lit,lbeam,pale}=landmark('wembley',x,z,1.25);
-  // Tapered continuous bowl and an open roof replace the old ring of overlapping cubes.
-  ring([[18,12.8,6.2],[18.3,13.1,7.8],[17.8,12.6,8.5],[13.8,8.7,8.5],[13.5,8.4,6.2]],S.stone,pale);
-  ring([[18.4,13.3,8.5],[18.2,13.1,9],[11.5,6.5,8.6],[11.5,6.5,8.35]],S.trim,pale);
-  ring([[17.4,12.2,3.1],[17.55,12.35,3.65],[16.8,11.6,3.65],[16.7,11.5,3.1]],S.stone,pale);
-  ring([[17.55,12.35,3.65],[18,12.8,6.2],[17.9,12.7,6.2],[17.45,12.25,3.65]],S.glass,[.86,.96,1.03],2);
-  for(let i=0;i<24;i++){
-    const a=i*Math.PI/12;
-    // Real gaps between the radial piers remain open at ground level.
-    ring([[16.9,11.8,0],[17.5,12.4,3.2],[16.5,11.4,3.2],[16,11,0]],S.stone,pale,0,a-.07,a+.07,2);
-    beam(new THREE.Vector3(Math.cos(a)*17.8,3.1,Math.sin(a)*12.7),new THREE.Vector3(Math.cos(a)*18.35,8.5,Math.sin(a)*13.2),.085,pale);
+  const full=(p,s,t,b=0,n=32)=>ring(p,s,t,b,0,Math.PI*2,n);
+  // Low elliptical bowl; the single arch is anchored to the ground outside its near edge.
+  full([[20.1,13.3,0],[20.1,13.3,1.45],[19.65,12.85,1.45],[19.65,12.85,0]],S.stone,pale);
+  full([[20.55,13.25,1.42],[20.55,13.25,2.55],[20.2,12.9,2.55],[20.2,12.9,1.42]],S.stone,pale);
+  full([[20.54,13.24,2.62],[20.54,13.24,4.2],[20.34,13.04,4.2],[20.34,13.04,2.62]],S.glass,[.62,.78,.9],2,64);
+  full([[20.52,13.22,4.18],[20.52,13.22,4.55],[20.17,12.87,4.55],[20.17,12.87,4.18]],S.trim,pale,1);
+  full([[20.49,13.19,4.58],[20.49,13.19,6.72],[20.29,12.99,6.72],[20.29,12.99,4.58]],S.glass,[.62,.78,.9],2,64);
+  full([[20.32,13.02,6.7],[20.32,13.02,7.5],[19.97,12.67,7.5],[19.97,12.67,6.7]],S.stone,pale);
+  // Broad retractable end leaves sit above the bowl and leave the pitch open.
+  for(const sign of [-1,1]){
+    const verts=[],indices=[],nx=14,nz=6;
+    for(let ix=0;ix<=nx;ix++){
+      const ax=7.55+(16.25-7.55)*ix/nx,zmax=9.9*Math.sqrt(Math.max(0,1-(ax/16.5)**2));
+      for(let iz=0;iz<=nz;iz++){const across=-1+2*iz/nz,z=across*zmax;verts.push(sign*ax,8+.22*(1-across*across),z);}
+    }
+    for(let ix=0;ix<nx;ix++)for(let iz=0;iz<nz;iz++){const a=ix*(nz+1)+iz,b=a+nz+1;indices.push(a,b,b+1,a,a+1,b+1);}
+    const panel=new THREE.BufferGeometry();panel.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));panel.setAttribute('uv',new THREE.Float32BufferAttribute(new Float32Array(verts.length/3*2),2));panel.setIndex(indices);panel.computeVertexNormals();add(panel,0,0,0,S.roof,pale,0);
   }
-  box(0,0,0,22,.35,12,S.plaster,[.35,.61,.24]);
-  // Glazed concourse wall behind the piers: the bowl reads closed at street level (no pitch seen through the gaps).
-  ring([[16.55,11.45,0],[16.55,11.45,3.15],[16.25,11.15,3.15],[16.25,11.15,0]],S.glass,[.42,.5,.58],2);
-  for(const dx of [-20,20])box(dx,0,0,1.2,.7,1.6,S.stone,pale);
-  // Flattened arch (rise ~0.45 x span, like the real 133 m / 315 m) built as a laced lattice: three chords in a triangular
-  // section, tied by hoops and zig-zag diagonals.
-  const RISE=18,points=[];for(let i=0;i<=64;i++){const a=i*Math.PI/64;points.push(new THREE.Vector3(-19.4*Math.cos(a),.6+RISE*Math.sin(a),0));}
-  const curve=new THREE.CatmullRomCurve3(points),N=28,frame=t=>{const p=curve.getPoint(t),tg=curve.getTangent(t),n=new THREE.Vector3(-tg.y,tg.x,0);return {p,n};};
-  const chord=(t,k)=>{const {p,n}=frame(t);return k===2?p.clone().addScaledVector(n,.62):p.clone().addScaledVector(n,-.18).add(new THREE.Vector3(0,0,k?.5:-.5));};
-  for(let k=0;k<3;k++){const c=new THREE.CatmullRomCurve3(Array.from({length:N+1},(_,i)=>chord(i/N,k)));add(new THREE.TubeGeometry(c,N*2,.13,5,false),0,0,0,S.trim,pale,1);}
-  for(let i=0;i<N;i++){
-    const t0=i/N,t1=(i+1)/N;
-    for(let k=0;k<3;k++){beam(chord(t0,k),chord(t0,(k+1)%3),.045,pale,1,3);beam(chord(t0,k),chord(t1,(k+1)%3),.04,pale,1,3);} // hoop + diagonal lacing
+  full([[20.25,13,7.92],[20.25,13,7.65],[16.55,10.2,7.65],[16.55,10.2,7.92]],S.roof,pale);
+
+  // Continuous stepped red seating tiers rise around the correctly sized pitch.
+  const seatTiers=[[7.35,4.7,9.1,5.85,.65,2.65],[9.15,5.9,11.25,7.25,2.65,4.9],[11.3,7.25,13,8.45,4.9,7.42]];
+  for(const [i,[ix,iz,ox,oz,iy,oy]] of seatTiers.entries())
+    full([[ix,iz,iy],[ox,oz,oy],[ox,oz,oy-.16],[ix,iz,iy-.12]],S.stone,i===1?[.62,.12,.16]:[.46,.065,.1],0,40);
+  box(0,0,0,14.2,.16,8.8,S.plaster,[.35,.61,.24]);
+  for(const [px,pz,w,d] of [[0,0,.07,8.6],[0,-4.28,14,.06],[0,4.28,14,.06],[-6.97,0,.06,8.5],[6.97,0,.06,8.5],[-4.7,0,2.1,.06],[4.7,0,2.1,.06],[-5.9,0,.06,3.4],[5.9,0,.06,3.4]])box(px,.16,pz,w,.025,d,S.trim,[.88,.88,.82],1);
+  full([[1.05,1.05,.185],[1.05,1.05,.21],[1,1,.21],[1,1,.185]],S.trim,[.88,.88,.82],1,24);
+
+  const bays=44;
+  for(let i=0;i<bays;i++){
+    const a=i*Math.PI*2/bays,p=(t,y)=>new THREE.Vector3(Math.cos(t)*20.43,y,Math.sin(t)*13.15);
+    beam(p(a,2.55),p(a,7.5),.038,pale,1,4);
+    if(i%2===0){beam(p(a,1.45),p(a,2.55),.075,pale,1,5);const d=Math.PI/bays*.92;beam(p(a-d,7.5),p(a+d,7.92),.045,pale,1,4);}
   }
-  for(const t of [.22,.35,.5,.65,.78])for(const side of [-1,1]){
-    const a=curve.getPoint(t),b=new THREE.Vector3(a.x*.75,8.8,side*11.4);lbeam(1,a,b,.035,.12); // faint support cables
+  for(const [y,rx,rz] of [[2.56,20.55,13.25],[4.53,20.5,13.2],[6.72,20.35,13.05],[7.62,20.25,13]])full([[rx,rz,y],[rx,rz,y-.055],[rx-.12,rz-.12,y-.055],[rx-.12,rz-.12,y]],S.trim,pale,1);
+  for(let i=0;i<22;i++){
+    const a=i*Math.PI/9;
+    beam(new THREE.Vector3(Math.cos(a)*18.9,7.82,Math.sin(a)*12.05),new THREE.Vector3(Math.cos(a)*16.55,7.86,Math.sin(a)*10.2),.06,pale,1,4);
   }
-  // Beacon: warm-white light along the three chords; low warm glazing band round the bowl.
-  for(let k=0;k<3;k++){const c=new THREE.CatmullRomCurve3(Array.from({length:25},(_,i)=>chord(i/24,k).add(new THREE.Vector3(0,k===2?.16:-.1,k===2?0:(k?.1:-.1)))));lit(0,new THREE.TubeGeometry(c,40,.09,4,false),0,0,0,1.1);}
-  const ell=[];for(let i=0;i<48;i++){const a=i*Math.PI/24;ell.push(new THREE.Vector3(Math.cos(a)*17.85,4.9,Math.sin(a)*12.65));}
-  lit(0,new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ell,true),48,.07,4,true),0,0,0,.4);
+  full([[16.6,10.25,7.88],[16.6,10.25,7.8],[16.3,9.95,7.8],[16.3,9.95,7.88]],S.trim,pale,1);
+  for(let i=0;i<64;i++){
+    const a=i*Math.PI*2/64,px=Math.cos(a)*20.47,pz=Math.sin(a)*13.17;
+    beam(new THREE.Vector3(px,2.62,pz),new THREE.Vector3(px*.99,7.45,pz*.99),.034,pale,1,4);
+  }
+
+  const archPoint=t=>v(-20+40*t+2.2*Math.sin(Math.PI*t),.22+16.20*4*t*(1-t),-12.78);
+  const archNormal=t=>{const a=archPoint(Math.max(0,t-.002)),b=archPoint(Math.min(1,t+.002)),d=b.sub(a).normalize();return v(-d.y,d.x,0);};
+  const start=.02,end=.98,N=16,sides=[-.35,.35],offsets=[-.3,.3];
+  const webPoint=(t,zside,offset)=>archPoint(t).addScaledVector(archNormal(t),offset).add(v(0,0,zside));
+  const archCurve=new THREE.CatmullRomCurve3(Array.from({length:65},(_,i)=>archPoint(start+(end-start)*i/64)));
+  add(new THREE.TubeGeometry(archCurve,64,.22,8,false),0,0,0,S.trim,pale,1);
+  for(const zside of sides)for(let i=0;i<=N;i++){
+    const t=start+(end-start)*i/N,inner=webPoint(t,zside,offsets[0]),outer=webPoint(t,zside,offsets[1]);
+    beam(inner,outer,.04,pale,1,4);
+    if(i<N){
+      const next=start+(end-start)*(i+1)/N;
+      beam(inner,webPoint(next,zside,offsets[1]),.05,pale,1,4);
+      beam(outer,webPoint(next,zside,offsets[0]),.05,pale,1,4);
+    }
+  }
+  for(let i=0;i<=N;i+=2){const t=start+(end-start)*i/N;for(const offset of offsets)beam(webPoint(t,sides[0],offset),webPoint(t,sides[1],offset),.04,pale,1,4);}
+  for(const dx of [-20,20]){
+    box(dx,0,-12.78,1.2,.48,.95,S.stone,pale);
+    beam(v(dx,.18,-12.78),archPoint(dx<0?start:end),.16,pale,1,6);
+    for(const z of [-13,-12.56])beam(v(dx,0,z),v(dx,1.5,z),.055,pale,1,4);
+    beam(v(dx,1.5,-13),v(dx,1.5,-12.56),.055,pale,1,4);
+  }
+  for(const t of [.16,.23,.3,.37,.44,.51,.58,.65,.72,.79,.86]){
+    const a=archPoint(t),roofZ=-13*Math.sqrt(Math.max(0,1-(a.x/20.2)**2));
+    lbeam(1,a,v(a.x,7.82,roofZ),.028,.14); // Fine suspension stays tie the arch back to the roof.
+  }
+  // Cool cyan light follows the same single arch path at night.
+  const curve=new THREE.CatmullRomCurve3(Array.from({length:65},(_,i)=>archPoint(start+(end-start)*i/64).add(v(0,0,-.35))));
+  lit(1,new THREE.TubeGeometry(curve,64,.035,4,false),0,0,0,.4,.6,[.18,.7,.95]);
   return finish();
 }
 
@@ -456,7 +498,7 @@ export function createLondonEye(x,z){
 // ---- Edificio Copan: S-curved slab, continuous white brise-soleil floor bands over dark glazing ----
 export function createCopan({x,z,len,amp,depth,h}){
   const {box,add,sweep,finish,pale}=landmark('copan',x,z),D=depth/2,path=t=>[-len/2+t*len,amp*Math.sin(2*Math.PI*t)],N=32,F=3.2;
-  const rect=(d0,d1,y0,y1)=>[[d0,y0],[d1,y0],[d1,y1],[d0,y1]],white=[1.2,1.2,1.22],dark=[.5,.55,.65],glass=[.7,.82,.95];
+  const rect=(d0,d1,y0,y1)=>[[d0,y0],[d1,y0],[d1,y1],[d0,y1]],white=[1.14,1.08,.95],dark=[.45,.42,.36],glass=[1.35,.85,.62];
   sweep(rect(-D,D,0,F),path,N,S.stone,dark);                                   // commercial base
   sweep(rect(-D+.75,D-.75,F,h-.5),t=>path(.003+t*.994),N,S.stone,dark);         // core behind the glazing; ends ~10 cm inside the band caps (coplanar caps z-fought)
   for(const k of [1,-1]){
@@ -464,43 +506,62 @@ export function createCopan({x,z,len,amp,depth,h}){
     sweep(k>0?[[D-.72,F],[D-.72,h-.5]]:[[-D+.72,h-.5],[-D+.72,F]],path,N,S.glass,glass,2,false);
   }
   for(let y=F;y<h-.5;y+=3)sweep(rect(-D,D,y,y+.65),path,N,S.plaster,white);   // one continuous projecting ribbon per floor
-  for(let i=1;i<12;i++){
-    const t=i/12,[x,z]=path(t),[ax,az]=path(Math.min(1,t+.002)),[bx,bz]=path(Math.max(0,t-.002)),len=Math.hypot(ax-bx,az-bz);
-    const nx=-(az-bz)/len,nz=(ax-bx)/len;
-    box(x+nx*(D-.58),F,z+nz*(D-.58),.16,h-F-.5,.18,S.trim,[.8,.84,.9],1);
+  for(let i=1;i<=20;i++)for(const side of [-1,1]){
+    const t=i/21,[cx,cz]=path(t),[ax,az]=path(Math.min(1,t+.002)),[bx,bz]=path(Math.max(0,t-.002)),l=Math.hypot(ax-bx,az-bz),nx=-(az-bz)/l,nz=(ax-bx)/l;
+    const g=new THREE.BoxGeometry(.10,h-F-.5,.035);g.rotateY(Math.atan2(side*nx,side*nz));
+    add(g,cx+side*nx*(D-.68),F+(h-F-.5)/2,cz+side*nz*(D-.68),S.stone,[.95,.9,.76],1);
+  }
+  const [sideX,sideZ]=path(1),sideDepth=depth-1.4,sideWallX=sideX-.08;
+  box(sideWallX,F,sideZ,.12,h-F-.5,sideDepth,S.plaster,[1,.96,.88]);
+  const sidePitch=(h-F-.5)/32;
+  for(let row=0;row<32;row++)for(let column=0;column<4;column++){
+    const y=F+(row+.5)*sidePitch,d=-sideDepth/2+(column+.5)*sideDepth/4;
+    box(sideWallX+.065,y-.12,sideZ+d,.02,.24,.18,S.glass,[.4,.27,.2],2);
   }
   sweep(rect(-D-.3,D+.3,h-.5,h),path,N,S.plaster,white);                       // flat roof slab
   const [ax,az]=path(.27),[bx,bz]=path(.66);
   box(ax,h,az,3,2.2,3,S.stone,[.8,.84,.9]);box(ax,h+2.2,az,3.3,.2,3.3,S.trim,pale,1);
   add(new THREE.CylinderGeometry(1,1,1.8,10),bx,h+.9,bz,S.trim,[.7,.74,.8],1);add(new THREE.ConeGeometry(1.1,.6,10),bx,h+2.1,bz,S.roof,[.87,.96,1.04]);
-  return finish();
+  const g=finish();g.scale.x=-1;return g;
 }
 
 // ---- Riverside Museum: sawtooth zinc roof, glazed front and gable ends ----
 export function createRiverside(x,z){
-  const {box,add,finish,lit,lbox,lbeam}=landmark('riverside',x,z),zinc=[.6,.64,.7],silver=[.95,.98,1.04],glass=[.7,.82,.95],T=.7,W=7.5;
-  const top=RIVERSIDE_KNOTS.map(([u,y])=>[u-16,y]),low=top.map(([px,py])=>[px,py-T]).reverse();
+  const {box,add,finish,lit,lbox,lbeam}=landmark('riverside',x,z,1.125),zinc=[.92,.89,.81],silver=[1.02,.97,.87],frame=[.31,.34,.35],glass=[.62,.78,.88],T=.85,F=1.35,W=7.5;
+  const top=RIVERSIDE_KNOTS.map(([u,y])=>[u-16,y]),low=top.map(([px,py])=>[px,py-T]).reverse(),glassTop=top.map(([px,py])=>[px,py-F]);
   const poly=pts=>new THREE.Shape(pts.map(([px,py])=>new THREE.Vector2(px,py)));
   add(new THREE.ExtrudeGeometry(poly([...top,...low]),{depth:2*W,bevelEnabled:false}),0,0,-W,S.trim,zinc);   // pleated roof sheet
-  const under=[[-15.7,.3],[15.7,.3],...[...RIVERSIDE_KNOTS].reverse().map(([u,y])=>[u-16,y-T+.05])];
-  add(new THREE.ExtrudeGeometry(poly(under),{depth:.25,bevelEnabled:false}),0,0,6.6,S.glass,glass,2);             // glazed front under the roof
+  const under=[[-15.7,.3],[15.7,.3],...glassTop.slice().reverse()];
+  const fascia=[...top.map(([px,py])=>[px,py-T+.05]),...glassTop.slice().reverse()];
+  add(new THREE.ExtrudeGeometry(poly(fascia),{depth:.24,bevelEnabled:false}),0,0,6.83,S.trim,frame,1);
+  add(new THREE.ExtrudeGeometry(poly(under),{depth:.25,bevelEnabled:false}),0,0,6.6,S.glass,glass,2);             // glazed front below the dark roof fascia
   add(new THREE.ExtrudeGeometry(poly(under),{depth:.2,bevelEnabled:false}),0,0,-W+.3,S.plaster,[.5,.55,.6]);
-  for(let u=-14;u<=14;u+=2)box(u,.3,6.95,.14,riversideRoofAt(u+16)-T-.35,.16,S.trim,silver,1);
-  for(const s of [-1,1]){
-    const he=riversideRoofAt(s<0?0:32)-T;
-    box(s*15.7,.3,0,.3,he-.3,13.8,S.litGlass,glass,2);
-    for(const dz of [-6.9,-3.45,0,3.45,6.9])box(s*15.85,.3,dz,.22,he-.2,.24,S.trim,silver,1);
-    box(s*15.85,he*.5,0,.22,.2,14,S.trim,silver,1);
-    const pg=new THREE.PlaneGeometry(13.4,he-.6);pg.rotateY(s*Math.PI/2);lit(2,pg,s*15.99,.4+(he-.6)/2,0,.3,.12);
+  const columns=16,grid=Array.from({length:columns+1},(_,i)=>-15.7+31.4*i/columns);
+  for(const u of grid)box(u,.3,7.135,.09,riversideRoofAt(u+16)-F-.3,.13,S.trim,frame,1);
+  for(const [u0,u1] of grid.slice(1).map((u,i)=>[grid[i],u]))for(const level of [3.0,5.8,8.6,11.4,14.2]){
+    const high=Math.min(riversideRoofAt(u0+16),riversideRoofAt(u1+16))-F;
+    if(level<high-.15)box((u0+u1)/2,level,7.135,u1-u0,.075,.14,S.trim,frame,1);
   }
-  // Night: cool zig-zag roofline strips (front/back top edge, front lower edge), warm entrance band + faint glazed-front wash, warm gable glow above.
+  for(const peak of [-7,-2,5,12])for(const foot of [peak-1.5,peak+1.5]){
+    const endY=riversideRoofAt(peak+16)-F,dx=peak-foot,dy=endY-.3,g=new THREE.BoxGeometry(Math.hypot(dx,dy),.13,.13);
+    g.rotateZ(Math.atan2(dy,dx));add(g,(foot+peak)/2,(endY+.3)/2,6.68,S.trim,frame,1);
+  }
+  for(const s of [-1,1]){
+    const he=riversideRoofAt(s<0?0:32)-F;
+    box(s*15.68,.3,0,.1,he-.3,13.56,S.litGlass,glass,2);
+    for(const dz of [-6.9,-3.45,0,3.45,6.9])box(s*15.745,.3,dz,.12,he-.2,.1,S.trim,frame,1);
+    box(s*15.745,he*.5,0,.12,.2,13.56,S.trim,silver,1);
+    const pg=new THREE.PlaneGeometry(13.4,he-.6);pg.rotateY(s*Math.PI/2);lit(2,pg,s*15.79,.4+(he-.6)/2,0,.12,.25,[.95,1,.18]);
+  }
+  // Night: subtle zinc edge light and a yellow-green wash behind the museum glazing.
   for(let i=0;i<top.length-1;i++){
     const [x0,y0]=top[i],[x1,y1]=top[i+1];
     for(const zz of [-7.515,7.515])lbeam(1,v(x0,y0-.08,zz),v(x1,y1-.08,zz),.05,1,4);
     lbeam(1,v(x0,y0-T+.1,7.515),v(x1,y1-T+.1,7.515),.04,.45,4);
   }
-  lbox(0,0,.45,7.07,28,.12,.04,.6);
-  lit(2,new THREE.ShapeGeometry(poly(under)),0,0,7.08,.16,.04);
+  lbox(0,0,.45,7.07,28,.12,.04,.35);
+  // Keep the additive interior wash just ahead of the glass so the steel grid occludes it.
+  lit(2,new THREE.ShapeGeometry(poly(under)),0,0,7.095,.08,.3,[.95,1,.18]);
   return finish();
 }
 
@@ -540,6 +601,13 @@ export function createUniversity(x,z,lift=0){
   for(const [face,cx,cz] of [[0,0,tz+3.5],[Math.PI,0,tz-3.5],[Math.PI/2,3.5,tz],[-Math.PI/2,-3.5,tz]])
     for(const u of [-1.6,1.6])gothic(cx,cz,face,u,18.2,1.1,3.8,dark,S.litGlass);
   for(const px of [-3.7,3.7])for(const pz of [-3.7,3.7]){box(px,23.6,tz+pz,1,2.4,1,S.stone,light);add(new THREE.ConeGeometry(.75,2.8,4,1,false,Math.PI/4),px,27.2,tz+pz,S.roof,slate);}
+  const clock=(cx,cz,turn)=>{
+    const center=v(cx,15.9,cz),normal=v(0,0,1).applyAxisAngle(v(0,1,0),turn),point=(r,a,d=.085)=>center.clone().add(v(Math.sin(a)*r,Math.cos(a)*r,0).applyAxisAngle(v(0,1,0),turn)).addScaledVector(normal,d);
+    for(const [r,d,tint] of [[.78,.05,[.55,.4,.28]],[.62,.07,[1.18,1.08,.88]]]){const g=new THREE.CircleGeometry(r,16);g.rotateY(turn);const p=center.clone().addScaledVector(normal,d);add(g,p.x,p.y,p.z,S.trim,tint,1);}
+    for(let i=0;i<12;i++){const a=i*Math.PI/6;beam(point(.43,a),point(.52,a),.025,[.42,.34,.23],1,4);}
+    beam(center.clone().addScaledVector(normal,.09),point(.36,Math.PI/3,.09),.035,[.42,.34,.23],1,4);beam(center.clone().addScaledVector(normal,.09),point(.48,0,.09),.025,[.42,.34,.23],1,4);
+  };
+  for(const [cx,cz,turn] of [[0,7,0],[0,-1,Math.PI],[4,3,Math.PI/2],[-4,3,-Math.PI/2]])clock(cx,cz,turn);
   // open-lattice tapering spire: leaning posts, square rings and diagonal bracing, gilded finial
   const levels=[[23.6,2.5],[26,2],[28.2,1.5],[30.2,1],[32,.55]],corner=(l,i)=>v([-1,1,1,-1][i]*l[1],l[0],tz+[-1,-1,1,1][i]*l[1]);
   for(let k=0;k<levels.length;k++){

@@ -19,6 +19,7 @@ import { upgradeBigBen, bigBenForced } from './bigben-asset.js';
 import { upgradeSe, seForced } from './se-asset.js';
 import { upgradeTowerBridge, towerBridgeForced } from './towerbridge-asset.js';
 import { upgradeMasp, maspForced } from './masp-asset.js';
+import { authoredLandmarksForced, upgradeAuthoredLandmark, upgradeLondonEye } from './authored-landmarks.js';
 import { resetFloodlights } from './building-slice-materials.js';
 import { polishLandmarkMaterials } from './landmark-materials.js';
 import { createLandmarkEnv } from './landmark-env.js';
@@ -157,6 +158,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   loadVehicleAsset('a330').then((glb) => { if (glb && !disposed) adoptVisual(plane, glb, ['nav', 'strobe']); }); // authored A330 (tools/vehicles/a330); procedural stays on failure
   const wake = () => { if (landmarksReady && !disposed && !raf && !document.hidden) raf = requestAnimationFrame(frame); };
   const startupLandmarks = [];
+  const authoredLods = [];
   let bigBenLod = null; // authored Big Ben LOD0/LOD1 (tools/landmarks/bigben); the procedural group stays hidden underneath as fallback
   const bigben = details.getObjectByName('bigben-geometry');
   if (bigben && !bigBenForced()) upgradeBigBen(bigben, { isDisposed: () => disposed, track: (m) => sky.track(m), env: landmarkEnv }).then((l) => { bigBenLod = l; wake(); });
@@ -169,6 +171,15 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   let maspLod = null; // authored MASP LOD0 (tools/landmarks/masp); procedural group stays hidden underneath as fallback
   const masp = details.getObjectByName('masp-geometry');
   if (masp && !maspForced()) startupLandmarks.push(upgradeMasp(masp, { isDisposed: () => disposed || startupLandmarksCancelled, track: (m) => sky.track(m), env: landmarkEnv }).then((l) => { maspLod = l; wake(); }));
+  if (!authoredLandmarksForced()) {
+    const options = { isDisposed: () => disposed || startupLandmarksCancelled, track: (m) => sky.track(m), env: landmarkEnv };
+    for (const name of ['copan', 'riverside', 'university', 'wembley']) {
+      const group = details.getObjectByName(name + '-geometry');
+      if (group) startupLandmarks.push(upgradeAuthoredLandmark(group, name, options).then((lod) => { if (lod) authoredLods.push(lod); wake(); }));
+    }
+    const eyeFrame = details.getObjectByName('eyeframe-geometry');
+    if (eyeFrame) startupLandmarks.push(upgradeLondonEye(eye, eyeFrame, options).then((lod) => { if (lod) authoredLods.push(lod); wake(); }));
+  }
   if (new URLSearchParams(location.search).has('qa')) globalThis.__qaLandmarks = { se, masp, startupLandmarks };
   const wellington = details.getObjectByName('wellington-geometry');
   if (wellington) upgradeWellington(wellington, () => disposed).then(wake);
@@ -320,6 +331,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     seLod?.update(camera.position);
     towerBridgeLod?.update(camera.position);
     maspLod?.update(camera.position);
+    authoredLods.forEach((lod) => lod.update(camera.position));
     wetSurfaces.update(clock, wet, mood.rain, night, camera.position, sky.colors, bus.position, bus.rotation.y, post.tier);
     updateBeams(night); pools.update(night, wet); lampPosts?.userData.setNight?.(night);
     water.update(clock, night, mood, post.tier, sky.colors);
@@ -369,6 +381,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       underpass.group.userData.dispose(); bridgeCars.dispose();
       heroRealm?.userData.dispose();
       roadMarks.userData.dispose(); propsGroup?.userData.dispose();
+      eye.userData.dispose?.();
       rain.dispose?.();
       wetSurfaces.dispose();
       sky.dispose();

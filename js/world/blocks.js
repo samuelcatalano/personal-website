@@ -213,6 +213,7 @@ export function buildBlocks(add, stops, pts, curve, occ, onBuildingPlot, onArchi
     [522,-70,6,8,9.7,"terrace"],
   ];
   for (const [i, [x, z, width, depth, height, kind]] of markedLots.entries()) {
+    if (i === 7) continue; // Remove the house beside Riverside while keeping later marked-lot IDs stable.
     const plot = { id: `marked-infill-${i}`, kind, x, z, width, depth, height, replaceGarden: true };
     if (onArchitecturePlot) onArchitecturePlot(plot);
     else {

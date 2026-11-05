@@ -58,7 +58,7 @@ export function buildLandmarks(add, stops, pts, onTree) {
   details.add(createWembley(at(stops, pts, 'wembley').x, RIVER_Z - 26));
   buildGlasgow(add, at(stops, pts, 'glasgow'), onTree, site => details.add(createChambers(site.x, site.z)), site => details.add(createWellington(site.x, site.z)));
   const { museum, uni } = glasgowSites(stops, pts), hill = (dx, w, d, y, h, c) => add(uni.x + dx, y, uni.z, w, h, d, c);
-  buildRiverside(add, museum, site => details.add(capStripGlow(createRiverside(site.x, site.z), .5)));
+  buildRiverside(add, museum, site => details.add(capStripGlow(createRiverside(site.x, site.z), .4)));
   hill(0, uni.w + 12, 24, 0, 1.2, P.concrete); hill(0, uni.w + 6, 20, 1.2, 1.3, P.pave); // neutral paved plaza (the old blue-grey read as a canal at the foot of the university) the university stands on
   buildUniversity((x, y, z, w, h, d, c) => add(x, y + uni.lift, z, w, h, d, c), uni, site => details.add(createUniversity(site.x, site.z, uni.lift)));
   flag(add, uni.x, 34.7 + uni.lift, uni.z + 3, 'saltire', 1.1); // finial top

@@ -106,6 +106,16 @@ test('no generic block overlaps the museum or the university hill', () => {
   for (const s of [museum, { ...uni, w: 84, d: 30 }]) assert.equal(boxes.filter((b) => b.x - b.w / 2 < s.x + s.w / 2 && b.x + b.w / 2 > s.x - s.w / 2 && b.z - b.d / 2 < s.z + s.d / 2 && b.z + b.d / 2 > s.z - s.d / 2).length, 0);
 });
 
+test('Riverside expansion reserves its enlarged envelope and removes only the adjacent house lot', () => {
+  const { museum } = glasgowSites(stops, pts), plots = [];
+  buildBlocks(() => {}, stops, pts, curve, [], undefined, p => plots.push(p));
+  assert.deepEqual([museum.w, museum.d], [36, 18]);
+  assert.equal(plots.some(p => p.id === 'marked-infill-7'), false);
+  assert.deepEqual(plots.find(p => p.id === 'marked-infill-8'), {
+    id: 'marked-infill-8', kind: 'terrace', x: 317, z: -101, width: 7, depth: 8, height: 9.7, replaceGarden: true,
+  });
+});
+
 test('nothing tall sits behind the Riverside Museum (countryside hills and the University plinth excepted)', () => {
   const boxes = [], { museum, uni } = glasgowSites(stops, pts), green = [P.hill, P.field, P.field2];
   buildCity((x, y, z, w, h, d, c) => boxes.push({ x, y, z, w, h, d, c }), stops, pts, curve);

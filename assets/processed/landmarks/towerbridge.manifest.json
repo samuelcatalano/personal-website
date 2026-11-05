@@ -1,20 +1,20 @@
 {
-  "generated": "2026-10-29",
-  "tool": "tools/pipeline/landmark.sh",
-  "source": "tools/landmarks/towerbridge/build_towerbridge.py (Blender, original geometry, baked textures)",
-  "note": "KTX2 ETC1S (colour/emissive q160, ORM q200) + Meshopt. Loaded by js/world/towerbridge-asset.js; ?landmarks=procedural forces the procedural Tower Bridge.",
+  "generated": "2026-11-05",
+  "tool": "blender -b --python tools/landmarks/towerbridge/build_towerbridge.py",
+  "source": "tools/landmarks/towerbridge/build_towerbridge.py (original Blender geometry, vertex-colour PBR)",
+  "note": "Three.js GLTFLoader asset; one opaque material per LOD, no textures, no baked lighting. Loaded by js/world/towerbridge-asset.js; ?landmarks=procedural forces the procedural fallback.",
   "outputs": {
     "lod0": {
       "path": "assets/processed/landmarks/towerbridge.lod0.glb",
-      "bytes": 691800,
-      "sha256": "2e4a62aab0116482960b61a6aa975ad7fb9f863adad7ac772edc61d0e920df84",
-      "raw": "assets/models/source/towerbridge/towerbridge.lod0.raw.glb (git-ignored)"
+      "bytes": 478524,
+      "sha256": "53effdbef7d64890171b1a7b07b389726d7677e5a0517d94a4f073622cc4cd0d",
+      "triangles": 7964
     },
     "lod1": {
       "path": "assets/processed/landmarks/towerbridge.lod1.glb",
-      "bytes": 246776,
-      "sha256": "071942f5b7745e063a3237c660ccde41a4c70a38a2405d3adfd3d66870c76b1c",
-      "raw": "assets/models/source/towerbridge/towerbridge.lod1.raw.glb (git-ignored)"
+      "bytes": 155468,
+      "sha256": "18b331d6f33d4e049e1c4d69fbe26c3b140848740c1304ed7dd7dad9e1daa4f4",
+      "triangles": 2178
     }
   }
 }

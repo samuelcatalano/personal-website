@@ -2,16 +2,16 @@
 import bpy, os, sys, math
 from mathutils import Vector
 HERE = os.path.dirname(os.path.abspath(__file__))
-SRC = os.path.abspath(os.path.join(HERE, '..', '..', '..', 'assets', 'models', 'source', 'towerbridge'))
+SRC = os.path.abspath(os.path.join(HERE, '..', '..', '..', 'assets', 'processed', 'landmarks'))
 OUT = os.path.join(HERE, 'renders'); os.makedirs(OUT, exist_ok=True)
 night = 'night' in sys.argv
 V = lambda x, y, z: Vector((x, -z, y))          # glTF space -> Blender space (importer already converted the mesh)
-VIEWS = {'front34': ((-30, 16, 46), (0, 15, 0), 36), 'side': ((-60, 14, 0), (0, 14, 0), 38), 'close': ((-9, 21, 20), (0, 22, 9.5), 45), 'deck': ((0, 9, -30), (0, 8, 0), 40), 'abut2': ((-20, 3, 20), (-3.7, 2, 16), 40), 'abut': ((-9, 7, 31), (0, 5, 16), 40)}
+VIEWS = {'front34': ((-30, 16, 46), (0, 15, 0), 36), 'side': ((-60, 14, 0), (0, 14, 0), 38), 'close': ((-9, 21, 20), (0, 22, 9.5), 45), 'deck': ((0, 9, -30), (0, 8, 0), 40), 'bascule': ((-18, 8, 0), (0, 5, 0), 50), 'abut2': ((-20, 3, 20), (-3.7, 2, 16), 40), 'abut': ((-9, 7, 31), (0, 5, 16), 40)}
 for lod in (0, 1):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     sc = bpy.context.scene; sc.render.engine = 'CYCLES'; sc.cycles.device = 'CPU'; sc.cycles.samples = 24; sc.cycles.use_denoising = False
     sc.render.resolution_x, sc.render.resolution_y = 900, 900; sc.view_settings.view_transform = 'Standard'
-    bpy.ops.import_scene.gltf(filepath=os.path.join(SRC, f'towerbridge.lod{lod}.raw.glb'))
+    bpy.ops.import_scene.gltf(filepath=os.path.join(SRC, f'towerbridge.lod{lod}.glb'))
     for m in bpy.data.materials:
         pb = m.node_tree.nodes.get('Principled BSDF')
         if pb and not night: pb.inputs['Emission Strength'].default_value = 0

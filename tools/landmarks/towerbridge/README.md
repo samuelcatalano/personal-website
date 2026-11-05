@@ -1,15 +1,14 @@
-# Tower Bridge (London)
+# Tower Bridge
 
-Original procedural geometry (bmesh), baked in Blender Cycles (CPU), exported as raw glTF. No external meshes or textures.
+Procedural Blender build; no external meshes, textures or baked lighting.
 
 ```bash
-blender -b --python tools/landmarks/towerbridge/build_towerbridge.py            # -> assets/models/source/towerbridge/towerbridge.lod{0,1}.raw.glb (git-ignored)
-blender -b --python tools/landmarks/towerbridge/render_views.py [-- night]       # -> tools/landmarks/towerbridge/renders/*.png
-tools/pipeline/landmark.sh <abs raw.glb> <abs out.glb>                            # raw -> assets/processed/landmarks/towerbridge.lod{0,1}.glb (KTX2 + Meshopt; absolute paths, the script cd's)
+blender -b --python tools/landmarks/towerbridge/build_towerbridge.py
+blender -b --python tools/landmarks/towerbridge/render_views.py [-- night]
 ```
 
-- Local frame = the procedural `createTowerBridge` group: origin on the river centreline, x across the deck, z along the crossing (towers at z = +-9.5), Y up, metres. Envelope x +-3.9, z +-17.5, y -0.8..35.2 (the old procedural one); deck top 5.2, tower height 35, walkways at y 19-20.5 (these frozen numbers feed traffic and sightlines).
-- One mesh and one opaque material per LOD (`TowerBridge_LOD0` ~9.1k tris, `TowerBridge_LOD1` ~2.4k tris), material `TowerBridgeAtlas`, UV0 only. LOD0 1024 px textures, LOD1 512 px.
-- Textures: baseColor, ORM (R = baked AO, G = roughness, B = metalness; blue steel 0.5, gilt 1), emissive (floodlit warm stone fading with height, lit windows with random dark ones, walkway glazing, cool-white chain beads, warm deck lamps).
-- Tower: pier foot, road portals on the carriageway faces, five rows of pointed windows, white-capped string courses, merlon crown, steep slate pyramid with dormers, lantern and gilt finial, four corner turrets with lancet slits and gilt-tipped cones. Blue high-level walkways with glazed bays, bascule deck with footways, rail and lamps, blue chains with hangers down to stone anchor posts, abutments with blind arches. LOD1 turns openings into flat decals and drops posts, stiffeners and lamp poles.
-- Runtime: `js/world/towerbridge-asset.js` (lazy load, LOD by distance with hysteresis, procedural group hidden but kept as fallback, `?landmarks=procedural` forces it). Test: `tests/towerbridge-asset.browser.py`.
+The builder writes `assets/processed/landmarks/towerbridge.lod{0,1}.glb` directly. Each file is one mesh, one PBR material (`TowerBridgeAtlas`) and vertex colours, with no UVs or textures. The local frame matches `createTowerBridge`: origin at the river centreline, x across the deck, z along the crossing, towers at z = ±9.5, Y up; deck top 5.2, walkways y = 19–20.3. Bounds are x ±3.87, z ±17.53, y −0.8..35.2. The two bascules have a centre seam and visible hinge shafts; LOD1 keeps the tower silhouette, roof, walkways and cables.
+
+Validated export: LOD0 7,964 triangles / 478,524 bytes; LOD1 2,178 triangles / 155,468 bytes; one draw call per LOD. The builder reimports both files and checks bounds, triangle counts, finite unit normals, colour variation and indices.
+
+The current browser test still asserts KTX2 base-colour, ORM and emissive maps. This direct PBR export has no textures; runtime loading works, but that assertion needs reconciliation when test/runtime integration is authorized. Until then, the existing glow hook treats the single material as uniformly emissive at night.

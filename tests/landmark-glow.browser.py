@@ -29,6 +29,15 @@ result = js(r'''(async () => {
     check(peak >= 0.3, name + ' night strips too dim ' + peak.toFixed(3));
     metrics[name] = { strips: strips.length, peakEmissiveLum: +peak.toFixed(3) };
   }
+  {
+    const wash = parts.details.getObjectByName('riverside-wash');
+    check(wash, 'Riverside has no interior wash');
+    const colors = wash.geometry.attributes.color;
+    let red = 0, green = 0, blue = 0;
+    for (let i = 0; i < colors.count; i++) { red += colors.getX(i); green += colors.getY(i); blue += colors.getZ(i); }
+    check(green > red && green > blue * 4, 'Riverside night wash must stay yellow-green');
+    metrics.riversideWash = { colorMean: [red, green, blue].map((v) => +(v / colors.count).toFixed(3)) };
+  }
   // London Eye: same meshes as before (no duplicates or extra instances), darker-glass pods, emissive rim, darker rim in rain.
   {
     const w = parts.eye, rim = w.getObjectByName('eye-rim'), pods = w.getObjectByName('eye-pods');

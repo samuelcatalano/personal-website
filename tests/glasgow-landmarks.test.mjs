@@ -14,10 +14,10 @@ test('Riverside Museum fits its footprint, has a zigzag with a spike peak', () =
   const b = build(buildRiverside);
   assert.ok(b.length >= 60 && b.length <= 160, `box count ${b.length}`);
   const [x0, x1] = ext(b, (q) => q.x - q.w / 2, (q) => q.x + q.w / 2), [z0, z1] = ext(b, (q) => q.z - q.d / 2, (q) => q.z + q.d / 2);
-  assert.ok(x1 - x0 <= 32.01 && z1 - z0 <= 16.01, 'footprint <= 32x16');
-  assert.ok(b.every((q) => q.y >= 0) && Math.max(...b.map((q) => q.y + q.h)) <= 18, 'on ground, <= 18 high');
+  assert.ok(Math.abs(x1 - x0 - 36) < 0.01 && Math.abs(z1 - z0 - 18) < 0.01, 'expanded footprint 36x18');
+  assert.ok(b.every((q) => q.y >= 0) && Math.max(...b.map((q) => q.y + q.h)) <= 18.68, 'on ground, expanded height');
   // roof height per x column from the front silver band
-  const band = b.filter((q) => q.color === '#c9ccd1' && Math.abs(q.z - 27.5) < 0.01).sort((a, c) => a.x - c.x);
+  const band = b.filter((q) => q.color === '#c9ccd1' && Math.abs(q.z - 28.4375) < 0.01).sort((a, c) => a.x - c.x);
   const tops = band.map((q) => q.y + q.h);
   let peaks = 0;
   for (let i = 1; i < tops.length - 1; i++) if (tops[i] > tops[i - 1] && tops[i] >= tops[i + 1]) peaks++;

@@ -1,0 +1,7 @@
+# University of Glasgow landmark
+
+Run from the repository root with `blender -b --python tools/landmarks/university/build_university.py`. The script rebuilds `university.blend` and both processed GLBs, then imports each GLB back into Blender to check material buckets, triangle counts, local bounds, normals and payload.
+
+The procedural mesh is original and uses the [University of Glasgow Gilbert Scott Building page](https://www.gla.ac.uk/explore/visit/campustours/prospectivestudents/studentsselfguided/gilbertscottbuilding/) only as architectural reference. Its local frame is Three.js Y-up: X follows the long façade, +Z faces the curved concert-hall frontage, and the base sits at Y=0. Bounds are X ±36.45, Y 0–34.7, Z ±7.65. Keep the existing runtime landmark transform.
+
+Each LOD has three meshes named `Mass`, `Trim` and `Glass`, one material primitive per mesh, vertex colours and metric UVs. The central tower now has a clock dial on each side; LOD0 carries 12 hour marks per face and LOD1 keeps four. The `.blend` hides LOD1 by default so overlapping LODs do not z-fight in the viewport; toggle its collection to inspect it. No external images, textures, baked lighting, animation or copied geometry are used. Blender 5.2.3 validation: LOD0 7,899 triangles / 766,032 bytes; LOD1 3,019 triangles / 289,704 bytes; three draw calls each. Both GLB round-trips preserve the local bounds and triangle counts.

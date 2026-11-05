@@ -39,7 +39,7 @@ test('citywide architecture migration is deterministic, batched by plot, and kee
     [x('estaiada') - 16, x('estaiada') + 16, -80, -12],
     [x('bigben') - 10, x('bigben') + 43, -76, -48], [x('wembley') - 30, x('wembley') + 30, -49, -33],
     [x('glasgow') - 20, x('glasgow') + 20, -43, -17],
-    [museum.x - museum.w / 2 - 5, museum.x + museum.w / 2 + 5, museum.z - 100, museum.z - 8],
+    [museum.x - museum.w / 2 - 4.5, museum.x + museum.w / 2 + 4.5, museum.z - 100, museum.z - 8],
     [uni.x - uni.w / 2 - 16, uni.x + uni.w / 2 + 16, uni.z - 19, uni.z + 19],
   ];
   for (const p of plots) {

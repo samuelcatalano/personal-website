@@ -21,8 +21,8 @@ print(js(r'''(async () => {
     check(meshes.length === 1, 'one mesh per LOD');
     const m = meshes[0].material, g = meshes[0].geometry, tris = (g.index ? g.index.count : g.attributes.position.count) / 3;
     check(m.name === 'TowerBridgeAtlas' && !m.transparent, 'single opaque atlas material');
-    check(m.map?.isCompressedTexture && m.aoMap?.isCompressedTexture && m.emissiveMap?.isCompressedTexture, 'KTX2 base colour / ORM / emissive');
-    check(m.userData.glow === true, 'night glow registered');
+    check(m.isMeshStandardMaterial && m.vertexColors && !m.map && !m.aoMap && !m.emissiveMap, 'vertex-colour PBR without baked maps');
+    check(m.userData.glow !== true, 'untextured material must not glow over the whole bridge');
     const b = new THREE.Box3().setFromObject(lod);
     check(b.min.x >= pb.min.x - 0.5 && b.max.x <= pb.max.x + 0.5 && b.min.z >= pb.min.z - 0.5 && b.max.z <= pb.max.z + 0.5 && b.min.y > -1.05 && b.max.y <= pb.max.y + 0.3, 'inside the procedural envelope ' + JSON.stringify([b, pb]));
     check(Math.abs(b.max.y - 35.2) < 0.3 && b.max.z > 17 && b.max.x > 3.5, 'spans the full height / length / width');
@@ -34,7 +34,10 @@ print(js(r'''(async () => {
   const procKids = [...group.children]; check(procKids.length > 0, 'procedural child present');
   const api = await upgradeTowerBridge(group, { isDisposed: () => false, track: () => {}, env: null }); check(api, 'upgrade returns an updater');
   const glb = group.children.filter((c) => c.name.startsWith('towerbridge-glb-lod')); check(glb.length === 2, 'two GLB LODs added');
-  check(procKids.every((c) => !c.visible), 'procedural hidden while GLB active');
+  const procMass = procKids.filter((c) => /(mass|trim|glass)$/.test(c.name));
+  const procLights = procKids.filter((c) => /(lightsWarm|lightsCool|wash)$/.test(c.name));
+  check(procMass.length >= 1 && procMass.every((c) => !c.visible), 'procedural structure hidden while GLB active');
+  check(procLights.length >= 1 && procLights.some((c) => c.visible), 'dynamic night-light overlays stay visible');
   const at = (z) => api.update(new THREE.Vector3(100, 5, -45 + z)), vis = () => glb.map((c) => c.visible).join();
   at(0); check(vis() === 'true,false', 'near -> LOD0');
   at(17.6 + 155); check(vis() === 'true,false', 'inside hysteresis band stays LOD0');

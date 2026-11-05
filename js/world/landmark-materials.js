@@ -14,7 +14,7 @@ export function polishLandmarkMaterials(world,stops,pts,env){
     new THREE.Vector4(cp.x-cp.len/2-cp.depth/2-.3,cp.x+cp.len/2+cp.depth/2+.3,cp.z-cp.amp-cp.depth/2-.3,cp.z+cp.amp+cp.depth/2+.3),
     new THREE.Vector4(x('se')-16,x('se')+16,RIVER_Z-25.5,RIVER_Z-7),
     new THREE.Vector4(g.x-16,g.x+16,g.z-44,g.z-35),
-    new THREE.Vector4(sites.museum.x-16,sites.museum.x+16,sites.museum.z-8,sites.museum.z+8),
+    new THREE.Vector4(sites.museum.x-sites.museum.w/2,sites.museum.x+sites.museum.w/2,sites.museum.z-sites.museum.d/2,sites.museum.z+sites.museum.d/2),
     new THREE.Vector4(sites.uni.x-37,sites.uni.x+37,sites.uni.z-8,sites.uni.z+8),
   ];
   const finishes=new Map([[P.cream,[.64,.04,0]],[P.arch,[.34,.4,0]],[P.sand,[.82,0,0]],[P.sandd,[.82,0,0]],[P.slate,[.55,.05,0]],[P.gilt,[.3,.55,0]],[P.masp,[.4,.28,0]],[P.concrete,[.74,0,0]],[P.glass,[.18,.05,1]]]);

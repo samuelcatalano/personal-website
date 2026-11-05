@@ -6,7 +6,7 @@ import { SURFACE as S, townhouseMaterials } from './building-slice-materials.js'
 
 const lots=Object.freeze([
   ['infill--52-0','midrise',10,10,12],['west-30--50','midrise',10,10,12],
-  ['block--277--93','office',11,11,35],['block--261--93','office',11,11,28],
+  ['block--277--93','office',11,11,31.5],['block--261--93','office',11,11,28],
 ]);
 export const HERO_LOT_IDS=Object.freeze(lots.map(p=>p[0]));
 
