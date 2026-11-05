@@ -115,7 +115,7 @@ test('Tower Bridge sits after the Eye, before the lower terraces; out-leg countr
     assert.ok(s.x - s.w / 2 > out.scot[0] && s.x + s.w / 2 < g, 'inside the Scottish approach');
     assert.ok(s.z + s.d / 2 < pts[stopIndex(stops, 'glasgow')].z - 43, 'clear of the square');
   }
-  assert.ok(museum.x < uni.x && museum.z - museum.d / 2 > uni.z + uni.d / 2, 'museum first, on the river bank; university behind it without overlap');
+  assert.ok(museum.x + museum.w / 2 < uni.x - uni.w / 2 && museum.z - museum.d / 2 > uni.z + uni.d / 2, 'museum and university have separate footprints, with the university behind and to its right');
 });
 
 test('rng is deterministic', () => {
