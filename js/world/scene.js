@@ -97,7 +97,15 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const curve = routeCurve(THREE, pts), knots = fineMarks(marks, curve);
   const distant = createBoxes();
   const far = createBoxes();
-  buildBackdrop(eastAdd(distant.add, stretch), stops, routePoints(n, LEGACY_GAPS), eastAdd(far.add, stretch)); // seeded rows: legacy route, spread over the gap (layout.js)
+  const addBackdrop = eastAdd(distant.add, stretch);
+  buildBackdrop((x, y, z, w, h, d, color, ...rest) => {
+    if (color === P.pave && y < 0) {
+      // Stretch both paving edges; translating centres alone leaves sky-visible gaps between neighboring tiles.
+      const left = stretch(x - w / 2), right = stretch(x + w / 2);
+      return distant.add((left + right) / 2, y, z, right - left, h, d, color, ...rest);
+    }
+    return addBackdrop(x, y, z, w, h, d, color, ...rest);
+  }, stops, routePoints(n, LEGACY_GAPS), eastAdd(far.add, stretch)); // buildings retain their original footprints
   const skyline = createSkyline(far.list);
   scene.add(skyline);
   const backdrop = buildMeshes(distant.list);
@@ -138,7 +146,6 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   // Glasgow livery between the two railway underpasses (each within 7 m of its scotRange boundary); the visible swap happens inside the tunnel (see frame())
   const underpass = createUnderpass(curve, stops), [ARCH_IN, ARCH_OUT] = underpass.passes.map((a) => a.t);
   scene.add(underpass.group);
-  const bridgeCars = createUnderpassTraffic(underpass.passes, { reducedMotion }); scene.add(bridgeCars.group);
   let shown = null, frameNo = 0, swapFade = null; const SWAP_OUT = 0.3, SWAP_IN = 0.35; // Hero changes scale down then up; never both visible outside this fade.
   const frustum = new THREE.Frustum(), pv = new THREE.Matrix4(), sphere = new THREE.Sphere(), ray = new THREE.Raycaster();
   for (const v of candidates) addBeams(v, v.userData.front, v.userData.beamY);
@@ -154,9 +161,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const swapTunnel = SWAP_GAP ? createSwapTunnel(curve, stops) : null; // SP -> London: the hero turns Mini <-> bus inside it (needs SWAP_GAP of road; off while 0)
   if (swapTunnel) { scene.add(swapTunnel.group); swapTunnel.cut(scene); }
   bus.rotation.order = 'YZX'; // yaw, then the dip's pitch
-  const units = [createAmbient(scene, { curve, pts, stops, reducedMotion, tunnel: routeTunnel, dip: swapTunnel }), createParked(scene, { curve, pts, stops, pilotCrossings })];
   const people = createPeople({ curve, pts, stops, obstacles: kioskClearance, reducedMotion });
-  units.push(await createNpc3d(scene, { people, pts, stops })); // the 3D skinned walkers are the only pedestrians
+  const units = [await createNpc3d(scene, { people, pts, stops })]; // finish startup NPCs before the bulk fleet can occupy the download queue
   const water = createWater({ x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z: RIVER_Z, width: 22, reducedMotion });
   scene.add(water.mesh);
   let disposed = false, raf = 0, landmarksReady = false, startupLandmarksCancelled = false;
@@ -189,6 +195,9 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   if (new URLSearchParams(location.search).has('qa')) globalThis.__qaLandmarks = { se, masp, startupLandmarks };
   const wellington = details.getObjectByName('wellington-geometry');
   if (wellington) upgradeWellington(wellington, () => disposed).then(wake);
+  // Request startup landmarks first; all ambient/parked models still load at full quality.
+  units.push(createAmbient(scene, { curve, pts, stops, reducedMotion, tunnel: routeTunnel, dip: swapTunnel }), createParked(scene, { curve, pts, stops, pilotCrossings }));
+  const bridgeCars = createUnderpassTraffic(underpass.passes, { reducedMotion }); scene.add(bridgeCars.group);
   const figure = buildFigure(wake, { reducedMotion });
   const end = curve.getPointAt(1), endTan = curve.getTangentAt(1), near = new THREE.Vector3(-endTan.z, 0, endTan.x).normalize();
   // ponytail: chosen at load; the phone's panel would cover the desktop corner, so it stays nearer the bus.

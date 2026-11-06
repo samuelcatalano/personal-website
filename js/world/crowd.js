@@ -37,7 +37,7 @@ const DENSE_WANDER = new Set(['glasgow-cross', 'glasgow-west', 'glasgow-front', 
 const MASP_CELLS = [[-17, -10, -50, -45], [11, 17, -30, -26], [-12, -6, -27, -23], [6, 12, -53, -49], [-3, 3, -40, -36], [-6, 0, -50, -46]];
 const SQUARE_MAX = 13; // owner-set crowd size for George Square
 const SQUARE_CELLS = [[-19, -12, -3, 2], [14, 19, -1, 3]]; // two outer cells (about 14 walkers), clear of the Wellington plinth: the middle ones next to the Wellington plinth crowded into collisions
-const crowdWeight = (path) => LONDON_HOTSPOTS.has(path.name) ? 4 : DENSE_WANDER.has(path.name) ? 3 : 1;
+const crowdWeight = (path) => path.name?.startsWith('estaiada-') ? 6 : LONDON_HOTSPOTS.has(path.name) ? 4 : path.name?.startsWith('hero-garden-') || DENSE_WANDER.has(path.name) ? 3 : 1;
 const crowdKind = (look) => /boy|girl/.test(look.kind) ? 'child' : 'adult';
 const thamesTrack = (look, dir) => THAMES_TRACKS[`${dir}:${crowdKind(look)}`];
 // Plaza rectangles (world x/z), checked free of boxes with a three stub; z is relative to the river line the landmarks hang on.
@@ -65,6 +65,12 @@ export function walkPaths(stops, pts) {
       ['glasgow-west', g.x - 26, g.x - 22, g.z - 38, g.z - 12.5],
       ['glasgow-front', g.x - 22, g.x + 22, g.z - 15, g.z - 12.5],
       ['wembley-entry', wx - 19, wx + 20, -54, -47.5], ['wembley-east', wx + 20.5, wx + 26, -69, -28], ['wembley-front', wx - 15, wx + 23, -32, -24],
+      // East of the Estaiada ramp; the two banks stay behind the riverside planters and before the frontage.
+      ['estaiada-near', X('estaiada') + 10, pts[ukStart(stops)].x - 16, -28.8, -25.8],
+      ['estaiada-far', X('estaiada') + 10, pts[ukStart(stops)].x + 16, -64, -61.5],
+      // Existing central paving in the start garden; stop before the fountain, away from all four lawn beds.
+      ['hero-garden-north', -284.3, -281.7, -23, -4, .084],
+      ['hero-garden-south', -284.3, -281.7, 4, 23, .084],
     ].map(([name, x0, x1, z0, z1, y = 0.02]) => ({ type: 'wander', name, rect: { x0, x1, z0, z1 }, y })),
     ...MASP_CELLS.map(([a, b, z0, z1], k) => ({ type: 'wander', name: `masp-plaza-${k + 1}`, rect: { x0: X('masp') + a, x1: X('masp') + b, z0, z1 }, y: 0.02 })),
     ...SQUARE_CELLS.map(([a, b, z0, z1], k) => ({ type: 'wander', name: `glasgow-square-${k + 1}`, rect: { x0: g.x + a, x1: g.x + b, z0: squareZ + z0, z1: squareZ + z1 }, y: 0.16 })), // gravel top is 0.15 m
@@ -90,7 +96,8 @@ export function crowdPlan(stops, pts, seed, count = 1000) {
   const groups = new Map(); // stratify s0 inside each lane / loop so people are evenly spread along it, not clumped
   keys.forEach((k, i) => groups.set(k, [...(groups.get(k) || []), i]));
   for (const ids of groups.values()) ids.forEach((i, j) => { plan[i].s0 = (j + 0.15 + 0.7 * plan[i].s0) / ids.length; });
-  const extraPaths = paths.filter((p) => p.type === 'wander' || LONDON_HOTSPOTS.has(p.name)).flatMap((p) => Array(crowdWeight(p)).fill(p)), extraGroups = new Map(), denseGroups = new Map(); // priority changes where overflow walkers go, not the total
+  // Keep the owner's 13-person George Square allocation ahead of round-robin leftovers when adding the start garden.
+  const extraPaths = paths.filter((p) => p.type === 'wander' || LONDON_HOTSPOTS.has(p.name)).sort((a, b) => Number(b.name.startsWith('glasgow-square')) - Number(a.name.startsWith('glasgow-square'))).flatMap((p) => Array(crowdWeight(p)).fill(p)), extraGroups = new Map(), denseGroups = new Map(); // priority changes where overflow walkers go, not the total
   let squareCount = 0;
   for (let i = baseCount; i < count; i++) {
     let at = (i - baseCount) % extraPaths.length;
@@ -98,15 +105,15 @@ export function crowdPlan(stops, pts, seed, count = 1000) {
     const l = extraPaths[at], roll = r(), dir = l.type === 'wander' && l.name !== 'thames' ? ((i - baseCount) / extraPaths.length | 0) % 2 ? 1 : -1 : roll < 0.5 ? 1 : -1; // wander cells alternate direction per pass, so every cell carries counterflow whatever the cell count
     const minSide = Math.min(l.rect.x1 - l.rect.x0, l.rect.z1 - l.rect.z0);
     const maxInset = Math.max(0.35, Math.min(6, (minSide - 1) / 2));
-    const sampledInset = l.name === 'thames' ? between(r, 0.6, 1.6) : between(r, 0.35, maxInset);
+    const sampledInset = l.name === 'thames' ? between(r, 0.6, 1.6) : between(r, l.name.startsWith('estaiada-') ? 0.65 : 0.35, maxInset);
     const look = makeLook(r), track = l.name === 'thames' ? thamesTrack(look, dir) : null;
     if (track) look.speed = track.speed;
-    else if (l.name === 'thames-front') look.speed = THAMES_FRONT_SPEED;
-    const inset = l.name === 'thames-front' ? THAMES_FRONT_TRACK_INSET[dir] : track?.inset ?? sampledInset;
+    else if (l.name === 'thames-front' || l.name.startsWith('hero-garden-')) look.speed = THAMES_FRONT_SPEED;
+    const inset = l.name.startsWith('hero-garden-') ? (dir === 1 ? .45 : .95) : l.name === 'thames-front' ? THAMES_FRONT_TRACK_INSET[dir] : track?.inset ?? sampledInset;
     const path = { ...l, dir, inset };
     if (l.name.startsWith('glasgow-square')) squareCount++;
     plan.push({ look, path, s0: r() });
-    const groups = crowdWeight(l) > 1 && !LONDON_HOTSPOTS.has(l.name) ? denseGroups : extraGroups, key = `${l.name}${dir}`, index = plan.length - 1;
+    const groups = DENSE_WANDER.has(l.name) ? denseGroups : extraGroups, key = `${l.name}${dir}`, index = plan.length - 1;
     groups.set(key, [...(groups.get(key) || []), index]);
   }
   for (const ids of extraGroups.values()) ids.forEach((i, j) => { plan[i].s0 = (j + 0.15 + 0.7 * plan[i].s0) / ids.length; });

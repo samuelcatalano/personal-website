@@ -40,6 +40,25 @@ export function buildSwapPlaza({ half, kerb, y }) {
   // fingerpost in the middle: iron post crowned by a heritage lantern (its glass glows at night through sky.js's glow loop; the light pool is
   // registered by city.js), two blades (west: São Paulo, east: London)
   const iron = new THREE.MeshStandardMaterial({ color: '#23262b', roughness: 0.5, metalness: 0.6 }); mats.push(iron);
+  // One batch for both portal edges; inset onto the coping so the sidewalk approaches stay open.
+  const railLength = 2 * kerb - 0.1, barGaps = Math.ceil(railLength / 0.135), postGaps = Math.ceil(railLength / 2);
+  const railGeo = new THREE.BoxGeometry(1, 1, 1), railCount = 2 * (barGaps + postGaps + 2);
+  const rails = new THREE.InstancedMesh(railGeo, iron, railCount), member = new THREE.Object3D();
+  rails.name = 'swap-plaza-guardrails'; rails.castShadow = true; rails.receiveShadow = true;
+  let railIndex = 0;
+  const addRailMember = (x, h, z, w, height, depth) => {
+    member.position.set(x, y + h, z); member.scale.set(w, height, depth); member.updateMatrix();
+    rails.setMatrixAt(railIndex++, member.matrix);
+  };
+  for (const side of [-1, 1]) {
+    const x = side * (half - 0.1);
+    addRailMember(x, 1.065, 0, 0.08, 0.07, 2 * kerb);
+    addRailMember(x, 0.13, 0, 0.06, 0.05, railLength);
+    for (let i = 0; i <= postGaps; i++) addRailMember(x, 0.55, -railLength / 2 + i * railLength / postGaps, 0.08, 1.1, 0.1);
+    for (let i = 1; i < barGaps; i++) addRailMember(x, 0.5825, -railLength / 2 + i * railLength / barGaps, 0.035, 0.895, 0.035);
+  }
+  rails.instanceMatrix.needsUpdate = true; rails.computeBoundingBox(); rails.computeBoundingSphere();
+  group.add(rails); geos.push(railGeo);
   const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 3.3, 12).translate(0, 1.65, 0), iron);
   const glass = new THREE.MeshStandardMaterial({ color: '#fff1c8', roughness: 0.25 }); mats.push(glass);
   Object.assign(glass.userData, { glow: true, glowColor: new THREE.Color('#ffcf7a'), glowK: 2.4 });
@@ -74,5 +93,5 @@ export function buildSwapPlaza({ half, kerb, y }) {
   };
   paint();
   const watch = new MutationObserver(paint); watch.observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
-  return { group, dispose() { watch.disconnect(); geos.forEach((g) => g.dispose()); mats.forEach((m) => m.dispose()); texs.forEach((t) => t.dispose()); } };
+  return { group, dispose() { watch.disconnect(); rails.dispose(); geos.forEach((g) => g.dispose()); mats.forEach((m) => m.dispose()); texs.forEach((t) => t.dispose()); } };
 }

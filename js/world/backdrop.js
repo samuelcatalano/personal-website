@@ -53,10 +53,11 @@ export function buildBackdrop(add, stops, pts, addSky = add) {
       const depth = row === 0 ? 8 : 11;
       const rearFill = museumClear && x >= museumL + 1 && x + w <= museumR - 1 && z + depth / 2 + 0.4 <= -122;
       const rowRandom = rearFill ? rng((Math.round(xc * 73) ^ (row * 761) ^ 90820) | 0) : r;
+      // Paving also spans empty lots; the main ground skirt ends at z=-100.
+      const near = row === 0 ? -100 : (rows[row - 1] + rows[row]) / 2;
+      const far = row === rows.length - 1 ? -475 : (rows[row] + rows[row + 1]) / 2;
+      add(xc + gap / 2, -0.08, (near + far) / 2, w + gap, 0.08, near - far, P.pave);
       if (!museumClear || rearFill) {
-        const near = row === 0 ? -110 : (rows[row - 1] + rows[row]) / 2;
-        const far = row === rows.length - 1 ? -475 : (rows[row] + rows[row + 1]) / 2;
-        if (!rearFill) add(xc + gap / 2, -0.08, (near + far) / 2, w + gap, 0.08, near - far, P.pave);
         const floors = rearFill ? row < 2 ? 2 + (rowRandom() * 3 | 0) : 2 + (rowRandom() * 6 | 0) : row < 2 ? 2 + (r() * 3 | 0) : 2 + (r() * 6 | 0);
         const wall = (row < 2 ? colors : distantColors)[(rearFill ? rowRandom() : r()) * (row < 2 ? colors : distantColors).length | 0];
         const roof = row === 0 ? [P.roof, P.brick, P.ink][(rearFill ? rowRandom() : r()) * 3 | 0] : wall, h = floors * 2.8;
@@ -84,6 +85,8 @@ export function buildBackdrop(add, stops, pts, addSky = add) {
   // ponytail: plain boxes with the shared facade pass, no massing families; add them if the west end is ever the focal frame.
   const wc = rng(90821);
   for (const [row, z0] of rows.slice(0, 4).entries()) {
+    const near = row === 0 ? -100 : (rows[row - 1] + z0) / 2, far = (z0 + rows[row + 1]) / 2;
+    add(x0 - 80, -0.08, (near + far) / 2, 160, 0.08, near - far, P.pave);
     for (let x = x0 - 160; x < x0 - 14;) {
       const w = 9 + wc() * 4, gap = 2 + wc() * 2, xc = x + w / 2, z = z0 + (wc() - 0.5) * 10, floors = 2 + (wc() * (row < 2 ? 3 : 6) | 0), h = floors * 2.8;
       const wall = (row < 2 ? colors : distantColors)[wc() * (row < 2 ? colors : distantColors).length | 0];

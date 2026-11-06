@@ -1,5 +1,9 @@
 # Rendering budget
 
+## Startup loading — 2026-11-06
+
+Scoped startup measurements and fixes are recorded in [the startup audit](../audits/startup-performance-2026-11-06.md): local cold-cache median 11.202 s → 2.493 s, with source-quality rendering preserved. Full-quality vehicle compression reduces the observed GLB payload from 147.15 MiB to 101.24 MiB; NPCs and startup landmarks take priority over bulk fleet downloads. These are startup/delivery measurements, not replacement steady-state FPS or GPU-memory budgets.
+
 Current measurement record frozen2026-10-21. Final visual approval is recorded in [architecture](3d-city.md); technical release remains blocked by the coplanar-face regression. The final milestone below supersedes earlier operational references; dated measurements remain evidence, **not global performance guarantees**. Follow AGENTS.md validation levels.
 
 ## 2026-10-23 scope update

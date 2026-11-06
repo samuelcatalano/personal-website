@@ -237,7 +237,9 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
         || occ.some(([x0, x1, z0, z1]) => x + 1.2 > x0 && x - 1.2 < x1 && z + 1.2 > z0 && z - 1.2 < z1)) continue;
       const hs = Math.abs(Math.sin(u * 12.9898 + v * 78.233 + park.x0) * 43758.5453) % 1;
       taken.push([u, v, 1.6]);
-      onTree(x, z, { h: 2.7 + hs * 0.5, crown: 2 + hs * 0.4 });
+      // Keep candidate acceptance/RNG unchanged; relocate only the three start-garden trees blocking its benches.
+      const moved = u === 4 ? (f < 0 ? [-5.8, -8] : [4.3, 15.2]) : u === -4 && f > 0 ? [4.3, -14.8] : null;
+      onTree(moved ? cx + moved[0] : x, moved ? cz + moved[1] : z, { h: 2.7 + hs * 0.5, crown: 2 + hs * 0.4 });
     }
     if (hero) onPublicRealm(orig);
     made.push(park);

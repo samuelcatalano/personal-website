@@ -33,7 +33,7 @@ test('heights, children and hair rules', () => {
   assert.ok(many.some((l) => l.kind === 'man') && many.some((l) => l.kind === 'woman') && many.some((l) => l.hair === '#b5b5b0'));
 });
 test('runtime crowd walking speeds fit the adult and child clip limits', () => {
-  const people = crowdPlan(stops, pts, 1017), adults = people.filter((p) => /man|woman/.test(p.look.kind) && p.path.name !== 'thames-front').map((p) => p.look);
+  const people = crowdPlan(stops, pts, 1017), adults = people.filter((p) => /man|woman/.test(p.look.kind) && !['thames-front', 'hero-garden-north', 'hero-garden-south'].includes(p.path.name)).map((p) => p.look);
   const kids = people.filter((p) => /boy|girl/.test(p.look.kind)).map((p) => p.look);
   assert.ok(adults.length > 0 && adults.every((l) => l.speed >= 0.72 && l.speed < 0.82), 'adult speed stays in [0.72, 0.82) m/s');
   assert.ok(kids.length > 0 && kids.every((l) => l.speed >= 0.56 && l.speed < 0.64), 'child speed stays in [0.56, 0.64) m/s');
@@ -75,16 +75,49 @@ test('Sé plaza has pedestrians walking both ways below the cathedral stairs', (
 test('dedicated wander corridors all carry walkers in both directions', () => {
   const paths = walkPaths(stops, pts).filter((p) => p.type === 'wander');
   const people = plan.slice(600);
-  assert.equal(paths.length, 23, 'the 15 strips plus 8 plaza cells');
+  assert.equal(paths.length, 27, 'the 19 strips plus 8 plaza cells');
   for (const path of paths) {
     const walkers = people.filter((p) => p.path.name === path.name);
     assert.ok(walkers.length > 0, `${path.name} populated`);
     assert.deepEqual([...new Set(walkers.map((p) => p.path.dir))].sort(), [-1, 1], `${path.name} has both directions`);
     if (path.name === 'thames-front') assert.deepEqual([...new Set(walkers.map((p) => p.path.inset))].sort((a, b) => a - b), [0.05, 0.57], 'counterflow uses separated tracks');
+    else if (path.name.startsWith('hero-garden-')) assert.deepEqual([...new Set(walkers.map((p) => p.path.inset))].sort((a, b) => a - b), [.45, .95], 'garden counterflow stays on the narrow paved spine');
     else assert.ok(new Set(walkers.map((p) => p.path.inset)).size > 3, `${path.name} has varied insets`);
-    if (path.name === 'thames-front') assert.deepEqual([...new Set(walkers.map((p) => p.look.speed))], [0.62], 'front walkers share one speed');
+    if (path.name === 'thames-front' || path.name.startsWith('hero-garden-')) assert.deepEqual([...new Set(walkers.map((p) => p.look.speed))], [0.62], 'narrow paved corridors share one walking speed');
     else assert.ok(new Set(walkers.map((p) => p.look.speed)).size > 3, `${path.name} has varied speeds`);
     assert.ok(new Set(walkers.map((p) => p.s0)).size > 3, `${path.name} has varied starting positions`);
+  }
+});
+test('hero garden carries a busy counterflow on both paved central paths', () => {
+  const walkers = crowdPlan(stops, pts, 1017).filter(p => p.path.name?.startsWith('hero-garden-'));
+  assert.ok(walkers.length >= 32 && walkers.length <= 48, 'populate the garden without increasing the 1000-person budget');
+  for (const name of ['hero-garden-north', 'hero-garden-south']) {
+    const path = walkers.filter(p => p.path.name === name);
+    assert.ok(path.length >= 16);
+    assert.deepEqual([...new Set(path.map(p => p.path.dir))].sort(), [-1, 1]);
+    assert.ok(path.every(p => p.path.inset === (p.path.dir === 1 ? .45 : .95)), 'separate counterflow tracks');
+    assert.ok(path.every(p => p.path.y === .084), 'feet sit on the existing raised path');
+    assert.ok(path.every(p => p.look.speed === .62), 'uniform pace prevents overtaking on the narrow path');
+  }
+});
+test('Estaiada riverbanks carry counterflow inside the marked paving, clear of the bridge and planters', () => {
+  const ex = pts[stopIndex(stops, LANDMARKS.estaiada)].x;
+  const ux = pts[stops.findIndex((s) => s.country === 'UK')].x;
+  for (const seed of [1017, 42, 7, 2026]) {
+    const crowd = crowdPlan(stops, pts, seed);
+    for (const [name, end, z0, z1] of [
+      ['estaiada-near', ux - 16, -28.8, -25.8],
+      ['estaiada-far', ux + 16, -64, -61.5],
+    ]) {
+      const walkers = crowd.filter((p) => p.path.name === name);
+      assert.ok(walkers.length >= 36, `${name} has a busy promenade crowd`);
+      assert.deepEqual([...new Set(walkers.map((p) => p.path.dir))].sort(), [-1, 1]);
+      for (const { path: { rect, inset } } of walkers) {
+        assert.deepEqual(rect, { x0: ex + 10, x1: end, z0, z1 });
+        assert.ok(inset >= 0.65 && 2 * inset < z1 - z0, 'leave room for crowd separation inside the paving');
+      }
+    }
+    assert.equal(crowd.length, 1000, 'reuse the existing population budget');
   }
 });
 test('London hotspots lead the fixed overflow while existing plazas stay denser than ordinary paths', () => {
@@ -95,7 +128,7 @@ test('London hotspots lead the fixed overflow while existing plazas stay denser 
   assert.equal(overflow.length, 400, 'density is reallocated within the existing overflow');
   assert.deepEqual(current.slice(0, 600).filter((p) => p.path.name !== 'thames'), crowdPlan(stops, pts, 42, 600).filter((p) => p.path.name !== 'thames'), 'other base routes stay intact');
   assert.deepEqual(current, crowdPlan(stops, pts, 42), 'the regional allocation is seeded');
-  const units = (name) => (london.has(name) ? 4 : plazas.includes(name) ? 3 : 1), total = 4 + walkPaths(stops, pts).filter((p) => p.type === 'wander').reduce((sum, p) => sum + units(p.name), 0); // crowdWeight: London 4, dense strips 3, other paths and plaza cells 1; the Big Ben-Eye loop adds 4
+  const units = (name) => (name.startsWith('estaiada-') ? 6 : london.has(name) ? 4 : name.startsWith('hero-garden-') || plazas.includes(name) ? 3 : 1), total = 4 + walkPaths(stops, pts).filter((p) => p.type === 'wander').reduce((sum, p) => sum + units(p.name), 0); // Estaiada 6, London 4, start garden/dense strips 3, other paths and plaza cells 1
   const near = (count, share, tolerance = 1.5) => Math.abs(count - share) <= tolerance; // round-robin: the leftover walkers go to the head of the list, up to one pass of the path's weight
   for (const { name } of walkPaths(stops, pts).filter((p) => p.type === 'wander' && !p.name.startsWith('glasgow-square'))) assert.ok(near(overflow.filter((p) => p.path.name === name).length, units(name) * 400 / total, Math.max(1.5, units(name))), `${name} keeps its regional share`);
   assert.ok(near(overflow.filter((p) => p.path.name === 'thames').length, 4 * 400 / total, 8), 'the existing Big Ben–Eye loop receives the London hotspot share');

@@ -8,8 +8,9 @@ import { destMat } from './buses.js';
 import { updateFadedVehicle } from './fade.js';
 // Authored vehicle GLBs (tools/vehicles/*), loaded once and shared. Resolves null on failure so callers keep their procedural model.
 const URLS = { a330: 'a330.glb', bus: 'double-decker-bus.glb', 'sao-paulo': 'sao-paulo-bus.glb', mini: 'mini-cooper-2011.glb', cab: 'london-cab.glb' };
-// Authored source GLBs are the default for correct body normals; ?glb=processed opts into the simplified Meshopt assets.
+// Full-quality Meshopt preserves source vertex/image bytes and normals; ?glb=processed opts into the older simplified assets.
 const PROCESSED = { mini: 'processed/vehicles/mini-cooper-2011.lod0.glb' };
+const FULL = { mini: 'mini-cooper-2011', ...Object.fromEntries(['toyota-corolla', 'vw-t-cross', 'nissan-qashqai', 'honda-hr-v', 'land-rover-range-rover', 'mercedes-e63-amg-s-wagon'].map(id => [id, id])) };
 // Fleet models with a processed GLB (same coordinates, so catalog axles/beam anchors still apply). honda-hr-v stays raw: its triangles share no vertices, so it cannot be simplified.
 for (const id of ['toyota-corolla', 'vw-t-cross', 'nissan-qashqai', 'land-rover-range-rover', 'mercedes-e63-amg-s-wagon']) PROCESSED[id] = `processed/vehicles/${id}.glb`;
 const PIPELINE_V = '8'; // bump when processed GLBs are regenerated (cache busting)
@@ -28,10 +29,11 @@ export function regionalFleetModel(catalog, region, slot) {
 export function loadVehicleAsset(type) {
   if (!cache.has(type)) cache.set(type, (async () => {
     const model = URLS[type] ? null : (await loadFleetCatalog()).find((m) => m.id === type);
-    const raw = URLS[type] ? 'assets/vehicles/' + URLS[type] : model?.path, tries = [useProcessed && PROCESSED[type] ? 'assets/' + PROCESSED[type] : null, raw].filter(Boolean);
+    const raw = URLS[type] ? 'assets/vehicles/' + URLS[type] : model?.path, tries = [useProcessed && PROCESSED[type] ? 'assets/' + PROCESSED[type] : FULL[type] ? `assets/processed/vehicles/${FULL[type]}.full.glb` : null, raw].filter(Boolean);
     for (const path of tries) { // processed first, raw source as fallback
       const url = new URL('../../' + path, import.meta.url); if (type === 'bus') url.searchParams.set('v', 'w5'); else if (type === 'mini' && path !== raw) url.searchParams.set('v', PIPELINE_V); // bump when authored assets are rebuilt
       if (model?.sha256) url.searchParams.set('v', path === raw ? model.sha256 : PIPELINE_V + model.sha256.slice(0, 8));
+      if (path.endsWith('.full.glb')) url.searchParams.set('v', 'full1-' + (model?.sha256?.slice(0, 8) ?? 'mini2011'));
       try { return (await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(url.href)).scene; } catch { /* next candidate */ }
     }
     return null;

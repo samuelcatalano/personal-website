@@ -1,5 +1,11 @@
 # Asset sources
 
+## Lossless vehicle delivery — 2026-11-06
+
+The seven `assets/processed/vehicles/*.full.glb` files are losslessly compressed derivatives of the owner-approved Mini Cooper 2011 and the six regional fleet GLBs credited below. They retain the respective source licences and attribution obligations. The runtime prefers these derivatives and falls back to the original full-quality files on failure; the older simplified assets remain an explicit debug opt-in.
+
+Generated with `tools/pipeline/compress-lossless.mjs` using the existing Meshopt tooling, with no geometry simplification, vertex quantization, normal changes, texture resizing or texture recompression. Round-trip checks verify vertex and image bytes, ordered triangles/winding (allowing cyclic index rotation), transforms, and material/rig metadata. The seven files total 81.33 MiB versus 127.25 MiB for their unchanged source GLBs. This is a delivery change within the owner's performance-fix request, not approval for new external models.
+
 Every non-code asset that ships in this repository. External assets must be CC0/public domain or clearly permissive; ambiguous licence = not used. Since 2026-10-27, Sketchfab and NC/SA-licensed assets are allowed when the owner approves the specific asset; record the licence obligations (attribution, share-alike) in its row.
 
 | Asset | Path | Source | Author | Licence | Use |

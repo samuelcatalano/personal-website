@@ -14,6 +14,7 @@ cd tools/pipeline && npm install        # @gltf-transform/cli 4.5.1 (pinned), in
 
 ```bash
 node tools/pipeline/optimise.mjs <in.glb> <out.glb> [ratio] [error]   # weld/dedup/prune/simplify/reorder + Meshopt (no quantization, see header)
+node tools/pipeline/compress-lossless.mjs <in.glb> <out.glb>   # Meshopt only; verifies full-quality decoded data, with no geometry/texture transforms
 tools/pipeline/landmark.sh <raw.glb> <out.glb>   # KTX2 (ETC1S) textures + Meshopt for textured landmarks; needs the `ktx` CLI on PATH
 node tools/pipeline/check.mjs            # report bytes/tris/materials/textures per GLB, unreferenced GLBs, budget breaches (budgets.json)
 node tools/pipeline/check.mjs --strict   # exit 1 on a breach (future CI)
