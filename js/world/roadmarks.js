@@ -55,12 +55,10 @@ export function createRoadMarks(curve, stops, { bays, sample, pilotCrossings = [
       quad(L[0], L[1], R[1], R[0], color);
     }
   };
-  const FIRST_ZEBRA_END = 12.4; // no centre line from the route start to just past the first zebra
   for (let k = 0; k < n; k++) {
     const u0 = k / n, u1 = (k + 1) / n, s0 = u0 * len, s1 = u1 * len, br = (u0 + u1) / 2 < swap;
     for (const o of [-HALF, HALF]) line(s0, s1, o, 0.12, WHITE);
-    if (br && s0 < FIRST_ZEBRA_END) continue;
-    if (br) for (const o of [-0.11, 0.11]) line(s0, s1, o, 0.1, YELLOW);
+    if (br) for (const o of [-0.11, 0.11]) line(s0, s1, o, 0.1, YELLOW); // runs to the route start (the zebra cuts it), then on down the tunnel ramp (route-tunnel.js)
     else if (k % 5 < 2) line(s0, s1, 0, 0.12, WHITE); // 2.4 m dash, 3.6 m gap
   }
   // zebra just past each stop sign (bus stops sit on the stop mark)

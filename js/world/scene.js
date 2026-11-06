@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
 import { routeT, nearestStop, stopMarks, fineMarks } from '../scroll.js';
-import { routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, FRAME_LIFT, swapAt, heroVehicleAt, ukStart, treeRegion } from './layout.js';
+import { routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, FRAME_LIFT, swapAt, heroVehicleAt, ukStart, treeRegion, SWAP_GAP, east, eastAdd, stretch, LEGACY_GAPS } from './layout.js';
 import { createBoxes, buildMeshes } from './voxel.js';
 import { buildMotion } from './motion.js';
 import { buildCity, tree } from './city.js';
@@ -44,6 +44,8 @@ import { createRoadMarks } from './roadmarks.js';
 import { loadVehicleAsset, adoptVisual, upgradeBus, upgradeMini, rollWheels, initVehicleEnv, updateVehicleEnv } from './vehicle-assets.js';
 import { createUnderpass } from './underpass.js';
 import { createUnderpassTraffic } from './underpass-traffic.js';
+import { createRouteTunnel } from './route-tunnel.js';
+import { createSwapTunnel } from './swap-tunnel.js';
 import { upgradeWellington } from './wellington-asset.js';
 const BUS_LANE = 1.75, SCROLL_SMOOTH = 0.18, ARC = 10;
 const LANDMARK_STARTUP_TIMEOUT = 5000; // ponytail: slower landmark GLBs use procedural geometry for this visit
@@ -55,7 +57,7 @@ export const applyHeroPose = (group, position, lateral, heading) => {
 
 // Owner's request: the corner where the closing character stands is open pavement, no lawn or trees.
 const BODY_TURN = .42 - 20 * Math.PI / 180; // radians, marked by the owner (then 20° back toward screen left): at the frame's edge, facing the camera exactly reads as turned away.
-const CORNER = { x0: 801.6, x1: 816, z0: -1.5, z1: 9 };
+const CORNER = { x0: east(801.6), x1: east(816), z0: -1.5, z1: 9 }; // legacy literal, moved onto the real route
 const inClosingCorner = (x, z) => x > CORNER.x0 && x < CORNER.x1 && z > CORNER.z0 && z < CORNER.z1;
 const isGreen = (color) => { const c = new THREE.Color(color); return c.g > c.r * 1.1 && c.g > c.b * 1.1; };
 const clearClosingCorner = (add) => Object.assign((x, y, z, w, h, d, color, ry = 0, ...rest) => {
@@ -95,7 +97,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const curve = routeCurve(THREE, pts), knots = fineMarks(marks, curve);
   const distant = createBoxes();
   const far = createBoxes();
-  buildBackdrop(distant.add, stops, pts, far.add);
+  buildBackdrop(eastAdd(distant.add, stretch), stops, routePoints(n, LEGACY_GAPS), eastAdd(far.add, stretch)); // seeded rows: legacy route, spread over the gap (layout.js)
   const skyline = createSkyline(far.list);
   scene.add(skyline);
   const backdrop = buildMeshes(distant.list);
@@ -148,7 +150,11 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const motion = buildMotion(); scene.add(motion.group);
   const roadMarks = createRoadMarks(curve, stops, { ...arc, pilotCrossings });
   scene.add(world, eye, details, plane, shadow, bus, roadMarks);
-  const units = [createAmbient(scene, { curve, pts, stops, reducedMotion }), createParked(scene, { curve, pts, stops, pilotCrossings })];
+  const routeTunnel = createRouteTunnel(curve); scene.add(routeTunnel.group); routeTunnel.cut(scene); // after the world/road meshes: cuts the paving over the ramp
+  const swapTunnel = SWAP_GAP ? createSwapTunnel(curve, stops) : null; // SP -> London: the hero turns Mini <-> bus inside it (needs SWAP_GAP of road; off while 0)
+  if (swapTunnel) { scene.add(swapTunnel.group); swapTunnel.cut(scene); }
+  bus.rotation.order = 'YZX'; // yaw, then the dip's pitch
+  const units = [createAmbient(scene, { curve, pts, stops, reducedMotion, tunnel: routeTunnel, dip: swapTunnel }), createParked(scene, { curve, pts, stops, pilotCrossings })];
   const people = createPeople({ curve, pts, stops, obstacles: kioskClearance, reducedMotion });
   units.push(await createNpc3d(scene, { people, pts, stops })); // the 3D skinned walkers are the only pedestrians
   const water = createWater({ x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z: RIVER_Z, width: 22, reducedMotion });
@@ -254,7 +260,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const bp = curve.getPointAt(t), tan = curve.getTangentAt(t);
     lateral.set(tan.z, 0, -tan.x).normalize().multiplyScalar(BUS_LANE);
     applyHeroPose(bus, bp, lateral, Math.atan2(-tan.z, tan.x));
-    bus.position.y += 0.07;
+    bus.position.y += 0.07; bus.rotation.z = 0;
+    swapTunnel?.place(bus, candidates.find((v) => v.visible) ?? mini); // down into the SP -> London tunnel and up again
     Object.assign(busPos, { x: bp.x + lateral.x, y: bp.y, z: bp.z + lateral.z });
     if (prevBus.x !== null) { // hero wheels roll with the distance travelled along the road (signed: scrolling back unrolls them)
       const ds = (busPos.x - prevBus.x) * tan.x + (busPos.z - prevBus.z) * tan.z;
@@ -274,10 +281,12 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     camera.position.fromArray(shot.position);
     camera.lookAt(shot.target[0], shot.target[1], shot.target[2]);
     // The primary Mini returns as a Mini; regional São Paulo buses belong to secondary traffic.
-    const want = heroVehicleAt(t, swap, ARCH_IN, ARCH_OUT, heroVehicles);
+    const want = heroVehicleAt(t, swapTunnel?.t ?? swap, ARCH_IN, ARCH_OUT, heroVehicles); // Mini <-> bus inside the tunnel (its centre), else at the region border
     frameNo++;
     if (shown !== want) {
-      let why = !shown || shown === mini || want === mini ? 'immediate' : underpass.passes.some((a) => Math.abs(underpass.offset(a, busPos.x, busPos.z)) <= a.half - 5.7) ? 'arch' : Math.abs(s - Math.round(s)) < 0.12 ? 'stop' : ka !== kb && s - i > 0.15 && s - i < 0.85 ? 'blend' : '';
+      const half = (v) => (v.userData.length ?? 4) / 2, under = shown && swapTunnel?.covered(busPos.x, busPos.z, Math.max(half(shown), half(want)));
+      // Mini <-> bus: only once the whole of both is inside the tunnel (instant, unseen); a nav jump far from it still shrinks/grows
+      let why = !shown ? 'immediate' : shown === mini || want === mini ? (!swapTunnel ? 'immediate' : under ? 'arch' : Math.abs(swapTunnel.offset(busPos.x, busPos.z)) > swapTunnel.half + 12 ? 'immediate' : '') : underpass.passes.some((a) => Math.abs(underpass.offset(a, busPos.x, busPos.z)) <= a.half - 5.7) ? 'arch' : Math.abs(s - Math.round(s)) < 0.12 ? 'stop' : ka !== kb && s - i > 0.15 && s - i < 0.85 ? 'blend' : '';
       if (!why) {
         camera.updateMatrixWorld();
         sphere.set(lateral.clone().add(bp).setY(bp.y + 2.2), 6.4);
@@ -378,7 +387,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       document.removeEventListener('visibilitychange', visibility);
       observer?.disconnect();
       architecture.userData.dispose?.();
-      underpass.group.userData.dispose(); bridgeCars.dispose();
+      underpass.group.userData.dispose(); bridgeCars.dispose(); routeTunnel.dispose(); swapTunnel?.dispose();
       heroRealm?.userData.dispose();
       roadMarks.userData.dispose(); propsGroup?.userData.dispose();
       eye.userData.dispose?.();

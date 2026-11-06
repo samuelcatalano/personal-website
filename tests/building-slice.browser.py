@@ -4,9 +4,9 @@ result = js(r'''(async () => {
 // Baseline renderer contracts; citywide.browser.py covers the rollout default.
 const legacyCity=plots=>kit.createCityBuildings(plots,{rollout:false});
   const T = await import('three');
-  const kit = await import('./js/world/building-kit.js');
-  const target = { id:'block-827--54-0', kind:'terrace', x:830.137430839939, z:-54.5, width:6, depth:9, height:12 };
-  const other = { ...target, id:'control-neighbor', x:836.137430839939 };
+  const kit = await import('./js/world/building-kit.js'), { east } = await import('./js/world/layout.js'); // legacy literals: lots are moved by east()
+  const target = { id:'block-827--54-0', kind:'terrace', x:east(830.137430839939), z:-54.5, width:6, depth:9, height:12 };
+  const other = { ...target, id:'control-neighbor', x:east(836.137430839939) };
   const check = (ok, message) => { if (!ok) throw Error(message); };
   const city = legacyCity([target, other]);
   const { createTownhouseSlice } = await import('./js/world/building-slice.js');
@@ -77,7 +77,7 @@ print(result)
 assert isinstance(result, dict) and result.get('pass'), result
 
 started = js(r'''(async()=>{
-const T=await import('three'),s=await import('./js/world/building-slice.js?success-kit='+Date.now()),{SURFACE}=await import('./js/world/building-slice-materials.js'),{createTownhouseChunk}=await import('./js/world/building-slice.js'),{stops}=await import('./js/content.js'),{routePoints,routeCurve}=await import('./js/world/layout.js'),{buildCity}=await import('./js/world/city.js');
+const T=await import('three'),s=await import('./js/world/building-slice.js?success-kit='+Date.now()),{SURFACE}=await import('./js/world/building-slice-materials.js'),{createTownhouseChunk}=await import('./js/world/building-slice.js'),{stops}=await import('./js/content.js'),{routePoints,routeCurve,east}=await import('./js/world/layout.js'),{buildCity}=await import('./js/world/city.js');
 const points=routePoints(stops.length),plots=[];buildCity(()=>{},stops,points,routeCurve(T,points),undefined,undefined,p=>plots.push(p));
 const pilots=plots.filter(p=>s.EXPERIMENT_LOT_IDS.includes(p.id)),controlPlots=plots.filter(p=>p.id.startsWith('block-827--54-'));
 const controlHash=g=>{let h=2166136261;for(const m of g.children)for(const n of m.geometry.attributes.position.array)h=Math.imul(h^Math.round(n*1e5),16777619);return h>>>0;},controlBefore=controlHash(createTownhouseChunk(controlPlots));
@@ -114,10 +114,10 @@ const litGlassVertices=experiment.children.reduce((sum,c)=>sum+c.userData.lods[0
 check(litGlassVertices===expectedLitWindows*36,`modular lit-glass panes must follow the existing deterministic window formula (${expectedLitWindows} panes)`);
 check(failed.children.every((c,i)=>c.userData.lods[0].every((g,k)=>g===failedFallback[i][k])),'failed load must retain procedural fallback');
 check(late.children.every((c,i)=>c.userData.lods[0].every((g,k)=>g===lateFallback[i][k])),'late completion after disposal must keep fallback geometry');
-const bounds=new T.Box3().setFromObject(experiment);check(bounds.min.y>=0&&bounds.max.y<=12&&bounds.min.x>=678&&bounds.max.x<=742&&bounds.min.z>=-84.5&&bounds.max.z<=-75.5,'module bounds must stay grounded within the pilot lots');
-experiment.userData.update({position:new T.Vector3(706,10,-80)});check(experiment.children.every(c=>c.userData.level===0),'near camera must select LOD0');
-experiment.userData.update({position:new T.Vector3(900,10,-80)});check(experiment.children.every(c=>c.userData.level===1),'far camera must select LOD1');
-experiment.userData.update({position:new T.Vector3(706,10,-80)});check(experiment.children.every(c=>c.userData.level===0),'near return must select LOD0');
+const bounds=new T.Box3().setFromObject(experiment);check(bounds.min.y>=0&&bounds.max.y<=12&&bounds.min.x>=east(678)&&bounds.max.x<=east(742)&&bounds.min.z>=-84.5&&bounds.max.z<=-75.5,'module bounds must stay grounded within the pilot lots');
+experiment.userData.update({position:new T.Vector3(east(706),10,-80)});check(experiment.children.every(c=>c.userData.level===0),'near camera must select LOD0');
+experiment.userData.update({position:new T.Vector3(east(900),10,-80)});check(experiment.children.every(c=>c.userData.level===1),'far camera must select LOD1');
+experiment.userData.update({position:new T.Vector3(east(706),10,-80)});check(experiment.children.every(c=>c.userData.level===0),'near return must select LOD0');
 const reversed=q.s.createTownhouseExperiment(q.pilots.slice().reverse(),q.plots);q.reversed=reversed;
 return {bounds:{min:bounds.min.toArray(),max:bounds.max.toArray()},lods:experiment.children.map(c=>c.userData.level),adopted:experiment.children.map(c=>c.userData.lods[0].map(g=>g.attributes.position.count))};
 })()''')

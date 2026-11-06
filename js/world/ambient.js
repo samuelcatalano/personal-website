@@ -6,6 +6,7 @@ import { RIVER_Z, LANDMARKS, ukStart, stopIndex, swapAt, secondaryBusAssetAt, sc
 import { stopMarks, fineMarks, routeT } from '../scroll.js';
 import { addBeams, refitBeams } from './beams.js';
 import { fadeVehicle, disposeFade } from './fade.js';
+import { PORTAL } from './route-tunnel.js';
 const cab = () => buildVehicle('cab'); // London black cab (LEVC TX)
 const car = (type, color) => buildVehicle(type, { color });
 function boat(hull = '#6b4f3a', cabin = '#f4f4f4', sx = 1, style = 'cruiser') {
@@ -55,7 +56,7 @@ function updateRegionalBus(v, target, dt, isDisposed) {
     if (swap.time >= REGION_FADE) { v.mesh.scale.setScalar(1); v.regionSwap = null; }
   }
 }
-export function createAmbient(scene, { curve, pts, stops, reducedMotion = false }) {
+export function createAmbient(scene, { curve, pts, stops, reducedMotion = false, tunnel = null, dip = null }) {
   const knots = fineMarks(stopMarks(pts), curve), len = curve.getLength();
   let disposed = false, miniIndex = 0;
   const MINI_PAINT = [{ body: '#285b8f', roof: '#f4f1ea' }, { body: '#1f4a35', roof: '#f4f1ea' }, { body: '#b3161f', roof: '#f4f1ea' }];
@@ -154,6 +155,8 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
   const lanePos = (t, lane) => { const p = curve.getPointAt(t), tn = curve.getTangentAt(t); return { x: p.x + tn.z * lane, z: p.z - tn.x * lane }; }; // same side convention as the frame loop
   const tOf = (v) => routeT(v.p, pts.length, knots);
   let lastRoute = null;
+  const M0 = curve.getPointAt(1e-4).distanceTo(curve.getPointAt(0)) / 1e-4; // metres per curve t at the route start (tunnel cars' spacing order)
+  traffic.forEach((v) => { v.mesh.rotation.order = 'YZX'; }); // yaw, then ramp pitch (route-start tunnel, SP -> London dip)
   const frustum = new THREE.Frustum(), pv = new THREE.Matrix4(), ball = new THREE.Sphere(), SEEN_MARGIN = 4, tmp = new THREE.Vector3(), here = new THREE.Vector3(), nrm = new THREE.Vector3(), swap = swapAt(stops), [scotIn, scotOut] = scotRange(stops), wrap = (p) => ((p % 1) + 1) % 1;
   return {
     ready: Promise.all([ready, bridgeReady]),
@@ -169,9 +172,15 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
           const target = v.base * (0.3 + 0.7 * Math.min(1, Math.max(0, (near - 3) / (SLOW - 3))) ** 2), prev = v.v;
           v.v += Math.max(-DEC * dt, Math.min(ACC * dt, target - v.v));
           v.brake += (Math.min(1, Math.max(0, (prev - v.v) / dt / 2)) - v.brake) * Math.min(1, dt * 8);
+          if (v.tun != null) { // in the route-start tunnel: drive on until out of sight, then hold for the east-end respawn
+            v.tun += v.v * dt;
+            if (v.tun - v.len / 2 > PORTAL + 1) Object.assign(v, { tun: null, hold: true, active: false, fade: 0 });
+            continue;
+          }
           const np = v.p - v.v * dt / len; // oncoming: against the route
           const rg = v.range ?? [0, 1]; // ambient cars loop over their range (SP: its short loop; the rest: the whole route); bridge cars (kind) wrap
           const enteredHold = !v.kind && !v.hold && np < rg[0];
+          if (enteredHold && tunnel && rg[0] === 0 && v.fade === 1) { v.tun = 0; v.p = 0; continue; } // fully shown at the route start: down the ramp, not gone
           if (enteredHold) v.hold = true; // left the west end: vanish, respawn at the east end
           if (v.hold) { // ponytail: waits (invisible) until the east end is >= MIN_SPAWN m from the player and 20 m clear of other cars
             const q = curve.getPointAt(routeT(rg[1], pts.length, knots));
@@ -182,22 +191,22 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
         const turning = bridge.filter((b) => b.phase === 'path' && (b.kind === 'in' ? b.s < sIn : b.s > sOut))
           .map((b) => ({ tt: b.kind === 'in' ? uIn - b.s / len : uOut + (paths.out.plen - b.s) / len, at: b.mesh.position, len: b.len, v: b.v, fixed: true }));
         // spacing on real distance: curve t (getPointAt) is only roughly arc length (coarse three.js table: 12 'm' of t can be 6 m), progress p even less
-        const act = auto.filter((v) => v.active || v.fade > 0).concat(road).map((v) => Object.assign(v, { tt: tOf(v), at: null })).concat(turning).sort((a, b) => a.tt - b.tt);
+        const act = auto.filter((v) => v.active || v.fade > 0).concat(road).map((v) => Object.assign(v, v.tun != null ? { tt: -v.tun / M0, at: v.mesh.position } : { tt: tOf(v), at: null })).concat(turning).sort((a, b) => a.tt - b.tt);
         const where = (v) => v.at ?? laneAt(v.tt, new THREE.Vector3()); // lane points, like the turning cars' real positions
         for (let pass = 0; pass < 2; pass++) act.forEach((v, i) => {
           if (!i || v.fixed) return; // ponytail: no wrap pair (route ends are never both in view)
           const lead = act[i - 1], min = (v.len + lead.len) / 2 + GAP, d = where(v).distanceTo(where(lead));
-          if (d < min) { v.tt = Math.min(v.tt + 1.5 / len, lead.tt + (v.tt - lead.tt) * min / Math.max(d, 0.1) + (d < 0.1 ? min / len : 0)); v.p = invP(Math.min(1, v.tt)); v.v = Math.min(v.v, lead.v); } // at most ~1.5 m back per pass (two passes)
+          if (d < min) { v.tt = Math.min(v.tt + 1.5 / len, lead.tt + (v.tt - lead.tt) * min / Math.max(d, 0.1) + (d < 0.1 ? min / len : 0)); if (v.tun != null) v.tun = Math.max(0, -v.tt * M0); else v.p = invP(Math.min(1, v.tt)); v.v = Math.min(v.v, lead.v); } // at most ~1.5 m back per pass (two passes)
         });
       }
       here.copy(curve.getPointAt(Math.min(1, Math.max(0, route))));
       const first = lastRoute === null, jump = first || Math.abs(route - lastRoute) > 0.02; lastRoute = route; // first frame or a nav jump: settle every vehicle at once
-      if (jump) for (const v of auto) { v.active = false; if (!first) v.fade = 0; } // re-place them one by one: each checks the clearance against those already placed
+      if (jump) for (const v of auto) { v.active = false; if (!first) v.fade = 0; if (v.tun != null) Object.assign(v, { tun: null, hold: true }); } // re-place them one by one: each checks the clearance against those already placed
       for (const v of traffic) {
         const t = v.relative ? route + v.offset : routeT(v.p, pts.length, knots);
         const sameRegion = (route < swap) === (t < swap), regionBus = v.regionBus || v.type === 'london' || v.type === 'glasgow', inside = t >= 0 && t <= 1, want = inside && !v.hold && (!regionBus || sameRegion) && (v.range || v.uk === undefined || (t >= swap) === v.uk) && (v.scot === undefined || (t >= scotIn && t < scotOut) === v.scot);
         // region borders sit in view (SP and London share a frame): a vehicle only switches city once it is far from the player, so it drives off instead of popping
-        if (jump || !inside || v.relative || v.hold || regionBus || want === v.active || curve.getPointAt(t).distanceTo(here) > HIDE) {
+        if (v.tun == null && (jump || !inside || v.relative || v.hold || regionBus || want === v.active || curve.getPointAt(t).distanceTo(here) > HIDE)) { // tunnel cars stay on: their t is pinned at the route start, so this lane check would see the entrance, not them
           // never appear on top of a car already in the lane (region borders, nav jumps): stay hidden and keep driving until it is clear
           v.active = want && (v.relative || !traffic.some((o) => o !== v && (o.active || o.fade > 0) && o.lane === v.lane && Math.hypot(o.x - lanePos(t, v.lane).x, o.z - lanePos(t, v.lane).z) < (v.len + o.len) / 2 + GAP) && !bridge.some((b) => Math.hypot(b.x - lanePos(t, v.lane).x, b.z - lanePos(t, v.lane).z) < (v.len + b.len) / 2 + GAP));
         }
@@ -212,6 +221,7 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
         const p = curve.getPointAt(t), tan = curve.getTangentAt(t);
         nrm.set(tan.z, 0, -tan.x).normalize();
         v.mesh.position.copy(p).addScaledVector(nrm, v.lane).setY(0.07);
+        v.mesh.rotation.z = 0; tunnel?.place(v.mesh, v.tun); dip?.place(v.mesh);
         const ds = (v.mesh.position.x - v.x) * Math.cos(v.mesh.rotation.y) - (v.mesh.position.z - v.z) * Math.sin(v.mesh.rotation.y); // signed travel along the heading
         if (Math.abs(ds) < 5 && !(v.regionBus && v.regionSwap?.phase === 'loading')) rollWheels(v.mesh.userData.wheels ?? [], ds); // wheels roll; skip respawn jumps and the hidden model load
         v.x = v.mesh.position.x; v.z = v.mesh.position.z;
@@ -248,7 +258,7 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false 
           else { let D = 25; const busy = (t) => lane.some((v) => v !== b && laneAt(t, tmp).distanceTo(v.mesh.position) < (v.len + b.len) / 2 + GAP + 4); while (D < 400 && (curve.getPointAt(Math.min(1, uIn + D / len)).distanceTo(here) < BRIDGE_FAR || busy(uIn + D / len))) D += 5; b.p = invP(uIn + D / len); b.v = b.base; } // next 'in' car starts out of sight, in a free gap
         }
         const m = b.mesh, x0 = m.position.x, z0 = m.position.z;
-        if (b.phase === 'road') { const t = tOf(b), tg = curve.getTangentAt(Math.min(1, Math.max(0, t))); laneAt(t, m.position); m.rotation.set(0, Math.atan2(-tg.z, tg.x) + Math.PI, 0); }
+        if (b.phase === 'road') { const t = tOf(b), tg = curve.getTangentAt(Math.min(1, Math.max(0, t))); laneAt(t, m.position); m.rotation.set(0, Math.atan2(-tg.z, tg.x) + Math.PI, 0); dip?.place(m); }
         else { const k = Math.min(1, Math.max(0, b.s / path.plen)), tg = path.getTangentAt(k); m.position.copy(path.getPointAt(k)); m.rotation.set(0, Math.atan2(-tg.z, tg.x), Math.atan2(tg.y, Math.hypot(tg.x, tg.z))); } // pitch with the ramp
         const ds = Math.hypot(m.position.x - x0, m.position.z - z0); b.x = m.position.x; b.z = m.position.z;
         if (move && ds < 5) rollWheels(m.userData.wheels ?? [], ds); // skip respawn jumps

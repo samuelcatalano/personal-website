@@ -1,4 +1,4 @@
-import { ROAD, furnitureSpots, rng, isWembleyBenchmark } from './layout.js';
+import { ROAD, furnitureSpots, rng, isWembleyLegacy } from './layout.js';
 import { walkPaths } from './crowd.js';
 import { PALETTE as P } from './palette.js';
 import { tree, CLEAR } from './city.js';
@@ -74,7 +74,7 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
     const ring = orig.ring, i = ring ? RING[1] : 0, park = { ...orig, x0: orig.x0 + i, x1: orig.x1 - i, z0: orig.z0 + i, z1: orig.z1 - i }; // ring parks: lawn = rect inset 1.9
     const wide = park.x1 - park.x0 >= park.z1 - park.z0, L = wide ? park.x1 - park.x0 : park.z1 - park.z0, S = wide ? park.z1 - park.z0 : park.x1 - park.x0;
     const cx = (park.x0 + park.x1) / 2, cz = (park.z0 + park.z1) / 2;
-    const benchmark = isWembleyBenchmark({ x: (orig.x0 + orig.x1) / 2, z: (orig.z0 + orig.z1) / 2, width: orig.x1 - orig.x0, depth: orig.z1 - orig.z0 });
+    const benchmark = isWembleyLegacy({ x: (orig.x0 + orig.x1) / 2, z: (orig.z0 + orig.z1) / 2, width: orig.x1 - orig.x0, depth: orig.z1 - orig.z0 }); // legacy coordinates: parks run inside city.js's legacy pass
     const pathMaterial = STONE;
     // box in park space: u along the long side, v across; lu/lv are its sizes
     const B = (u, v, y, lu, h, lv, c) => (wide ? add(cx + u, y, cz + v, lu, h, lv, c) : add(cx + v, y, cz + u, lv, h, lu, c));

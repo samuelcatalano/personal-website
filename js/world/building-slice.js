@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { SURFACE as S, townhouseMaterials } from './building-slice-materials.js';
 import { loadGlb } from './glb-loader.js';
+import { east } from './layout.js';
 
 export const SLICE_LOT_ID = 'block-827--54-0';
 export const TOWNHOUSE_LOT_IDS=Object.freeze([SLICE_LOT_ID,'block-827--54-1','block-827--54-2']);
@@ -246,15 +247,16 @@ export function createTownhouseSlice(plot,recipe=townhouseRecipe(plot),level=0) 
   return group;
 }
 
+const CELL_X=east(820); // legacy literals (layout.js east()): the lots come out of the city generator moved
 export function createTownhouseChunk(plots) {
   // Only the approved benchmark cell is assembled here; other city batches stay untouched.
-  const group=new THREE.Group();group.name='townhouse-benchmark-chunk';group.position.set(820,0,-81);
+  const group=new THREE.Group();group.name='townhouse-benchmark-chunk';group.position.set(CELL_X,0,-81);
   const buckets=[[],[],[]],houses=[],materials=townhouseMaterials();
   for(const plot of plots.slice().sort((a,b)=>a.id.localeCompare(b.id))) {
     if(!TOWNHOUSE_LOT_IDS.includes(plot.id))throw new TypeError('Lot is outside townhouse benchmark');
-    if(plot.x-plot.width/2<820||plot.x+plot.width/2>852||plot.z-plot.depth/2< -81||plot.z+plot.depth/2> -49)throw new TypeError('Townhouse is outside benchmark cell');
+    if(plot.x-plot.width/2<CELL_X||plot.x+plot.width/2>CELL_X+32||plot.z-plot.depth/2< -81||plot.z+plot.depth/2> -49)throw new TypeError('Townhouse is outside benchmark cell');
     const {geometries,metadata}=townhouseGeometry(plot,townhouseRecipe(plot,plots));
-    const transform=new THREE.Matrix4().makeTranslation(plot.x-820,0,plot.z+81);
+    const transform=new THREE.Matrix4().makeTranslation(plot.x-CELL_X,0,plot.z+81);
     geometries.forEach((geometry,i)=>buckets[i].push(geometry.applyMatrix4(transform)));
     houses.push(metadata);
   }
@@ -277,7 +279,7 @@ export function createTownhouseExperiment(plots,neighbors) {
   const materials=townhouseMaterials();
   // shortcut: 4096 vertices per bucket cover these two approved recipes; resize for any future recipe.
   const scratch=Array.from({length:3},()=>Object.fromEntries([['position',3],['normal',3],['uv',2],['surface',1],['color',3]].map(([key,size])=>[key,new Float32Array(4096*size)])));
-  for(const [index,x]of [678,710].entries()){
+  for(const [index,x]of [678,710].map(east).entries()){
     const group=new THREE.Group();group.name=`townhouse-chunk-${index?'B':'A'}`;group.position.set(x,0,-96);
     const selected=plots.filter(p=>p.x>=x&&p.x<x+32).sort((a,b)=>a.id.localeCompare(b.id));
     if(selected.length!==(index?4:5)||selected.some(p=>p.x-3<x||p.x+3>x+32||p.z-4.5< -96||p.z+4.5> -64))throw new TypeError('Townhouse experiment footprint diverges');

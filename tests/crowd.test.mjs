@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { makeLook, walkPaths, crowdPlan, SKIN } from '../js/world/crowd.js';
-import { routePoints, rng, stopIndex, LANDMARKS } from '../js/world/layout.js';
+import { routePoints, LEGACY_GAPS, rng, stopIndex, LANDMARKS } from '../js/world/layout.js';
 import { buildParks } from '../js/world/parks.js';
 import { stops } from '../js/content.js';
 
@@ -210,6 +210,7 @@ test('plaza cells: the MASP plaza and George Square hold a busy crowd (MASP 25-6
   }
 });
 test('plaza cells stand clear of grass beds, tree trunks, the Wellington plinth and the park boxes', () => {
+  const pts = routePoints(stops.length, LEGACY_GAPS); // buildParks runs in legacy coordinates (layout.js east())
   const cells = walkPaths(stops, pts).filter((p) => /^(masp-plaza|glasgow-square)-/.test(p.name));
   assert.equal(cells.length, 8);
   const boxes = [];

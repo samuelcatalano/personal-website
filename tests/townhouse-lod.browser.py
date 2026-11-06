@@ -2,7 +2,7 @@ tab=new_tab('about:blank');activate_tab(tab);cdp('Network.enable');cdp('Network.
 result=js(r'''(async()=>{
 // Baseline renderer contracts; citywide.browser.py covers the rollout default.
 const legacyCity=plots=>createCityBuildings(plots,{rollout:false});
-const T=await import('three'),s=await import('./js/world/building-slice.js?removed-house='+Date.now()),{createCityBuildings}=await import('./js/world/building-kit.js?removed-house='+Date.now()),{stops}=await import('./js/content.js'),{routePoints,routeCurve}=await import('./js/world/layout.js'),{buildCity}=await import('./js/world/city.js');
+const T=await import('three'),s=await import('./js/world/building-slice.js?removed-house='+Date.now()),{createCityBuildings}=await import('./js/world/building-kit.js?removed-house='+Date.now()),{stops}=await import('./js/content.js'),{routePoints,routeCurve,east}=await import('./js/world/layout.js'),{buildCity}=await import('./js/world/city.js');
 const check=(v,m)=>{if(!v)throw Error(m)},pts=routePoints(stops.length),plots=[];buildCity(()=>{},stops,pts,routeCurve(T,pts),undefined,undefined,p=>plots.push(p));
 const ids=[...Array.from({length:5},(_,i)=>`block-679--80-${i}`),...Array.from({length:4},(_,i)=>`block-712--80-${i}`)],selected=plots.filter(p=>ids.includes(p.id));
 check(selected.length===9&&selected.every(p=>p.width===6&&p.depth===9&&p.height===12),'descriptors diverge');
@@ -12,7 +12,7 @@ check(chunks.length===2&&chunks.every(c=>c.children.length===3),'two chunks, thr
 const tri=g=>g.reduce((n,x)=>n+(x.index?.count||x.attributes.position.count)/3,0),mats=new Set,maps=new Set;
 let t0=0,t1=0,bytes=0;const fingerprints=[];
 for(let ci=0;ci<2;ci++){
-const c=chunks[ci],d=c.userData;check(d.plotIds.length===(ci?4:5),'lot distribution');check(c.position.x===(ci?710:678)&&c.position.z===-96,'cell origins');
+const c=chunks[ci],d=c.userData;check(d.plotIds.length===(ci?4:5),'lot distribution');check(c.position.x===east(ci?710:678)&&c.position.z===-96,'cell origins');
 check(d.lods.length===2&&d.lods.every(gs=>gs.length===3),'six cached geometries per chunk');t0+=tri(d.lods[0]);t1+=tri(d.lods[1]);
 const own=selected.filter(p=>d.plotIds.includes(p.id));
 check(d.lods[0][0].boundingBox.equals(d.lods[1][0].boundingBox),'mass/roof silhouette bounds');check(Array.from(d.lods[0][2].attributes.position.array).join()===Array.from(d.lods[1][2].attributes.position.array).join(),'glass and window placement preserved');
@@ -30,7 +30,7 @@ const control=city.getObjectByName('townhouse-benchmark-chunk');check(control.ch
 const baseline=legacyCity(plots.filter(p=>!ids.includes(p.id)));
 const fp=o=>{const rows=[];o.traverse(m=>{if(m.isMesh)rows.push({name:m.name,attributes:Object.fromEntries(Object.entries(m.geometry.attributes).map(([k,v])=>[k,Array.from(v.array)])),instances:m.instanceMatrix?Array.from(m.instanceMatrix.array):null,colors:m.instanceColor?Array.from(m.instanceColor.array):null})});return rows;};
 const other=new T.Group();city.children.filter(c=>c.name!=='townhouse-experiment').forEach(c=>other.add(c.clone()));check(JSON.stringify(fp(other))===JSON.stringify(fp(baseline)),'control and all unrelated plot buffers unchanged');
-experiment.userData.update({position:new T.Vector3(706,10,-60)});const reversed=s.createTownhouseExperiment(selected.slice().reverse(),plots);reversed.userData.update({position:new T.Vector3(706,10,-60)});check(JSON.stringify(fp(experiment))===JSON.stringify(fp(reversed)),'deterministic merged buffers');reversed.userData.dispose();
+experiment.userData.update({position:new T.Vector3(east(706),10,-60)});const reversed=s.createTownhouseExperiment(selected.slice().reverse(),plots);reversed.userData.update({position:new T.Vector3(east(706),10,-60)});check(JSON.stringify(fp(experiment))===JSON.stringify(fp(reversed)),'deterministic merged buffers');reversed.userData.dispose();
 const adjacent=[{id:'left',x:709,z:-80,width:6,depth:9,height:12},{id:'right',x:715,z:-80,width:6,depth:9,height:12}];check(!s.townhouseRecipe(adjacent[1],adjacent).exposedWest,'cross-chunk architectural neighbor');
 let invalid=false;try{s.createTownhouseExperiment(selected.map((p,i)=>i? p:{...p,height:6}),plots)}catch(e){invalid=e instanceof TypeError}check(invalid,'reject descriptor drift');
 let disposed=0;chunks.forEach(c=>c.userData.lods.flat().forEach(g=>g.addEventListener('dispose',()=>disposed++)));experiment.userData.dispose();check(disposed===12,'dispose all active/inactive geometries');experiment.userData.dispose();check(disposed===12,'idempotent disposal');

@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { stops } from '../js/content.js';
 import { buildBlocks, draw } from '../js/world/blocks.js';
-import { routePoints, stopIndex, glasgowSites, copan, regions } from '../js/world/layout.js';
+import { routePoints, LEGACY_GAPS, stopIndex, glasgowSites, copan, regions } from '../js/world/layout.js';
 
-const pts = routePoints(stops.length);
+const pts = routePoints(stops.length, LEGACY_GAPS); // buildBlocks runs in legacy coordinates (layout.js east())
 const curve = { getPointAt(u) { const f = u * (pts.length - 1), i = Math.min(Math.floor(f), pts.length - 2), t = f - i; return { x: pts[i].x + (pts[i + 1].x - pts[i].x) * t, z: pts[i].z + (pts[i + 1].z - pts[i].z) * t }; } };
 const plotsFor = () => { const plots = []; buildBlocks(() => {}, stops, pts, curve, [], (p) => plots.push(p)); return plots; };
 const overlaps = (p, b, e = 0) => p.x - p.width / 2 < b[1] + e && b[0] - e < p.x + p.width / 2 && p.z - p.depth / 2 < b[3] + e && b[2] - e < p.z + p.depth / 2;

@@ -248,3 +248,25 @@ export function buildBlocks(add, stops, pts, curve, occ, onBuildingPlot, onArchi
     occ.push(bounds);
   }
 }
+
+// SWAP_GAP infill (real coordinates): the extra road between Reclame AQUI and London (layout.js) opened an empty strip x ~ 0..40 m on both sides of the
+// route. Fixed lots following the neighbouring rows: Sao Paulo offices/midrises west of the region swap (x ~ 20), London midrises/terraces east of it.
+// Own RNG stream, drawn after the legacy city, so no legacy draw or position id moves. [x, z, width, depth, floors, floor height, kind, region, wall]
+const GAP_FILL = [
+  [14, -93, 11, 11, 9, 3.4, 'office', 'paulista', C], [30, -93, 12, 12, 5, 3.2, 'midrise', 'london', LS],
+  [18, -80, 14, 11, 5, 3.2, 'midrise', 'paulista', OW], [36, -80, 14, 11, 4, 3.2, 'midrise', 'london', B],
+  [8, -108, 10, 8, 3, 3.1, 'midrise', 'paulista', TC], [22, -108, 10, 8, 2, 3.1, 'midrise', 'london', CR], [36, -108, 10, 8, 3, 3.1, 'midrise', 'london', LS],
+  [12, -117, 14, 8, 7, 3.2, 'office', 'paulista', CM], [30, -117, 14, 8, 6, 3.2, 'office', 'london', S],
+  [7, -127, 10, 8, 4, 3.2, 'midrise', 'paulista', OC], [19, -127, 8, 8, 3, 3.2, 'terrace', 'london', B], [31, -127, 10, 8, 4, 3.2, 'midrise', 'london', LS],
+  [2, 37, 10, 10, 3, 3, 'midrise', 'paulista', SA], [13, 36, 6, 9, 2, 3, 'terrace', 'paulista', TC], [23.5, 36, 6, 9, 2, 3, 'terrace', 'london', B], [32, 37, 10, 10, 3, 3, 'midrise', 'london', CR],
+  [7.5, 11, 9, 7, 3, 2.7, 'terrace', 'paulista', CR], [16.5, 11, 9, 7, 3, 2.7, 'terrace', 'paulista', TC], [25.5, 11, 9, 7, 3, 2.7, 'terrace', 'london', B], // frontage, as Reclame AQUI's
+  [8, 50, 10, 9, 2, 3, 'midrise', 'paulista', OC], [20, 49, 6, 8, 2, 3, 'terrace', 'london', LS], [26, 49, 6, 8, 2, 3, 'terrace', 'london', B], [37, 50, 10, 9, 2, 3, 'midrise', 'london', S],
+];
+const GAP_KIND = { shop: 2, midrise: 0, terrace: 3, office: 1 };
+export function buildGapFill(add, onArchitecturePlot) {
+  const r = rng(40406);
+  GAP_FILL.forEach(([x, z, w, d, floors, fh, kind, region, wall], i) => {
+    const emit = onArchitecturePlot && ((plot) => onArchitecturePlot({ ...plot, region }));
+    draw(add, x, z, [w, d, floors, fh, wall, W, GAP_KIND[kind], 1], r, r, false, false, emit, `gap-fill-${i}`);
+  });
+}

@@ -1,9 +1,9 @@
-import { ROAD as RD, furnitureSpots, GAPS, GAP_TOTAL, STOP_SPACING, RIVER_Z, LANDMARKS, LONDON_EYE_X_OFFSET, rng, riverEnd, riverStart, stopIndex, ukStart, regions, towerX, isWembleyBenchmark, underpassFrames, UNDERPASS } from './layout.js';
+import { ROAD as RD, furnitureSpots, LEGACY_GAPS as GAPS, GAP_TOTAL, SWAP_GAP, east, eastAdd, routePoints, routeCurve, STOP_SPACING, RIVER_Z, LANDMARKS, LONDON_EYE_X_OFFSET, rng, riverEnd, riverStart, stopIndex, ukStart, regions, towerX, underpassFrames, UNDERPASS } from './layout.js';
 import { house } from './houses.js';
 import { phoneBox } from './phone.js';
 import { lampPost } from './street-lamp.js';
 import { PALETTE as P } from './palette.js';
-import { buildBlocks } from './blocks.js';
+import { buildBlocks, buildGapFill } from './blocks.js';
 import { buildParks } from './parks.js';
 import { buildCountry } from './country.js';
 import { buildGlasgowEdges } from './glasgow.js';
@@ -61,27 +61,34 @@ export function tree(add, x, z, { h, crown, base = 0.1 }) {
   add(x - crown * 0.22, h + 0.2, z + crown * 0.16, crown * 0.52, 1, crown * 0.52, LEAF_SHADE);
   add(x + crown * 0.2, h + 0.15, z - crown * 0.2, crown * 0.48, 0.9, crown * 0.48, LEAF);
 }
+// Samples along the curve every ~`step` m (curve param is per stop, so count follows each segment's length)
+const ticks = (pts, step) => [...pts.slice(1).flatMap((q, s) => {
+  const m = Math.ceil(Math.hypot(q.x - pts[s].x, q.z - pts[s].z) / step);
+  return Array.from({ length: m }, (_, k) => (s + k / m) / (pts.length - 1));
+}), 1];
+// The legacy (gap-less) route with the caller's curve type; a test's plain polyline object gets a polyline.
+const legacyCurve = (curve, lp) => curve.points ? routeCurve({ CatmullRomCurve3: curve.constructor, Vector3: curve.points[0].constructor }, lp) : (() => {
+  const seg = (u) => { const f = u * (lp.length - 1), i = Math.min(Math.floor(f), lp.length - 2); return [lp[i], lp[i + 1], f - i]; };
+  return { getPointAt: (u) => { const [a, b, t] = seg(u); return { x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t }; },
+    getTangentAt: (u) => { const [a, b] = seg(u), l = Math.hypot(b.x - a.x, b.z - a.z); return { x: (b.x - a.x) / l, z: (b.z - a.z) / l }; } };
+})();
+// The city: the road itself follows the real route; everything seeded (frontage, lamps, trees, kiosks, blocks, parks, country, Glasgow) is generated on the
+// legacy route and moved by east() (layout.js), so SWAP_GAP never changes a draw or a position id. ponytail: anything spanning the legacy border moves whole.
 export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArchitecturePlot, onPublicRealm) {
-  // No tree on the Estaiada deck, ramps or junction (all callers draw first, so the rng stays aligned). Deck runs x = ex (far bank to river), bends to the avenue at ex - 8 (landmark-geometry.js estaiadaRoute).
-  const ex = pts[stopIndex(stops, LANDMARKS.estaiada)].x, ex0 = ex - 16, ex1 = ex + 7, ez0 = RIVER_Z - 43, ez1 = pts[stopIndex(stops, LANDMARKS.estaiada)].z + 1;
-  const onEstaiada = (x, z) => x > ex0 && x < ex1 && z > ez0 && z < ez1; // ponytail: bbox, not per-segment distance
-  // Overpass corridors: the embankment road runs across the route to +-UNDERPASS.end; nothing of the countryside/Glasgow edge may stand on it (cars drive there)
-  const ups = underpassFrames(curve, stops), onOverpass = (x, z, r) => ups.some((u) => { const dx = x - u.x, dz = z - u.z, a = dx * u.tx + dz * u.tz, c = -dx * u.tz + dz * u.tx; return Math.abs(a) < UNDERPASS.base + 2 + r && Math.abs(c) < UNDERPASS.end + 3 + r; });
-  const treeAt = onTree && ((x, z, shape) => { if (!onEstaiada(x, z) && !onOverpass(x, z, (shape.crown || 2) / 2 + 0.3)) onTree(x, z, shape); });
-  const drawTree = treeAt ? (_add, x, z, shape) => treeAt(x, z, shape) : (a, x, z, shape) => { if (!onEstaiada(x, z) && !onOverpass(x, z, (shape.crown || 2) / 2 + 0.3)) tree(a, x, z, shape); };
-  const spots = furnitureSpots(stops, curve).map((o) => o.xz);
-  const free = (x, z) => spots.every(([a, b]) => Math.hypot(a - x, b - z) > CLEAR); // ponytail: skip, not shift
-  const lamps = [], occ = [], obst = [], r = rng(2026), hq = rng(8821), hq2 = rng(4417), noop = () => {}, mx = pts[stopIndex(stops, LANDMARKS.masp)].x, gl = pts[stopIndex(stops, LANDMARKS.glasgow)], ukId = stops[ukStart(stops)].id, LM = new Set([...Object.values(LANDMARKS), ukId]); // ukId: far side of the first UK stop keeps skipping frontage draws (blocks.js riverfront infill owns it)
-  const span = pts.length * STOP_SPACING + GAP_TOTAL + 120, rgs = regions(stops, pts);
-  const seX = pts[stopIndex(stops, LANDMARKS.se)].x, ukX = pts[ukStart(stops)].x, eyeX = pts[stopIndex(stops, LANDMARKS.eye)].x + LONDON_EYE_X_OFFSET;
+  const pilotCrossings = buildRoad(add, stops, pts, curve);
+  if (!SWAP_GAP) return { lamps: buildLegacy(add, stops, pts, curve, onTree, onBuildingPlot, onArchitecturePlot, onPublicRealm), pilotCrossings };
+  const lp = routePoints(pts.length, GAPS), mv = (p) => ({ ...p, x: east(p.x) });
+  const lamps = buildLegacy(eastAdd(add), stops, lp, legacyCurve(curve, lp), onTree && ((x, ...a) => onTree(east(x), ...a)), onBuildingPlot && ((p) => onBuildingPlot(mv(p))),
+    onArchitecturePlot && ((p) => onArchitecturePlot(mv(p))), onPublicRealm && ((z) => { const d = east((z.x0 + z.x1) / 2) - (z.x0 + z.x1) / 2; onPublicRealm({ ...z, x0: z.x0 + d, x1: z.x1 + d }); }));
+  buildGapFill(add, onArchitecturePlot); // the strip SWAP_GAP opened (real coordinates, own rng)
+  return { lamps: lamps.map(([x, z]) => [east(x), z]), pilotCrossings };
+}
+// Ground skirt, river banks, carriageway (with the pilot crossings) and kerb/pavement strips along the real route; no rng.
+function buildRoad(add, stops, pts, curve) {
+  const span = pts.length * STOP_SPACING + GAP_TOTAL + 120;
   // Skirt: ground runs 600 m past both route ends and 300 m south, so no sky shows under the skyline at the hero's left edge.
   // ponytail: flat pave to the fog; real terrain/horizon dressing if the camera ever tilts to the world's rim.
   add(GAP_TOTAL / 2, -1, 100, span + 1200, 1, 400, P.pave);
-  // Samples along the curve every ~`step` m (curve param is per stop, so count follows each segment's length)
-  const ticks = (step) => [...pts.slice(1).flatMap((q, s) => {
-    const m = Math.ceil(Math.hypot(q.x - pts[s].x, q.z - pts[s].z) / step);
-    return Array.from({ length: m }, (_, k) => (s + k / m) / (pts.length - 1));
-  }), 1];
   const x0 = riverStart(stops, pts), rEnd = riverEnd(stops, pts), mid = (x0 + rEnd) / 2, len = rEnd - x0;
   const pilotX0 = pts[stopIndex(stops, LANDMARKS.eye)].x + 12, pilotX1 = towerX(stops, pts) - 20;
   for (const side of [-1, 1]) {
@@ -95,11 +102,9 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
   }
   let crossings = 0;
   const pilotCrossings = []; // curve u of each pilot crossing; roadmarks.js keeps longitudinal paint clear of them
-  ticks(1.4).forEach((u, i) => {
+  ticks(pts, 1.4).forEach((u, i) => {
     if (i % 2) return;
     const p = curve.getPointAt(u), t = curve.getTangentAt(u);
-    const nx = -t.z, nz = t.x;
-    const local = isWembleyBenchmark({ x: p.x, z: p.z });
     add(p.x, -0.18, p.z, 2 * RD.half, 0.24, 2 * RD.half, ROAD); // top 0.06: 1 cm under the 0.07 pavements/tiles/lawns that overlap it
     // painted lines: roadmarks.js
     if (crossings < 2 && p.x >= (crossings ? pilotX1 - 4 : pilotX0 + 4) && p.x <= pilotX1 - 2) {
@@ -109,17 +114,8 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
       }
       crossings++; pilotCrossings.push(u);
     }
-    if (i % 16 === 8) {
-      for (const side of [-1, 1]) {
-        const x = p.x + nx * side * 9.4, z = p.z + nz * side * 9.4;
-        if (!free(x, z) || Math.hypot(x - eyeX, z - (RIVER_Z + 20.4)) < 7) continue; // London Eye A-frame feet (landmark-geometry.js: local z +7.4, x ±3.6)
-        lampPost(x, z, Math.atan2(nz * side, -nx * side), x >= ukX - 15 ? 'uk' : 'br'); // arm (local +x) reaches over the road
-        obst.push([x, z]);
-        lamps.push([x, z]);
-      }
-    }
   });
-  for (const [i, u] of ticks(0.7).entries()) {
+  for (const [i, u] of ticks(pts, 0.7).entries()) {
     const p = curve.getPointAt(u), t = curve.getTangentAt(u);
     const nx = -t.z, nz = t.x;
     const pilot = p.x >= pilotX0 + 1.65 && p.x <= pilotX1 - 1.65;
@@ -131,9 +127,37 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
       if (pilot && i % 9 === 0) add(px, 0.12, pz, 0.55, 0.004, 0.55, P.gravel);
     }
   }
+  return pilotCrossings;
+}
+// Everything seeded, in whatever route coordinates it is given (legacy when SWAP_GAP is set); returns the lamp positions.
+function buildLegacy(add, stops, pts, curve, onTree, onBuildingPlot, onArchitecturePlot, onPublicRealm) {
+  // No tree on the Estaiada deck, ramps or junction (all callers draw first, so the rng stays aligned). Deck runs x = ex (far bank to river), bends to the avenue at ex - 8 (landmark-geometry.js estaiadaRoute).
+  const ex = pts[stopIndex(stops, LANDMARKS.estaiada)].x, ex0 = ex - 16, ex1 = ex + 7, ez0 = RIVER_Z - 43, ez1 = pts[stopIndex(stops, LANDMARKS.estaiada)].z + 1;
+  const onEstaiada = (x, z) => x > ex0 && x < ex1 && z > ez0 && z < ez1; // ponytail: bbox, not per-segment distance
+  // Overpass corridors: the embankment road runs across the route to +-UNDERPASS.end; nothing of the countryside/Glasgow edge may stand on it (cars drive there)
+  const ups = underpassFrames(curve, stops), onOverpass = (x, z, r) => ups.some((u) => { const dx = x - u.x, dz = z - u.z, a = dx * u.tx + dz * u.tz, c = -dx * u.tz + dz * u.tx; return Math.abs(a) < UNDERPASS.base + 2 + r && Math.abs(c) < UNDERPASS.end + 3 + r; });
+  const treeAt = onTree && ((x, z, shape) => { if (!onEstaiada(x, z) && !onOverpass(x, z, (shape.crown || 2) / 2 + 0.3)) onTree(x, z, shape); });
+  const drawTree = treeAt ? (_add, x, z, shape) => treeAt(x, z, shape) : (a, x, z, shape) => { if (!onEstaiada(x, z) && !onOverpass(x, z, (shape.crown || 2) / 2 + 0.3)) tree(a, x, z, shape); };
+  const spots = furnitureSpots(stops, curve).map((o) => o.xz);
+  const free = (x, z) => spots.every(([a, b]) => Math.hypot(a - x, b - z) > CLEAR); // ponytail: skip, not shift
+  const lamps = [], occ = [], obst = [], r = rng(2026), hq = rng(8821), hq2 = rng(4417), noop = () => {}, mx = pts[stopIndex(stops, LANDMARKS.masp)].x, gl = pts[stopIndex(stops, LANDMARKS.glasgow)], ukId = stops[ukStart(stops)].id, LM = new Set([...Object.values(LANDMARKS), ukId]); // ukId: far side of the first UK stop keeps skipping frontage draws (blocks.js riverfront infill owns it)
+  const rgs = regions(stops, pts);
+  const seX = pts[stopIndex(stops, LANDMARKS.se)].x, ukX = pts[ukStart(stops)].x, eyeX = pts[stopIndex(stops, LANDMARKS.eye)].x + LONDON_EYE_X_OFFSET;
+  ticks(pts, 1.4).forEach((u, i) => {
+    if (i % 16 !== 8) return;
+    const p = curve.getPointAt(u), t = curve.getTangentAt(u);
+    const nx = -t.z, nz = t.x;
+    for (const side of [-1, 1]) {
+      const x = p.x + nx * side * 9.4, z = p.z + nz * side * 9.4;
+      if (!free(x, z) || Math.hypot(x - eyeX, z - (RIVER_Z + 20.4)) < 7) continue; // London Eye A-frame feet (landmark-geometry.js: local z +7.4, x ±3.6)
+      lampPost(x, z, Math.atan2(nz * side, -nx * side), x >= ukX - 15 ? 'uk' : 'br'); // arm (local +x) reaches over the road
+      obst.push([x, z]);
+      lamps.push([x, z]);
+    }
+  });
   // Frontage sites: every stop plus filler sites (same 30 m rhythm) along the gaps; the long gaps only keep the London ones (country.js builds the outskirts between)
   const filler = GAPS.flatMap((g, gi) => Array.from({ length: g.size < 100 ? g.size / STOP_SPACING - 1 : g.size / STOP_SPACING }, (_, k) => k + 1).map((k) => ({ g, k, x: pts[g.after].x + k * STOP_SPACING, rg: rgs[gi - 1] })).filter(({ g, x, rg }) => g.size < 100 || (gi === 1 ? x <= rg.sub[1] + 10 : x >= rg.sub[0] - 10)).map(({ g, x, rg }) => { // out leg: London from the Eye to the sub edge; return leg: sub edge to Tribal
-    const q = curve.getPointAt(ticks(0.7).reduce((a, u) => Math.abs(curve.getPointAt(u).x - x) < Math.abs(curve.getPointAt(a).x - x) ? u : a, 0));
+    const q = curve.getPointAt(ticks(pts, 0.7).reduce((a, u) => Math.abs(curve.getPointAt(u).x - x) < Math.abs(curve.getPointAt(a).x - x) ? u : a, 0));
     return { p: { x, z: q.z }, i: g.after, filler: true, sparse: !!rg && (g.after === 10 ? x >= rg.sub[1] : x < rg.sub[0]) };
   }));
   // North Star canopy rhythm: extra verge trees on the same grass strip, placed by stable hash (layout rng untouched)
@@ -186,7 +210,7 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
   // North Star avenue rows: dense street trees on the verge strip every ~7 m, same frontage exclusions as the houses (MASP/Sé/Glasgow/Tower sightlines, Wembley); own hash, layout rng untouched
   const lastX = pts[pts.length - 1].x, towX = towerX(stops, pts), bbX = pts[stopIndex(stops, LANDMARKS.bigben)].x;
   const blocked = (x, side) => side < 0 ? (x > bbX - 15 && x < eyeX + 17) || Math.abs(x - mx) < 29.5 || Math.abs(x - seX) < 29.5 || Math.abs(x - gl.x) < 25 || Math.abs(x - towX + 3) < 33 : Math.abs(x - seX) < 29.5 || Math.abs(x - ukX) < 23 || Math.abs(x - lastX) < 35; // ponytail: x-only test, mirrors the frontage rules above
-  for (const u of ticks(7)) {
+  for (const u of ticks(pts, 7)) {
     const p = curve.getPointAt(u), t = curve.getTangentAt(u);
     for (const side of [-1, 1]) {
       const x = p.x - t.z * side * 10.3, z = p.z + t.x * side * 10.3, hsh = Math.abs(Math.sin(x * 12.9898 + z * 78.233 + 5) * 43758.5453) % 1;
@@ -201,5 +225,5 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
   buildGlasgowEdges(addOff, stops, pts, curve, drawTree, plotOff);
   buildBlocks(add, stops, pts, curve, occ, onBuildingPlot, onArchitecturePlot);
   buildParks(addOff, stops, pts, curve, occ, treeAt, onPublicRealm); // after the blocks: own rng, reads the free plazas, never shifts a block
-  return { lamps, pilotCrossings };
+  return lamps;
 }

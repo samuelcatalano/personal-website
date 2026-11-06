@@ -2,11 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { stops } from '../js/content.js';
 import { buildBlocks } from '../js/world/blocks.js';
-import { routePoints, isWembleyBenchmark, WEMBLEY_BENCHMARK } from '../js/world/layout.js';
+import { routePoints, LEGACY_GAPS, isWembleyLegacy as isWembleyBenchmark, WEMBLEY_LEGACY as WEMBLEY_BENCHMARK } from '../js/world/layout.js';
 
 test('Wembley benchmark selects only complete existing lots inside its approved envelope', () => {
   assert.deepEqual(WEMBLEY_BENCHMARK, { x0: 660, x1: 880, z0: -113, z1: -25 });
-  const pts = routePoints(stops.length);
+  const pts = routePoints(stops.length, LEGACY_GAPS); // buildBlocks runs in legacy coordinates (layout.js east())
   const curve = { getPointAt(u) {
     const f = u * (pts.length - 1), i = Math.min(Math.floor(f), pts.length - 2), t = f - i;
     return { x: pts[i].x + (pts[i + 1].x - pts[i].x) * t, z: pts[i].z + (pts[i + 1].z - pts[i].z) * t };

@@ -1,4 +1,4 @@
-import { ROAD, furnitureSpots, regions, inRegion, ukStart, stopIndex, LANDMARKS, RIVER_Z, WEMBLEY_BENCHMARK, underpassFrames, UNDERPASS } from './layout.js';
+import { ROAD, furnitureSpots, regions, inRegion, ukStart, stopIndex, LANDMARKS, RIVER_Z, WEMBLEY_BENCHMARK, underpassFrames, UNDERPASS, east } from './layout.js';
 import { walkPaths } from './crowd.js';
 import { PLAZAS, SQUARES } from './parks.js';
 // Street props (Phase 4): bollards, litter bins, hydrants (BR red hydrant / UK yellow marker post), bike racks and UK Belisha beacons.
@@ -25,7 +25,7 @@ export function placeStreetProps({ stops, pts, curve, arc, pilotCrossings = [], 
   for (const p of plots) if (p.width && p.depth) index({ k: 'c', x: p.x, z: p.z, r: Math.hypot(p.width, p.depth) / 2 }, p.x, p.z, Math.hypot(p.width, p.depth) / 2); // circumscribed
   const paths = walkPaths(stops, pts), loops = paths.filter((p) => p.type === 'loop'), wander = paths.filter((p) => p.type === 'wander');
   const quiet = new Set(PLAZAS.filter((q) => q.quiet).map((q) => q.name));
-  const keepOut = [...loops.filter((l) => quiet.has(l.name)).map((l) => l.rect), ...SQUARES.filter((q) => q.low), ...exclude]; // quiet plazas, sightline squares, hero realm
+  const keepOut = [...loops.filter((l) => quiet.has(l.name)).map((l) => l.rect), ...SQUARES.filter((q) => q.low).map((q) => { const d = east((q.x0 + q.x1) / 2) - (q.x0 + q.x1) / 2; return { ...q, x0: q.x0 + d, x1: q.x1 + d }; }) /* SQUARES are legacy: east() */, ...exclude]; // quiet plazas, sightline squares, hero realm
   const inRect = (r, x, z, e) => x > r.x0 - e && x < r.x1 + e && z > r.z0 - e && z < r.z1 + e;
   const zoneOk = (x, z) => !(x > W.x0 - 6 && x < W.x1 + 6 && z > W.z0 - 6 && z < W.z1 + 6) && !(x > ex.x - 16 && x < ex.x + 7 && z > RIVER_Z - 43 && z < ex.z + 1) &&
     !ups.some((u) => { const dx = x - u.x, dz = z - u.z; return Math.abs(dx * u.tx + dz * u.tz) < UNDERPASS.base + 2 && Math.abs(-dx * u.tz + dz * u.tx) < UNDERPASS.end + 3; }) && !keepOut.some((r) => inRect(r, x, z, 1));

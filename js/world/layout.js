@@ -10,17 +10,35 @@ export const underpassFrames = (curve, stops) => scotRange(stops).map((t, i) => 
   return { t, tc, x: c.x, z: c.z, tx: tan.x, tz: tan.z };
 });
 export const RIVER_Z = -45;
-export const WEMBLEY_BENCHMARK = Object.freeze({ x0: 660, x1: 880, z0: -113, z1: -25 });
-export const isWembleyBenchmark = ({ x, z, width = 0, depth = 0 }) =>
-  x - width / 2 >= WEMBLEY_BENCHMARK.x0 && x + width / 2 <= WEMBLEY_BENCHMARK.x1 &&
-  z - depth / 2 >= WEMBLEY_BENCHMARK.z0 && z + depth / 2 <= WEMBLEY_BENCHMARK.z1;
+export const WEMBLEY_LEGACY = Object.freeze({ x0: 660, x1: 880, z0: -113, z1: -25 }); // legacy coordinates (see east()): parks.js, inside the city generator
+const insideOf = (W) => ({ x, z, width = 0, depth = 0 }) =>
+  x - width / 2 >= W.x0 && x + width / 2 <= W.x1 &&
+  z - depth / 2 >= W.z0 && z + depth / 2 <= W.z1;
+export const isWembleyLegacy = insideOf(WEMBLEY_LEGACY);
 // Extra roads: after MASP (taqtile, stop 4) for the Copan, and the London -> Glasgow run after the Eye (olm, stop 10), and the return run after Glasgow (stop 11). Every later stop shifts east by `size`.
 // ponytail: `after` are stop indices, asserted in tests/logic.test.mjs
 export const OUT_GAP = 300, LONG_GAP = 180; // olm -> glasgow = STOP_SPACING + OUT_GAP (London tail with Tower Bridge, countryside, two Glasgow landmarks); glasgow -> tribal = STOP_SPACING + LONG_GAP (the return)
-export const GAPS = [{ after: 4, size: 60 }, { after: 10, size: OUT_GAP }, { after: 11, size: LONG_GAP }];
+// SWAP_GAP: extra road between Reclame AQUI and the first London stop, room for the SP -> London tunnel (swap-tunnel.js; off while 0).
+// The city generator's rows share one RNG stream and its ids are positions, so it never sees this gap: city.js builds on the legacy route (LEGACY_GAPS)
+// and east() moves everything past the old region border (legacy x > 0, midway Reclame AQUI -> first UK stop) SWAP_GAP east. Literal legacy tables
+// (parks, blocks lot lists, Wembley, the closing corner) therefore stay as they are. ponytail: border is the literal 0 of today's 18-stop route.
+export const SWAP_GAP = 40;
+export const LEGACY_GAPS = [{ after: 4, size: 60 }, { after: 10, size: OUT_GAP }, { after: 11, size: LONG_GAP }];
+export const GAPS = SWAP_GAP ? [...LEGACY_GAPS, { after: 6, size: SWAP_GAP }] : LEGACY_GAPS; // appended: GAPS[0..2] keep their roles
 export const GAP_TOTAL = GAPS.reduce((a, g) => a + g.size, 0);
-export const routePoints = (n) => Array.from({ length: n }, (_, i) => ({
-  x: (i - (n - 1) / 2) * STOP_SPACING + GAPS.reduce((a, g) => a + (i > g.after ? g.size : 0), 0),
+export const east = (x) => x > 0 ? x + SWAP_GAP : x; // legacy -> real x
+// Distant backdrop only: spreads the gap over +-SPREAD m instead of opening a 40 m corridor to the horizon (no ids or approvals out there).
+const SPREAD = 200;
+export const stretch = (x) => x <= -SPREAD ? x : x >= SPREAD ? x + SWAP_GAP : x + SWAP_GAP * (x + SPREAD) / (2 * SPREAD);
+export const eastAdd = (add, move = east) => { // a box sink fed legacy x; voxel.js add(x, ...) and add.plant(kind, x, ...)
+  const f = (x, ...a) => add(move(x), ...a);
+  if (add.plant) f.plant = (kind, x, ...a) => add.plant(kind, move(x), ...a);
+  return f;
+};
+export const WEMBLEY_BENCHMARK = Object.freeze({ ...WEMBLEY_LEGACY, x0: east(WEMBLEY_LEGACY.x0), x1: east(WEMBLEY_LEGACY.x1) });
+export const isWembleyBenchmark = insideOf(WEMBLEY_BENCHMARK);
+export const routePoints = (n, gaps = GAPS) => Array.from({ length: n }, (_, i) => ({
+  x: (i - (n - 1) / 2) * STOP_SPACING + gaps.reduce((a, g) => a + (i > g.after ? g.size : 0), 0),
   z: Math.round(12 * Math.sin(i * 0.7)),
 }));
 export const LANDMARKS = {
@@ -69,6 +87,15 @@ export function rng(seed) {
 export const ukStart = (stops) => stops.findIndex((s) => s.country === 'UK');
 export const swapAt = (stops) => (ukStart(stops) - 0.5) / (stops.length - 1);
 export const secondaryBusAssetAt = (t, swap) => t < swap ? 'sao-paulo' : 'bus';
+// Sao Paulo -> London: the route runs through a short cut-and-cover tunnel between Reclame AQUI and the first London stop (SWAP_GAP of extra road), and
+// the hero swaps Mini <-> bus out of sight inside it (swap-tunnel.js). Metres along the road from the cover's centre (`ahead` m past the region swap):
+// ramps of `ramp` m either side of a cover of half length `half`; it starts just past Reclame AQUI's zebra and ends where the bus at the next stop is level.
+export const SWAP_TUNNEL = Object.freeze({ ahead: 2.9, half: 8, ramp: 18.1, width: 6 }); // width: half width across, kerb to kerb less the bend's sagitta
+export const swapTunnelFrame = (curve, stops) => {
+  const sw = swapAt(stops), e = 1e-4, a = curve.getPointAt(sw), speed = curve.getPointAt(sw + e).distanceTo(a) / e, t = sw + SWAP_TUNNEL.ahead / speed;
+  const c = curve.getPointAt(t), tan = curve.getTangentAt(t);
+  return { t, speed, x: c.x, z: c.z, tx: tan.x, tz: tan.z, reach: SWAP_TUNNEL.half + SWAP_TUNNEL.ramp };
+};
 export function heroVehicleAt(t, swap, archIn, archOut, vehicles) {
   if (t < swap) return vehicles.mini;
   return t >= archIn && t < archOut ? vehicles.glasgow : vehicles.london;

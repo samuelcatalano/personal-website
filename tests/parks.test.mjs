@@ -2,12 +2,12 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { PARKS, PLAZAS, SQUARES, RING, KEEP, WALK_INSET, buildParks } from '../js/world/parks.js';
 import { walkPaths } from '../js/world/crowd.js';
-import { routePoints, isWembleyBenchmark } from '../js/world/layout.js';
+import { routePoints, LEGACY_GAPS, isWembleyLegacy as isWembleyBenchmark } from '../js/world/layout.js';
 import { PALETTE } from '../js/world/palette.js';
 import { tree } from '../js/world/city.js';
 import { stops } from '../js/content.js';
 
-const pts = routePoints(stops.length), loops = walkPaths(stops, pts).filter((p) => p.type === 'loop');
+const pts = routePoints(stops.length, LEGACY_GAPS), loops = walkPaths(stops, pts).filter((p) => p.type === 'loop');
 const hit = (a, b, e = 0) => a.x0 < b.x1 + e && b.x0 - e < a.x1 && a.z0 < b.z1 + e && b.z0 - e < a.z1;
 
 test('park rects keep clear of the pedestrian plaza loops (3 m incl. railings)', () => {
