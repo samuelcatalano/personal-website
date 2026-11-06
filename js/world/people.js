@@ -85,8 +85,8 @@ export function createPeople({ curve, pts, stops, obstacles = [], reducedMotion 
     out.fx = fx / fl * p.dir * turn; out.fz = fz / fl * p.dir * turn; out.speed = pace;
   };
   const loop = (p, s) => { Object.assign(out, loopAt(p, s)); out.speed = 1; out.nx = out.nz = out.offset = 0; };
-  const place = (p, s, look) => p.type === 'lane' ? lane(p, s, look) : loop(p, s);
-  const perim = (p) => (p.type === 'lane' ? 2 * (p.offset < 0 ? SPAN : L) : loopPerimeter(p));
+  const place = (p, s, look) => p.type === 'idle' ? Object.assign(out, { x:p.x, z:p.z, fx:p.fx, fz:p.fz, speed:0, nx:0, nz:0, offset:0 }) : p.type === 'lane' ? lane(p, s, look) : loop(p, s);
+  const perim = (p) => (p.type === 'idle' ? 1 : p.type === 'lane' ? 2 * (p.offset < 0 ? SPAN : L) : loopPerimeter(p));
 
   const walkPace = new Float32Array(N), visible = new Uint8Array(N);
   const st = plan.map((q) => ({ s: q.s0 * perim(q.path), pace: 1 }));
@@ -111,6 +111,7 @@ export function createPeople({ curve, pts, stops, obstacles = [], reducedMotion 
     px[i] -= nx * side * shift; pz[i] -= nz * side * shift;
   };
   const push = (i, dx, dz) => {
+    if (plan[i].path.type === 'idle') return;
     const ox = pushX[i], oz = pushZ[i]; let x = ox + dx, z = oz + dz;
     const length = Math.hypot(x, z), limit = plan[i].path.type === 'lane' ? 0.2 : CROWD_PUSH;
     if (length > limit) { x *= limit / length; z *= limit / length; }

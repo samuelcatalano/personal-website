@@ -5,6 +5,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { ROAD } from './layout.js';
 import { crowdPlan } from './crowd.js'; // read only: the crowd's people and paths
+import { createIdleClip } from './npc-idle.js';
 
 const GLB = new URL('../../assets/npc/npc_pack.glb', import.meta.url).href;
 const QUERY = new URLSearchParams(location.search), NEAR = QUERY.has('npcnear'), SHOT = Number(QUERY.get('npcshot')) || 0; // debug only
@@ -408,6 +409,13 @@ export async function createNpc3d(scene, { people, pts, stops, count = +QUERY.ge
       walkers.forEach((w, n) => {
         if (w.who < 0) { dummy.scale.setScalar(0); dummy.updateMatrix(); shadow.setMatrixAt(n, dummy.matrix); return; }
         const i = w.who, fx = route.fx[i], fz = route.fz[i], sp = plan[i].look.speed;
+        const idle=plan[i].path.type==='idle';
+        if(idle!==!!w.idle){
+          if(idle){w.action.stop();w.idleAction??=w.mixer.clipAction(createIdleClip(w.inst));w.idleAction.reset().play();}
+          else{w.idleAction.stop();w.action.reset().play();}
+          w.idle=idle;
+          w.mixer.update(0); // install the pose immediately, including a single reduced-motion frame
+        }
         w.x = route.x[i]; w.z = route.z[i];
         let dy = Math.atan2(fx, fz) - w.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
         w.yaw += dy * (1 - Math.exp(-18 * dt)); // keep heading smooth while staying close to the route tangent

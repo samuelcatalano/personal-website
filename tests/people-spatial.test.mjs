@@ -27,6 +27,16 @@ test('a frozen crowd (reduced motion) keeps its route positions; a moving one ad
   }
 });
 
+test('standing pairs keep their position and facing while nearby walkers separate', () => {
+  const idle={s0:0,look:{height:1.8,speed:.78},path:{type:'idle',x:5,z:3,fx:0,fz:-1}};
+  for(const reducedMotion of [false,true]){
+    const people=loadPeople([idle,walker(5,3)],[],{reducedMotion});
+    for(let i=0;i<120;i++)people.update(.25,{x:5,z:3});
+    assert.equal(people.route.x[0],5);assert.equal(people.route.z[0],3);
+    assert.equal(people.route.fx[0],0);assert.equal(people.route.fz[0],-1);assert.equal(people.walkPace[0],0);
+  }
+});
+
 test('rounded loop is deterministic, stays in its rectangle, and keeps position and heading continuous', () => {
   const context = load([]);
 

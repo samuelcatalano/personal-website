@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { i18n } from '../content.js';
+import { createPlantGeometry } from './plant-mesh.js';
 // The plaza on the lid of the SP -> London tunnel (swap-tunnel.js): grey York stone flags kerb to kerb, a fingerpost in the middle (São Paulo one way,
 // London the other; copy from content.js, redrawn when the language changes) and a street lamp beside it (city.js registers it with street-lamp.js).
 // Local frame as swap-tunnel.js: x along the road (+ towards London), z across, y up.
@@ -15,6 +16,7 @@ function paving(half, kerb) {
   for (let y = 0; y < H; y += 0.6 * PX) for (let x = -rnd() * 0.6 * PX; x < W;) {
     const l = (0.6 + rnd() * 0.6) * PX; g.fillStyle = tones[(rnd() * tones.length) | 0]; g.fillRect(x + 2, y + 2, l - 4, 0.6 * PX - 4); x += l;
   }
+  g.strokeStyle='#6d675e';g.lineWidth=.18*PX;g.strokeRect(.22*PX,.22*PX,W-.44*PX,H-.44*PX);
   const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
   return tex;
 }
@@ -59,6 +61,32 @@ export function buildSwapPlaza({ half, kerb, y }) {
   }
   rails.instanceMatrix.needsUpdate = true; rails.computeBoundingBox(); rails.computeBoundingSphere();
   group.add(rails); geos.push(railGeo);
+  const wood=new THREE.MeshStandardMaterial({color:'#80522f',roughness:.88});
+  const stone=new THREE.MeshStandardMaterial({color:'#aaa392',roughness:.95});
+  const leaf=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.95});mats.push(wood,stone,leaf);
+  const seats=[],legs=[],containers=[],soil=[],plants=[],batches=[],obstacles=[];
+  for(const side of [-1,1]){
+    const x=side*(half-1.15),z=side*(kerb-2.4),px=side*(half-1.05);
+    for(let i=0;i<5;i++)seats.push([x+(i-2)*.12,.46,0,.095,.08,2.4]);
+    for(let i=0;i<3;i++)seats.push([x+side*.32,.68+i*.13,0,.08,.085,2.4]);
+    for(const end of [-.95,.95]){legs.push([x,.25,end,.5,.42,.08]);legs.push([x+side*.32,.70,end,.075,.55,.075]);}
+    containers.push([px,.05,z,1,.1,1.8]);
+    for(const end of [-1,1]){containers.push([px+end*.44,.32,z,.12,.5,1.8]);containers.push([px,.32,z+end*.84,.76,.5,.12]);}
+    soil.push([px,.52,z,.76,.04,1.56]);plants.push([px,.55,z,.9,.48,1.5]);
+    obstacles.push({kind:'bench',rect:{x0:x-.4,x1:x+.4,z0:-1.25,z1:1.25}});
+    obstacles.push({kind:'planter',rect:{x0:px-.5,x1:px+.5,z0:z-.9,z1:z+.9}});
+  }
+  const batch=(name,material,records,geometry=railGeo)=>{
+    const mesh=new THREE.InstancedMesh(geometry,material,records.length);mesh.name=name;mesh.castShadow=mesh.receiveShadow=true;
+    records.forEach(([x,h,z,w,height,d],i)=>{member.position.set(x,y+h,z);member.scale.set(w,height,d);member.updateMatrix();mesh.setMatrixAt(i,member.matrix);});
+    mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingBox();mesh.computeBoundingSphere();group.add(mesh);batches.push(mesh);return mesh;
+  };
+  const woodBatch=batch('swap-plaza-benches-wood',wood,[...seats,...soil]);
+  soil.forEach((_,i)=>woodBatch.setColorAt(seats.length+i,new THREE.Color(.35,.3,.25)));
+  woodBatch.instanceColor.needsUpdate=true;
+  batch('swap-plaza-benches-iron',iron,legs);batch('swap-plaza-planters',stone,containers);
+  const shrub=createPlantGeometry('shrub');geos.push(shrub);batch('swap-plaza-planting',leaf,plants,shrub);
+  group.userData.obstacles=obstacles;
   const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 3.3, 12).translate(0, 1.65, 0), iron);
   const glass = new THREE.MeshStandardMaterial({ color: '#fff1c8', roughness: 0.25 }); mats.push(glass);
   Object.assign(glass.userData, { glow: true, glowColor: new THREE.Color('#ffcf7a'), glowK: 2.4 });
@@ -93,5 +121,5 @@ export function buildSwapPlaza({ half, kerb, y }) {
   };
   paint();
   const watch = new MutationObserver(paint); watch.observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
-  return { group, dispose() { watch.disconnect(); rails.dispose(); geos.forEach((g) => g.dispose()); mats.forEach((m) => m.dispose()); texs.forEach((t) => t.dispose()); } };
+  return { group, dispose() { watch.disconnect(); rails.dispose(); batches.forEach(m=>m.dispose()); geos.forEach((g) => g.dispose()); mats.forEach((m) => m.dispose()); texs.forEach((t) => t.dispose()); } };
 }

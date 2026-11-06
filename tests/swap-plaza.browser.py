@@ -18,6 +18,11 @@ result = js(r'''(async () => {
     const half = 8, y = 0.07, plaza = buildSwapPlaza({ half, kerb, y });
     const mesh = plaza.group.getObjectByName('swap-plaza-guardrails');
     check(mesh?.isInstancedMesh, 'both guardrails must share one instanced batch');
+    check(plaza.group.getObjectByName('swap-plaza-benches-wood')?.count >= 16, 'two slatted benches share one wood batch');
+    check(plaza.group.getObjectByName('swap-plaza-planters')?.isInstancedMesh, 'two low containers share one stone batch');
+    check(plaza.group.getObjectByName('swap-plaza-planting')?.count === 2, 'two low shrubs reuse existing plant geometry');
+    check(plaza.group.userData.obstacles?.filter(o=>o.kind==='bench').length===2, 'two bench footprints');
+    check(plaza.group.userData.obstacles?.filter(o=>o.kind==='planter').length===2, 'two planter footprints');
     check(mesh.material === plaza.group.children.find(o => o.geometry?.type === 'CylinderGeometry').material, 'reuse existing iron material');
     const matrix = new THREE.Matrix4(), position = new THREE.Vector3(), rotation = new THREE.Quaternion(), scale = new THREE.Vector3(), members = [];
     for (let i = 0; i < mesh.count; i++) {
@@ -46,8 +51,12 @@ result = js(r'''(async () => {
   const plan = crowdPlan(stops, pts, 1017), ids = plan.flatMap((p, i) => p.path.name === 'swap-plaza' ? [i] : []);
   check(ids.length === 12, 'exercise all plaza walkers');
   let minimumClearance = Infinity;
+  const decorated=buildSwapPlaza({half:SWAP_TUNNEL.half,kerb:6.75,y:.07});
+  const idle=ids.filter(i=>plan[i].path.type==='idle');
+  check(idle.length===4&&ids.length-idle.length===8,'two standing pairs and eight walkers reuse the twelve NPCs');
   for (const reducedMotion of [false, true]) {
     const people = createPeople({ curve, pts, stops, reducedMotion });
+    const initial=idle.map(i=>[people.route.x[i],people.route.z[i]]);
     for (let k = 0; k < 360; k++) {
       people.update(0.25, { x: frame.x, z: frame.z });
       for (const i of ids) {
@@ -55,9 +64,16 @@ result = js(r'''(async () => {
         const clearance = SWAP_TUNNEL.half - 0.14 - Math.abs(along) - plan[i].look.height * 0.16;
         minimumClearance = Math.min(minimumClearance, clearance);
         check(clearance > 0.1, 'walkers and separation offsets clear the inside railing faces');
+        const across=-(people.route.x[i]-frame.x)*frame.tz+(people.route.z[i]-frame.z)*frame.tx,r=plan[i].look.height*.16;
+        for(const {kind,rect:q}of decorated.group.userData.obstacles){
+          const dx=Math.max(0,q.x0-along,along-q.x1),dz=Math.max(0,q.z0-across,across-q.z1);
+          check(Math.hypot(dx,dz)>r+.1,'pedestrians clear '+kind);
+        }
       }
     }
+    idle.forEach((i,k)=>check(Math.hypot(people.route.x[i]-initial[k][0],people.route.z[i]-initial[k][1])<1e-6,'standing pairs remain fixed'));
   }
+  decorated.dispose();
   return { pass: true, walkers: ids.length, seconds: 90, reducedMotion: 'checked', minimumClearance };
 })()''')
 print(result)
