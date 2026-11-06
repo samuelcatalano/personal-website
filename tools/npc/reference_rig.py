@@ -342,9 +342,8 @@ def clear_arms_from_torso(rig, frames):
 
 
 WAVE_LOOPS = 3  # The clip spans whole Idle loops: raises, waves, lowers, then rests before repeating.
-WAVE_HZ = 1.55
+WAVE_HZ = 1.9
 WAVE_END_S = 3.9
-LEG_CLOSE_DEGREES = 5  # Each thigh, toward the other: the Idle stance is wide at this character's scale.
 
 
 def aim_bone(bone, direction):
@@ -379,19 +378,82 @@ def smooth(value):
     return value * value * (3 - 2 * value)
 
 
-def open_waving_fingers(rig, hand, amount):
-    # Straighten the scan's relaxed fingers with a slight fan; more would stretch their shared surface.
-    axis = (hand.tail - hand.head).normalized()
-    lateral = (Vector((1, 0, 0)) - axis * axis.x).normalized()
-    keyed = []
-    targets = {'index': axis + lateral * .07, 'middle': axis + lateral * .02, 'ring': axis - lateral * .03,
-               'pinky': axis - lateral * .08, 'thumb': axis * .6 + lateral * .8}
-    for finger, target in targets.items():
-        for part in ('01', '02', '03'):
-            bone = rig.pose.bones[f'{finger}_{part}_r']
-            aim_bone(bone, (bone.tail - bone.head).normalized().lerp(target.normalized(), .85 * amount))
-            keyed.append(bone)
-    return keyed
+SUPPORT_SIDE = 'l'  # Near-neutral stance (owner's choice): weight a touch over the left leg.
+ANKLES = {'l': Vector((.125, .13)), 'r': Vector((-.125, .11))}  # Rig-space ankle x/y in metres; -Y is forward.
+TOE_OUT_DEGREES = {'l': 10, 'r': 12}  # The scan's right foot pointed 45 degrees out.
+PELVIS_SHIFT_M = .008
+HIP_DROP_DEGREES = 1
+SHOULDER_COUNTER_DEGREES = .4
+KNEE_REACH = .985  # Hip-to-ankle over full leg length in Idle; 1 locks the knees, the UAL source sits near .95.
+REST_ARM = (Vector((.40, .02, -.92)), Vector((.18, -.20, -.96)), Vector((.12, -.15, -.98)))  # Left side; x mirrors.
+
+
+def solve_leg(rig, side, ankle, toe_out):
+    """Analytic two-bone IK: the ankle reaches `ankle`, the knee bends toward the toes, the sole stays flat."""
+    sign = 1 if side == 'l' else -1
+    thigh, calf, foot = (rig.pose.bones[f'{part}_{side}'] for part in ('thigh', 'calf', 'foot'))
+    sole = foot.matrix.to_3x3()
+    toes = foot.tail - foot.head
+    yaw = sign * math.radians(toe_out) - math.atan2(toes.x, -toes.y)  # Heading from -Y toward +X.
+    hip, upper, lower = thigh.head.copy(), thigh.length, calf.length
+    reach = ankle - hip
+    span = min(reach.length, (upper + lower) * .999)
+    along = reach.normalized()
+    pole = Vector((sign * math.sin(math.radians(toe_out)), -1, 0))
+    bend = (pole - along * pole.dot(along)).normalized()
+    x = (upper * upper - lower * lower + span * span) / (2 * span)
+    knee = hip + along * x + bend * math.sqrt(max(upper * upper - x * x, 0))
+    aim_bone(thigh, knee - hip)
+    aim_bone(calf, hip + along * span - knee)
+    foot.matrix = Matrix.Translation(foot.head) @ (Matrix.Rotation(yaw, 3, 'Z') @ sole).to_4x4()
+    bpy.context.view_layer.update()
+    return thigh, calf, foot
+
+
+def natural_stance(rig, body, frames, fps):
+    """Idle without the scan's A-pose stance: narrow base, weight on one leg, hips and shoulders countered."""
+    scene = bpy.context.scene
+    span = (frames[-1] - frames[0]) / fps
+    bones = rig.pose.bones
+    for frame in frames:
+        scene.frame_set(frame)
+        bpy.context.view_layer.update()
+        t = (frame - frames[0]) / fps
+        drift = math.sin(2 * math.pi * t / span)  # One slow weight drift per loop, so the loop stays seamless.
+        breath = math.sin(2 * math.pi * t / span * 2)
+        floor = min(bones['foot_l'].head.z, bones['foot_r'].head.z)
+        support = 1 if SUPPORT_SIDE == 'l' else -1
+        pelvis = bones['pelvis']
+        pelvis.matrix = Matrix.Translation(Vector((support * (PELVIS_SHIFT_M + .004 * drift), 0, 0))) @ pelvis.matrix
+        bpy.context.view_layer.update()
+        # Raise the hips until the first leg reaches KNEE_REACH of its length: soft knees, not the source's crouch.
+        lift = math.inf
+        for side in ('l', 'r'):
+            thigh = bones['thigh_' + side]
+            reach = KNEE_REACH * (thigh.length + bones['calf_' + side].length)
+            across = (thigh.head.xy - ANKLES[side]).length
+            lift = min(lift, math.sqrt(max(reach * reach - across * across, 0)) - (thigh.head.z - floor))
+        pelvis.matrix = Matrix.Translation(Vector((0, 0, lift + .002 * breath))) @ pelvis.matrix
+        bpy.context.view_layer.update()
+        hips = math.radians(HIP_DROP_DEGREES + .6 * drift) * support
+        lean_bone(pelvis, -hips)  # The free hip drops.
+        lean_bone(bones['spine_01'], hips + support * math.radians(SHOULDER_COUNTER_DEGREES))
+        lean_bone(bones['neck_01'], -support * math.radians(SHOULDER_COUNTER_DEGREES))
+        keyed = [pelvis, bones['spine_01'], bones['neck_01']]
+        for side in ('l', 'r'):
+            ankle = ANKLES[side]
+            keyed += solve_leg(rig, side, Vector((ankle.x, ankle.y, floor)), TOE_OUT_DEGREES[side])
+            sign = 1 if side == 'l' else -1
+            for name, direction in zip(('upperarm', 'lowerarm', 'hand'), REST_ARM):
+                bone = bones[f'{name}_{side}']
+                aim_bone(bone, Vector((sign * direction.x, direction.y + .012 * breath, direction.z)))
+                keyed.append(bone)
+        for bone in keyed:
+            bone.keyframe_insert('rotation_quaternion', frame=frame)
+        pelvis.keyframe_insert('location', frame=frame)
+    return {'support_side': SUPPORT_SIDE, 'ankles_xy_m': {k: list(v) for k, v in ANKLES.items()},
+            'toe_out_degrees': TOE_OUT_DEGREES, 'pelvis_shift_m': PELVIS_SHIFT_M, 'hip_drop_degrees': HIP_DROP_DEGREES,
+            'sole_calibration': ground_scanned_soles(body, rig, frames)}
 
 
 def build_wave(rig, idle, fps, body):
@@ -413,57 +475,38 @@ def build_wave(rig, idle, fps, body):
             if bone.name in ('Root', 'pelvis'):
                 bone.location = location
                 bone.keyframe_insert('location', frame=frame)
-    # Hips and legs hold the first frame's stance: owner's request, only the upper body moves.
-    scene.frame_set(start)
-    planted = [(bone, bone.rotation_quaternion.copy(), bone.location.copy()) for bone in rig.pose.bones
-               if bone.name in ('Root', 'pelvis') or bone.name.startswith(('thigh', 'calf', 'foot', 'ball'))]
-    named = {name: rig.pose.bones[name] for name in ('spine_02', 'upperarm_r', 'lowerarm_r', 'hand_r',
-                                                     'upperarm_l', 'lowerarm_l', 'hand_l')}
+    # Legs keep Idle's planted contrapposto (ankles fixed by IK), so the weight still drifts while he waves.
+    named = {name: rig.pose.bones[name] for name in ('spine_02', 'upperarm_r', 'lowerarm_r', 'hand_r')}
     for frame in range(start, last + 1):
         scene.frame_set(frame)
-        for bone, rotation, location in planted:
-            bone.rotation_quaternion = rotation
-            bone.keyframe_insert('rotation_quaternion', frame=frame)
-            if bone.name in ('Root', 'pelvis'):
-                bone.location = location
-                bone.keyframe_insert('location', frame=frame)
         bpy.context.view_layer.update()
         t = (frame - start) / fps
-        up = min(smooth(t / .55), smooth((WAVE_END_S - t) / .7))
-        phase = 2 * math.pi * WAVE_HZ * (t - .4)
+        up = min(smooth(t / .75), smooth((WAVE_END_S - t) / .8))
+        phase = 2 * math.pi * WAVE_HZ * (t - .5)
         # Uneven amplitude, a lagging wrist and an elbow that follows: a plain sine reads as a machine.
-        forearm_angle = 10 + (13 + 5 * math.sin((t - .4) * 1.7)) * math.sin(phase)
+        forearm_angle = 6 + (16 + 5 * math.sin((t - .4) * 1.7)) * math.sin(phase)
         wrist_angle = forearm_angle + 20 * math.sin(phase - 1)
-        elbow = math.radians(3.5) * math.sin(phase - .5)
+        elbow = math.radians(5) * math.sin(phase - .5)
         drift = .012 * math.sin(t * 1.3)
-        lean_bone(named['spine_02'], math.radians(2.2) * up + .004 * math.sin(t * .9))
-        for side in ('l', 'r'):
-            thigh, foot = rig.pose.bones['thigh_' + side], rig.pose.bones['foot_' + side]
-            inward = math.copysign(math.radians(LEG_CLOSE_DEGREES), thigh.head.x)
-            lean_bone(thigh, inward)
-            lean_bone(foot, -inward)  # The sole stays flat on the ground.
-            thigh.keyframe_insert('rotation_quaternion', frame=frame)
-            foot.keyframe_insert('rotation_quaternion', frame=frame)
-        rest_upper, rest_forearm, rest_hand = Vector((-.34, .03, -.94)), Vector((-.16, -.2, -.97)), Vector((-.12, -.22, -.97))
-        aim_bone(named['upperarm_r'], rest_upper.lerp(Vector((-.86 - elbow, -.06, -.42 + elbow)), up) + Vector((0, drift, 0)))
+        lean_bone(named['spine_02'], math.radians(3) * up + .004 * math.sin(t * .9))
+        # Rest is this frame's Idle arm, so raising and lowering never jump.
+        rest = {name: (named[name].tail - named[name].head).normalized() for name in ('upperarm_r', 'lowerarm_r', 'hand_r')}
+        # Elbow at shoulder height and a little forward, forearm up: an energetic wave (owner's choice).
+        aim_bone(named['upperarm_r'], rest['upperarm_r'].lerp(Vector((-.80 - elbow, -.26 + drift, -.06 + elbow)).normalized(), up))
         fore = math.radians(forearm_angle)
-        aim_bone(named['lowerarm_r'], rest_forearm.lerp(Vector((-math.sin(fore), -.14, math.cos(fore))), up))
+        aim_bone(named['lowerarm_r'], rest['lowerarm_r'].lerp(Vector((-math.sin(fore), -.16, math.cos(fore))).normalized(), up))
         wrist = math.radians(wrist_angle)
-        aim_bone(named['hand_r'], rest_hand.lerp(Vector((-math.sin(wrist), -.22, math.cos(wrist))), up))
-        keyed = list(named.values())
+        aim_bone(named['hand_r'], rest['hand_r'].lerp(Vector((-math.sin(wrist), -.2, math.cos(wrist))).normalized(), up))
+        keyed = [named[name] for name in ('spine_02', 'upperarm_r', 'lowerarm_r', 'hand_r')]
         if up > .01:
             # Palm to the viewer: a raised right hand has its thumb toward the head.
             turn_to_thumb_inward(rig, named['hand_r'], named['lowerarm_r'], .6 * up)
             turn_to_thumb_inward(rig, named['hand_r'], named['hand_r'], up)
-            keyed += open_waving_fingers(rig, named['hand_r'], up)
-        aim_bone(named['upperarm_l'], Vector((.42, .05 + drift, -.9)))
-        aim_bone(named['lowerarm_l'], Vector((-.3, -.5 + drift, -.8)))
-        aim_bone(named['hand_l'], Vector((-.3, -.5, -.8)))
+            # ponytail: the scan's fingers share one surface; opening them tears it, so the hand waves relaxed.
         for bone in keyed:
             bone.keyframe_insert('rotation_quaternion', frame=frame)
-    # Closer legs reach lower, so the soles are measured against the floor again.
     soles = ground_scanned_soles(body, rig, list(range(start, last + 1)))
-    return wave, {'source_action': 'Idle_Loop body with procedural arms', 'baked_frames': [start, last], 'fps': fps,
+    return wave, {'source_action': 'Idle stance with a procedural right arm', 'baked_frames': [start, last], 'fps': fps,
                   'duration_s': (last - start) / fps, 'wave_hz': WAVE_HZ, 'sole_calibration': soles}
 
 
@@ -476,6 +519,39 @@ def keep_scanned_fingers_relaxed(rig, frames):
             bone.rotation_quaternion = (1, 0, 0, 0)
             bone.keyframe_insert('rotation_quaternion', frame=frame)
     return len(fingers)
+
+
+def clips_as_tracks(rig, actions):
+    rig.animation_data.action = None
+    for name, action in actions.items():
+        track = rig.animation_data.nla_tracks.new()
+        track.name = name
+        strip = track.strips.new(name, int(action.frame_range[0]), action)
+        strip.action_slot = action.slots[0]
+
+
+def save_and_export(rig, meshes, output):
+    # NLA tracks are separate clips for export; mute evaluation to save the editable master in its rest pose.
+    for track in rig.animation_data.nla_tracks:
+        track.mute = True
+    rig.data.pose_position = 'REST'
+    bpy.ops.file.pack_all()
+    blend = output / 'npc_game_ready.blend'
+    bpy.ops.wm.save_as_mainfile(filepath=str(blend))
+    rig.data.pose_position = 'POSE'
+    for track in rig.animation_data.nla_tracks:
+        track.mute = False
+    bpy.ops.object.select_all(action='DESELECT')
+    for ob in meshes + [rig]:
+        ob.select_set(True)
+    bpy.context.view_layer.objects.active = rig
+    bpy.ops.export_scene.gltf(filepath=str(output / 'rigged.glb'), export_format='GLB',
+                              use_selection=True, export_animations=True, export_skins=True,
+                              export_all_influences=False, export_yup=True, export_apply=False,
+                              export_attributes=True, export_image_format='AUTO',
+                              export_extras=True,
+                              export_frame_range=False,
+                              export_animation_mode='NLA_TRACKS')
 
 
 def stage(master, ual, output, normalization=None):
@@ -522,6 +598,8 @@ def stage(master, ual, output, normalization=None):
         clips[name]['arm_clearance_degrees'] = clear_arms_from_torso(rig, frames)
         body = next(ob for ob in meshes if ob.name == 'Body')
         clips[name]['sole_calibration'] = ground_scanned_soles(body, rig, frames)
+        if name == 'Idle':
+            clips[name]['stance'] = natural_stance(rig, body, frames, fps)
         if name == 'Walk':
             clips[name]['foot_floor'] = measure_feet(body, rig, frames)
     if '--normalization' not in sys.argv:  # The runtime takes clips from LOD0 only.
@@ -531,12 +609,7 @@ def stage(master, ual, output, normalization=None):
     for action in list(bpy.data.actions):
         if action not in actions.values():
             bpy.data.actions.remove(action)
-    rig.animation_data.action = None
-    for name, action in actions.items():
-        track = rig.animation_data.nla_tracks.new()
-        track.name = name
-        strip = track.strips.new(name, int(action.frame_range[0]), action)
-        strip.action_slot = action.slots[0]
+    clips_as_tracks(rig, actions)
     scene['production_status'] = 'CANDIDATE: weights and retarget only; deformation and motion await visual approval'
     scene['height_assumption_m'] = 1.78
     rig['walk_speed_mps'] = clips['Walk']['foot_floor']['stance_speed_mps']
@@ -546,27 +619,7 @@ def stage(master, ual, output, normalization=None):
     scene.unit_settings.scale_length = 1
     scene.frame_start, scene.frame_end = clips['Walk']['baked_frames']
     scene.frame_set(scene.frame_start)
-    # NLA tracks are separate clips for export; mute evaluation to save the editable master in its rest pose.
-    for track in rig.animation_data.nla_tracks:
-        track.mute = True
-    rig.data.pose_position = 'REST'
-    bpy.ops.file.pack_all()
-    blend = output / 'npc_game_ready.blend'
-    bpy.ops.wm.save_as_mainfile(filepath=str(blend))
-    rig.data.pose_position = 'POSE'
-    for track in rig.animation_data.nla_tracks:
-        track.mute = False
-    bpy.ops.object.select_all(action='DESELECT')
-    for ob in meshes + [rig]:
-        ob.select_set(True)
-    bpy.context.view_layer.objects.active = rig
-    bpy.ops.export_scene.gltf(filepath=str(output / 'rigged.glb'), export_format='GLB',
-                              use_selection=True, export_animations=True, export_skins=True,
-                              export_all_influences=False, export_yup=True, export_apply=False,
-                              export_attributes=True, export_image_format='AUTO',
-                              export_extras=True,
-                              export_frame_range=False,
-                              export_animation_mode='NLA_TRACKS')
+    save_and_export(rig, meshes, output)
     report = {'master': str(master), 'ual': str(ual), 'normalization': normalization,
               'anchors': anchors, 'weights': weights, 'bones': len(rig.data.bones),
               'deform_bones': sum(b.use_deform for b in rig.data.bones), 'clips': clips,

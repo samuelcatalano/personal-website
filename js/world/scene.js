@@ -54,7 +54,7 @@ export const applyHeroPose = (group, position, lateral, heading) => {
 };
 
 // Owner's request: the corner where the closing character stands is open pavement, no lawn or trees.
-const BODY_TURN = .42; // radians, marked by the owner: at the frame's edge, facing the camera exactly reads as turned away.
+const BODY_TURN = .42 - 20 * Math.PI / 180; // radians, marked by the owner (then 20° back toward screen left): at the frame's edge, facing the camera exactly reads as turned away.
 const CORNER = { x0: 801.6, x1: 816, z0: -1.5, z1: 9 };
 const inClosingCorner = (x, z) => x > CORNER.x0 && x < CORNER.x1 && z > CORNER.z0 && z < CORNER.z1;
 const isGreen = (color) => { const c = new THREE.Color(color); return c.g > c.r * 1.1 && c.g > c.b * 1.1; };
@@ -186,10 +186,10 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const figure = buildFigure(wake, { reducedMotion });
   const end = curve.getPointAt(1), endTan = curve.getTangentAt(1), near = new THREE.Vector3(-endTan.z, 0, endTan.x).normalize();
   // ponytail: chosen at load; the phone's panel would cover the desktop corner, so it stays nearer the bus.
-  const [spotT, spotN] = matchMedia('(max-width: 767px)').matches ? [7, 6] : [10.8, 9.6];
+  const [spotT, spotN] = matchMedia('(max-width: 767px)').matches ? [7, 6] : [9.66, 4.24]; // desktop: the owner's plaza spot, 1.6 m inward so the closer closing shot keeps him off the frame edge
   figure.position.set(end.x + endTan.x * spotT + near.x * spotN, 0, end.z + endTan.z * spotT + near.z * spotN);
-  const toCamT = -1.6 - spotT, toCamN = 31 - spotN; // measured: the closing shot's camera along the route
-  figure.userData.facing = Math.atan2(near.x * toCamN + endTan.x * toCamT, near.z * toCamN + endTan.z * toCamT) + BODY_TURN;
+  const closingCam = shotFor('closing', end, { mobile: matchMedia('(max-width: 767px)').matches }).position;
+  figure.userData.facing = Math.atan2(closingCam[0] - figure.position.x, closingCam[2] - figure.position.z) + BODY_TURN;
   scene.add(figure);
   const pools = createLampPools(scene, lamps);
   const sky = createSky(scene, { hemi, sun, reducedMotion }), moodAt = createMood(stops), rain = createRain(scene, { reducedMotion, lamps });

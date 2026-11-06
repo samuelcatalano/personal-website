@@ -12,6 +12,35 @@ export function referenceLod(distance, previous = 0) {
   return level;
 }
 
+// One albedo atlas per mesh: dark texels are hair or clothes, light ones skin. Rest-pose height splits the
+// body's blacks into jeans and T-shirt (hem at ~0.83 m). Blacks get lifted and tinted in the albedo, no emissive:
+// at ~75 px tall, hair, T-shirt and jeans only read as separate shapes if their values differ.
+const LOOK = {
+  Body: { skin: .7, lower: [.74, 1.25, [.93, .98, 1.12]], upper: [.93, .8, [1, 1, 1]], hem: .83 }, // washed denim, deep cotton
+  Head: { skin: .7, lower: [.52, .75, [1.12, 1, .9]], upper: [.52, .75, [1.12, 1, .9]], hem: 0 }, // warm dark-brown hair glints
+};
+const MIP_BIAS = -.5; // The figure is minified ~8x; a sharper mip keeps folds and the logo without visible shimmer.
+function tuneMaterial(mesh) {
+  const look = LOOK[mesh.name];
+  if (!look || new URLSearchParams(globalThis.location?.search).get('npclook') === '0') return; // ?npclook=0: raw GLB look for A/B
+  const f = value => value.toFixed(3), v = ([r, g, b]) => `vec3(${f(r)}, ${f(g)}, ${f(b)})`;
+  const [lowRough, lowLift, lowTint] = look.lower, [upRough, upLift, upTint] = look.upper;
+  for (const map of [mesh.material.map, mesh.material.normalMap]) if (map) map.anisotropy = 8; // capped by the GPU
+  mesh.material.customProgramCacheKey = () => `reference-${mesh.name}`;
+  mesh.material.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying float vRestY;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvRestY = position.y;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying float vRestY;')
+      .replace('#include <map_fragment>', `diffuseColor *= texture2D(map, vMapUv, ${f(MIP_BIAS)});
+        float blackness = 1. - smoothstep(.03, .16, dot(diffuseColor.rgb, vec3(.2126, .7152, .0722)));
+        float upper = smoothstep(${f(look.hem - .02)}, ${f(look.hem + .02)}, vRestY);
+        diffuseColor.rgb *= mix(vec3(1.), mix(${f(1 + lowLift)} * ${v(lowTint)}, ${f(1 + upLift)} * ${v(upTint)}, upper), blackness);`)
+      .replace('#include <roughnessmap_fragment>', `float roughnessFactor = mix(${f(look.skin)}, mix(${f(lowRough)}, ${f(upRough)}, upper), blackness);`);
+  };
+}
+
 function disposeMaterials(root) {
   const materials = new Set(), textures = new Set();
   root.traverse(o => {
@@ -57,6 +86,7 @@ export async function loadReferenceNpcAssets({ levels = [0] } = {}) {
     const geometries = meshes.map(level => level.map(mesh => mesh.geometry));
     // Lower LODs retain the same UV atlases; use LOD0's three materials in every level.
     assets.slice(1).forEach(asset => disposeMaterials(asset.scene));
+    meshes[0].forEach(tuneMaterial);
     let disposed = false;
     return {
       stride, height,

@@ -15,7 +15,11 @@ export function shotFor(kind, bus, { mobile = false, lift = 0 }) {
       };
     }
     case 'high': return { position: [x + 30 * k, y + 34 * k, z + 60 * k], target: [x - 6, y + 6 + 10 * up, z - 20] };
-    case 'closing': return { position: [x - 7 * k, y + 13 * k, z + 32 * k], target: [x + 1, y + 2.5 + 2 * up, z] };
+    case 'closing': {
+      // Desktop dollies in 15% so the waving character gains ~1.2x pixels; any closer crops Wembley's arch legs and stadium.
+      const c = mobile ? 1 : 0.85;
+      return { position: [x - 7 * k * c, y + 13 * k * c, z + 32 * k * c], target: [x + 1, y + 2.5 + 2 * up, z] };
+    }
     default: throw new Error(`unknown shot ${kind}`);
   }
 }
