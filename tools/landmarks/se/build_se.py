@@ -295,7 +295,8 @@ def mat_nodes(m, chan, img, idx):
         cv = node('ShaderNodeCombineXYZ'); link(s.outputs[0], cv.inputs['X']); link(Z, cv.inputs['Y'])
         br = node('ShaderNodeTexBrick'); br.offset = .5; br.offset_frequency = 2
         br.inputs['Color1'].default_value = (.95, .95, .95, 1); br.inputs['Color2'].default_value = (1, 1, 1, 1); br.inputs['Mortar'].default_value = (.55, .55, .55, 1)
-        br.inputs['Mortar Size'].default_value = .045; br.inputs['Mortar Smooth'].default_value = .3; br.inputs['Bias'].default_value = 0
+        br.inputs['Mortar Size'].default_value = .12 if name == 'stone' else .045  # 0.045 m vanished in the 1024 px bake and KTX2 mipmaps
+        br.inputs['Mortar Smooth'].default_value = .3; br.inputs['Bias'].default_value = 0
         br.inputs['Brick Width'].default_value = brick; br.inputs['Row Height'].default_value = row; br.inputs['Scale'].default_value = 1
         link(cv.outputs[0], br.inputs['Vector']); return br.outputs['Color']
     def albedo():

@@ -4,7 +4,7 @@ import { bigBenForced } from './bigben-asset.js';
 // Authored Catedral da Se (tools/landmarks/se): same pattern as bigben-asset.js (one mesh / one atlas material per LOD, KTX2 baseColor + ORM + emissive).
 // ponytail: copied rather than generalised (35 lines); fold both into one factory if a third authored landmark lands.
 // The procedural group from landmark-geometry.js stays as the fallback: it is hidden, never removed, so a failed load changes nothing.
-const GLB_V = '1'; // bump when the processed GLBs are regenerated (static hosts cache GLBs aggressively)
+const GLB_V = '2'; // bump when the processed GLBs are regenerated (static hosts cache GLBs aggressively)
 const URLS = ['assets/processed/landmarks/se.lod0.glb'].map((u) => u + '?v=' + GLB_V);
 export const seForced = bigBenForced; // ?landmarks=procedural forces the old geometry for every authored landmark
 let pending;
