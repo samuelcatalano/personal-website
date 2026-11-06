@@ -19,6 +19,7 @@ STONES = {'stone': ('#a58250', '#c09a62'), 'shaft': ('#a07a4c', '#b58b59'), 'tan
 V = lambda x, y, z: Vector((x, -z, y))
 SIDES = [((0, 0, 1), (1, 0, 0)), ((0, 0, -1), (-1, 0, 0)), ((1, 0, 0), (0, 0, -1)), ((-1, 0, 0), (0, 0, 1))]
 TZ = 1.5  # tower axis z
+ELIZABETH_X, VICTORIA_X = 35.15, 4.05
 
 
 def arch(uc, v0, w, h):
@@ -235,7 +236,7 @@ def palace(b):
     for x in (9, 14.5, 20, 25.5, 30):
         b.box(x, 10.0, 0, .9, 1.3, .9, S, ['-y']); b.frus(x, 11.3, 0, .6, .6, 0, 0, 1.6, SL); b.frus(x, 12.9, 0, .05, .05, 0, 0, .35, GD)
     # end pavilions
-    for cx, x0, x1 in ((4.05, 2.5, 5.6), (35.15, 33.3, 37.0)):
+    for cx, x0, x1 in ((VICTORIA_X, 2.5, 5.6), (ELIZABETH_X, 33.3, 37.0)):
         w = x1 - x0
         for sgn in (1, -1):
             N = (0, 0, sgn); U = (sgn, 0, 0)
@@ -247,12 +248,11 @@ def palace(b):
                 b.box(px_, 8.5, sz * 3.65, .4, 1.1, .4, S, ['-y']); b.frus(px_, 9.6, sz * 3.65, .2, .2, 0, 0, .9, SL); b.frus(px_, 10.5, sz * 3.65, .04, .04, 0, 0, .3, GD)
         if cx < 10:
             b.poly([(x0, .8, 3.75), (x0, .8, -3.75), (x0, 8.2, -3.75), (x0, 8.2, 3.75)], S, (-1, 0, 0))
-            b.frus(cx, 8.5, 0, w / 2 + .1, 3.95, 0, 2.2, 1.2, SL)
         else:
             b.poly([(x1, .8, 3.75), (x1, .8, -3.75), (x1, 8.2, -3.75), (x1, 8.2, 3.75)], S, (1, 0, 0))
-            b.ring(cx, 0, (1.85, 3.95), (1.55, 1.9), 8.2, .3, S)
-    # Victoria-style tower on the far end
-    cx = 35.15
+        b.ring(cx, 0, (1.85, 3.95), (1.55, 1.9), 8.2, .3, S)
+    # Victoria-style tower on the western end
+    cx = VICTORIA_X
     def vt(wd, N):
         return [(arch(wd / 2, .9, .95, 3.4), GL, None), (arch(wd / 2, 5.6, .95, 3.4), GL, None)]
     b.sides(cx, 0, 1.55, 1.9, 8.5, 12, vt)
@@ -266,7 +266,9 @@ def palace(b):
 
 
 def make(lod):
-    b = B(lod); tower(b); palace(b)
+    b = B(lod); start = len(b.bm.verts); tower(b); b.bm.verts.ensure_lookup_table()
+    bmesh.ops.translate(b.bm, verts=[b.bm.verts[i] for i in range(start, len(b.bm.verts))], vec=Vector((ELIZABETH_X, 0, 0)))
+    palace(b)
     bm = b.bm
     bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-4)
     bm.loops.layers.uv.new('UVMap')

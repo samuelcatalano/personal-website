@@ -182,7 +182,7 @@ export function createWembley(x,z){
 
 export function createBigBen(x,z){
   const {box,add,finish,stone,pale,slate}=landmark('bigben',x,z);
-  const TZ=1.5,tb=(x,y,z,...r)=>box(x,y,z+TZ,...r),ta=(g,x,y,z,...r)=>add(g,x,y,z+TZ,...r); // tower front flush with the Parliament river frontage
+  const TZ=1.5,TX=35.15,tb=(x,y,z,...r)=>box(x+TX,y,z+TZ,...r),ta=(g,x,y,z,...r)=>add(g,x+TX,y,z+TZ,...r); // clock tower at the eastern end of the Parliament frontage
   tb(0,0,0,5,.8,5);tb(0,.8,0,4.5,17.2,4.5);
   for(const dx of [-2.28,2.28])for(const dz of [-2.28,2.28])tb(dx,.8,dz,.44,17,.44,S.stone,pale);
   for(const y of [3.2,8,12.8])for(const side of [-1,1]){

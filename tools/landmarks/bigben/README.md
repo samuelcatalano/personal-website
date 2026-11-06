@@ -7,7 +7,7 @@ blender -b --python tools/landmarks/bigben/build_bigben.py            # -> asset
 blender -b --python tools/landmarks/bigben/render_views.py [-- night]  # -> tools/landmarks/bigben/renders/*.png
 ```
 
-- Local origin: ground at the tower river-side axis; Y up, metres. Tower at x=0, z=+1.5; frontage runs along +x (3..37), Victoria-style end tower at x~35.
+- Local origin near the western/Victoria-style end; Y up, metres. Victoria-style tower at x~4, Elizabeth Tower at x~35; river frontage runs along +x.
 - One mesh and one opaque material per LOD (`BigBen_LOD0` ~11.6k tris, `BigBen_LOD1` ~3.3k tris), material `BigBenAtlas`, UV0 only.
 - Textures 1024x1024 embedded: baseColor, ORM (R = baked AO, G = roughness, B = metalness; used for occlusion + metallicRoughness), emissive (night windows, louvres, gold, faint stone flood). LOD1 has its own bake with the same material/texture names.
 - The clock recesses are empty by design (runtime draws the dial plane at 3.06 m from the axis; bezel rim reaches 3.07 m).

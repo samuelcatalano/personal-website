@@ -34,6 +34,7 @@ export const LANDMARKS = {
 };
 // Tower Bridge hangs off the Eye, not a stop: TOWER_AT m east of it, inside the London tail before the trip
 export const TOWER_AT = 60;
+export const LONDON_EYE_X_OFFSET = -12; // clear the reversed Elizabeth Tower sightline without moving the route stop
 export const towerX = (stops, pts) => pts[stopIndex(stops, LANDMARKS.eye)].x + TOWER_AT;
 // Glasgow approach landmarks (footprints centred; hill = green terrace the university stands on), shared by landmarks.js and blocks.js
 export const glasgowSites = (stops, pts) => { const g = pts[stopIndex(stops, LANDMARKS.glasgow)].x; return { museum: { x: g - 92, z: RIVER_Z - 23, w: 36, d: 18 }, uni: { x: g - 37, z: RIVER_Z - 43, w: 72, d: 18, lift: 2.5 } }; };

@@ -1,4 +1,4 @@
-import { ROAD as RD, furnitureSpots, GAPS, GAP_TOTAL, STOP_SPACING, RIVER_Z, LANDMARKS, rng, riverEnd, riverStart, stopIndex, ukStart, regions, towerX, isWembleyBenchmark, underpassFrames, UNDERPASS } from './layout.js';
+import { ROAD as RD, furnitureSpots, GAPS, GAP_TOTAL, STOP_SPACING, RIVER_Z, LANDMARKS, LONDON_EYE_X_OFFSET, rng, riverEnd, riverStart, stopIndex, ukStart, regions, towerX, isWembleyBenchmark, underpassFrames, UNDERPASS } from './layout.js';
 import { house } from './houses.js';
 import { phoneBox } from './phone.js';
 import { lampPost } from './street-lamp.js';
@@ -73,7 +73,7 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
   const free = (x, z) => spots.every(([a, b]) => Math.hypot(a - x, b - z) > CLEAR); // ponytail: skip, not shift
   const lamps = [], occ = [], obst = [], r = rng(2026), hq = rng(8821), hq2 = rng(4417), noop = () => {}, mx = pts[stopIndex(stops, LANDMARKS.masp)].x, gl = pts[stopIndex(stops, LANDMARKS.glasgow)], ukId = stops[ukStart(stops)].id, LM = new Set([...Object.values(LANDMARKS), ukId]); // ukId: far side of the first UK stop keeps skipping frontage draws (blocks.js riverfront infill owns it)
   const span = pts.length * STOP_SPACING + GAP_TOTAL + 120, rgs = regions(stops, pts);
-  const seX = pts[stopIndex(stops, LANDMARKS.se)].x, ukX = pts[ukStart(stops)].x, eyeX = pts[stopIndex(stops, LANDMARKS.eye)].x;
+  const seX = pts[stopIndex(stops, LANDMARKS.se)].x, ukX = pts[ukStart(stops)].x, eyeX = pts[stopIndex(stops, LANDMARKS.eye)].x + LONDON_EYE_X_OFFSET;
   // Skirt: ground runs 600 m past both route ends and 300 m south, so no sky shows under the skyline at the hero's left edge.
   // ponytail: flat pave to the fog; real terrain/horizon dressing if the camera ever tilts to the world's rim.
   add(GAP_TOTAL / 2, -1, 100, span + 1200, 1, 400, P.pave);

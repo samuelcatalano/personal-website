@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { LANDMARKS, stopIndex, RIVER_Z, towerX, glasgowSites, routeCurve } from './layout.js';
+import { LANDMARKS, stopIndex, RIVER_Z, towerX, glasgowSites, routeCurve, LONDON_EYE_X_OFFSET } from './layout.js';
 import { PALETTE as P } from './palette.js';
 import { createWembley, createBigBen, createMasp, createSe, createEstaiada, estaiadaDeck, estaiadaRoute, createTowerBridge, createLondonEye, createCopan, createRiverside, createUniversity, createChambers, createWellington } from './landmark-geometry.js';
 import { buildSaoPaulo } from './saopaulo.js';
@@ -52,9 +52,10 @@ function towerBridge(add, { x }) {
 export function buildLandmarks(add, stops, pts, onTree) {
   const details = new THREE.Group(); details.name = 'landmark-details';
   const ben = at(stops, pts, 'bigben');
-  details.add(createBigBen(ben.x, RIVER_Z - 16), clockFaces(ben.x, RIVER_Z - 14.5)); // faces follow the tower (TZ in createBigBen)
+  details.add(createBigBen(ben.x, RIVER_Z - 16), clockFaces(ben.x + 35.15, RIVER_Z - 14.5)); // faces follow the swapped tower
   details.add(towerBridge(add, { x: towerX(stops, pts) }));
-  const { wheel, frame } = createLondonEye(at(stops, pts, 'eye').x, RIVER_Z + 13); finishLondonEye(wheel, { rain: visitWeather.lon.rain }); details.add(frame);
+  const eyeX = at(stops, pts, 'eye').x + LONDON_EYE_X_OFFSET;
+  const { wheel, frame } = createLondonEye(eyeX, RIVER_Z + 13); finishLondonEye(wheel, { rain: visitWeather.lon.rain }); details.add(frame);
   details.add(createWembley(at(stops, pts, 'wembley').x, RIVER_Z - 26));
   buildGlasgow(add, at(stops, pts, 'glasgow'), onTree, site => details.add(createChambers(site.x, site.z)), site => details.add(createWellington(site.x, site.z)));
   const { museum, uni } = glasgowSites(stops, pts), hill = (dx, w, d, y, h, c) => add(uni.x + dx, y, uni.z, w, h, d, c);

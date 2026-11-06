@@ -20,7 +20,7 @@ print(js(r'''(async () => {
     check(m.map?.isCompressedTexture && m.aoMap?.isCompressedTexture && m.emissiveMap?.isCompressedTexture, 'KTX2 base colour / ORM / emissive');
     check(m.userData.glow === true, 'night glow registered');
     const b = new THREE.Box3().setFromObject(lod);
-    check(b.min.x > -3.2 && b.max.x < 37.1 && b.min.z > -4.1 && b.max.z < 4.7 && b.min.y > -0.05 && b.max.y < 34.1, 'inside the landmark envelope ' + JSON.stringify(b));
+    check(b.min.x > 1.7 && b.max.x < 38.5 && b.min.z > -4.1 && b.max.z < 4.7 && b.min.y > -0.05 && b.max.y < 34.1, 'inside the landmark envelope ' + JSON.stringify(b));
     check(tris <= (i ? 4000 : 12000), 'triangle budget LOD' + i);
     out.push({ lod: i, tris: Math.round(tris) });
   }
