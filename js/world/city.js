@@ -1,7 +1,7 @@
-import { ROAD as RD, furnitureSpots, LEGACY_GAPS as GAPS, GAP_TOTAL, SWAP_GAP, east, eastAdd, routePoints, routeCurve, STOP_SPACING, RIVER_Z, LANDMARKS, LONDON_EYE_X_OFFSET, rng, riverEnd, riverStart, stopIndex, ukStart, regions, towerX, underpassFrames, UNDERPASS } from './layout.js';
+import { ROAD as RD, furnitureSpots, LEGACY_GAPS as GAPS, GAP_TOTAL, SWAP_GAP, east, eastAdd, routePoints, routeCurve, STOP_SPACING, RIVER_Z, LANDMARKS, LONDON_EYE_X_OFFSET, rng, riverEnd, riverStart, stopIndex, ukStart, regions, towerX, underpassFrames, UNDERPASS, swapTunnelFrame } from './layout.js';
 import { house } from './houses.js';
 import { phoneBox } from './phone.js';
-import { lampPost } from './street-lamp.js';
+import { lampPost, lampPoolAt } from './street-lamp.js';
 import { PALETTE as P } from './palette.js';
 import { buildBlocks, buildGapFill } from './blocks.js';
 import { buildParks } from './parks.js';
@@ -81,6 +81,8 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
   const lamps = buildLegacy(eastAdd(add), stops, lp, legacyCurve(curve, lp), onTree && ((x, ...a) => onTree(east(x), ...a)), onBuildingPlot && ((p) => onBuildingPlot(mv(p))),
     onArchitecturePlot && ((p) => onArchitecturePlot(mv(p))), onPublicRealm && ((z) => { const d = east((z.x0 + z.x1) / 2) - (z.x0 + z.x1) / 2; onPublicRealm({ ...z, x0: z.x0 + d, x1: z.x1 + d }); }));
   buildGapFill(add, onArchitecturePlot); // the strip SWAP_GAP opened (real coordinates, own rng)
+  const f = swapTunnelFrame(curve, stops); // the plaza over the tunnel (swap-plaza.js): the fingerpost's lantern lights the whole plaza
+  lampPoolAt(f.x, f.z, 1.8);
   return { lamps: lamps.map(([x, z]) => [east(x), z]), pilotCrossings };
 }
 // Ground skirt, river banks, carriageway (with the pilot crossings) and kerb/pavement strips along the real route; no rng.

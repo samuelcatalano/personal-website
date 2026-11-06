@@ -1,4 +1,4 @@
-import { ROAD, rng, stopIndex, towerX, copan, glasgowSites, RIVER_Z, LANDMARKS as L } from './layout.js';
+import { ROAD, rng, stopIndex, towerX, copan, glasgowSites, RIVER_Z, LANDMARKS as L, SWAP_GAP, SWAP_TUNNEL, STOP_SPACING, ukStart } from './layout.js';
 // Pure data (no three): people looks and where they walk. Simulation in people.js, drawing in npc3d.js.
 export const SKIN = ['#f6d9c4', '#efc3a0', '#d9a579', '#b9824f', '#8a5a35', '#5e3a22', '#3d2517'];
 const HAIR = ['#1b1714', '#3a2415', '#6b4328', '#d9b86a'], GREY = '#b5b5b0';
@@ -124,6 +124,15 @@ export function crowdPlan(stops, pts, seed, count = 1000) {
     const key = `${p.path.name}${p.path.dir}:${crowdKind(p.look)}`;
     thamesGroups.set(key, [...(thamesGroups.get(key) || []), i]);
   });
+  // The plaza over the SP -> London tunnel (swap-plaza.js): the last few overflow walkers (lowest priority, round-robin leftovers) wander it instead,
+  // on their own stream, so the plan keeps `count` people and everyone before them is unchanged. Only on the real route (the legacy route used to
+  // seed the city has no gap, so no plaza either) and only when there is overflow.
+  const u = ukStart(stops), a = pts[u - 1], b = pts[u];
+  if (SWAP_GAP && b.x - a.x > STOP_SPACING + SWAP_GAP / 2 && plan.length - baseCount >= 12) {
+    const cx = (a.x + b.x) / 2 + SWAP_TUNNEL.ahead, cz = a.z + (b.z - a.z) * (cx - a.x) / (b.x - a.x), q = rng(seed + 4049), n = 12; // ponytail: chord, not the curve (within ~0.5 m)
+    const rect = { x0: cx - SWAP_TUNNEL.half + 1, x1: cx + SWAP_TUNNEL.half - 1, z0: cz - 5.5, z1: cz + 5.5 };
+    for (let k = 0; k < n; k++) plan[plan.length - n + k] = { look: makeLook(q), path: { type: 'wander', name: 'swap-plaza', rect, y: 0.13, dir: k % 2 ? 1 : -1, inset: between(q, 0.4, 2.6) }, s0: (k + 0.5) / n };
+  }
   for (const ids of thamesGroups.values()) {
     const clusters = Math.ceil(ids.length / 3);
     ids.forEach((i, j) => {

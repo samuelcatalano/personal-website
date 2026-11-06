@@ -92,7 +92,8 @@ export const secondaryBusAssetAt = (t, swap) => t < swap ? 'sao-paulo' : 'bus';
 // ramps of `ramp` m either side of a cover of half length `half`; it starts just past Reclame AQUI's zebra and ends where the bus at the next stop is level.
 export const SWAP_TUNNEL = Object.freeze({ ahead: 2.9, half: 8, ramp: 18.1, width: 6 }); // width: half width across, kerb to kerb less the bend's sagitta
 export const swapTunnelFrame = (curve, stops) => {
-  const sw = swapAt(stops), e = 1e-4, a = curve.getPointAt(sw), speed = curve.getPointAt(sw + e).distanceTo(a) / e, t = sw + SWAP_TUNNEL.ahead / speed;
+  const sw = swapAt(stops), e = 1e-4, a = curve.getPointAt(sw), q = curve.getPointAt(sw + e), speed = Math.hypot(q.x - a.x, q.z - a.z) / e, // plain {x, z} points too (node tests' polyline curve)
+    t = sw + SWAP_TUNNEL.ahead / speed;
   const c = curve.getPointAt(t), tan = curve.getTangentAt(t);
   return { t, speed, x: c.x, z: c.z, tx: tan.x, tz: tan.z, reach: SWAP_TUNNEL.half + SWAP_TUNNEL.ramp };
 };

@@ -30,12 +30,13 @@ export function cutHole(scene, { cx, cz, ax, az, hl, hw, top = 0.1 }, skip = [])
   if (count.value >= MAX) { console.warn('holes: no slot left'); return 0; }
   A[count.value].set(cx, cz, ax, az); B[count.value].set(hl, hw, top, 0); count.value++;
   scene.updateMatrixWorld(true);
+  const own = (o) => { for (; o; o = o.parent) if (skip.includes(o)) return true; return false; }; // the tunnel's own meshes, nested groups included
   const ray = new THREE.Raycaster(), down = new THREE.Vector3(0, -1, 0), from = new THREE.Vector3(), hit = new Set();
   ray.far = 60;
   const across = [...new Set([-hw + 0.15, hw - 0.15, ...Array.from({ length: Math.floor(2 * hw / 1.2) }, (_, k) => -hw + 0.6 + k * 1.2), -3.85, 3.85, -0.11, 0.11].filter((c) => Math.abs(c) < hw))]; // + the paint lines
   for (let s = -hl + 0.3; s < hl; s += 1.5) for (const c of across) {
     ray.set(from.set(cx + ax * s - az * c, 50, cz + az * s + ax * c), down);
-    for (const h of ray.intersectObjects(scene.children, true)) if (h.point.y > -1.5 && h.point.y < top && !skip.includes(h.object)) for (const m of [h.object.material].flat()) hit.add(m);
+    for (const h of ray.intersectObjects(scene.children, true)) if (h.point.y > -1.5 && h.point.y < top && !own(h.object)) for (const m of [h.object.material].flat()) hit.add(m);
   }
   hit.forEach(patch);
   return hit.size;
