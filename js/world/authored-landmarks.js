@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
 import { loadGlb } from './glb-loader.js';
 
-const VERSION = '11', NEAR = 140, FAR = 170;
+const VERSION = '12', NEAR = 140, FAR = 170;
 const ASSETS = {
   copan: ['copan.lod0.glb', 'copan.lod1.glb'],
   'london-eye': ['london-eye.lod0.glb', 'london-eye.lod1.glb'],
@@ -52,8 +52,27 @@ function prepare(root, name, { track, env }) {
         m.userData.glowK = name === 'london-eye' ? 0.3 : 0.7;
       } else if (name === 'wembley' && m.name === 'Glass') {
         m.userData.glow = true;
-        m.userData.glowColor = new THREE.Color('#c7dcf0');
-        m.userData.glowK = 0.32;
+        // Glow takes each panel's own hue (vertex colour normalised to its brightest channel):
+        // green screens stay green, glazing reads blue-white instead of one flat band.
+        m.userData.glowColor = new THREE.Color('#ffffff');
+        m.userData.glowK = 0.28;
+        m.onBeforeCompile = (sh) => {
+          sh.fragmentShader = sh.fragmentShader.replace('vec3 totalEmissiveRadiance = emissive;',
+            'vec3 totalEmissiveRadiance = emissive * (vColor.rgb / max(max(vColor.r, vColor.g), max(vColor.b, 1e-3)));');
+        };
+        m.customProgramCacheKey = () => 'wembley-glass-hue-glow';
+      }
+      if (name === 'wembley' && m.name === 'Trim') {
+        // Night: only the arch's braided members glow (colour signature r == g, b > g set by build_wembley.py),
+        // so the lattice stays crisp with dark gaps instead of a blurred light sleeve.
+        m.userData.glow = true;
+        m.userData.glowColor = new THREE.Color('#eef4ff');
+        m.userData.glowK = 0.55;
+        m.onBeforeCompile = (sh) => {
+          sh.fragmentShader = sh.fragmentShader.replace('vec3 totalEmissiveRadiance = emissive;',
+            'float archMask = step(abs(vColor.r - vColor.g), 1e-4) * step(vColor.g + 1e-3, vColor.b);\n  vec3 totalEmissiveRadiance = emissive * archMask;');
+        };
+        m.customProgramCacheKey = () => 'wembley-arch-glow';
       }
       track?.(m);
       env?.register(m, { k: name === 'riverside' && m.name === 'Glass' ? 1.2 : 0.85, metal: m.metalness });

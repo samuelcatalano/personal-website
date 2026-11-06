@@ -14,17 +14,35 @@ from mathutils import Vector
 ROOT = Path(__file__).resolve().parents[3]
 SOURCE = Path(__file__).resolve().parent
 OUTPUT = ROOT / "assets/processed/landmarks"
-EXPECTED = ((-20.6, 0.0, -13.3), (20.6, 16.77, 13.3))
+EXPECTED = ((-24.0, 0.0, -16.4), (24.0, 23.1, 16.4))
+# Linear vertex colours (glTF): keep values low, they read ~1.5x brighter in sRGB.
 COLORS = {
-    "concrete": (0.63, 0.66, 0.68, 1.0),
-    "seat_a": (0.34, 0.035, 0.055, 1.0),
-    "seat_b": (0.52, 0.055, 0.075, 1.0),
-    "turf": (0.12, 0.34, 0.15, 1.0),
-    "steel": (0.70, 0.76, 0.80, 1.0),
-    "brace": (0.45, 0.53, 0.58, 1.0),
-    "roof": (0.78, 0.82, 0.84, 1.0),
+    "concrete": (0.13, 0.14, 0.155, 1.0),
+    "clad_a": (0.25, 0.27, 0.29, 1.0),
+    "clad_b": (0.20, 0.22, 0.24, 1.0),
+    "dark": (0.035, 0.038, 0.045, 1.0),
+    "seat_a": (0.42, 0.025, 0.035, 1.0),
+    "seat_b": (0.58, 0.035, 0.045, 1.0),
+    "turf": (0.07, 0.24, 0.07, 1.0),
+    "steel": (0.86, 0.88, 0.90, 1.0),
+    "brace": (0.74, 0.77, 0.80, 1.0),
+    # Arch members carry a colour signature (r == g, b > g) that no other Trim colour has: the runtime
+    # glows only these at night (js/world/authored-landmarks.js), keeping the braid crisp.
+    "arch": (0.87, 0.87, 0.90, 1.0),
+    "arch_brace": (0.77, 0.77, 0.80, 1.0),
+    "roof": (0.32, 0.34, 0.36, 1.0),
+    "panel": (0.46, 0.48, 0.50, 1.0),
+    "band": (0.52, 0.45, 0.30, 1.0),
     "line": (0.88, 0.88, 0.82, 1.0),
-    "glass": (0.105, 0.19, 0.26, 1.0),
+    "glass": (0.03, 0.055, 0.08, 1.0),
+    "mullion_glass": (0.07, 0.10, 0.13, 1.0),
+    "screen": (0.0, 0.17, 0.15, 1.0),
+    "walk": (0.30, 0.30, 0.29, 1.0),
+    "lamp": (0.95, 0.80, 0.55, 1.0),
+    "core_glass": (0.05, 0.085, 0.115, 1.0),
+    "bay_line": (0.45, 0.45, 0.43, 1.0),
+    "asphalt": (0.075, 0.08, 0.085, 1.0),
+    "aisle": (0.095, 0.10, 0.105, 1.0),
 }
 
 
@@ -91,6 +109,13 @@ class Bucket:
                      for i in range(sides))
         self.add(vertices, faces, color, True)
 
+    def flat(self, a, b, width, normal, color):
+        """Flat ribbon member (2 tris; materials are double-sided) facing `normal`; replaces 8-12 tri beams
+        for thin steel that only needs to read as a line at the site's camera distance."""
+        a, b = Vector(a), Vector(b)
+        side = (b - a).cross(Vector(normal)).normalized() * (width * .5)
+        self.add([a - side, b - side, b + side, a + side], [(0, 1, 2, 3)], color)
+
     def tube(self, points, radius, color, sides=6):
         points = [Vector(p) for p in points]
         vertices = []
@@ -150,46 +175,120 @@ def materials():
     return result
 
 
+# The arch leans ~22 deg north (real Wembley): feet land on the ground beyond the bowl's east/west sides,
+# spanning wider than the stadium; the crown hangs over the north roof.
+ARCH_FOOT_X, ARCH_FOOT_Z, ARCH_RISE, ARCH_LEAN, ARCH_R = 23.3, 0.0, 22.0, 9.0, .6
+ARCH_PROFILE = .6  # <1 steepens the legs so they clear the roof edge, like the real arch's near-vertical springing
+
+
 def arch_point(t):
-    return Vector((-20.0 + 40.0 * t + 2.2 * math.sin(math.pi * t),
-                   0.22 + 16.20 * 4 * t * (1 - t), -12.78))
+    s = max(0.0, 4 * t * (1 - t)) ** ARCH_PROFILE
+    return Vector((-ARCH_FOOT_X + 2 * ARCH_FOOT_X * t, .5 + ARCH_RISE * s, ARCH_FOOT_Z - ARCH_LEAN * s))
 
 
-def arch_points(count, z_offset=0.0, normal_offset=0.0, start=0.0, end=1.0):
-    path = [arch_point(start + (end - start) * i / count) for i in range(count + 1)]
-    if normal_offset:
-        result = []
-        for i, point in enumerate(path):
-            tangent = (path[min(i + 1, count)] - path[max(0, i - 1)]).normalized()
-            normal = Vector((-tangent.y, tangent.x, 0)).normalized()
-            result.append(point + normal * normal_offset)
-        path = result
-    return [Vector((p.x, p.y, p.z + z_offset)) for p in path]
+def arch_frame(t):
+    eps = 1e-3
+    tangent = (arch_point(min(1, t + eps)) - arch_point(max(0, t - eps))).normalized()
+    binormal = Vector((1, 0, 0)).cross(Vector((0, ARCH_RISE, -ARCH_LEAN))).normalized()
+    return tangent, binormal.cross(tangent).normalized(), binormal
+
+
+def arch_braid(trim, stations, nodes, chords):
+    """Braided circular lattice like the real arch: hoops every bay (bay ~ tube diameter), two families of
+    diagonals crossing in diamonds, plus a few longitudinal chords. Members are flat ribbons lying on the
+    arch's cylinder (2 tris each, materials are double-sided) so the dense braid fits the triangle budget."""
+    frames = []
+    for i in range(stations + 1):
+        t = i / stations
+        _, normal, binormal = arch_frame(t)
+        frames.append((arch_point(t), normal, binormal))
+
+    def at(i, theta):
+        centre, normal, binormal = frames[i]
+        return centre + ARCH_R * (normal * math.cos(theta) + binormal * math.sin(theta))
+
+    def ribbon(i, a, j, b, width, color):
+        pa, pb = at(i, a), at(j, b)
+        radial = (pa + pb) * .5 - (frames[i][0] + frames[j][0]) * .5
+        side = (pb - pa).cross(radial).normalized() * (width * .5)
+        trim.add([pa - side, pb - side, pb + side, pa + side], [(0, 1, 2, 3)], color)
+
+    step = math.tau / nodes
+    node = lambda i, k: step * k + (step * .5 if i % 2 else 0)  # nodes shift half a step per bay -> diamonds
+    for i in range(stations + 1):
+        for k in range(nodes):
+            ribbon(i, node(i, k), i, node(i, k + 1), .12, COLORS["arch"])
+        if i < stations:
+            for k in range(nodes):
+                ribbon(i, node(i, k), i + 1, node(i + 1, k), .13, COLORS["arch"])
+                ribbon(i, node(i, k), i + 1, node(i + 1, k - 1), .13, COLORS["arch_brace"])
+    for k in range(chords):
+        theta = math.tau * k / chords + step * .25
+        for i in range(stations):
+            ribbon(i, theta, i + 1, theta, .14, COLORS["arch"])
+
+
+def ellipse(rx, rz, a):
+    return rx * math.cos(a), rz * math.sin(a)
+
+
+def facade_frame(a, r, rx=20.55, rz=13.25):
+    """Point on the facade ellipse scaled to radius r, with its unit tangent and outward normal."""
+    x, z = rx * r / 20.55 * math.cos(a), rz * r / 20.55 * math.sin(a)
+    tx, tz = -rx * math.sin(a), rz * math.cos(a)
+    tl = math.hypot(tx, tz)
+    tx, tz = tx / tl, tz / tl
+    return x, z, tx, tz, tz, -tx
+
+
+def oriented_box(bucket, a, r, y, width, height, depth, color, rx=20.55, rz=13.25):
+    """Box tangent to the facade ellipse at angle a (r scales the ellipse outward)."""
+    x, z, tx, tz, nx, nz = facade_frame(a, r, rx, rz)
+    vertices = [(x + sx * width / 2 * tx + sn * depth / 2 * nx, y + sy * height / 2,
+                 z + sx * width / 2 * tz + sn * depth / 2 * nz)
+                for sy in (-1, 1) for sn in (-1, 1) for sx in (-1, 1)]
+    faces = [(0, 1, 3, 2), (4, 6, 7, 5), (0, 4, 5, 1), (2, 3, 7, 6), (0, 2, 6, 4), (1, 5, 7, 3)]
+    bucket.add(vertices, faces, color)
 
 
 def build_lod(level, mats):
     lod0 = level == 0
-    segment = 48 if lod0 else 22
-    glass_segment = 48 if lod0 else 20
+    segment = 48 if lod0 else 24
     seat_segment = 24 if lod0 else 14
     mass, trim, glass = Bucket("Mass"), Bucket("Trim"), Bucket("Glass")
-    # The low elliptical shell keeps the Wembley arch as the skyline silhouette.
-    mass.ring([(20.1, 13.3, 0), (20.1, 13.3, 1.45),
-               (19.65, 12.85, 1.45), (19.65, 12.85, 0)], segment, COLORS["concrete"])
-    mass.ring([(20.55, 13.25, 1.42), (20.55, 13.25, 2.55),
-               (20.2, 12.9, 2.55), (20.2, 12.9, 1.42)], segment, COLORS["concrete"])
-    glass.ring([(20.54, 13.24, 2.62), (20.54, 13.24, 4.2),
-                (20.34, 13.04, 4.2), (20.34, 13.04, 2.62)], glass_segment,
-               lambda face: (.20, .30, .36, 1) if (face % glass_segment) % 5 == 0 else COLORS["glass"])
-    mass.ring([(20.52, 13.22, 4.18), (20.52, 13.22, 4.55),
-               (20.17, 12.87, 4.55), (20.17, 12.87, 4.18)], segment, COLORS["steel"])
-    glass.ring([(20.49, 13.19, 4.58), (20.49, 13.19, 6.72),
-                (20.29, 12.99, 6.72), (20.29, 12.99, 4.58)], glass_segment,
-               lambda face: (.20, .30, .36, 1) if (face % glass_segment) % 5 == 0 else COLORS["glass"])
-    mass.ring([(20.32, 13.02, 6.7), (20.32, 13.02, 7.5),
-               (19.97, 12.67, 7.5), (19.97, 12.67, 6.7)], segment, COLORS["concrete"])
 
-    # Broad, rising red seating decks form a bowl around the pitch.
+    # Facade: grey plinth, dark glazed concourse, silver cladding band, steel rim.
+    mass.ring([(20.3, 13.05, 0), (20.3, 13.05, 2.6),
+               (19.9, 12.65, 2.6)], segment, COLORS["concrete"])
+    glass.ring([(20.54, 13.24, 2.58), (20.54, 13.24, 4.2),
+                (20.3, 13.0, 4.2)], segment,
+               lambda f: COLORS["mullion_glass"] if (f % segment) % 4 == 0 else COLORS["glass"])
+    mass.ring([(20.56, 13.26, 4.18), (20.56, 13.26, 4.55),
+               (20.2, 12.9, 4.55)], segment, COLORS["clad_b"])
+    mass.ring([(20.49, 13.19, 4.53), (20.49, 13.19, 6.95),
+               (20.25, 12.95, 6.95)], segment,
+              lambda f: COLORS["clad_a"] if (f % segment) % 2 else COLORS["clad_b"])
+    mass.ring([(20.42, 13.12, 6.93), (20.42, 13.12, 7.72),
+               (20.1, 12.8, 7.72)], segment, COLORS["concrete"])
+
+    # Vertical steel fins give the cladding its rhythm; glazed entrance portals and two
+    # big screens (south, camera side) break the plinth like the real concourse.
+    fins = 32 if lod0 else 16
+    for i in range(fins):
+        x, z = ellipse(20.54, 13.24, math.tau * (i + .5) / fins)
+        trim.flat((x, 4.55, z), (x, 7.7, z), .1, (x, 0, z), COLORS["steel"])
+    for a in ((.5, 1.0, 2.15, 2.65, 3.65, 4.15, 5.25, 5.75) if lod0 else (1.0, 2.15, 4.15, 5.25)):
+        oriented_box(glass, a, 20.5, 1.3, 1.8, 2.5, .5, COLORS["mullion_glass"])
+        oriented_box(trim, a, 20.62, 2.62, 2.1, .14, .35, COLORS["steel"])
+    for a in (1.3, 1.85):
+        oriented_box(glass, a, 20.62, 5.6, 3.4, 1.9, .14, COLORS["screen"])
+        # Screen content without textures: a white arch mark over a wordmark bar.
+        x, z, tx, tz, nx, nz = facade_frame(a, 20.72)
+        at = lambda u, y: (x + u * tx, y, z + u * tz)
+        trim.tube([at(u, 5.05 + 1.05 * (1 - (u / 1.1) ** 2)) for u in (-1.1, -.73, -.37, 0, .37, .73, 1.1)],
+                  .06, COLORS["line"], 3)
+        trim.beam(at(-1.25, 4.92), at(1.25, 4.92), .07, COLORS["line"], 3)
+    # Three red seating tiers form the bowl; dark hospitality band closes the back under the roof.
     tiers = ((7.35, 4.7, 9.1, 5.85, .65, 2.65),
              (9.15, 5.9, 11.25, 7.25, 2.65, 4.9),
              (11.3, 7.25, 13.0, 8.45, 4.9, 7.42))
@@ -198,6 +297,41 @@ def build_lod(level, mats):
                    (outer_x, outer_z, outer_y - .16),
                    (inner_x, inner_z, inner_y - .12)], seat_segment,
                   COLORS["seat_a"] if row != 1 else COLORS["seat_b"])
+    mass.ring([(13.0, 8.45, 7.3), (13.0, 8.45, 8.3),
+               (13.15, 8.6, 8.3)], seat_segment, COLORS["dark"])
+
+    # Apron (aerial references): light walkway against the facade, then dark asphalt with a ring of
+    # white-lined parking bays and an outer aisle. One-sided flat top just above the plaza.
+    def apron(r0, r1, angles, color):
+        y = .03
+        vertices = [(rx * math.cos(a), y, rz * math.sin(a)) for rx, rz in (r0, r1) for a in angles]
+        n = len(angles)
+        faces = [(i, n + i, n + (i + 1) % n, (i + 1) % n) for i in range(n)]
+        mass.add(vertices, faces, color)
+    ring_angles = [math.tau * i / segment for i in range(segment)]
+    bays = 56 if lod0 else 0
+    apron((20.3, 13.05), (21.4, 14.0), ring_angles, COLORS["walk"])
+    if bays:
+        line = .012  # radians (~.27 m model): thin painted line, then a bay of asphalt
+        bay_angles = [math.tau * k / bays + off for k in range(bays) for off in (0, line)]
+        apron((21.4, 14.0), (23.0, 15.4), bay_angles,
+              lambda f: COLORS["bay_line"] if f % 2 == 0 else COLORS["asphalt"])
+    else:
+        apron((21.4, 14.0), (23.0, 15.4), ring_angles, COLORS["asphalt"])
+    apron((23.0, 15.4), (24.0, 16.4), ring_angles, COLORS["aisle"])
+    # Low kerb closes the apron against the plaza.
+    mass.ring([(24.0, 16.4, 0), (24.0, 16.4, .16), (23.86, 16.26, .16)], 40 if lod0 else 20, COLORS["walk"])
+    # Light masts ring the apron (none at the arch feet); their lamp heads sit in Glass so they glow at night.
+    if lod0:
+        for i in range(14):
+            a = math.tau * (i + .5) / 14
+            x, z = ellipse(23.5, 15.9, a)
+            trim.beam((x, .03, z), (x, 2.3, z), .05, COLORS["brace"], 3)
+            glass.box((x, 2.38, z), (.34, .16, .34), COLORS["lamp"])
+    # Four glazed stair cores break the drum like the real stadium's circulation towers.
+    for a in (.78, 2.36, 3.92, 5.5):
+        oriented_box(glass, a, 20.75, 3.75, 2.2, 7.4, 1.0, COLORS["core_glass"])
+        oriented_box(trim, a, 20.8, 7.52, 2.4, .16, 1.15, COLORS["steel"])
 
     mass.box((0, .28, 0), (14.2, .16, 8.8), COLORS["turf"])
     for x, z, w, d in ((0, 0, .07, 8.6), (0, -4.28, 14, .06),
@@ -207,102 +341,74 @@ def build_lod(level, mats):
                        (5.9, 0, .06, 3.4)):
         trim.box((x, .37, z), (w, .025, d), COLORS["line"])
     trim.ring([(1.05, 1.05, .385), (1.05, 1.05, .36),
-               (1.0, 1.0, .36), (1.0, 1.0, .385)], 24 if lod0 else 16, COLORS["line"])
+               (1.0, 1.0, .36), (1.0, 1.0, .385)], 16, COLORS["line"])
 
-    # Sliding end leaves cover the end stands, leaving the full pitch visible through the centre.
-    panel_x = 14 if lod0 else 5
-    panel_z = 6 if lod0 else 3
+    # Roof: grey annulus over the stands, translucent beige inner band, open over the pitch.
+    def roof_face(f):
+        band, i = divmod(f, segment)
+        if band > 1:
+            return COLORS["roof"]
+        seam = i % 4 == 0
+        tone = COLORS["panel"] if band == 0 else COLORS["roof"]
+        return tuple(c * .78 for c in tone[:3]) + (1,) if seam else tone
+    mass.ring([(20.6, 13.3, 7.95), (17.2, 11.2, 8.24), (13.2, 8.9, 8.45),
+               (13.2, 8.9, 8.25), (20.6, 13.3, 7.7)], segment, roof_face)
+    mass.ring([(13.2, 8.9, 8.45), (11.6, 7.6, 8.55),
+               (11.6, 7.6, 8.4), (13.2, 8.9, 8.25)], segment, COLORS["band"])
+    # Sliding roof leaves over the south and west stands.
+    for center, size in (((0, 8.78, 10.0), (12.0, .14, 4.6)), ((-15.3, 8.78, 0), (6.4, .14, 10.0))):
+        mass.box(center, size, COLORS["panel"])
+        cx, cy, cz = center
+        for f in (-.4, -.2, 0, .2, .4):
+            if size[0] > size[2]:
+                trim.flat((cx + f * size[0], cy + .08, cz - size[2] / 2), (cx + f * size[0], cy + .08, cz + size[2] / 2), .1, (0, 1, 0), COLORS["steel"])
+            else:
+                trim.flat((cx - size[0] / 2, cy + .08, cz + f * size[2]), (cx + size[0] / 2, cy + .08, cz + f * size[2]), .1, (0, 1, 0), COLORS["steel"])
+
+    # White inner-edge truss: two chords and a zig-zag web ringing the roof opening.
+    def chord(rx, rz, y, r=.05):
+        trim.ring([(rx, rz, y), (rx + r, rz + r, y - r), (rx - r, rz - r, y - r)], segment, COLORS["steel"])
+    chord(11.75, 7.75, 9.0)
+    chord(11.6, 7.6, 8.6)
+    web = 32 if lod0 else 16
+    for i in range(web):
+        a, b = math.tau * i / web, math.tau * (i + 1) / web
+        top = ellipse(11.75, 7.75, a)
+        bottom = ellipse(11.6, 7.6, b)
+        trim.flat((top[0], 8.97, top[1]), (bottom[0], 8.57, bottom[1]), .06, (top[0], 0, top[1]), COLORS["brace"])
+    # Radial roof trusses and the V-truss under the overhanging roof edge.
+    radials = 12 if lod0 else 6
+    for i in range(radials):
+        a = math.tau * (i + .5) / radials
+        ix, iz = ellipse(13.2, 8.9, a)
+        ox, oz = ellipse(20.3, 13.1, a)
+        trim.flat((ix, 8.5, iz), (ox, 8.03, oz), .08, (0, 1, 0), COLORS["steel"])
+    vees = 30 if lod0 else 15
+    for i in range(vees):
+        a, b = math.tau * i / vees, math.tau * (i + .5) / vees
+        top = ellipse(20.5, 13.2, a)
+        bottom = ellipse(20.47, 13.17, b)
+        nxt = ellipse(20.5, 13.2, math.tau * (i + 1) / vees)
+        trim.flat((top[0], 7.72, top[1]), (bottom[0], 7.12, bottom[1]), .07, (top[0], 0, top[1]), COLORS["steel"])
+        trim.flat((bottom[0], 7.12, bottom[1]), (nxt[0], 7.72, nxt[1]), .07, (bottom[0], 0, bottom[1]), COLORS["steel"])
+
+    # The arch: a leaning circular-section lattice girder on concrete feet beyond the bowl ends.
+    if lod0:
+        arch_braid(trim, 48, 6, 3)
+    else:
+        arch_braid(trim, 20, 6, 0)
     for sign in (-1, 1):
-        vertices, faces = [], []
-        for ix in range(panel_x + 1):
-            x_abs = 7.55 + (16.25 - 7.55) * ix / panel_x
-            z_max = 9.9 * math.sqrt(max(0.0, 1 - (x_abs / 16.5) ** 2))
-            for iz in range(panel_z + 1):
-                across = -1 + 2 * iz / panel_z
-                z = across * z_max
-                y = 8.0 + .22 * (1 - across * across)
-                vertices.append((sign * x_abs, y, z))
-        for ix in range(panel_x):
-            for iz in range(panel_z):
-                a = ix * (panel_z + 1) + iz
-                b, c = a + panel_z + 1, a + panel_z + 2
-                faces.append((a, b, c, a + 1))
-        mass.add(vertices, faces, COLORS["roof"])
+        mass.box((sign * ARCH_FOOT_X, .35, ARCH_FOOT_Z), (1.2, .7, 1.2), COLORS["concrete"])
 
-    # Roof rim and exposed radial frame remain visible around and beneath both leaves.
-    mass.ring([(20.25, 13.0, 7.92), (20.25, 13.0, 7.65),
-               (16.55, 10.2, 7.65), (16.55, 10.2, 7.92)], segment, COLORS["roof"])
-    bays = 20 if lod0 else 10
-    spokes = 10 if lod0 else 5
-    for i in range(bays):
-        a = math.tau * i / bays
-        p = lambda t, y: (20.43 * math.cos(t), y, 13.15 * math.sin(t))
-        trim.beam(p(a, 2.55), p(a, 7.5), .038, COLORS["steel"], 4)
-        if i % 2 == 0:
-            trim.beam(p(a, 1.45), p(a, 2.55), .075, COLORS["steel"], 5)
-        if i % 2 == 0:
-            delta = math.tau / bays * .46
-            trim.beam(p(a - delta, 7.5), p(a + delta, 7.92), .045, COLORS["steel"], 4)
-    for y, rx, rz in ((4.53, 20.5, 13.2), (7.62, 20.25, 13.0)):
-        trim.ring([(rx, rz, y), (rx, rz, y - .055),
-                   (rx - .12, rz - .12, y - .055), (rx - .12, rz - .12, y)], 24 if lod0 else 16, COLORS["steel"])
-    for i in range(spokes):
-        a = math.tau * i / spokes
-        trim.beam((18.9 * math.cos(a), 7.82, 12.05 * math.sin(a)),
-                  (16.55 * math.cos(a), 7.86, 10.2 * math.sin(a)),
-                  .06, COLORS["steel"], 4)
-    trim.ring([(16.6, 10.25, 7.88), (16.6, 10.25, 7.8),
-               (16.3, 9.95, 7.8), (16.3, 9.95, 7.88)], 24 if lod0 else 16, COLORS["steel"])
-
-    # Repeated curtain-wall mullions make the dark glazing read as a glazed stadium facade.
-    mullions = 36 if lod0 else 18
-    for i in range(mullions):
-        a = math.tau * i / mullions
-        x, z = 20.47 * math.cos(a), 13.17 * math.sin(a)
-        trim.beam((x, 2.62, z), (x * .99, 7.45, z * .99),
-                  .034, COLORS["steel"], 4)
-
-    for sign in (-1, 1):
-        mass.box((sign * 20.0, .24, -12.78), (1.2, .48, .95), COLORS["concrete"])
-        spring = arch_point(.02 if sign < 0 else .98)
-        trim.beam((sign * 20.0, .18, -12.78), spring, .16, COLORS["steel"], 6)
-        for z in (-13.0, -12.56):
-            trim.beam((sign * 20.0, 0.0, z), (sign * 20.0, 1.5, z),
-                      .055, COLORS["steel"], 4)
-        trim.beam((sign * 20.0, 1.5, -13.0), (sign * 20.0, 1.5, -12.56),
-                  .055, COLORS["steel"], 4)
-
-    # One curved spine and its ground-spanning splayed legs form a single, broad 3D lattice girder.
-    n = 16 if lod0 else 8
-    start, end = .02, .98
-    arch_sides = (-.35, .35)
-    chord_offsets = (-.30, .30)
-    spine_points = arch_points(n, start=start, end=end)
-    trim.tube(arch_points(n * 2, start=start, end=end), .22, COLORS["steel"], 8)
-    for z_offset in arch_sides:
-        inner = arch_points(n, z_offset, chord_offsets[0], start, end)
-        outer = arch_points(n, z_offset, chord_offsets[1], start, end)
-        for i in range(n + 1):
-            trim.beam(inner[i], outer[i], .04, COLORS["steel"], 4)
-            if i < n:
-                trim.beam(inner[i], outer[i + 1], .05, COLORS["brace"], 4)
-                trim.beam(outer[i], inner[i + 1], .05, COLORS["brace"], 4)
-
-    for i in range(0, n + 1, 2):
-        for offset in chord_offsets:
-            tangent = (spine_points[min(i + 1, n)] - spine_points[max(i - 1, 0)]).normalized()
-            normal = Vector((-tangent.y, tangent.x, 0)).normalized()
-            center = spine_points[i] + normal * offset
-            trim.beam((center.x, center.y, center.z + arch_sides[0]),
-                      (center.x, center.y, center.z + arch_sides[1]), .04, COLORS["steel"], 4)
-
-    # Slender stays connect the single arch back to the roof edge it supports.
-    tie_steps = (0.16, .23, .30, .37, .44, .51, .58, .65, .72, .79, .86) if lod0 else (.22, .36, .5, .64, .78)
+    # Cable stays fan from the crown down to the north roof edge and opening.
+    tie_steps = (.2, .28, .36, .44, .52, .6, .68, .76) if lod0 else (.26, .42, .58, .74)
     for t in tie_steps:
         point = arch_point(t)
-        roof_z = -13.0 * math.sqrt(max(0.0, 1 - (point.x / 20.2) ** 2))
-        trim.beam(point, (point.x, 7.82, roof_z), .022, COLORS["steel"], 4)
-
+        rim_z = -13.2 * math.sqrt(max(0.0, 1 - (point.x / 20.6) ** 2))
+        trim.flat(point, (point.x, 7.95, rim_z), .045, (0, 0, 1), COLORS["steel"])
+        if abs(point.x) < 11.0:
+            inner_z = -7.75 * math.sqrt(1 - (point.x / 11.75) ** 2)
+            trim.flat(point, (point.x, 9.0, inner_z), .045, (0, 0, 1), COLORS["steel"])
     collection = bpy.data.collections.new(f"Wembley LOD{level}")
     bpy.context.scene.collection.children.link(collection)
     objects = [bucket.object(collection, mats[bucket.name]) for bucket in (mass, trim, glass)]

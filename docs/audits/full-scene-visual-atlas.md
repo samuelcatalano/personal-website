@@ -29,7 +29,7 @@ Recommendation: KEEP / POLISH / REBUILD / REPLACE. Cost: S < 1h, M few h, L day+
 
 | Landmark | Grade | State | Crit. | Gain | Cost | Rec. |
 |---|---|---|---|---|---|---|
-| Wembley | A- | Continuous bowl + tubular arch (modernized) | Low | Low | — | KEEP |
+| Wembley | A- | Bowl with open roof (beige inner band, inner-edge + rim V-trusses, south/west sliding leaves), silver cladding with steel fins over dark glazing, glazed entrance portals and two south screens (green, white arch mark + wordmark bar in geometry); roof panel seams + mid crease; asphalt apron around the base (walkway, 56 lined parking bays, outer aisle, kerb, 14 light masts with night-lit lamps); four glazed stair cores on the drum; thin steel (fins, trusses, web, cables) as flat double-sided ribbons; arch is a 22°-leaning braided circular lattice (48 hoops, two crossing diagonal families in diamonds, 3 chords; flat double-sided ribbons, 2 tris per member) springing from the ground beyond the east/west sides (span 46.6, rise 22, steep legs) with cable fan to the north roof; night: only the arch members glow (Trim emissive masked by an r==g, b>g vertex-colour signature) + lit cables and roof-edge ring, glazing glow keeps each panel hue (2026-11-06, LOD0 7.6k / LOD1 3.6k tris, 3 draws) | Low | Low | — | KEEP |
 | Big Ben / Parliament | B+ | Modernized, 4 clock faces | Low | Low | — | KEEP |
 | MASP | B | Modernized; red frame + glass box, matches North Star language | Low | Low | — | KEEP |
 | **London Eye** | **D** | Ring of 60 separate cubes + cube spokes; reads as dotted voxel circle | **High** | **High** | S | **REBUILD**: tube rim, spokes, A-frame legs, capsules |

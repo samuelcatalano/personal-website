@@ -148,7 +148,8 @@ export function createWembley(x,z){
     beam(new THREE.Vector3(px,2.62,pz),new THREE.Vector3(px*.99,7.45,pz*.99),.034,pale,1,4);
   }
 
-  const archPoint=t=>v(-20+40*t+2.2*Math.sin(Math.PI*t),.22+16.20*4*t*(1-t),-12.78);
+  // Same leaning arch as tools/landmarks/wembley/build_wembley.py (feet ±23.3/0, rise 22, lean 9, profile .6) so the night light matches the GLB.
+  const AX=23.3,AR=22,AL=9,archPoint=t=>{const s=Math.max(0,4*t*(1-t))**.6;return v(-AX+2*AX*t,.5+AR*s,-AL*s);};
   const archNormal=t=>{const a=archPoint(Math.max(0,t-.002)),b=archPoint(Math.min(1,t+.002)),d=b.sub(a).normalize();return v(-d.y,d.x,0);};
   const start=.02,end=.98,N=16,sides=[-.35,.35],offsets=[-.3,.3];
   const webPoint=(t,zside,offset)=>archPoint(t).addScaledVector(archNormal(t),offset).add(v(0,0,zside));
@@ -164,19 +165,18 @@ export function createWembley(x,z){
     }
   }
   for(let i=0;i<=N;i+=2){const t=start+(end-start)*i/N;for(const offset of offsets)beam(webPoint(t,sides[0],offset),webPoint(t,sides[1],offset),.04,pale,1,4);}
-  for(const dx of [-20,20]){
-    box(dx,0,-12.78,1.2,.48,.95,S.stone,pale);
-    beam(v(dx,.18,-12.78),archPoint(dx<0?start:end),.16,pale,1,6);
-    for(const z of [-13,-12.56])beam(v(dx,0,z),v(dx,1.5,z),.055,pale,1,4);
-    beam(v(dx,1.5,-13),v(dx,1.5,-12.56),.055,pale,1,4);
+  for(const dx of [-AX,AX]){
+    box(dx,0,0,1.2,.7,1.2,S.stone,pale);
+    beam(v(dx,.35,0),archPoint(dx<0?start:end),.16,pale,1,6);
   }
   for(const t of [.16,.23,.3,.37,.44,.51,.58,.65,.72,.79,.86]){
-    const a=archPoint(t),roofZ=-13*Math.sqrt(Math.max(0,1-(a.x/20.2)**2));
-    lbeam(1,a,v(a.x,7.82,roofZ),.028,.14); // Fine suspension stays tie the arch back to the roof.
+    const a=archPoint(t),roofZ=-13.2*Math.sqrt(Math.max(0,1-(a.x/20.6)**2));
+    lbeam(1,a,v(a.x,7.95,roofZ),.028,.3); // Fine suspension stays tie the arch back to the roof.
   }
-  // Cool cyan light follows the same single arch path at night.
-  const curve=new THREE.CatmullRomCurve3(Array.from({length:65},(_,i)=>archPoint(start+(end-start)*i/64).add(v(0,0,-.35))));
-  lit(1,new THREE.TubeGeometry(curve,64,.035,4,false),0,0,0,.4,.6,[.18,.7,.95]);
+  // Night arch glow lives on the GLB's arch members (authored-landmarks.js); only the cables and roof edge are lit here.
+  // Roof-edge truss glows as a white ring, as at night in the reference photos.
+  const rim=new THREE.CatmullRomCurve3(Array.from({length:64},(_,i)=>{const a=i/64*Math.PI*2;return v(20.62*Math.cos(a),7.45,13.32*Math.sin(a));}),true);
+  lit(2,new THREE.TubeGeometry(rim,96,.16,4,true),0,0,0,.7,.7,[.85,.9,1]);
   return finish();
 }
 
