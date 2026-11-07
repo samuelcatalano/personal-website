@@ -36,6 +36,7 @@ import { parkingBays } from './bays.js';
 import { createPeople } from './people.js';
 import { createNpc3d } from './npc3d.js';
 import { buildFigure } from './figure.js';
+import { createLandmarkPicker } from './landmark-pick.js';
 import { SECTION_SHOT, shotFor, blendShots, spring, approach, nextTier } from './camera.js';
 import { updateBeams, addBeams, refitBeams } from './beams.js';
 import { createLampPools } from './lamps.js';
@@ -71,7 +72,7 @@ const clearClosingCorner = (add) => Object.assign((x, y, z, w, h, d, color, ry =
   return add(x + middle * Math.cos(ry), y, z - middle * Math.sin(ry), kept, h, d, color, ry, ...rest);
 }, add, { plant: (kind, x, y, z, ...rest) => { if (!inClosingCorner(x, z)) add.plant(kind, x, y, z, ...rest); } });
 
-export async function createWorld(canvas, stops, { reducedMotion = false, onProgress = () => {} } = {}) {
+export async function createWorld(canvas, stops, { reducedMotion = false, onProgress = () => {}, onPick = () => {} } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   Object.assign(renderer, { toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: EXPOSURE, outputColorSpace: THREE.SRGBColorSpace });
   initGlbLoader(renderer);
@@ -213,6 +214,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const post = createPost(renderer, scene, camera, { sun, tier: reducedMotion || matchMedia('(max-width: 767px)').matches ? 'medium' : 'high' });
   if (qa) globalThis.__qaPost = post;
   if (qa) globalThis.__qaFigure = { figure, camera, end, endTan, near };
+  const stopPicker = createLandmarkPicker({ canvas, camera, details, onPick });
   let fpsT = 0, fpsN = 0, settle = 3, slowWindows = 0, night = 0, nightTarget = 0, mobile = false;
   const bar = document.querySelector('.bar'), panel = document.querySelector('#panel');
   let fitKey = '';
@@ -393,6 +395,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       for (const u of units) u.dispose?.();
       cancelAnimationFrame(raf); raf = 0;
       removeEventListener('resize', resize);
+      stopPicker();
       document.removeEventListener('visibilitychange', visibility);
       observer?.disconnect();
       architecture.userData.dispose?.();

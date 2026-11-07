@@ -50,6 +50,12 @@ export const LANDMARKS = {
   estaiada: 'reclame',
   wembley: 'contact',
 };
+// Clicking a landmark in the 3D scene jumps to this stop; keys are the `<name>-geometry` groups of the landmark builders
+export const PICK_STOP = {
+  bigben: LANDMARKS.bigben, towerbridge: LANDMARKS.eye, eyeframe: LANDMARKS.eye, wembley: LANDMARKS.wembley,
+  chambers: LANDMARKS.glasgow, wellington: LANDMARKS.glasgow, riverside: LANDMARKS.glasgow, university: LANDMARKS.glasgow,
+  copan: 'mira', masp: LANDMARKS.masp, se: LANDMARKS.se, estaiada: LANDMARKS.estaiada,
+};
 // Tower Bridge hangs off the Eye, not a stop: TOWER_AT m east of it, inside the London tail before the trip
 export const TOWER_AT = 60;
 export const LONDON_EYE_X_OFFSET = -12; // clear the reversed Elizabeth Tower sightline without moving the route stop

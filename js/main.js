@@ -36,9 +36,10 @@ watchScroll((p) => {
 });
 const hasWebGL = () => { try { const gl = document.createElement('canvas').getContext('webgl2'); gl?.getExtension('WEBGL_lose_context')?.loseContext(); return !!gl; } catch { return false; } };
 if (hasWebGL()) {
+  document.body.classList.add('world-loading');
   import('./world/scene.js')
     .then((m) => m.createWorld(document.getElementById('world'), stops, {
-      reducedMotion, onProgress: follow,
+      reducedMotion, onProgress: follow, onPick: (id) => goto(stops.findIndex((s) => s.id === id)),
     }))
     .then((w) => { world = w; w.setProgress(progress); w.setTheme(ui.theme); document.body.classList.add('world-ready'); })
     .catch((err) => { console.warn('3D world unavailable:', err); document.body.classList.add('no-webgl'); });

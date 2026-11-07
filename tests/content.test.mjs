@@ -131,3 +131,8 @@ test('no airport landmark; the UK region starts at the move stop', () => {
   assert.equal(LANDMARKS.heathrow, undefined);
   assert.equal(stops[ukStart(stops)].id, 'move');
 });
+
+test('every clickable landmark jumps to a real stop', async () => {
+  const { PICK_STOP } = await import('../js/world/layout.js');
+  for (const [name, id] of Object.entries(PICK_STOP)) assert.ok(stops.some(s => s.id === id), `${name} -> ${id}`);
+});
