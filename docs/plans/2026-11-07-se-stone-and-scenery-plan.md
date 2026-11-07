@@ -124,6 +124,6 @@ Phase 1 comes first because it changes no geometry. Phase 4 is material-only, so
 - Phase 1 (`60f1eb2`): sidewalk pads use `paverWarm`; kerbs unchanged.
 - Phases 2–3 (`7652005`): uk lantern goes to 8 sides; bench ends are slimmer and carry an armrest; each park takes one of two existing greens by a stable hash of its centre.
 - Phase 4: no change. The baseline already shows cyan-blue glass and warm plaster. Shopfront accents would need the facade atlas, so they are deferred.
-- Phase 5: not executed. Awnings, canopies and balconies would add geometry to approved families, and that needs the owner's ruling.
+- Phase 5 (`2bccf3b`): the owner approved awnings (toldos). Regular shop canopies already existed as sloped canopies in one roof colour; they now take a colour accent from brick, roof or door. No new geometry. Balconies and cornices stay out.
 - Phase 6 (`469c8cd`): far facades (z < -200) use existing warm and neutral palette keys instead of steel blue. Clear-weather captures show a warmer mid-distance band. The outermost silhouettes still read cool and are deferred.
 - Validation: `node --test tests/` passes. `street-props.browser.py` passes. `real-city.browser.py` (lot duplication check) and `scenery.browser.py` (overlap check) fail identically at HEAD. `zfight.browser.py` reports 1087 pairs at HEAD and after the changes.
