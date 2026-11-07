@@ -39,7 +39,7 @@ test('the A330 flies smoothly, level and stays below the frame top while recedin
   const top = Math.tan(3.5 * Math.PI / 180); // frame top measured at ~3.8 degrees above the camera (1728x907, follow shot)
   each((d, b, cam, name) => {
     const p = planePose(d, b, cam), q = planePose(d + 0.005, b, cam);
-    assert.ok(Math.abs(p.bank) <= 0.1 && Math.abs(p.pitch) <= 0.1, `${name} d=${d.toFixed(3)}: wings level`);
+    assert.ok(Math.abs(p.bank) <= 0.03 && p.pitch >= 0 && p.pitch <= 0.03, `${name} d=${d.toFixed(3)}: wings level, never nose-down`);
     assert.ok(Math.hypot(q.x - p.x, q.y - p.y, q.z - p.z) < 3 && Math.abs(q.scale - p.scale) < 0.03, `${name} d=${d.toFixed(3)}: no jump`);
     if (d >= 0 && name === 'desktop') assert.ok((p.y + hi[1] * p.scale - cam.y) / Math.hypot(p.x - cam.x, p.z - cam.z) < top, `d=${d.toFixed(3)}: tail above the frame`);
   });

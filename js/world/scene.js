@@ -24,7 +24,7 @@ import { resetFloodlights } from './building-slice-materials.js';
 import { polishLandmarkMaterials } from './landmark-materials.js';
 import { createLandmarkEnv } from './landmark-env.js';
 import { buildVehicle } from './vehicles.js';
-import { planePose, smooth, PLANE_IN, PLANE_OUT, TURN_AT } from './plane-path.js';
+import { planePose, smooth, PLANE_IN, PLANE_OUT, TURN_AT, HAZE } from './plane-path.js';
 import { createMood } from './mood.js';
 import { createRain } from './rain.js';
 import { lagWetness } from './weather.js';
@@ -269,14 +269,14 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const d = (p - planeAt) * (n - 1);
     let present = 0, k = 1;
     if (planeAt >= 0 && d > PLANE_IN && d < PLANE_OUT) {
-      present = 1 - smooth(TURN_AT + 1.05, PLANE_OUT, d);
+      present = 1 - smooth(TURN_AT + 1.6, PLANE_OUT, d);
       const pose = planePose(d, busPos, camera.position);
       k = pose.scale;
       plane.position.set(pose.x, pose.y, pose.z);
       plane.rotation.set(pose.bank, pose.heading, pose.pitch);
       baseScale ??= plane.scale.x;
       plane.scale.setScalar(baseScale * k);
-      hazePlane(Math.max(smooth(TURN_AT + 0.2, TURN_AT + 1.2, d), 1 - smooth(PLANE_IN, PLANE_IN + 0.3, d)));
+      hazePlane(Math.max(smooth(HAZE[0], HAZE[1], pose.dist), 1 - smooth(PLANE_IN, PLANE_IN + 0.3, d)));
     }
     plane.visible = present > 0.01;
     shadow.visible = plane.visible && night < 0.9;
