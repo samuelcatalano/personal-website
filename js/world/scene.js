@@ -258,28 +258,39 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const sky = 29 + 0.026 * (50 + back);                    // altitude that keeps the plane about 1.5 degrees above the camera
     return [busPos.x + 16 + d * 52, d < 0 ? 25 - d * 3 : 25 + (sky - 25) * smooth(0, 0.6, u), busPos.z - 2 - back];
   };
-  let planeFaded = false;
-  const fadePlane = (alpha) => { // only touches materials while the plane is not fully opaque (the authored model may swap in after load)
-    if (alpha >= 1 && !planeFaded) return;
-    plane.traverse((o) => { if (o.material) for (const m of [].concat(o.material)) { m.transparent = alpha < 1; m.opacity = alpha; m.needsUpdate = true; } });
-    planeFaded = alpha < 1;
+  // Atmospheric perspective instead of transparency: the plane stays opaque and solid, and is tinted toward the horizon colour with distance
+  // (diffuse darkened, emissive raised to the haze), then dwindles to a speck at the very end. Originals are kept so the tint can be undone.
+  const hazeOf = new WeakMap();
+  let hazed = false, baseScale = null;
+  const hazePlane = (t) => {
+    if (t <= 0 && !hazed) return;
+    const hor = sky.colors.hor;
+    plane.traverse((o) => { if (o.material) for (const m of [].concat(o.material)) {
+      let base = hazeOf.get(m);
+      if (!base) { base = { c: m.color?.clone(), e: m.emissive?.clone(), i: m.emissiveIntensity }; hazeOf.set(m, base); }
+      if (m.emissive) { m.color.copy(base.c).multiplyScalar(1 - t); m.emissive.copy(base.e).lerp(hor, t); m.emissiveIntensity = base.i + (1 - base.i) * t; }
+      else if (m.color) m.color.copy(base.c).lerp(hor, t);
+    } });
+    hazed = t > 0;
   };
   const updatePlane = (p) => {
     const d = (p - planeAt) * (n - 1);
-    let alpha = 0;
+    let present = 0;
     if (planeAt >= 0 && d > PLANE_IN && d < PLANE_OUT) {
-      alpha = smooth(PLANE_IN, PLANE_IN + 0.25, d) * (1 - smooth(TURN_AT + 0.7, PLANE_OUT, d));
+      present = 1 - smooth(0.7, PLANE_OUT, d);
       const [x, y, z] = planePath(d), [x2, y2, z2] = planePath(d + 0.02);
       plane.position.set(x, y, z);
       plane.rotation.y = Math.atan2(-(z2 - z), x2 - x); // heading follows the turn away
       plane.rotation.z = Math.min(0.25, Math.atan2(y2 - y, Math.hypot(x2 - x, z2 - z))); // nose follows the climb
       plane.rotation.x = -0.16 * Math.sin(Math.PI * smooth(TURN_AT, TURN_AT + 0.7, d)); // a slight bank during the turn, wings level again once it is heading away
-      fadePlane(alpha);
+      baseScale ??= plane.scale.x;
+      plane.scale.setScalar(baseScale * (1 - 0.85 * smooth(0.85, PLANE_OUT, d))); // a speck at the end, so nothing pops
+      hazePlane(Math.max(smooth(TURN_AT + 0.2, 0.85, d), 1 - smooth(PLANE_IN, PLANE_IN + 0.3, d)));
     }
-    plane.visible = alpha > 0.01;
+    plane.visible = present > 0.01;
     shadow.visible = plane.visible && night < 0.9;
     nav.visible = plane.visible && night > 0.35; strobe.visible = nav.visible && clock % 1.3 < 0.12; // red left / green right steady, white strobe blinks
-    if (shadow.visible) { shadow.position.set(plane.position.x, 0.14, plane.position.z); shadow.scale.set(34, 1, 15); shadow.material.opacity = 0.3 * (1 - night) * alpha * Math.max(0.15, 1 - (plane.position.y - 24) / 70); } // fainter as it climbs
+    if (shadow.visible) { shadow.position.set(plane.position.x, 0.14, plane.position.z); shadow.scale.set(34, 1, 15); shadow.material.opacity = 0.3 * (1 - night) * present * Math.max(0.15, 1 - (plane.position.y - 24) / 70); } // fainter as it climbs
   };
   let scroll = { value: 0, velocity: 0 }, target = 0, clock = 0, last = 0, raining = false, shotResolve = null;
   const lateral = new THREE.Vector3();
