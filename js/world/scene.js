@@ -24,6 +24,7 @@ import { resetFloodlights } from './building-slice-materials.js';
 import { polishLandmarkMaterials } from './landmark-materials.js';
 import { createLandmarkEnv } from './landmark-env.js';
 import { buildVehicle } from './vehicles.js';
+import { planePose, smooth, PLANE_IN, PLANE_OUT, TURN_AT } from './plane-path.js';
 import { createMood } from './mood.js';
 import { createRain } from './rain.js';
 import { lagWetness } from './weather.js';
@@ -248,16 +249,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   if (panel) observer?.observe(panel);
   const busPos = { x: 0, y: 0, z: 0 }, prevBus = { x: null, z: 0, h: 0 }, MINI_WHEELBASE = 2.5, MAX_STEER = 0.5;
   let steer = 0;
-  // Flyover at the first UK stop. A real airliner is seen from far away: it crosses the sky about 350 m behind the bus line (small, level, no bank),
-  // then eases into a gentle left turn away from the camera and dwindles toward the horizon, tinted by haze. It flies at about 2.5 degrees above the camera
-  // height, the strip of sky above the skyline (measured: the frame's top edge is about 3.8 degrees up, the skyline tops about 2 degrees down).
-  // `d` is the distance from the stop in stop-lengths of scroll; `u` counts from where the turn starts.
-  const PLANE_IN = -1.5, TURN_AT = -0.2, PLANE_OUT = 1.35, PLANE_Z = 350;
-  const smooth = (lo, hi, x) => { const t = Math.min(1, Math.max(0, (x - lo) / (hi - lo))); return t * t * (3 - 2 * t); };
-  const planePath = (d) => {
-    const u = Math.max(d - TURN_AT, 0), back = PLANE_Z + u * u * 900;  // metres behind the bus line: constant while crossing, then receding
-    return [busPos.x + 20 + d * 260, 29 + 0.0437 * (50 + back), busPos.z - 2 - back];
-  };
+  // Flyover at the first UK stop: the path, the pull-in that keeps it clear of the buildings and the timing live in plane-path.js.
   // Atmospheric perspective instead of transparency: the plane stays opaque and solid, and is tinted toward the horizon colour with distance
   // (diffuse darkened, emissive raised to the haze), then dwindles to a speck at the very end. Originals are kept so the tint can be undone.
   const hazeOf = new WeakMap();
@@ -275,22 +267,21 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   };
   const updatePlane = (p) => {
     const d = (p - planeAt) * (n - 1);
-    let present = 0;
+    let present = 0, k = 1;
     if (planeAt >= 0 && d > PLANE_IN && d < PLANE_OUT) {
-      present = 1 - smooth(1.15, PLANE_OUT, d);
-      const [x, y, z] = planePath(d), [x2, y2, z2] = planePath(d + 0.02);
-      plane.position.set(x, y, z);
-      plane.rotation.y = Math.atan2(-(z2 - z), x2 - x); // heading follows the turn away
-      plane.rotation.z = Math.min(0.08, Math.atan2(y2 - y, Math.hypot(x2 - x, z2 - z))); // nose follows the shallow climb
-      plane.rotation.x = 0; // no bank: wings level, so it never reads as falling
+      present = 1 - smooth(TURN_AT + 1.05, PLANE_OUT, d);
+      const pose = planePose(d, busPos, camera.position);
+      k = pose.scale;
+      plane.position.set(pose.x, pose.y, pose.z);
+      plane.rotation.set(pose.bank, pose.heading, pose.pitch);
       baseScale ??= plane.scale.x;
-      plane.scale.setScalar(baseScale * (1 - 0.85 * smooth(1.1, PLANE_OUT, d))); // a speck at the end, so nothing pops
-      hazePlane(Math.max(0.15, smooth(TURN_AT, 1.1, d))); // already a little hazy at 350 m, fully so at the horizon
+      plane.scale.setScalar(baseScale * k);
+      hazePlane(Math.max(smooth(TURN_AT + 0.2, TURN_AT + 1.2, d), 1 - smooth(PLANE_IN, PLANE_IN + 0.3, d)));
     }
     plane.visible = present > 0.01;
-    shadow.visible = plane.visible && night < 0.9 && false; // 350 m out and 45 m up: the ground shadow would fall far behind the buildings
+    shadow.visible = plane.visible && night < 0.9;
     nav.visible = plane.visible && night > 0.35; strobe.visible = nav.visible && clock % 1.3 < 0.12; // red left / green right steady, white strobe blinks
-    if (shadow.visible) { shadow.position.set(plane.position.x, 0.14, plane.position.z); shadow.scale.set(34, 1, 15); shadow.material.opacity = 0.3 * (1 - night) * present * Math.max(0.15, 1 - (plane.position.y - 24) / 70); } // fainter as it climbs
+    if (shadow.visible) { shadow.position.set(plane.position.x, 0.14, plane.position.z); shadow.scale.set(34, 1, 15); shadow.scale.multiplyScalar(k); shadow.material.opacity = 0.3 * (1 - night) * present * k * Math.max(0.15, 1 - (plane.position.y - 24) / 70); } // smaller and fainter as it recedes and climbs
   };
   let scroll = { value: 0, velocity: 0 }, target = 0, clock = 0, last = 0, raining = false, shotResolve = null;
   const lateral = new THREE.Vector3();
