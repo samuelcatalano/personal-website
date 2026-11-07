@@ -6,7 +6,7 @@ SRC = os.path.abspath(os.path.join(HERE, '..', '..', '..', 'assets', 'processed'
 OUT = os.path.join(HERE, 'renders'); os.makedirs(OUT, exist_ok=True)
 night = 'night' in sys.argv
 V = lambda x, y, z: Vector((x, -z, y))          # glTF space -> Blender space (importer already converted the mesh)
-VIEWS = {'front34': ((-30, 16, 46), (0, 15, 0), 36), 'side': ((-60, 14, 0), (0, 14, 0), 38), 'close': ((-9, 21, 20), (0, 22, 9.5), 45), 'deck': ((0, 9, -30), (0, 8, 0), 40), 'bascule': ((-18, 8, 0), (0, 5, 0), 50), 'abut2': ((-20, 3, 20), (-3.7, 2, 16), 40), 'abut': ((-9, 7, 31), (0, 5, 16), 40)}
+VIEWS = {'front34': ((-30, 16, 46), (0, 15, 0), 36), 'side': ((-60, 14, 0), (0, 14, 0), 38), 'close': ((-9, 21, 20), (0, 22, 9.5), 45), 'deck': ((0, 9, -30), (0, 8, 0), 40), 'bascule': ((-18, 8, 0), (0, 5, 0), 50), 'abut2': ((-20, 3, 20), (-3.7, 2, 16), 40), 'abut': ((-9, 7, 31), (0, 5, 16), 40), 'wide': ((-75, 20, 45), (0, 12, 0), 30), 'tower': ((-26, 26, 2), (0, 22, 14.6), 50), 'flag': ((-12, 25, 2.5), (2.3, 25.5, 4.8), 55)}
 for lod in (0, 1):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     sc = bpy.context.scene; sc.render.engine = 'CYCLES'; sc.cycles.device = 'CPU'; sc.cycles.samples = 24; sc.cycles.use_denoising = False
