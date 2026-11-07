@@ -18,6 +18,14 @@ body { margin: 0; font: 15px/1.6 var(--sans); color: var(--ink); background: lin
   background: color-mix(in srgb, var(--card) 90%, transparent); -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2);
   box-shadow: 0 1px 2px rgba(40, 30, 20, .08), 0 12px 32px rgba(40, 30, 20, .14); }
 .brand { padding: 0 18px; font: 400 15px var(--display); letter-spacing: .01em; white-space: nowrap; }
+/* LED destination blind inside the brand: amber dots (a 3px mask over bold caps) on black */
+.led { display: inline-flex; align-items: center; gap: 10px; height: 30px; margin-left: 14px; padding: 0 12px; background: #0c0a08; border: 1px solid #2c2620; border-radius: 8px; filter: drop-shadow(0 0 5px rgba(255, 170, 0, .3)); box-shadow: inset 0 0 12px rgba(0, 0, 0, .8); }
+.led b, .led .live { color: #ffb21e; font: 700 15px/1 var(--sans); letter-spacing: .05em; text-transform: uppercase; white-space: nowrap;
+  -webkit-mask: radial-gradient(circle, #000 0 .95px, transparent 1.35px) 0 0 / 3px 3px; mask: radial-gradient(circle, #000 0 .95px, transparent 1.35px) 0 0 / 3px 3px; }
+.led .live { display: inline-block; width: 170px; overflow: hidden; }
+.led .live.roll { animation: roll .3s ease-out; }
+@keyframes roll { from { transform: translateY(70%); opacity: 0; } }
+@media (max-width: 1100px) { .led { display: none; } }
 .bar nav { gap: 4px; padding: 0 6px; }
 .bar nav a, .bar nav button { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border: 0; border-radius: 10px; background: none; font: 500 12px/1.5 var(--sans); color: inherit; cursor: pointer; text-decoration: none; white-space: nowrap; transition: background .2s, color .2s; }
 .bar nav a:hover, .bar nav button:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); }
@@ -122,6 +130,10 @@ body.intro-on #loading { display: none; }
 .actions button:active { transform: translateY(1px) scale(.98); }
 body.theme-night .actions button { color: #1b1d1f; }
 @media (max-width: 480px) { .intro-body { grid-template-columns: 1fr; justify-items: center; text-align: center; } .intro-card { padding: 18px 18px 22px; } .blind b, .dest span { font-size: 24px; } }
+/* day/night: the new theme opens as a circle from the toggle button (View Transitions API) */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+::view-transition-new(root) { animation: reveal .9s cubic-bezier(.4, 0, .2, 1) both; }
+@keyframes reveal { from { clip-path: circle(0 at var(--tx, 50%) var(--ty, 0)); } to { clip-path: circle(150vmax at var(--tx, 50%) var(--ty, 0)); } }
 body.no-webgl { background: linear-gradient(var(--sky), var(--sky2) 70%, #829078 70%); }
 body.no-webgl #world { display: none; }
 /* Journey as a line diagram: one node per stop, green line in Brazil, red in the UK, an interchange where the line changes (the move to London) */

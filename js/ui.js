@@ -70,6 +70,9 @@ export function initUI({ onGoto, onTheme }) {
       a.textContent = t.ui.nav[a.dataset.nav];
       cur(a, a.dataset.nav === st.section);
     });
+    const live = document.querySelector('.led .live'); // the header's LED blind names the current stop, like the destination blind of the bus
+    const where = st.section === 'journey' ? `${st.year} ${t.stops[st.id].place}` : st.section === 'hero' ? t.ui.intro.d1 : t.ui.nav[st.section];
+    if (live.textContent !== where) { live.textContent = where; live.classList.remove('roll'); void live.offsetWidth; live.classList.add('roll'); }
     const langButton = document.querySelector('[data-lang]');
     langButton.textContent = prefs.lang === 'en' ? 'PT' : 'EN';
     langButton.setAttribute('aria-label', `${langButton.textContent} — ${t.ui.lang}`);
@@ -95,7 +98,15 @@ export function initUI({ onGoto, onTheme }) {
     const nav = e.target.closest('[data-nav]');
     if (nav) { e.preventDefault(); onGoto(sectionStart(nav.dataset.nav)); history.replaceState(null, '', '#' + nav.dataset.nav); }
     if (e.target.closest('[data-lang]')) { prefs.lang = prefs.lang === 'en' ? 'pt' : 'en'; savePref(store(), 'lang', prefs.lang); render(); }
-    if (e.target.closest('[data-theme]')) { prefs.theme = prefs.theme === 'day' ? 'night' : 'day'; savePref(store(), 'theme', prefs.theme); applyTheme(); }
+    const themeBtn = e.target.closest('[data-theme]');
+    if (themeBtn) {
+      prefs.theme = prefs.theme === 'day' ? 'night' : 'day'; savePref(store(), 'theme', prefs.theme);
+      const r = themeBtn.getBoundingClientRect(), root = document.documentElement.style;
+      root.setProperty('--tx', `${r.left + r.width / 2}px`); root.setProperty('--ty', `${r.top + r.height / 2}px`);
+      // ponytail: the reveal is skipped (plain swap) where View Transitions are missing or motion is reduced
+      if (document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.startViewTransition(applyTheme);
+      else applyTheme();
+    }
   });
   document.addEventListener('keydown', (e) => {
     if (e.target.closest('input, textarea') || e.metaKey || e.ctrlKey) return;
