@@ -288,22 +288,15 @@ def mat_nodes(m, chan, img, idx):
     def mul(a, b_):
         x = node('ShaderNodeMixRGB', blend_type='MULTIPLY'); x.inputs['Fac'].default_value = 1
         link(a, x.inputs['Color1']); link(b_, x.inputs['Color2']); return x.outputs['Color']
-    sep = node('ShaderNodeSeparateXYZ'); link(P, sep.inputs[0]); X, Y, Z = sep.outputs['X'], sep.outputs['Y'], sep.outputs['Z']
-    def blocks(row, brick):
-        """Ashlar coursing: row height `row`, block length `brick` along the wall (x+y covers both wall orientations)."""
-        s = node('ShaderNodeMath', operation='ADD'); link(X, s.inputs[0]); link(Y, s.inputs[1])
-        cv = node('ShaderNodeCombineXYZ'); link(s.outputs[0], cv.inputs['X']); link(Z, cv.inputs['Y'])
-        br = node('ShaderNodeTexBrick'); br.offset = .5; br.offset_frequency = 2
-        br.inputs['Color1'].default_value = (.95, .95, .95, 1); br.inputs['Color2'].default_value = (1, 1, 1, 1); br.inputs['Mortar'].default_value = (.55, .55, .55, 1)
-        br.inputs['Mortar Size'].default_value = .12 if name == 'stone' else .045  # 0.045 m vanished in the 1024 px bake and KTX2 mipmaps
-        br.inputs['Mortar Smooth'].default_value = .3; br.inputs['Bias'].default_value = 0
-        br.inputs['Brick Width'].default_value = brick; br.inputs['Row Height'].default_value = row; br.inputs['Scale'].default_value = 1
-        link(cv.outputs[0], br.inputs['Vector']); return br.outputs['Color']
+    sep = node('ShaderNodeSeparateXYZ'); link(P, sep.inputs[0]); Z = sep.outputs['Z']
     def albedo():
         if name in STONES:
             c = ramp(noise(3, 6, (1, 1, .35)), *STONES[name])
             c = mul(c, ramp(noise(45, 3), '#d8d8d8', '#ffffff'))
-            c = mul(c, blocks(.75 if name == 'stone' else .5, 1.5))
+            # ponytail: flat factor calibrated to the old ashlar's mean albedo (linear light, LOD0 within 0.2%), not per texel; re-measure if the stone tone changes
+            m = .835 if name == 'stone' else .883
+            k = node('ShaderNodeRGB'); k.outputs[0].default_value = (m, m, m, 1)
+            c = mul(c, k.outputs[0])
             soot = node('ShaderNodeMapRange'); soot.inputs[1].default_value = 0; soot.inputs[2].default_value = 3; soot.inputs[3].default_value = .86; soot.inputs[4].default_value = 1; link(Z, soot.inputs[0])
             return mul(c, soot.outputs[0])
         if name == 'verd':
