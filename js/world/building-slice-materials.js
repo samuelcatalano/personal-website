@@ -112,8 +112,46 @@ const night = { value: 0 };
 const OFFICE_RECESS=`float recessTop=smoothstep(0.76,1.0,vPane.y);
         float recessSide=min(1.0,(1.0-smoothstep(0.0,0.14,vPane.x))+(1.0-smoothstep(0.0,0.14,1.0-vPane.x)));
         outgoingLight*=mix((1.0-0.5*recessTop-0.26*recessSide)*(1.0+(vPane.z-0.5)*0.12),1.0,litWindow*uGlassNight);`;
+// Facade weathering knobs (shader-only, world-space so LOD/batch changes never re-roll a look).
+const FACADE_GRIME = 1.0;      // 0 = clean walls; scales base grime, damp tint, ledge soot and streaks together
+const FACADE_VARIATION = 0.07; // per-building value/hue spread (fraction)
+const FACADE_DETAIL_NEAR = 14.0; // metres: close-range stucco/brick grain fades out by here
+// ponytail: the per-building seed is smooth world-space value noise (~13 m period), not a true lot id: neighbours in a terrace
+// blend instead of switching at party walls. Upgrade path: bake a per-lot seed attribute at build time (city-rollout.js).
+const FACADE_GLSL = `
+  float sliceHash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+  float sliceNoise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(sliceHash(i), sliceHash(i + vec2(1.0, 0.0)), f.x), mix(sliceHash(i + vec2(0.0, 1.0)), sliceHash(i + vec2(1.0)), f.x), f.y); }`;
+const FACADE_WEATHER = `
+  vec3 facadeN = inverseTransformDirection(normalize(vNormal), viewMatrix);
+  float facadeSeed = sliceNoise(vFloodP.xz / 13.0), facadeSeed2 = sliceNoise(vFloodP.xz / 13.0 + 17.3);
+  float facadeAlong = dot(vFloodP.xz, normalize(vec2(-facadeN.z, facadeN.x) + 1e-4)); // metres along the wall
+  float facadeWall = (1.0 - step(4.5, vSliceSurface)) * step(0.1, abs(vSliceSurface - 2.0)); // plaster/brick/trim/stone, not roof
+  if (facadeWall > 0.5) {
+    float v = (facadeSeed - 0.5) * ${FACADE_VARIATION.toFixed(3)}, w = (facadeSeed2 - 0.5) * ${FACADE_VARIATION.toFixed(3)};
+    diffuseColor.rgb *= (1.0 + v) * vec3(1.0 + w, 1.0, 1.0 - w);
+    float dirt = ${FACADE_GRIME.toFixed(2)} * (0.55 + 0.9 * facadeSeed2);
+    float base = 1.0 - smoothstep(0.0, 2.6, vFloodP.y), damp = 1.0 - smoothstep(0.0, 0.7, vFloodP.y);
+    float lum = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));
+    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(lum) * vec3(0.93, 0.91, 0.87), 0.22 * base * dirt);
+    diffuseColor.rgb *= (1.0 - 0.08 * base * dirt) * mix(vec3(1.0), vec3(0.92, 0.97, 0.89), damp * dirt * 0.5);
+    diffuseColor.rgb *= 1.0 - 0.14 * dirt * smoothstep(0.55, 0.95, facadeN.y); // soot on sills, ledges, cornice tops
+    float vertical = 1.0 - smoothstep(0.25, 0.5, abs(facadeN.y));
+    float sx = facadeAlong * 1.2, aa = 1.0 - smoothstep(0.25, 0.6, fwidth(sx)); // fade before streaks alias (no shimmer at range)
+    float streak = smoothstep(0.62, 0.9, sliceNoise(vec2(sx, vFloodP.y * 0.09 + facadeSeed * 9.0)));
+    float belowSill = 1.0 - fract((vFloodP.y - 0.85) / 3.0); // strongest under each ~3 m storey line, washing out downward
+    diffuseColor.rgb *= 1.0 - 0.14 * dirt * streak * belowSill * vertical * aa * step(0.35, facadeSeed2 + 0.25);
+  }`;
+const FACADE_DETAIL = `
+  if (facadeWall > 0.5) {
+    float near = 1.0 - smoothstep(${(FACADE_DETAIL_NEAR * 0.45).toFixed(1)}, ${FACADE_DETAIL_NEAR.toFixed(1)}, length(vViewPosition));
+    vec2 q = vec2(facadeAlong, vFloodP.y) * 14.0;
+    near *= 1.0 - smoothstep(0.4, 0.9, fwidth(q.x) + fwidth(q.y));
+    if (near > 0.0) { float a = sliceNoise(q), b = sliceNoise(q.yx + 5.3);
+      normal = normalize(normal + vec3(a - 0.5, b - 0.5, 0.0) * 0.16 * near); }
+  }`;
 function metricAtlas(material) {
-  material.customProgramCacheKey=()=> material.name+'-metric-atlas-v7';
+  material.customProgramCacheKey=()=> material.name+'-metric-atlas-v8';
   material.onBeforeCompile=shader=>{
     shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nattribute float aSurface; varying float vSliceSurface; varying float vSliceY;').replace('#include <begin_vertex>','#include <begin_vertex>\nvSliceSurface = aSurface; vSliceY = (modelMatrix * vec4(position,1.0)).y;');
     shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
@@ -123,15 +161,17 @@ function metricAtlas(material) {
         vec2 scale=vec2(120.0/512.0,124.0/512.0);
         vec2 p=(tile*vec2(128.0,256.0)+4.0+fract(uv/vec2(1.0,2.0))*vec2(120.0,248.0))/512.0;
         return textureGrad(tex,p,dFdx(uv)*scale,dFdy(uv)*scale);
-      }`);
+      }
+      ${FACADE_GLSL}`);
+    const architecture=material.name==='slice-architecture';
     // Keep continuous metric UVs for the tangent frame; wrap only texture sampling.
     for(const chunk of ['map_fragment','normal_fragment_maps','roughnessmap_fragment','metalnessmap_fragment','emissivemap_fragment']) {
       const code=THREE.ShaderChunk[chunk].replace(/texture2D\(\s*(map|normalMap|roughnessMap|metalnessMap|emissiveMap)\s*,\s*(v\w+Uv)\s*\)/g,'sliceSample( $1, $2 )');
-      shader.fragmentShader=shader.fragmentShader.replace(`#include <${chunk}>`,code);
+      shader.fragmentShader=shader.fragmentShader.replace(`#include <${chunk}>`,code+(architecture&&chunk==='normal_fragment_maps'?FACADE_DETAIL:''));
     }
-    // subtle ground grime: <=7% darkening on walls, fading over 1.5 m
-    shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`#include <map_fragment>
-      if(vSliceSurface<4.5&&vSliceSurface!=2.0) diffuseColor.rgb*=1.0-0.07*(1.0-smoothstep(0.0,1.5,vSliceY));`);
+    // weathering + per-building variation on walls (supersedes the old uniform ground grime); doors and roofs are untouched
+    if(architecture) shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
+      ${FACADE_WEATHER}`);
     if(material.name==='slice-glass-office'){
       shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nattribute vec3 aPane; varying vec3 vPane;').replace('#include <begin_vertex>','#include <begin_vertex>\nvPane = aPane;');
     }
@@ -140,7 +180,9 @@ function metricAtlas(material) {
       // lit panes: whole-pane warm glow with slight per-cell tone shift (no sub-pane grain)
       shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
         { vec2 c=floor(vMapUv/vec2(1.0,2.0)); float h=fract(sin(dot(c,vec2(12.9898,78.233)))*43758.5453);
-          totalEmissiveRadiance*=(0.88+0.24*h)*vec3(1.0,0.97+0.06*h,0.92+0.14*h); }`);
+          float k=fract(h*7.13+0.37), curtain=fract(h*13.7+0.11);
+          vec3 tone=curtain<0.5?vec3(1.0,0.97+0.06*h,0.92+0.14*h):curtain<0.75?vec3(1.0,0.86,0.7):curtain<0.9?vec3(0.86,0.92,1.0):vec3(1.0,0.8,0.78); // warm, amber blind, cool TV/LED, rose curtain
+          totalEmissiveRadiance*=(0.88+0.24*h)*tone*(k>0.86?0.1:k>0.7?0.6:1.0); }`); // ~14% dark, ~16% dimmed behind blinds
       shader.uniforms.uGlassNight=night;
       shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
 uniform float uGlassNight;
@@ -151,7 +193,7 @@ ${GLASS_REFLECTION}`);
         float grazing=pow(1.0-clamp(dot(normal,glassView),0.0,1.0),2.8);
         vec3 reflected=inverseTransformDirection(reflect(-glassView,normal),viewMatrix);
         float litWindow=1.0-step(0.25,abs(vSliceSurface-5.0));
-        float reflectionWeight=(0.38+grazing*0.36)*(1.0-uGlassNight*litWindow*0.82);
+        float reflectionWeight=(0.38+grazing*0.36)*(1.0-uGlassNight*litWindow*0.82)*(0.8+0.4*sliceNoise(vFloodP.xz/13.0+31.0)); // per-building glass reflectivity
         vec3 paneTint=vColor.rgb/max(dot(vColor.rgb,vec3(.3333)),.01); // per-lot glass family tints the sky reflection too
         outgoingLight=mix(outgoingLight,glassReflection(reflected,uGlassNight)*mix(vec3(1.0),paneTint,.85),reflectionWeight);
         ${office?OFFICE_RECESS:''}

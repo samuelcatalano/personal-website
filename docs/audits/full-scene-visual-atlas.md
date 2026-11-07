@@ -17,7 +17,7 @@ Recommendation: KEEP / POLISH / REBUILD / REPLACE. Cost: S < 1h, M few h, L day+
 
 | System | Grade | State vs North Star | Crit. | Gain | Cost | Rec. |
 |---|---|---|---|---|---|---|
-| Townhouse / terrace | B | Recessed windows, brick base, slate roofs; reads well. Missing awnings/balconies, flat lighting makes plaster grey | Med | Med | — | KEEP (approved geometry); lighting pass lifts it |
+| Townhouse / terrace | B | Recessed windows, brick base, slate roofs; reads well. 2026-11-07: shader weathering (base grime, damp, ledge soot, storey streaks), per-building tint and glass/night-window variety (see rendering-budget.md). Missing awnings/balconies, roof patterns/chimneys | Med | Med | — | KEEP (approved geometry); lighting pass lifts it |
 | Shop / mixed low-rise | B | Storefront bays exist; no awnings/canopy colour accents | Med | Med | S | KEEP geometry; lighting |
 | Midrise | B | Good bays/rhythm | Low | Low | — | KEEP |
 | Office | B | Grid façades OK; glass reads grey-blue under flat light | Med | Med | — | KEEP; glass/lighting |
