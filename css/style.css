@@ -64,7 +64,7 @@ body.theme-night .panel a.btn.solid:hover { color: var(--card); }
 body.world-loading:not(.world-ready):not(.no-webgl) #loading { display: flex; }
 body.intro-on #loading { display: none; }
 #intro { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 16px; overflow: hidden; background: color-mix(in srgb, var(--sky) 28%, transparent);
-  -webkit-backdrop-filter: blur(22px) saturate(1.4); backdrop-filter: blur(22px) saturate(1.4); transition: opacity .9s ease, backdrop-filter .9s ease, -webkit-backdrop-filter .9s ease; }
+  -webkit-backdrop-filter: blur(14px) saturate(1.4); backdrop-filter: blur(14px) saturate(1.4); transition: opacity .9s ease, backdrop-filter .9s ease, -webkit-backdrop-filter .9s ease; }
 #intro[hidden] { display: none; }
 #intro.leaving { opacity: 0; -webkit-backdrop-filter: blur(0); backdrop-filter: blur(0); pointer-events: none; }
 .intro-card { --mx: 50%; --my: 0%; position: relative; width: min(460px, 100%); display: grid; gap: 18px; padding: 24px 28px 26px; border-radius: 22px; overflow: hidden;
@@ -114,8 +114,8 @@ body.intro-on #loading { display: none; }
 .mini-bus { position: absolute; bottom: -2px; left: calc(var(--p, 0) * (100% - 40px)); transition: left .12s linear; filter: drop-shadow(0 3px 4px rgba(0, 0, 0, .25)); }
 .nice { margin: 0; min-height: 1.4em; text-align: center; font-size: 14px; font-weight: 600; color: var(--accent); opacity: 0; transform: translateY(6px); transition: opacity .5s, transform .5s; }
 #intro.celebrate .nice { opacity: 1; transform: none; }
-.status { margin: 0; display: flex; justify-content: center; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); }
-#intro.ready .status { display: none; }
+.status { margin: 0; transition: opacity .4s; display: flex; justify-content: center; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); }
+#intro.ready .status { opacity: 0; } /* keep the space so the card never changes size */
 .actions { display: flex; justify-content: center; }
 .actions button { display: inline-flex; align-items: center; gap: 10px; min-height: 48px; padding: 9px 26px; font: 600 13px var(--sans); cursor: pointer; border-radius: 999px; border: 1px solid var(--accent); background: var(--accent); color: #fff; transition: box-shadow .25s, transform .25s; }
 .actions button:hover { transform: translateY(-1px); box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 55%, transparent); }
