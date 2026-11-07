@@ -135,7 +135,7 @@ test('larger lawn parks have a low paved edge outside walking loops', () => {
   const curve = { getPointAt: () => ({ x: 0, z: 0 }), getTangentAt: () => ({ x: 1, z: 0 }) };
   const boxes = [];
   buildParks((x, y, z, w, h, d, c) => boxes.push({ x, y, z, w, h, d, c }), stops, pts, curve, []);
-  const p = PARKS[0], lawn = boxes.find(b => b.c === PALETTE.patch && b.x === (p.x0 + p.x1) / 2 && b.z === (p.z0 + p.z1) / 2);
+  const p = PARKS[0], lawn = boxes.find(b => (b.c === PALETTE.patch || b.c === PALETTE.hill) && b.x === (p.x0 + p.x1) / 2 && b.z === (p.z0 + p.z1) / 2);
   assert.ok(lawn, 'first park lawn exists');
   const edges = boxes.filter(b => b.c === PALETTE.pave && b.y === 0.02 && b.h === 0.05 && (
     Math.abs(b.x - (p.x0 + p.x1) / 2) < 1e-6 || Math.abs(b.z - (p.z0 + p.z1) / 2) < 1e-6
@@ -152,4 +152,16 @@ test('larger lawn parks have a low paved edge outside walking loops', () => {
     { x0: h.x - h.w / 2, x1: h.x + h.w / 2, z0: h.z - h.d / 2, z1: h.z + h.d / 2 },
     { x0: v.x - v.w / 2, x1: v.x + v.w / 2, z0: v.z - v.d / 2, z1: v.z + v.d / 2 },
   ), 'edge corners do not overlap');
+});
+
+test('lawn greens: each park picks patch or hill by a stable hash, both occur, and the choice repeats', () => {
+  const curve = { getPointAt: () => ({ x: 0, z: 0 }), getTangentAt: () => ({ x: 1, z: 0 }) };
+  const lawnColours = () => {
+    const boxes = [];
+    buildParks((x, y, z, w, h, d, c) => boxes.push({ x, y, z, w, h, d, c }), stops, pts, curve, []);
+    return boxes.filter(b => (b.c === PALETTE.patch || b.c === PALETTE.hill) && b.y === 0.02 && b.h === 0.05).map(b => b.c);
+  };
+  const first = lawnColours();
+  assert.deepEqual(lawnColours(), first, 'same colours on every build');
+  assert.ok(first.includes(PALETTE.patch) && first.includes(PALETTE.hill), 'both greens appear across parks');
 });

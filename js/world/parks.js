@@ -88,7 +88,8 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
     const fur = [], benches = []; // plaza dressing footprints [u0,u1,v0,v1]: the extras below only go where nothing stands
     const mainPath = !park.nopath && S >= 6, cross = mainPath && S >= 10 && L >= 16, plaza = park.fountain || park.pond, taken = [];
     const e = !ring && !park.paved ? 0.04 : 0; // bordered lawns sit
-    B(0, 0, 0.02, L - e, 0.05, S - e, park.paved || LAWN); // 0.02 inside their border strips, so buildings that share the park edge do not share its planes
+    const lawn = variation(cx, cz, 3) < 0.5 ? LAWN : P.hill; // one of two existing greens per park, from a stable hash of its centre (layout RNG untouched)
+    B(0, 0, 0.02, L - e, 0.05, S - e, park.paved || lawn); // 0.02 inside their border strips, so buildings that share the park edge do not share its planes
     if (!ring && !park.paved) {
       for (const f of [-1, 1]) {
         B(0, f * (S / 2 + 0.205), 0.02, L + 0.86, 0.05, 0.45, benchmark ? P.stone : P.pave);
@@ -159,7 +160,8 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
       }
     }
     const bench = (u, v, f) => { for (const s of [-1, 0, 1]) { B(u, v + s * 0.15, 0.45, 1.6, 0.075, 0.12, OAK); B(u, v + f * 0.2, 0.58 + (s + 1) * 0.12, 1.6, 0.085, 0.08, OAK); }
-      for (const d of [-0.65, 0.65]) B(u + d, v, 0.09, 0.12, 0.36, 0.38, IRON); fur.push([u - 0.9, u + 0.9, v - 0.4, v + 0.4]); benches.push([u, v]); };
+      for (const d of [-0.65, 0.65]) { B(u + d, v, 0.09, 0.07, 0.36, 0.38, IRON); B(u + d, v, 0.5, 0.1, 0.1, 0.4, IRON); } // slim iron ends with an armrest; the armrest starts inside the seat, so no coplanar faces
+      fur.push([u - 0.9, u + 0.9, v - 0.4, v + 0.4]); benches.push([u, v]); };
     const nb = Math.max(ring ? 2 : 1, Math.round(L / 22)); // benches beside the main path, backs to the lawn
     for (let i = 0; i < nb; i++) for (const f of [-1, 1]) {
       if (S < (ring ? 4 : 7) && f > 0) continue;

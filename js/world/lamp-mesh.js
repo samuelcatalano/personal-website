@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // Two lamp families sharing two materials (metal + glowing glass), one InstancedMesh per family per material.
-// uk: black cast-iron post (fluted base, tapered shaft, collar) with a four-sided tapered lantern, ~4 m.
+// uk: black cast-iron post (fluted base, tapered shaft, collar) with an octagonal tapered lantern, ~4 m.
 // br: galvanised tapered pole with a curved outreach arm and a flat LED head over local +x (the road), ~5 m.
 const part = (g, color, x = 0, y = 0, z = 0) => {
   g = (g.index ? g.toNonIndexed() : g).translate(x, y, z); g.deleteAttribute('uv');
@@ -16,10 +16,10 @@ function ukParts() {
   const IRON = '#1d2023', metal = [], glass = [];
   metal.push(cyl(0.2, 0.17, 0.12, 0, IRON), cyl(0.15, 0.12, 0.55, 0.12, IRON, 8), cyl(0.15, 0.15, 0.06, 0.67, IRON)); // plinth, fluted base, ring
   metal.push(cyl(0.075, 0.05, 2.75, 0.73, IRON, 8), cyl(0.09, 0.09, 0.08, 3.25, IRON)); // tapered shaft + collar
-  metal.push(cyl(0.06, 0.14, 0.12, 3.48, IRON, 4).rotateY(Math.PI / 4)); // lantern seat
-  glass.push(cyl(0.14, 0.21, 0.42, 3.6, '#ffe2a6', 4).rotateY(Math.PI / 4)); // tapered four-sided lantern
+  metal.push(cyl(0.06, 0.14, 0.12, 3.48, IRON, 8)); // lantern seat
+  glass.push(cyl(0.14, 0.21, 0.42, 3.6, '#ffe2a6', 8)); // tapered octagonal lantern
   for (let k = 0; k < 4; k++) metal.push(part(new THREE.BoxGeometry(0.025, 0.44, 0.025), IRON, 0.155, 3.81, 0.155).rotateY(k * Math.PI / 2)); // corner glazing bars
-  metal.push(cyl(0.24, 0.05, 0.22, 4.02, IRON, 4).rotateY(Math.PI / 4), part(new THREE.SphereGeometry(0.05, 6, 4), IRON, 0, 4.27, 0)); // pyramid cap + finial
+  metal.push(cyl(0.24, 0.05, 0.22, 4.02, IRON, 8), part(new THREE.SphereGeometry(0.05, 6, 4), IRON, 0, 4.27, 0)); // octagonal cap + finial
   return [mergeGeometries(metal), mergeGeometries(glass)];
 }
 function brParts() {
