@@ -10,6 +10,28 @@ Current measurement record frozen2026-10-21. Final visual approval is recorded i
 
 The user reopened the Glasgow/country and distant-horizon art for an urban replacement: remove turbine and rural-field scenery, use varied residential buildings and midrise flats with bounded gardens, and keep the existing map, roads, routes, landmarks and roof forms. The former citywide aggregate triangle ceiling is removed; report measured triangle counts as workload evidence, not a pass/fail gate. Per-building geometry limits, shared-resource/batching rules, culling, and memory budgets remain applicable. No performance or release GO is implied before scoped browser measurements.
 
+## River water — 2026-11-07
+
+`js/world/water.js` (pure helpers and tests: `js/world/water-math.js`, `tests/water.test.mjs`). One planar-reflection mechanism serves both the landmark and the city reflection: a Reflector-style mirrored camera with an oblique near plane at the waterline (no clipping-plane shader variants), rendered into a half-drawing-buffer `HalfFloat` target before the composer, only on the `high` tier and only while the river strip within 420 m is in the frustum. Water and sky objects are hidden and the shadow map is not refreshed during that pass; the shader draws its own sky where the target's alpha is 0.
+
+- Default (`landmarks`): the mirrored camera renders only layer 5 (landmark groups along the river, Big Ben faces, the Eye, the Estaiada deck, boats, plus the lights). `?reflect=0` turns it off; `?reflect=1` renders the whole city.
+- Ladder: high = planar reflection + detail/glint/foam/depth; medium (mobile, adaptive drop) = previous sky gradient + dark bank silhouettes + detail/glint/foam/depth, `uReflect = 0`. Tier changes switch per frame; nothing is rebuilt.
+- Memory: the target is allocated lazily at the first in-view high-tier frame: at 1728x963 CSS, DPR 1.5 it is 1296x722 RGBA16F (7.1 MiB) + 24-bit depth (~3.6 MiB). The detail map is one shared 128x128 RGBA8 `DataTexture` with mipmaps (~85 KiB), generated at startup in a few ms; no downloads.
+
+Measurement (`tools/perf/route-profile.py` with the tier pinned to `high` through `?qa`, since the fps governor otherwise drops this machine to `medium` and hides the pass; real Chrome, real GPU, 1728x963 DPR 1.5, `weather=clear`, one run each; frame times are vsync-quantised to 8.3 ms steps, so small deltas are below resolution):
+
+| Segment | Config | Frames | Median ms | p95 ms | Calls med/p95 | Tris med/p95 (M) |
+|---|---|---:|---:|---:|---|---|
+| 8.5-11.5 | `reflect=0` | 965 | 25.0 | 33.4 | 1749/2322 | 11.28/19.91 |
+| 8.5-11.5 | `reflect=1` (whole city) | 702 | 33.4 | 42.3 | 3123/4380 | 24.47/36.14 |
+| 3-6 (SP) | `reflect=0` | 998 | 25.0 | 32.7 | 1645/1756 | 10.92/12.10 |
+| 3-6 (SP) | default (`landmarks`) | 1037 | 25.0 | 33.3 | 1704/1783 | 11.37/12.18 |
+
+- Whole-city reflection costs +8.4 ms median / +8.9 ms p95 and nearly doubles calls and triangles: over the +1.5 ms / +3 ms budget, so it ships **off** behind `?reflect=1`.
+- Landmark reflection: SP +0 ms median, +0.6 ms p95, +59 median calls (within budget). At stop 10 (London, Parliament/Big Ben/Eye/Tower Bridge in view) a `renderer.info` count in the Browser pane gave +17 draw calls and +16k triangles per frame; the pinned-tier London frame-time run for the default could not be completed (the Chrome session became unreachable), so the London default frame time is unmeasured.
+- Unpinned runs before the change (same machine, default config): 8.5-11.5 median 24.1 / p95 33.3 ms, 1475 calls; 3-6 median 24.9 / p95 25.9 ms, 1509 calls. Not comparable with the pinned table (the governor may have dropped to `medium` mid-run).
+- Not measured: mobile frame time, VRAM by a GPU tool (sizes above are calculated), startup delta (no assets added).
+
 ## Shared resources and scaling
 
 - Townhouse family: **2 shared materials**, **4 shared maps**, approximately **4.33 MiB** of texture payload including mipmaps. Reuse the same resources across buildings/chunks; variation does not add materials/maps.

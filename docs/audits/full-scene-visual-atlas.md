@@ -61,7 +61,7 @@ Recommendation: KEEP / POLISH / REBUILD / REPLACE. Cost: S < 1h, M few h, L day+
 | Curbs / sidewalks | B | Tangent curbs, grey pavers | Med | Med | — | KEEP; warmer palette |
 | Plazas | B- | Large bare paved areas | Med | Med | — | lighting + trees |
 | Parks | B | Lawns, paths, beds, benches | Low | Med | — | KEEP |
-| Waterfront / water | B | Gradient water, shimmer | Med | Med | S | POLISH: warmer glint, bluer |
+| Waterfront / water | A- | 2026-11-07: scrolling procedural detail normals over the swell, sun/sunset/moon glint toward the visible disc, Fresnel over fake depth (absorption + refracted bed), animated anti-aliased foam at banks, Tower Bridge piers and boats; high tier mirrors the river-side landmarks (half-res planar reflection, `?reflect=0` off, `?reflect=1` whole city); medium keeps sky + dark banks | Med | Med | — | KEEP; whole-city reflection only on a measured GPU budget |
 | Bridges (generic) | C | Boxes | Low | Low | — | deferred |
 | Benches / lamps / phone booths / bus stops / signs | B | Readable boxes, phone booths good | Low | Low | — | KEEP |
 
