@@ -35,7 +35,8 @@ watchScroll((p) => {
   if (!world) follow(p);
   world?.setProgress(p);
 });
-const intro = createIntro(document.getElementById('intro'));
+const DRIVE = 0.03; // share of the route the intro lets the visitor drive (about one stop)
+const intro = createIntro(document.getElementById('intro'), { onDrive: (p) => world?.setProgress(p === null ? progress : p * DRIVE) });
 const hasWebGL = () => { try { const gl = document.createElement('canvas').getContext('webgl2'); gl?.getExtension('WEBGL_lose_context')?.loseContext(); return !!gl; } catch { return false; } };
 if (hasWebGL()) {
   document.body.classList.add('world-loading');

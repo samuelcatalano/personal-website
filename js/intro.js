@@ -6,12 +6,14 @@ export function practice(state, dy) {
   return { p, down: state.down || p >= 1, up: state.up || (state.down && p <= 0) };
 }
 const KEY_DY = { ArrowDown: 120, PageDown: 240, ' ': 240, ArrowUp: -120, PageUp: -240 };
-export function createIntro(root) {
+export function createIntro(root, { onDrive = () => {} } = {}) {
   let state = { p: 0, down: false, up: false }, active = false;
   const render = () => {
     root.style.setProperty('--p', state.p);
     root.querySelector('[data-step="down"]').classList.toggle('done', state.down);
     root.querySelector('[data-step="up"]').classList.toggle('done', state.up);
+    root.classList.toggle('celebrate', state.down && state.up);
+    if (active) onDrive(state.p); // the real bus behind the glass follows the toy one
   };
   const dismiss = () => {
     if (!active) return;
@@ -19,7 +21,8 @@ export function createIntro(root) {
     removeEventListener('wheel', onWheel);
     removeEventListener('keydown', onKey);
     root.classList.add('leaving');
-    setTimeout(() => { root.hidden = true; document.body.classList.remove('intro-on'); }, 400);
+    onDrive(null); // hand the real bus back to the page scroll
+    setTimeout(() => { root.hidden = true; document.body.classList.remove('intro-on'); }, 900);
   };
   const step = (dy) => {
     state = practice(state, dy);
@@ -35,7 +38,7 @@ export function createIntro(root) {
       addEventListener('keydown', onKey);
       render();
     },
-    ready() { root.classList.add('ready'); }, // hides the loading status; the intro itself stays until the visitor clicks Skip
+    ready() { root.classList.add('ready'); if (active) onDrive(state.p); }, // hides the loading status; the intro itself stays until the visitor clicks Skip
     dismiss,
   };
 }
