@@ -248,12 +248,16 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   if (panel) observer?.observe(panel);
   const busPos = { x: 0, y: 0, z: 0 }, prevBus = { x: null, z: 0, h: 0 }, MINI_WHEELBASE = 2.5, MAX_STEER = 0.5;
   let steer = 0;
-  // Flyover at the first UK stop. It crosses in front of the bus, then turns hard left (away from the camera), banking, and dissolves into the haze.
-  // The camera's top edge sits at about the camera height and the towers across the river are 25 to 40 m, so the plane cannot recede behind them:
-  // the turn and the fade finish while it is still in front of that line (about 55 m back). `d` is the distance from the stop in stop-lengths of scroll.
-  const PLANE_IN = -1.15, PLANE_OUT = 0.35, TURN_AT = -0.45; // the turn starts while the plane is still mid-frame
+  // Flyover at the first UK stop. It crosses in front of the bus, eases into a gentle left turn away from the camera and flies off toward the horizon,
+  // climbing slowly so it stays in the strip of sky above the skyline (measured: the frame's top edge is about 3.8 degrees above the camera height, the skyline tops about 2 degrees below it, so it flies at about 1.5), shrinking with distance and fading in the haze.
+  // `d` is the distance from the stop in stop-lengths of scroll; `u` counts from where the turn starts.
+  const PLANE_IN = -1.15, TURN_AT = -0.35, PLANE_OUT = TURN_AT + 1.4;
   const smooth = (lo, hi, x) => { const t = Math.min(1, Math.max(0, (x - lo) / (hi - lo))); return t * t * (3 - 2 * t); };
-  const planePath = (d) => { const u = Math.max(d - TURN_AT, 0); return [busPos.x + 16 + d * 52 + u * u * 24, 25 - Math.min(d, 0) * 3 + u * 2, busPos.z - 2 - u * u * 200]; };
+  const planePath = (d) => {
+    const u = Math.max(d - TURN_AT, 0), back = u * u * 400; // metres behind the bus line: slow at first, so the heading swings gradually
+    const sky = 29 + 0.026 * (50 + back);                    // altitude that keeps the plane about 1.5 degrees above the camera
+    return [busPos.x + 16 + d * 52, d < 0 ? 25 - d * 3 : 25 + (sky - 25) * smooth(0, 0.6, u), busPos.z - 2 - back];
+  };
   let planeFaded = false;
   const fadePlane = (alpha) => { // only touches materials while the plane is not fully opaque (the authored model may swap in after load)
     if (alpha >= 1 && !planeFaded) return;
@@ -264,12 +268,12 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const d = (p - planeAt) * (n - 1);
     let alpha = 0;
     if (planeAt >= 0 && d > PLANE_IN && d < PLANE_OUT) {
-      alpha = smooth(PLANE_IN, PLANE_IN + 0.25, d) * (1 - smooth(-0.3, PLANE_OUT, d));
+      alpha = smooth(PLANE_IN, PLANE_IN + 0.25, d) * (1 - smooth(TURN_AT + 0.7, PLANE_OUT, d));
       const [x, y, z] = planePath(d), [x2, y2, z2] = planePath(d + 0.02);
       plane.position.set(x, y, z);
       plane.rotation.y = Math.atan2(-(z2 - z), x2 - x); // heading follows the turn away
-      plane.rotation.z = Math.min(0.5, Math.atan2(y2 - y, Math.hypot(x2 - x, z2 - z))); // nose follows the climb
-      plane.rotation.x = -0.5 * smooth(TURN_AT - 0.05, TURN_AT + 0.3, d); // banks into the left turn
+      plane.rotation.z = Math.min(0.25, Math.atan2(y2 - y, Math.hypot(x2 - x, z2 - z))); // nose follows the climb
+      plane.rotation.x = -0.16 * Math.sin(Math.PI * smooth(TURN_AT, TURN_AT + 0.7, d)); // a slight bank during the turn, wings level again once it is heading away
       fadePlane(alpha);
     }
     plane.visible = alpha > 0.01;
