@@ -88,7 +88,7 @@ export function initUI({ onGoto, onTheme }) {
   document.addEventListener('click', (e) => {
     const go = e.target.closest('[data-goto]');
     if (go) { e.preventDefault(); onGoto(+go.dataset.goto); }
-    if (e.target.closest('[data-nav-home]')) { e.preventDefault(); onGoto(0); }
+    if (e.target.closest('[data-nav-home]')) { e.preventDefault(); onGoto(0); history.replaceState(null, '', location.pathname + location.search); }
     const nav = e.target.closest('[data-nav]');
     if (nav) { e.preventDefault(); onGoto(sectionStart(nav.dataset.nav)); history.replaceState(null, '', '#' + nav.dataset.nav); }
     if (e.target.closest('[data-lang]')) { prefs.lang = prefs.lang === 'en' ? 'pt' : 'en'; savePref(store(), 'lang', prefs.lang); render(); }
