@@ -115,3 +115,15 @@ Phase 1 comes first because it changes no geometry. Phase 4 is material-only, so
 - **Glare.** The 2026-11-03 night defects (Glasgow headlight glare, Eye pods, Riverside outline) are lighting items. Phase 2 must not move lamp glow.
 - **Z-fighting.** The atlas recorded 0 coplanar pairs at commit 60d7670; memory recorded 1,085 at b4f7518. Re-check in Phase 0 before any ground change.
 - **Sé night look.** The tone choice also changes the night glow, because the EMI branch reuses the albedo.
+
+## 6. Execution status
+
+- 2026-11-07: the owner asked to execute every phase, then approved going above the 40% weekly ceiling (work memory `trava-semanal-uso`). Weekly usage was 68% when execution resumed. Extra usage is off.
+- Codex check: working tree was clean; the regional architecture and infill commits (`5b3ae0a`, `2bbb7e9`) are in history.
+- Phase 0: baseline captures of stops 1.5, 5, 9.5 and 11, day and night, kept outside the repo.
+- Phase 1 (`60f1eb2`): sidewalk pads use `paverWarm`; kerbs unchanged.
+- Phases 2–3 (`7652005`): uk lantern goes to 8 sides; bench ends are slimmer and carry an armrest; each park takes one of two existing greens by a stable hash of its centre.
+- Phase 4: no change. The baseline already shows cyan-blue glass and warm plaster. Shopfront accents would need the facade atlas, so they are deferred.
+- Phase 5: not executed. Awnings, canopies and balconies would add geometry to approved families, and that needs the owner's ruling.
+- Phase 6: no change. Warm window bands on the backdrop are deferred until the backdrop tests are checked.
+- Validation: `node --test tests/` passes. `street-props.browser.py` passes. `real-city.browser.py` (lot duplication check) and `scenery.browser.py` (overlap check) fail identically at HEAD. `zfight.browser.py` reports 1087 pairs at HEAD and after the changes.
