@@ -1,5 +1,5 @@
 import { stops, SECTIONS, sectionStart } from './content.js';
-import { watchScroll, stopMarks, nearestStop, scrollYForStop, progressFromScroll } from './scroll.js';
+import { watchScroll, stopMarks, nearestStop, scrollYForStop, progressFromScroll, navLock } from './scroll.js';
 import { routePoints, STOP_SPACING } from './world/layout.js';
 import { initUI } from './ui.js';
 const n = stops.length;
@@ -10,8 +10,18 @@ const length = pts.reduce((a, q, i) => a + (i ? Math.hypot(q.x - pts[i - 1].x, q
 document.getElementById('track').style.height = `${100 + (length / STOP_SPACING) * 100}vh`;
 const H = () => document.documentElement.scrollHeight;
 let world = null, progress = 0;
-const goto = (i) => scrollTo({ top: scrollYForStop(i, n, H(), innerHeight, marks) });
+const lock = navLock();
+let unlock;
+const follow = (p) => { const a = lock.filter(nearestStop(p, n, marks)); if (a !== null) ui.setActive(a); };
+const goto = (i) => {
+  lock.set(i);
+  ui.setActive(i);
+  scrollTo({ top: scrollYForStop(i, n, H(), innerHeight, marks) });
+  clearTimeout(unlock);
+  unlock = setTimeout(lock.clear, 8000); // ponytail: 8 s covers the slowest observed jump (~6 s); make it distance-based if routes grow
+};
 const ui = initUI({ onGoto: goto, onTheme: (t) => world?.setTheme(t) });
+for (const ev of ['wheel', 'touchstart']) addEventListener(ev, lock.clear, { passive: true });
 const hash = location.hash.slice(1);
 if (SECTIONS.includes(hash)) addEventListener('load', () => requestAnimationFrame(() => {
   if (scrollY === 0) {
@@ -21,14 +31,14 @@ if (SECTIONS.includes(hash)) addEventListener('load', () => requestAnimationFram
 }), { once: true });
 watchScroll((p) => {
   progress = p;
-  if (!world) ui.setActive(nearestStop(p, n, marks));
+  if (!world) follow(p);
   world?.setProgress(p);
 });
 const hasWebGL = () => { try { const gl = document.createElement('canvas').getContext('webgl2'); gl?.getExtension('WEBGL_lose_context')?.loseContext(); return !!gl; } catch { return false; } };
 if (hasWebGL()) {
   import('./world/scene.js')
     .then((m) => m.createWorld(document.getElementById('world'), stops, {
-      reducedMotion, onProgress: (p) => ui.setActive(nearestStop(p, n, marks)),
+      reducedMotion, onProgress: follow,
     }))
     .then((w) => { world = w; w.setProgress(progress); w.setTheme(ui.theme); document.body.classList.add('world-ready'); })
     .catch((err) => { console.warn('3D world unavailable:', err); document.body.classList.add('no-webgl'); });

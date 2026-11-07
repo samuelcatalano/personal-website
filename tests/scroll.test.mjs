@@ -1,6 +1,34 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { stopMarks, routeT, nearestStop, scrollYForStop } from '../js/scroll.js';
+import { stopMarks, routeT, nearestStop, scrollYForStop, navLock } from '../js/scroll.js';
+
+test('navLock passes nearest through when idle', () => {
+  assert.equal(navLock().filter(3), 3);
+});
+
+test('navLock holds back intermediate stops until the target is reached', () => {
+  const l = navLock();
+  l.set(7);
+  assert.equal(l.filter(2), null);
+  assert.equal(l.filter(5), null);
+  assert.equal(l.filter(7), 7);
+  assert.equal(l.filter(8), 8);
+});
+
+test('navLock keeps only the latest target', () => {
+  const l = navLock();
+  l.set(7);
+  l.set(4);
+  assert.equal(l.filter(7), null);
+  assert.equal(l.filter(4), 4);
+});
+
+test('navLock.clear releases the hold', () => {
+  const l = navLock();
+  l.set(7);
+  l.clear();
+  assert.equal(l.filter(2), 2);
+});
 
 // stops 0..4; segment 2->3 is 10x longer than the others
 const pts = [0, 30, 60, 360, 390].map((x) => ({ x, z: 0 })), n = pts.length, m = stopMarks(pts), total = 390;

@@ -42,6 +42,20 @@ export function fineMarks(marks, curve, k = 16) {
 }
 export const scrollYForStop = (i, n, scrollHeight, viewport, marks) =>
   markOf(i, n, marks) * Math.max(0, scrollHeight - viewport);
+// After a menu jump the panel shows the clicked stop at once and ignores the stops the bus passes on the way.
+export function navLock() {
+  let target = null;
+  return {
+    set(i) { target = i; },
+    clear() { target = null; },
+    filter(nearest) {
+      if (target === null) return nearest;
+      if (nearest !== target) return null;
+      target = null;
+      return nearest;
+    },
+  };
+}
 export function watchScroll(cb) {
   const emit = () => cb(progressFromScroll(scrollY, document.documentElement.scrollHeight, innerHeight));
   addEventListener('scroll', emit, { passive: true });
