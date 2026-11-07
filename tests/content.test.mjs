@@ -136,3 +136,13 @@ test('every clickable landmark jumps to a real stop', async () => {
   const { PICK_STOP } = await import('../js/world/layout.js');
   for (const [name, id] of Object.entries(PICK_STOP)) assert.ok(stops.some(s => s.id === id), `${name} -> ${id}`);
 });
+
+test('hero states what Samuel does and quotes a real recommendation; contact offers reasons with subjects', () => {
+  for (const lang of ['en', 'pt']) {
+    const h = i18n[lang].sections.hero, c = i18n[lang].sections.contact;
+    assert.ok(h.value.trim() && h.proof.trim(), `${lang} hero value/proof`);
+    assert.ok(i18n[lang].recs[0].quote.startsWith(h.proof.replace(/\.$/, '')), `${lang} proof is the start of recs[0]`);
+    assert.equal(c.reasons.length, 3);
+    for (const r of c.reasons) assert.ok(r.label.trim() && r.subject.trim());
+  }
+});

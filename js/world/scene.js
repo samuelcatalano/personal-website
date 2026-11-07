@@ -214,7 +214,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const post = createPost(renderer, scene, camera, { sun, tier: reducedMotion || matchMedia('(max-width: 767px)').matches ? 'medium' : 'high' });
   if (qa) globalThis.__qaPost = post;
   if (qa) globalThis.__qaFigure = { figure, camera, end, endTan, near };
-  const stopPicker = createLandmarkPicker({ canvas, camera, details, onPick });
+  const stopPicker = createLandmarkPicker({ canvas, camera, details, bus, onPick });
   let fpsT = 0, fpsN = 0, settle = 3, slowWindows = 0, night = 0, nightTarget = 0, mobile = false;
   const bar = document.querySelector('.bar'), panel = document.querySelector('#panel');
   let fitKey = '';
@@ -256,7 +256,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     nav.visible = plane.visible && night > 0.35; strobe.visible = nav.visible && clock % 1.3 < 0.12; // red left / green right steady, white strobe blinks
     if (shadow.visible) { shadow.position.set(plane.position.x, 0.14, plane.position.z); shadow.scale.set(34, 1, 15); shadow.material.opacity = 0.3 * (1 - night); }
   };
-  let scroll = { value: 0, velocity: 0 }, target = 0, clock = 0, last = 0, raining = false;
+  let scroll = { value: 0, velocity: 0 }, target = 0, clock = 0, last = 0, raining = false, shotResolve = null;
   const lateral = new THREE.Vector3();
   function frame(now) {
     raf = 0;
@@ -369,6 +369,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       }
     }
     post.render(dt);
+    if (shotResolve) { const done = shotResolve; shotResolve = null; canvas.toBlob(done, 'image/png'); } // same task as the render: the drawing buffer is still valid
     if (qa) globalThis.__qaWorldFrames++;
     if (!reducedMotion) wake();
   }
@@ -385,6 +386,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   resize();
   return {
     get raining() { return raining; },
+    snapshot() { return new Promise((res, rej) => { shotResolve = res; wake(); setTimeout(() => rej(new Error('snapshot timeout')), 3000); }); },
     setProgress(p) { target = p; wake(); },
     jump(p) { target = p; scroll = { value: p, velocity: 0 }; wake(); },
     setTheme(name) {

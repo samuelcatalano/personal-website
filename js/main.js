@@ -3,6 +3,9 @@ import { watchScroll, stopMarks, nearestStop, scrollYForStop, progressFromScroll
 import { routePoints, STOP_SPACING } from './world/layout.js';
 import { initUI } from './ui.js';
 import { createIntro } from './intro.js';
+import { horn } from './sound.js';
+import { createAutoRide } from './autoride.js';
+import { makePostcard, download } from './postcard.js';
 const n = stops.length;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const pts = routePoints(n), marks = stopMarks(pts);
@@ -29,6 +32,21 @@ const goto = (i) => {
 };
 const ui = initUI({ onGoto: goto, onTheme: (t) => world?.setTheme(t) });
 for (const ev of ['wheel', 'touchstart']) addEventListener(ev, lock.clear, { passive: true });
+const autoBtn = document.querySelector('[data-auto]');
+const ride = createAutoRide({
+  ys: () => stops.map((_, i) => scrollYForStop(i, n, H(), innerHeight, marks)),
+  onState: (on) => autoBtn.setAttribute('aria-pressed', String(on)), instant: reducedMotion,
+});
+autoBtn.addEventListener('click', () => { lock.clear(); ride.toggle(); });
+const photoBtn = document.querySelector('[data-photo]');
+photoBtn.addEventListener('click', async () => {
+  if (!world || photoBtn.disabled) return;
+  photoBtn.disabled = true;
+  try {
+    const caption = ui.caption(), blob = await makePostcard(await world.snapshot(), caption, location.host + location.pathname.replace(/\/$/, ''));
+    download(blob, `samuel-catalano-${caption.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-')}.png`);
+  } catch (err) { console.warn('postcard failed:', err); } finally { photoBtn.disabled = false; }
+});
 const hash = location.hash.slice(1);
 if (SECTIONS.includes(hash)) addEventListener('load', () => requestAnimationFrame(() => {
   if (scrollY === 0) {
@@ -49,7 +67,7 @@ if (hasWebGL()) {
   intro.start();
   import('./world/scene.js')
     .then((m) => m.createWorld(document.getElementById('world'), stops, {
-      reducedMotion, onProgress: follow, onPick: (id) => goto(stops.findIndex((s) => s.id === id)),
+      reducedMotion, onProgress: follow, onPick: (id) => (id === 'bus' ? (horn(), ui.say('horn')) : goto(stops.findIndex((s) => s.id === id))),
     }))
     .then((w) => { world = w; w.setProgress(progress); w.setTheme(ui.theme); document.body.classList.add('world-ready'); intro.ready(); })
     .catch((err) => { console.warn('3D world unavailable:', err); intro.dismiss(); document.body.classList.add('no-webgl'); });

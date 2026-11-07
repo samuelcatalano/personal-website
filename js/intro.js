@@ -1,3 +1,4 @@
+import { ding } from './sound.js';
 // Intro shown on every load: a toy bus that follows the scroll wheel teaches "scroll down to ride, up to go back".
 const clamp01 = (v) => Math.min(1, Math.max(0, v));
 // Pure step logic (unit-tested): p = toy bus position 0..1; "down" = reached the flag, "up" = came back after that.
@@ -7,18 +8,6 @@ export function practice(state, dy) {
 }
 // Which destination the roller blind shows for a toy-bus position (São Paulo, London, Glasgow).
 export const destination = (p) => (p < 0.34 ? 0 : p < 0.67 ? 1 : 2);
-// London bell: two sine partials with a fast exponential decay. Only ever called from a click, so autoplay rules allow it.
-export function ding() {
-  try {
-    const ac = new (window.AudioContext || window.webkitAudioContext)(), t = ac.currentTime;
-    for (const [f, v] of [[1568, 0.16], [2352, 0.05]]) {
-      const o = ac.createOscillator(), g = ac.createGain();
-      o.type = 'sine'; o.frequency.value = f;
-      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.1);
-      o.connect(g).connect(ac.destination); o.start(t); o.stop(t + 1.15);
-    }
-  } catch { /* no audio available */ }
-}
 const KEY_DY = { ArrowDown: 120, PageDown: 240, ' ': 240, ArrowUp: -120, PageUp: -240 };
 export function createIntro(root, { onDrive = () => {} } = {}) {
   let state = { p: 0, down: false, up: false }, active = false, belled = false;

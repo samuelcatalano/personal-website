@@ -1,4 +1,4 @@
-import { ding } from './intro.js';
+import { ding } from './sound.js';
 import { stops, i18n, links, articles, repos, stackGroups, sectionStart } from './content.js';
 export function loadPrefs(storage) {
   try {
@@ -26,8 +26,9 @@ function sectionHTML(section, t, active) {
     case 'hero': return `
       <img class="avatar" src="assets/avatar.png" alt="" width="96" height="96">
       <h1>${s.title}</h1><p class="role">${s.role}</p><p class="meta">${s.meta}</p>
-      <p class="tagline">${s.tagline}</p><p class="avail">${s.availability}</p><p class="clock">${t.ui.clock} <time data-london></time></p><ul class="hero-links contact">
-        ${contact(t.sections.contact)}</ul><p class="hint">${matchMedia('(pointer: coarse)').matches ? t.ui.scrollTouch : t.ui.scroll} ↓</p>`;
+      <p class="value">${s.value}</p><p class="tagline">${s.tagline}</p><p class="avail">${s.availability}</p><p class="clock">${t.ui.clock} <time data-london></time></p><ul class="hero-links contact">
+        ${contact(t.sections.contact)}</ul>
+        <p class="proof">“${s.proof}” <span>${t.recs[0].name}, ${t.recs[0].role}</span></p><p class="hint">${matchMedia('(pointer: coarse)').matches ? t.ui.scrollTouch : t.ui.scroll} ↓</p>`;
     case 'journey': return `
       <h2>${s.title}</h2><p>${s.intro}</p><ol class="stops">${stops.map((st, i) => {
         if (st.section !== 'journey') return '';
@@ -42,6 +43,7 @@ function sectionHTML(section, t, active) {
     case 'repos': return list(repos, r => `<li style="--c:${r.color}">${ext(r.url, `<code>${r.name}</code><span class="tags">${r.lang.split(' · ').map(x => `<i>${x}</i>`).join('')}</span><em aria-hidden="true">↗</em>`, 'row repo')}</li>`, links.github + '?tab=repositories');
     case 'recs': return `<h2>${s.title}</h2><p>${s.intro}</p>${t.recs.map(r => `<blockquote><span class="who" aria-hidden="true">${r.name.split(' ').filter((_, k, w) => k === 0 || k === w.length - 1).map(w => w[0]).join('')}</span><p>${r.quote}</p><footer><b>${r.name}</b><span>${r.role}</span></footer></blockquote>`).join('')}`;
     case 'contact': return `<h2>${s.title}</h2><p>${s.intro}</p><ul class="contact">${contact(s)}</ul>
+      <p class="why">${s.why}</p><ul class="reasons">${s.reasons.map(r => `<li><a class="chip" data-bell href="${links.email}?subject=${encodeURIComponent(r.subject)}">${r.label}</a></li>`).join('')}</ul>
       <p class="footer">${t.ui.footer}</p>`;
   }
 }
@@ -60,11 +62,17 @@ export function initUI({ onGoto, onTheme }) {
     onTheme(prefs.theme);
   };
   // Header LED blind: names the current stop, with the occasional announcement (the gap, rain, the terminus, a pulled bell).
-  const notes = { gap: false, rain: false, flash: false };
+  const notes = { gap: false, rain: false, say: null };
+  let sayTimer;
+  const say = (key, ms = 2500) => { notes.say = key; led(); clearTimeout(sayTimer); sayTimer = setTimeout(() => { notes.say = null; led(); }, ms); };
+  const baseText = () => {
+    const t = i18n[prefs.lang], st = stops[Math.max(active, 0)];
+    return st.section === 'journey' ? `${st.year} ${t.stops[st.id].place}` : st.section === 'hero' ? t.ui.intro.d1 : t.ui.nav[st.section];
+  };
   const led = () => {
     const el = document.querySelector('.led .live'), t = i18n[prefs.lang], st = stops[Math.max(active, 0)];
-    let text = st.section === 'journey' ? `${st.year} ${t.stops[st.id].place}` : st.section === 'hero' ? t.ui.intro.d1 : t.ui.nav[st.section], alert = false;
-    if (notes.flash) { text = t.ui.led.stop; alert = true; }
+    let text = baseText(), alert = false;
+    if (notes.say) { text = t.ui.led[notes.say]; alert = true; }
     else if (notes.gap) { text = t.ui.led.gap; alert = true; }
     else if (st.section === 'contact') text = t.ui.led.end;
     else if (notes.rain && Math.floor(Date.now() / 4000) % 2) { text = t.ui.led.rain; alert = true; }
@@ -96,6 +104,7 @@ export function initUI({ onGoto, onTheme }) {
     langButton.textContent = prefs.lang === 'en' ? 'PT' : 'EN';
     langButton.setAttribute('aria-label', `${langButton.textContent} — ${t.ui.lang}`);
     document.querySelector('[data-theme]').setAttribute('aria-label', t.ui.theme);
+    for (const [sel, key] of [['[data-auto]', 'auto'], ['[data-photo]', 'photo']]) { const b = document.querySelector(sel); if (b) { b.setAttribute('aria-label', t.ui[key]); b.title = t.ui[key]; } }
     document.querySelector('.skip').textContent = t.ui.skip;
     const touch = matchMedia('(pointer: coarse)').matches; // phones get "swipe" copy (intro.t_*) instead of "scroll"
     const pick = (path) => path.split('.').reduce((o, k) => o[k], t.ui);
@@ -116,7 +125,7 @@ export function initUI({ onGoto, onTheme }) {
     announce.textContent = c ? `${st.year} ${c.title}` : t.sections[st.section].title;
   };
   document.addEventListener('click', (e) => {
-    if (e.target.closest('[data-bell]')) { ding(); notes.flash = true; led(); setTimeout(() => { notes.flash = false; led(); }, 2500); } // the mail app still opens: the bell is a flourish
+    if (e.target.closest('[data-bell]')) { ding(); say('stop'); } // the mail app still opens: the bell is a flourish
     const go = e.target.closest('[data-goto]');
     if (go) { e.preventDefault(); onGoto(+go.dataset.goto); }
     if (e.target.closest('[data-nav-home]')) { e.preventDefault(); onGoto(0); history.replaceState(null, '', location.pathname + location.search); }
@@ -142,6 +151,8 @@ export function initUI({ onGoto, onTheme }) {
   return {
     get theme() { return prefs.theme; },
     setActive(i) { if (i !== active) { active = i; render(true); } },
+    say,
+    caption: () => `83 · ${baseText()}`.toUpperCase(),
     note(key, on) { if (notes[key] !== on) { notes[key] = on; led(); } },
   };
 }

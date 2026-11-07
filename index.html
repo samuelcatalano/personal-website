@@ -43,9 +43,12 @@
   <link rel="stylesheet" href="css/style.css">
   <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.min.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }</script>
   <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.min.js">
+  <link rel="modulepreload" href="js/autoride.js">
   <link rel="modulepreload" href="js/content.js">
   <link rel="modulepreload" href="js/intro.js">
+  <link rel="modulepreload" href="js/postcard.js">
   <link rel="modulepreload" href="js/scroll.js">
+  <link rel="modulepreload" href="js/sound.js">
   <link rel="modulepreload" href="js/ui.js">
   <link rel="modulepreload" href="js/world/ambient.js">
   <link rel="modulepreload" href="js/world/ao-pass.js">
@@ -179,7 +182,7 @@
       <a href="#recs" data-nav="recs"></a>
       <a href="#contact" data-nav="contact">Contact</a>
     </nav>
-    <div class="controls"><button type="button" data-lang>PT</button><button type="button" data-theme>☀︎</button></div>
+    <div class="controls"><button type="button" data-auto aria-pressed="false"><svg class="i-play" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false"><path d="M8 5v14l11-7z"/></svg><svg class="i-pause" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false"><path d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg></button><button type="button" data-photo><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button><button type="button" data-lang>PT</button><button type="button" data-theme>☀︎</button></div>
     <p id="announce" class="sr-only" aria-live="polite"></p>
   </header>
   <main id="panel" class="panel"><noscript>
