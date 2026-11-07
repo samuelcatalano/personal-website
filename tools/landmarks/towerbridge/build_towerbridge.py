@@ -10,8 +10,8 @@ from mathutils import Vector, geometry
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.abspath(os.path.join(HERE, '..', '..', '..', 'assets', 'processed', 'landmarks'))
 os.makedirs(OUT, exist_ok=True)
-ST, SL, BL, TR, GL, GD, DK, LW, WG = range(9)   # authoring slots
-MATS = ['stone', 'slate', 'blue', 'trim', 'glass', 'gilt', 'deck', 'lampw', 'wglass']
+ST, SL, BL, TR, GL, GD, DK, LW, WG, LS = range(10)   # authoring slots; LS = light strips (night only)
+MATS = ['stone', 'slate', 'blue', 'trim', 'glass', 'gilt', 'deck', 'lampw', 'wglass', 'strip']
 K = 0.40                     # scene metres per real metre: one factor keeps the proportions inside the frozen envelope
 DECK_TOP = 5.2               # scene height of the carriageway, unchanged
 V = lambda x, y, z: Vector((K * x, -K * z, K * y + DECK_TOP))
@@ -141,6 +141,10 @@ def tower(b, tz):
     b.box(0, H, tz, 2 * TX + 1.0, 1.2, 2 * TZH + 1.0, TR)                # cornice
     b.box(0, H + 1.2, tz, 2 * TX + .8, 1.6, 2 * TZH + .8, ST)            # parapet
     b.frus(0, H + 1.6, tz, 7.6, 4.6, 2.2, 1.4, 6.0, SL, top=True)        # pitched slate roof
+    for sx in (-1, 1):                                                   # parapet outline lights
+        b.box(sx * (TX + .4), H + 2.8, tz, .25, .12, 2 * TZH + .8, LS)
+    for sz in (-1, 1):
+        b.box(0, H + 2.8, tz + sz * (TZH + .4), 2 * TX + .8, .12, .25, LS)
     for sx in (-1, 1):
         for sz in (-1, 1):
             cx, cz = sx * 7.2, tz + sz * 4.6
@@ -159,6 +163,7 @@ def walkways(b):
     for wx in (-5.8, 5.8):
         b.box(wx, WALK_Y - .4, 0, 3.2, .4, 2 * (ZIN - .5), TR)            # floor, ends short of the towers
         b.box(wx, WALK_Y + 4.0, 0, 3.4, .4, 2 * (ZIN - .5), TR)           # roof cap
+        b.box(wx, WALK_Y + 4.4, 0, 1.2, .1, 2 * (ZIN - .5), LS)          # light strip along the roof
         for N, U in (((1, 0, 0), (0, 0, -1)), ((-1, 0, 0), (0, 0, 1))):   # blue-framed glazing on both sides
             ops = [(rect(.12 + pitch * i, .4, pitch - .24, 3.2), WG, .08) for i in range(n)]
             b.wall((wx + N[0] * 1.5, WALK_Y, ZIN * (1 if N[0] > 0 else -1)), U, N, 2 * ZIN, 4.0, ops, BL, .08)
@@ -173,6 +178,7 @@ def deck(b):
         b.box(0, -.25, zc, 2 * HALF - 1.6, .25, ln, DK, ('-y', '+x', '-x'))  # carriageway, top at road level
         for sx in (-1, 1):
             b.box(sx * (HALF - .9), 0, zc, 1.8, .6, ln, TR, ('-y', '-x' if sx > 0 else '+x'))  # raised footway
+            b.box(sx * (HALF - .05), .6, zc, .1, .05, ln, LS)              # footway edge light
     for sg in (-1, 1):
         b.tube([(-6.5, -.9, sg * ZE), (6.5, -.9, sg * ZE)], .45, 4, BL)  # visible bascule hinge shaft
     if b.lod == 0:
@@ -214,27 +220,41 @@ def linear_hex(h):
     return tuple(v / 12.92 if v <= .04045 else ((v + .055) / 1.055) ** 2.4 for v in c) + (1,)
 
 
-COLORS = tuple(map(linear_hex, ('#a49e92', '#53617d', '#285aa5', '#e9e8e2', '#303943', '#d4a63c', '#2b2d31', '#fff0d0', '#8299ad')))
+COLORS = tuple(map(linear_hex, ('#a49e92', '#53617d', '#285aa5', '#e9e8e2', '#303943', '#d4a63c', '#2b2d31', '#fff0d0', '#8299ad', '#f4e7c4')))
 
 
 def run(lod):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     ob = make(lod); me = ob.data
     colors = me.color_attributes.new(name='COLOR_0', type='FLOAT_COLOR', domain='CORNER')
+    LIGHT_SLOTS = {GL, WG, LW, GD, LS}
+    targets = []                                                           # clearing material slots resets indices, so apply them last
     for poly in me.polygons:
         color = COLORS[poly.material_index]
         for loop in poly.loop_indices: colors.data[loop].color = color
-        poly.material_index = 0
+        s = poly.material_index
+        if s in LIGHT_SLOTS: target = 1                                         # windows, glazing, lamps, gilt, strips glow at night
+        elif s == ST:
+            y = (poly.center.z - DECK_TOP) / K                                  # real metres above road
+            target = 0 if y < 0 else (2 if y < 15 else 3)                       # piers stay plain; tower stone floodlit in two bands
+        else: target = 0
+        targets.append(target)
     me.color_attributes.active_color = colors
     me.materials.clear()
-    mat = bpy.data.materials.new('TowerBridgeAtlas'); mat.diffuse_color = (1, 1, 1, 1)
-    bsdf = mat.node_tree.nodes.get('Principled BSDF')
-    bsdf.inputs['Base Color'].default_value = (1, 1, 1, 1)
-    bsdf.inputs['Metallic'].default_value = .08
-    bsdf.inputs['Roughness'].default_value = .72
-    vertex_color = mat.node_tree.nodes.new('ShaderNodeVertexColor'); vertex_color.layer_name = colors.name
-    mat.node_tree.links.new(vertex_color.outputs['Color'], bsdf.inputs['Base Color'])
-    me.materials.append(mat)
+    for name, emit in (('TowerBridgeAtlas', None), ('TowerBridgeLights', (1.0, .85, .6)),
+                       ('TowerBridgeFloodLow', (1.0, .72, .4)), ('TowerBridgeFloodHigh', (1.0, .72, .4))):
+        mat = bpy.data.materials.new(name); mat.diffuse_color = (1, 1, 1, 1)
+        bsdf = mat.node_tree.nodes.get('Principled BSDF')
+        bsdf.inputs['Base Color'].default_value = (1, 1, 1, 1)
+        bsdf.inputs['Metallic'].default_value = .08
+        bsdf.inputs['Roughness'].default_value = .72
+        vertex_color = mat.node_tree.nodes.new('ShaderNodeVertexColor'); vertex_color.layer_name = colors.name
+        mat.node_tree.links.new(vertex_color.outputs['Color'], bsdf.inputs['Base Color'])
+        if emit:
+            bsdf.inputs['Emission Color'].default_value = (*emit, 1)
+            bsdf.inputs['Emission Strength'].default_value = 1.0
+        me.materials.append(mat)
+    for poly, target in zip(me.polygons, targets): poly.material_index = target
     me.calc_loop_triangles(); tris = len(me.loop_triangles)
     limit = 8000 if lod == 0 else 4000
     assert tris <= limit, f'LOD{lod} triangle budget exceeded: {tris} > {limit}'
@@ -245,11 +265,11 @@ def run(lod):
     mn, mx, doc = bounds_of(glb)
     assert -3.95 <= mn[0] and mx[0] <= 3.95 and -17.5 <= mn[2] and mx[2] <= 17.5, (mn, mx)   # inside the frozen envelope
     assert -1.05 < mn[1] and mx[1] <= 31.0 and abs(mx[1] - 30.7) < .4, (mn, mx)
-    assert len(doc['materials']) == 1 and doc['materials'][0]['name'] == 'TowerBridgeAtlas'
+    assert set(x['name'] for x in doc['materials']) <= {'TowerBridgeAtlas', 'TowerBridgeLights', 'TowerBridgeFloodLow', 'TowerBridgeFloodHigh'} and doc['materials'][0]['name'] == 'TowerBridgeAtlas', doc['materials']
     assert not doc.get('images') and not doc.get('textures'), 'direct PBR GLB must not contain texture assets'
     primitive = doc['meshes'][0]['primitives'][0]
     assert 'COLOR_0' in primitive['attributes'] and 'NORMAL' in primitive['attributes'] and 'indices' in primitive
-    assert len(doc['meshes']) == 1 and len(doc['meshes'][0]['primitives']) == 1
+    assert len(doc['meshes']) == 1 and len(doc['meshes'][0]['primitives']) == len(doc['materials']), 'one mesh, one primitive per material'
     # Reimport the exported GLB so bounds, normals, indices and triangle counts are checked after serialization.
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.gltf(filepath=glb)

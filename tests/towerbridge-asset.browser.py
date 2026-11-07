@@ -18,11 +18,12 @@ print(js(r'''(async () => {
   const out = [];
   for (const [i, lod] of lods.entries()) {
     const meshes = []; lod.traverse((o) => { if (o.isMesh) meshes.push(o); });
-    check(meshes.length === 1, 'one mesh per LOD');
-    const m = meshes[0].material, g = meshes[0].geometry, tris = (g.index ? g.index.count : g.attributes.position.count) / 3;
-    check(m.name === 'TowerBridgeAtlas' && !m.transparent, 'single opaque atlas material');
+    check(meshes.length >= 1 && meshes.length <= 4, 'one primitive per material, at most four draw calls per LOD');
+    check(meshes[0].material.name === 'TowerBridgeAtlas' && !meshes[0].material.transparent, 'atlas material first, opaque');
+    const m = meshes[0].material, tris = meshes.reduce((n, x) => n + (x.geometry.index ? x.geometry.index.count : x.geometry.attributes.position.count) / 3, 0);
     check(m.isMeshStandardMaterial && m.vertexColors && !m.map && !m.aoMap && !m.emissiveMap, 'vertex-colour PBR without baked maps');
-    check(m.userData.glow !== true, 'untextured material must not glow over the whole bridge');
+    check(m.userData.glow !== true, 'the atlas never glows');
+    for (const x of meshes.slice(1)) check(x.material.isMeshStandardMaterial && !x.material.map && x.material.userData.glow === true && x.material.userData.glowK > 0, 'night light and floodlit stone glow, without maps');
     const b = new THREE.Box3().setFromObject(lod);
     check(b.min.x >= pb.min.x - 0.5 && b.max.x <= pb.max.x + 0.5 && b.min.z >= pb.min.z - 0.5 && b.max.z <= pb.max.z + 0.5 && b.min.y > -1.05 && b.max.y <= pb.max.y + 0.3, 'inside the procedural envelope ' + JSON.stringify([b, pb]));
     check(Math.abs(b.max.y - 30.7) < 0.4 && b.max.z > 17 && b.max.x > 3.5, 'spans the proportional scale: top 30.7 m, length and width reach the envelope');
@@ -37,7 +38,7 @@ print(js(r'''(async () => {
   const procMass = procKids.filter((c) => /(mass|trim|glass)$/.test(c.name));
   const procLights = procKids.filter((c) => /(lightsWarm|lightsCool|wash)$/.test(c.name));
   check(procMass.length >= 1 && procMass.every((c) => !c.visible), 'procedural structure hidden while GLB active');
-  check(procLights.length >= 1 && procLights.some((c) => c.visible), 'dynamic night-light overlays stay visible');
+  check(procLights.length >= 1 && procLights.every((c) => !c.visible), 'old night-light overlays hidden: they sit on the old geometry, the GLB carries the night light');
   const at = (z) => api.update(new THREE.Vector3(100, 5, -45 + z)), vis = () => glb.map((c) => c.visible).join();
   at(0); check(vis() === 'true,false', 'near -> LOD0');
   at(17.6 + 155); check(vis() === 'true,false', 'inside hysteresis band stays LOD0');
