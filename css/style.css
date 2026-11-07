@@ -100,10 +100,8 @@ body.intro-on #loading { display: none; }
 #intro.ready .status { visibility: hidden; }
 .actions { display: flex; gap: 10px; }
 .actions button { min-height: 44px; padding: 8px 14px; font: 600 13px var(--sans); cursor: pointer; border: 1px solid var(--ink); color: var(--ink); background: transparent; }
-.actions .go { background: var(--accent); border-color: var(--accent); color: #fff; }
-body.theme-night .actions .go { color: #1b1d1f; }
-.actions .go:disabled { opacity: .45; cursor: default; }
-.actions .skip-intro { border-color: var(--line); color: var(--muted); }
+.actions .skip-intro { background: var(--accent); border-color: var(--accent); color: #fff; }
+body.theme-night .actions .skip-intro { color: #1b1d1f; }
 body.no-webgl { background: linear-gradient(var(--sky), var(--sky2) 70%, #829078 70%); }
 body.no-webgl #world { display: none; }
 @media (max-width: 767px) {

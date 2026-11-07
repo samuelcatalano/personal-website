@@ -35,9 +35,7 @@ watchScroll((p) => {
   if (!world) follow(p);
   world?.setProgress(p);
 });
-let seenIntro = false;
-try { seenIntro = localStorage.getItem('intro') === 'seen'; } catch { /* storage blocked */ }
-const intro = createIntro(document.getElementById('intro'), { seen: seenIntro || reducedMotion, onSeen: () => { try { localStorage.setItem('intro', 'seen'); } catch { /* storage blocked */ } } });
+const intro = createIntro(document.getElementById('intro'));
 const hasWebGL = () => { try { const gl = document.createElement('canvas').getContext('webgl2'); gl?.getExtension('WEBGL_lose_context')?.loseContext(); return !!gl; } catch { return false; } };
 if (hasWebGL()) {
   document.body.classList.add('world-loading');
