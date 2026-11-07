@@ -2,8 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { reflectionMode, REFLECT_DEFAULT, detailWaves, detailHeight, detailTexture } from '../js/world/water-math.js';
 
-test('reflection only on the high tier, ?reflect=0 kills it, ?reflect=1 forces the full city', () => {
-  assert.equal(reflectionMode('medium', '1'), 'off');
+test('bank reflection survives a quality drop, while the full city remains high-only', () => {
+  assert.equal(reflectionMode('medium', null), REFLECT_DEFAULT);
+  assert.equal(reflectionMode('medium', '1'), REFLECT_DEFAULT);
+  assert.equal(reflectionMode('medium', '0'), 'off');
   assert.equal(reflectionMode('high', '0'), 'off');
   assert.equal(reflectionMode('high', '1'), 'full');
   assert.equal(reflectionMode('high', null), REFLECT_DEFAULT);

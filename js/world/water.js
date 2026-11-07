@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { SUN_DIR, untone } from './sky.js';
 import { reflectionMode, detailTexture } from './water-math.js';
+import { PALETTE as P } from './palette.js';
 const DAY_SKY = new THREE.Color(0x8fc0e4), NIGHT_SKY = new THREE.Color(0x18203a);
 // Owner tweakables: how strongly the water mirrors (stylised floor added to Fresnel), sun/moon glint strength, foam band width (m).
 export const REFLECT_FLOOR = 0.16, GLINT = 1.0, FOAM_WIDTH = 1.4;
-const RT_SCALE = 0.5, RANGE = 420, REFLECT_LAYER = 5, MAX_PIERS = 12; // reflection target = half the drawing buffer per axis
+const RANGE = 420, REFLECT_LAYER = 5, MAX_PIERS = 12;
 const vertexShader = /* glsl */`
 #include <fog_pars_vertex>
 uniform mat4 uTexMat;
@@ -124,7 +125,7 @@ function getDetail() {
   return detailMap;
 }
 const SUNSET = new THREE.Color(0xff9a50), SUN_GLINT = new THREE.Color(0xfff0c8), MOON_GLINT = new THREE.Color(0xc8d8ff);
-export function createWater({ x0, x1, z, width, reducedMotion = false, piers = [], reflectRoots = [] }) {
+export function createWater({ x0, x1, z, width, reducedMotion = false, piers = [], reflectRoots = [], bankPlots = [] }) {
   const Y = 0.1;
   const geo = new THREE.PlaneGeometry(x1 - x0, width).rotateX(-Math.PI / 2);
   const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthBuffer: true });
@@ -149,6 +150,21 @@ export function createWater({ x0, x1, z, width, reducedMotion = false, piers = [
   mesh.position.set((x0 + x1) / 2, Y, z);
   // Planar reflection (Reflector-style mirrored camera with an oblique near plane at the waterline, so no shader variants).
   const flag = typeof location === 'undefined' ? null : new URLSearchParams(location.search).get('reflect');
+  const banks = bankPlots.filter(p => p.x >= x0 && p.x <= x1 && Math.abs(p.z - z) <= width / 2 + 65);
+  let bankReflection;
+  if (flag !== '0' && banks.length) {
+    // ponytail: reflect lot envelopes in one draw; use full geometry only for the diagnostic.
+    const bankGeometry = new THREE.BoxGeometry(1, 1, 1);
+    bankReflection = new THREE.InstancedMesh(bankGeometry, new THREE.MeshLambertMaterial(), banks.length);
+    bankReflection.name = 'river-bank-reflection';
+    bankReflection.layers.set(REFLECT_LAYER);
+    const matrix = new THREE.Matrix4(), color = new THREE.Color();
+    banks.forEach((p, i) => {
+      matrix.makeScale(p.width, p.height, p.depth).setPosition(p.x, p.height / 2, p.z);
+      bankReflection.setMatrixAt(i, matrix);
+      bankReflection.setColorAt(i, color.set(p.wall ?? (p.kind === 'office' ? P.steel : P.londonStock)));
+    });
+  }
   const mirror = new THREE.PerspectiveCamera(), frustum = new THREE.Frustum(), pv = new THREE.Matrix4(), box = new THREE.Box3();
   const view = new THREE.Vector3(), target = new THREE.Vector3(), look = new THREE.Vector3(), rot = new THREE.Matrix4(), N = new THREE.Vector3(0, 1, 0);
   const clipPlane = new THREE.Plane(), clip = new THREE.Vector4(), q = new THREE.Vector4(), size = new THREE.Vector2(), clear = new THREE.Color();
@@ -167,7 +183,7 @@ export function createWater({ x0, x1, z, width, reducedMotion = false, piers = [
     return frustum.intersectsBox(box);
   };
   return {
-    mesh,
+    mesh, bankReflection,
     get reflectMode() { return lastMode; }, // read by QA probes
     update(time, night, mood, tier = 'high', skyColors, sunDir) {
       u.uTime.value = reducedMotion ? 0 : time;
@@ -195,7 +211,8 @@ export function createWater({ x0, x1, z, width, reducedMotion = false, piers = [
       if (mode === 'off' || !inView(camera)) { u.uReflect.value = 0; lastMode = 'off'; return; }
       lastMode = mode;
       renderer.getDrawingBufferSize(size);
-      const w = Math.max(1, Math.round(size.x * RT_SCALE)), h = Math.max(1, Math.round(size.y * RT_SCALE));
+      const scale = tier === 'high' ? 0.5 : 0.25;
+      const w = Math.max(1, Math.round(size.x * scale)), h = Math.max(1, Math.round(size.y * scale));
       if (rt.width !== w || rt.height !== h) rt.setSize(w, h);
       u.uReflTexel.value.set(1 / w, 1 / h);
       if (mode === 'landmarks' && tagFrame++ % 120 === 0) tag(scene); // authored LODs arrive late: re-tag every ~2 s
@@ -235,6 +252,11 @@ export function createWater({ x0, x1, z, width, reducedMotion = false, piers = [
     },
     dispose() {
       geo.dispose(); mat.dispose(); rt.dispose();
+      if (bankReflection) {
+        bankReflection.dispose();
+        bankReflection.geometry.dispose();
+        bankReflection.material.dispose();
+      }
       if (--detailUsers === 0) { detailMap.dispose(); detailMap = null; }
     },
   };

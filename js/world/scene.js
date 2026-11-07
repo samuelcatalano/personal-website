@@ -209,14 +209,18 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const pools = createLampPools(scene, lamps);
   const sky = createSky(scene, { hemi, sun, reducedMotion }), moodAt = createMood(stops), rain = createRain(scene, { reducedMotion, lamps });
   const wetSurfaces = createWetSurfaces(scene, { lamps, reducedMotion });
-  // Water: foam rings Tower Bridge's piers and the moored boats; the planar reflection mirrors the river-side landmarks (water.js).
+  // Foam rings Tower Bridge's piers and moored boats. The river reflects landmarks and bank-side lots.
   const piers = [], tb = towerX(stops, pts), boatBox = new THREE.Box3(), reflectRoots = [eye];
   for (const tz of [-9.5, 9.5]) piers.push({ x: tb, z: RIVER_Z + tz, hx: 3.1, hz: 2.9 });
   scene.traverse((o) => { if (o.name.startsWith('thames-boat')) { boatBox.setFromObject(o); piers.push({ x: (boatBox.min.x + boatBox.max.x) / 2, z: (boatBox.min.z + boatBox.max.z) / 2, hx: (boatBox.max.x - boatBox.min.x) / 2, hz: (boatBox.max.z - boatBox.min.z) / 2 }); reflectRoots.push(o); } });
   for (const name of ['bigben', 'towerbridge', 'eyeframe', 'estaiada', 'masp', 'se', 'copan', 'riverside', 'university', 'chambers', 'wembley']) reflectRoots.push(details.getObjectByName(name + '-geometry'));
   reflectRoots.push(details.getObjectByName('estaiada-deck')?.parent, details.getObjectByName('bigben-four-clock-faces'));
-  const water = createWater({ x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z: RIVER_Z, width: 22, reducedMotion, piers, reflectRoots });
+  const water = createWater({
+    x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z: RIVER_Z, width: 22,
+    reducedMotion, piers, reflectRoots, bankPlots: architecturePlots,
+  });
   scene.add(water.mesh);
+  if (water.bankReflection) scene.add(water.bankReflection);
   if (qa) globalThis.__qaWater = water;
   let wet = 0;
   const post = createPost(renderer, scene, camera, { sun, tier: reducedMotion || matchMedia('(max-width: 767px)').matches ? 'medium' : 'high' });

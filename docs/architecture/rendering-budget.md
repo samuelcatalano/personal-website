@@ -12,13 +12,13 @@ The user reopened the Glasgow/country and distant-horizon art for an urban repla
 
 ## River water — 2026-11-07
 
-`js/world/water.js` (pure helpers and tests: `js/world/water-math.js`, `tests/water.test.mjs`). One planar-reflection mechanism serves both the landmark and the city reflection: a Reflector-style mirrored camera with an oblique near plane at the waterline (no clipping-plane shader variants), rendered into a half-drawing-buffer `HalfFloat` target before the composer, only on the `high` tier and only while the river strip within 420 m is in the frustum. Water and sky objects are hidden and the shadow map is not refreshed during that pass; the shader draws its own sky where the target's alpha is 0.
+`js/world/water.js` (pure helpers and tests in `js/world/water-math.js` and `tests/water.test.mjs`) uses a mirrored camera with an oblique near plane at the waterline. It renders into a `HalfFloat` target before the composer while the river strip within 420 m is in the frustum. Water and sky objects are hidden and the shadow map is not refreshed during that pass. The shader draws its own sky where the target's alpha is 0.
 
-- Default (`landmarks`): the mirrored camera renders only layer 5 (landmark groups along the river, Big Ben faces, the Eye, the Estaiada deck, boats, plus the lights). `?reflect=0` turns it off; `?reflect=1` renders the whole city.
-- Ladder: high = planar reflection + detail/glint/foam/depth; medium (mobile, adaptive drop) = previous sky gradient + dark bank silhouettes + detail/glint/foam/depth, `uReflect = 0`. Tier changes switch per frame; nothing is rebuilt.
+- By default, the mirrored camera renders river landmarks, boats and a single instanced mesh of bank-side lot envelopes. Those envelopes use the city's existing lot dimensions and appear only in the reflection. `?reflect=0` disables the pass. `?reflect=1` renders the whole city on `high`.
+- Both tiers keep planar reflections, detail normals, glint, foam and depth. The target uses half the drawing-buffer dimensions on `high` and a quarter on `medium`, which keeps the reflection visible after an adaptive drop and on mobile.
 - Memory: the target is allocated lazily at the first in-view high-tier frame: at 1728x963 CSS, DPR 1.5 it is 1296x722 RGBA16F (7.1 MiB) + 24-bit depth (~3.6 MiB). The detail map is one shared 128x128 RGBA8 `DataTexture` with mipmaps (~85 KiB), generated at startup in a few ms; no downloads.
 
-Measurement (`tools/perf/route-profile.py` with the tier pinned to `high` through `?qa`, since the fps governor otherwise drops this machine to `medium` and hides the pass; real Chrome, real GPU, 1728x963 DPR 1.5, `weather=clear`, one run each; frame times are vsync-quantised to 8.3 ms steps, so small deltas are below resolution):
+Initial measurement before the bank envelopes and `medium` support (`tools/perf/route-profile.py` with the tier pinned to `high` through `?qa`, real Chrome, real GPU, 1728x963 DPR 1.5, `weather=clear`, one run each). Frame times are vsync-quantised to 8.3 ms steps:
 
 | Segment | Config | Frames | Median ms | p95 ms | Calls med/p95 | Tris med/p95 (M) |
 |---|---|---:|---:|---:|---|---|
@@ -31,6 +31,8 @@ Measurement (`tools/perf/route-profile.py` with the tier pinned to `high` throug
 - Landmark reflection: SP +0 ms median, +0.6 ms p95, +59 median calls (within budget). At stop 10 (London, Parliament/Big Ben/Eye/Tower Bridge in view) a `renderer.info` count in the Browser pane gave +17 draw calls and +16k triangles per frame; the pinned-tier London frame-time run for the default could not be completed (the Chrome session became unreachable), so the London default frame time is unmeasured.
 - Unpinned runs before the change (same machine, default config): 8.5-11.5 median 24.1 / p95 33.3 ms, 1475 calls; 3-6 median 24.9 / p95 25.9 ms, 1509 calls. Not comparable with the pinned table (the governor may have dropped to `medium` mid-run).
 - Not measured: mobile frame time, VRAM by a GPU tool (sizes above are calculated), startup delta (no assets added).
+
+Follow-up after keeping the reflection on `medium`: Chrome at 1200×690, DPR 1, clear weather, route 8.5–11.5, two 10 s runs per configuration with the tier fixed. Both default and `reflect=0` measured 16.7 ms median and 25.1–25.2 ms p95. Chrome's private sessions also verified the reflection at stop 7 on desktop across a tier drop and at 375 px with mobile emulation.
 
 ## Shared resources and scaling
 

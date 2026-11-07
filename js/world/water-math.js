@@ -1,11 +1,10 @@
 // Pure helpers for the river water (no three.js import, so node tests can load them).
 
-// Planar reflection mode for a tier and the ?reflect= flag: '0' kills it, '1' forces the full city,
-// anything else falls back to the shipped default. Only the 'high' tier ever renders the extra pass.
+// The bank reflection survives a quality drop. The full city is a high-tier diagnostic.
 export const REFLECT_DEFAULT = 'landmarks';
 export function reflectionMode(tier, flag, fallback = REFLECT_DEFAULT) {
-  if (tier !== 'high' || flag === '0') return 'off';
-  if (flag === '1') return 'full';
+  if (flag === '0') return 'off';
+  if (tier === 'high' && flag === '1') return 'full';
   return fallback;
 }
 
