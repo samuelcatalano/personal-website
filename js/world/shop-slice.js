@@ -103,17 +103,18 @@ export function createShopSlice(plot,neighbors=[],recipe=shopRecipe(plot,neighbo
   if(recipe.roofCap==='stepped')box(0,roofY+.36,front-.08,w*.42,.28,.20,S.stone);
   if(recipe.roofCap==='pavilion'){box(-w*.15,roofY+.24,-d*.13,w*.48,.42,d*.42,S.roof);box(-w*.15,roofY+.47,-d*.13,w*.52,.04,d*.46,S.stone,1);}
   if(recipe.cornerPub){const x=w*.38,z=front-.40;box(x,roofY+.20,z,.62,.40,.62,S.stone);box(x,roofY+.43,z,.70,.06,.70,S.trim,1);}
-  // The awning projects inside the existing lot, so the sidewalk stays clear.
+  // The awning projects inside the existing lot, so the sidewalk stays clear. Its colour accent comes from surfaces already in the family atlas; hero recipes without a palette keep roof.
+  const awning=[S.brick,S.roof,S.door][(recipe.palette??1)%3];
   if(recipe.canopy==='entry'){
     const entry=(recipe.entry-((recipe.storeBays??recipe.bays)-1)/2)*w/(recipe.storeBays??recipe.bays);box(entry,2.84,front-.3,1.8,.12,.85,S.roof);
   }else if(recipe.canopy!==false){
   const aw=recipe.ground-.18;
-  quad([[-w*.48,aw,front+.14],[w*.48,aw,front+.14],[w*.48,aw+.18,front-.60],[-w*.48,aw+.18,front-.60]],[0,.74/Math.hypot(.74,.18),.18/Math.hypot(.74,.18)],S.roof);
-  box(0,aw-.04,front+.10,w*.96,.11,.08,S.roof);
+  quad([[-w*.48,aw,front+.14],[w*.48,aw,front+.14],[w*.48,aw+.18,front-.60],[-w*.48,aw+.18,front-.60]],[0,.74/Math.hypot(.74,.18),.18/Math.hypot(.74,.18)],awning);
+  box(0,aw-.04,front+.10,w*.96,.11,.08,awning);
   }
   const materials=townhouseMaterials(),g=new THREE.Group();g.name=plot.id;g.position.set(x,0,z);
   buckets.forEach((data,k)=>{const geometry=new THREE.BufferGeometry();for(const [key,size]of [['position',3],['normal',3],['uv',2],['aSurface',1],['color',3]])geometry.setAttribute(key,new THREE.Float32BufferAttribute(data[key],size));geometry.computeBoundingBox();geometry.computeBoundingSphere();const m=new THREE.Mesh(geometry,k===2?materials.glass:materials.architecture);m.name=['shop-mass','shop-trim','shop-glass'][k];m.castShadow=k===0;m.receiveShadow=true;g.add(m);});
-  g.userData={recipe,openings};return g;
+  g.userData={recipe,openings,awning};return g;
 }
 export function createShopChunk(plots,neighbors=plots){
   const group=new THREE.Group();group.name='hero-shopfronts';group.position.set(-272,0,-32);
