@@ -25,7 +25,7 @@ function sectionHTML(section, t, active) {
     case 'hero': return `
       <img class="avatar" src="assets/avatar.png" alt="" width="96" height="96">
       <h1>${s.title}</h1><p class="role">${s.role}</p><p class="meta">${s.meta}</p>
-      <p class="tagline">${s.tagline}</p><ul class="hero-links contact">
+      <p class="tagline">${s.tagline}</p><p class="avail">${s.availability}</p><ul class="hero-links contact">
         ${contact(t.sections.contact)}</ul><p class="hint">${t.ui.scroll} ↓</p>`;
     case 'journey': return `
       <h2>${s.title}</h2><p>${s.intro}</p><ol class="stops">${stops.map((st, i) => {

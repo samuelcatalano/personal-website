@@ -59,7 +59,7 @@ export const i18n = {
       signpost: { saoPaulo: 'São Paulo', london: 'London', km: '9,480 km' }, // 3D fingerpost on the plaza over the SP -> London tunnel
     },
     sections: {
-      hero: { title: 'Samuel Catalano', role: 'Senior Software Engineer', tagline: 'Ranked #1 Software Engineer in the world according to my parents.', meta: '17+ years · Java · Backend · London' },
+      hero: { title: 'Samuel Catalano', role: 'Senior Software Engineer', tagline: 'Ranked #1 Software Engineer in the world according to my parents.', availability: 'Now boarding: backend and platform conversations. Plenty of seats upstairs.', meta: '17+ years · Java · Backend · London' },
       journey: { title: 'Journey', intro: 'Every stop is a chapter. Hop on the bus through my career.' },
       stack: { title: 'Stack', intro: 'The tools I reach for when a system has to keep working after launch.' },
       articles: { title: 'Writing', intro: 'Practical engineering notes on Medium.', more: 'All articles', src: 'Medium' },
@@ -94,7 +94,7 @@ export const i18n = {
       signpost: { saoPaulo: 'São Paulo', london: 'Londres', km: '9.480 km' },
     },
     sections: {
-      hero: { title: 'Samuel Catalano', role: 'Engenheiro de Software Sênior', tagline: 'Engenheiro de software nº 1 do mundo, segundo meus pais.', meta: '17+ anos · Java · Backend · Londres' },
+      hero: { title: 'Samuel Catalano', role: 'Engenheiro de Software Sênior', tagline: 'Engenheiro de software nº 1 do mundo, segundo meus pais.', availability: 'Embarque aberto: conversas sobre backend e plataforma. Ainda tem lugar no andar de cima.', meta: '17+ anos · Java · Backend · Londres' },
       journey: { title: 'Trajetória', intro: 'Cada parada, um capítulo. Embarque no ônibus pela minha carreira.' },
       stack: { title: 'Stack', intro: 'As ferramentas que uso quando um sistema precisa continuar funcionando depois do lançamento.' },
       articles: { title: 'Artigos', intro: 'Notas práticas de engenharia no Medium.', more: 'Todos os artigos', src: 'Medium' },

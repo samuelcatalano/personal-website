@@ -19,6 +19,10 @@ test('recommendations nav label equals its panel title in both languages', () =>
   for (const lang of ['en', 'pt']) assert.equal(i18n[lang].ui.nav.recs, i18n[lang].sections.recs.title, lang);
 });
 
+test('hero has an availability line in both languages', () => {
+  for (const lang of ['en', 'pt']) assert.ok(i18n[lang].sections.hero.availability?.trim(), `${lang} hero.availability`);
+});
+
 test('no empty strings', () => {
   for (const lang of ['en', 'pt']) {
     const walk = (o) => Object.values(o).forEach(v =>

@@ -31,6 +31,8 @@ body { margin: 0; font: 15px/1.6 var(--sans); color: var(--ink); background: lin
 .panel .role { font-weight: 600; margin: 0; }
 .panel .meta, .panel small { color: var(--muted); }
 .panel .tagline { margin-top: 18px; }
+.panel .avail { margin: -6px 0 0; font-size: 13px; color: var(--muted); }
+.panel .avail::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: var(--accent); }
 .panel .hint { color: var(--muted); font-size: 11px; letter-spacing: .04em; margin: 18px 0 0; }
 .avatar { display: block; width: 72px; height: 72px; object-fit: cover; border-radius: 50%; border: 1px solid var(--line); background: var(--sky); }
 .hero-links, .contact { list-style: none; display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 0; margin: 20px 0 0; }
