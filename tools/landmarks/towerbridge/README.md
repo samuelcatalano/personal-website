@@ -22,7 +22,7 @@ Bounds: x ±3.92, z ±17.36, y −0.8..30.68. The loader's envelope is x ±4.1, 
 
 Features: four corner turrets with pinnacles per tower, a pitched roof, Gothic lancets, a carriageway portal on the road faces, two glazed blue walkways, and two bascule leaves with a centre seam, hinge shafts, footways, rails and lamps (LOD0 only).
 
-Validated export: LOD0 4,456 triangles / 289,960 bytes; LOD1 1,144 triangles / 88,324 bytes; 4 primitives per LOD (one per material), so 4 draw calls. The builder reimports both files and checks bounds (inside the envelope), triangle budgets, finite unit normals, colour variation, indices and that no texture is embedded.
+Validated export: LOD0 6,024 triangles / 398,016 bytes; LOD1 1,288 triangles / 96,104 bytes; the towers carry corner pilasters with pinnacle caps, roof dormers and parapet merlons, the high walkways have X bracing, and a Union Jack (north tower) and St George's cross (south tower) are baked in as vertex-coloured cloth (the procedural fallback has no flags); 4 primitives per LOD (one per material), so 4 draw calls. The builder reimports both files and checks bounds (inside the envelope), triangle budgets, finite unit normals, colour variation, indices and that no texture is embedded.
 
 The browser test checks that both LODs load, that the atlas is opaque vertex-colour PBR without maps, that the light and floodlit materials glow without maps, the envelope, the triangle budgets, the LOD swap, and that the procedural fallback stays untouched when the GLB fails.
 

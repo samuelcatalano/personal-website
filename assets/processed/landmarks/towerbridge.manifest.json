@@ -2,20 +2,20 @@
   "generated": "2026-11-07",
   "tool": "blender -b --python tools/landmarks/towerbridge/build_towerbridge.py",
   "source": "tools/landmarks/towerbridge/build_towerbridge.py (procedural, real metres scaled by K = 0.40, vertex-colour PBR)",
-  "note": "Three.js GLTFLoader asset; one mesh per LOD with one primitive per material (vertex-colour PBR atlas, night lights, two floodlit stone bands). No textures. Loaded by js/world/towerbridge-asset.js; ?landmarks=procedural forces the procedural fallback.",
+  "note": "Three.js GLTFLoader asset; one mesh per LOD with one primitive per material (vertex-colour PBR atlas, night lights, two floodlit stone bands), baked flags (Union Jack, St George), pilasters, dormers, merlons and walkway bracing. No textures. Loaded by js/world/towerbridge-asset.js; ?landmarks=procedural forces the procedural fallback.",
   "outputs": {
     "lod0": {
       "path": "assets/processed/landmarks/towerbridge.lod0.glb",
-      "bytes": 289960,
-      "sha256": "526da557e11a6b8d8327689cde3c6ff74ab70c2a6d8db240913f4875103a3859",
-      "triangles": 4456,
+      "bytes": 398016,
+      "sha256": "326f754cdc0f384b3de492e5c5520d86ca5223e51f9f03ca4fe3a3d1074f3761",
+      "triangles": 6024,
       "primitives": 4
     },
     "lod1": {
       "path": "assets/processed/landmarks/towerbridge.lod1.glb",
-      "bytes": 88324,
-      "sha256": "f9114e0877cd89af94005ba55fc531a85aeb161acbddac9ddd03a77f0db60ec2",
-      "triangles": 1144,
+      "bytes": 96104,
+      "sha256": "dd88f8504c3c91172d57206dff36876eb327c6baf3ae85f5d87d5a506c714eb9",
+      "triangles": 1288,
       "primitives": 4
     }
   }

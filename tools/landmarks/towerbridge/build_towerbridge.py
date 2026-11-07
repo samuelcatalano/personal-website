@@ -11,7 +11,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.abspath(os.path.join(HERE, '..', '..', '..', 'assets', 'processed', 'landmarks'))
 os.makedirs(OUT, exist_ok=True)
 ST, SL, BL, TR, GL, GD, DK, LW, WG, LS = range(10)   # authoring slots; LS = light strips (night only)
-MATS = ['stone', 'slate', 'blue', 'trim', 'glass', 'gilt', 'deck', 'lampw', 'wglass', 'strip']
+FB, FR, FW = 10, 11, 12                               # flag cloth: blue, red, white (vertex colours)
+MATS = ['stone', 'slate', 'blue', 'trim', 'glass', 'gilt', 'deck', 'lampw', 'wglass', 'strip', 'flagblue', 'flagred', 'flagwhite']
 K = 0.40                     # scene metres per real metre: one factor keeps the proportions inside the frozen envelope
 DECK_TOP = 5.2               # scene height of the carriageway, unchanged
 V = lambda x, y, z: Vector((K * x, -K * z, K * y + DECK_TOP))
@@ -156,6 +157,21 @@ def tower(b, tz):
                     b.face(cx, cz, 2.0, 2.0, N, U, H + 2.0, 9.0, [(arch(2.0, 1.0, .7, 2.6), GL, .2)], ST, .2)
             b.cone(cx, H + 12.8, cz, 2.0, 0.0, 8.0, 8 if L0 else 6, SL)  # pointed spire
             b.cone(cx, H + 20.8, cz, .35, 0.0, .9, 4, GD)                # gilt tip
+    if L0:                                                              # corner pilasters with pinnacle caps, roof dormers
+        for sx in (-1, 1):
+            for sz in (-1, 1):
+                b.box(sx * (TX - .2), 0, tz + sz * (TZH - .2), 1.4, H, 1.4, ST, ('-y',))
+                b.cone(sx * (TX - .2), H, tz + sz * (TZH - .2), .8, 0.0, 2.2, 4, SL)
+        for sx in (-1, 1):
+            b.box(sx * 5.4, H + 1.9, tz, 2.0, 2.6, 2.8, ST)
+            b.frus(sx * 5.4, H + 4.5, tz, 1.1, 1.5, 0.0, 0.0, 2.0, SL)
+            b.box(sx * 6.45, H + 2.6, tz, .15, 1.4, 1.0, GL)
+    if L0:                                                              # merlons along the parapet
+        for k in range(3):
+            u = -TX + (k + .5) * 2 * TX / 3
+            for sz in (-1, 1): b.box(u, H + 2.8, tz + sz * (TZH + .2), 1.0, .8, .6, ST)
+            v = -TZH + (k + .5) * 2 * TZH / 3
+            for sx in (-1, 1): b.box(sx * (TX + .2), H + 2.8, tz + v, .6, .8, 1.0, ST)
 
 
 def walkways(b):
@@ -196,10 +212,54 @@ def deck(b):
                 b.box(sx * (HALF - .5), 4.0, z, .6, .7, .6, LW, ('-y',))  # warm lantern
 
 
+def jack_slot(u, v):
+    if abs(u - .5) <= .055 or abs(v - .5) <= .055: return FR        # St George cross, red
+    if abs(u - .5) <= .09 or abs(v - .5) <= .09: return FW          # white border of the cross
+    if abs(v - u) <= .035 or abs(v - (1 - u)) <= .035: return FR    # red St Patrick saltire
+    if abs(v - u) <= .12 or abs(v - (1 - u)) <= .12: return FW      # white St Andrew saltire
+    return FB
+
+
+def england_slot(u, v):
+    return FR if abs(u - .5) <= .1 or abs(v - .5) <= .1 else FW
+
+
+def flag(b, pole_x, pole_z, top, colour_of, W, H, nx, ny, d):
+    """Pole plus a cloth of non-overlapping coloured cells (vertex colours, no texture). The cloth lies in the z-y plane, facing the river banks; d = +-1 sets which way it flies."""
+    b.box(pole_x, top - 12.0, pole_z, .3, 12.0, .3, TR)
+    b.cone(pole_x, top, pole_z, .25, 0.0, 1.0, 6, GD)
+    z0, y0 = pole_z + d * .2, top - .3 - H
+    for i in range(nx):
+        for j in range(ny):
+            u0, u1, v0, v1 = i / nx, (i + 1) / nx, j / ny, (j + 1) / ny
+            slot = colour_of((u0 + u1) / 2, (v0 + v1) / 2)
+            b.poly([(pole_x, y0 + v0 * H, z0 + d * u0 * W), (pole_x, y0 + v0 * H, z0 + d * u1 * W),
+                    (pole_x, y0 + v1 * H, z0 + d * u1 * W), (pole_x, y0 + v1 * H, z0 + d * u0 * W)], slot, (1, 0, 0))
+
+
+def flags(b):
+    jack, eng = ((16, 8), (12, 8)) if b.lod == 0 else ((8, 4), (6, 4))
+    flag(b, 0, TZ, 61.6, jack_slot, 4.5, 2.7, *jack, 1)         # north tower: Union Jack
+    flag(b, 0, -TZ, 61.6, england_slot, 4.5, 2.7, *eng, -1)     # south tower: St George's cross
+
+
+def lattice(b):
+    """Diagonal bracing on the walkway sides (LOD0): thin tubes just outside the glazing."""
+    n = 10; pitch = 2 * ZIN / n
+    for wx in (-5.8, 5.8):
+        for sx in (-1, 1):
+            xs = wx + sx * 1.56
+            for i in range(n):
+                z0 = -ZIN + i * pitch + .15; z1 = -ZIN + (i + 1) * pitch - .15
+                b.tube([(xs, WALK_Y + .25, z0), (xs, WALK_Y + 3.75, z1)], .08, 4, TR)
+                b.tube([(xs, WALK_Y + 3.75, z0), (xs, WALK_Y + .25, z1)], .08, 4, TR)
+
+
 def make(lod):
     b = B(lod)
     for tz in (-TZ, TZ): tower(b, tz)
-    walkways(b); deck(b)
+    walkways(b); deck(b); flags(b)
+    if b.lod == 0: lattice(b)
     bm = b.bm
     bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-4)
     me = bpy.data.meshes.new(f'TowerBridge_LOD{lod}'); bm.to_mesh(me); bm.free()
@@ -222,7 +282,7 @@ def linear_hex(h):
     return tuple(v / 12.92 if v <= .04045 else ((v + .055) / 1.055) ** 2.4 for v in c) + (1,)
 
 
-COLORS = tuple(map(linear_hex, ('#b9a88f', '#4f6a63', '#2a8aa8', '#e9e8e2', '#303943', '#d4a63c', '#2b2d31', '#fff0d0', '#8299ad', '#f4e7c4')))
+COLORS = tuple(map(linear_hex, ('#b9a88f', '#4f6a63', '#2a8aa8', '#e9e8e2', '#303943', '#d4a63c', '#2b2d31', '#fff0d0', '#8299ad', '#f4e7c4', '#1f3a8a', '#cf1f2e', '#f4f4f0')))
 
 
 def run(lod):

@@ -46,7 +46,7 @@ function clockFaces(x, z) {
   return group;
 }
 function towerBridge(add, { x }) {
-  for (const along of [-9.5, 9.5]) flag(add, x, 35.2, RIVER_Z + along, 'jack', 0.65);
+  // Tower Bridge flags are part of the authored GLB (tools/landmarks/towerbridge); the old overlay flags sat on the old towers.
   return createTowerBridge(x, RIVER_Z);
 }
 export function buildLandmarks(add, stops, pts, onTree) {
