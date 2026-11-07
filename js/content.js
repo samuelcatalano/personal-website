@@ -53,7 +53,7 @@ export const stack = ['Java 17', 'Spring Boot', 'Quarkus', 'Kafka', 'Debezium', 
 export const i18n = {
   en: {
     ui: {
-      nav: { journey: 'Journey', stack: 'Stack', articles: 'Writing', repos: 'Code', recs: 'Kind words', contact: 'Contact' },
+      nav: { journey: 'Journey', stack: 'Stack', articles: 'Writing', repos: 'Code', recs: 'Recommendations', contact: 'Contact' },
       theme: 'Switch between day and night', lang: 'Switch language', scroll: 'Scroll to ride',
       navLabel: 'Sections', beforeLondon: 'Before London', present: 'Present', skip: 'Skip to content', footer: 'Designed and built by Samuel Catalano.',
       signpost: { saoPaulo: 'São Paulo', london: 'London', km: '9,480 km' }, // 3D fingerpost on the plaza over the SP -> London tunnel
@@ -64,7 +64,7 @@ export const i18n = {
       stack: { title: 'Stack', intro: 'The tools I reach for when a system has to keep working after launch.' },
       articles: { title: 'Writing', intro: 'Practical engineering notes on Medium.', more: 'All articles', src: 'Medium' },
       repos: { title: 'Code', intro: 'A few public repositories worth a look.', more: 'All repositories' },
-      recs: { title: 'Kind words', intro: 'What people I worked with say.' },
+      recs: { title: 'Recommendations', intro: 'What people I worked with say.' },
       contact: { title: 'Last stop: Wembley', intro: 'Always glad to talk about backend and platform work.', email: 'Email', linkedin: 'LinkedIn', github: 'GitHub', cv: 'Download CV' },
     },
     stops: {
