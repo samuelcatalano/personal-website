@@ -7,7 +7,7 @@ import { midriseRecipe, createMidriseSlice } from './midrise-slice.js';
 import { officeRecipe, createOfficeSlice } from './office-slice.js';
 import { towerRecipe, createTowerSlice } from './tower-slice.js';
 import { createShopSlice, heroShopRecipe } from './shop-slice.js';
-import { SURFACE as S, townhouseMaterials } from './building-slice-materials.js';
+import { SURFACE as S, addRoomCoordinates, roomGlassMaterial, townhouseMaterials } from './building-slice-materials.js';
 
 export function classifyPlot(p) {
   if (![p.x??0,p.z??0,p.width,p.depth,p.height].every(Number.isFinite)) return null;
@@ -93,7 +93,7 @@ export function building(p,kind,neighbors,level=0){
 // Vertex tints vary the shared metric atlas; materials and maps are never cloned.
 const walls=[[1.12,1.14,1.16],[.55,.80,1.12],[.65,.92,.60],[1.18,.82,.45],[1.10,.65,.70],[.58,.64,.72],[1.10,1.04,.80],[.83,.75,.64],[1.15,.95,.62],[.72,.95,.88],[1.05,.55,.45],[.92,.88,1.08],[1.16,1.08,.92],[.62,.72,.58]];
 // Glass tint families (multipliers on the shared teal pane): 0 cool blue, 1 green-teal, 2 bronze, 3 silver, 4 smoked.
-const glassTints=[[.72,1.02,1.42],[.62,1.22,1.0],[1.85,1.0,.62],[1.45,1.2,1.02],[.58,.64,.7]];
+const glassTints=[[.82,1.03,1.25],[.79,1.10,.94],[1.35,1.08,.82],[1.24,1.16,1.07],[.58,.64,.7]];
 const glassPick={london:[0,3,4,0,3,2],paulista:[1,2,3,1,0,4],countryside:[0,3,4,1,2,0],glasgow:[3,4,0,3,2,1],none:[0,1,3,2,4,0]};
 // Roof targets in sRGB; vertex colour = target / atlas roof albedo, in linear space. Pitched = terrace/shop, flat = everything else.
 const roofBase=[68,80,94],lin=(t,b)=>Math.pow(t/b,2.2);
@@ -109,10 +109,12 @@ export function tint(g,p) {
   const regionalBrick=region==='glasgow'?bricks[[2,5,7][Math.floor(seed/3)%3]]:region==='london'?bricks[[0,5,7][Math.floor(seed/3)%3]]:region==='countryside'?bricks[[2,3,7][Math.floor(seed/3)%3]]:bricks[Math.floor(seed/3)%bricks.length];
   const pitched=p.kind==='terrace'||p.kind==='shop',gt=glassTints[glassPick[region||'none'][Math.floor(seed/7)%6]];
   const roofTop=roofFor(pitched?roofs.pitched[region||'none'][Math.floor(seed/13)%4]:roofs.flat[Math.floor(seed/13)%8]);
+  const wallValue = 0.86 + (Math.floor(seed / 223) % 15) * 0.02;
   for(const m of g.children){const a=m.geometry.attributes;
     for(let i=0;i<a.position.count;i++){
       const s=a.aSurface.getX(i),t=s===S.plaster?regionalWall:s===S.stone?(region?regionalWall:p.kind==='office'?walls[(seed%3)*2]:[1,1,1]):s===S.brick?regionalBrick:s===S.roof?(pitched||a.normal.getY(i)>.7?roofTop:region==='glasgow'?walls[5]:roof):s===S.glass||s===S.litGlass?gt:[1,1,1];
-      a.color.setXYZ(i,a.color.getX(i)*t[0],a.color.getY(i)*t[1],a.color.getZ(i)*t[2]);
+      const value = s === S.plaster || s === S.stone || s === S.brick ? wallValue : 1;
+      a.color.setXYZ(i,a.color.getX(i)*t[0]*value,a.color.getY(i)*t[1]*value,a.color.getZ(i)*t[2]*value);
     }
   }
 }
@@ -132,6 +134,7 @@ function mergeCell(cell,neighbors,level,modules) {
     const geometry=mergeGeometries(houses.map(h=>h[k]),false);
     if(!geometry)throw new Error('Incompatible city architecture bucket');geometry.computeBoundingBox();geometry.computeBoundingSphere();return geometry;
   });
+  addRoomCoordinates(merged[2], cell.x, cell.z);
   houses.flat().forEach(g=>g.dispose());
   return merged;
 }
@@ -143,12 +146,12 @@ export function createCityRollout(plots,neighbors=plots) {
     const x=Math.floor(p.x/32)*32,z=Math.floor(p.z/32)*32,key=`${x}:${z}`;
     if(!cells.has(key))cells.set(key,{x,z,plots:[]});cells.get(key).plots.push({p,kind});
   }
-  let kitLots=0;const materials=townhouseMaterials(),start=performance.now(),chunkOf=new Map();
+  let kitLots=0;const {architecture}=townhouseMaterials(),glass=roomGlassMaterial(),start=performance.now(),chunkOf=new Map();
   for(const cell of cells.values()){
     const chunk=new THREE.Group();chunk.name=`architecture-cell-${cell.x}-${cell.z}`;chunk.position.set(cell.x,0,cell.z);
     const hasLod=cell.plots.some(({kind})=>kind==='townhouse'),lods=[];
     for(let level=0;level<(hasLod?2:1);level++)lods.push(mergeCell(cell,neighbors,level,null));
-    lods[0].forEach((geometry,k)=>{const mesh=new THREE.Mesh(geometry,k===2?materials.glass:materials.architecture);mesh.name=['city-mass','city-trim','city-glass'][k];mesh.castShadow=k===0;mesh.receiveShadow=true;chunk.add(mesh);});
+    lods[0].forEach((geometry,k)=>{const mesh=new THREE.Mesh(geometry,k===2?glass:architecture);mesh.name=['city-mass','city-trim','city-glass'][k];mesh.castShadow=k===0;mesh.receiveShadow=true;chunk.add(mesh);});
     const bounds=new THREE.Box3();lods.flat().forEach(g=>bounds.union(g.boundingBox));bounds.translate(chunk.position);
     chunk.userData={plotIds:cell.plots.map(({p})=>p.id),lods,bounds,level:null};group.add(chunk);chunkOf.set(cell,chunk);
   }

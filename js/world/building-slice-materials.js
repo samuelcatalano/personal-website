@@ -3,7 +3,7 @@ import { GLASS_REFLECTION } from './glass-reflection.js';
 
 // One metric atlas: each padded tile covers 1 x 2 metres, independent of lot size.
 export const SURFACE = Object.freeze({ plaster: 0, brick: 1, roof: 2, trim: 3, stone: 4, litGlass: 5, glass: 6, door: 7 });
-let shared;
+let shared, landmarkSet;
 const hash = (x, y) => { let n = Math.imul(x + 131, 374761393) ^ Math.imul(y + 719, 668265263); n = Math.imul(n ^ n >>> 13, 1274126177); return (n >>> 0) / 4294967295; };
 const mod = (x, n) => (x % n + n) % n;
 const palette = [[220,211,191],[160,96,73],[68,80,94],[230,221,201],[196,186,164],[65,94,112],[65,94,112],[52,67,69]];
@@ -122,11 +122,12 @@ const FACADE_GLSL = `
   float sliceHash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
   float sliceNoise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
     return mix(mix(sliceHash(i), sliceHash(i + vec2(1.0, 0.0)), f.x), mix(sliceHash(i + vec2(0.0, 1.0)), sliceHash(i + vec2(1.0)), f.x), f.y); }`;
-const FACADE_WEATHER = `
+const facadeWeather = cityWalls => `
   vec3 facadeN = inverseTransformDirection(normalize(vNormal), viewMatrix);
   float facadeSeed = sliceNoise(vFloodP.xz / 13.0), facadeSeed2 = sliceNoise(vFloodP.xz / 13.0 + 17.3);
   float facadeAlong = dot(vFloodP.xz, normalize(vec2(-facadeN.z, facadeN.x) + 1e-4)); // metres along the wall
   float facadeWall = (1.0 - step(4.5, vSliceSurface)) * step(0.1, abs(vSliceSurface - 2.0)); // plaster/brick/trim/stone, not roof
+  ${cityWalls ? 'float facadeMoisture = 0.0;' : ''}
   if (facadeWall > 0.5) {
     float v = (facadeSeed - 0.5) * ${FACADE_VARIATION.toFixed(3)}, w = (facadeSeed2 - 0.5) * ${FACADE_VARIATION.toFixed(3)};
     diffuseColor.rgb *= (1.0 + v) * vec3(1.0 + w, 1.0, 1.0 - w);
@@ -138,10 +139,24 @@ const FACADE_WEATHER = `
     diffuseColor.rgb *= 1.0 - 0.14 * dirt * smoothstep(0.55, 0.95, facadeN.y); // soot on sills, ledges, cornice tops
     float vertical = 1.0 - smoothstep(0.25, 0.5, abs(facadeN.y));
     float sx = facadeAlong * 1.2, aa = 1.0 - smoothstep(0.25, 0.6, fwidth(sx)); // fade before streaks alias (no shimmer at range)
-    float streak = smoothstep(0.62, 0.9, sliceNoise(vec2(sx, vFloodP.y * 0.09 + facadeSeed * 9.0)));
-    float belowSill = 1.0 - fract((vFloodP.y - 0.85) / 3.0); // strongest under each ~3 m storey line, washing out downward
+    float runoff = sliceNoise(vec2(sx, vFloodP.y * 0.09 + facadeSeed * 9.0));
+    float streak = smoothstep(0.62, 0.9, runoff);
+    float storey = fract((vFloodP.y - 0.85) / 3.0);
+    float belowSill = ${cityWalls ? 'smoothstep(0.18, 0.86, storey) * (1.0 - smoothstep(0.90, 1.0, storey))' : '1.0 - storey'};
     diffuseColor.rgb *= 1.0 - 0.14 * dirt * streak * belowSill * vertical * aa * step(0.35, facadeSeed2 + 0.25);
+    ${cityWalls ? `
+      float dampPatch = smoothstep(0.35, 0.83, runoff) * aa;
+      float risingDamp = 1.0 - smoothstep(0.12, 0.45 + dampPatch * 1.2, vFloodP.y);
+      float porous = step(0.25, abs(vSliceSurface - 3.0));
+      facadeMoisture = clamp((risingDamp * 0.75 + dampPatch * belowSill * 0.40) * vertical * porous, 0.0, 1.0);
+      diffuseColor.rgb *= mix(vec3(1.0), vec3(0.74, 0.79, 0.78), facadeMoisture);
+    ` : ''}
   }`;
+const FACADE_RELIEF = `
+  float masonry = 1.0 - step(0.25, min(abs(vSliceSurface - 1.0), abs(vSliceSurface - 4.0)));
+  float plaster = 1.0 - step(0.25, abs(vSliceSurface));
+  float relief = 0.75 * masonry + 0.35 * plaster;
+  if (relief > 0.0) normal = normalize(normal + (normal - nonPerturbedNormal) * relief);`;
 const FACADE_DETAIL = `
   if (facadeWall > 0.5) {
     float near = 1.0 - smoothstep(${(FACADE_DETAIL_NEAR * 0.45).toFixed(1)}, ${FACADE_DETAIL_NEAR.toFixed(1)}, length(vViewPosition));
@@ -150,8 +165,37 @@ const FACADE_DETAIL = `
     if (near > 0.0) { float a = sliceNoise(q), b = sliceNoise(q.yx + 5.3);
       normal = normalize(normal + vec3(a - 0.5, b - 0.5, 0.0) * 0.16 * near); }
   }`;
-function metricAtlas(material) {
-  material.customProgramCacheKey=()=> material.name+'-metric-atlas-v8';
+// Trace a shallow room box behind the opaque pane. Coordinates are in pane-height units.
+const ROOM_INTERIOR = `
+  vec2 roomPixel = fwidth(vRoom.xy);
+  float roomFade = (1.0 - smoothstep(42.0, 76.0, length(vViewPosition)))
+    * (1.0 - smoothstep(0.14, 0.30, max(roomPixel.x, roomPixel.y))) * step(0.01, vRoom.w);
+  if (roomFade > 0.001) {
+    vec3 viewer = inverseTransformDirection(glassView, viewMatrix);
+    vec3 wallNormal = inverseTransformDirection(normal, viewMatrix);
+    vec3 across = normalize(cross(vec3(0.0, 1.0, 0.0), wallNormal));
+    vec3 ray = vec3(-dot(viewer, across) / (4.0 * vRoom.w), -viewer.y, max(dot(viewer, wallNormal), 0.06));
+    vec2 entry = clamp(vRoom.xy, 0.0001, 0.9999);
+    vec2 sides = mix(entry, 1.0 - entry, step(0.0, ray.xy)) / max(abs(ray.xy), vec2(0.0001));
+    float back = 0.78 / ray.z, distanceToWall = min(min(sides.x, sides.y), back);
+    vec3 roomHit = vec3(entry, 0.0) + ray * distanceToWall;
+    float wallShade = back <= min(sides.x, sides.y) ? 1.0 : (sides.y <= sides.x ? mix(0.51, 1.15, step(0.0, ray.y)) : 0.72);
+    float roomSeed = vRoom.z, lamp = fract(roomSeed * 7.13 + 0.37);
+    float occupied = litWindow * uGlassNight * (lamp > 0.86 ? 0.08 : lamp > 0.70 ? 0.46 : 1.0);
+    vec3 daylight = mix(vec3(0.10, 0.12, 0.13), vec3(0.24, 0.22, 0.18), roomSeed);
+    vec3 light = mix(vec3(0.92, 0.59, 0.30), vec3(0.64, 0.73, 0.85), step(0.80, roomSeed));
+    vec3 roomColor = (daylight * (1.0 - 0.86 * uGlassNight) + light * occupied * 0.76) * wallShade;
+    roomColor *= mix(0.72, 1.0, smoothstep(0.02, 0.2, min(roomHit.y, 1.0 - roomHit.y)));
+    vec2 shadePoint = entry + ray.xy * min(distanceToWall, 0.10 / ray.z);
+    float blind = smoothstep(0.52, 0.58, shadePoint.y + (roomSeed - 0.6) * 0.4);
+    float curtain = 1.0 - smoothstep(0.17, 0.23, min(shadePoint.x, 1.0 - shadePoint.x));
+    float covered = roomSeed < 0.32 ? curtain : roomSeed > 0.65 ? blind : 0.0;
+    roomColor = mix(roomColor, vec3(0.18, 0.16, 0.13) * (1.0 - 0.72 * uGlassNight) + light * occupied * 0.19, covered);
+    outgoingLight = mix(outgoingLight, roomColor, roomFade * (1.0 - 0.35 * grazing));
+    reflectionWeight = mix(reflectionWeight, 0.27 + 0.58 * grazing, roomFade);
+  }`;
+function metricAtlas(material, cityWalls = false) {
+  material.customProgramCacheKey=()=> material.name+(cityWalls?'-metric-atlas-v9':'-metric-atlas-v8');
   material.onBeforeCompile=shader=>{
     shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nattribute float aSurface; varying float vSliceSurface; varying float vSliceY;').replace('#include <begin_vertex>','#include <begin_vertex>\nvSliceSurface = aSurface; vSliceY = (modelMatrix * vec4(position,1.0)).y;');
     shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
@@ -167,19 +211,26 @@ function metricAtlas(material) {
     // Keep continuous metric UVs for the tangent frame; wrap only texture sampling.
     for(const chunk of ['map_fragment','normal_fragment_maps','roughnessmap_fragment','metalnessmap_fragment','emissivemap_fragment']) {
       const code=THREE.ShaderChunk[chunk].replace(/texture2D\(\s*(map|normalMap|roughnessMap|metalnessMap|emissiveMap)\s*,\s*(v\w+Uv)\s*\)/g,'sliceSample( $1, $2 )');
-      shader.fragmentShader=shader.fragmentShader.replace(`#include <${chunk}>`,code+(architecture&&chunk==='normal_fragment_maps'?FACADE_DETAIL:''));
+      let finish = '';
+      if (architecture && chunk === 'normal_fragment_maps') finish = (cityWalls ? FACADE_RELIEF : '') + FACADE_DETAIL;
+      if (cityWalls && chunk === 'roughnessmap_fragment') finish = '\nroughnessFactor *= 1.0 - 0.23 * facadeMoisture;';
+      shader.fragmentShader=shader.fragmentShader.replace(`#include <${chunk}>`,code+finish);
     }
     // weathering + per-building variation on walls (supersedes the old uniform ground grime); doors and roofs are untouched
     if(architecture) shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
-      ${FACADE_WEATHER}`);
+      ${facadeWeather(cityWalls)}`);
     if(material.name==='slice-glass-office'){
       shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nattribute vec3 aPane; varying vec3 vPane;').replace('#include <begin_vertex>','#include <begin_vertex>\nvPane = aPane;');
     }
     if(material.name.startsWith('slice-glass')){
       const office=material.name==='slice-glass-office';
+      const rooms=material.name==='slice-glass-city';
+      if(rooms) shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nattribute vec4 aRoom; varying vec4 vRoom;')
+        .replace('#include <begin_vertex>','#include <begin_vertex>\nvRoom = aRoom;');
       // lit panes: whole-pane warm glow with slight per-cell tone shift (no sub-pane grain)
       shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
         { vec2 c=floor(vMapUv/vec2(1.0,2.0)); float h=fract(sin(dot(c,vec2(12.9898,78.233)))*43758.5453);
+          ${rooms?'if (vRoom.w > 0.0) h = vRoom.z;':''}
           float k=fract(h*7.13+0.37), curtain=fract(h*13.7+0.11);
           vec3 tone=curtain<0.5?vec3(1.0,0.97+0.06*h,0.92+0.14*h):curtain<0.75?vec3(1.0,0.86,0.7):curtain<0.9?vec3(0.86,0.92,1.0):vec3(1.0,0.8,0.78); // warm, amber blind, cool TV/LED, rose curtain
           totalEmissiveRadiance*=(0.88+0.24*h)*tone*(k>0.86?0.1:k>0.7?0.6:1.0); }`); // ~14% dark, ~16% dimmed behind blinds
@@ -187,6 +238,7 @@ function metricAtlas(material) {
       shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
 uniform float uGlassNight;
 ${office?'varying vec3 vPane;':''}
+${rooms?'varying vec4 vRoom;':''}
 ${GLASS_REFLECTION}`);
       shader.fragmentShader=shader.fragmentShader.replace('#include <opaque_fragment>',`
         vec3 glassView=normalize(vViewPosition);
@@ -195,6 +247,7 @@ ${GLASS_REFLECTION}`);
         float litWindow=1.0-step(0.25,abs(vSliceSurface-5.0));
         float reflectionWeight=(0.38+grazing*0.36)*(1.0-uGlassNight*litWindow*0.82)*(0.8+0.4*sliceNoise(vFloodP.xz/13.0+31.0)); // per-building glass reflectivity
         vec3 paneTint=vColor.rgb/max(dot(vColor.rgb,vec3(.3333)),.01); // per-lot glass family tints the sky reflection too
+        ${rooms?ROOM_INTERIOR:''}
         outgoingLight=mix(outgoingLight,glassReflection(reflected,uGlassNight)*mix(vec3(1.0),paneTint,.85),reflectionWeight);
         ${office?OFFICE_RECESS:''}
         #include <opaque_fragment>`);
@@ -204,13 +257,16 @@ ${GLASS_REFLECTION}`);
   return material;
 }
 
-export function townhouseMaterials() {
-  if(shared) return shared;
-  const [map,normalMap,orm,emissiveMap]=makeMaps();
-  const architecture=metricAtlas(new THREE.MeshStandardMaterial({name:'slice-architecture',vertexColors:true,map,normalMap,normalScale:new THREE.Vector2(.65,.65),roughnessMap:orm,metalnessMap:orm,roughness:1,metalness:1}));
-  const glass=metricAtlas(new THREE.MeshStandardMaterial({name:'slice-glass',vertexColors:true,map,roughness:.24,metalness:0,emissiveMap}));
-  glass.userData={analyticReflection:true,glow:true,glowColor:new THREE.Color('#fff2dc'),glowK:1.05,uNight:night}; // sky.js drives night for glass + floodlights
-  return shared={architecture,glass};
+export function townhouseMaterials({ landmark = false } = {}) {
+  if (!shared) {
+    const [map,normalMap,orm,emissiveMap]=makeMaps();
+    const architecture=metricAtlas(new THREE.MeshStandardMaterial({name:'slice-architecture',vertexColors:true,map,normalMap,normalScale:new THREE.Vector2(.65,.65),roughnessMap:orm,metalnessMap:orm,roughness:1,metalness:1}), true);
+    const glass=metricAtlas(new THREE.MeshStandardMaterial({name:'slice-glass',vertexColors:true,map,roughness:.24,metalness:0,emissiveMap}));
+    glass.userData={analyticReflection:true,glow:true,glowColor:new THREE.Color('#fff2dc'),glowK:1.05,uNight:night}; // sky.js drives night for glass + floodlights
+    shared={architecture,glass};
+  }
+  if (!landmark) return shared;
+  return landmarkSet ??= { architecture: metricAtlas(shared.architecture.clone()), glass: shared.glass };
 }
 
 // Office lot only (building-kit.js): its own glass material on the same atlas and maps, so recess shading never reaches the townhouse, shop, midrise or landmark families.
@@ -222,7 +278,56 @@ export function officeFacadeMaterials() {
   material.userData={...glass.userData}; // same night glow (sky.js drives uNight and emissive from this userData)
   return officeGlass={glass:material};
 }
+let cityRoomGlass;
+export function roomGlassMaterial() {
+  if (cityRoomGlass) return cityRoomGlass;
+  const { glass } = townhouseMaterials();
+  const material = glass.clone();
+  material.name = 'slice-glass-city';
+  material.userData = { ...glass.userData };
+  return cityRoomGlass = metricAtlas(material);
+}
 const hash3=(x,y,z)=>{const n=Math.sin(x*12.9898+y*78.233+z*37.719)*43758.5453;return n-Math.floor(n);};
+
+// City glass is batched as triangle pairs. Pack local UV, a world-anchored seed and aspect/4.
+// A zero aspect keeps the existing reflection for irregular glass and thin edge faces.
+export function addRoomCoordinates(geometry, worldX, worldZ) {
+  const { position, normal } = geometry.attributes;
+  const packed = new Uint16Array(position.count * 4), max = 65535;
+  for (let q = 0; !geometry.index && q + 5 < position.count; q += 6) {
+    if (Math.abs(normal.getY(q)) > 0.04) continue;
+    const nx = normal.getX(q), nz = normal.getZ(q), n = Math.hypot(nx, nz);
+    if (n < 0.99) continue;
+    const ax = nz / n, az = -nx / n, plane = nx * position.getX(q) + nz * position.getZ(q);
+    let left = Infinity, right = -Infinity, bottom = Infinity, top = -Infinity, planar = true;
+    for (let i = q; i < q + 6; i++) {
+      const x = position.getX(i), y = position.getY(i), z = position.getZ(i), u = ax * x + az * z;
+      planar &&= Math.abs(nx * x + nz * z - plane) < 0.003;
+      left = Math.min(left, u); right = Math.max(right, u);
+      bottom = Math.min(bottom, y); top = Math.max(top, y);
+    }
+    const w = right - left, h = top - bottom;
+    if (!planar || w < 0.20 || h < 0.20) continue;
+    const center = (left + right) * 0.5;
+    const seed = hash3(Math.round((worldX + ax * center + nx * plane) * 4), Math.round((bottom + top) * 2), Math.round((worldZ + az * center + nz * plane) * 4));
+    const aspect = THREE.MathUtils.clamp(w / h, 0.25, 4) * max / 4;
+    let corners = 0;
+    for (let i = q; i < q + 6; i++) {
+      const u = (ax * position.getX(i) + az * position.getZ(i) - left) / w, v = (position.getY(i) - bottom) / h;
+      if (Math.max(Math.min(u, 1 - u), Math.min(v, 1 - v)) > 0.015) {
+        corners = 0;
+        break;
+      }
+      corners |= 1 << (Math.round(u) + 2 * Math.round(v));
+      packed[i * 4] = Math.round(u * max);
+      packed[i * 4 + 1] = Math.round(v * max);
+      packed[i * 4 + 2] = Math.round(seed * max);
+      packed[i * 4 + 3] = Math.round(aspect);
+    }
+    if (corners !== 15) packed.fill(0, q * 4, (q + 6) * 4);
+  }
+  geometry.setAttribute('aRoom', new THREE.BufferAttribute(packed, 4, true));
+}
 // Pane-local coordinates for the office glass (six vertices per pane quad): x across the pane, y up it, z a deterministic per-pane seed. Positions are not changed.
 function addPaneCoordinates(geometry){
   const pos=geometry.getAttribute('position');

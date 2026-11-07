@@ -5,3 +5,37 @@ const {polishLandmarkMaterials}=await import('./js/world/landmark-materials.js')
 const g=buildMeshes(b.list),before=g.children.map(o=>[o.count,Array.from(o.instanceMatrix.array)]),materials=g.children.map(o=>o.material);polishLandmarkMaterials(g,stops,routePoints(stops.length));check(g.children.some(o=>o.material.userData.landmarkFinish),'landmark finish applied');g.userData.updateLandmarkNight(.8);check(g.children.filter(o=>o.material.userData.uLandmarkNight).every(o=>o.material.userData.uLandmarkNight.value===.8),'landmark night control');check(JSON.stringify(before)===JSON.stringify(g.children.map(o=>[o.count,Array.from(o.instanceMatrix.array)]))&&materials.every((mat,i)=>mat===g.children[i].material),'landmark batches/matrices/material identities unchanged');return {pass:true,materials:2,maps:textures.size,waterTriangles:2,landmarkBatches:g.children.length};})()''')
 print(result)
 assert isinstance(result,dict) and result.get('pass'),result
+
+facades = js(r'''(async () => {
+  const T = await import('three');
+  const { townhouseMaterials } = await import('./js/world/building-slice-materials.js');
+  const city = townhouseMaterials(), landmark = townhouseMaterials({ landmark: true });
+  const check = (ok, msg) => { if (!ok) throw Error(msg); };
+  check(landmark === townhouseMaterials({ landmark: true }) && landmark.architecture !== city.architecture,
+    'City weathering should have a separate cached material from monuments');
+  check(landmark.glass === city.glass &&
+    ['map', 'normalMap', 'roughnessMap', 'metalnessMap'].every(k => city.architecture[k] === landmark.architecture[k]),
+    'City and monuments should reuse every texture');
+  const fragment = material => {
+    const shader = { vertexShader: T.ShaderLib.standard.vertexShader, fragmentShader: T.ShaderLib.standard.fragmentShader, uniforms: {} };
+    material.onBeforeCompile(shader);
+    return shader.fragmentShader;
+  };
+  check(city.architecture.customProgramCacheKey() !== landmark.architecture.customProgramCacheKey() &&
+    fragment(city.architecture).includes('facadeMoisture') && !fragment(landmark.architecture).includes('facadeMoisture'),
+    'Dampness and masonry relief should be limited to the city material');
+  const scene = new T.Scene(), camera = new T.PerspectiveCamera(45, 1, .1, 10), renderer = new T.WebGLRenderer();
+  const plane = new T.PlaneGeometry();
+  plane.setAttribute('aSurface', new T.Float32BufferAttribute([1, 1, 1, 1], 1));
+  plane.setAttribute('color', new T.Float32BufferAttribute(Array(12).fill(1), 3));
+  scene.add(new T.Mesh(plane, city.architecture), new T.Mesh(plane, landmark.architecture));
+  camera.position.z = 3;
+  renderer.setSize(32, 32);
+  renderer.render(scene, camera);
+  const valid = renderer.info.programs.length === 2 && renderer.info.programs.every(p => p.diagnostics?.runnable !== false);
+  plane.dispose();
+  renderer.dispose();
+  check(valid, 'Both facade materials must compile in WebGL');
+  return true;
+})()''')
+assert facades

@@ -91,7 +91,7 @@ function landmark(name,x,z,scale=1){
     const m=a.clone().add(c).multiplyScalar(.5);lit(b,g,m.x,m.y,m.z,k);
   }
   function finish(){
-    const mats=townhouseMaterials();
+    const mats=townhouseMaterials({ landmark: true });
     buckets.forEach((parts,i)=>{if(!parts.length)return;const g=mergeGeometries(parts,false);parts.forEach(p=>p.dispose());g.computeBoundingBox();g.computeBoundingSphere();const mesh=new THREE.Mesh(g,i===2?mats.glass:mats.architecture);mesh.name=name+'-'+['mass','trim','glass'][i];mesh.castShadow=i===0;mesh.receiveShadow=true;group.add(mesh);});
     const lm=getLightMats();
     L.forEach((parts,i)=>{if(!parts.length)return;const g=mergeGeometries(parts,false);parts.forEach(p=>p.dispose());g.computeBoundingBox();g.computeBoundingSphere();const mesh=new THREE.Mesh(g,[lm.warm,lm.cool,lm.wash][i]);mesh.name=name+'-'+['lightsWarm','lightsCool','wash'][i];mesh.castShadow=false;mesh.receiveShadow=false;group.add(mesh);});
