@@ -46,7 +46,8 @@ body { margin: 0; font: 15px/1.6 var(--sans); color: var(--ink); background: lin
 .contact li > a { flex: 1; }
 .contact li:not(:first-child) > a { flex-direction: column; justify-content: center; gap: 6px; min-height: 72px; padding: 10px 8px; font-size: 12px; text-align: center; }
 .contact .btn.solid { justify-content: flex-start; min-height: 52px; }
-.contact .addr { min-width: 0; margin-left: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 400; opacity: .85; }
+.contact .btn.solid > span:not(.addr)::after { content: ':'; }
+.contact .addr { min-width: 0; margin-left: -2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 400; opacity: .85; }
 .panel a { color: var(--accent); text-underline-offset: 3px; }
 .panel a.btn { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 14px; font-size: 13px; font-weight: 500; color: var(--ink); text-decoration: none; border: 1px solid var(--ink); border-radius: 12px; background: transparent; transition: background .2s, color .2s, transform .2s; }
 .panel a.btn:active { transform: translateY(1px); }
