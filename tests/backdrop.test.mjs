@@ -81,3 +81,8 @@ test('local foundations and neighborhood paving support the backdrop', () => {
   assert.ok(paving.length > 50, `${paving.length} paving segments`);
   assert.ok(paving.reduce((area, b) => area + b.w * b.d, 0) > 500_000, 'paving spans neighborhood bands');
 });
+
+test('distant walls are not steel blue', () => {
+  const walls = make().filter((b) => b.z < -200 && b.w >= 6 && b.h >= 6 && b.color === P.steel);
+  assert.equal(walls.length, 0, 'far facades pick warm or neutral walls, not steel blue');
+});

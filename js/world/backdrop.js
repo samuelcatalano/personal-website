@@ -6,7 +6,7 @@ export function buildBackdrop(add, stops, pts, addSky = add) {
   let nearBuildings = 0;
   const x0 = pts[0].x - 230, x1 = pts.at(-1).x + 230, rows = [-130, -170, -220, -280, -350, -440];
   const colors = [P.cream, P.stone, P.taupe, P.roof, P.brick, P.redBrown, P.londonStock, P.concreteMid, P.steel, P.londonStock, P.stone];
-  const distantColors = [P.stone, P.concreteMid, P.taupe, P.steel];
+  const distantColors = [P.londonStock, P.concreteMid, P.taupe, P.cream];
   const museumL = museum.x - museum.w / 2 - 12, museumR = museum.x + museum.w / 2 + 12;
   const facade = (x, y, z, w, h, depth, seed, coverage, wall) => {
     // ponytail: distance bands approximate atmospheric contrast, not true scattering.
