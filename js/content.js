@@ -55,6 +55,19 @@ export const stackGroups = [
   { id: 'cloud', color: '#0c7a3d', items: ['AWS Lambda', 'Docker', 'Kubernetes', 'Terraform'] },
   { id: 'data', color: '#7a3b9e', items: ['PostgreSQL', 'MySQL', 'MongoDB', 'Cassandra'] },
 ];
+// Third-party 3D models that ship in the runtime and need attribution; kept in sync with ASSET_SOURCES.md by tests/content.test.mjs.
+const BY = ['CC BY 4.0', 'https://creativecommons.org/licenses/by/4.0/'], NCSA = ['CC BY-NC-SA 4.0', 'https://creativecommons.org/licenses/by-nc-sa/4.0/'];
+export const credits = [
+  { name: 'Mini Cooper S Hardtop 2011', author: 'Nieve5677', url: 'https://sketchfab.com/iori308408', lic: BY },
+  { name: 'London Black Cab (LTI TX4)', author: 'Nieve5677', url: 'https://sketchfab.com/iori308408', lic: BY },
+  { name: 'Toyota Corolla 2020', author: 'ItsDiyor', lic: BY },
+  { name: 'Honda HR-V e:HEV 2022', author: 'tonielpro520', url: 'https://sketchfab.com/tonielpro520', lic: BY },
+  { name: 'Mercedes-Benz E63 AMG S Wagon 2018', author: 'SINNIK', url: 'https://sketchfab.com/sinnik', lic: BY },
+  { name: 'Volkswagen T-Cross 2021', author: 'Ddiaz Design', url: 'https://sketchfab.com/ddiaz-design', lic: NCSA },
+  { name: 'Nissan Qashqai 2018', author: 'Ddiaz Design', url: 'https://sketchfab.com/ddiaz-design', lic: NCSA },
+  { name: 'Land Rover Range Rover Supercharged 2008', author: 'Ddiaz Design', url: 'https://sketchfab.com/ddiaz-design', lic: NCSA },
+  { name: 'Realistic Tree', author: 'Daniel', url: 'https://sketchfab.com/danielpetrov', lic: BY },
+];
 export const stack = stackGroups.flatMap(g => g.items);
 
 export const i18n = {
@@ -62,7 +75,7 @@ export const i18n = {
     ui: {
       nav: { journey: 'Journey', stack: 'Stack', articles: 'Writing', repos: 'Code', recs: 'Recommendations', contact: 'Contact' },
       theme: 'Switch between day and night', auto: 'Auto-ride: let the bus drive itself', photo: 'Save a postcard of this view', lang: 'Switch language', scroll: 'Scroll to ride', scrollTouch: 'Swipe to ride',
-      zones: { br: 'Brazil', uk: 'United Kingdom' }, led: { gap: 'Mind the gap', rain: 'Delayed: rain', end: 'All change', stop: 'Stop requested', horn: 'Beep beep' }, clock: 'London right now', loading: 'Warming up the bus…', intro: { t_sub: 'Your finger is the throttle. The real bus is right behind the glass.', t_down: 'Swipe up to drive forward', t_up: 'Swipe down to go back', d1: 'São Paulo', d2: 'London', d3: 'Glasgow', stop: 'Stop requested', title: 'How to ride', sub: 'Your scroll wheel is the throttle. The real bus is right behind the glass.', nice: 'That is it. Now you know how to ride.', down: 'Scroll down to drive forward', up: 'Scroll up to go back', skip: 'Skip' }, navLabel: 'Sections', beforeLondon: 'Before London', present: 'Present', skip: 'Skip to content', footer: 'Designed and built by Samuel Catalano.',
+      zones: { br: 'Brazil', uk: 'United Kingdom' }, credits: { link: 'Credits and how it was made', title: 'Credits', intro: 'Third-party 3D models, used under their licences and converted, merged and compressed for the web.', built: 'How it was made', items: ['Plain HTML, CSS and ES modules: no build step, no framework.', 'Three.js draws the city: instanced buildings, authored landmarks and adaptive quality.', 'Automated tests run on every push.', 'The buses, buildings and landmarks are original work; people use CC0 base meshes.'], close: 'Close' }, usedAt: 'Used at', clearFilter: 'Show every stop', led: { gap: 'Mind the gap', rain: 'Delayed: rain', end: 'All change', stop: 'Stop requested', horn: 'Beep beep' }, clock: 'London right now', loading: 'Warming up the bus…', intro: { t_sub: 'Your finger is the throttle. The real bus is right behind the glass.', t_down: 'Swipe up to drive forward', t_up: 'Swipe down to go back', d1: 'São Paulo', d2: 'London', d3: 'Glasgow', stop: 'Stop requested', title: 'How to ride', sub: 'Your scroll wheel is the throttle. The real bus is right behind the glass.', nice: 'That is it. Now you know how to ride.', down: 'Scroll down to drive forward', up: 'Scroll up to go back', skip: 'Skip' }, navLabel: 'Sections', beforeLondon: 'Before London', present: 'Present', skip: 'Skip to content', footer: 'Designed and built by Samuel Catalano.',
       signpost: { saoPaulo: 'São Paulo', london: 'London', km: '9,480 km' }, // 3D fingerpost on the plaza over the SP -> London tunnel
     },
     sections: {
@@ -97,7 +110,7 @@ export const i18n = {
     ui: {
       nav: { journey: 'Trajetória', stack: 'Stack', articles: 'Artigos', repos: 'Código', recs: 'Recomendações', contact: 'Contato' },
       theme: 'Alternar entre dia e noite', auto: 'Passeio automático: o ônibus anda sozinho', photo: 'Salvar um cartão-postal desta vista', lang: 'Trocar idioma', scroll: 'Role para embarcar', scrollTouch: 'Deslize para embarcar',
-      zones: { br: 'Brasil', uk: 'Reino Unido' }, led: { gap: 'Atenção ao vão', rain: 'Atraso: chuva', end: 'Fim de linha', stop: 'Parada pedida', horn: 'Pi pi' }, clock: 'Agora em Londres', loading: 'Esquentando o ônibus…', intro: { t_sub: 'Seu dedo é o acelerador. O ônibus de verdade está logo atrás do vidro.', t_down: 'Deslize para cima para avançar', t_up: 'Deslize para baixo para voltar', d1: 'São Paulo', d2: 'Londres', d3: 'Glasgow', stop: 'Parada solicitada', title: 'Como passear', sub: 'A roda do mouse é o acelerador. O ônibus de verdade está logo atrás do vidro.', nice: 'É isso. Agora você sabe dirigir.', down: 'Role para baixo para avançar', up: 'Role para cima para voltar', skip: 'Pular' }, navLabel: 'Seções', beforeLondon: 'Antes de Londres', present: 'Atual', skip: 'Pular para o conteúdo', footer: 'Projetado e construído por Samuel Catalano.',
+      zones: { br: 'Brasil', uk: 'Reino Unido' }, credits: { link: 'Créditos e como foi feito', title: 'Créditos', intro: 'Modelos 3D de terceiros, usados sob suas licenças e convertidos, unidos e comprimidos para a web.', built: 'Como foi feito', items: ['HTML, CSS e módulos ES puros: sem etapa de build e sem framework.', 'O Three.js desenha a cidade: prédios instanciados, marcos autorais e qualidade adaptativa.', 'Testes automatizados rodam a cada push.', 'Os ônibus, prédios e marcos são trabalho original; as pessoas usam malhas-base CC0.'], close: 'Fechar' }, usedAt: 'Usado em', clearFilter: 'Mostrar todas as paradas', led: { gap: 'Atenção ao vão', rain: 'Atraso: chuva', end: 'Fim de linha', stop: 'Parada pedida', horn: 'Pi pi' }, clock: 'Agora em Londres', loading: 'Esquentando o ônibus…', intro: { t_sub: 'Seu dedo é o acelerador. O ônibus de verdade está logo atrás do vidro.', t_down: 'Deslize para cima para avançar', t_up: 'Deslize para baixo para voltar', d1: 'São Paulo', d2: 'Londres', d3: 'Glasgow', stop: 'Parada solicitada', title: 'Como passear', sub: 'A roda do mouse é o acelerador. O ônibus de verdade está logo atrás do vidro.', nice: 'É isso. Agora você sabe dirigir.', down: 'Role para baixo para avançar', up: 'Role para cima para voltar', skip: 'Pular' }, navLabel: 'Seções', beforeLondon: 'Antes de Londres', present: 'Atual', skip: 'Pular para o conteúdo', footer: 'Projetado e construído por Samuel Catalano.',
       signpost: { saoPaulo: 'São Paulo', london: 'Londres', km: '9.480 km' },
     },
     sections: {
@@ -129,3 +142,11 @@ export const i18n = {
     ],
   },
 };
+
+// Which journey stops mention each tool, derived from the English stop copy so it never drifts from the text. Tools the copy never names stay unlinked.
+const TOOL_KEY = { 'Java 17': 'Java', 'JUnit · Mockito': null, 'SNS/SQS': null, 'AWS Lambda': null };
+export const toolStops = Object.fromEntries(stack.map((tool) => {
+  const key = tool in TOOL_KEY ? TOOL_KEY[tool] : tool;
+  const re = key && new RegExp(`\\b${key}\\b`, 'i');
+  return [tool, re ? stops.filter(st => st.section === 'journey' && re.test(`${i18n.en.stops[st.id].role} ${i18n.en.stops[st.id].body}`)).map(st => st.id) : []];
+}));

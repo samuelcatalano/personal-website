@@ -1,18 +1,18 @@
 import { ding } from './sound.js';
-import { stops, i18n, links, articles, repos, stackGroups, sectionStart } from './content.js';
-export function loadPrefs(storage) {
+import { stops, i18n, links, articles, repos, stackGroups, toolStops, credits, sectionStart } from './content.js';
+// Stored choice wins; first-time visitors get PT for pt-* browsers and night for dark-mode systems.
+export function loadPrefs(storage, env = {}) {
+  const fallback = { lang: String(env.lang || '').toLowerCase().startsWith('pt') ? 'pt' : 'en', theme: env.dark ? 'night' : 'day' };
   try {
-    return {
-      lang: storage?.getItem('lang') === 'pt' ? 'pt' : 'en',
-      theme: storage?.getItem('theme') === 'night' ? 'night' : 'day',
-    };
-  } catch { return { lang: 'en', theme: 'day' }; }
+    const lang = storage?.getItem('lang'), theme = storage?.getItem('theme');
+    return { lang: lang === 'pt' || lang === 'en' ? lang : fallback.lang, theme: theme === 'night' || theme === 'day' ? theme : fallback.theme };
+  } catch { return fallback; }
 }
 export function savePref(storage, key, value) { try { storage?.setItem(key, value); } catch { /* storage blocked */ } }
 const store = () => { try { return localStorage; } catch { return undefined; } };
 const flag = (c) => (c === 'BR' ? '🇧🇷' : '🇬🇧');
 // ponytail: innerHTML from static content.js only
-function sectionHTML(section, t, active) {
+function sectionHTML(section, t, active, tool = null) {
   const s = t.sections[section];
   const ext = (href, text, cls = '') => `<a${cls ? ` class="${cls}"` : ''} href="${href}" target="_blank" rel="noopener">${text}</a>`;
   const ic = (d) => `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true" focusable="false"><path d="${d}"/></svg>`;
@@ -30,27 +30,27 @@ function sectionHTML(section, t, active) {
         ${contact(t.sections.contact)}</ul>
         <p class="proof">“${s.proof}” <span>${t.recs[0].name}, ${t.recs[0].role}</span></p><p class="hint">${matchMedia('(pointer: coarse)').matches ? t.ui.scrollTouch : t.ui.scroll} ↓</p>`;
     case 'journey': return `
-      <h2>${s.title}</h2><p>${s.intro}</p><ol class="stops">${stops.map((st, i) => {
+      <h2>${s.title}</h2><p>${s.intro}</p>${tool ? `<p class="filter">${t.ui.usedAt} <b>${tool}</b><button type="button" data-tool-clear aria-label="${t.ui.clearFilter}">&times;</button></p>` : ''}<ol class="stops">${stops.map((st, i) => {
         if (st.section !== 'journey') return '';
-        const c = t.stops[st.id], on = i === active;
-        return `<li class="${st.country.toLowerCase()}${st.id === 'move' ? ' hub' : ''}${on ? ' on' : ''}"><button data-goto="${i}" aria-expanded="${on}">
+        const c = t.stops[st.id], on = i === active, hit = tool && toolStops[tool].includes(st.id);
+        return `<li class="${st.country.toLowerCase()}${st.id === 'move' ? ' hub' : ''}${on ? ' on' : ''}${tool ? (hit ? ' hit' : ' dim') : ''}"><button data-goto="${i}" aria-expanded="${on}">
           <span class="yr">${st.year}</span><span class="node" aria-hidden="true"></span>${st.brand ? `<span class="mono" style="--c:${st.brand.color}" aria-hidden="true">${st.brand.initials}</span>` : ''}<span class="name">${c.title}</span></button>
           ${on ? `<div class="detail"><strong>${c.role}</strong><small>${c.dates} · ${c.place}</small><p>${c.body}</p></div>` : ''}</li>`;
       }).join('')}</ol>
       <p class="zones"><span class="z br">${t.ui.zones.br}</span><span class="z uk">${t.ui.zones.uk}</span></p>`;
-    case 'stack': return `<h2>${s.title}</h2><p>${s.intro}</p><div class="lines">${stackGroups.map(g => `<div class="line" style="--c:${g.color}"><h3>${s.groups[g.id]}</h3><ul>${g.items.map(x => `<li>${x}</li>`).join('')}</ul></div>`).join('')}</div>`;
+    case 'stack': return `<h2>${s.title}</h2><p>${s.intro}</p><div class="lines">${stackGroups.map(g => `<div class="line" style="--c:${g.color}"><h3>${s.groups[g.id]}</h3><ul>${g.items.map(x => `<li>${toolStops[x].length ? `<button type="button" class="station" data-tool="${x}" aria-pressed="${x === tool}">${x}</button>` : x}</li>`).join('')}</ul></div>`).join('')}</div>`;
     case 'articles': return list(articles, a => `<li>${ext(a.url, `<b>${a.title}</b><small>${s.src} ↗</small>`, 'row')}</li>`, links.medium);
     case 'repos': return list(repos, r => `<li style="--c:${r.color}">${ext(r.url, `<code>${r.name}</code><span class="tags">${r.lang.split(' · ').map(x => `<i>${x}</i>`).join('')}</span><em aria-hidden="true">↗</em>`, 'row repo')}</li>`, links.github + '?tab=repositories');
     case 'recs': return `<h2>${s.title}</h2><p>${s.intro}</p>${t.recs.map(r => `<blockquote><span class="who" aria-hidden="true">${r.name.split(' ').filter((_, k, w) => k === 0 || k === w.length - 1).map(w => w[0]).join('')}</span><p>${r.quote}</p><footer><b>${r.name}</b><span>${r.role}</span></footer></blockquote>`).join('')}`;
     case 'contact': return `<h2>${s.title}</h2><p>${s.intro}</p><ul class="contact">${contact(s)}</ul>
       <p class="why">${s.why}</p><ul class="reasons">${s.reasons.map(r => `<li><a class="chip" data-bell href="${links.email}?subject=${encodeURIComponent(r.subject)}">${r.label}</a></li>`).join('')}</ul>
-      <p class="footer">${t.ui.footer}</p>`;
+      <p class="footer">${t.ui.footer} <button type="button" class="linkish" data-credits>${t.ui.credits.link}</button></p>`;
   }
 }
 export function initUI({ onGoto, onTheme }) {
-  const prefs = loadPrefs(store());
+  const prefs = loadPrefs(store(), { lang: navigator.language, dark: matchMedia('(prefers-color-scheme: dark)').matches });
   const panel = document.getElementById('panel'), announce = document.getElementById('announce');
-  let active = -1;
+  let active = -1, tool = null; // tool: the stack station whose journey stops are highlighted
   const applyTheme = () => {
     document.body.classList.toggle('theme-night', prefs.theme === 'night');
     const b = document.querySelector('[data-theme]');
@@ -113,10 +113,10 @@ export function initUI({ onGoto, onTheme }) {
       el.textContent = touch && tk !== key ? pick(tk) : pick(key);
     });
     const prev = document.activeElement;
-    const key = ['data-goto', 'data-nav', 'data-nav-home', 'data-lang', 'data-theme'].find(a => prev?.hasAttribute?.(a));
+    const key = ['data-tool', 'data-goto', 'data-nav', 'data-nav-home', 'data-lang', 'data-theme'].find(a => prev?.hasAttribute?.(a));
     const keep = key && [key, prev.getAttribute(key)];
     const top = panel.dataset.section === st.section ? panel.scrollTop : 0;
-    panel.innerHTML = sectionHTML(st.section, t, active);
+    panel.innerHTML = sectionHTML(st.section, t, active, tool);
     panel.scrollTop = top;
     panel.dataset.section = st.section;
     if (reveal) panel.querySelector('.on')?.scrollIntoView({ block: 'nearest', behavior: 'instant' });
@@ -126,6 +126,20 @@ export function initUI({ onGoto, onTheme }) {
   };
   document.addEventListener('click', (e) => {
     if (e.target.closest('[data-bell]')) { ding(); say('stop'); } // the mail app still opens: the bell is a flourish
+    if (e.target.closest('[data-credits]')) { // credits and licences for the third-party models
+      const c = i18n[prefs.lang].ui.credits, d = document.getElementById('credits');
+      d.innerHTML = `<h2 id="credits-title">${c.title}</h2><p>${c.intro}</p><ul class="credit-list">${credits.map(x => `<li><b>${x.name}</b> ${x.url ? `<a href="${x.url}" target="_blank" rel="noopener">${x.author}</a>` : x.author} · <a href="${x.lic[1]}" target="_blank" rel="noopener">${x.lic[0]}</a></li>`).join('')}</ul>
+        <h3>${c.built}</h3><ul>${c.items.map(i => `<li>${i}</li>`).join('')}</ul><form method="dialog"><button class="close" autofocus>${c.close}</button></form>`;
+      d.showModal();
+      return;
+    }
+    const station = e.target.closest('[data-tool]');
+    if (station) { // pick a tool: highlight where it was used and ride to the first of those stops
+      const name = station.dataset.tool; tool = tool === name ? null : name;
+      if (tool) onGoto(stops.findIndex(st => st.id === toolStops[tool][0])); else render();
+      return;
+    }
+    if (e.target.closest('[data-tool-clear]')) { tool = null; render(); return; }
     const go = e.target.closest('[data-goto]');
     if (go) { e.preventDefault(); onGoto(+go.dataset.goto); }
     if (e.target.closest('[data-nav-home]')) { e.preventDefault(); onGoto(0); history.replaceState(null, '', location.pathname + location.search); }

@@ -147,6 +147,18 @@ body.theme-night .actions button { color: #1b1d1f; }
 ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
 ::view-transition-new(root) { animation: reveal .9s cubic-bezier(.4, 0, .2, 1) both; }
 @keyframes reveal { from { clip-path: circle(0 at var(--tx, 50%) var(--ty, 0)); } to { clip-path: circle(150vmax at var(--tx, 50%) var(--ty, 0)); } }
+/* credits dialog */
+.linkish { padding: 0; border: 0; background: none; font: inherit; color: var(--accent); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+#credits { width: min(540px, calc(100vw - 32px)); max-height: calc(100vh - 48px); padding: 28px; color: var(--ink); border: 1px solid var(--line); border-radius: 18px; overflow: auto;
+  background: color-mix(in srgb, var(--card) 94%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: 0 30px 80px rgba(0, 0, 0, .35); }
+#credits::backdrop { background: rgba(20, 16, 12, .4); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+#credits h2 { margin: 0 0 8px; font: 400 26px/1.2 var(--display); }
+#credits h3 { margin: 20px 0 6px; font: 400 18px/1.3 var(--display); }
+#credits p, #credits li { font-size: 13px; line-height: 1.55; }
+#credits ul { margin: 8px 0 0; padding-left: 18px; }
+#credits a { color: var(--accent); text-underline-offset: 3px; }
+#credits .close { margin-top: 18px; min-height: 44px; padding: 0 22px; border: 1px solid var(--ink); border-radius: 12px; background: none; font: 600 13px var(--sans); color: var(--ink); cursor: pointer; }
+#credits .close:hover { background: var(--ink); color: var(--card); }
 body.no-webgl { background: linear-gradient(var(--sky), var(--sky2) 70%, #829078 70%); }
 body.no-webgl #world { display: none; }
 /* Journey as a line diagram: one node per stop, green line in Brazil, red in the UK, an interchange where the line changes (the move to London) */
@@ -179,6 +191,14 @@ body.no-webgl #world { display: none; }
 .line ul { position: relative; list-style: none; margin: 0; padding: 0; }
 .line ul::before { content: ''; position: absolute; left: 5px; top: 14px; bottom: 14px; width: 4px; border-radius: 2px; background: var(--c); }
 .line li { position: relative; padding: 5px 0 5px 24px; font-size: 13px; }
+.station { display: inline-flex; align-items: center; min-height: 28px; padding: 0; border: 0; background: none; font: inherit; color: inherit; cursor: pointer; text-align: left; border-bottom: 1px dotted color-mix(in srgb, var(--ink) 45%, transparent); transition: color .2s; }
+.station:hover, .station[aria-pressed="true"] { color: var(--accent); }
+.station[aria-pressed="true"] { font-weight: 600; border-bottom-style: solid; }
+.filter { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 4px; padding: 4px 6px 4px 12px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 12%, transparent); font-size: 13px; }
+.filter button { width: 28px; height: 28px; border: 0; border-radius: 50%; background: none; font-size: 18px; line-height: 1; color: inherit; cursor: pointer; }
+.filter button:hover { background: color-mix(in srgb, var(--ink) 10%, transparent); }
+.stops li.dim { opacity: .35; transition: opacity .25s; }
+.stops li.hit .node { box-shadow: 0 0 0 5px color-mix(in srgb, var(--seg) 28%, transparent); }
 .line li::before { content: ''; position: absolute; left: 0; top: 50%; width: 14px; height: 14px; margin-top: -7px; border-radius: 50%; background: var(--card); border: 3px solid var(--c); }
 /* Writing and Code rows */
 .rows { list-style: none; display: grid; gap: 8px; padding: 0; margin: 16px 0; }
@@ -214,7 +234,7 @@ blockquote footer b { color: var(--ink); font-weight: 600; }
   .panel h1 { font-size: 30px; margin: 8px 0 4px; }
   .panel[data-section="hero"] { max-height: 58vh; }
   .panel[data-section="hero"] p { margin-bottom: 10px; }
-  .panel .tagline { margin-top: 8px; }
+  .panel .tagline, .panel .clock { display: none; } /* phones: the value line and the CTAs come first */
   .panel .value { margin-top: 10px; font-size: 15px; }
   .panel .proof { display: none; }
   .hero-links { margin-top: 12px; }

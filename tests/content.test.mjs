@@ -146,3 +146,38 @@ test('hero states what Samuel does and quotes a real recommendation; contact off
     for (const r of c.reasons) assert.ok(r.label.trim() && r.subject.trim());
   }
 });
+
+test('stack stations link to the journey stops whose copy names the tool', async () => {
+  const { toolStops } = await import('../js/content.js');
+  assert.deepEqual(toolStops.Kafka, ['olm', 'glasgow']);
+  assert.deepEqual(toolStops.Cassandra, ['millimetric']);
+  assert.deepEqual(toolStops.Docker, []);
+  for (const ids of Object.values(toolStops)) for (const id of ids) assert.ok(stops.some(s => s.id === id), id);
+});
+
+test('every credited model is recorded in ASSET_SOURCES.md with its author and licence', async () => {
+  const { credits } = await import('../js/content.js');
+  const sources = readFileSync(join(root, 'ASSET_SOURCES.md'), 'utf8');
+  for (const c of credits) {
+    const row = sources.split('\n').find(l => l.includes(c.name));
+    assert.ok(row, `${c.name} missing from ASSET_SOURCES.md`);
+    assert.ok(row.includes(c.author), `${c.name}: author ${c.author}`);
+    assert.ok(row.includes(c.lic[0].replace('CC BY', 'CC-BY').replace(/ /g, '-').replace('CC-BY-NC-SA-4.0', 'CC-BY-NC-SA-4.0')), `${c.name}: licence ${c.lic[0]}`);
+  }
+});
+
+test('JSON-LD Person matches the site links', () => {
+  const html = readFileSync(join(root, 'index.html'), 'utf8');
+  const ld = JSON.parse(html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]);
+  assert.equal(ld['@type'], 'Person');
+  assert.deepEqual(ld.sameAs, [links.linkedin, links.github, links.medium]);
+  assert.ok(!JSON.stringify(ld).match(/\+?\d[\d\s().-]{8,}/), 'no phone number');
+});
+
+test('first-visit preferences follow the browser; stored choices win', async () => {
+  const { loadPrefs } = await import('../js/ui.js');
+  const none = { getItem: () => null };
+  assert.deepEqual(loadPrefs(none, { lang: 'pt-BR', dark: true }), { lang: 'pt', theme: 'night' });
+  assert.deepEqual(loadPrefs(none, { lang: 'en-GB', dark: false }), { lang: 'en', theme: 'day' });
+  assert.deepEqual(loadPrefs({ getItem: (k) => (k === 'lang' ? 'en' : 'day') }, { lang: 'pt-BR', dark: true }), { lang: 'en', theme: 'day' });
+});
