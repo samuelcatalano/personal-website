@@ -14,15 +14,17 @@ body { margin: 0; font: 15px/1.6 var(--sans); color: var(--ink); background: lin
 .skip:focus { left: 16px; top: 16px; z-index: 10; background: var(--card); padding: 8px; }
 .bar { position: fixed; top: 20px; left: 24px; right: 24px; display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; z-index: 5; pointer-events: none; }
 .bar > * { pointer-events: auto; }
-.brand, .bar nav { background: var(--card); border: 1px solid var(--line); color: var(--ink); text-decoration: none; }
-.brand { padding: 12px 16px; font-size: 13px; font-weight: 700; letter-spacing: .04em; white-space: nowrap; }
-.bar nav { display: flex; gap: 20px; align-items: center; padding: 10px 14px; }
-.bar nav a, .bar nav button { font: 500 12px/1.5 var(--sans); color: inherit; background: none; border: 0; cursor: pointer; text-decoration: none; white-space: nowrap; padding: 3px 0; }
-.bar nav a:hover, .bar nav button:hover, .bar nav [aria-current="page"] { color: var(--accent); }
-.bar nav [aria-current="page"] { box-shadow: 0 1px var(--accent); }
-.controls { display: flex; gap: 4px; padding: 6px; background: var(--card); border: 1px solid var(--line); }
-.controls button { min-width: 30px; padding: 3px 5px; color: inherit; background: none; border: 0; font: 600 11px var(--sans); cursor: pointer; }
-.controls button:hover { color: var(--accent); }
+.brand, .bar nav, .controls { display: flex; align-items: center; min-height: 48px; color: var(--ink); text-decoration: none; border: 1px solid var(--line); border-radius: 14px;
+  background: color-mix(in srgb, var(--card) 90%, transparent); -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2);
+  box-shadow: 0 1px 2px rgba(40, 30, 20, .08), 0 12px 32px rgba(40, 30, 20, .14); }
+.brand { padding: 0 18px; font: 400 15px var(--display); letter-spacing: .01em; white-space: nowrap; }
+.bar nav { gap: 4px; padding: 0 6px; }
+.bar nav a, .bar nav button { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border: 0; border-radius: 10px; background: none; font: 500 12px/1.5 var(--sans); color: inherit; cursor: pointer; text-decoration: none; white-space: nowrap; transition: background .2s, color .2s; }
+.bar nav a:hover, .bar nav button:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); }
+.bar nav [aria-current="page"] { background: color-mix(in srgb, var(--accent) 13%, transparent); color: var(--accent); font-weight: 600; }
+.controls { gap: 2px; padding: 0 6px; }
+.controls button { min-width: 36px; min-height: 36px; padding: 0 8px; border: 0; border-radius: 10px; background: none; color: inherit; font: 600 11px var(--sans); cursor: pointer; transition: background .2s, color .2s; }
+.controls button:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); color: var(--accent); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .panel { position: fixed; top: 92px; bottom: auto; left: 24px; width: min(420px, calc(100vw - 48px)); max-height: calc(100vh - 116px); overflow: auto;
   background: color-mix(in srgb, var(--card) 90%, transparent); -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2); border: 1px solid var(--line); border-radius: 18px; padding: clamp(22px, 3vw, 32px); z-index: 4;
@@ -38,7 +40,13 @@ body { margin: 0; font: 15px/1.6 var(--sans); color: var(--ink); background: lin
 @keyframes live { 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 22%, transparent); } }
 .panel .hint { color: var(--muted); font-size: 11px; letter-spacing: .04em; margin: 18px 0 0; }
 .avatar { display: block; width: 72px; height: 72px; object-fit: cover; border-radius: 50%; border: 1px solid var(--line); background: var(--sky); }
-.hero-links, .contact { list-style: none; display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 0; margin: 20px 0 0; }
+.hero-links, .contact { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 0; margin: 20px 0 0; }
+.contact li:first-child { grid-column: 1 / -1; }
+.contact li { display: flex; }
+.contact li > a { flex: 1; }
+.contact li:not(:first-child) > a { flex-direction: column; justify-content: center; gap: 6px; min-height: 72px; padding: 10px 8px; font-size: 12px; text-align: center; }
+.contact .btn.solid { justify-content: flex-start; min-height: 52px; }
+.contact .addr { min-width: 0; margin-left: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 400; opacity: .85; }
 .panel a { color: var(--accent); text-underline-offset: 3px; }
 .panel a.btn { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 14px; font-size: 13px; font-weight: 500; color: var(--ink); text-decoration: none; border: 1px solid var(--ink); border-radius: 12px; background: transparent; transition: background .2s, color .2s, transform .2s; }
 .panel a.btn:active { transform: translateY(1px); }
