@@ -248,13 +248,34 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   if (panel) observer?.observe(panel);
   const busPos = { x: 0, y: 0, z: 0 }, prevBus = { x: null, z: 0, h: 0 }, MINI_WHEELBASE = 2.5, MAX_STEER = 0.5;
   let steer = 0;
-  const updatePlane = (p) => { // the original flyover: passes beside the bus at the first UK stop, heading +x, climbing out
+  // Flyover at the first UK stop. The plane crosses above the bus, then climbs out and recedes: it pitches up, shrinks into the distance and fades,
+  // so it leaves the scene instead of vanishing. `d` is the distance from the stop in stop-lengths of scroll.
+  const PLANE_IN = -1.15, PLANE_OUT = 1.6; // by d = 1 it is far past the right edge of any desktop frame; the fade only covers wider or taller viewports
+  const smooth = (lo, hi, x) => { const t = Math.min(1, Math.max(0, (x - lo) / (hi - lo))); return t * t * (3 - 2 * t); };
+  // Level pass at 26 m in front of the skyline (anything receding behind the towers would be hidden), then it accelerates and climbs out past the right edge of the frame.
+  const planePath = (d) => { const a = Math.max(d, 0); return [busPos.x + 16 + d * 52 + a * a * 60, d < 0 ? 26 - d * 4 : 26 + a * 10 + a * a * 25, busPos.z - 2 - a * 10 - a * a * 40]; };
+  plane.rotation.order = 'YZX'; // yaw first, then pitch in the plane's own frame
+  let planeFaded = false;
+  const fadePlane = (alpha) => { // only touches materials while the plane is not fully opaque (the authored model may swap in after load)
+    if (alpha >= 1 && !planeFaded) return;
+    plane.traverse((o) => { if (o.material) for (const m of [].concat(o.material)) { m.transparent = alpha < 1; m.opacity = alpha; m.needsUpdate = true; } });
+    planeFaded = alpha < 1;
+  };
+  const updatePlane = (p) => {
     const d = (p - planeAt) * (n - 1);
-    plane.visible = planeAt >= 0 && Math.abs(d) < 1;
-    if (plane.visible) plane.position.set(busPos.x + 16 + d * 60, Math.max(3, 18 - d * 10), busPos.z - 2);
+    let alpha = 0;
+    if (planeAt >= 0 && d > PLANE_IN && d < PLANE_OUT) {
+      alpha = smooth(PLANE_IN, PLANE_IN + 0.25, d) * (1 - smooth(0.9, PLANE_OUT, d));
+      const [x, y, z] = planePath(d), [x2, y2, z2] = planePath(d + 0.02);
+      plane.position.set(x, y, z);
+      plane.rotation.y = Math.atan2(-(z2 - z), x2 - x); // heading follows the turn away
+      plane.rotation.z = Math.min(0.5, Math.atan2(y2 - y, Math.hypot(x2 - x, z2 - z))); // nose follows the climb
+      fadePlane(alpha);
+    }
+    plane.visible = alpha > 0.01;
     shadow.visible = plane.visible && night < 0.9;
     nav.visible = plane.visible && night > 0.35; strobe.visible = nav.visible && clock % 1.3 < 0.12; // red left / green right steady, white strobe blinks
-    if (shadow.visible) { shadow.position.set(plane.position.x, 0.14, plane.position.z); shadow.scale.set(34, 1, 15); shadow.material.opacity = 0.3 * (1 - night); }
+    if (shadow.visible) { shadow.position.set(plane.position.x, 0.14, plane.position.z); shadow.scale.set(34, 1, 15); shadow.material.opacity = 0.3 * (1 - night) * alpha * Math.max(0.15, 1 - (plane.position.y - 24) / 70); } // fainter as it climbs
   };
   let scroll = { value: 0, velocity: 0 }, target = 0, clock = 0, last = 0, raining = false, shotResolve = null;
   const lateral = new THREE.Vector3();
