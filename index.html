@@ -146,38 +146,101 @@
 </head>
 <body>
   <a class="skip" href="#panel">Skip to content</a>
-  <section id="intro" role="dialog" aria-labelledby="intro-title" hidden>
+  <dialog id="intro" aria-labelledby="intro-title" aria-describedby="intro-sub">
     <div class="intro-card">
       <div class="blind" aria-hidden="true">
         <b class="route">83</b>
         <div class="dest"><span class="cur"></span></div>
       </div>
-      <div class="intro-body">
-        <div class="mouse-wrap" aria-hidden="true">
-          <i class="ring"></i><i class="ring r2"></i>
-          <svg class="mouse" viewBox="0 0 64 100" width="84" height="131" focusable="false">
-            <path class="arrow up" d="M24 14l8-8 8 8" /><path class="arrow down" d="M24 86l8 8 8-8" />
-            <circle class="touch" cx="32" cy="50" r="13" /><rect class="body" x="10" y="22" width="44" height="58" rx="22" /><rect class="wheel" x="28" y="30" width="8" height="16" rx="4" />
+      <div class="intro-text">
+        <h2 id="intro-title" data-i18n="intro.title"></h2>
+        <p id="intro-sub" data-i18n="intro.sub"></p>
+      </div>
+      <div class="intro-map" tabindex="0" autofocus role="group" aria-labelledby="intro-hint">
+        <div class="intro-windshield" aria-hidden="true">
+          <svg viewBox="0 0 480 170" preserveAspectRatio="xMidYMid slice" focusable="false">
+            <defs>
+              <linearGradient id="intro-sky" x2="0" y2="1" gradientUnits="objectBoundingBox">
+                <stop class="windshield-sky-top"/><stop class="windshield-sky-bottom" offset="1"/>
+              </linearGradient>
+              <pattern id="intro-windows" width="13" height="15" patternUnits="userSpaceOnUse">
+                <rect x="3" y="3" width="5" height="7" fill="#f4dcae" opacity=".58"/>
+              </pattern>
+            </defs>
+            <path d="M0 0h480v170H0z" fill="url(#intro-sky)"/>
+            <g class="windshield-skyline">
+              <circle cx="99" cy="49" r="21" fill="#ffefc9"/>
+              <path d="M-30 103V85l48-13 43 13 33-16 36 9 32-9 63 21 40-19 30 6 33-15 62 24 41-13 64 14v16Z" fill="#678485"/>
+              <path d="M-24 110V63h38v17h9V58h32v13h18V49h19v25h32v-9h28v21h25V72h14v21h32v18zm281 0V90h22V74h18v9h17V61h26v15h23V53h39v24h19V64h24v-9h25v24h42v31Z" fill="#486164"/>
+              <path d="M-24 110V63h38v17h9V58h32v13h18V49h19v25h32v-9h28v21h25V72h14v21h32v18zm281 0V90h22V74h18v9h17V61h26v15h23V53h39v24h19V64h24v-9h25v24h42v31Z" fill="url(#intro-windows)"/>
+            </g>
+            <path d="M0 104h480v66H0z" fill="#908278"/>
+            <g class="windshield-landmarks">
+              <g class="windshield-stop sp">
+                <path d="M-20 103 156 80l122 7 12 7-134-3-176 25z" fill="#5d4740"/>
+                <path d="M161 104V28l7 1 10 76m-18-70L35 98m127-56L69 94m94-44L96 91m68-34-42 31m42-53 102 54m-100-45 76 42m-75-35 55 33m-54-25 36 25" fill="none" stroke="#ffe0a1" stroke-width="2"/>
+                <path d="M153 104h30" stroke="#614b41" stroke-width="3"/>
+              </g>
+              <g class="windshield-stop london">
+                <path d="M248 107V81h19V71h10v12h26V44l17-23 17 23v38h21V71h11v12h36v24z" fill="#a55445" stroke="#69453e" stroke-width="2"/>
+                <path d="M315 24V16l5-9 5 9v8m-5-17V2M303 46h34m-34 28h34m-23 6v22m11-22v22m24-10v10m32-10v10m-99-10v10" fill="none" stroke="#f9d8a1" stroke-width="2"/>
+                <circle cx="320" cy="59" r="9" fill="#f6dfb2"/>
+                <path d="M320 53v6l4 2" fill="none" stroke="#69453e" stroke-width="1.6"/>
+              </g>
+              <g class="windshield-stop glasgow">
+                <path d="m249 105 1-17 24-24 22 16 24-35 25 23 40-14 13 12v39z" fill="#ced3be" stroke="#56655f" stroke-width="2"/>
+                <path d="m264 104 1-16 12-15 20 16 23-30 26 21 37-15v39z" fill="#4c6969" stroke="#e8dec0" stroke-width="2"/>
+                <path d="M277 74v30m20-14v14m23-45v45m26-25v25m22-33v33" stroke="#e8dec0" stroke-width="1.5"/>
+              </g>
+            </g>
+            <path d="M211 103h58l147 67H64z" fill="#ceb390"/>
+            <path d="M219 103h42l133 67H86z" fill="#3d4242"/>
+            <path class="windshield-lane" d="M232 107 196 175m52-68 36 68" fill="none" stroke="#f9e4bc" stroke-width="2" stroke-dasharray="10 11"/>
+            <g class="windshield-verge" fill="#354f48">
+              <path d="M-45 153h108v17H-45zM20 153v-14h6v14m-13-11 10-20 10 20zm54 19v-27h4v27m-12-24 14-27 11 27zM403 146h137v24H403zM435 146v-24h5v24m-14-22 11-25 13 25zm43 35v-34h5v34m-14-30 13-29 12 29z"/>
+            </g>
+            <path d="m31 170 67-16m-54 9 94-17m309 24-68-16m56 9-94-17" fill="none" stroke="#24221e" stroke-width="2.4" stroke-linecap="round"/>
           </svg>
         </div>
-        <div class="intro-text">
-          <h2 id="intro-title" data-i18n="intro.title"></h2>
-          <p class="sub" data-i18n="intro.sub"></p>
-          <ul class="steps">
-            <li data-step="down"><span class="tick" aria-hidden="true"></span><span data-i18n="intro.down"></span></li>
-            <li data-step="up"><span class="tick" aria-hidden="true"></span><span data-i18n="intro.up"></span></li>
-          </ul>
-          <p class="keys" data-i18n="intro.keys"></p>
+        <ol class="intro-stations">
+          <li data-preview-stop="sp"><span data-i18n="intro.d1"></span></li>
+          <li data-preview-stop="london"><span data-i18n="intro.d2"></span></li>
+          <li data-preview-stop="glasgow"><span data-i18n="intro.d3"></span></li>
+        </ol>
+        <div class="road" aria-hidden="true">
+          <span class="trail"></span><span class="nodes"></span>
+          <svg class="route-vehicle" viewBox="0 0 48 27" width="48" height="27">
+            <g class="mini">
+              <path d="M7 16q0-3 4-4l4-6h14q4 0 7 7l5 1q3 1 3 4v4H7z" fill="#f1ead9" stroke="#302d29" stroke-width="1.5" stroke-linejoin="round"/>
+              <path d="m15 12 3-4h5v5h-8zm10 1V8h4q3 0 5 5z" fill="#486164"/>
+              <path d="M7 20h37" stroke="#796e60"/>
+              <circle cx="14" cy="22" r="4" fill="#302d29"/><circle cx="36" cy="22" r="4" fill="#302d29"/>
+              <circle cx="14" cy="22" r="1.6" fill="#d9cbb7"/><circle cx="36" cy="22" r="1.6" fill="#d9cbb7"/>
+            </g>
+            <g class="bus">
+              <rect x="1" y="1" width="46" height="22" rx="4" fill="#c9252b"/>
+              <path fill="#f4f0e9" d="M5 5h8v5H5zm10 0h8v5h-8zm10 0h8v5h-8zm10 0h8v5h-8zM5 13h8v4H5zm10 0h8v4h-8zm10 0h8v4h-8zm10 0h8v4h-8z"/>
+              <circle cx="10" cy="22" r="4" fill="#302d29"/><circle cx="38" cy="22" r="4" fill="#302d29"/>
+            </g>
+          </svg>
+        </div>
+        <div class="intro-guide">
+          <svg class="intro-mouse" viewBox="0 0 64 100" width="48" height="75" aria-hidden="true" focusable="false">
+            <path class="arrow up" d="M24 14l8-8 8 8"/><path class="arrow down" d="M24 86l8 8 8-8"/>
+            <circle class="touch" cx="32" cy="50" r="13"/>
+            <rect class="body" x="10" y="22" width="44" height="58" rx="22"/>
+            <rect class="wheel" x="28" y="30" width="8" height="16" rx="4"/>
+          </svg>
+          <p id="intro-hint" data-i18n="intro.hint"></p>
         </div>
       </div>
-      <div class="road" aria-hidden="true"><span class="trail"></span><span class="nodes"></span><svg class="mini-bus" viewBox="0 0 40 20" width="40" height="20"><rect width="40" height="16" rx="3" fill="#c9252b"/><rect x="4" y="3" width="7" height="5" fill="#f4f0e9"/><rect x="14" y="3" width="7" height="5" fill="#f4f0e9"/><rect x="24" y="3" width="7" height="5" fill="#f4f0e9"/><circle cx="9" cy="16" r="3.2" fill="#302d29"/><circle cx="31" cy="16" r="3.2" fill="#302d29"/></svg></div>
-      <p class="nice" role="status" data-i18n="intro.nice"></p>
       <div class="status" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-labelledby="intro-status-text"><span class="leds" aria-hidden="true"></span><span id="intro-status-text"></span></div>
-      <div class="actions"><button type="button" class="skip-intro" data-intro-skip><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M12 3a6 6 0 0 0-6 6v4l-2 3v1h16v-1l-2-3V9a6 6 0 0 0-6-6zm-2 16a2 2 0 0 0 4 0z" fill="currentColor"/></svg><span data-i18n="intro.skip"></span></button></div>
-      <button type="button" class="lite" data-intro-lite data-i18n="intro.lite"></button>
+      <div class="actions">
+        <button type="button" data-intro-skip data-i18n="intro.skip"></button>
+      </div>
       <i class="door l" aria-hidden="true"></i><i class="door r" aria-hidden="true"></i>
     </div>
-  </section>
+  </dialog>
   <canvas id="world" aria-hidden="true"></canvas>
   <header class="bar">
     <a class="brand" href="#hero" data-nav-home>Samuel Catalano<span class="led" aria-hidden="true"><b>83</b><span class="live"></span></span></a>

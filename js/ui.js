@@ -109,7 +109,7 @@ export function initUI({ onGoto, onTheme }) {
     const touch = matchMedia('(pointer: coarse)').matches; // phones get "swipe" copy (intro.t_*) instead of "scroll"
     const pick = (path) => path.split('.').reduce((o, k) => o[k], t.ui);
     document.querySelectorAll('[data-i18n]').forEach(el => {
-      const key = el.dataset.i18n, tk = key.replace(/^intro\.(sub|down|up)$/, 'intro.t_$1');
+      const key = el.dataset.i18n, tk = key === 'intro.hint' ? 'intro.t_hint' : key;
       el.textContent = touch && tk !== key ? pick(tk) : pick(key);
     });
     const prev = document.activeElement;

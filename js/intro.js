@@ -4,101 +4,136 @@ import { loadState, onLoadChange } from './world/load-progress.js';
 // Intro shown on every load. A toy bus follows the scroll wheel (or swipe, or arrow keys) along a miniature of the career line while the 3D world loads;
 // the LED blind names the stop it is passing. While nobody has touched it the blind reports the real loading stage and the time in London.
 const clamp01 = (v) => Math.min(1, Math.max(0, v));
-// Pure step logic (unit-tested): p = toy bus position 0..1; "down" = reached the end of the line, "up" = came back after that.
-export function practice(state, dy) {
-  const p = clamp01(state.p + dy / 500);
-  return { p, down: state.down || p >= 1, up: state.up || (state.down && p <= 0) };
-}
+// Scroll, touch and keys share the same 0..1 route position.
+export const practice = (p, dy) => clamp01(p + dy / 500);
 const JOURNEY = stops.filter((s) => s.section === 'journey');
 export const journeyIndex = (p, n = JOURNEY.length) => Math.round(clamp01(p) * (n - 1));
 // "2019 LONDON", "2003 PUC": the year plus the employer's initials, or the city where there are none (the move) or where the initials repeat (Glasgow).
 export const careerLabel = (st, t) => `${st.year} ${st.id === 'glasgow' || !st.brand ? t.stops[st.id].place : st.brand.initials}`.toUpperCase();
-const KEY_DY = { ArrowDown: 120, PageDown: 240, ' ': 240, ArrowUp: -120, PageUp: -240 };
+const KEY_DY = { ArrowUp: 120, ArrowDown: -120, PageDown: 240, PageUp: -240, ' ': 240 };
 const LEDS = 24;
-export function createIntro(root, { onDrive = () => {}, onLite = () => {} } = {}) {
-  let state = { p: 0, down: false, up: false }, active = false, belled = false, interacted = false, ready = false, tick, slowTimer;
-  const card = root.querySelector('.intro-card'), cur = root.querySelector('.dest .cur'), nodesEl = root.querySelector('.nodes'), ledsEl = root.querySelector('.leds');
+export function createIntro(root, { onDrive = () => {} } = {}) {
+  let p = 0, active = false, interacted = false, ready = false, tick, bellTimer, unsubscribe;
+  const map = root.querySelector('.intro-map'), cur = root.querySelector('.dest .cur');
+  const nodesEl = root.querySelector('.nodes'), ledsEl = root.querySelector('.leds');
   const statusEl = root.querySelector('.status'), statusText = root.querySelector('#intro-status-text');
+  const skip = root.querySelector('[data-intro-skip]');
+  const previewStops = [...root.querySelectorAll('[data-preview-stop]')];
   const t = () => i18n[document.documentElement.lang.startsWith('pt') ? 'pt' : 'en'];
-  nodesEl.innerHTML = JOURNEY.map((st, i) => `<i class="node ${st.country.toLowerCase()}${st.id === 'move' ? ' hub' : ''}" style="--f:${i / (JOURNEY.length - 1)}"></i>`).join('');
+  const fraction = i => i / (JOURNEY.length - 1);
+  const border = JOURNEY.findIndex(st => st.id === 'move');
+  const glasgow = JOURNEY.findIndex(st => st.id === 'glasgow');
+  root.style.setProperty('--border-stop', `${100 * fraction(border)}%`);
+  nodesEl.innerHTML = JOURNEY.map((st, i) => `<i class="node ${st.country.toLowerCase()}${i === border ? ' hub' : ''}" style="--f:${fraction(i)}"></i>`).join('');
   ledsEl.innerHTML = '<i></i>'.repeat(LEDS);
   const nodes = [...nodesEl.children], leds = [...ledsEl.children];
-  const londonTime = () => new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit' }).format(new Date());
-  // What the blind says: the bell wins, then the stop being passed, then "all aboard" once loaded, else loading stage and London time in turns.
-  const blind = () => {
-    const tt = t();
-    if (belled) return [tt.ui.led.stop, true];
-    if (interacted) return [careerLabel(JOURNEY[journeyIndex(state.p)], tt), false];
-    if (ready) return [tt.ui.intro.ready, false];
-    const stage = loadState().stage;
-    return Math.floor(Date.now() / 2800) % 2 === 0 && stage ? [tt.ui.intro.stages[stage], false] : [`${tt.stops.move.place} ${londonTime()}`, false];
-  };
+  const londonClock = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit' });
   const paintBlind = () => {
-    const [text, alert] = blind();
-    cur.classList.toggle('alert', alert);
-    if (cur.textContent !== text.toUpperCase()) { cur.textContent = text.toUpperCase(); cur.classList.remove('roll'); void cur.offsetWidth; cur.classList.add('roll'); }
+    const tt = t(), { stage } = loadState();
+    let label = ready ? tt.ui.intro.ready : `${tt.stops.move.place} ${londonClock.format(new Date())}`;
+    if (bellTimer) label = tt.ui.led.stop;
+    else if (interacted) label = careerLabel(JOURNEY[journeyIndex(p)], tt);
+    else if (!ready && stage && Math.floor(Date.now() / 2800) % 2 === 0) label = tt.ui.intro.stages[stage];
+    const text = label.toUpperCase();
+    if (cur.textContent !== text) {
+      cur.textContent = text;
+      cur.classList.remove('roll');
+      void cur.offsetWidth;
+      cur.classList.add('roll');
+    }
   };
   const paintProgress = () => {
-    const { ratio, stage } = loadState(), r = ready ? 1 : ratio;
-    leds.forEach((l, i) => l.classList.toggle('on', i < Math.round(r * LEDS)));
-    statusEl.setAttribute('aria-valuenow', String(Math.round(r * 100)));
-    statusText.textContent = `${stage && !ready ? t().ui.intro.stages[stage] : t().ui.loading} ${Math.round(r * 100)}%`;
+    const { ratio, stage } = loadState(), value = ready ? 100 : Math.round(ratio * 100), ui = t().ui;
+    leds.forEach((l, i) => l.classList.toggle('on', i < Math.round(value * LEDS / 100)));
+    statusEl.setAttribute('aria-valuenow', String(value));
+    statusText.textContent = ready ? ui.intro.ready : `${stage ? ui.intro.stages[stage] : ui.loading} ${value}%`;
   };
   const render = () => {
-    root.style.setProperty('--p', state.p);
-    root.querySelector('[data-step="down"]').classList.toggle('done', state.down);
-    root.querySelector('[data-step="up"]').classList.toggle('done', state.up);
-    root.classList.toggle('celebrate', state.down && state.up);
-    const at = journeyIndex(state.p);
+    root.style.setProperty('--p', p);
+    const at = journeyIndex(p);
+    const preview = at >= glasgow ? 'glasgow' : at >= border ? 'london' : 'sp';
+    if (root.dataset.preview !== preview) {
+      root.dataset.preview = preview;
+      previewStops.forEach(stop => {
+        if (stop.dataset.previewStop === preview) stop.setAttribute('aria-current', 'location');
+        else stop.removeAttribute('aria-current');
+      });
+    }
     nodes.forEach((n, i) => { n.classList.toggle('passed', interacted && i <= at); n.classList.toggle('here', interacted && i === at); });
     paintBlind();
-    if (active) onDrive(state.p); // the real bus behind the glass follows the toy one
+    onDrive(p);
   };
-  const dismiss = ({ sound = false } = {}) => {
+  const dismiss = ({ reveal = false } = {}) => {
     if (!active) return;
-    active = false; clearInterval(tick); clearTimeout(slowTimer); unsub();
-    removeEventListener('wheel', onWheel); removeEventListener('keydown', onKey);
-    removeEventListener('touchstart', onTouchStart); removeEventListener('touchmove', onTouchMove);
-    root.classList.add('opening', 'leaving'); // the doors slide apart, then the glass lifts
-    if (sound) hiss();
-    onDrive(null); // hand the real bus back to the page scroll
-    setTimeout(() => { root.hidden = true; document.body.classList.remove('intro-on'); }, 1300);
+    active = false;
+    clearInterval(tick);
+    clearTimeout(bellTimer);
+    unsubscribe();
+    document.removeEventListener('keydown', onKey);
+    const close = () => {
+      root.close();
+      document.body.classList.remove('intro-on');
+      const heading = document.querySelector('#panel :is(h1, h2)');
+      if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
+    };
+    const animate = reveal && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!animate) { onDrive(null); close(); return; }
+    root.classList.add('opening', 'leaving');
+    hiss();
+    onDrive(null);
+    setTimeout(close, 1300);
   };
-  const step = (dy) => { if (dy) interacted = true; state = practice(state, dy); render(); };
-  const onWheel = (e) => { e.preventDefault(); root.dataset.dir = e.deltaY > 0 ? 'down' : 'up'; step(e.deltaY); }; // the page must not scroll under the overlay
-  let lastY = null; // swipe up = scroll down: the finger drags the toy bus the same way the wheel does
-  const onTouchStart = (e) => { lastY = e.touches[0].clientY; };
-  const onTouchMove = (e) => {
-    if (lastY === null || e.target.closest('button')) return;
+  const step = (dy, direction = dy) => {
+    if (!active || !dy) return;
+    interacted = true;
+    root.dataset.dir = direction > 0 ? 'down' : 'up';
+    p = practice(p, dy);
+    render();
+  };
+  root.addEventListener('wheel', e => {
+    if (e.ctrlKey || (root.scrollHeight > root.clientHeight && !map.contains(e.target))) return;
     e.preventDefault();
-    const y = e.touches[0].clientY, dy = (lastY - y) * 1.6;
-    lastY = y; root.dataset.dir = dy > 0 ? 'down' : 'up'; step(dy);
+    step(e.deltaY);
+  }, { passive: false });
+  const onKey = e => {
+    const dy = KEY_DY[e.key];
+    if (!dy || e.altKey || e.ctrlKey || e.metaKey || (e.key === ' ' && e.target === skip)) return;
+    e.preventDefault();
+    step(dy, e.key.startsWith('Arrow') ? -dy : dy);
   };
-  const onKey = (e) => { if (KEY_DY[e.key] && !e.target.closest('button')) { e.preventDefault(); step(KEY_DY[e.key]); } };
-  const unsub = onLoadChange(() => { if (active) { paintProgress(); paintBlind(); } });
-  root.querySelector('[data-intro-skip]').addEventListener('click', () => { // pull the bell, let the blind say so, then the doors open
-    if (belled || !active) return;
-    belled = true; root.classList.add('bell'); paintBlind(); ding(); navigator.vibrate?.(40);
-    setTimeout(() => dismiss({ sound: true }), 900);
-  });
-  root.querySelector('[data-intro-lite]').addEventListener('click', () => { onLite(); dismiss(); }); // slow connection: read the page without the 3D city
-  root.addEventListener('pointermove', (e) => { // specular highlight that follows the cursor across the glass
-    const r = card.getBoundingClientRect();
-    card.style.setProperty('--mx', `${e.clientX - r.left}px`); card.style.setProperty('--my', `${e.clientY - r.top}px`);
+  let lastY;
+  map.addEventListener('touchstart', e => { lastY = e.touches.length === 1 ? e.touches[0].clientY : undefined; }, { passive: true });
+  map.addEventListener('touchmove', e => {
+    if (lastY === undefined || e.touches.length !== 1) return;
+    const y = e.touches[0].clientY;
+    step((lastY - y) * 1.6);
+    lastY = y;
   }, { passive: true });
+  skip.addEventListener('click', () => {
+    if (!active || bellTimer) return;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { dismiss(); return; }
+    bellTimer = setTimeout(() => dismiss({ reveal: true }), 900);
+    root.classList.add('bell');
+    paintBlind();
+    ding();
+    navigator.vibrate?.(40);
+  });
+  root.addEventListener('cancel', e => { e.preventDefault(); dismiss(); });
   return {
     start() {
-      active = true; root.hidden = false; document.body.classList.add('intro-on');
-      addEventListener('wheel', onWheel, { passive: false });
-      addEventListener('keydown', onKey);
-      addEventListener('touchstart', onTouchStart, { passive: true }); addEventListener('touchmove', onTouchMove, { passive: false });
-      const c = navigator.connection; // 110 MB of 3D: offer the plain page right away on slow or data-saver connections, after 8 s otherwise
-      if (c && (c.saveData || /^(slow-)?2g$|^3g$/.test(c.effectiveType))) root.classList.add('slow');
-      slowTimer = setTimeout(() => root.classList.add('slow'), 8000);
-      tick = setInterval(() => { paintBlind(); }, 700);
-      paintProgress(); render();
+      active = true;
+      document.body.classList.add('intro-on');
+      root.showModal();
+      document.addEventListener('keydown', onKey);
+      unsubscribe = onLoadChange(() => { if (active) { paintProgress(); paintBlind(); } });
+      tick = setInterval(paintBlind, 700);
+      paintProgress();
+      render();
     },
-    ready() { ready = true; root.classList.add('ready'); root.classList.remove('slow'); clearTimeout(slowTimer); if (active) { paintProgress(); onDrive(state.p); paintBlind(); } },
+    ready() {
+      ready = true;
+      if (active) { paintProgress(); render(); }
+    },
     dismiss,
   };
 }

@@ -2,19 +2,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { practice } from '../js/intro.js';
 
-const run = (...dys) => dys.reduce(practice, { p: 0, down: false, up: false });
-
-test('scrolling down to the flag completes the first step only', () => {
-  const s = run(300, 300);
-  assert.deepEqual([s.p, s.down, s.up], [1, true, false]);
-});
-test('going back up only counts after the flag was reached', () => {
-  assert.equal(run(-400).up, false);
-  assert.equal(run(600, -600).up, true);
-});
-test('position never leaves 0..1', () => {
-  assert.equal(run(-9999).p, 0);
-  assert.equal(run(9999).p, 1);
+test('the preview advances and reverses without leaving the route', () => {
+  assert.equal(practice(0, 300), 0.6);
+  assert.equal(practice(0.6, -150), 0.3);
+  assert.equal(practice(0, -9999), 0);
+  assert.equal(practice(0, 9999), 1);
 });
 
 import { journeyIndex, careerLabel } from '../js/intro.js';
