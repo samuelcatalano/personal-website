@@ -142,10 +142,6 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false,
     scene.add(mesh);
     return mesh;
   });
-  const bb = pts[stopIndex(stops, LANDMARKS.bigben)];
-  const blink = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), new THREE.MeshBasicMaterial({ color: 0xff2a2a }));
-  blink.position.set(bb.x, 34.4, RIVER_Z - 16);
-  scene.add(blink);
   const invP = (t) => { let a = 0, b = 1; for (let i = 0; i < 30; i++) { const m = (a + b) / 2; if (routeT(m, pts.length, knots) < t) a = m; else b = m; } return (a + b) / 2; }; // route progress for a curve t
   bridge.forEach((b) => { if (b.phase === 'road') b.p = invP(b.t0); });
   const rangeP = invP(swapAt(stops) + SP_RANGE); // route progress of the Sao Paulo loop's east end
@@ -268,7 +264,6 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false,
         b.position.y = 0.1 + Math.sin(time * 1.1 + i * 2) * 0.25;
         b.rotation.z = Math.sin(time * 0.9 + i) * 0.04;
       });
-      blink.visible = Math.floor(time * 1.4) % 2 === 0;
     },
   };
 }
