@@ -16,3 +16,8 @@ test('position never leaves 0..1', () => {
   assert.equal(run(-9999).p, 0);
   assert.equal(run(9999).p, 1);
 });
+
+import { destination } from '../js/intro.js';
+test('roller blind walks São Paulo, London, Glasgow as the bus advances', () => {
+  assert.deepEqual([0, 0.2, 0.5, 0.8, 1].map(destination), [0, 0, 1, 2, 2]);
+});

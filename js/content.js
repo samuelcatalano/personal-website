@@ -55,7 +55,7 @@ export const i18n = {
     ui: {
       nav: { journey: 'Journey', stack: 'Stack', articles: 'Writing', repos: 'Code', recs: 'Recommendations', contact: 'Contact' },
       theme: 'Switch between day and night', lang: 'Switch language', scroll: 'Scroll to ride',
-      loading: 'Warming up the bus…', intro: { title: 'How to ride', sub: 'Your scroll wheel is the throttle. The real bus is right behind the glass.', nice: 'That is it. Now you know how to ride.', down: 'Scroll down to drive forward', up: 'Scroll up to go back', skip: 'Skip' }, navLabel: 'Sections', beforeLondon: 'Before London', present: 'Present', skip: 'Skip to content', footer: 'Designed and built by Samuel Catalano.',
+      loading: 'Warming up the bus…', intro: { d1: 'São Paulo', d2: 'London', d3: 'Glasgow', stop: 'Stop requested', title: 'How to ride', sub: 'Your scroll wheel is the throttle. The real bus is right behind the glass.', nice: 'That is it. Now you know how to ride.', down: 'Scroll down to drive forward', up: 'Scroll up to go back', skip: 'Skip' }, navLabel: 'Sections', beforeLondon: 'Before London', present: 'Present', skip: 'Skip to content', footer: 'Designed and built by Samuel Catalano.',
       signpost: { saoPaulo: 'São Paulo', london: 'London', km: '9,480 km' }, // 3D fingerpost on the plaza over the SP -> London tunnel
     },
     sections: {
@@ -90,7 +90,7 @@ export const i18n = {
     ui: {
       nav: { journey: 'Trajetória', stack: 'Stack', articles: 'Artigos', repos: 'Código', recs: 'Recomendações', contact: 'Contato' },
       theme: 'Alternar entre dia e noite', lang: 'Trocar idioma', scroll: 'Role para embarcar',
-      loading: 'Esquentando o ônibus…', intro: { title: 'Como passear', sub: 'A roda do mouse é o acelerador. O ônibus de verdade está logo atrás do vidro.', nice: 'É isso. Agora você sabe dirigir.', down: 'Role para baixo para avançar', up: 'Role para cima para voltar', skip: 'Pular' }, navLabel: 'Seções', beforeLondon: 'Antes de Londres', present: 'Atual', skip: 'Pular para o conteúdo', footer: 'Projetado e construído por Samuel Catalano.',
+      loading: 'Esquentando o ônibus…', intro: { d1: 'São Paulo', d2: 'Londres', d3: 'Glasgow', stop: 'Parada solicitada', title: 'Como passear', sub: 'A roda do mouse é o acelerador. O ônibus de verdade está logo atrás do vidro.', nice: 'É isso. Agora você sabe dirigir.', down: 'Role para baixo para avançar', up: 'Role para cima para voltar', skip: 'Pular' }, navLabel: 'Seções', beforeLondon: 'Antes de Londres', present: 'Atual', skip: 'Pular para o conteúdo', footer: 'Projetado e construído por Samuel Catalano.',
       signpost: { saoPaulo: 'São Paulo', london: 'Londres', km: '9.480 km' },
     },
     sections: {
