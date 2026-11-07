@@ -4,7 +4,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-import { stops, SECTIONS, i18n, sectionStart } from '../js/content.js';
+import { stops, SECTIONS, i18n, sectionStart, links, articles, repos, stack } from '../js/content.js';
 import { LANDMARKS, ukStart } from '../js/world/layout.js';
 
 const keys = (o, p = '') => Object.entries(o).flatMap(([k, v]) =>
@@ -43,6 +43,15 @@ test('sections appear in SECTIONS order', () => {
   const starts = SECTIONS.map(sectionStart);
   assert.ok(starts.every(i => i >= 0));
   assert.deepEqual(starts, [...starts].sort((a, b) => a - b));
+});
+
+test('noscript fallback lists every link, article and repo from content.js', () => {
+  const html = readFileSync(join(root, 'index.html'), 'utf8');
+  const fallback = html.slice(html.indexOf('<noscript>'), html.indexOf('</noscript>'));
+  assert.ok(fallback.length > 0, 'noscript block missing');
+  const want = [links.email.replace('mailto:', ''), links.linkedin, links.github, links.medium,
+    ...articles.map(a => a.url), ...repos.map(r => r.url), ...stack];
+  for (const w of want) assert.ok(fallback.includes(w), `noscript misses ${w}`);
 });
 
 test('no private data in served files', () => {
