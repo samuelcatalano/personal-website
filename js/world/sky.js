@@ -163,6 +163,8 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
   return {
     track(m) { if (m?.userData?.glow) glow.push(m); }, // materials that arrive after createSky (async GLBs) join the night glow loop
     colors:{zen:u.uZen.value,hor:u.uHor.value},
+    sunDir:u.uSunDir.value, // camera -> visible sun/moon disc (both pinned to the same frame point): the water glint aims here
+    objects:owned, // hidden while the water's planar reflection renders (the shader draws its own sky)
     update(night, dt = 0, camPos = new THREE.Vector3(), cam, mood = LON, flash = 0) {
       cam?.updateMatrixWorld();
       const cover=mood.cover ?? Math.min(1,.18+mood.cloudOp+(mood.rain??0)*.8);

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
 import { routeT, nearestStop, stopMarks, fineMarks } from '../scroll.js';
-import { routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, FRAME_LIFT, swapAt, heroVehicleAt, ukStart, treeRegion, SWAP_GAP, east, eastAdd, stretch, LEGACY_GAPS } from './layout.js';
+import { routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, towerX, FRAME_LIFT, swapAt, heroVehicleAt, ukStart, treeRegion, SWAP_GAP, east, eastAdd, stretch, LEGACY_GAPS } from './layout.js';
 import { createBoxes, buildMeshes } from './voxel.js';
 import { buildMotion } from './motion.js';
 import { buildCity, tree } from './city.js';
@@ -165,8 +165,6 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   bus.rotation.order = 'YZX'; // yaw, then the dip's pitch
   const people = createPeople({ curve, pts, stops, obstacles: kioskClearance, reducedMotion });
   const units = [await createNpc3d(scene, { people, pts, stops })]; // finish startup NPCs before the bulk fleet can occupy the download queue
-  const water = createWater({ x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z: RIVER_Z, width: 22, reducedMotion });
-  scene.add(water.mesh);
   let disposed = false, raf = 0, landmarksReady = false, startupLandmarksCancelled = false;
   initVehicleEnv(renderer); upgradeMini(mini, { isDisposed: () => disposed }).then(() => refitBeams(mini)); upgradeBus(londonBus, 'london', { isDisposed: () => disposed }).then(() => refitBeams(londonBus)); upgradeBus(glasgowBus, 'glasgow', { isDisposed: () => disposed }).then(() => refitBeams(glasgowBus)); // authored shared London/Glasgow bus GLB
   loadVehicleAsset('a330').then((glb) => { if (glb && !disposed) adoptVisual(plane, glb, ['nav', 'strobe']); }); // authored A330 (tools/vehicles/a330); procedural stays on failure
@@ -211,6 +209,15 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const pools = createLampPools(scene, lamps);
   const sky = createSky(scene, { hemi, sun, reducedMotion }), moodAt = createMood(stops), rain = createRain(scene, { reducedMotion, lamps });
   const wetSurfaces = createWetSurfaces(scene, { lamps, reducedMotion });
+  // Water: foam rings Tower Bridge's piers and the moored boats; the planar reflection mirrors the river-side landmarks (water.js).
+  const piers = [], tb = towerX(stops, pts), boatBox = new THREE.Box3(), reflectRoots = [eye];
+  for (const tz of [-9.5, 9.5]) piers.push({ x: tb, z: RIVER_Z + tz, hx: 3.1, hz: 2.9 });
+  scene.traverse((o) => { if (o.name.startsWith('thames-boat')) { boatBox.setFromObject(o); piers.push({ x: (boatBox.min.x + boatBox.max.x) / 2, z: (boatBox.min.z + boatBox.max.z) / 2, hx: (boatBox.max.x - boatBox.min.x) / 2, hz: (boatBox.max.z - boatBox.min.z) / 2 }); reflectRoots.push(o); } });
+  for (const name of ['bigben', 'towerbridge', 'eyeframe', 'estaiada', 'masp', 'se', 'copan', 'riverside', 'university', 'chambers', 'wembley']) reflectRoots.push(details.getObjectByName(name + '-geometry'));
+  reflectRoots.push(details.getObjectByName('estaiada-deck')?.parent, details.getObjectByName('bigben-four-clock-faces'));
+  const water = createWater({ x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z: RIVER_Z, width: 22, reducedMotion, piers, reflectRoots });
+  scene.add(water.mesh);
+  if (qa) globalThis.__qaWater = water;
   let wet = 0;
   const post = createPost(renderer, scene, camera, { sun, tier: reducedMotion || matchMedia('(max-width: 767px)').matches ? 'medium' : 'high' });
   if (qa) globalThis.__qaPost = post;
@@ -382,7 +389,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     authoredLods.forEach((lod) => lod.update(camera.position));
     wetSurfaces.update(clock, wet, mood.rain, night, camera.position, sky.colors, bus.position, bus.rotation.y, post.tier);
     updateBeams(night); pools.update(night, wet); lampPosts?.userData.setNight?.(night);
-    water.update(clock, night, mood, post.tier, sky.colors);
+    water.update(clock, night, mood, post.tier, sky.colors, sky.sunDir);
     world.userData.updateLandmarkNight?.(night);
     updateVehicleEnv(night); landmarkEnv.update(night);
     settle = Math.max(0, settle - dt); // ponytail: 3 s settle, then two consecutive slow 2 s windows; shader compiles and asset uploads never change the look
@@ -395,6 +402,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
         fpsT = fpsN = 0;
       }
     }
+    water.reflect(renderer, scene, camera, post.tier, sky.objects);
     post.render(dt);
     if (shotResolve) { const done = shotResolve; shotResolve = null; canvas.toBlob(done, 'image/png'); } // same task as the render: the drawing buffer is still valid
     if (qa) globalThis.__qaWorldFrames++;
@@ -435,7 +443,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       roadMarks.userData.dispose(); propsGroup?.userData.dispose();
       eye.userData.dispose?.();
       rain.dispose?.();
-      wetSurfaces.dispose();
+      wetSurfaces.dispose(); water.dispose();
       sky.dispose();
       trees?.userData.dispose?.();
       phones?.userData.dispose(); lampPosts?.userData.dispose();
