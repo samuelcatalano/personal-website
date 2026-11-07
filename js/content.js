@@ -61,8 +61,8 @@ export const i18n = {
   en: {
     ui: {
       nav: { journey: 'Journey', stack: 'Stack', articles: 'Writing', repos: 'Code', recs: 'Recommendations', contact: 'Contact' },
-      theme: 'Switch between day and night', lang: 'Switch language', scroll: 'Scroll to ride',
-      zones: { br: 'Brazil', uk: 'United Kingdom' }, loading: 'Warming up the bus…', intro: { d1: 'São Paulo', d2: 'London', d3: 'Glasgow', stop: 'Stop requested', title: 'How to ride', sub: 'Your scroll wheel is the throttle. The real bus is right behind the glass.', nice: 'That is it. Now you know how to ride.', down: 'Scroll down to drive forward', up: 'Scroll up to go back', skip: 'Skip' }, navLabel: 'Sections', beforeLondon: 'Before London', present: 'Present', skip: 'Skip to content', footer: 'Designed and built by Samuel Catalano.',
+      theme: 'Switch between day and night', lang: 'Switch language', scroll: 'Scroll to ride', scrollTouch: 'Swipe to ride',
+      zones: { br: 'Brazil', uk: 'United Kingdom' }, loading: 'Warming up the bus…', intro: { t_sub: 'Your finger is the throttle. The real bus is right behind the glass.', t_down: 'Swipe up to drive forward', t_up: 'Swipe down to go back', d1: 'São Paulo', d2: 'London', d3: 'Glasgow', stop: 'Stop requested', title: 'How to ride', sub: 'Your scroll wheel is the throttle. The real bus is right behind the glass.', nice: 'That is it. Now you know how to ride.', down: 'Scroll down to drive forward', up: 'Scroll up to go back', skip: 'Skip' }, navLabel: 'Sections', beforeLondon: 'Before London', present: 'Present', skip: 'Skip to content', footer: 'Designed and built by Samuel Catalano.',
       signpost: { saoPaulo: 'São Paulo', london: 'London', km: '9,480 km' }, // 3D fingerpost on the plaza over the SP -> London tunnel
     },
     sections: {
@@ -96,8 +96,8 @@ export const i18n = {
   pt: {
     ui: {
       nav: { journey: 'Trajetória', stack: 'Stack', articles: 'Artigos', repos: 'Código', recs: 'Recomendações', contact: 'Contato' },
-      theme: 'Alternar entre dia e noite', lang: 'Trocar idioma', scroll: 'Role para embarcar',
-      zones: { br: 'Brasil', uk: 'Reino Unido' }, loading: 'Esquentando o ônibus…', intro: { d1: 'São Paulo', d2: 'Londres', d3: 'Glasgow', stop: 'Parada solicitada', title: 'Como passear', sub: 'A roda do mouse é o acelerador. O ônibus de verdade está logo atrás do vidro.', nice: 'É isso. Agora você sabe dirigir.', down: 'Role para baixo para avançar', up: 'Role para cima para voltar', skip: 'Pular' }, navLabel: 'Seções', beforeLondon: 'Antes de Londres', present: 'Atual', skip: 'Pular para o conteúdo', footer: 'Projetado e construído por Samuel Catalano.',
+      theme: 'Alternar entre dia e noite', lang: 'Trocar idioma', scroll: 'Role para embarcar', scrollTouch: 'Deslize para embarcar',
+      zones: { br: 'Brasil', uk: 'Reino Unido' }, loading: 'Esquentando o ônibus…', intro: { t_sub: 'Seu dedo é o acelerador. O ônibus de verdade está logo atrás do vidro.', t_down: 'Deslize para cima para avançar', t_up: 'Deslize para baixo para voltar', d1: 'São Paulo', d2: 'Londres', d3: 'Glasgow', stop: 'Parada solicitada', title: 'Como passear', sub: 'A roda do mouse é o acelerador. O ônibus de verdade está logo atrás do vidro.', nice: 'É isso. Agora você sabe dirigir.', down: 'Role para baixo para avançar', up: 'Role para cima para voltar', skip: 'Pular' }, navLabel: 'Seções', beforeLondon: 'Antes de Londres', present: 'Atual', skip: 'Pular para o conteúdo', footer: 'Projetado e construído por Samuel Catalano.',
       signpost: { saoPaulo: 'São Paulo', london: 'Londres', km: '9.480 km' },
     },
     sections: {

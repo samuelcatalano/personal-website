@@ -26,7 +26,7 @@ function sectionHTML(section, t, active) {
       <img class="avatar" src="assets/avatar.png" alt="" width="96" height="96">
       <h1>${s.title}</h1><p class="role">${s.role}</p><p class="meta">${s.meta}</p>
       <p class="tagline">${s.tagline}</p><p class="avail">${s.availability}</p><ul class="hero-links contact">
-        ${contact(t.sections.contact)}</ul><p class="hint">${t.ui.scroll} ↓</p>`;
+        ${contact(t.sections.contact)}</ul><p class="hint">${matchMedia('(pointer: coarse)').matches ? t.ui.scrollTouch : t.ui.scroll} ↓</p>`;
     case 'journey': return `
       <h2>${s.title}</h2><p>${s.intro}</p><ol class="stops">${stops.map((st, i) => {
         if (st.section !== 'journey') return '';
@@ -73,12 +73,19 @@ export function initUI({ onGoto, onTheme }) {
     const live = document.querySelector('.led .live'); // the header's LED blind names the current stop, like the destination blind of the bus
     const where = st.section === 'journey' ? `${st.year} ${t.stops[st.id].place}` : st.section === 'hero' ? t.ui.intro.d1 : t.ui.nav[st.section];
     if (live.textContent !== where) { live.textContent = where; live.classList.remove('roll'); void live.offsetWidth; live.classList.add('roll'); }
+    const nav = document.querySelector('.bar nav'), here = nav.querySelector('[aria-current]'); // on phones the menu scrolls: keep the current section in view
+    if (here && nav.scrollWidth > nav.clientWidth) nav.scrollTo({ left: here.offsetLeft - (nav.clientWidth - here.offsetWidth) / 2, behavior: 'smooth' });
     const langButton = document.querySelector('[data-lang]');
     langButton.textContent = prefs.lang === 'en' ? 'PT' : 'EN';
     langButton.setAttribute('aria-label', `${langButton.textContent} — ${t.ui.lang}`);
     document.querySelector('[data-theme]').setAttribute('aria-label', t.ui.theme);
     document.querySelector('.skip').textContent = t.ui.skip;
-    document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = el.dataset.i18n.split('.').reduce((o, k) => o[k], t.ui); });
+    const touch = matchMedia('(pointer: coarse)').matches; // phones get "swipe" copy (intro.t_*) instead of "scroll"
+    const pick = (path) => path.split('.').reduce((o, k) => o[k], t.ui);
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.dataset.i18n, tk = key.replace(/^intro\.(sub|down|up)$/, 'intro.t_$1');
+      el.textContent = touch && tk !== key ? pick(tk) : pick(key);
+    });
     const prev = document.activeElement;
     const key = ['data-goto', 'data-nav', 'data-nav-home', 'data-lang', 'data-theme'].find(a => prev?.hasAttribute?.(a));
     const keep = key && [key, prev.getAttribute(key)];

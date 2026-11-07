@@ -129,6 +129,9 @@ body.intro-on #loading { display: none; }
 .actions button:hover { transform: translateY(-1px); box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 55%, transparent); }
 .actions button:active { transform: translateY(1px) scale(.98); }
 body.theme-night .actions button { color: #1b1d1f; }
+.mouse .touch { display: none; fill: color-mix(in srgb, var(--accent) 22%, transparent); stroke: var(--accent); stroke-width: 3; }
+@media (pointer: coarse) { .mouse .body, .mouse .wheel { display: none; } .mouse .touch { display: block; animation: swipe 1.6s ease-in-out infinite; } }
+@keyframes swipe { 0%, 100% { transform: translateY(14px); } 50% { transform: translateY(-14px); } }
 @media (max-width: 480px) { .intro-body { grid-template-columns: 1fr; justify-items: center; text-align: center; } .intro-card { padding: 18px 18px 22px; } .blind b, .dest span { font-size: 24px; } }
 /* day/night: the new theme opens as a circle from the toggle button (View Transitions API) */
 ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
@@ -198,7 +201,14 @@ blockquote footer b { color: var(--ink); font-weight: 600; }
   .bar nav { order: 2; flex: 1 0 100%; min-width: 0; overflow-x: auto; justify-content: flex-start; gap: 18px; padding: 7px 10px; scrollbar-width: thin; }
   #loading { right: auto; left: 10px; bottom: calc(45vh + 20px); }
   .panel { top: auto; bottom: 10px; left: 10px; width: calc(100vw - 20px); max-height: 45vh; padding: 18px 20px; }
-  .panel h1 { font-size: 34px; }
+  .panel h1 { font-size: 30px; margin: 8px 0 4px; }
+  .panel[data-section="hero"] { max-height: 58vh; }
+  .panel[data-section="hero"] p { margin-bottom: 10px; }
+  .panel .tagline { margin-top: 10px; }
+  .hero-links { margin-top: 12px; }
+  .panel .hint { margin-top: 12px; }
+  .bar nav { scrollbar-width: none; }
+  .bar nav::-webkit-scrollbar { display: none; }
   .avatar { width: 56px; height: 56px; }
 }
 @media (min-width: 768px) and (max-width: 1050px) {

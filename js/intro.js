@@ -37,6 +37,7 @@ export function createIntro(root, { onDrive = () => {} } = {}) {
     active = false;
     removeEventListener('wheel', onWheel);
     removeEventListener('keydown', onKey);
+    removeEventListener('touchstart', onTouchStart); removeEventListener('touchmove', onTouchMove);
     root.classList.add('leaving');
     onDrive(null); // hand the real bus back to the page scroll
     setTimeout(() => { root.hidden = true; document.body.classList.remove('intro-on'); }, 900);
@@ -46,6 +47,14 @@ export function createIntro(root, { onDrive = () => {} } = {}) {
     render();
   };
   const onWheel = (e) => { e.preventDefault(); root.dataset.dir = e.deltaY > 0 ? 'down' : 'up'; step(e.deltaY); }; // the page must not scroll under the overlay
+  let lastY = null; // swipe up = scroll down: the finger drags the toy bus the same way the wheel does
+  const onTouchStart = (e) => { lastY = e.touches[0].clientY; };
+  const onTouchMove = (e) => {
+    if (lastY === null || e.target.closest('button')) return;
+    e.preventDefault();
+    const y = e.touches[0].clientY, dy = (lastY - y) * 1.6;
+    lastY = y; root.dataset.dir = dy > 0 ? 'down' : 'up'; step(dy);
+  };
   const onKey = (e) => { if (KEY_DY[e.key] && !e.target.closest('button')) { e.preventDefault(); step(KEY_DY[e.key]); } };
   root.querySelector('[data-intro-skip]').addEventListener('click', () => { // pull the bell, let the blind say so, then step off
     if (belled || !active) return;
@@ -61,6 +70,7 @@ export function createIntro(root, { onDrive = () => {} } = {}) {
       active = true; root.hidden = false; document.body.classList.add('intro-on');
       addEventListener('wheel', onWheel, { passive: false });
       addEventListener('keydown', onKey);
+      addEventListener('touchstart', onTouchStart, { passive: true }); addEventListener('touchmove', onTouchMove, { passive: false });
       render();
     },
     ready() { root.classList.add('ready'); if (active) onDrive(state.p); }, // hides the loading status; the intro itself stays until the visitor clicks Skip
