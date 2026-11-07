@@ -8,7 +8,7 @@ export function practice(state, dy) {
 // Which destination the roller blind shows for a toy-bus position (São Paulo, London, Glasgow).
 export const destination = (p) => (p < 0.34 ? 0 : p < 0.67 ? 1 : 2);
 // London bell: two sine partials with a fast exponential decay. Only ever called from a click, so autoplay rules allow it.
-function ding() {
+export function ding() {
   try {
     const ac = new (window.AudioContext || window.webkitAudioContext)(), t = ac.currentTime;
     for (const [f, v] of [[1568, 0.16], [2352, 0.05]]) {

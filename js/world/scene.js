@@ -256,7 +256,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     nav.visible = plane.visible && night > 0.35; strobe.visible = nav.visible && clock % 1.3 < 0.12; // red left / green right steady, white strobe blinks
     if (shadow.visible) { shadow.position.set(plane.position.x, 0.14, plane.position.z); shadow.scale.set(34, 1, 15); shadow.material.opacity = 0.3 * (1 - night); }
   };
-  let scroll = { value: 0, velocity: 0 }, target = 0, clock = 0, last = 0;
+  let scroll = { value: 0, velocity: 0 }, target = 0, clock = 0, last = 0, raining = false;
   const lateral = new THREE.Vector3();
   function frame(now) {
     raf = 0;
@@ -343,6 +343,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     trees?.userData.update(camera, clock);
     night = reducedMotion || dt === 0 ? nightTarget : approach(night, nightTarget, dt, 1.4);
     const mood = moodAt(t);
+    raining = mood.rain > 0.25;
     wet = lagWetness(wet, mood.wet, dt);
     const flash = rain.update(clock, camera, mood, night, post.tier, busPos, bus.rotation.y);
     sky.update(night, dt, camera.position, camera, mood, flash);
@@ -383,6 +384,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   landmarksReady = true;
   resize();
   return {
+    get raining() { return raining; },
     setProgress(p) { target = p; wake(); },
     jump(p) { target = p; scroll = { value: p, velocity: 0 }; wake(); },
     setTheme(name) {

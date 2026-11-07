@@ -13,7 +13,13 @@ const H = () => document.documentElement.scrollHeight;
 let world = null, progress = 0;
 const lock = navLock();
 let unlock;
-const follow = (p) => { const a = lock.filter(nearestStop(p, n, marks)); if (a !== null) ui.setActive(a); };
+const gapFrom = marks[stops.findIndex((s) => s.id === 'reclame')], gapTo = marks[stops.findIndex((s) => s.id === 'move')];
+const follow = (p) => {
+  const a = lock.filter(nearestStop(p, n, marks)); if (a !== null) ui.setActive(a);
+  const m = (gapTo - gapFrom) * 0.15; // the long São Paulo to London stretch with the tunnel
+  ui.note('gap', p > gapFrom + m && p < gapTo - m);
+  ui.note('rain', !!world?.raining);
+};
 const goto = (i) => {
   lock.set(i);
   ui.setActive(i);

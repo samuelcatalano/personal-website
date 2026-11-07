@@ -62,7 +62,7 @@ export const i18n = {
     ui: {
       nav: { journey: 'Journey', stack: 'Stack', articles: 'Writing', repos: 'Code', recs: 'Recommendations', contact: 'Contact' },
       theme: 'Switch between day and night', lang: 'Switch language', scroll: 'Scroll to ride', scrollTouch: 'Swipe to ride',
-      zones: { br: 'Brazil', uk: 'United Kingdom' }, loading: 'Warming up the bus…', intro: { t_sub: 'Your finger is the throttle. The real bus is right behind the glass.', t_down: 'Swipe up to drive forward', t_up: 'Swipe down to go back', d1: 'São Paulo', d2: 'London', d3: 'Glasgow', stop: 'Stop requested', title: 'How to ride', sub: 'Your scroll wheel is the throttle. The real bus is right behind the glass.', nice: 'That is it. Now you know how to ride.', down: 'Scroll down to drive forward', up: 'Scroll up to go back', skip: 'Skip' }, navLabel: 'Sections', beforeLondon: 'Before London', present: 'Present', skip: 'Skip to content', footer: 'Designed and built by Samuel Catalano.',
+      zones: { br: 'Brazil', uk: 'United Kingdom' }, led: { gap: 'Mind the gap', rain: 'Delayed: rain', end: 'All change', stop: 'Stop requested' }, clock: 'London right now', loading: 'Warming up the bus…', intro: { t_sub: 'Your finger is the throttle. The real bus is right behind the glass.', t_down: 'Swipe up to drive forward', t_up: 'Swipe down to go back', d1: 'São Paulo', d2: 'London', d3: 'Glasgow', stop: 'Stop requested', title: 'How to ride', sub: 'Your scroll wheel is the throttle. The real bus is right behind the glass.', nice: 'That is it. Now you know how to ride.', down: 'Scroll down to drive forward', up: 'Scroll up to go back', skip: 'Skip' }, navLabel: 'Sections', beforeLondon: 'Before London', present: 'Present', skip: 'Skip to content', footer: 'Designed and built by Samuel Catalano.',
       signpost: { saoPaulo: 'São Paulo', london: 'London', km: '9,480 km' }, // 3D fingerpost on the plaza over the SP -> London tunnel
     },
     sections: {
@@ -72,7 +72,7 @@ export const i18n = {
       articles: { title: 'Writing', intro: 'Practical engineering notes on Medium.', more: 'All articles', src: 'Medium' },
       repos: { title: 'Code', intro: 'A few public repositories worth a look.', more: 'All repositories' },
       recs: { title: 'Recommendations', intro: 'What people I worked with say.' },
-      contact: { title: 'Last stop: Wembley', intro: 'Always glad to talk about backend and platform work.', email: 'Email', linkedin: 'LinkedIn', github: 'GitHub', cv: 'Download CV' },
+      contact: { title: 'Last stop: Wembley', intro: 'Always glad to talk about backend and platform work.', email: 'Email', subject: 'Stop requested: let\'s talk', linkedin: 'LinkedIn', github: 'GitHub', cv: 'Download CV' },
     },
     stops: {
       puc: { title: 'PUC-SP', role: 'BSc Computer Science', dates: '2003 – 2008', place: 'São Paulo', body: 'Computer Science degree with a specialisation in software development.' },
@@ -97,7 +97,7 @@ export const i18n = {
     ui: {
       nav: { journey: 'Trajetória', stack: 'Stack', articles: 'Artigos', repos: 'Código', recs: 'Recomendações', contact: 'Contato' },
       theme: 'Alternar entre dia e noite', lang: 'Trocar idioma', scroll: 'Role para embarcar', scrollTouch: 'Deslize para embarcar',
-      zones: { br: 'Brasil', uk: 'Reino Unido' }, loading: 'Esquentando o ônibus…', intro: { t_sub: 'Seu dedo é o acelerador. O ônibus de verdade está logo atrás do vidro.', t_down: 'Deslize para cima para avançar', t_up: 'Deslize para baixo para voltar', d1: 'São Paulo', d2: 'Londres', d3: 'Glasgow', stop: 'Parada solicitada', title: 'Como passear', sub: 'A roda do mouse é o acelerador. O ônibus de verdade está logo atrás do vidro.', nice: 'É isso. Agora você sabe dirigir.', down: 'Role para baixo para avançar', up: 'Role para cima para voltar', skip: 'Pular' }, navLabel: 'Seções', beforeLondon: 'Antes de Londres', present: 'Atual', skip: 'Pular para o conteúdo', footer: 'Projetado e construído por Samuel Catalano.',
+      zones: { br: 'Brasil', uk: 'Reino Unido' }, led: { gap: 'Atenção ao vão', rain: 'Atraso: chuva', end: 'Fim de linha', stop: 'Parada pedida' }, clock: 'Agora em Londres', loading: 'Esquentando o ônibus…', intro: { t_sub: 'Seu dedo é o acelerador. O ônibus de verdade está logo atrás do vidro.', t_down: 'Deslize para cima para avançar', t_up: 'Deslize para baixo para voltar', d1: 'São Paulo', d2: 'Londres', d3: 'Glasgow', stop: 'Parada solicitada', title: 'Como passear', sub: 'A roda do mouse é o acelerador. O ônibus de verdade está logo atrás do vidro.', nice: 'É isso. Agora você sabe dirigir.', down: 'Role para baixo para avançar', up: 'Role para cima para voltar', skip: 'Pular' }, navLabel: 'Seções', beforeLondon: 'Antes de Londres', present: 'Atual', skip: 'Pular para o conteúdo', footer: 'Projetado e construído por Samuel Catalano.',
       signpost: { saoPaulo: 'São Paulo', london: 'Londres', km: '9.480 km' },
     },
     sections: {
@@ -107,7 +107,7 @@ export const i18n = {
       articles: { title: 'Artigos', intro: 'Notas práticas de engenharia no Medium.', more: 'Todos os artigos', src: 'Medium' },
       repos: { title: 'Código', intro: 'Alguns repositórios públicos que valem a visita.', more: 'Todos os repositórios' },
       recs: { title: 'Recomendações', intro: 'O que dizem pessoas que trabalharam comigo.' },
-      contact: { title: 'Última parada: Wembley', intro: 'Sempre feliz em conversar sobre backend e plataforma.', email: 'E-mail', linkedin: 'LinkedIn', github: 'GitHub', cv: 'Baixar CV' },
+      contact: { title: 'Última parada: Wembley', intro: 'Sempre feliz em conversar sobre backend e plataforma.', email: 'E-mail', subject: 'Parada solicitada: vamos conversar', linkedin: 'LinkedIn', github: 'GitHub', cv: 'Baixar CV' },
     },
     stops: {
       puc: { title: 'PUC-SP', role: 'Bacharelado em Ciência da Computação', dates: '2003 – 2008', place: 'São Paulo', body: 'Ciência da Computação com especialização em desenvolvimento de software.' },

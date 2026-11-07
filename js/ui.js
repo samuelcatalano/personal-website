@@ -1,3 +1,4 @@
+import { ding } from './intro.js';
 import { stops, i18n, links, articles, repos, stackGroups, sectionStart } from './content.js';
 export function loadPrefs(storage) {
   try {
@@ -19,13 +20,13 @@ function sectionHTML(section, t, active) {
   const inn = ic('M3 3h18v18H3zm3 6v9h3V9zm1.5-3a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4zM11 9v9h3v-5c0-1.5 2-1.600 2 0v5h3v-6c0-3-3.300-3.200-5-1.600V9z');
   const gh = ic('M12 2a10 10 0 0 0-3.200 19.500c.5.100.7-.2.700-.5v-1.800c-2.800.6-3.400-1.200-3.400-1.200-.5-1.200-1.100-1.500-1.100-1.500-.9-.6.1-.6.1-.6 1 .1 1.500 1 1.500 1 .9 1.500 2.300 1.100 2.900.8.1-.7.4-1.100.6-1.300-2.200-.3-4.600-1.100-4.600-5 0-1.100.4-2 1-2.700-.1-.3-.4-1.300.1-2.700 0 0 .8-.3 2.700 1a9.400 9.400 0 0 1 5 0c1.900-1.300 2.700-1 2.700-1 .5 1.400.2 2.400.1 2.700.6.700 1 1.600 1 2.700 0 3.900-2.400 4.700-4.600 5 .4.300.7.900.7 1.800v2.700c0 .3.2.600.7.500A10 10 0 0 0 12 2z');
   const dl = ic('M11 3h2v9.200l3.600-3.600 1.400 1.400-6 6-6-6 1.400-1.400 3.600 3.600zM5 19h14v2H5z');
-  const contact = (c) => `<li><a class="btn solid" href="${links.email}">${mail}<span>${c.email}</span><span class="addr">${links.email.replace('mailto:', '')}</span></a></li><li>${ext(links.linkedin, inn + c.linkedin, 'btn')}</li><li>${ext(links.github, gh + c.github, 'btn')}</li><li><a class="btn" href="${links.cv}" download>${dl}${c.cv}</a></li>`;
+  const contact = (c) => `<li><a class="btn solid" href="${links.email}?subject=${encodeURIComponent(c.subject)}" data-bell>${mail}<span>${c.email}</span><span class="addr">${links.email.replace('mailto:', '')}</span></a></li><li>${ext(links.linkedin, inn + c.linkedin, 'btn')}</li><li>${ext(links.github, gh + c.github, 'btn')}</li><li><a class="btn" href="${links.cv}" download>${dl}${c.cv}</a></li>`;
   const list = (items, f, url) => `<h2>${s.title}</h2><p>${s.intro}</p><ul class="rows">${items.map(f).join('')}</ul><p>${ext(url, s.more + ' ↗', 'btn more')}</p>`;
   switch (section) {
     case 'hero': return `
       <img class="avatar" src="assets/avatar.png" alt="" width="96" height="96">
       <h1>${s.title}</h1><p class="role">${s.role}</p><p class="meta">${s.meta}</p>
-      <p class="tagline">${s.tagline}</p><p class="avail">${s.availability}</p><ul class="hero-links contact">
+      <p class="tagline">${s.tagline}</p><p class="avail">${s.availability}</p><p class="clock">${t.ui.clock} <time data-london></time></p><ul class="hero-links contact">
         ${contact(t.sections.contact)}</ul><p class="hint">${matchMedia('(pointer: coarse)').matches ? t.ui.scrollTouch : t.ui.scroll} ↓</p>`;
     case 'journey': return `
       <h2>${s.title}</h2><p>${s.intro}</p><ol class="stops">${stops.map((st, i) => {
@@ -58,6 +59,23 @@ export function initUI({ onGoto, onTheme }) {
     b.setAttribute('aria-pressed', String(prefs.theme === 'night'));
     onTheme(prefs.theme);
   };
+  // Header LED blind: names the current stop, with the occasional announcement (the gap, rain, the terminus, a pulled bell).
+  const notes = { gap: false, rain: false, flash: false };
+  const led = () => {
+    const el = document.querySelector('.led .live'), t = i18n[prefs.lang], st = stops[Math.max(active, 0)];
+    let text = st.section === 'journey' ? `${st.year} ${t.stops[st.id].place}` : st.section === 'hero' ? t.ui.intro.d1 : t.ui.nav[st.section], alert = false;
+    if (notes.flash) { text = t.ui.led.stop; alert = true; }
+    else if (notes.gap) { text = t.ui.led.gap; alert = true; }
+    else if (st.section === 'contact') text = t.ui.led.end;
+    else if (notes.rain && Math.floor(Date.now() / 4000) % 2) { text = t.ui.led.rain; alert = true; }
+    el.classList.toggle('alert', alert);
+    if (el.textContent !== text) { el.textContent = text; el.classList.remove('roll'); void el.offsetWidth; el.classList.add('roll'); }
+  };
+  const clock = () => { // London time for visitors elsewhere: "is he awake?"
+    const el = document.querySelector('[data-london]');
+    if (el) el.textContent = new Intl.DateTimeFormat(prefs.lang === 'pt' ? 'pt-BR' : 'en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit' }).format(new Date());
+  };
+  setInterval(() => { led(); clock(); }, 2000);
   const render = (reveal = false) => {
     const t = i18n[prefs.lang];
     const st = stops[Math.max(active, 0)];
@@ -70,9 +88,8 @@ export function initUI({ onGoto, onTheme }) {
       a.textContent = t.ui.nav[a.dataset.nav];
       cur(a, a.dataset.nav === st.section);
     });
-    const live = document.querySelector('.led .live'); // the header's LED blind names the current stop, like the destination blind of the bus
-    const where = st.section === 'journey' ? `${st.year} ${t.stops[st.id].place}` : st.section === 'hero' ? t.ui.intro.d1 : t.ui.nav[st.section];
-    if (live.textContent !== where) { live.textContent = where; live.classList.remove('roll'); void live.offsetWidth; live.classList.add('roll'); }
+    led();
+    clock();
     const nav = document.querySelector('.bar nav'), here = nav.querySelector('[aria-current]'); // on phones the menu scrolls: keep the current section in view
     if (here && nav.scrollWidth > nav.clientWidth) nav.scrollTo({ left: here.offsetLeft - (nav.clientWidth - here.offsetWidth) / 2, behavior: 'smooth' });
     const langButton = document.querySelector('[data-lang]');
@@ -99,6 +116,7 @@ export function initUI({ onGoto, onTheme }) {
     announce.textContent = c ? `${st.year} ${c.title}` : t.sections[st.section].title;
   };
   document.addEventListener('click', (e) => {
+    if (e.target.closest('[data-bell]')) { ding(); notes.flash = true; led(); setTimeout(() => { notes.flash = false; led(); }, 2500); } // the mail app still opens: the bell is a flourish
     const go = e.target.closest('[data-goto]');
     if (go) { e.preventDefault(); onGoto(+go.dataset.goto); }
     if (e.target.closest('[data-nav-home]')) { e.preventDefault(); onGoto(0); history.replaceState(null, '', location.pathname + location.search); }
@@ -124,5 +142,6 @@ export function initUI({ onGoto, onTheme }) {
   return {
     get theme() { return prefs.theme; },
     setActive(i) { if (i !== active) { active = i; render(true); } },
+    note(key, on) { if (notes[key] !== on) { notes[key] = on; led(); } },
   };
 }
