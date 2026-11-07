@@ -4,7 +4,7 @@ import { loadGlb } from './glb-loader.js';
 // light material (windows, walkway glazing, lamps, gilt, strips) and two floodlit stone bands. Same local frame as createTowerBridge (origin =
 // river centreline, x across the carriageway, z along the crossing). Same pattern as bigben-asset.js; the procedural group stays as the fallback:
 // it is hidden, never removed, so a failed load changes nothing.
-const GLB_V = '5'; // bump when the processed GLBs are regenerated (static hosts cache GLBs aggressively)
+const GLB_V = '6'; // bump when the processed GLBs are regenerated (static hosts cache GLBs aggressively)
 const URLS = ['assets/processed/landmarks/towerbridge.lod0.glb', 'assets/processed/landmarks/towerbridge.lod1.glb'].map((u) => u + '?v=' + GLB_V);
 const NEAR = 140, FAR = 170; // camera-to-AABB distance (m): LOD0 below NEAR, LOD1 beyond FAR, previous level in between (hysteresis like the city chunks)
 const BOX = new THREE.Box3(new THREE.Vector3(-4.1, -1, -17.6), new THREE.Vector3(4.1, 35.3, 17.6)); // frozen envelope (tests/towerbridge-asset.browser.py)
@@ -13,9 +13,9 @@ let pending;
 // Night glow is data-driven: sky.update sets emissive = glowColor * night * glowK for every material marked glow. Only the light and floodlit
 // stone materials glow; the atlas (piers, steel, slate, trim, deck) never does.
 const GLOW = {
-  TowerBridgeLights: { color: '#ffd9a0', k: 1.8 },
-  TowerBridgeFloodLow: { color: '#ffb566', k: 0.5 },
-  TowerBridgeFloodHigh: { color: '#ffb566', k: 0.22 },
+  TowerBridgeLights: { color: '#ffd9a0', k: 2.2 },
+  TowerBridgeFloodLow: { color: '#ffb566', k: 0.8 },
+  TowerBridgeFloodHigh: { color: '#ffb566', k: 0.35 },
 };
 export const loadTowerBridgeAsset = () => pending ??= Promise.all(URLS.map((u) => loadGlb(new URL('../../' + u, import.meta.url).href)))
   .then((lods) => {

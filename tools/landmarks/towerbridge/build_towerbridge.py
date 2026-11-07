@@ -164,6 +164,7 @@ def walkways(b):
         b.box(wx, WALK_Y - .4, 0, 3.2, .4, 2 * (ZIN - .5), TR)            # floor, ends short of the towers
         b.box(wx, WALK_Y + 4.0, 0, 3.4, .4, 2 * (ZIN - .5), TR)           # roof cap
         b.box(wx, WALK_Y + 4.4, 0, 1.2, .1, 2 * (ZIN - .5), LS)          # light strip along the roof
+        b.box(wx, WALK_Y - .9, 0, 2.6, .12, 2 * (ZIN - .5), LS)          # light strip under the walkway
         for N, U in (((1, 0, 0), (0, 0, -1)), ((-1, 0, 0), (0, 0, 1))):   # blue-framed glazing on both sides
             ops = [(rect(.12 + pitch * i, .4, pitch - .24, 3.2), WG, .08) for i in range(n)]
             b.wall((wx + N[0] * 1.5, WALK_Y, ZIN * (1 if N[0] > 0 else -1)), U, N, 2 * ZIN, 4.0, ops, BL, .08)
@@ -179,6 +180,7 @@ def deck(b):
         for sx in (-1, 1):
             b.box(sx * (HALF - .9), 0, zc, 1.8, .6, ln, TR, ('-y', '-x' if sx > 0 else '+x'))  # raised footway
             b.box(sx * (HALF - .05), .6, zc, .1, .05, ln, LS)              # footway edge light
+            b.box(sx * (HALF - 1.8), .02, zc, .12, .05, ln, LS)            # carriageway edge light
     for sg in (-1, 1):
         b.tube([(-6.5, -.9, sg * ZE), (6.5, -.9, sg * ZE)], .45, 4, BL)  # visible bascule hinge shaft
     if b.lod == 0:
@@ -220,7 +222,7 @@ def linear_hex(h):
     return tuple(v / 12.92 if v <= .04045 else ((v + .055) / 1.055) ** 2.4 for v in c) + (1,)
 
 
-COLORS = tuple(map(linear_hex, ('#a49e92', '#53617d', '#285aa5', '#e9e8e2', '#303943', '#d4a63c', '#2b2d31', '#fff0d0', '#8299ad', '#f4e7c4')))
+COLORS = tuple(map(linear_hex, ('#b9a88f', '#4f6a63', '#2a8aa8', '#e9e8e2', '#303943', '#d4a63c', '#2b2d31', '#fff0d0', '#8299ad', '#f4e7c4')))
 
 
 def run(lod):
@@ -236,7 +238,7 @@ def run(lod):
         if s in LIGHT_SLOTS: target = 1                                         # windows, glazing, lamps, gilt, strips glow at night
         elif s == ST:
             y = (poly.center.z - DECK_TOP) / K                                  # real metres above road
-            target = 0 if y < 0 else (2 if y < 15 else 3)                       # piers stay plain; tower stone floodlit in two bands
+            target = 2 if y < 15 else 3                                         # piers and tower base floodlit (low band), upper stone in the high band
         else: target = 0
         targets.append(target)
     me.color_attributes.active_color = colors
