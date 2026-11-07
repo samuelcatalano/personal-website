@@ -6,15 +6,15 @@
   "outputs": {
     "lod0": {
       "path": "assets/processed/landmarks/towerbridge.lod0.glb",
-      "bytes": 925328,
-      "sha256": "a1f3584959df9d44aba5166afe14ae70db7cac1b99ab0612f03a004cd7bc6905",
+      "bytes": 925316,
+      "sha256": "de52fdc3d903c158f06b15ac25a598ba2b65344c03961426a4bc6d3d7dd2a794",
       "triangles": 14144,
       "primitives": 4
     },
     "lod1": {
       "path": "assets/processed/landmarks/towerbridge.lod1.glb",
-      "bytes": 288012,
-      "sha256": "57b11541bf7445576dec9e5653f39cb5f070fcdbdcd00e09b1b6a3f10c27f853",
+      "bytes": 287964,
+      "sha256": "fe4540051ce7affa29c608d214d3f21b8d0c5f9e7ec475a176b879ed71d66880",
       "triangles": 3792,
       "primitives": 4
     }

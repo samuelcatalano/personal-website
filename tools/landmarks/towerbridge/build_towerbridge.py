@@ -199,7 +199,7 @@ def dormer(b, cx, cz, H, N, L0):
     base = H + 2.8; w, dpt, h = 3.4, 2.6, 4.4
     tx, tzd = (w, dpt) if N[2] else (dpt, w)                             # box size across x and z
     b.box(cx, base, cz, tx, h, tzd, PS)
-    b.frus(cx, base + h, cz, tx / 2 + .1, tzd / 2 + .1, 0, 0, 2.8, SL)
+    b.frus(cx, base + h, cz, tx / 2 + .1, tzd / 2 + .1, 0, 0, 2.8, ST)
     fx, fz = cx + N[0] * (dpt / 2 + .04), cz + N[2] * (dpt / 2 + .04)
     b.box(fx, base + 1.0, fz, 2.2 if N[2] else .1, 2.4, .1 if N[2] else 2.2, GL)
     if L0:
@@ -235,7 +235,7 @@ def tower(b, tz):
         b.box(0, y, tz, 2 * TX + .6, .9, 2 * TZH + .6, PS)               # string courses
     b.box(0, H, tz, 2 * TX + 1.0, 1.2, 2 * TZH + 1.0, PS)                # cornice
     b.box(0, H + 1.2, tz, 2 * TX + .8, 1.6, 2 * TZH + .8, ST)            # parapet
-    b.frus(0, H + 2.8, tz, 6.4, 4.4, 2.0, 1.2, 15.0, SL, top=True)       # tall steep slate roof: the dominant silhouette of the photographs
+    b.frus(0, H + 2.8, tz, 6.4, 4.4, 2.0, 1.2, 15.0, ST, top=True)       # tall steep slate roof: the dominant silhouette of the photographs
     b.box(0, H + 17.8, tz, 4.6, .5, 3.0, GD)                             # gilt cresting rail
     for sx in (-1, 1):
         for sz in (-1, 1): b.cone(sx * 1.9, H + 18.3, tz + sz * 1.1, .4, 0.0, 1.8, 4, GD)
@@ -368,7 +368,7 @@ def flags(b):
     flag(b, -12.0, top, england_layers(6.0, 3.6), -1)                     # St George's cross
     for wx in (-5.8, 5.8):                                                # stone crest pavilion at mid span
         b.box(wx, WALK_Y + 4.4, 0, 3.0, 2.4, 2.4, PS)
-        b.frus(wx, WALK_Y + 6.8, 0, 1.5, 1.2, 0.0, 0.0, 1.8, SL)
+        b.frus(wx, WALK_Y + 6.8, 0, 1.5, 1.2, 0.0, 0.0, 1.8, ST)
         b.cone(wx, WALK_Y + 8.6, 0, .3, 0.0, 1.2, 4, GD)
         for sx in (-1, 1): b.box(wx + sx * 1.5, WALK_Y + 5.0, 0, .1, 1.2, .8, GL)
 
@@ -404,7 +404,7 @@ def abutment(b, s):
         if L0 and N[2]: archring(b, 0, cz, AW, AD, N, U, y0, wd / 2, 13.0, 10.0, 10.5, .9, .15)
     b.box(0, top, cz, 2 * AW + .8, .8, 2 * AD + .8, PS)
     b.box(0, top + .8, cz, 2 * AW + .6, 1.0, 2 * AD + .6, ST)
-    b.frus(0, top + 1.8, cz, AW - .8, AD - .6, 1.8, 1.0, 7.0, SL, top=True)
+    b.frus(0, top + 1.8, cz, AW - .8, AD - .6, 1.8, 1.0, 7.0, ST, top=True)
     b.box(0, top + 8.8, cz, 3.2, .4, 1.4, GD)
     ns = 8 if L0 else 6
     for sx in (-1, 1):
