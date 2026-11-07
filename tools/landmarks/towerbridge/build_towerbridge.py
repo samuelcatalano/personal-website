@@ -141,7 +141,9 @@ def tower(b, tz):
         b.box(0, y, tz, 2 * TX + .6, .9, 2 * TZH + .6, TR)               # string courses
     b.box(0, H, tz, 2 * TX + 1.0, 1.2, 2 * TZH + 1.0, TR)                # cornice
     b.box(0, H + 1.2, tz, 2 * TX + .8, 1.6, 2 * TZH + .8, ST)            # parapet
-    b.frus(0, H + 1.6, tz, 7.6, 4.6, 2.2, 1.4, 6.0, SL, top=True)        # pitched slate roof
+    b.frus(0, H + 1.6, tz, 7.6, 4.6, 2.2, 1.4, 14.0, SL, top=True)       # tall pitched slate roof, the tower's main silhouette
+    b.box(0, H + 15.6, tz, 5.0, .8, 3.2, GD)                             # gilt ridge crest
+    b.cone(0, H + 16.4, tz, 1.1, 0.0, 5.3, 6 if L0 else 4, GD)           # gilt crown spike (tallest point, 63.7 m)
     for sx in (-1, 1):                                                   # parapet outline lights
         b.box(sx * (TX + .4), H + 2.8, tz, .25, .12, 2 * TZH + .8, LS)
     for sz in (-1, 1):
@@ -155,8 +157,9 @@ def tower(b, tz):
                 for N, U in SIDES:
                     if not ((N[0] == sx) or (N[2] == sz)): continue      # outer faces only
                     b.face(cx, cz, 2.0, 2.0, N, U, H + 2.0, 9.0, [(arch(2.0, 1.0, .7, 2.6), GL, .2)], ST, .2)
-            b.cone(cx, H + 12.8, cz, 2.0, 0.0, 8.0, 8 if L0 else 6, SL)  # pointed spire
-            b.cone(cx, H + 20.8, cz, .35, 0.0, .9, 4, GD)                # gilt tip
+            b.box(cx, H + 12.8, cz, 4.4, .6, 4.4, TR)                    # turret crown ring
+            b.cone(cx, H + 13.4, cz, 2.0, 0.0, 6.5, 8 if L0 else 6, ST)  # stone spire (as in the photos)
+            b.cone(cx, H + 19.9, cz, .35, 0.0, .9, 4, GD)                # gilt tip
     if L0:                                                              # corner pilasters with pinnacle caps, roof dormers
         for sx in (-1, 1):
             for sz in (-1, 1):
@@ -239,8 +242,14 @@ def flag(b, pole_x, pole_z, top, colour_of, W, H, nx, ny, d):
 
 def flags(b):
     jack, eng = ((16, 8), (12, 8)) if b.lod == 0 else ((8, 4), (6, 4))
-    flag(b, 0, TZ, 61.6, jack_slot, 4.5, 2.7, *jack, 1)         # north tower: Union Jack
-    flag(b, 0, -TZ, 61.6, england_slot, 4.5, 2.7, *eng, -1)     # south tower: St George's cross
+    top = WALK_Y + 4.5 + 12.0                                             # poles stand on the walkway roof
+    flag(b, 5.8, 12.0, top, jack_slot, 5.0, 3.0, *jack, 1)                # Union Jack
+    flag(b, 5.8, -12.0, top, england_slot, 5.0, 3.0, *eng, 1)             # St George's cross
+    for wx in (-5.8, 5.8):                                                # stone crest pavilion at mid span
+        b.box(wx, WALK_Y + 4.4, 0, 3.0, 2.4, 2.4, ST)
+        b.frus(wx, WALK_Y + 6.8, 0, 1.5, 1.2, 0.0, 0.0, 1.8, SL)
+        b.cone(wx, WALK_Y + 8.6, 0, .3, 0.0, 1.2, 4, GD)
+        for sx in (-1, 1): b.box(wx + sx * 1.5, WALK_Y + 5.0, 0, .1, 1.2, .8, GL)
 
 
 def lattice(b):
@@ -273,8 +282,8 @@ def make(lod):
 def bounds_of(glb):
     with open(glb, 'rb') as f:
         f.read(12); ln, _ = struct.unpack('<II', f.read(8)); j = json.loads(f.read(ln))
-    a = [x for x in j['accessors'] if 'min' in x and x['type'] == 'VEC3'][0]
-    return a['min'], a['max'], j
+    acc = [j['accessors'][pr['attributes']['POSITION']] for pr in j['meshes'][0]['primitives']]   # every primitive: the gilt crown is in the lights one
+    return [min(a['min'][i] for a in acc) for i in range(3)], [max(a['max'][i] for a in acc) for i in range(3)], j
 
 
 def linear_hex(h):
@@ -282,7 +291,7 @@ def linear_hex(h):
     return tuple(v / 12.92 if v <= .04045 else ((v + .055) / 1.055) ** 2.4 for v in c) + (1,)
 
 
-COLORS = tuple(map(linear_hex, ('#b9a88f', '#4f6a63', '#2a8aa8', '#e9e8e2', '#303943', '#d4a63c', '#2b2d31', '#fff0d0', '#8299ad', '#f4e7c4', '#1f3a8a', '#cf1f2e', '#f4f4f0')))
+COLORS = tuple(map(linear_hex, ('#c2a98f', '#4a5560', '#2a8aa8', '#e9e8e2', '#303943', '#d4a63c', '#2b2d31', '#fff0d0', '#8299ad', '#f4e7c4', '#1f3a8a', '#cf1f2e', '#f4f4f0')))
 
 
 def run(lod):
