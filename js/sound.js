@@ -16,3 +16,14 @@ function tone(freqs, { type = 'sine', gain = 0.15, attack = 0.01, decay = 1, at 
 export const ding = () => tone([[1568, 1], [2352, 0.33]], { decay: 1.1 });
 // Bus horn: two close sawtooth notes, played twice.
 export const horn = () => { for (const at of [0, 0.32]) tone([[392, 1], [494, 0.8]], { type: 'sawtooth', gain: 0.05, attack: 0.02, decay: 0.26, at }); };
+// Pneumatic door hiss: a burst of high-passed noise with a quick attack and a long decay.
+export const hiss = () => {
+  try {
+    const c = ctx(), t = c.currentTime, len = Math.floor(c.sampleRate * 0.6), buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len) ** 1.5;
+    const src = c.createBufferSource(), hp = c.createBiquadFilter(), g = c.createGain();
+    src.buffer = buf; hp.type = 'highpass'; hp.frequency.value = 2200;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.12, t + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+    src.connect(hp).connect(g).connect(c.destination); src.start(t);
+  } catch { /* no audio available */ }
+};

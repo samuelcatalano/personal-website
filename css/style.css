@@ -101,7 +101,9 @@ body.intro-on #loading { display: none; }
 .dest { position: relative; flex: 1; height: 34px; overflow: hidden; }
 .dest span { position: absolute; left: 0; top: 2px; opacity: 0; transform: translateY(70%); transition: opacity .22s, transform .22s; }
 .dest span.on { opacity: 1; transform: none; }
-.dest span.stop { color: #ff4a3a; }
+.dest .cur { opacity: 1; transform: none; }
+.dest .cur.alert { color: #ff4a3a; }
+.dest .cur.roll { animation: roll .3s ease-out; }
 #intro.bell .blind { animation: blink .5s steps(2, jump-none) 2; }
 @keyframes blink { 50% { filter: drop-shadow(0 0 14px rgba(255, 60, 40, .8)); } }
 .intro-body { display: grid; grid-template-columns: 84px 1fr; gap: 22px; align-items: center; text-align: left; }
@@ -125,8 +127,16 @@ body.intro-on #loading { display: none; }
 .steps li { display: flex; align-items: center; gap: 10px; }
 .tick { width: 18px; height: 18px; border: 2px solid var(--line); border-radius: 50%; flex: none; transition: all .3s; }
 .steps .done .tick { border-color: var(--accent); background: var(--accent); box-shadow: inset 0 0 0 3px var(--card), 0 0 12px var(--accent); }
-.road { position: relative; width: 100%; height: 30px; border-bottom: 3px dashed var(--line); }
-.trail { position: absolute; left: 0; bottom: -3px; height: 3px; width: calc(var(--p, 0) * 100%); background: linear-gradient(90deg, transparent, var(--accent)); box-shadow: 0 0 10px var(--accent); transition: width .12s linear; }
+.road { position: relative; width: 100%; height: 34px; border-bottom: 3px solid var(--line); }
+.nodes { position: absolute; inset: 0; pointer-events: none; }
+.road .node { position: absolute; left: calc(20px + var(--f) * (100% - 40px)); bottom: -8px; width: 10px; height: 10px; margin-left: -5px; box-sizing: border-box; border-radius: 50%; background: var(--card); border: 2px solid var(--uk); transition: background .2s, box-shadow .2s; }
+.road .node.br { border-color: var(--br); }
+.road .node.hub { bottom: -10px; width: 14px; height: 14px; margin-left: -7px; border-color: var(--ink); }
+.road .node.passed { background: var(--uk); }
+.road .node.br.passed { background: var(--br); }
+.road .node.here { box-shadow: 0 0 0 4px color-mix(in srgb, var(--uk) 28%, transparent); }
+.road .node.br.here { box-shadow: 0 0 0 4px color-mix(in srgb, var(--br) 28%, transparent); }
+.trail { position: absolute; left: 20px; bottom: -3px; height: 3px; width: calc(var(--p, 0) * (100% - 40px)); background: linear-gradient(90deg, transparent, var(--accent)); box-shadow: 0 0 10px var(--accent); transition: width .12s linear; }
 .road .flag { position: absolute; right: 0; top: 0; color: var(--accent); font-size: 22px; line-height: 1; transform-origin: 20% 100%; animation: wave 1.6s ease-in-out infinite; }
 @keyframes wave { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(8deg); } }
 .mini-bus { position: absolute; bottom: -2px; left: calc(var(--p, 0) * (100% - 40px)); transition: left .12s linear; filter: drop-shadow(0 3px 4px rgba(0, 0, 0, .25)); }
@@ -134,6 +144,24 @@ body.intro-on #loading { display: none; }
 #intro.celebrate .nice { opacity: 1; transform: none; }
 .status { margin: 0; transition: opacity .4s; display: flex; justify-content: center; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); }
 #intro.ready .status { opacity: 0; } /* keep the space so the card never changes size */
+.leds { display: inline-grid; grid-template-columns: repeat(24, 5px); gap: 2px; }
+.leds i { width: 5px; height: 5px; border-radius: 50%; background: color-mix(in srgb, var(--ink) 16%, transparent); transition: background .2s, box-shadow .2s; }
+.leds i.on { background: #ffb21e; box-shadow: 0 0 6px rgba(255, 170, 0, .75); }
+.keys { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
+@media (pointer: coarse) { .keys { display: none; } }
+.lite { display: none; justify-self: center; min-height: 44px; padding: 0 12px; border: 0; background: none; font: 500 13px var(--sans); color: var(--muted); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.lite:hover { color: var(--accent); }
+#intro.slow:not(.ready) .lite { display: inline-flex; }
+/* exit: the card parts like bus doors */
+.door { position: absolute; top: 0; bottom: 0; width: 50%; opacity: 0; pointer-events: none; background: color-mix(in srgb, var(--card) 72%, transparent); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border: 1px solid color-mix(in srgb, #fff 50%, transparent); transition: transform .75s cubic-bezier(.65, 0, .25, 1), opacity .1s; }
+.door.l { left: 0; border-radius: 22px 0 0 22px; }
+.door.r { right: 0; border-radius: 0 22px 22px 0; }
+#intro.opening .intro-card { overflow: visible; background: transparent; border-color: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+#intro.opening .intro-card > :not(.door) { opacity: 0; transition: opacity .25s; }
+#intro.opening .door { opacity: 1; }
+#intro.opening .door.l { transform: translateX(-140%); }
+#intro.opening .door.r { transform: translateX(140%); }
+#intro.leaving { transition-delay: .4s; }
 .actions { display: flex; justify-content: center; }
 .actions button { display: inline-flex; align-items: center; gap: 10px; min-height: 48px; padding: 9px 26px; font: 600 13px var(--sans); cursor: pointer; border-radius: 999px; border: 1px solid var(--accent); background: var(--accent); color: #fff; transition: box-shadow .25s, transform .25s; }
 .actions button:hover { transform: translateY(-1px); box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 55%, transparent); }

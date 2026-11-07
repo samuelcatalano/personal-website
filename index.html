@@ -91,6 +91,7 @@
   <link rel="modulepreload" href="js/world/landmark-pick.js">
   <link rel="modulepreload" href="js/world/landmarks.js">
   <link rel="modulepreload" href="js/world/layout.js">
+  <link rel="modulepreload" href="js/world/load-progress.js">
   <link rel="modulepreload" href="js/world/loft.js">
   <link rel="modulepreload" href="js/world/masp-asset.js">
   <link rel="modulepreload" href="js/world/midrise-slice.js">
@@ -148,7 +149,7 @@
     <div class="intro-card">
       <div class="blind" aria-hidden="true">
         <b class="route">83</b>
-        <div class="dest"><span class="on" data-i18n="intro.d1"></span><span data-i18n="intro.d2"></span><span data-i18n="intro.d3"></span><span class="stop" data-i18n="intro.stop"></span></div>
+        <div class="dest"><span class="cur"></span></div>
       </div>
       <div class="intro-body">
         <div class="mouse-wrap" aria-hidden="true">
@@ -165,12 +166,15 @@
             <li data-step="down"><span class="tick" aria-hidden="true"></span><span data-i18n="intro.down"></span></li>
             <li data-step="up"><span class="tick" aria-hidden="true"></span><span data-i18n="intro.up"></span></li>
           </ul>
+          <p class="keys" data-i18n="intro.keys"></p>
         </div>
       </div>
-      <div class="road" aria-hidden="true"><span class="trail"></span><span class="flag">&#9873;</span><svg class="mini-bus" viewBox="0 0 40 20" width="40" height="20"><rect width="40" height="16" rx="3" fill="#c9252b"/><rect x="4" y="3" width="7" height="5" fill="#f4f0e9"/><rect x="14" y="3" width="7" height="5" fill="#f4f0e9"/><rect x="24" y="3" width="7" height="5" fill="#f4f0e9"/><circle cx="9" cy="16" r="3.2" fill="#302d29"/><circle cx="31" cy="16" r="3.2" fill="#302d29"/></svg></div>
+      <div class="road" aria-hidden="true"><span class="trail"></span><span class="nodes"></span><svg class="mini-bus" viewBox="0 0 40 20" width="40" height="20"><rect width="40" height="16" rx="3" fill="#c9252b"/><rect x="4" y="3" width="7" height="5" fill="#f4f0e9"/><rect x="14" y="3" width="7" height="5" fill="#f4f0e9"/><rect x="24" y="3" width="7" height="5" fill="#f4f0e9"/><circle cx="9" cy="16" r="3.2" fill="#302d29"/><circle cx="31" cy="16" r="3.2" fill="#302d29"/></svg></div>
       <p class="nice" role="status" data-i18n="intro.nice"></p>
-      <p class="status" role="status"><span class="bar-fill" aria-hidden="true"></span><span data-i18n="loading"></span></p>
+      <div class="status" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-labelledby="intro-status-text"><span class="leds" aria-hidden="true"></span><span id="intro-status-text"></span></div>
       <div class="actions"><button type="button" class="skip-intro" data-intro-skip><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M12 3a6 6 0 0 0-6 6v4l-2 3v1h16v-1l-2-3V9a6 6 0 0 0-6-6zm-2 16a2 2 0 0 0 4 0z" fill="currentColor"/></svg><span data-i18n="intro.skip"></span></button></div>
+      <button type="button" class="lite" data-intro-lite data-i18n="intro.lite"></button>
+      <i class="door l" aria-hidden="true"></i><i class="door r" aria-hidden="true"></i>
     </div>
   </section>
   <canvas id="world" aria-hidden="true"></canvas>

@@ -60,7 +60,11 @@ watchScroll((p) => {
   world?.setProgress(p);
 });
 const DRIVE = 0.03; // share of the route the intro lets the visitor drive (about one stop)
-const intro = createIntro(document.getElementById('intro'), { onDrive: (p) => world?.setProgress(p === null ? progress : p * DRIVE) });
+let lite = false; // the visitor chose to read without the 3D city
+const intro = createIntro(document.getElementById('intro'), {
+  onDrive: (p) => world?.setProgress(p === null ? progress : p * DRIVE),
+  onLite: () => { lite = true; document.body.classList.add('no-webgl'); world?.dispose?.(); world = null; },
+});
 const hasWebGL = () => { try { const gl = document.createElement('canvas').getContext('webgl2'); gl?.getExtension('WEBGL_lose_context')?.loseContext(); return !!gl; } catch { return false; } };
 if (hasWebGL()) {
   document.body.classList.add('world-loading');
@@ -69,7 +73,7 @@ if (hasWebGL()) {
     .then((m) => m.createWorld(document.getElementById('world'), stops, {
       reducedMotion, onProgress: follow, onPick: (id) => (id === 'bus' ? (horn(), ui.say('horn')) : goto(stops.findIndex((s) => s.id === id))),
     }))
-    .then((w) => { world = w; w.setProgress(progress); w.setTheme(ui.theme); document.body.classList.add('world-ready'); intro.ready(); })
+    .then((w) => { if (lite) { w.dispose?.(); return; } world = w; w.setProgress(progress); w.setTheme(ui.theme); document.body.classList.add('world-ready'); intro.ready(); })
     .catch((err) => { console.warn('3D world unavailable:', err); intro.dismiss(); document.body.classList.add('no-webgl'); });
 } else {
   document.body.classList.add('no-webgl');
