@@ -43,7 +43,7 @@ result = js(r'''(async () => {
     check(stripes.length >= 3, 'pilot street needs restrained lane markings');
     check(crosses.length >= 8, 'pilot street needs two crossing sets');
     check(variationPatches.length >= 4, 'pilot pavement needs small inset variation patches');
-    check(basePavement.length && basePavement.every(box => box[6] === '#9b9b99'), 'sidewalk tiles must share one material');
+    check(basePavement.length && basePavement.every(box => box[6] === '#b9ad98'), 'sidewalk tiles must share one material');
     check(variationPatches.every(box => box[1]+box[4] < 0.13 && box[4] < 0.01 && basePavement.some(p => Math.abs(box[0]-p[0])+box[3]/2 <= p[3]/2 && Math.abs(box[2]-p[2])+box[5]/2 <= p[5]/2)), 'pavement variation must stay shallow and fully on the walkable path');
     check(pilotOnly.length > 0, 'pilot street details must exist');
     check(pilotOnly.every(([x,, ,w,,d]) => x-w/2 >= safeStart && x+w/2 <= safeEnd), 'pilot-only details must stay inside the safe street segment');

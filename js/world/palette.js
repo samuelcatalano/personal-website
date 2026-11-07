@@ -12,4 +12,5 @@ export const PALETTE = {
   field: '#698655', field2: '#8a9a60', crop: '#c9b550', redSand: '#b5603f', hill: '#6d9a4a',
   hedge: '#496a38', gravel: '#d8cfb8', iron: '#23262b', tulip: '#f0c030', violet: '#8e5ab8',
   verdigris: '#a6d5c4', tileCream: '#ece1c6', tileTerra: '#b9704e', bloomPink: '#e8559a',
+  paverWarm: '#b9ad98',
 };

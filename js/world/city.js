@@ -125,7 +125,7 @@ function buildRoad(add, stops, pts, curve) {
       const ry = Math.atan2(-t.z, t.x), len = 0.95; // segments follow the tangent and overlap their neighbours: no stair-steps or gaps on curves
       add(p.x + nx * side * RD.curb, 0.07, p.z + nz * side * RD.curb, len, 0.1, RD.padIn - RD.half, P.pave, ry);
       const mid = (RD.padIn + RD.padOut) / 2, px = p.x + nx * side * mid, pz = p.z + nz * side * mid;
-      add(px, -0.02, pz, len, 0.12, RD.padOut - RD.padIn, P.stone, ry);
+      add(px, -0.02, pz, len, 0.12, RD.padOut - RD.padIn, P.paverWarm, ry);
       if (pilot && i % 9 === 0) add(px, 0.12, pz, 0.55, 0.004, 0.55, P.gravel);
     }
   }
