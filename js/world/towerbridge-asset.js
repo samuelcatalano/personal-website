@@ -3,7 +3,7 @@ import { loadGlb } from './glb-loader.js';
 // Authored Tower Bridge (tools/landmarks/towerbridge): one mesh / one atlas material per LOD (KTX2 baseColor + ORM + emissive), same local frame as
 // createTowerBridge (origin = river centreline, x across the deck, z along the crossing). Same pattern as bigben-asset.js; the procedural group stays
 // as the fallback: it is hidden, never removed, so a failed load changes nothing.
-const GLB_V = '3'; // bump when the processed GLBs are regenerated (static hosts cache GLBs aggressively)
+const GLB_V = '4'; // bump when the processed GLBs are regenerated (static hosts cache GLBs aggressively)
 const URLS = ['assets/processed/landmarks/towerbridge.lod0.glb', 'assets/processed/landmarks/towerbridge.lod1.glb'].map((u) => u + '?v=' + GLB_V);
 const NEAR = 140, FAR = 170; // camera-to-AABB distance (m): LOD0 below NEAR, LOD1 beyond FAR, previous level in between (hysteresis like the city chunks)
 const BOX = new THREE.Box3(new THREE.Vector3(-4.1, -1, -17.6), new THREE.Vector3(4.1, 35.3, 17.6)); // old procedural envelope (tests/towerbridge-asset.browser.py)

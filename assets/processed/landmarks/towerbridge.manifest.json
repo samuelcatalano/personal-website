@@ -1,20 +1,20 @@
 {
-  "generated": "2026-11-05",
+  "generated": "2026-11-07",
   "tool": "blender -b --python tools/landmarks/towerbridge/build_towerbridge.py",
-  "source": "tools/landmarks/towerbridge/build_towerbridge.py (original Blender geometry, vertex-colour PBR)",
+  "source": "tools/landmarks/towerbridge/build_towerbridge.py (procedural, real metres scaled by K = 0.40, vertex-colour PBR)",
   "note": "Three.js GLTFLoader asset; one opaque material per LOD, no textures, no baked lighting. Loaded by js/world/towerbridge-asset.js; ?landmarks=procedural forces the procedural fallback.",
   "outputs": {
     "lod0": {
       "path": "assets/processed/landmarks/towerbridge.lod0.glb",
-      "bytes": 478524,
-      "sha256": "53effdbef7d64890171b1a7b07b389726d7677e5a0517d94a4f073622cc4cd0d",
-      "triangles": 7964
+      "bytes": 269244,
+      "sha256": "5bfbe79a62df23e7e6781cb10fc1dce3ac5ead2c583845182d89f4c932a12926",
+      "triangles": 4256
     },
     "lod1": {
       "path": "assets/processed/landmarks/towerbridge.lod1.glb",
-      "bytes": 155468,
-      "sha256": "18b331d6f33d4e049e1c4d69fbe26c3b140848740c1304ed7dd7dad9e1daa4f4",
-      "triangles": 2178
+      "bytes": 69368,
+      "sha256": "703410fe8c1f4d490eb08d904eaf6d91e1ba973dc475afa064b4dddf11e396fc",
+      "triangles": 944
     }
   }
 }

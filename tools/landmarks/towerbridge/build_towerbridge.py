@@ -1,8 +1,9 @@
-"""Tower Bridge (London): two Victorian Gothic towers, high-level walkways, bascule deck, suspension side spans, abutments.
-Procedural bmesh build, vertex-colour PBR atlas, direct GLB export.
+"""Tower Bridge (London): two Victorian Gothic towers, high-level walkways, bascule deck.
+Procedural bmesh build, vertex-colour PBR, direct GLB export.
 Run: blender -b --python tools/landmarks/towerbridge/build_towerbridge.py
-All coordinates are authored in glTF space (Y up, metres) in the SAME local frame as the procedural createTowerBridge group
-(origin = river centreline, x across the carriageway, z along the crossing, towers at z = +-9.5); V() maps them to Blender (Z up)."""
+Authored in real metres (road level = 0; proportions from the 1900 Routledge elevation, towers ~63 m above road, walkways ~38 m above road,
+61 m central span). V() scales by K so the whole bridge fits the frozen envelope of createTowerBridge: origin = river centreline,
+x across the carriageway, z along the crossing, Y up."""
 import bpy, bmesh, math, os, json, struct
 from mathutils import Vector, geometry
 
@@ -11,11 +12,16 @@ OUT = os.path.abspath(os.path.join(HERE, '..', '..', '..', 'assets', 'processed'
 os.makedirs(OUT, exist_ok=True)
 ST, SL, BL, TR, GL, GD, DK, LW, WG = range(9)   # authoring slots
 MATS = ['stone', 'slate', 'blue', 'trim', 'glass', 'gilt', 'deck', 'lampw', 'wglass']
-V = lambda x, y, z: Vector((x, -z, y))
+K = 0.40                     # scene metres per real metre: one factor keeps the proportions inside the frozen envelope
+DECK_TOP = 5.2               # scene height of the carriageway, unchanged
+V = lambda x, y, z: Vector((K * x, -K * z, K * y + DECK_TOP))
 SIDES = [((0, 0, 1), (1, 0, 0)), ((0, 0, -1), (-1, 0, 0)), ((1, 0, 0), (0, 0, -1)), ((-1, 0, 0), (0, 0, 1))]
-TZ = 9.5                 # tower axis z (+-)
-HX, HZ = 2.6, 2.4        # tower body half extents
-DECK_TOP = 5.2
+TZ = 36.5                    # tower centres (+-z); the inner faces are 61 m apart, the central span
+TX, TZH = 9.0, 6.0           # tower half widths (across x, along z)
+ZIN = 30.5                   # inner face of each tower
+HALF = 7.5                   # carriageway + footway half width
+RIVER = -15.0                # pier foot (scene -0.8, the river)
+WALK_Y = 38.0                # high-level walkway floor, above road
 
 
 def arch(uc, v0, w, h):
@@ -116,132 +122,76 @@ class B:
 
 def tower(b, tz):
     L0 = b.lod == 0
-    b.frus(0, -.8, tz, 3.4, 3.1, 2.85, 2.6, 2.0, ST)                      # pier: battered stone foot
-    ROWS = [(3.6, 2.6), (7.2, 3.0), (11.4, 3.0), (15.2, 3.0), (19.4, 2.4)]
-    Y0, Y1 = 1.2, 22.4
-    inner = -1 if tz > 0 else 1                                              # z direction towards the other tower (walkway side)
+    H = 42.0                                                             # body top, above road
+    b.frus(0, RIVER, tz, 9.8, 6.8, TX, TZH, -RIVER, ST)                  # battered pier from the river to road level
+    inner = -1 if tz > 0 else 1                                          # the side facing the other tower (walkway docks)
     for N, U in SIDES:
-        wd = 2 * HX if N[2] else 2 * HZ
+        wd = 2 * TX if N[2] else 2 * TZH
         ops = []
-        if N[2]:                                                             # road faces: tall portal for the carriageway
-            ops.append((arch(wd / 2, DECK_TOP - Y0, 3.4, 4.4), DK, 1.2))
-        for i, (y0, h) in enumerate(ROWS):
-            if N[2] and i < 2: continue
-            if N[2] == inner and i == 4: continue                            # walkway docks here
+        if N[2]:
+            ops.append((arch(wd / 2, 0, 6.0, 9.0), DK, 1.2))             # carriageway portal
+        for v0, h in ((6, 5.0), (14, 5.0), (22, 5.0), (30, 5.0), (36, 4.5)):
+            if N[2] and v0 < 12: continue
+            if N[2] == inner and v0 == 36: continue
             for du in (-1, 1):
-                ops.append((arch(wd / 2 + du * (1.05 if N[2] else 1.0), y0 - Y0, .85, h - .5), GL, .3))
-        b.face(0, tz, HX, HZ, N, U, Y0, Y1 - Y0, ops, ST, .3)
-    for y in (10.8, 14.8, 18.8):                                        # string courses: white-capped stone banding
-        b.box(0, y, tz, 5.8, .22, 5.4, TR)
-    b.box(0, 22.4, tz, 6.0, .5, 5.6, TR)                                     # crown corbel slab
-    b.box(0, 22.9, tz, 5.4, .6, 5.0, ST)                                     # parapet
-    if L0:
-        for N, U in SIDES:                                                   # merlons / machicolation blocks
-            wd = 5.4 if N[2] else 5.0
-            for k in range(3):
-                u = -wd / 2 + (k + .5) * wd / 3
-                b.box(N[0] * 2.72 + U[0] * u, 23.5, tz + N[2] * 2.52 + U[2] * u, .5 if N[2] else .3, .3, .3 if N[2] else .5, TR)
-    # steep slate roof, dormers, lantern, gilt finial
-    b.frus(0, 23.5, tz, 2.7, 2.5, 2.0, 1.85, 1.2, SL)
-    b.frus(0, 24.7, tz, 2.0, 1.85, .55, .5, 6.4, SL)
-    b.frus(0, 31.1, tz, .55, .5, .3, .3, .9, ST, top=True)
-    b.frus(0, 32.0, tz, .26, .26, .0, .0, 3.2, GD)
-    for N, U in SIDES:
-        c = (N[0] * 1.9, tz + N[2] * 1.9)
-        b.box(c[0], 24.0, c[1], .85 if N[2] else .8, 1.3, .8 if N[2] else .85, ST)
-        wd = .85 if N[2] else .85
-        b.wall((c[0] + N[0] * .4 - U[0] * wd / 2, 24.1, c[1] + N[2] * .4 - U[2] * wd / 2), U, N, wd, 1.1, [(arch(wd / 2, .1, .5, .85), GL, .12)], ST, .12)
-        b.frus(c[0], 25.3, c[1], .5 if N[2] else .45, .45 if N[2] else .5, 0, 0, 1.0, SL)
-    # corner turrets with lancet slits, cornice, slender cone and gilt tip
+                ops.append((arch(wd / 2 + du * (4.5 if N[2] else 3.0), v0, 2.2, h), GL, .3))
+        b.face(0, tz, TX, TZH, N, U, 0, H, ops, ST, .4)
+    for y in (12.0, 24.0, 36.0):
+        b.box(0, y, tz, 2 * TX + .6, .9, 2 * TZH + .6, TR)               # string courses
+    b.box(0, H, tz, 2 * TX + 1.0, 1.2, 2 * TZH + 1.0, TR)                # cornice
+    b.box(0, H + 1.2, tz, 2 * TX + .8, 1.6, 2 * TZH + .8, ST)            # parapet
+    b.frus(0, H + 1.6, tz, 7.6, 4.6, 2.2, 1.4, 6.0, SL, top=True)        # pitched slate roof
     for sx in (-1, 1):
         for sz in (-1, 1):
-            cx, cz = sx * 2.55, tz + sz * 2.45
-            for N, U in SIDES:
-                if not ((N[0] == sx) or (N[2] == sz)): continue
-                wd = 1.2 if N[2] else 1.1
-                ops = [(arch(wd / 2, y0 - 1.2, .36, 1.7), DK, .2) for y0 in (4.4, 8.6, 12.8, 17.0, 20.4)] if L0 else [(arch(wd / 2, y0 - 1.2, .36, 1.7), DK, .2) for y0 in (8.6, 17.0)]
-                b.face(cx, cz, .6, .55, N, U, 1.2, 22.8, ops, ST, .2)
-            b.box(cx, 24.0, cz, 1.45, .35, 1.35, TR)
-            b.cone(cx, 24.35, cz, .8, .08, 4.4, 8 if L0 else 6, SL)
-            b.cone(cx, 28.75, cz, .09, .0, 1.0, 4, GD)
+            cx, cz = sx * 7.2, tz + sz * 4.6
+            b.box(cx, H + 1.0, cz, 4.6, .8, 4.6, TR)                     # turret cornice
+            b.frus(cx, H + 1.8, cz, 1.95, 1.95, 1.95, 1.95, 11.0, ST)    # turret shaft
+            if L0:
+                for N, U in SIDES:
+                    if not ((N[0] == sx) or (N[2] == sz)): continue      # outer faces only
+                    b.face(cx, cz, 2.0, 2.0, N, U, H + 2.0, 9.0, [(arch(2.0, 1.0, .7, 2.6), GL, .2)], ST, .2)
+            b.cone(cx, H + 12.8, cz, 2.0, 0.0, 8.0, 8 if L0 else 6, SL)  # pointed spire
+            b.cone(cx, H + 20.8, cz, .35, 0.0, .9, 4, GD)                # gilt tip
 
 
 def walkways(b):
-    for wx in (-1.5, 1.5):
-        Z0 = 7.1
-        b.box(wx, 19.0, 0, 1.2, 1.3, 2 * Z0, BL, ('-y', '+x', '-x', '+z', '-z'))
-        b.box(wx, 20.3, 0, 1.45, .2, 2 * Z0 + .2, TR, ('-y',))
-        b.box(wx, 18.9, 0, 1.3, .12, 2 * Z0, TR, ('-y', '+y'))
-        n = 11; pitch = 2 * Z0 / n
-        for N, U in (((1, 0, 0), (0, 0, -1)), ((-1, 0, 0), (0, 0, 1))):
-            ops = [(rect(.14 + pitch * i, .3, pitch - .28, .75), WG, .08) for i in range(n)]
-            b.wall((wx + N[0] * .6, 19.0, Z0 * (1 if N[0] > 0 else -1)), U, N, 2 * Z0, 1.3, ops, BL, .08)
+    n = 10; pitch = 2 * ZIN / n
+    for wx in (-5.8, 5.8):
+        b.box(wx, WALK_Y - .4, 0, 3.2, .4, 2 * (ZIN - .5), TR)            # floor, ends short of the towers
+        b.box(wx, WALK_Y + 4.0, 0, 3.4, .4, 2 * (ZIN - .5), TR)           # roof cap
+        for N, U in (((1, 0, 0), (0, 0, -1)), ((-1, 0, 0), (0, 0, 1))):   # blue-framed glazing on both sides
+            ops = [(rect(.12 + pitch * i, .4, pitch - .24, 3.2), WG, .08) for i in range(n)]
+            b.wall((wx + N[0] * 1.5, WALK_Y, ZIN * (1 if N[0] > 0 else -1)), U, N, 2 * ZIN, 4.0, ops, BL, .08)
 
 
 def deck(b):
-    # Two independent bascule leaves meet at a narrow, visible centre joint.
-    segs = [(-17, -11.9), (-7.1, -.09), (.09, 7.1), (11.9, 17)]
-    for z0, z1 in segs:
+    # Two bascule leaves meet at a narrow centre joint; the carriageway is their top surface.
+    ZE = 29.8                                                             # leaves stop inside the piers
+    for z0, z1 in ((-ZE, -.25), (.25, ZE)):
         zc, ln = (z0 + z1) / 2, z1 - z0
-        b.box(0, 4.0, zc, 6.0, 1.0, ln, BL)
-        b.box(0, 5.0, zc, 5.0, .2, ln, DK, ('-y', '+x', '-x'))               # carriageway (deck top = 5.2)
+        b.box(0, -1.5, zc, 2 * HALF, 1.25, ln, BL)                        # painted leaf, top at -0.25
+        b.box(0, -.25, zc, 2 * HALF - 1.6, .25, ln, DK, ('-y', '+x', '-x'))  # carriageway, top at road level
         for sx in (-1, 1):
-            b.box(sx * 2.75, 5.0, zc, .5, .28, ln, TR, ('-y', '-x' if sx > 0 else '+x'))   # raised footway
-            b.box(sx * 2.88, 6.15, zc, .2, .2, ln, TR)                       # hand rail
-            if b.lod == 0:
-                k = int(ln // 3)
-                for i in range(k + 1):
-                    z = z0 + .2 + i * (ln - .4) / k
-                    b.box(sx * 2.88, 5.28, z, .12, .9, .12, TR)              # rail posts
-                    b.box(sx * 3.04, 4.1, z, .08, .8, .12, TR)               # girder stiffeners
-    if b.lod == 0:
-        for sg in (-1, 1):
-            z = sg * 7.1
-            b.tube([(-2.8, 4.25, z), (2.8, 4.25, z)], .18, 4, BL)            # visible bascule hinge shaft
-            for sx in (-1, 1):
-                b.box(sx * 2.6, 3.72, z, .48, .2, .52, TR)
-                b.tube([(sx * 2.45, 3.8, z + sg * .2), (sx * 2.45, 4.55, z + sg * .5)], .08, 4, TR)  # hydraulic ram
-    # deck lamps: pole + warm lantern head, light by night
-    for sx in (-1, 1):
-        for z in (-16.2, -14.2, -12.6, -6, -3, 3, 6, 12.6, 14.2, 16.2):
-            if b.lod == 0: b.box(sx * 2.88, 5.28, z, .08, 1.9, .08, BL)
-            b.box(sx * 2.88, 7.0 if b.lod == 0 else 5.3, z, .26, .32, .26, LW, ('-y',))
-            if b.lod == 0: b.frus(sx * 2.88, 7.32, z, .17, .17, .02, .02, .18, TR)
-
-
-def abutments(b):
+            b.box(sx * (HALF - .9), 0, zc, 1.8, .6, ln, TR, ('-y', '-x' if sx > 0 else '+x'))  # raised footway
     for sg in (-1, 1):
-        az = 16 * sg
-        b.box(0, 0, az, 7.4, 4.0, 3.0, ST, ('-y', '+z' if sg > 0 else '-z'))
-        N = (0, 0, sg); U = (sg, 0, 0)                                       # outward face: three blind arches
-        b.face(0, az, 3.7, 1.5, N, U, 0, 4.0, [(arch(1.5 + k * 2.2, .4, 1.2, 2.8), DK, .3) for k in range(3)], ST, .3)
+        b.tube([(-6.5, -.9, sg * ZE), (6.5, -.9, sg * ZE)], .45, 4, BL)  # visible bascule hinge shaft
+    if b.lod == 0:
         for sx in (-1, 1):
-            pz = 16.6 * sg
-            b.box(sx * 3.25, 4.0, pz, .9, 6.0, .9, ST)                          # chain anchor post
-            b.box(sx * 3.25, 4.3, pz, 1.0, .18, 1.0, TR)
-            b.box(sx * 3.25, 8.4, pz, 1.0, .18, 1.0, TR)
-            b.cone(sx * 3.25, 10, pz, .62, .04, 1.7, 8 if b.lod == 0 else 4, SL)
-
-
-def chains(b):
-    nseg = 8 if b.lod == 0 else 6
-    for sx in (-1, 1):
-        for dr in (-1, 1):
-            y0, y1, z0, z1 = 18.4, 10.0, dr * 12.1, dr * 16.6
-            pts = [(sx * 3.25, y1 + (y0 - y1) * (1 - i / nseg) ** 2, z0 + (z1 - z0) * i / nseg) for i in range(nseg + 1)]
-            b.tube(pts, .12, 4, BL)
-            k = 4 if b.lod == 0 else 2
-            for i in range(k):
-                u = (i + .5) / k; p = pts[min(nseg, max(1, round(u * nseg)))]
-                b.box(sx * 3.25, 5.28, p[2], .07, p[1] - 5.28, .07, TR)       # hangers
-            b.box(sx * 3.25, 18.0, dr * 12.1, .5, .5, .4, TR)                  # bracket plate at the tower
-            b.box(sx * 3.25, 9.7, dr * 16.6, .4, .4, .5, TR)                   # anchor plate on the post
+            for z0, z1 in ((-ZE, -.25), (.25, ZE)):
+                zc, ln = (z0 + z1) / 2, z1 - z0
+                b.box(sx * (HALF - .2), 1.35, zc, .16, .14, ln, TR)       # hand rail
+                posts = int(ln // 3)
+                for i in range(posts + 1):
+                    b.box(sx * (HALF - .2), .6, z0 + .2 + i * (ln - .4) / max(1, posts), .12, .8, .12, TR)  # rail posts
+            for z in (-20.0, -10.0, 10.0, 20.0):
+                b.box(sx * (HALF - .5), 0, z, .25, 4.0, .25, BL)          # lamp post
+                b.box(sx * (HALF - .5), 4.0, z, .6, .7, .6, LW, ('-y',))  # warm lantern
 
 
 def make(lod):
     b = B(lod)
     for tz in (-TZ, TZ): tower(b, tz)
-    walkways(b); deck(b); abutments(b); chains(b)
+    walkways(b); deck(b)
     bm = b.bm
     bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-4)
     me = bpy.data.meshes.new(f'TowerBridge_LOD{lod}'); bm.to_mesh(me); bm.free()
@@ -293,8 +243,8 @@ def run(lod):
     bpy.ops.export_scene.gltf(filepath=glb, export_format='GLB', use_selection=True, export_yup=True, export_apply=True,
                               export_image_format='AUTO', export_cameras=False, export_lights=False)
     mn, mx, doc = bounds_of(glb)
-    assert -4.4 <= mn[0] and mx[0] <= 4.4 and -18 <= mn[2] and mx[2] <= 18, (mn, mx)
-    assert -1.05 < mn[1] and mx[1] <= 35.5 and abs(mx[1] - 35.2) < .3, (mn, mx)
+    assert -3.95 <= mn[0] and mx[0] <= 3.95 and -17.5 <= mn[2] and mx[2] <= 17.5, (mn, mx)   # inside the frozen envelope
+    assert -1.05 < mn[1] and mx[1] <= 31.0 and abs(mx[1] - 30.7) < .4, (mn, mx)
     assert len(doc['materials']) == 1 and doc['materials'][0]['name'] == 'TowerBridgeAtlas'
     assert not doc.get('images') and not doc.get('textures'), 'direct PBR GLB must not contain texture assets'
     primitive = doc['meshes'][0]['primitives'][0]

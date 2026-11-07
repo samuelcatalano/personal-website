@@ -25,7 +25,7 @@ print(js(r'''(async () => {
     check(m.userData.glow !== true, 'untextured material must not glow over the whole bridge');
     const b = new THREE.Box3().setFromObject(lod);
     check(b.min.x >= pb.min.x - 0.5 && b.max.x <= pb.max.x + 0.5 && b.min.z >= pb.min.z - 0.5 && b.max.z <= pb.max.z + 0.5 && b.min.y > -1.05 && b.max.y <= pb.max.y + 0.3, 'inside the procedural envelope ' + JSON.stringify([b, pb]));
-    check(Math.abs(b.max.y - 35.2) < 0.3 && b.max.z > 17 && b.max.x > 3.5, 'spans the full height / length / width');
+    check(Math.abs(b.max.y - 30.7) < 0.4 && b.max.z > 17 && b.max.x > 3.5, 'spans the proportional scale: top 30.7 m, length and width reach the envelope');
     check(tris <= (i ? 4500 : 14000), 'triangle budget LOD' + i);
     out.push({ lod: i, tris: Math.round(tris) });
   }

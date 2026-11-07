@@ -122,3 +122,14 @@ Single-view inferred hidden geometry, staging height (1.78 m) and eye colour are
 Use of the supplied tree assets was explicitly requested by the owner on 2026-11-03. The runtime uses the full-canopy Realistic Tree with two mesh LODs and one impostor; the supplied Mighty Oak and Tree GN sources remain recorded above but are excluded because their foliage reads as sparse at game scale. KTX2 texture compression and Meshopt geometry compression are applied by the local pipeline. The original source files remain owner-supplied and are not copied into the shipped site.
 
 - `assets/npc/reference/npc_lod0.glb` is the closing character in `js/world/figure.js`, built from the owner's own reference photos, approved by the owner on 2026-11-04. Its `Wave` clip is procedural (`build_wave` in `tools/npc/reference_rig.py`) on top of the CC0 Quaternius Idle already recorded above.
+
+## Tower Bridge references — 2026-11-07
+
+The Tower Bridge GLBs are procedural. No external 3D model, texture or image ships with them. The references below informed proportions and parts; they are not redistributed.
+
+- Elevation of the Tower Bridge, from R. Routledge, *Discoveries & Inventions of the Nineteenth Century*, 13th ed., 1900: [Wikimedia Commons, File:Tower bridge schm020.png](https://commons.wikimedia.org/wiki/File:Tower_bridge_schm020.png). Licence: public domain (PD-old, scan). Used for the tower and turret silhouette, walkway height, bascule leaves, Gothic lancets and span proportions.
+- Official dimensions: [Top facts](https://www.towerbridge.org.uk/stories/top-facts-of-tower-bridge) and [Timeline](https://www.towerbridge.org.uk/stories/timeline-the-construction-of-tower-bridge). Used: crests about 63 m above road, walkways 42–43.5 m above high water, 61 m central span, bascule chambers 27 m high. Figures that conflict between sources (overall width, walkway height) were not used as hard inputs.
+- Cross-check of spans: [Structurae, Tower Bridge](https://structurae.net/en/structures/tower-bridge). Not used as model inputs.
+- Historical context: [Wikipedia, Tower Bridge](https://en.wikipedia.org/wiki/Tower_Bridge) (construction 1886–1894; Horace Jones and John Wolfe Barry).
+
+Scale decision: the owner, 2026-11-07, kept the frozen envelope, so the bridge is drawn at K = 0.40 of real metres. A real-scale rebuild needs an envelope and sightline review first.
