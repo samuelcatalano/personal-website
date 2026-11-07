@@ -248,13 +248,12 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   if (panel) observer?.observe(panel);
   const busPos = { x: 0, y: 0, z: 0 }, prevBus = { x: null, z: 0, h: 0 }, MINI_WHEELBASE = 2.5, MAX_STEER = 0.5;
   let steer = 0;
-  // Flyover at the first UK stop. The plane crosses above the bus, then climbs out and recedes: it pitches up, shrinks into the distance and fades,
-  // so it leaves the scene instead of vanishing. `d` is the distance from the stop in stop-lengths of scroll.
-  const PLANE_IN = -1.15, PLANE_OUT = 1.6; // by d = 1 it is far past the right edge of any desktop frame; the fade only covers wider or taller viewports
+  // Flyover at the first UK stop. It crosses in front of the bus, then turns hard left (away from the camera), banking, and dissolves into the haze.
+  // The camera's top edge sits at about the camera height and the towers across the river are 25 to 40 m, so the plane cannot recede behind them:
+  // the turn and the fade finish while it is still in front of that line (about 55 m back). `d` is the distance from the stop in stop-lengths of scroll.
+  const PLANE_IN = -1.15, PLANE_OUT = 0.35, TURN_AT = -0.45; // the turn starts while the plane is still mid-frame
   const smooth = (lo, hi, x) => { const t = Math.min(1, Math.max(0, (x - lo) / (hi - lo))); return t * t * (3 - 2 * t); };
-  // Level pass at 26 m in front of the skyline (anything receding behind the towers would be hidden), then it accelerates and climbs out past the right edge of the frame.
-  const planePath = (d) => { const a = Math.max(d, 0); return [busPos.x + 16 + d * 52 + a * a * 60, d < 0 ? 26 - d * 4 : 26 + a * 10 + a * a * 25, busPos.z - 2 - a * 10 - a * a * 40]; };
-  plane.rotation.order = 'YZX'; // yaw first, then pitch in the plane's own frame
+  const planePath = (d) => { const u = Math.max(d - TURN_AT, 0); return [busPos.x + 16 + d * 52 + u * u * 24, 25 - Math.min(d, 0) * 3 + u * 2, busPos.z - 2 - u * u * 200]; };
   let planeFaded = false;
   const fadePlane = (alpha) => { // only touches materials while the plane is not fully opaque (the authored model may swap in after load)
     if (alpha >= 1 && !planeFaded) return;
@@ -265,11 +264,12 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const d = (p - planeAt) * (n - 1);
     let alpha = 0;
     if (planeAt >= 0 && d > PLANE_IN && d < PLANE_OUT) {
-      alpha = smooth(PLANE_IN, PLANE_IN + 0.25, d) * (1 - smooth(0.9, PLANE_OUT, d));
+      alpha = smooth(PLANE_IN, PLANE_IN + 0.25, d) * (1 - smooth(-0.3, PLANE_OUT, d));
       const [x, y, z] = planePath(d), [x2, y2, z2] = planePath(d + 0.02);
       plane.position.set(x, y, z);
       plane.rotation.y = Math.atan2(-(z2 - z), x2 - x); // heading follows the turn away
       plane.rotation.z = Math.min(0.5, Math.atan2(y2 - y, Math.hypot(x2 - x, z2 - z))); // nose follows the climb
+      plane.rotation.x = -0.5 * smooth(TURN_AT - 0.05, TURN_AT + 0.3, d); // banks into the left turn
       fadePlane(alpha);
     }
     plane.visible = alpha > 0.01;
