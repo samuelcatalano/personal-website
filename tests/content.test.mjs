@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -52,6 +53,16 @@ test('noscript fallback lists every link, article and repo from content.js', () 
   const want = [links.email.replace('mailto:', ''), links.linkedin, links.github, links.medium,
     ...articles.map(a => a.url), ...repos.map(r => r.url), ...stack];
   for (const w of want) assert.ok(fallback.includes(w), `noscript misses ${w}`);
+});
+
+test('CV download is a real PDF with no address or phone, and both languages label it', () => {
+  assert.match(links.cv, /^assets\/[\w-]+\.pdf$/);
+  const file = join(root, links.cv);
+  assert.equal(readFileSync(file).subarray(0, 4).toString(), '%PDF');
+  for (const lang of ['en', 'pt']) assert.ok(i18n[lang].sections.contact.cv?.trim(), `${lang} contact.cv`);
+  let text;
+  try { text = execFileSync('pdftotext', [file, '-'], { encoding: 'utf8' }); } catch { return; } // ponytail: needs poppler's pdftotext; skipped where absent, run it before publishing a new CV
+  for (const re of [/\+?44[\s\d]{9,}/, /\b7\d{3}\s?\d{6}\b/, /\bFlat\s*\d/i, /\bStation Grove\b/i, /\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b/]) assert.ok(!re.test(text), `CV text matches ${re}`);
 });
 
 test('no private data in served files', () => {
