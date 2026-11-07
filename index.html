@@ -44,6 +44,7 @@
   <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.min.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }</script>
   <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.min.js">
   <link rel="modulepreload" href="js/content.js">
+  <link rel="modulepreload" href="js/intro.js">
   <link rel="modulepreload" href="js/scroll.js">
   <link rel="modulepreload" href="js/ui.js">
   <link rel="modulepreload" href="js/world/ambient.js">
@@ -138,6 +139,22 @@
 </head>
 <body>
   <a class="skip" href="#panel">Skip to content</a>
+  <section id="intro" role="dialog" aria-labelledby="intro-title" hidden>
+    <div class="intro-card">
+      <svg class="mouse" viewBox="0 0 64 100" width="64" height="100" aria-hidden="true" focusable="false">
+        <path class="arrow up" d="M24 14l8-8 8 8" /><path class="arrow down" d="M24 86l8 8 8-8" />
+        <rect class="body" x="10" y="22" width="44" height="58" rx="22" /><rect class="wheel" x="28" y="30" width="8" height="16" rx="4" />
+      </svg>
+      <h2 id="intro-title" data-i18n="intro.title"></h2>
+      <ul class="steps">
+        <li data-step="down"><span class="tick" aria-hidden="true"></span><span data-i18n="intro.down"></span></li>
+        <li data-step="up"><span class="tick" aria-hidden="true"></span><span data-i18n="intro.up"></span></li>
+      </ul>
+      <div class="road" aria-hidden="true"><span class="flag">&#9873;</span><svg class="mini-bus" viewBox="0 0 40 20" width="40" height="20"><rect width="40" height="16" rx="3" fill="#c9252b"/><rect x="4" y="3" width="7" height="5" fill="#f4f0e9"/><rect x="14" y="3" width="7" height="5" fill="#f4f0e9"/><rect x="24" y="3" width="7" height="5" fill="#f4f0e9"/><circle cx="9" cy="16" r="3.2" fill="#302d29"/><circle cx="31" cy="16" r="3.2" fill="#302d29"/></svg></div>
+      <p class="status" role="status"><span class="bar-fill" aria-hidden="true"></span><span data-i18n="loading"></span></p>
+      <div class="actions"><button type="button" class="go" data-intro-go disabled data-i18n="intro.go"></button><button type="button" class="skip-intro" data-intro-skip data-i18n="intro.skip"></button></div>
+    </div>
+  </section>
   <canvas id="world" aria-hidden="true"></canvas>
   <header class="bar">
     <a class="brand" href="#hero" data-nav-home>Samuel Catalano</a>
@@ -179,7 +196,7 @@
       <li><a href="https://github.com/samuelcatalano/groovy-rest-crud-sample">groovy-rest-crud-sample</a></li>
     </ul>
   </noscript></main>
-  <p id="loading" role="status"><span class="bar-fill" aria-hidden="true"></span><span id="loading-text"></span></p>
+  <p id="loading" role="status"><span class="bar-fill" aria-hidden="true"></span><span data-i18n="loading"></span></p>
   <div id="track" aria-hidden="true"></div>
 </body>
 </html>

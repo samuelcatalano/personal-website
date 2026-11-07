@@ -74,7 +74,7 @@ export function initUI({ onGoto, onTheme }) {
     langButton.setAttribute('aria-label', `${langButton.textContent} — ${t.ui.lang}`);
     document.querySelector('[data-theme]').setAttribute('aria-label', t.ui.theme);
     document.querySelector('.skip').textContent = t.ui.skip;
-    document.getElementById('loading-text').textContent = t.ui.loading;
+    document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = el.dataset.i18n.split('.').reduce((o, k) => o[k], t.ui); });
     const prev = document.activeElement;
     const key = ['data-goto', 'data-nav', 'data-nav-home', 'data-lang', 'data-theme'].find(a => prev?.hasAttribute?.(a));
     const keep = key && [key, prev.getAttribute(key)];

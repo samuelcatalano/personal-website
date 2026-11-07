@@ -2,6 +2,7 @@ import { stops, SECTIONS, sectionStart } from './content.js';
 import { watchScroll, stopMarks, nearestStop, scrollYForStop, progressFromScroll, navLock } from './scroll.js';
 import { routePoints, STOP_SPACING } from './world/layout.js';
 import { initUI } from './ui.js';
+import { createIntro } from './intro.js';
 const n = stops.length;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const pts = routePoints(n), marks = stopMarks(pts);
@@ -34,15 +35,19 @@ watchScroll((p) => {
   if (!world) follow(p);
   world?.setProgress(p);
 });
+let seenIntro = false;
+try { seenIntro = localStorage.getItem('intro') === 'seen'; } catch { /* storage blocked */ }
+const intro = createIntro(document.getElementById('intro'), { seen: seenIntro || reducedMotion, onSeen: () => { try { localStorage.setItem('intro', 'seen'); } catch { /* storage blocked */ } } });
 const hasWebGL = () => { try { const gl = document.createElement('canvas').getContext('webgl2'); gl?.getExtension('WEBGL_lose_context')?.loseContext(); return !!gl; } catch { return false; } };
 if (hasWebGL()) {
   document.body.classList.add('world-loading');
+  intro.start();
   import('./world/scene.js')
     .then((m) => m.createWorld(document.getElementById('world'), stops, {
       reducedMotion, onProgress: follow, onPick: (id) => goto(stops.findIndex((s) => s.id === id)),
     }))
-    .then((w) => { world = w; w.setProgress(progress); w.setTheme(ui.theme); document.body.classList.add('world-ready'); })
-    .catch((err) => { console.warn('3D world unavailable:', err); document.body.classList.add('no-webgl'); });
+    .then((w) => { world = w; w.setProgress(progress); w.setTheme(ui.theme); document.body.classList.add('world-ready'); intro.ready(); })
+    .catch((err) => { console.warn('3D world unavailable:', err); intro.dismiss(); document.body.classList.add('no-webgl'); });
 } else {
   document.body.classList.add('no-webgl');
 }
