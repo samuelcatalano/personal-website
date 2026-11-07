@@ -38,6 +38,7 @@ export const articles = [
   { title: 'Mapping Entities to DTOs and vice versa in Java', url: 'https://medium.com/thefreshwrites/mapping-entities-to-dtos-and-vice-versa-in-java-fe126f6bb6b2' },
 ];
 
+const LANG_COLOR = { Java: '#b07219', Kotlin: '#a97bff', Go: '#00add8', Groovy: '#4298b8' };
 export const repos = [
   { name: 'quarkus-fault-tolerance', lang: 'Java · Quarkus' },
   { name: 'quarkus-mongo-crud', lang: 'Java · Quarkus · MongoDB' },
@@ -45,23 +46,29 @@ export const repos = [
   { name: 'neo4j-tech-challenge', lang: 'Java · Neo4j' },
   { name: 'bookstore-basic-golang', lang: 'Go' },
   { name: 'groovy-rest-crud-sample', lang: 'Groovy' },
-].map(r => ({ ...r, url: `https://github.com/samuelcatalano/${r.name}` }));
+].map(r => ({ ...r, url: `https://github.com/samuelcatalano/${r.name}`, color: LANG_COLOR[r.lang.split(' · ')[0]] }));
 
-export const stack = ['Java 17', 'Spring Boot', 'Quarkus', 'Kafka', 'Debezium', 'AWS Lambda', 'SNS/SQS',
-  'Docker', 'Kubernetes', 'PostgreSQL', 'MySQL', 'MongoDB', 'Cassandra', 'ActiveMQ', 'Terraform', 'JUnit · Mockito'];
+// Grouped like tube lines: one colour per line, each tool a station. Names live in i18n sections.stack.groups.
+export const stackGroups = [
+  { id: 'core', color: '#d4352e', items: ['Java 17', 'Spring Boot', 'Quarkus', 'JUnit · Mockito'] },
+  { id: 'messaging', color: '#1f3fbf', items: ['Kafka', 'Debezium', 'ActiveMQ', 'SNS/SQS'] },
+  { id: 'cloud', color: '#0c7a3d', items: ['AWS Lambda', 'Docker', 'Kubernetes', 'Terraform'] },
+  { id: 'data', color: '#7a3b9e', items: ['PostgreSQL', 'MySQL', 'MongoDB', 'Cassandra'] },
+];
+export const stack = stackGroups.flatMap(g => g.items);
 
 export const i18n = {
   en: {
     ui: {
       nav: { journey: 'Journey', stack: 'Stack', articles: 'Writing', repos: 'Code', recs: 'Recommendations', contact: 'Contact' },
       theme: 'Switch between day and night', lang: 'Switch language', scroll: 'Scroll to ride',
-      loading: 'Warming up the bus…', intro: { d1: 'São Paulo', d2: 'London', d3: 'Glasgow', stop: 'Stop requested', title: 'How to ride', sub: 'Your scroll wheel is the throttle. The real bus is right behind the glass.', nice: 'That is it. Now you know how to ride.', down: 'Scroll down to drive forward', up: 'Scroll up to go back', skip: 'Skip' }, navLabel: 'Sections', beforeLondon: 'Before London', present: 'Present', skip: 'Skip to content', footer: 'Designed and built by Samuel Catalano.',
+      zones: { br: 'Brazil', uk: 'United Kingdom' }, loading: 'Warming up the bus…', intro: { d1: 'São Paulo', d2: 'London', d3: 'Glasgow', stop: 'Stop requested', title: 'How to ride', sub: 'Your scroll wheel is the throttle. The real bus is right behind the glass.', nice: 'That is it. Now you know how to ride.', down: 'Scroll down to drive forward', up: 'Scroll up to go back', skip: 'Skip' }, navLabel: 'Sections', beforeLondon: 'Before London', present: 'Present', skip: 'Skip to content', footer: 'Designed and built by Samuel Catalano.',
       signpost: { saoPaulo: 'São Paulo', london: 'London', km: '9,480 km' }, // 3D fingerpost on the plaza over the SP -> London tunnel
     },
     sections: {
       hero: { title: 'Samuel Catalano', role: 'Senior Software Engineer', tagline: 'Ranked #1 Software Engineer in the world according to my parents.', availability: 'Now boarding: backend and platform conversations. Plenty of seats upstairs.', meta: '17+ years · Java · Backend · London' },
       journey: { title: 'Journey', intro: 'Every stop is a chapter. Hop on the bus through my career.' },
-      stack: { title: 'Stack', intro: 'The tools I reach for when a system has to keep working after launch.' },
+      stack: { title: 'Stack', intro: 'The tools I reach for when a system has to keep working after launch.', groups: { core: 'Core', messaging: 'Messaging', cloud: 'Cloud', data: 'Data' } },
       articles: { title: 'Writing', intro: 'Practical engineering notes on Medium.', more: 'All articles', src: 'Medium' },
       repos: { title: 'Code', intro: 'A few public repositories worth a look.', more: 'All repositories' },
       recs: { title: 'Recommendations', intro: 'What people I worked with say.' },
@@ -90,13 +97,13 @@ export const i18n = {
     ui: {
       nav: { journey: 'Trajetória', stack: 'Stack', articles: 'Artigos', repos: 'Código', recs: 'Recomendações', contact: 'Contato' },
       theme: 'Alternar entre dia e noite', lang: 'Trocar idioma', scroll: 'Role para embarcar',
-      loading: 'Esquentando o ônibus…', intro: { d1: 'São Paulo', d2: 'Londres', d3: 'Glasgow', stop: 'Parada solicitada', title: 'Como passear', sub: 'A roda do mouse é o acelerador. O ônibus de verdade está logo atrás do vidro.', nice: 'É isso. Agora você sabe dirigir.', down: 'Role para baixo para avançar', up: 'Role para cima para voltar', skip: 'Pular' }, navLabel: 'Seções', beforeLondon: 'Antes de Londres', present: 'Atual', skip: 'Pular para o conteúdo', footer: 'Projetado e construído por Samuel Catalano.',
+      zones: { br: 'Brasil', uk: 'Reino Unido' }, loading: 'Esquentando o ônibus…', intro: { d1: 'São Paulo', d2: 'Londres', d3: 'Glasgow', stop: 'Parada solicitada', title: 'Como passear', sub: 'A roda do mouse é o acelerador. O ônibus de verdade está logo atrás do vidro.', nice: 'É isso. Agora você sabe dirigir.', down: 'Role para baixo para avançar', up: 'Role para cima para voltar', skip: 'Pular' }, navLabel: 'Seções', beforeLondon: 'Antes de Londres', present: 'Atual', skip: 'Pular para o conteúdo', footer: 'Projetado e construído por Samuel Catalano.',
       signpost: { saoPaulo: 'São Paulo', london: 'Londres', km: '9.480 km' },
     },
     sections: {
       hero: { title: 'Samuel Catalano', role: 'Engenheiro de Software Sênior', tagline: 'Engenheiro de software nº 1 do mundo, segundo meus pais.', availability: 'Embarque aberto: conversas sobre backend e plataforma. Ainda tem lugar no andar de cima.', meta: '17+ anos · Java · Backend · Londres' },
       journey: { title: 'Trajetória', intro: 'Cada parada, um capítulo. Embarque no ônibus pela minha carreira.' },
-      stack: { title: 'Stack', intro: 'As ferramentas que uso quando um sistema precisa continuar funcionando depois do lançamento.' },
+      stack: { title: 'Stack', intro: 'As ferramentas que uso quando um sistema precisa continuar funcionando depois do lançamento.', groups: { core: 'Base', messaging: 'Mensageria', cloud: 'Nuvem', data: 'Dados' } },
       articles: { title: 'Artigos', intro: 'Notas práticas de engenharia no Medium.', more: 'Todos os artigos', src: 'Medium' },
       repos: { title: 'Código', intro: 'Alguns repositórios públicos que valem a visita.', more: 'Todos os repositórios' },
       recs: { title: 'Recomendações', intro: 'O que dizem pessoas que trabalharam comigo.' },
