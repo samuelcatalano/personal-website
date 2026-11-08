@@ -148,7 +148,7 @@
 <body>
   <a class="skip" href="#panel">Skip to content</a>
   <dialog id="intro" aria-labelledby="intro-title" aria-describedby="intro-sub">
-    <div class="intro-card">
+    <section class="intro-card" aria-labelledby="intro-title">
       <div class="blind" aria-hidden="true">
         <b class="route">83</b>
         <div class="dest"><span class="cur"></span></div>
@@ -241,7 +241,7 @@
         <button type="button" data-intro-skip autofocus data-i18n="intro.skip"></button>
       </div>
       <i class="door l" aria-hidden="true"></i><i class="door r" aria-hidden="true"></i>
-    </div>
+    </section>
   </dialog>
   <canvas id="world" aria-hidden="true"></canvas>
   <header class="bar">
@@ -285,7 +285,7 @@
     </ul>
   </noscript></main>
   <p id="loading" role="status"><span class="bar-fill" aria-hidden="true"></span><span data-i18n="loading"></span></p>
-  <dialog id="credits" aria-labelledby="credits-title"></dialog>
+  <dialog id="credits" aria-label="Credits" aria-labelledby="credits-title"></dialog>
   <div id="track" aria-hidden="true"></div>
 </body>
 </html>

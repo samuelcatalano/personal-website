@@ -12,7 +12,7 @@ export function savePref(storage, key, value) { try { storage?.setItem(key, valu
 const store = () => { try { return localStorage; } catch { return undefined; } };
 const flag = (c) => (c === 'BR' ? '🇧🇷' : '🇬🇧');
 // ponytail: innerHTML from static content.js only
-function sectionHTML(section, t, active, tool = null) {
+function sectionHTML(section, t, active, tool = null, seenSet = new Set(), fresh = -1) {
   const s = t.sections[section];
   const ext = (href, text, cls = '') => `<a${cls ? ` class="${cls}"` : ''} href="${href}" target="_blank" rel="noopener">${text}</a>`;
   const ic = (d) => `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true" focusable="false"><path d="${d}"/></svg>`;
@@ -33,9 +33,9 @@ function sectionHTML(section, t, active, tool = null) {
       <h2>${s.title}</h2><p>${s.intro}</p>${tool ? `<p class="filter">${t.ui.usedAt} <b>${tool}</b><button type="button" data-tool-clear aria-label="${t.ui.clearFilter}">&times;</button></p>` : ''}<ol class="stops">${stops.map((st, i) => {
         if (st.section !== 'journey') return '';
         const c = t.stops[st.id], on = i === active, hit = tool && toolStops[tool].includes(st.id);
-        return `<li class="${st.country.toLowerCase()}${st.id === 'move' ? ' hub' : ''}${on ? ' on' : ''}${tool ? (hit ? ' hit' : ' dim') : ''}"><button data-goto="${i}" aria-expanded="${on}">
+        return `<li class="${st.country.toLowerCase()}${st.id === 'move' ? ' hub' : ''}${on ? ' on' : ''}${seenSet.has(i) ? ' seen' : ''}${tool ? (hit ? ' hit' : ' dim') : ''}"><button data-goto="${i}" aria-expanded="${on}">
           <span class="yr">${st.year}</span><span class="node" aria-hidden="true"></span>${st.brand ? `<span class="mono" style="--c:${st.brand.color}" aria-hidden="true">${st.brand.initials}</span>` : ''}<span class="name">${c.title}</span></button>
-          ${on ? `<div class="detail"><span class="stamp">${t.ui.cities[cityOf(st)]} · ${st.year}</span><strong>${c.role}</strong><small>${c.dates} · ${c.place}</small><p>${c.body}</p></div>` : ''}</li>`;
+          ${on ? `<div class="detail"><span class="punch${i === fresh ? ' fresh' : ''}" aria-hidden="true"></span><span class="stamp">${t.ui.cities[cityOf(st)]} · ${st.year}</span><strong>${c.role}</strong><small>${c.dates} · ${c.place}</small><p>${c.body}</p></div>` : ''}</li>`;
       }).join('')}</ol>
       <p class="zones"><span class="z br">${t.ui.zones.br}</span><span class="z uk">${t.ui.zones.uk}</span></p>`;
     case 'stack': return `<h2>${s.title}</h2><p>${s.intro}</p><div class="lines">${stackGroups.map(g => `<div class="line" style="--c:${g.color}"><h3>${s.groups[g.id]}</h3><ul>${g.items.map(x => `<li>${toolStops[x].length ? `<button type="button" class="station" data-tool="${x}" aria-pressed="${x === tool}">${x}</button>` : x}</li>`).join('')}</ul></div>`).join('')}</div>`;
@@ -84,7 +84,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     if (el) el.textContent = new Intl.DateTimeFormat(prefs.lang === 'pt' ? 'pt-BR' : 'en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit' }).format(new Date());
   };
   setInterval(() => { led(); clock(); }, 2000);
-  let hashed = '', bannerTimer, party = false;
+  let hashed = '', bannerTimer, party = false, lastIdx = -1;
   const seen = new Set(), cities = new Set(); // stops and cities the visitor has reached (route counter, passport stamps)
   const arrive = (label, name) => { // "Now arriving London": a short banner when the line crosses into another city
     const b = document.getElementById('arrival') || document.body.appendChild(Object.assign(document.createElement('p'), { id: 'arrival', role: 'presentation' }));
@@ -99,9 +99,11 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     if (document.body.dataset.city && document.body.dataset.city !== city) arrive(t.ui.arriving, t.ui.cities[city]); // not on the first render
     document.body.dataset.city = city;
     if (st.section === 'journey' && st.id !== hashed) { hashed = st.id; history.replaceState(null, '', '#' + st.id); } // share a link to the stop
-    seen.add(Math.max(active, 0)); cities.add(city);
+    const idx = Math.max(active, 0), fresh = seen.has(idx) ? -1 : idx; // a stop visited for the first time gets its ticket punched
+    seen.add(idx); cities.add(city);
     if (st.id === 'contact' && !party) { party = true; say('final', 4000); } // LED only: sounds stay behind a click or tap
     document.querySelector('.bar nav').setAttribute('aria-label', t.ui.navLabel);
+    document.getElementById('credits')?.setAttribute('aria-label', t.ui.credits.title); // the dialog is empty until opened, so it needs a name of its own
     const home = document.querySelector('[data-nav-home]');
     const cur = (el, on) => (on ? el.setAttribute('aria-current', 'page') : el.removeAttribute('aria-current'));
     cur(home, st.section === 'hero');
@@ -129,7 +131,13 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     const key = ['data-tool', 'data-goto', 'data-nav', 'data-nav-home', 'data-lang', 'data-theme'].find(a => prev?.hasAttribute?.(a));
     const keep = key && [key, prev.getAttribute(key)];
     const top = panel.dataset.section === st.section ? panel.scrollTop : 0;
-    panel.innerHTML = sectionHTML(st.section, t, active, tool);
+    const slide = lastIdx >= 0 && idx !== lastIdx && !matchMedia('(prefers-reduced-motion: reduce)').matches, sectionChanged = panel.dataset.section !== st.section, dir = idx >= lastIdx ? 1 : -1;
+    lastIdx = idx;
+    panel.innerHTML = sectionHTML(st.section, t, active, tool, seen, fresh);
+    if (slide) { // the ticket (or the whole pane when the section changes) slides in from the side the bus is heading to; CSS only, no page snapshot, so the 3D scene never stalls
+      panel.style.setProperty('--sx', `${dir * 22}px`); panel.style.setProperty('--dir', dir);
+      panel.classList.remove('swap-pane', 'swap-ticket'); void panel.offsetWidth; panel.classList.add(sectionChanged ? 'swap-pane' : 'swap-ticket');
+    }
     panel.scrollTop = top;
     panel.dataset.section = st.section;
     if (reveal) panel.querySelector('.on')?.scrollIntoView({ block: 'nearest', behavior: 'instant' });

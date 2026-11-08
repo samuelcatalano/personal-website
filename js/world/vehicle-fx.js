@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 // Hero vehicle particles: exhaust steam in the cold (London, Glasgow, nights) and wheel spray on a wet road.
 // One Points draw with a small CPU-simulated pool; particles live in world space so they trail behind the vehicle.
-const N = 90;
+const N = 300;
 export function createVehicleFx(scene, { reducedMotion = false } = {}) {
   if (reducedMotion) return { update() {}, dispose() {} };
   const pos = new Float32Array(N * 3), alpha = new Float32Array(N), size = new Float32Array(N), kind = new Float32Array(N);
@@ -39,17 +39,17 @@ export function createVehicleFx(scene, { reducedMotion = false } = {}) {
       while (steamDebt >= 1) { steamDebt -= 1; // exhaust: a thin pipe low at the rear corner, rises and widens while it fades
         spawn(p.x - fx * (len / 2 + 0.05) + sx * halfW * 0.45, 0.34, p.z - fz * (len / 2 + 0.05) + sz * halfW * 0.45, -fx * rnd(0.4, 1.2) + rnd(-0.15, 0.15), rnd(0.35, 0.7), -fz * rnd(0.4, 1.2) + rnd(-0.15, 0.15), 0.28, 1.5, rnd(1.6, 2.6), 0, 0.5);
       }
-      sprayDebt += dt * rain * Math.min(speed / 6, 1) * 26;
+      sprayDebt += dt * rain * Math.min(speed / 6, 1) * 150;
       while (sprayDebt >= 1) { sprayDebt -= 1; // spray: thrown up and back from the rear wheels, short and light
         const side = Math.random() < 0.5 ? -1 : 1;
-        spawn(p.x - fx * len * 0.3 + sx * side * halfW, 0.12, p.z - fz * len * 0.3 + sz * side * halfW, -fx * rnd(1, 2.6) + sx * side * rnd(0.2, 1), rnd(0.9, 2), -fz * rnd(1, 2.6) + sz * side * rnd(0.2, 1), 0.16, 0.9, rnd(0.35, 0.7), 1, 0.4);
+        spawn(p.x - fx * len * 0.3 + sx * side * halfW, 0.12, p.z - fz * len * 0.3 + sz * side * halfW, -fx * rnd(1, 2.6) + sx * side * rnd(0.2, 1), rnd(0.9, 2.2), -fz * rnd(1, 2.6) + sz * side * rnd(0.2, 1), 0.24, 2.2, rnd(0.5, 0.9), 1, 0.7);
       }
       for (let i = 0; i < N; i++) {
         if (age[i] >= life[i]) { alpha[i] = 0; continue; }
         age[i] += dt; const k = age[i] / life[i];
         pos[i * 3] += vel[i].x * dt; pos[i * 3 + 1] += vel[i].y * dt; pos[i * 3 + 2] += vel[i].z * dt;
         if (kind[i] > 0.5) vel[i].y -= 6 * dt; else vel[i].multiplyScalar(1 - 0.5 * dt); // spray falls back, steam slows
-        size[i] = base[i] * (1 + grow[i] * k); alpha[i] = (kind[i] > 0.5 ? 0.4 : 0.5) * (1 - k) * Math.min(1, k * 8);
+        size[i] = base[i] * (1 + grow[i] * k); alpha[i] = (kind[i] > 0.5 ? 0.42 : 0.5) * (1 - k) * Math.min(1, k * 8);
         if (age[i] >= life[i]) alpha[i] = 0;
       }
       geometry.attributes.position.needsUpdate = geometry.attributes.aAlpha.needsUpdate = geometry.attributes.aSize.needsUpdate = geometry.attributes.aKind.needsUpdate = true;

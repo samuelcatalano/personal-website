@@ -10,7 +10,7 @@ html { scroll-behavior: auto; }
 body { margin: 0; font: 15px/1.6 var(--sans); color: var(--ink); background: linear-gradient(var(--sky), var(--sky2)); min-height: 100vh; }
 #world { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
 #track { width: 1px; }
-.skip { position: absolute; left: -999px; }
+.skip { position: absolute; left: -999px; color: var(--ink); background: var(--card); }
 .skip:focus { left: 16px; top: 16px; z-index: 10; background: var(--card); padding: 8px; }
 .bar { position: fixed; top: 20px; left: 24px; right: 24px; display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; z-index: 5; pointer-events: none; }
 .bar > * { pointer-events: auto; }
@@ -383,3 +383,22 @@ body.theme-night .detail { background: #2a2622; color: var(--ink); } body.theme-
 /* No selection box where focus is only placed by the page: the heading after the intro closes and the Skip button it opens on. Keyboard users still see the Skip fill red on focus. */
 #panel :is(h1, h2)[tabindex="-1"]:focus, #panel :is(h1, h2)[tabindex="-1"]:focus-visible { outline: none; }
 #intro [data-intro-skip]:focus, #intro [data-intro-skip]:focus-visible { outline: none; }
+/* Stop change: the ticket slides in from the heading side; a visited stop keeps a punched hole, the first visit stamps it */
+@keyframes ticket-in { from { opacity: 0; transform: translateX(var(--sx, 22px)) rotate(calc(var(--dir, 1) * 1.6deg)); } }
+@keyframes pane-in { from { opacity: 0; transform: translateX(calc(var(--sx, 22px) * .6)); } }
+#panel.swap-ticket .detail { animation: ticket-in .42s cubic-bezier(.2, .8, .2, 1); }
+#panel.swap-pane > * { animation: pane-in .36s cubic-bezier(.2, .8, .2, 1) both; }
+#panel.swap-pane > *:nth-child(2) { animation-delay: .04s; } #panel.swap-pane > *:nth-child(3) { animation-delay: .08s; } #panel.swap-pane > *:nth-child(n+4) { animation-delay: .12s; }
+.punch { position: absolute; top: 11px; right: 14px; width: 14px; height: 14px; border-radius: 50%; background: var(--card); box-shadow: inset 0 2px 3px rgba(40, 30, 20, .5), 0 1px 0 rgba(255, 255, 255, .5); }
+.punch.fresh { animation: punch .55s .3s cubic-bezier(.3, 1.6, .5, 1) both; }
+@keyframes punch { from { transform: scale(2.4); opacity: 0; } 60% { opacity: 1; } to { transform: scale(1); opacity: 1; } }
+.stops li.seen::after { content: ''; position: absolute; right: 6px; top: 17px; width: 9px; height: 9px; border-radius: 50%; background: var(--card); box-shadow: inset 0 1px 2px rgba(40, 30, 20, .55); pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { #panel.swap-ticket .detail, #panel.swap-pane > *, .punch.fresh { animation: none; } }
+/* Accessibility pass: the city stamp meets 4.5:1 on the ticket in both themes, and touch screens get 44 px targets */
+.detail .stamp { color: color-mix(in srgb, var(--city) 78%, #000); }
+body.theme-night .detail .stamp { color: color-mix(in srgb, var(--city) 50%, #fff); }
+@media (pointer: coarse) {
+  .bar nav a, .bar nav button, .controls button, .panel a.chip { min-height: 44px; }
+  .controls button { min-width: 44px; }
+  .panel .linkish { display: inline-flex; align-items: center; min-height: 44px; }
+}
