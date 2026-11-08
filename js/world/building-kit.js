@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { classifyPlot, createCityRollout } from './city-rollout.js';
 import { upgradeFacadeKits } from './facade-kit.js';
+import { trackWork } from './load-progress.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { surfaceNoiseTexture } from './textures.js';
 import { isWembleyBenchmark } from './layout.js';
@@ -269,7 +270,7 @@ export function createCityBuildings(plots,{rollout=true,kits=true}={}) {
   if (rolloutPlots.length) {
     const group=createCityRollout(rolloutPlots,plots);city.add(group);
     // Shop/midrise facade kits load async and swap in per chunk; kits:false (or ?kits=0) keeps the procedural look.
-    if(kits)upgradeFacadeKits(group,rolloutPlots,plots).catch(e=>console.warn('facade kits unavailable',e));
+    if(kits)trackWork(upgradeFacadeKits(group,rolloutPlots,plots).catch(e=>console.warn('facade kits unavailable',e)));
   }
   if (regionPlots.length) { const chunk=createShopChunk(regionPlots,plots);chunk.name='hero-adjacent-region';city.add(chunk); }
   if (cleanupPlots.length) { const chunk=createShopChunk(cleanupPlots,plots);chunk.name='hero-background-cleanup';city.add(chunk); }

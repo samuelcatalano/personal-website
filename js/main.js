@@ -5,6 +5,7 @@ import { initUI } from './ui.js';
 import { createIntro } from './intro.js';
 import { horn } from './sound.js';
 import { createAutoRide, travelMs } from './autoride.js';
+import { whenSettled } from './world/load-progress.js';
 import { makePostcard, download } from './postcard.js';
 const n = stops.length;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -92,6 +93,16 @@ watchScroll((p) => {
   if (!world) follow(p);
   world?.setProgress(p);
 });
+// Frozen stills of the three cities for the intro windshield: jump the camera to each, grab a frame, then put it back (skipped if the visitor is already driving)
+const stills = async (w) => {
+  if (!w.snapshot || intro.interacted) return;
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms)), at = (i) => marks[i], out = { sp: await w.snapshot() };
+  for (const [city, p] of [['london', (at(9) + at(10)) / 2], ['glasgow', at(stops.findIndex((s) => s.id === 'glasgow'))]]) {
+    if (intro.interacted) return;
+    w.jump(p); await wait(450); out[city] = await w.snapshot();
+  }
+  w.jump(0); intro.showPreviews(out);
+};
 const DRIVE = 0.03; // share of the route the intro lets the visitor drive (about one stop)
 const intro = createIntro(document.getElementById('intro'), {
   onDrive: (p) => world?.setProgress(p === null ? progress : p * DRIVE),
@@ -104,7 +115,8 @@ if (hasWebGL()) {
     .then((m) => m.createWorld(document.getElementById('world'), stops, {
       reducedMotion, onProgress: follow, onPick: (id) => (id === 'bus' ? (horn(), ui.say('horn')) : goto(stops.findIndex((s) => s.id === id))),
     }))
-    .then((w) => { world = w; w.setProgress(progress); w.setTheme(ui.theme); document.body.classList.add('world-ready'); intro.ready(); w.snapshot?.().then((b) => intro.showPreview(b)).catch(() => {}); })
+    .then((w) => { world = w; w.setProgress(progress); w.setTheme(ui.theme); document.body.classList.add('world-ready'); intro.worldLoaded();
+      whenSettled().then(() => { document.body.classList.add('world-settled'); intro.ready(); stills(w).catch(() => {}); }); })
     .catch((err) => { console.warn('3D world unavailable:', err); intro.dismiss(); document.body.classList.add('no-webgl'); });
 } else {
   document.body.classList.add('no-webgl');

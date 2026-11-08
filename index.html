@@ -93,6 +93,7 @@
   <link rel="modulepreload" href="js/world/layout.js">
   <link rel="modulepreload" href="js/world/load-progress.js">
   <link rel="modulepreload" href="js/world/loft.js">
+  <link rel="modulepreload" href="js/world/lot-tint.js">
   <link rel="modulepreload" href="js/world/masp-asset.js">
   <link rel="modulepreload" href="js/world/midrise-slice.js">
   <link rel="modulepreload" href="js/world/mood.js">
@@ -156,7 +157,7 @@
       <div class="intro-text">
         <h2 id="intro-title" data-i18n="intro.title"></h2>
         <p id="intro-sub" data-i18n="intro.sub"></p>
-        <p class="greet" id="intro-greet"></p>
+        
       </div>
       <div class="intro-map" role="group" aria-labelledby="intro-hint">
         <div class="intro-windshield" aria-hidden="true">
@@ -233,12 +234,12 @@
             <rect class="body" x="10" y="22" width="44" height="58" rx="22"/>
             <rect class="wheel" x="28" y="30" width="8" height="16" rx="4"/>
           </svg>
-          <p id="intro-hint" data-i18n="intro.hint"></p>
+          <p id="intro-hint"></p>
         </div>
       </div>
-      <div class="status" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-labelledby="intro-status-text"><span class="leds" aria-hidden="true"></span><span id="intro-status-text"></span></div>
+      <div class="status sr-only" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-labelledby="intro-status-text"><span class="leds" aria-hidden="true"></span><span id="intro-status-text"></span></div>
       <div class="actions">
-        <button type="button" data-intro-skip autofocus data-i18n="intro.skip"></button>
+        <button type="button" data-intro-skip autofocus></button>
       </div>
       <i class="door l" aria-hidden="true"></i><i class="door r" aria-hidden="true"></i>
     </section>

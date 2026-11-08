@@ -42,8 +42,9 @@ try:
     assert js("getComputedStyle(document.querySelector('.route-vehicle .mini')).display !== 'none'")
     assert js("getComputedStyle(document.querySelector('.route-vehicle .bus')).display === 'none'")
     assert js("document.querySelectorAll('#intro button').length === 1")
-    assert js("document.querySelector('[data-intro-skip]:enabled').getBoundingClientRect().height >= 44")
-    assert js("document.querySelector('[data-intro-skip]').textContent") == ('Pular' if mobile else 'Skip')
+    assert js("document.querySelector('[data-intro-skip]').getBoundingClientRect().height >= 44")
+    assert js("document.querySelector('[data-intro-skip]').textContent.length > 3")  # progress label while loading, the call to start afterwards
+    if not mobile: assert js("document.querySelectorAll('#intro-hint kbd').length === 2"), 'The arrows are drawn as key caps'
     assert js("document.querySelector('.intro-card').getBoundingClientRect().right <= innerWidth")
     assert js("getComputedStyle(document.querySelector('#loading')).display === 'none'")
     if out:
@@ -55,7 +56,7 @@ try:
         cdp('Input.dispatchTouchEvent', type='touchMove', touchPoints=[{'x': x, 'y': y - 50}])
         cdp('Input.dispatchTouchEvent', type='touchEnd', touchPoints=[])
     else:
-        assert js("document.activeElement.matches('[data-intro-skip]')")
+        assert js("document.querySelector('#intro').open")  # Skip is disabled while the city loads, so it cannot hold the focus yet
         x, y = js("(()=>{const r=document.querySelector('.intro-windshield').getBoundingClientRect();return [r.x+r.width/2,r.y+r.height/2]})()")
         cdp('Input.dispatchMouseEvent', type='mouseWheel', x=x, y=y, deltaX=0, deltaY=120)
         js("new Promise(requestAnimationFrame)")
@@ -86,11 +87,14 @@ try:
       const skip = document.querySelector('[data-intro-skip]').getBoundingClientRect();
       return Math.abs(card.x + card.width / 2 - skip.x - skip.width / 2) < 1;
     })()"""), 'Skip should be centered in the card'
-    if board:
-        for _ in range(120):
-            if js("document.body.classList.contains('world-ready')"): break
-            time.sleep(.25)
-        assert js("document.body.classList.contains('world-ready')")
+    if not js("document.body.classList.contains('world-settled')"):
+        assert js("document.querySelector('[data-intro-skip]').disabled"), 'Skip stays disabled until the whole city has loaded'
+    for _ in range(240):
+        if js("document.body.classList.contains('world-settled')"): break
+        time.sleep(.25)
+    assert js("document.body.classList.contains('world-settled')")
+    assert js("!document.querySelector('[data-intro-skip]').disabled"), 'Skip opens once the city has settled'
+    assert js("document.querySelector('[data-intro-skip]').textContent") == ('Começar a viagem' if mobile else 'Start the journey')
     if mobile:
         js("document.querySelector('[data-intro-skip]').click()")
     else:

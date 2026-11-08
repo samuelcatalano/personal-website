@@ -14,7 +14,7 @@ const KEY_DY = { ArrowRight: 35, ArrowLeft: -35, PageDown: 240, PageUp: -240, ' 
 const LEDS = 24;
 export function createIntro(root, { onDrive = () => {} } = {}) {
   let soundsPlayed = false; // the bell and the door hiss belong to the first Skip only, never again
-  let p = 0, auto = 0, autoTarget = 0, raf = 0, previewUrl = '', active = false, interacted = false, ready = false, tick, bellTimer, unsubscribe;
+  let p = 0, auto = 0, autoTarget = 0, raf = 0, previewUrls = [], greetText = '', loaded = false, active = false, interacted = false, ready = false, tick, bellTimer, unsubscribe;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const map = root.querySelector('.intro-map'), cur = root.querySelector('.dest .cur');
   const nodesEl = root.querySelector('.nodes'), ledsEl = root.querySelector('.leds');
@@ -26,7 +26,7 @@ export function createIntro(root, { onDrive = () => {} } = {}) {
   const border = JOURNEY.findIndex(st => st.id === 'move');
   const glasgow = JOURNEY.findIndex(st => st.id === 'glasgow');
   root.style.setProperty('--border-stop', `${100 * fraction(border)}%`);
-  nodesEl.innerHTML = JOURNEY.map((st, i) => `<i class="node ${st.country.toLowerCase()}${i === border ? ' hub' : ''}" style="--f:${fraction(i)}"></i>`).join('');
+  nodesEl.innerHTML = JOURNEY.map((st, i) => `<i class="node ${st.country.toLowerCase()}${i === border ? ' hub' : ''}" style="--f:${fraction(i)}"><b>${st.year}</b></i>`).join('');
   ledsEl.innerHTML = '<i></i>'.repeat(LEDS);
   const nodes = [...nodesEl.children], leds = [...ledsEl.children];
   const londonClock = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit' });
@@ -35,7 +35,10 @@ export function createIntro(root, { onDrive = () => {} } = {}) {
     let label = ready ? tt.ui.intro.ready : `${tt.stops.move.place} ${londonClock.format(new Date())}`;
     if (bellTimer) label = tt.ui.led.stop;
     else if (interacted) label = careerLabel(JOURNEY[journeyIndex(p)], tt);
-    else if (!ready && stage && Math.floor(Date.now() / 2800) % 2 === 0) label = tt.ui.intro.stages[stage];
+    else if (!interacted) { // the blind cycles: loading stage, London time or the greeting for the visitor's own clock
+      const slot = Math.floor(Date.now() / 2800) % 3;
+      if (slot === 2 && greetText) label = greetText; else if (!ready && stage && slot === 0) label = tt.ui.intro.stages[stage];
+    }
     const text = label.toUpperCase();
     if (cur.textContent !== text) {
       cur.textContent = text;
@@ -45,11 +48,12 @@ export function createIntro(root, { onDrive = () => {} } = {}) {
     }
   };
   const paintProgress = () => {
-    const { ratio, stage } = loadState(), value = ready ? 100 : Math.round(ratio * 100), ui = t().ui;
+    const { ratio, stage } = loadState(), value = ready ? 100 : Math.min(99, Math.round(ratio * 100)), ui = t().ui; // 100 is only shown once the whole city has settled
     leds.forEach((l, i) => l.classList.toggle('on', i < Math.round(value * LEDS / 100)));
     statusEl.setAttribute('aria-valuenow', String(value));
-    statusText.textContent = ready ? ui.intro.loaded : `${stage ? ui.intro.stages[stage] : ui.loading} ${value}%`;
-    autoTarget = ready ? 1 : ratio; // until the visitor takes the wheel, the toy bus rides the line as the world loads
+    statusText.textContent = ready ? ui.intro.loaded : loaded ? ui.intro.finishing : `${stage ? ui.intro.stages[stage] : ui.loading} ${value}%`;
+    if (!bellTimer) skip.textContent = ready ? ui.intro.start : loaded ? ui.intro.finishing : `${ui.intro.loadingBtn} ${value}%`; // the button carries the progress, then becomes the call to start
+    autoTarget = ready ? 0 : ratio; // the toy bus rides the line as the world loads, then drives back to the first stop, ready to go forward
     if (!interacted && !raf) raf = requestAnimationFrame(glide);
   };
   const glide = () => {
@@ -74,14 +78,14 @@ export function createIntro(root, { onDrive = () => {} } = {}) {
     const moving = interacted || auto > 0.01;
     nodes.forEach((n, i) => { n.classList.toggle('passed', moving && i <= at); n.classList.toggle('here', moving && i === at); });
     paintBlind();
-    onDrive(p);
+    if (interacted) onDrive(p); // the loading ride and its return only move the toy bus; the 3D camera follows the visitor alone
   };
   const dismiss = ({ reveal = false } = {}) => {
     if (!active) return;
     active = false;
     clearInterval(tick);
     clearTimeout(bellTimer);
-    if (previewUrl) setTimeout(() => URL.revokeObjectURL(previewUrl), 1500);
+    for (const u of previewUrls) setTimeout(() => URL.revokeObjectURL(u), 1500);
     unsubscribe();
     document.removeEventListener('keydown', onKey);
     const close = () => {
@@ -99,7 +103,7 @@ export function createIntro(root, { onDrive = () => {} } = {}) {
   };
   const step = (dy, direction = dy) => {
     if (!active || !dy) return;
-    if (!interacted) { p = auto; root.querySelector('.intro-windshield').classList.remove('live'); } // take over from the loading ride without a jump; the real city steps aside for the illustrated road
+    if (!interacted) p = auto; // take over from the loading ride without a jump
     interacted = true;
     root.dataset.dir = direction > 0 ? 'down' : 'up';
     p = practice(p, dy);
@@ -140,34 +144,43 @@ export function createIntro(root, { onDrive = () => {} } = {}) {
     skip.disabled = true; // a second click cannot ring it again
     navigator.vibrate?.(40);
   });
-  root.addEventListener('cancel', e => { e.preventDefault(); dismiss(); });
+  root.addEventListener('cancel', e => { e.preventDefault(); if (ready) dismiss(); }); // Esc waits for the city like Skip does
   return {
     start() {
       active = true;
       document.body.classList.add('intro-on');
       root.showModal();
+      skip.disabled = true; // Skip opens only when the whole city has loaded
       const hour = new Date().getHours(), tt = t(), tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
       root.dataset.tod = hour >= 6 && hour < 17 ? 'day' : hour >= 17 && hour < 20 ? 'dusk' : 'night'; // the windshield follows the visitor's own clock
       const part = hour >= 5 && hour < 12 ? 'morning' : hour >= 12 && hour < 18 ? 'afternoon' : 'evening', city = { 'America/Sao_Paulo': 'sp', 'Europe/London': 'ldn' }[tz];
-      root.querySelector('#intro-greet').textContent = `${tt.ui.intro.greet[part]}${city ? `, ${tt.ui.cities[city]}` : ''}`;
+      greetText = `${tt.ui.intro.greet[part]}${city ? `, ${tt.ui.cities[city]}` : ''}`;
+      const touch = matchMedia('(pointer: coarse)').matches; // static copy from content.js: {x} marks a key cap
+      root.querySelector('#intro-hint').innerHTML = touch ? tt.ui.intro.t_hint : tt.ui.intro.hint.replace(/\{(.+?)\}/g, '<kbd>$1</kbd>');
       document.addEventListener('keydown', onKey);
       unsubscribe = onLoadChange(() => { if (active) { paintProgress(); paintBlind(); } });
       tick = setInterval(paintBlind, 700);
       paintProgress();
       render();
     },
+    worldLoaded() { loaded = true; if (active) paintProgress(); }, // the world exists, buildings and landmarks may still be arriving
     ready() {
-      ready = true;
+      ready = true; skip.disabled = false;
+      if (active && (document.activeElement === root || document.activeElement === document.body)) skip.focus({ preventScroll: true }); // keyboard users land on the button that just opened
       if (active) { paintProgress(); render(); }
     },
-    showPreview(blob) { // the real city, frozen, comes through the windshield once the world is ready (until the visitor starts driving)
-      if (!active || interacted || !blob) return;
-      previewUrl = URL.createObjectURL(blob);
-      const shield = root.querySelector('.intro-windshield'), img = new Image();
-      img.className = 'live-view'; img.alt = ''; img.decoding = 'async';
-      img.onload = () => { shield.append(img); requestAnimationFrame(() => { if (!interacted) shield.classList.add('live'); }); };
-      img.src = previewUrl;
+    showPreviews(photos) { // frozen real-city stills (São Paulo, London, Glasgow) come through the windshield, whichever stop the toy bus is at
+      if (!active || interacted) return;
+      const shield = root.querySelector('.intro-windshield');
+      for (const [city, blob] of Object.entries(photos)) {
+        if (!blob) continue;
+        const url = URL.createObjectURL(blob), img = new Image(); previewUrls.push(url);
+        img.className = 'live-view'; img.dataset.city = city; img.alt = ''; img.decoding = 'async';
+        img.onload = () => { shield.append(img); shield.classList.add('photos'); };
+        img.src = url;
+      }
     },
+    get interacted() { return interacted; },
     dismiss,
   };
 }

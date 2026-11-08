@@ -402,3 +402,32 @@ body.theme-night .detail .stamp { color: color-mix(in srgb, var(--city) 50%, #ff
   .controls button { min-width: 44px; }
   .panel .linkish { display: inline-flex; align-items: center; min-height: 44px; }
 }
+/* Intro v3: the button carries the progress then becomes the call to start; key caps; a windshield that drives; years on the line; compact and night variants */
+[data-intro-skip] { min-width: 232px; background: var(--ticket-red); color: #fff8ec; border-color: transparent !important; font-variant-numeric: tabular-nums; transition: background .25s, color .25s; }
+[data-intro-skip]:disabled { background: transparent; color: var(--ticket-muted); border-color: var(--ticket-line) !important; cursor: progress; }
+[data-intro-skip]:not(:disabled) { animation: cta-pulse 2.2s ease-out infinite; }
+[data-intro-skip]:not(:disabled):hover, [data-intro-skip]:not(:disabled):focus-visible { background: #841920; color: #fff8ec; }
+#intro.bell [data-intro-skip]:disabled { background: var(--ticket-red); color: #fff8ec; border-color: transparent !important; animation: none; }
+@keyframes cta-pulse { 0% { box-shadow: 0 0 0 0 rgba(168, 32, 40, .45); } 70%, 100% { box-shadow: 0 0 0 12px rgba(168, 32, 40, 0); } }
+#intro-hint kbd { display: inline-grid; place-items: center; min-width: 24px; height: 24px; margin: 0 2px; padding: 0 6px; border: 1px solid var(--ticket-line); border-bottom-width: 3px; border-radius: 5px; background: #fffaf0; font: 700 13px/1 var(--sans); color: var(--ticket-ink); vertical-align: middle; }
+.live-view { animation: drift 28s ease-in-out infinite alternate; }
+@keyframes drift { from { transform: scale(1.02) translateX(-1%); } to { transform: scale(1.08) translateX(1%); } }
+#intro[data-preview="sp"] .live-view[data-city="sp"], #intro[data-preview="london"] .live-view[data-city="london"], #intro[data-preview="glasgow"] .live-view[data-city="glasgow"] { opacity: 1; }
+.road { margin-bottom: 28px; }
+.road .node b { position: absolute; top: 13px; left: 50%; transform: translateX(-50%); font: 600 9.5px/1 var(--sans); color: var(--ticket-muted); pointer-events: none; }
+.road .node.here b { color: var(--ticket-red); font-weight: 800; }
+@media (max-height: 820px) {
+  .intro-card { gap: 10px; padding: 16px 20px; }
+  .intro-windshield { height: clamp(104px, 20vh, 140px); }
+  .intro-mouse { width: 32px; height: 50px; }
+  .intro-guide { margin-top: 2px; }
+  .intro-text h2 { font-size: clamp(21px, 4vw, 27px); }
+}
+@media (max-width: 480px) { .road .node b { font-size: 8px; } .road .node:nth-child(even) b { display: none; } }
+body.theme-night #intro { --ticket: #211c17; --ticket-ink: #f1e6d3; --ticket-muted: #b9aa94; --ticket-line: #3d352c; --ticket-red: #d8383f; --ticket-green: #58b788; }
+body.theme-night .intro-card { box-shadow: 0 16px 52px rgba(0, 0, 0, .5); }
+body.theme-night #intro-hint kbd { background: #2c2620; }
+body.theme-night .intro-map { background: repeating-linear-gradient(90deg, transparent 0 15px, #ffffff08 15px 16px); }
+body.theme-night .intro-windshield { border-color: #0f0c09; background: #0f0c09; box-shadow: 0 2px 0 var(--ticket-red), 0 5px 0 #0f0c09; }
+@media (prefers-reduced-motion: reduce) { .live-view, [data-intro-skip]:not(:disabled) { animation: none; } }
+body.theme-night .blind { background: #0c0a08; box-shadow: inset 0 0 0 1px #3d352c; }

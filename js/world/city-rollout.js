@@ -1,12 +1,13 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { stops } from '../content.js';
-import { inRegion, regions as routeRegions, routePoints, ukStart } from './layout.js';
 import { townhouseRecipe, createTownhouseSlice, loadTownhouseKit, modularGeometry } from './building-slice.js';
 import { midriseRecipe, createMidriseSlice } from './midrise-slice.js';
 import { officeRecipe, createOfficeSlice } from './office-slice.js';
 import { towerRecipe, createTowerSlice } from './tower-slice.js';
 import { createShopSlice, heroShopRecipe } from './shop-slice.js';
+import { hash, REGION_SALT, regionForPlot, tint } from './lot-tint.js';
+import { trackWork } from './load-progress.js';
+export { tint };
 import { SURFACE as S, addRoomCoordinates, roomGlassMaterial, townhouseMaterials } from './building-slice-materials.js';
 
 export function classifyPlot(p) {
@@ -25,9 +26,6 @@ export function classifyCompletion(p) {
   if(p.width>=8&&p.depth>=8&&p.height>=6)return p.z<=-100?'C':'A';
   return 'B';
 }
-const hash=id=>{let n=2166136261;for(const c of id)n=Math.imul(n^c.charCodeAt(0),16777619)>>>0;return n;};
-const route=routePoints(stops.length),bands=routeRegions(stops,route),ukX=route[ukStart(stops)].x;
-const REGION_SALT={paulista:0,london:1,countryside:2,glasgow:3};
 const ARCHETYPES={townhouse:['brick-terrace','side-gable-terrace','hip-roof-terrace'],shop:['high-street-shop','wraparound-shop'],midrise:['stone-tenement','banded-apartment'],office:['horizontal-office','vertical-office'],tower:['straight-tower','stepped-tower','asymmetric-tower']};
 const REGIONAL_ARCHETYPES={
   'paulista-arcade-shop':['shop',0], 'paulista-brise-apartment':['midrise',0], 'paulista-finned-tower':['tower',0],
@@ -35,13 +33,6 @@ const REGIONAL_ARCHETYPES={
   'glasgow-blonde-bay-tenement':['midrise',0], 'glasgow-red-stepped-tenement':['midrise',1], 'glasgow-sandstone-gabled-row':['townhouse',0],
   'country-slate-cottage':['townhouse',2], 'country-garden-pair':['townhouse',1], 'country-garden-flat':['midrise',1],
 };
-function regionForPlot(p){
-  if(p.region&&REGION_SALT[p.region]!==undefined)return p.region;
-  if(p.id.startsWith('paulista-')||p.x<ukX)return 'paulista';
-  if(p.id.startsWith('glasgow-')||inRegion(bands,'scot',p.x))return 'glasgow';
-  if(p.id.startsWith('country-')||inRegion(bands,'ctry',p.x))return 'countryside';
-  return 'london';
-}
 function facadeStyle(p,kind){
   const region=regionForPlot(p),styles=ARCHETYPES[kind],variant=(hash(p.id)+REGION_SALT[region])%styles.length;
   const explicit=styles.indexOf(p.archetype),regional=REGIONAL_ARCHETYPES[p.archetype];
@@ -89,34 +80,6 @@ export function building(p,kind,neighbors,level=0){
   if(kind==='midrise')return createMidriseSlice(p,recipe);
   if(kind==='office')return createOfficeSlice(p,recipe);
   return createTowerSlice(p,recipe);
-}
-// Vertex tints vary the shared metric atlas; materials and maps are never cloned.
-const walls=[[1.12,1.14,1.16],[.55,.80,1.12],[.65,.92,.60],[1.18,.82,.45],[1.10,.65,.70],[.58,.64,.72],[1.10,1.04,.80],[.83,.75,.64],[1.15,.95,.62],[.72,.95,.88],[1.05,.55,.45],[.92,.88,1.08],[1.16,1.08,.92],[.62,.72,.58]];
-// Glass tint families (multipliers on the shared teal pane): 0 cool blue, 1 green-teal, 2 bronze, 3 silver, 4 smoked.
-const glassTints=[[.82,1.03,1.25],[.79,1.10,.94],[1.35,1.08,.82],[1.24,1.16,1.07],[.58,.64,.7]];
-const glassPick={london:[0,3,4,0,3,2],paulista:[1,2,3,1,0,4],countryside:[0,3,4,1,2,0],glasgow:[3,4,0,3,2,1],none:[0,1,3,2,4,0]};
-// Roof targets in sRGB; vertex colour = target / atlas roof albedo, in linear space. Pitched = terrace/shop, flat = everything else.
-const roofBase=[68,80,94],lin=(t,b)=>Math.pow(t/b,2.2);
-const roofFor=t=>t.map((c,i)=>lin(c,roofBase[i]));
-const roofs={
-  pitched:{london:[[88,94,104],[168,92,66],[120,118,116],[110,82,66]],countryside:[[120,118,116],[110,112,116],[145,112,82],[88,94,104]],glasgow:[[88,94,104],[110,112,116],[88,94,104],[120,100,90]],paulista:[[168,92,66],[184,110,80],[130,128,124],[168,92,66]],none:[[88,94,104],[168,92,66],[120,118,116],[110,82,66]]},
-  flat:[[176,178,176],[168,156,132],[128,136,142],[176,178,176],[168,156,132],[96,120,72],[128,136,142],[88,94,104]]
-};
-const bricks=[[1.05,.70,.50],[.58,.64,.74],[1.12,1.06,.86],[.72,.85,.74],[1.20,.66,.55],[.68,.54,.47],[.92,.48,.40],[1.0,.92,.70]];
-export function tint(g,p) {
-  const region=regionForPlot(p),seed=hash(p.id)+REGION_SALT[region],wall=walls[seed%walls.length],roof=[[1,1,1],[.72,.82,.93],[1.08,.76,.62],[.58,.58,.64],[1.2,.62,.45]][Math.floor(seed/5)%5];
-  const regionalWall=region==='glasgow'?walls[[6,8,12][seed%3]]:region==='paulista'?walls[[0,6,12][seed%3]]:region==='london'?walls[[6,7,12][seed%3]]:region==='countryside'?walls[[1,5,9][seed%3]]:wall;
-  const regionalBrick=region==='glasgow'?bricks[[2,5,7][Math.floor(seed/3)%3]]:region==='london'?bricks[[0,5,7][Math.floor(seed/3)%3]]:region==='countryside'?bricks[[2,3,7][Math.floor(seed/3)%3]]:bricks[Math.floor(seed/3)%bricks.length];
-  const pitched=p.kind==='terrace'||p.kind==='shop',gt=glassTints[glassPick[region||'none'][Math.floor(seed/7)%6]];
-  const roofTop=roofFor(pitched?roofs.pitched[region||'none'][Math.floor(seed/13)%4]:roofs.flat[Math.floor(seed/13)%8]);
-  const wallValue = 0.86 + (Math.floor(seed / 223) % 15) * 0.02;
-  for(const m of g.children){const a=m.geometry.attributes;
-    for(let i=0;i<a.position.count;i++){
-      const s=a.aSurface.getX(i),t=s===S.plaster?regionalWall:s===S.stone?(region?regionalWall:p.kind==='office'?walls[(seed%3)*2]:[1,1,1]):s===S.brick?regionalBrick:s===S.roof?(pitched||a.normal.getY(i)>.7?roofTop:region==='glasgow'?walls[5]:roof):s===S.glass||s===S.litGlass?gt:[1,1,1];
-      const value = s === S.plaster || s === S.stone || s === S.brick ? wallValue : 1;
-      a.color.setXYZ(i,a.color.getX(i)*t[0]*value,a.color.getY(i)*t[1]*value,a.color.getZ(i)*t[2]*value);
-    }
-  }
 }
 // Kit rollout: every terraced townhouse (UK x>0 and Sao Paulo x<0, which gets its own variant pools in building-slice.js) swaps their LOD0 for authored kit modules once the GLB loads. `?kit=off` keeps the procedural facade.
 const KIT_ON=!(typeof location!=='undefined'&&/[?&]kit=off\b/.test(location.search));
@@ -171,6 +134,6 @@ export function createCityRollout(plots,neighbors=plots) {
       }
     },
     dispose(){if(disposed)return;disposed=true;group.children.forEach(c=>{c.userData.lods.flat().forEach(g=>g?.dispose());c.userData.kit?.forEach(g=>g.dispose());});}};
-  if(kitLots)loadTownhouseKit().then(m=>{kit=m;}).catch(()=>{});
+  if(kitLots)trackWork(loadTownhouseKit().then(m=>{kit=m;}).catch(()=>{}));
   return group;
 }
