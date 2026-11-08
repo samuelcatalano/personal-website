@@ -3,9 +3,9 @@ import { SUN_DIR, untone } from './sky.js';
 import { reflectionMode, detailTexture } from './water-math.js';
 import { PALETTE as P } from './palette.js';
 const DAY_SKY = new THREE.Color(0x8fc0e4), NIGHT_SKY = new THREE.Color(0x18203a);
-// Owner tweakables: how strongly the water mirrors (stylised floor added to Fresnel), sun/moon glint strength, foam band width (m).
-export const REFLECT_FLOOR = 0.16, GLINT = 1.0, FOAM_WIDTH = 1.4;
-const RANGE = 420, REFLECT_LAYER = 5, MAX_PIERS = 12;
+// Owner tweakables: how strongly the water mirrors (stylised floor added to Fresnel), sun/moon glint strength, foam band widths (m).
+export const REFLECT_FLOOR = 0.16, GLINT = 1.0, FOAM_WIDTH = 1.4, BOAT_FOAM_WIDTH = 0.35;
+const RANGE = 420, REFLECT_LAYER = 5, MAX_PIERS = 12, MAX_BOATS = 7;
 const vertexShader = /* glsl */`
 #include <fog_pars_vertex>
 uniform mat4 uTexMat;
@@ -20,10 +20,11 @@ gl_Position = projectionMatrix * mvPosition;
 #include <fog_vertex>
 }`;
 const fragmentShader = /* glsl */`
-uniform float uTime, uNight, uRiverCenter, uHalfWidth, uRainMotion, uKey, uReflect, uPierN, uFloor, uFoamW;
+uniform float uTime, uNight, uRiverCenter, uHalfWidth, uRainMotion, uKey, uReflect, uPierN, uBoatN, uFloor, uFoamW, uBoatFoamW;
 uniform vec3 uSun;
 uniform vec3 uDeep, uShallow, uBed, uGlint, uNightTint, uSky, uZen;
 uniform vec4 uPiers[${MAX_PIERS}];
+uniform vec4 uBoats[${MAX_BOATS}];
 uniform sampler2D tDetail, tRefl;
 uniform vec2 uReflTexel;
 varying vec3 vPos;
@@ -49,6 +50,7 @@ vec2 detailSlope(vec2 p, float t) {
   return (a - 0.5) * 0.075 + (b - 0.5) * 0.045 + (c - 0.5) * 0.025; // gentle: a river, not a sea
 }
 float boxDist(vec2 p, vec4 b) { vec2 q = abs(p - b.xy) - b.zw; return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0); }
+float capsuleDist(vec2 p, vec4 b) { vec2 q = abs(p - b.xy); return length(vec2(max(q.x - b.z + b.w, 0.0), q.y)) - b.w; }
 void main() {
 float across = (vPos.z - uRiverCenter) / uHalfWidth, shore = clamp(1.0 - abs(across), 0.0, 1.0);
 vec3 v = normalize(cameraPosition - vPos);
@@ -63,13 +65,15 @@ if(uRainMotion>0.001){ // rain: local expanding rings, faded before their cell e
   g+=local/max(radius,.02)*sin(radius*54.0-age*32.0)*ring*uRainMotion*.09*fade;
 }
 vec3 n = normalize(vec3(-g.x, 1.0, -g.y));
-// Edges: banks and piers/boats (box distance field), in metres.
+// Edges: banks and piers/boats (box/capsule distance fields), in metres.
 float pier = 1e3;
 for (int i = 0; i < ${MAX_PIERS}; i++) { if (float(i) >= uPierN) break; pier = min(pier, boxDist(vPos.xz, uPiers[i])); }
-float bank = shore * uHalfWidth, edge = min(bank, max(pier, 0.0));
+float boat = 1e3;
+for (int i = 0; i < ${MAX_BOATS}; i++) { if (float(i) >= uBoatN) break; boat = min(boat, capsuleDist(vPos.xz, uBoats[i])); }
+float bank = shore * uHalfWidth, pierEdge = min(bank, max(pier, 0.0)), obstacle = min(pier, boat), edge = min(bank, max(obstacle, 0.0));
 // Fake depth: a channel ~3.5 m deep, lighter and translucent at the banks; light travels further at grazing views.
 float depthM = 0.35 + 3.2 * (1.0 - across * across);
-depthM *= smoothstep(0.0, 3.0, pier) * 0.7 + 0.3;
+depthM *= smoothstep(0.0, 3.0, obstacle) * 0.7 + 0.3;
 float path = depthM / max(v.y, 0.2);
 vec3 absorb = exp(-path * vec3(0.62, 0.26, 0.32));
 float bedNoise = texture2D(tDetail, (vPos.xz + n.xz * depthM * 1.6) * 0.045).b; // bed seen through the surface, bent by the normal
@@ -104,10 +108,14 @@ c += vec3(1.0, 0.74, 0.42) * streak * uNight * (0.35 + 0.65 * fade) * (1.1 - 0.5
 // Wet contact line and foam where the water meets the banks, piers and boats; animated by the scrolling detail height.
 c *= 1.0 - 0.22 * (1.0 - smoothstep(0.0, 0.45, edge));
 float fn = texture2D(tDetail, vPos.xz * 0.21 + vec2(uTime * 0.05, 0.0)).b, fn2 = texture2D(tDetail, vPos.xz * 0.53 - vec2(uTime * 0.09, -uTime * 0.03)).b;
-float band = 1.0 - smoothstep(0.0, uFoamW * (0.6 + 0.8 * fn), edge);
+float band = 1.0 - smoothstep(0.0, uFoamW * (0.6 + 0.8 * fn), pierEdge);
 float foam = smoothstep(0.35, 0.7, band * (0.55 + 0.9 * fn2));
 float aa = smoothstep(0.15, 0.9, fwidth(edge)); // a sub-pixel band at distance turns into its average, never a crawling line
 foam = mix(foam, band * 0.3, aa);
+float boatBand = 1.0 - smoothstep(-0.08, uBoatFoamW * (0.6 + 0.8 * fn), boat);
+float boatFoam = smoothstep(0.35, 0.7, boatBand * (0.55 + 0.9 * fn2));
+boatFoam = mix(boatFoam, boatBand * 0.3, smoothstep(0.15, 0.9, fwidth(boat)));
+foam = max(foam, boatFoam);
 c = mix(c, vec3(0.86, 0.9, 0.9) * (1.0 - uNight * 0.75), foam * 0.55);
 gl_FragColor = vec4(c, 1.0);
 #include <tonemapping_fragment>
@@ -125,7 +133,7 @@ function getDetail() {
   return detailMap;
 }
 const SUNSET = new THREE.Color(0xff9a50), SUN_GLINT = new THREE.Color(0xfff0c8), MOON_GLINT = new THREE.Color(0xc8d8ff);
-export function createWater({ x0, x1, z, width, reducedMotion = false, piers = [], reflectRoots = [], bankPlots = [] }) {
+export function createWater({ x0, x1, z, width, reducedMotion = false, piers = [], boats = [], reflectRoots = [], bankPlots = [] }) {
   const Y = 0.1;
   const geo = new THREE.PlaneGeometry(x1 - x0, width).rotateX(-Math.PI / 2);
   const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthBuffer: true });
@@ -133,8 +141,9 @@ export function createWater({ x0, x1, z, width, reducedMotion = false, piers = [
   const mat = new THREE.ShaderMaterial({
     uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
       uTime: { value: 0 }, uRiverCenter:{value:z},uHalfWidth:{value:width/2}, uSun: { value: SUN_DIR.clone() }, uNight: { value: 0 },
-      uRainMotion: { value: 0 }, uKey: { value: 1 }, uReflect: { value: 0 }, uFloor: { value: REFLECT_FLOOR }, uFoamW: { value: FOAM_WIDTH },
+      uRainMotion: { value: 0 }, uKey: { value: 1 }, uReflect: { value: 0 }, uFloor: { value: REFLECT_FLOOR }, uFoamW: { value: FOAM_WIDTH }, uBoatFoamW: { value: BOAT_FOAM_WIDTH },
       uPierN: { value: 0 }, uPiers: { value: Array.from({ length: MAX_PIERS }, () => new THREE.Vector4()) },
+      uBoatN: { value: 0 }, uBoats: { value: Array.from({ length: MAX_BOATS }, () => new THREE.Vector4()) },
       tDetail: { value: null }, tRefl: { value: null }, uTexMat: { value: new THREE.Matrix4() }, uReflTexel: { value: new THREE.Vector2(1, 1) },
       uDeep: { value: new THREE.Color(0x1d4448) }, uShallow: { value: new THREE.Color(0x4d706c) }, uBed: { value: new THREE.Color(0x6e6a4c) },
       uGlint: { value: new THREE.Color(0xfff0c8) }, uNightTint: { value: new THREE.Color(0x0a1330) }, uSky: { value: new THREE.Color(0xacc9d8) },
@@ -146,6 +155,8 @@ export function createWater({ x0, x1, z, width, reducedMotion = false, piers = [
   u.tDetail.value = getDetail(); u.tRefl.value = rt.texture; // after merge: UniformsUtils.merge clones textures
   piers.slice(0, MAX_PIERS).forEach((p, i) => u.uPiers.value[i].set(p.x, p.z, p.hx, p.hz));
   u.uPierN.value = Math.min(piers.length, MAX_PIERS);
+  boats.slice(0, MAX_BOATS).forEach((b, i) => u.uBoats.value[i].set(b.x, b.z, b.hx, b.hz));
+  u.uBoatN.value = Math.min(boats.length, MAX_BOATS);
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.set((x0 + x1) / 2, Y, z);
   // Planar reflection (Reflector-style mirrored camera with an oblique near plane at the waterline, so no shader variants).

@@ -213,12 +213,22 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   // Foam rings Tower Bridge's piers and moored boats. The river reflects landmarks and bank-side lots.
   const piers = [], tb = towerX(stops, pts), boatBox = new THREE.Box3(), reflectRoots = [eye];
   for (const tz of [-9.5, 9.5]) piers.push({ x: tb, z: RIVER_Z + tz, hx: 3.1, hz: 2.9 });
-  scene.traverse((o) => { if (o.name.startsWith('thames-boat')) { boatBox.setFromObject(o); piers.push({ x: (boatBox.min.x + boatBox.max.x) / 2, z: (boatBox.min.z + boatBox.max.z) / 2, hx: (boatBox.max.x - boatBox.min.x) / 2, hz: (boatBox.max.z - boatBox.min.z) / 2 }); reflectRoots.push(o); } });
+  const boatBounds = () => {
+    const bounds = [];
+    scene.traverse((o) => {
+      if (!o.name.startsWith('thames-boat')) return;
+      boatBox.setFromObject(o);
+      bounds.push({ x: (boatBox.min.x + boatBox.max.x) / 2, z: (boatBox.min.z + boatBox.max.z) / 2, hx: (boatBox.max.x - boatBox.min.x) / 2, hz: Math.min((boatBox.max.z - boatBox.min.z) / 2, 1.08 * Math.abs(o.scale.z)) });
+    });
+    return bounds;
+  };
+  const boats = boatBounds();
+  scene.traverse((o) => { if (o.name.startsWith('thames-boat')) reflectRoots.push(o); });
   for (const name of ['bigben', 'towerbridge', 'eyeframe', 'estaiada', 'masp', 'se', 'copan', 'riverside', 'university', 'chambers', 'wembley']) reflectRoots.push(details.getObjectByName(name + '-geometry'));
   reflectRoots.push(details.getObjectByName('estaiada-deck')?.parent, details.getObjectByName('bigben-four-clock-faces'));
   const water = createWater({
     x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z: RIVER_Z, width: 22,
-    reducedMotion, piers, reflectRoots, bankPlots: architecturePlots,
+    reducedMotion, piers, boats, reflectRoots, bankPlots: architecturePlots,
   });
   scene.add(water.mesh);
   if (water.bankReflection) scene.add(water.bankReflection);
