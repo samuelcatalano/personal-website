@@ -88,6 +88,7 @@ if (target > 0 || SECTIONS.includes(hash)) addEventListener('load', () => reques
     world?.jump(progressFromScroll(scrollY, H(), innerHeight));
   }
 }), { once: true });
+if (hash) addEventListener('load', () => requestAnimationFrame(() => history.replaceState(null, '', location.pathname + location.search)), { once: true }); // a typed #stop link is used once, then the address goes back to the plain URL
 watchScroll((p) => {
   progress = p;
   if (!world) follow(p);
@@ -95,13 +96,16 @@ watchScroll((p) => {
 });
 // Frozen stills of the three cities for the intro windshield: jump the camera to each, grab a frame, then put it back (skipped if the visitor is already driving)
 const stills = async (w) => {
-  if (!w.snapshot || intro.interacted) return;
-  const wait = (ms) => new Promise((r) => setTimeout(r, ms)), at = (i) => marks[i], out = { sp: await w.snapshot() };
-  for (const [city, p] of [['london', (at(9) + at(10)) / 2], ['glasgow', at(stops.findIndex((s) => s.id === 'glasgow'))]]) {
-    if (intro.interacted) return;
-    w.jump(p); await wait(450); out[city] = await w.snapshot();
-  }
-  w.jump(0); intro.showPreviews(out);
+  if (!w.snapshot || intro.interacted || !intro.active) return;
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms)), at = (i) => marks[i], out = {};
+  try {
+    out.sp = await w.snapshot();
+    for (const [city, p] of [['london', (at(9) + at(10)) / 2], ['glasgow', at(stops.findIndex((s) => s.id === 'glasgow'))]]) {
+      if (intro.interacted || !intro.active) return;
+      w.jump(p); await wait(450); out[city] = await w.snapshot();
+    }
+    intro.showPreviews(out);
+  } finally { w.jump(progress); } // always hand the camera back to wherever the page scroll says, even if a snapshot fails
 };
 const DRIVE = 0.03; // share of the route the intro lets the visitor drive (about one stop)
 const intro = createIntro(document.getElementById('intro'), {
@@ -121,3 +125,6 @@ if (hasWebGL()) {
 } else {
   document.body.classList.add('no-webgl');
 }
+
+// A second visit loads the 3D assets from the cache (sw.js); ?nosw skips it for tests and captures
+if ('serviceWorker' in navigator && !/[?&]nosw\b/.test(location.search)) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}), { once: true });

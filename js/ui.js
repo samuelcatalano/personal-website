@@ -84,7 +84,16 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     if (el) el.textContent = new Intl.DateTimeFormat(prefs.lang === 'pt' ? 'pt-BR' : 'en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit' }).format(new Date());
   };
   setInterval(() => { led(); clock(); }, 2000);
-  let hashed = '', bannerTimer, party = false, lastIdx = -1;
+  let bannerTimer, party = false, lastIdx = -1;
+  const paintHide = () => { // one text button for both states: "Hide the interface (H)" while it is on, "Show the interface (H)" while it is off
+    const t = i18n[prefs.lang].ui, on = document.body.classList.contains('ui-hidden'), r = document.getElementById('ui-restore'), b = document.querySelector('[data-hide]');
+    r.hidden = false; r.textContent = on ? t.show : t.hideShort; r.setAttribute('aria-pressed', String(on)); b?.setAttribute('aria-pressed', String(on));
+  };
+  const setHidden = (on) => { // hide the panel and bar to see only the city; the pill (or H / Esc) brings them back
+    document.body.classList.toggle('ui-hidden', on);
+    for (const el of [panel, document.querySelector('.bar')]) el.inert = on;
+    paintHide();
+  };
   const seen = new Set(), cities = new Set(); // stops and cities the visitor has reached (route counter, passport stamps)
   const arrive = (label, name) => { // "Now arriving London": a short banner when the line crosses into another city
     const b = document.getElementById('arrival') || document.body.appendChild(Object.assign(document.createElement('p'), { id: 'arrival', role: 'presentation' }));
@@ -98,11 +107,11 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     const city = cityOf(st);
     if (document.body.dataset.city && document.body.dataset.city !== city) arrive(t.ui.arriving, t.ui.cities[city]); // not on the first render
     document.body.dataset.city = city;
-    if (st.section === 'journey' && st.id !== hashed) { hashed = st.id; history.replaceState(null, '', '#' + st.id); } // share a link to the stop
     const idx = Math.max(active, 0), fresh = seen.has(idx) ? -1 : idx; // a stop visited for the first time gets its ticket punched
     seen.add(idx); cities.add(city);
     if (st.id === 'contact' && !party) { party = true; say('final', 4000); } // LED only: sounds stay behind a click or tap
     document.querySelector('.bar nav').setAttribute('aria-label', t.ui.navLabel);
+    paintHide();
     document.getElementById('credits')?.setAttribute('aria-label', t.ui.credits.title); // the dialog is empty until opened, so it needs a name of its own
     const home = document.querySelector('[data-nav-home]');
     const cur = (el, on) => (on ? el.setAttribute('aria-current', 'page') : el.removeAttribute('aria-current'));
@@ -119,7 +128,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     langButton.textContent = prefs.lang === 'en' ? 'PT' : 'EN';
     langButton.setAttribute('aria-label', `${langButton.textContent} — ${t.ui.lang}`);
     document.querySelector('[data-theme]').setAttribute('aria-label', t.ui.theme);
-    for (const [sel, key] of [['[data-auto]', 'auto'], ['[data-quick]', 'quick'], ['[data-photo]', 'photo']]) { const b = document.querySelector(sel); if (b) { b.setAttribute('aria-label', t.ui[key]); b.title = t.ui[key]; } }
+    for (const [sel, key] of [['[data-auto]', 'auto'], ['[data-quick]', 'quick'], ['[data-photo]', 'photo'], ['[data-hide]', 'hide']]) { const b = document.querySelector(sel); if (b) { b.setAttribute('aria-label', t.ui[key]); b.title = t.ui[key]; } }
     document.querySelector('.skip').textContent = t.ui.skip;
     const touch = matchMedia('(pointer: coarse)').matches; // phones get "swipe" copy (intro.t_*) instead of "scroll"
     const pick = (path) => path.split('.').reduce((o, k) => o[k], t.ui);
@@ -146,6 +155,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     announce.textContent = (c ? `${st.year} ${c.title}` : t.sections[st.section].title) + `, ${t.ui.cities[city]}` + (notes.rain ? `, ${t.ui.led.rain}` : '');
   };
   document.addEventListener('click', (e) => {
+    if (e.target.closest('[data-hide], #ui-restore')) { setHidden(!document.body.classList.contains('ui-hidden')); return; }
     if (e.target.closest('[data-bell]')) { ding(); say('stop'); } // the mail app still opens: the bell is a flourish
     if (e.target.closest('[data-credits]')) { // credits and licences for the third-party models
       const c = i18n[prefs.lang].ui.credits, d = document.getElementById('credits');
@@ -163,9 +173,9 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     if (e.target.closest('[data-tool-clear]')) { tool = null; render(); return; }
     const go = e.target.closest('[data-goto]');
     if (go) { e.preventDefault(); onGoto(+go.dataset.goto); }
-    if (e.target.closest('[data-nav-home]')) { e.preventDefault(); onGoto(0); history.replaceState(null, '', location.pathname + location.search); }
+    if (e.target.closest('[data-nav-home]')) { e.preventDefault(); onGoto(0); }
     const nav = e.target.closest('[data-nav]');
-    if (nav) { e.preventDefault(); onGoto(sectionStart(nav.dataset.nav)); history.replaceState(null, '', '#' + nav.dataset.nav); }
+    if (nav) { e.preventDefault(); onGoto(sectionStart(nav.dataset.nav)); }
     if (e.target.closest('[data-lang]')) { prefs.lang = prefs.lang === 'en' ? 'pt' : 'en'; savePref(store(), 'lang', prefs.lang); render(); }
     const themeBtn = e.target.closest('[data-theme]');
     if (themeBtn) {
@@ -180,6 +190,8 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
   document.addEventListener('keydown', (e) => {
     if (e.target.closest('input, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
     if (document.body.classList.contains('intro-on') || document.querySelector('dialog[open]')) return; // the intro and the credits own the keys while open
+    if (e.key === 'h' || e.key === 'H') { setHidden(!document.body.classList.contains('ui-hidden')); return; }
+    if (e.key === 'Escape' && document.body.classList.contains('ui-hidden')) { setHidden(false); return; }
     if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { // a tap rides to the next stop, a held key keeps the bus rolling (main.js eases it in and out)
       e.preventDefault();
       const dir = e.key === 'ArrowRight' ? 1 : -1;

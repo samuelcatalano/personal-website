@@ -104,6 +104,26 @@ export function createShopSlice(plot,neighbors=[],recipe=shopRecipe(plot,neighbo
   if(recipe.roofCap==='stepped')box(0,roofY+.36,front-.08,w*.42,.28,.20,S.stone);
   if(recipe.roofCap==='pavilion'){box(-w*.15,roofY+.24,-d*.13,w*.48,.42,d*.42,S.roof);box(-w*.15,roofY+.47,-d*.13,w*.52,.04,d*.46,S.stone,1);}
   if(recipe.cornerPub){const x=w*.38,z=front-.40;box(x,roofY+.20,z,.62,.40,.62,S.stone);box(x,roofY+.43,z,.70,.06,.70,S.trim,1);}
+  { // fascia sign: a dark frame and a lit panel in one of six shop colours (it glows at night with the other lit glass); never on the corner-pub and wraparound shops, which carry their own
+    const signBase=[65,94,112],signFor=t=>t.map((c,i)=>Math.pow(c/signBase[i],2.2)),SIGNS=[[205,52,46],[236,172,52],[44,134,84],[52,92,170],[236,226,200],[34,142,152]];
+    if(!recipe.wrap&&!recipe.cornerPub){
+      colors[S.litGlass]=signFor(SIGNS[(recipe.windowSeed*5+recipe.palette)%SIGNS.length]);
+      box(0,recipe.ground+.30,front+.03,w*.78,.46,.06,S.door);
+      box(0,recipe.ground+.30,front+.07,w*.74,.38,.02,S.litGlass,2);
+    }
+  }
+  { // rooftop plant: one or two pieces per roof, picked from the lot id (water tank and antenna lean São Paulo, AC rows and a stair core everywhere)
+    let hid=2166136261;for(const ch of plot.id)hid=Math.imul(hid^ch.charCodeAt(0),16777619)>>>0;
+    const pick=(n,m)=>((hid>>>n)&255)%m,ry=roofY+.05,sp=plot.x<0,free=!recipe.roofCap;
+    const pieces={
+      ac:(px,pz)=>{for(const k of [-1,1]){box(px+k*.5,ry+.28,pz,.82,.56,.62,S.stone);box(px+k*.5,ry+.585,pz,.5,.03,.5,S.door);}},
+      tank:(px,pz)=>{for(const lx of [-.34,.34])for(const lz of [-.34,.34])box(px+lx,ry+.25,pz+lz,.07,.5,.07,S.trim);box(px,ry+.92,pz,.96,.86,.96,S.stone);box(px,ry+1.37,pz,.84,.06,.84,S.trim);},
+      mast:(px,pz)=>{box(px,ry+1.2,pz,.05,2.4,.05,S.trim);for(const [yy,ww] of [[1.0,.7],[1.55,.5],[2.0,.32]])box(px,ry+yy,pz,ww,.035,.035,S.trim);},
+      core:(px,pz)=>{box(px,ry+.5,pz,Math.min(w*.26,1.8),1.0,Math.min(d*.28,1.6),S.plaster);box(px,ry+1.03,pz,Math.min(w*.26,1.8)+.12,.06,Math.min(d*.28,1.6)+.12,S.stone);}
+    };
+    const first=['ac','core','tank','mast'][sp?[2,0,3,1][pick(3,4)]:[0,1,0,3][pick(3,4)]],second=['mast','ac','tank','core'][pick(11,4)];
+    if(w>4.2&&d>4){pieces[first](free?w*.26:w*.3,free?d*.1:d*.2);if(pick(19,3)&&second!==first&&free)pieces[second](-w*.26,-d*.2);}
+  }
   // The awning projects inside the existing lot, so the sidewalk stays clear. Its colour accent comes from surfaces already in the family atlas; hero recipes without a palette keep roof.
   const awning=[S.brick,S.roof,S.door][(recipe.palette??1)%3];
   if(recipe.canopy==='entry'){

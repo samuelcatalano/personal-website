@@ -52,7 +52,10 @@ export function createIntro(root, { onDrive = () => {} } = {}) {
     leds.forEach((l, i) => l.classList.toggle('on', i < Math.round(value * LEDS / 100)));
     statusEl.setAttribute('aria-valuenow', String(value));
     statusText.textContent = ready ? ui.intro.loaded : loaded ? ui.intro.finishing : `${stage ? ui.intro.stages[stage] : ui.loading} ${value}%`;
-    if (!bellTimer) skip.textContent = ready ? ui.intro.start : loaded ? ui.intro.finishing : `${ui.intro.loadingBtn} ${value}%`; // the button carries the progress, then becomes the call to start
+    if (!bellTimer) { // the button fills with red as the city loads, then turns into the call to start
+      const text = ready ? ui.intro.start : ui.intro.finishing;
+      skip.textContent = text; skip.dataset.label = text; skip.style.setProperty('--fill', `${value}%`);
+    }
     autoTarget = ready ? 0 : ratio; // the toy bus rides the line as the world loads, then drives back to the first stop, ready to go forward
     if (!interacted && !raf) raf = requestAnimationFrame(glide);
   };
@@ -181,6 +184,7 @@ export function createIntro(root, { onDrive = () => {} } = {}) {
       }
     },
     get interacted() { return interacted; },
+    get active() { return active; },
     dismiss,
   };
 }

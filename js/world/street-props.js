@@ -6,10 +6,10 @@ import { PLAZAS, SQUARES } from './parks.js';
 // Deterministic: stable hashes only, the city rng is never touched. Roadside props stand on the outer edge of the pavement, past the walking lanes of crowd.js;
 // plaza props stand on a line just inside each plaza's walking ring. Everything is rejected against boxes, trees, lamps, kiosks, signs, plots and each other.
 // ponytail: circles (rack: circumscribed circle) for the obstacle tests, plots as axis-aligned rects ignoring yaw; swap for exact rects if a plaza ever feels sparse.
-export const PROP_DENSITY = Object.freeze({ step: 3, binEvery: 85, hydrantEvery: 130, plazaStep: 4.5, plazaBinEvery: 3, plazaRackEvery: 5 }); // m of route per prop, plaza spacing, every Nth plaza slot
+export const PROP_DENSITY = Object.freeze({ step: 3, binEvery: 85, hydrantEvery: 130, pillarEvery: 100, plazaStep: 4.5, plazaBinEvery: 3, plazaRackEvery: 5 }); // m of route per prop, plaza spacing, every Nth plaza slot
 export const WALK_EDGE = ROAD.padIn + 1.05 + 0.3 + 0.2; // outer lane offset + its +-0.3 jitter + body: roadside props stay beyond this lateral distance
 export const PLAZA_INSET = 2.25; // plaza props: past the walking ring (crowd.js insets 0.6..1.6, parks.js RING ends at 1.9), inside parks.js KEEP (2.4)
-export const FOOT = Object.freeze({ bollard: { r: 0.1 }, bin: { r: 0.25 }, hydrant: { r: 0.17 }, marker: { r: 0.13 }, rack: { hw: 0.58, hd: 0.1 }, beacon: { r: 0.1 } });
+export const FOOT = Object.freeze({ bollard: { r: 0.1 }, bin: { r: 0.25 }, hydrant: { r: 0.17 }, marker: { r: 0.13 }, rack: { hw: 0.58, hd: 0.1 }, beacon: { r: 0.1 }, pillar: { r: 0.3 }, shelter: { hw: 1.45, hd: 0.6 }, cafe: { hw: 0.85, hd: 0.5 }, board: { hw: 0.3, hd: 0.25 } });
 const GROUND = 0.22, PAD = 0.1, CELL = 6, TOP = 2.4; // boxes topping out below GROUND are floor; PAD: min gap between props; TOP: tallest prop
 const H = (a, b = 0) => Math.abs(Math.sin(a * 12.9898 + b * 78.233 + 91.7) * 43758.5453) % 1;
 export function placeStreetProps({ stops, pts, curve, arc, pilotCrossings = [], boxes = [], trees = [], lamps = [], kiosks = [], plots = [], exclude = [] }) {
@@ -63,6 +63,26 @@ export function placeStreetProps({ stops, pts, curve, arc, pilotCrossings = [], 
       if (H(s, sd) < PROP_DENSITY.step / PROP_DENSITY.binEvery) put('bin', ...side(p, t, sd, off('bin'), 0));
       else if (H(s, sd + 7) < PROP_DENSITY.step / PROP_DENSITY.hydrantEvery) { const k = uk ? 'marker' : 'hydrant'; put(k, ...side(p, t, sd, off(k), 0)); }
     }
+  }
+  // London pillar boxes: rare, on the UK roadside
+  for (let s = 40; s < arc.L - 8; s += 5) {
+    const { p, t } = arc.sample(s);
+    if (p.x < ukX - 15 || inRegion(rgs, 'ctry', p.x) || stopMarks.some((q) => Math.hypot(q.x - p.x, q.z - p.z) < 14)) continue;
+    for (const sd of [-1, 1]) if (H(s, sd + 31) < 5 / PROP_DENSITY.pillarEvery) put('pillar', ...side(p, t, sd, off('pillar'), 0));
+  }
+  // Bus shelters on the waiting side of every stop, open towards the road (local +z points away from the road on side +1)
+  for (let i = 0; i < n; i++) {
+    const u = i / (n - 1), p = curve.getPointAt(u), t = curve.getTangentAt(u), yaw = Math.atan2(-t.z, t.x);
+    for (const a of [-7.5, -9.5, 8, 10.5]) if (put('shelter', ...side(p, t, 1, off('shelter'), a), yaw)) break;
+  }
+  // Cafe tables and A-frame boards on the pavement in front of shops: nearest route point, the side the shop is on
+  for (const q of plots) {
+    if (q.kind !== 'shop' || !q.width || !q.depth || H(q.x, q.z) > 0.9) continue;
+    let best = null;
+    for (let s = 8; s < arc.L - 8; s += 5) { const { p, t } = arc.sample(s), d = Math.hypot(p.x - q.x, p.z - q.z); if (!best || d < best.d) best = { d, p, t }; }
+    if (!best || best.d > 46 || inRegion(rgs, 'ctry', best.p.x)) continue;
+    const { p, t } = best, sd = ((q.x - p.x) * -t.z + (q.z - p.z) * t.x) >= 0 ? 1 : -1, yaw = Math.atan2(-t.z, t.x);
+    if (put('cafe', ...side(p, t, sd, off('cafe'), 0), yaw)) put('board', ...side(p, t, sd, off('board'), 2.1), yaw + (sd < 0 ? Math.PI : 0));
   }
   for (const { name, rect: r } of loops) { // plaza dressing along the line just inside the walking ring
     if (quiet.has(name)) continue;

@@ -22,6 +22,25 @@ const GEOMS = {
     return [mergeGeometries(pole), part(new THREE.SphereGeometry(0.165, 10, 8), '#ffb02e', 0, 2.36, 0)];
   },
 };
+const tilt = (g, color, ang, x, y, z) => part(g.rotateX(ang), color, x, y, z);
+GEOMS.pillar = () => [mergeGeometries([cyl(0.29, 0.27, 1.3, 0, '#b01c24', 12), cyl(0.31, 0.31, 0.07, 1.3, '#8c1219', 12), cyl(0.3, 0.1, 0.14, 1.37, '#b01c24', 12), box(0.3, 0.05, 0.02, 0, 1.0, 0.28, '#17191b'), box(0.2, 0.12, 0.012, 0, 0.62, 0.275, '#efe7d2')])];
+GEOMS.shelter = () => { // posts, roof with overhang, bench seat, back rail; the lit advert panel is the glowing part
+  const g = []; for (const x of [-1.35, 1.35]) for (const z of [-0.5, 0.5]) g.push(box(0.06, 2.35, 0.06, x, 0, z, '#2d3136'));
+  g.push(box(2.9, 0.09, 1.25, 0, 2.35, 0, '#3a4047'), box(2.7, 0.05, 0.4, 0, 0.5, 0.28, '#6b4f3a'), box(2.7, 0.04, 0.04, 0, 1.05, 0.5, '#2d3136'), box(0.04, 1.5, 0.04, -0.45, 0.5, 0.5, '#2d3136'), box(0.04, 1.5, 0.04, 0.45, 0.5, 0.5, '#2d3136'));
+  return [mergeGeometries(g), box(0.8, 1.15, 0.04, 1.0, 0.85, 0.52, '#ffe2a8')];
+};
+GEOMS.cafe = () => { // round table with two chairs facing it
+  const g = [cyl(0.4, 0.4, 0.04, 0.72, '#d8cdb6', 14), cyl(0.04, 0.04, 0.72, 0, '#26292c', 6), cyl(0.2, 0.2, 0.025, 0, '#26292c', 10)];
+  for (const s of [-1, 1]) { const x = s * 0.66; g.push(box(0.4, 0.04, 0.4, x, 0.44, 0, '#7a2f2a'), box(0.04, 0.42, 0.4, x + s * 0.18, 0.46, 0, '#7a2f2a'));
+    for (const dx of [-0.16, 0.16]) for (const dz of [-0.16, 0.16]) g.push(box(0.03, 0.44, 0.03, x + dx, 0, dz, '#26292c')); }
+  return [mergeGeometries(g)];
+};
+GEOMS.board = () => [mergeGeometries([tilt(new THREE.BoxGeometry(0.5, 0.86, 0.03), '#2b3a32', 0.2, 0, 0.43, 0.13), tilt(new THREE.BoxGeometry(0.5, 0.86, 0.03), '#2b3a32', -0.2, 0, 0.43, -0.13), tilt(new THREE.BoxGeometry(0.38, 0.5, 0.012), '#e8e2d2', 0.2, 0, 0.5, 0.15)])];
+// bicycles locked at the racks: wheels, frame, saddle, bars (one per two racks, deterministic)
+const bikeGeom = () => {
+  const ring = (x) => part(new THREE.TorusGeometry(0.32, 0.025, 5, 14).rotateY(Math.PI / 2), '#1b1d1f', 0, 0.34, x);
+  return mergeGeometries([ring(-0.42), ring(0.42), box(0.03, 0.04, 0.9, 0, 0.5, 0, '#a83a2c'), box(0.03, 0.34, 0.03, 0, 0.5, -0.2, '#a83a2c'), box(0.07, 0.04, 0.2, 0, 0.84, -0.2, '#1b1d1f'), box(0.34, 0.03, 0.03, 0, 0.88, 0.38, '#1b1d1f'), box(0.03, 0.4, 0.03, 0, 0.5, 0.38, '#a83a2c')]);
+};
 export function buildProps(items) {
   const group = new THREE.Group(), o = new THREE.Object3D(), counts = {}, geoms = []; group.name = 'street-props';
   const metal = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0.35 });
@@ -37,6 +56,13 @@ export function buildProps(items) {
       list.forEach(({ x, y, z, yaw }, i) => { o.position.set(x, y, z); o.rotation.y = yaw; o.updateMatrix(); m.setMatrixAt(i, o.matrix); });
       m.receiveShadow = true; m.computeBoundingSphere(); group.add(m); // no cast: tiny props, keeps the shadow pass untouched
     });
+  }
+  const racks = items.filter((i) => i.kind === 'rack').filter((_, i) => i % 2 === 0);
+  if (racks.length) { // bikes stand across the rack, rotated a quarter turn from its long axis
+    const g = bikeGeom(); geoms.push(g);
+    const m = new THREE.InstancedMesh(g, metal, racks.length); m.name = 'prop-bike';
+    racks.forEach(({ x, y, z, yaw }, i) => { o.position.set(x, y, z); o.rotation.y = yaw + Math.PI / 2; o.updateMatrix(); m.setMatrixAt(i, o.matrix); });
+    m.receiveShadow = true; m.computeBoundingSphere(); group.add(m); counts.bike = racks.length;
   }
   group.userData.counts = counts;
   group.userData.dispose = () => { geoms.forEach((g) => g.dispose()); metal.dispose(); glass.dispose(); };
