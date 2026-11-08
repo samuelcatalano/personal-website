@@ -1,6 +1,12 @@
 # browser-harness < tests/swap-plaza.browser.py (local preview, real Three.js)
 import os
 
+# This simulation can exceed browser-harness's default 5-second CDP wait.
+def js(expression):
+    r = cdp('Runtime.evaluate', expression=expression, returnByValue=True, awaitPromise=True, _response_timeout=60)
+    if 'exceptionDetails' in r: raise RuntimeError(str(r['exceptionDetails'])[:400])
+    return r['result'].get('value')
+
 new_tab('about:blank')
 cdp('Network.enable')
 cdp('Network.setCacheDisabled', cacheDisabled=True)
@@ -23,6 +29,13 @@ result = js(r'''(async () => {
     check(plaza.group.getObjectByName('swap-plaza-planting')?.count === 2, 'two low shrubs reuse existing plant geometry');
     check(plaza.group.userData.obstacles?.filter(o=>o.kind==='bench').length===2, 'two bench footprints');
     check(plaza.group.userData.obstacles?.filter(o=>o.kind==='planter').length===2, 'two planter footprints');
+    const floor = plaza.group.children.find(o=>o.geometry?.type==='PlaneGeometry'), paving = floor.material.map.image.getContext('2d');
+    for (const side of [-1, 1]) {
+      const pixel = paving.getImageData(Math.round((half + side * 1.2) * 64), Math.round(kerb * 64), 1, 1).data;
+      check(pixel[0]===0x91&&pixel[1]===0x88&&pixel[2]===0x7d, 'subtle stone inlays guide both approaches past the signpost');
+    }
+    const signs = plaza.group.children.filter(o=>o.geometry?.type==='BoxGeometry'&&o.position.y>y+2.2);
+    check(signs.length===2&&signs.every(o=>o.geometry.parameters.width>=2&&o.geometry.parameters.height>=.48), 'both city signs are larger and legible at route scale');
     check(mesh.material === plaza.group.children.find(o => o.geometry?.type === 'CylinderGeometry').material, 'reuse existing iron material');
     const matrix = new THREE.Matrix4(), position = new THREE.Vector3(), rotation = new THREE.Quaternion(), scale = new THREE.Vector3(), members = [];
     for (let i = 0; i < mesh.count; i++) {

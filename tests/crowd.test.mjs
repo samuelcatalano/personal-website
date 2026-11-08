@@ -259,3 +259,11 @@ test('plaza cells stand clear of grass beds, tree trunks, the Wellington plinth 
     assert.equal(hit, undefined, `${name} overlaps an obstacle near (${hit?.x0.toFixed(1)}, ${hit?.z0.toFixed(1)})`);
   }
 });
+
+test('swap-plaza walkers are evenly spaced around the full circulation loop', () => {
+  const walkers = crowdPlan(stops, pts, 1017).filter((p) => p.path.name === 'swap-plaza' && p.path.type === 'wander');
+  assert.equal(walkers.length, 8);
+  const starts = walkers.map((p) => p.s0).sort((a, b) => a - b);
+  assert.ok(starts.at(-1) - starts[0] > 0.8, 'walkers use the full plaza loop');
+  for (let i = 0; i < starts.length; i++) assert.ok(Math.abs(starts[i] - (i + 0.5) / starts.length) < 1e-10, `walker ${i} keeps even spacing`);
+});

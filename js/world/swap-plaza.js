@@ -16,6 +16,12 @@ function paving(half, kerb) {
   for (let y = 0; y < H; y += 0.6 * PX) for (let x = -rnd() * 0.6 * PX; x < W;) {
     const l = (0.6 + rnd() * 0.6) * PX; g.fillStyle = tones[(rnd() * tones.length) | 0]; g.fillRect(x + 2, y + 2, l - 4, 0.6 * PX - 4); x += l;
   }
+  for (const side of [-1, 1]) {
+    const x = W / 2 + side * 1.2 * PX, band = 0.36 * PX;
+    g.fillStyle = '#91887d'; g.fillRect(x - band / 2, 0, band, H);
+    g.fillStyle = '#6d675e';
+    for (let y = 0.6 * PX; y < H; y += 0.6 * PX) g.fillRect(x - band / 2, y - 1, band, 2);
+  }
   g.strokeStyle='#6d675e';g.lineWidth=.18*PX;g.strokeRect(.22*PX,.22*PX,W-.44*PX,H-.44*PX);
   const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
   return tex;
@@ -104,15 +110,15 @@ export function buildSwapPlaza({ half, kerb, y }) {
     { key: 'london', dir: 1, h: 2.45, bg: '#f4f1ea', fg: '#1a1a1a', rim: '#c8102e' }, // London street-name white, red rim
   ].map((b) => {
     const faces = [true, false].map((right) => { // front (+z, arrow right) and back (-z, arrow left)
-      const cv = document.createElement('canvas'); cv.width = 512; cv.height = 128;
+      const cv = document.createElement('canvas'); cv.width = 640; cv.height = 160;
       const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; texs.push(t);
       const mat = new THREE.MeshStandardMaterial({ map: t, roughness: 0.6 }); mats.push(mat);
       return { right, ctx: cv.getContext('2d'), t, mat };
     });
     const edge = new THREE.MeshStandardMaterial({ color: b.rim, roughness: 0.6 }); mats.push(edge);
     // BoxGeometry faces: +x, -x, +y, -y, +z, -z; text on +-z (across the road), the blade's +x end points at its city (turned round for the west blade)
-    const m = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.4, 0.05), [edge, edge, edge, edge, faces[0].mat, faces[1].mat]);
-    m.position.set(b.dir * 0.88, y + b.h, 0); if (b.dir < 0) m.rotation.y = Math.PI; m.castShadow = true; group.add(m); geos.push(m.geometry);
+    const m = new THREE.Mesh(new THREE.BoxGeometry(2, 0.5, 0.05), [edge, edge, edge, edge, faces[0].mat, faces[1].mat]);
+    m.position.set(b.dir * 1.08, y + b.h, 0); if (b.dir < 0) m.rotation.y = Math.PI; m.castShadow = true; group.add(m); geos.push(m.geometry);
     return { ...b, faces };
   });
   const paint = () => {

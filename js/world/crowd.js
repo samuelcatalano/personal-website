@@ -136,13 +136,13 @@ export function crowdPlan(stops, pts, seed, count = 1000) {
   // seed the city has no gap, so no plaza either) and only when there is overflow.
   const u = ukStart(stops), a = pts[u - 1], b = pts[u];
   if (SWAP_GAP && b.x - a.x > STOP_SPACING + SWAP_GAP / 2 && plan.length - baseCount >= 12) {
-    const cx = (a.x + b.x) / 2 + SWAP_TUNNEL.ahead, cz = a.z + (b.z - a.z) * (cx - a.x) / (b.x - a.x), q = rng(seed + 4049), n = 12; // ponytail: chord, not the curve (within ~0.5 m)
+    const cx = (a.x + b.x) / 2 + SWAP_TUNNEL.ahead, cz = a.z + (b.z - a.z) * (cx - a.x) / (b.x - a.x), q = rng(seed + 4049), walkers = 8, n = 12; // ponytail: chord, not the curve (within ~0.5 m)
     const rect = { x0: cx - SWAP_TUNNEL.half + 2.7, x1: cx + SWAP_TUNNEL.half - 2.7, z0: cz - 5.5, z1: cz + 5.5 };
     for (let k = 0; k < n; k++) {
       const look=makeLook(q),inset=between(q,.4,2.6),dir=k%2?1:-1;
-      const path=k<8 ? {type:'wander',name:'swap-plaza',rect,y:.13,dir,inset}
+      const path=k<walkers ? {type:'wander',name:'swap-plaza',rect,y:.13,dir,inset}
         : {type:'idle',name:'swap-plaza',x:cx+(k<10?-1:1)*(SWAP_TUNNEL.half-2.15),z:cz+(k%2?.55:-.55),fx:0,fz:k%2?-1:1,y:.07};
-      plan[plan.length-n+k]={look,path,s0:(k+.5)/n};
+      plan[plan.length-n+k]={look,path,s0:(k+.5)/(k<walkers?walkers:n)};
     }
   }
   for (const ids of thamesGroups.values()) {
