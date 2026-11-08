@@ -260,10 +260,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   if (bar) observer?.observe(bar);
   if (panel) observer?.observe(panel);
   const busPos = { x: 0, y: 0, z: 0 }, prevBus = { x: null, z: 0, h: 0 }, MINI_WHEELBASE = 2.5, MAX_STEER = 0.5;
-  // TODO(human): tune how much the hero vehicle rocks. Roll = curves (gain per m/s^2 of lateral accel), pitch = braking / pulling away; max is in radians (0.035 = 2 deg).
-  const BODY = { rollGain: 0.008, rollMax: 0.035, pitchGain: 0.0015, pitchMax: 0.02 };
-  let heroSpeed = 0;
-  let steer = 0, lean = 0, nod = 0, prevSpeed = 0; // body roll in curves and pitch under braking / pulling away
+  let heroSpeed = 0, steer = 0;
   // Flyover at the first UK stop: the path, the pull-in that keeps it clear of the buildings and the timing live in plane-path.js.
   // Atmospheric perspective instead of transparency: the plane stays opaque and solid, and is tinted toward the horizon colour with distance
   // (diffuse darkened, emissive raised to the haze), then dwindles to a speck at the very end. Originals are kept so the tint can be undone.
@@ -315,7 +312,6 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     applyHeroPose(bus, bp, lateral, Math.atan2(-tan.z, tan.x));
     bus.position.y += 0.07; bus.rotation.z = 0;
     swapTunnel?.place(bus, candidates.find((v) => v.visible) ?? mini); // down into the SP -> London tunnel and up again
-    bus.rotation.x = lean; bus.rotation.z += nod; // ponytail: whole hero group, ceilings are +-2 deg roll and +-1.2 deg pitch
     Object.assign(busPos, { x: bp.x + lateral.x, y: bp.y, z: bp.z + lateral.z });
     if (prevBus.x !== null) { // hero wheels roll with the distance travelled along the road (signed: scrolling back unrolls them)
       const ds = (busPos.x - prevBus.x) * tan.x + (busPos.z - prevBus.z) * tan.z;
@@ -324,10 +320,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       // ponytail: hero Mini only; ambient Minis (axle-merged wheels) and buses do not steer
       const dh = Math.atan2(Math.sin(bus.rotation.y - prevBus.h), Math.cos(bus.rotation.y - prevBus.h)), still = reducedMotion || Math.abs(ds) < 1e-3 || Math.abs(ds) > 2;
       steer += ((still ? 0 : Math.max(-MAX_STEER, Math.min(MAX_STEER, Math.atan(MINI_WHEELBASE * dh / ds)))) - steer) * Math.min(1, dt * 10);
-      const speed = dt ? Math.abs(ds) / dt : 0, k = Math.min(1, dt * 6);
-      lean += ((still || !dt ? 0 : Math.max(-BODY.rollMax, Math.min(BODY.rollMax, BODY.rollGain * speed * (dh / dt)))) - lean) * k;
-      nod += ((still || !dt ? 0 : Math.max(-BODY.pitchMax, Math.min(BODY.pitchMax, BODY.pitchGain * (speed - prevSpeed) / dt))) - nod) * k;
-      prevSpeed = still ? 0 : speed; heroSpeed = still ? 0 : speed;
+      heroSpeed = still || !dt ? 0 : Math.abs(ds) / dt;
       if (mini.visible) for (const w of mini.userData.wheels) if (w.name === 'FL' || w.name === 'FR') { w.rotation.order = 'YXZ'; w.rotation.y = steer; }
     }
     prevBus.x = busPos.x; prevBus.z = busPos.z; prevBus.h = bus.rotation.y;
