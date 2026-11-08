@@ -40,11 +40,12 @@ const surface = `
 // Compute exposure before rain perturbs the shading normal: walls stay dry.
 vec3 wetWorldNormal = inverseTransformDirection(normal, viewMatrix);
 float wetMask = uWet * smoothstep(0.45, 0.85, wetWorldNormal.y);
-float wetPuddle = 0.0;
+float wetPuddle = 0.0, wetSheen = 0.0;
 // ponytail: ground-level puddles stay off shared roof faces; add surface tags if elevated decks need puddles.
 if (wetMask > 0.001 && vWetWorld.y < 0.4) {
   // Dark base colour = asphalt; light = pavement. Pools cluster in low-frequency basins and stay small with feathered edges.
   float wetRoad = 1.0 - smoothstep(0.16, 0.30, dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11)));
+  wetSheen = wetMask * wetRoad; // wet asphalt reflects everywhere, puddles only add
   float basin = wetNoise(vWetWorld.xz * 0.09 + 7.0);
   float pool = wetNoise(vWetWorld.xz * 0.55) * 0.65 + wetNoise(vWetWorld.xz * 1.9) * 0.35;
   float edge = mix(0.80, 0.73, wetRoad) - 0.10 * smoothstep(0.45, 0.8, basin);
@@ -121,8 +122,10 @@ export function createWetSurfaces(scene, { lamps = [], reducedMotion = false } =
   const state = uniforms(), materials = new Set(), entries = [];
   scene.traverse(object => {
     for (const material of (Array.isArray(object.material) ? object.material : [object.material])) {
-      if (!material?.isMeshStandardMaterial || material.userData.glow || material.emissiveMap || material.emissive?.getHex() || material.transparent) continue;
-      if (material.name === 'slice-architecture' || colors.has('#' + material.color.getHexString())) materials.add(material);
+      if (!material?.isMeshStandardMaterial || material.emissiveMap || material.transparent) continue;
+      const hex = '#' + material.color.getHexString(), road = hex === P.road; // road materials carry the night glow path: they still get puddles and the vehicle reflection
+      if (!road && (material.userData.glow || material.emissive?.getHex())) continue;
+      if (material.name === 'slice-architecture' || colors.has(hex)) materials.add(material);
     }
   });
   for (const material of materials) entries.push(register(material));

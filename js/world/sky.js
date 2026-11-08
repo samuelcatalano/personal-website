@@ -169,7 +169,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
       cam?.updateMatrixWorld();
       const cover=mood.cover ?? Math.min(1,.18+mood.cloudOp+(mood.rain??0)*.8);
       const veil=1-THREE.MathUtils.smoothstep(cover,.48,.98),clear=veil*(1-Math.min(1,(mood.rain??0)*2));
-      const sunset = Math.sin(Math.PI * night) ** 3;
+      const golden = (mood.rs ?? 0) * 0.32 * (1 - night), sunset = Math.max(Math.sin(Math.PI * night) ** 3, golden); // São Paulo sits in late-afternoon light
       authoredZen.lerpColors(day(mood.zen, d1), NIGHT.zen, night).lerp(sunsetZen, sunset * .65 * clear);
       authoredHor.lerpColors(day(mood.hor, d1), NIGHT.hor, night).lerp(sunsetHor, sunset * .75 * clear);
       authoredHor.lerp(cityHaze,night*Math.max(0,mood.light[0]-mood.light[2])*(1-cover)*.5);

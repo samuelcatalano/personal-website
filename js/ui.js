@@ -1,5 +1,5 @@
 import { ding } from './sound.js';
-import { stops, i18n, links, articles, repos, stackGroups, toolStops, credits, sectionStart } from './content.js';
+import { stops, i18n, links, articles, repos, stackGroups, toolStops, credits, sectionStart, cityOf } from './content.js';
 // Stored choice wins; first-time visitors get PT for pt-* browsers and night for dark-mode systems.
 export function loadPrefs(storage, env = {}) {
   const fallback = { lang: String(env.lang || '').toLowerCase().startsWith('pt') ? 'pt' : 'en', theme: env.dark ? 'night' : 'day' };
@@ -35,7 +35,7 @@ function sectionHTML(section, t, active, tool = null) {
         const c = t.stops[st.id], on = i === active, hit = tool && toolStops[tool].includes(st.id);
         return `<li class="${st.country.toLowerCase()}${st.id === 'move' ? ' hub' : ''}${on ? ' on' : ''}${tool ? (hit ? ' hit' : ' dim') : ''}"><button data-goto="${i}" aria-expanded="${on}">
           <span class="yr">${st.year}</span><span class="node" aria-hidden="true"></span>${st.brand ? `<span class="mono" style="--c:${st.brand.color}" aria-hidden="true">${st.brand.initials}</span>` : ''}<span class="name">${c.title}</span></button>
-          ${on ? `<div class="detail"><strong>${c.role}</strong><small>${c.dates} · ${c.place}</small><p>${c.body}</p></div>` : ''}</li>`;
+          ${on ? `<div class="detail"><span class="stamp">${t.ui.cities[cityOf(st)]} · ${st.year}</span><strong>${c.role}</strong><small>${c.dates} · ${c.place}</small><p>${c.body}</p></div>` : ''}</li>`;
       }).join('')}</ol>
       <p class="zones"><span class="z br">${t.ui.zones.br}</span><span class="z uk">${t.ui.zones.uk}</span></p>`;
     case 'stack': return `<h2>${s.title}</h2><p>${s.intro}</p><div class="lines">${stackGroups.map(g => `<div class="line" style="--c:${g.color}"><h3>${s.groups[g.id]}</h3><ul>${g.items.map(x => `<li>${toolStops[x].length ? `<button type="button" class="station" data-tool="${x}" aria-pressed="${x === tool}">${x}</button>` : x}</li>`).join('')}</ul></div>`).join('')}</div>`;
@@ -47,7 +47,7 @@ function sectionHTML(section, t, active, tool = null) {
       <p class="footer">${t.ui.footer} <button type="button" class="linkish" data-credits>${t.ui.credits.link}</button></p>`;
   }
 }
-export function initUI({ onGoto, onTheme }) {
+export function initUI({ onGoto, onTheme, onHold = () => {} }) {
   const prefs = loadPrefs(store(), { lang: navigator.language, dark: matchMedia('(prefers-color-scheme: dark)').matches });
   const panel = document.getElementById('panel'), announce = document.getElementById('announce');
   let active = -1, tool = null; // tool: the stack station whose journey stops are highlighted
@@ -84,10 +84,23 @@ export function initUI({ onGoto, onTheme }) {
     if (el) el.textContent = new Intl.DateTimeFormat(prefs.lang === 'pt' ? 'pt-BR' : 'en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit' }).format(new Date());
   };
   setInterval(() => { led(); clock(); }, 2000);
+  let hashed = '', bannerTimer, party = false;
+  const seen = new Set(), cities = new Set(); // stops and cities the visitor has reached (route counter, passport stamps)
+  const arrive = (label, name) => { // "Now arriving London": a short banner when the line crosses into another city
+    const b = document.getElementById('arrival') || document.body.appendChild(Object.assign(document.createElement('p'), { id: 'arrival', role: 'presentation' }));
+    b.innerHTML = `<i class="num">83</i><span class="txt"><small>${label}</small><b>${name}</b></span>`; b.classList.add('show');
+    clearTimeout(bannerTimer); bannerTimer = setTimeout(() => b.classList.remove('show'), 2400);
+  };
   const render = (reveal = false) => {
     const t = i18n[prefs.lang];
     const st = stops[Math.max(active, 0)];
     document.documentElement.lang = prefs.lang === 'pt' ? 'pt-BR' : 'en';
+    const city = cityOf(st);
+    if (document.body.dataset.city && document.body.dataset.city !== city) arrive(t.ui.arriving, t.ui.cities[city]); // not on the first render
+    document.body.dataset.city = city;
+    if (st.section === 'journey' && st.id !== hashed) { hashed = st.id; history.replaceState(null, '', '#' + st.id); } // share a link to the stop
+    seen.add(Math.max(active, 0)); cities.add(city);
+    if (st.id === 'contact' && !party) { party = true; say('final', 4000); } // LED only: sounds stay behind a click or tap
     document.querySelector('.bar nav').setAttribute('aria-label', t.ui.navLabel);
     const home = document.querySelector('[data-nav-home]');
     const cur = (el, on) => (on ? el.setAttribute('aria-current', 'page') : el.removeAttribute('aria-current'));
@@ -104,7 +117,7 @@ export function initUI({ onGoto, onTheme }) {
     langButton.textContent = prefs.lang === 'en' ? 'PT' : 'EN';
     langButton.setAttribute('aria-label', `${langButton.textContent} — ${t.ui.lang}`);
     document.querySelector('[data-theme]').setAttribute('aria-label', t.ui.theme);
-    for (const [sel, key] of [['[data-auto]', 'auto'], ['[data-photo]', 'photo']]) { const b = document.querySelector(sel); if (b) { b.setAttribute('aria-label', t.ui[key]); b.title = t.ui[key]; } }
+    for (const [sel, key] of [['[data-auto]', 'auto'], ['[data-quick]', 'quick'], ['[data-photo]', 'photo']]) { const b = document.querySelector(sel); if (b) { b.setAttribute('aria-label', t.ui[key]); b.title = t.ui[key]; } }
     document.querySelector('.skip').textContent = t.ui.skip;
     const touch = matchMedia('(pointer: coarse)').matches; // phones get "swipe" copy (intro.t_*) instead of "scroll"
     const pick = (path) => path.split('.').reduce((o, k) => o[k], t.ui);
@@ -122,7 +135,7 @@ export function initUI({ onGoto, onTheme }) {
     if (reveal) panel.querySelector('.on')?.scrollIntoView({ block: 'nearest', behavior: 'instant' });
     if (keep) document.querySelector(`[${keep[0]}="${keep[1]}"]`)?.focus({ preventScroll: true });
     const c = t.stops[st.id];
-    announce.textContent = c ? `${st.year} ${c.title}` : t.sections[st.section].title;
+    announce.textContent = (c ? `${st.year} ${c.title}` : t.sections[st.section].title) + `, ${t.ui.cities[city]}` + (notes.rain ? `, ${t.ui.led.rain}` : '');
   };
   document.addEventListener('click', (e) => {
     if (e.target.closest('[data-bell]')) { ding(); say('stop'); } // the mail app still opens: the bell is a flourish
@@ -157,15 +170,32 @@ export function initUI({ onGoto, onTheme }) {
     }
   });
   document.addEventListener('keydown', (e) => {
-    if (e.target.closest('input, textarea') || e.metaKey || e.ctrlKey) return;
+    if (e.target.closest('input, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (document.body.classList.contains('intro-on') || document.querySelector('dialog[open]')) return; // the intro and the credits own the keys while open
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { // a tap rides to the next stop, a held key keeps the bus rolling (main.js eases it in and out)
+      e.preventDefault();
+      const dir = e.key === 'ArrowRight' ? 1 : -1;
+      if (e.repeat) onHold(dir); else onGoto(dir > 0 ? Math.min(active + 1, stops.length - 1) : Math.max(active - 1, 0));
+      return;
+    }
     if (e.key === 'j') onGoto(Math.min(active + 1, stops.length - 1));
     if (e.key === 'k') onGoto(Math.max(active - 1, 0));
   });
+  if (matchMedia('(pointer: fine)').matches && !matchMedia('(prefers-reduced-motion: reduce)').matches) { // tickets tilt a few degrees towards the pointer
+    let raf = 0;
+    document.addEventListener('pointermove', (e) => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => { raf = 0; panel.style.setProperty('--ry', `${((e.clientX / innerWidth) - 0.5) * 5}deg`); panel.style.setProperty('--rx', `${((e.clientY / innerHeight) - 0.5) * -5}deg`); });
+    }, { passive: true });
+  }
+  document.addEventListener('keyup', (e) => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') onHold(0); });
+  addEventListener('blur', () => onHold(0));
   applyTheme();
   return {
     get theme() { return prefs.theme; },
     setActive(i) { if (i !== active) { active = i; render(true); } },
     say,
+    stamps: () => [...cities].map((c) => i18n[prefs.lang].ui.cities[c]),
     caption: () => `83 · ${baseText()}`.toUpperCase(),
     note(key, on) { if (notes[key] !== on) { notes[key] = on; led(); } },
   };

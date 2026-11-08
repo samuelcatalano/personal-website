@@ -118,16 +118,25 @@ export function createPeople({ curve, pts, stops, obstacles = [], reducedMotion 
     px[i] += x - ox; pz[i] += z - oz; pushX[i] = x; pushZ[i] = z;
   };
   plan.forEach((p, i) => { place(p.path, st[i].s, p.look); st[i].pace = out.speed; px[i] = out.x; pz[i] = out.z; if (p.path.type === 'lane') { rememberLane(i); avoidKiosks(i); out.x = px[i]; out.z = pz[i]; } fx[i] = out.fx; fz[i] = out.fz; walkPace[i] = Math.min(1, out.speed); visible[i] = 1; });
+  const react = new Float32Array(N); // 0..1 how much each walker is watching the hero vehicle
   return {
     count: N, route: { x: px, z: pz, fx, fz }, walkPace, visible,
-    update(dt, cam) {
+    update(dt, cam, hero) { // hero: { x, z, speed } of the stopped-or-moving hero vehicle; walkers near it slow to a stop and turn to watch it halt
       if (reducedMotion || dt < 0) dt = 0;
       plan.forEach(({ look: k, path }, i) => {
-        const s = st[i]; s.s += path.dir * k.speed * dt / Math.max(1, s.pace);
+        const s = st[i];
+        const want = hero && hero.speed < 1.5 && path.type !== 'idle' ? Math.max(0, Math.min(1, (16 - Math.hypot(px[i] - hero.x, pz[i] - hero.z)) / 10)) : 0;
+        react[i] += (want - react[i]) * Math.min(1, dt * 2.5); // eased both ways, so nobody freezes or restarts in a single frame
+        s.s += path.dir * k.speed * dt * (1 - 0.95 * react[i]) / Math.max(1, s.pace);
         place(path, s.s, k);
         if (path.type === 'lane') rememberLane(i);
-        s.pace = out.speed; walkPace[i] = Math.min(1, out.speed);
+        s.pace = out.speed; walkPace[i] = Math.min(1, out.speed) * (1 - react[i]);
         px[i] = out.x; pz[i] = out.z; fx[i] = out.fx; fz[i] = out.fz;
+        if (react[i] > 0.25 && hero) { // turn towards the vehicle
+          const tx = hero.x - px[i], tz = hero.z - pz[i], tl = Math.hypot(tx, tz) || 1, m = (react[i] - 0.25) / 0.75;
+          const bx = fx[i] + (tx / tl - fx[i]) * m, bz = fz[i] + (tz / tl - fz[i]) * m, bl = Math.hypot(bx, bz) || 1;
+          fx[i] = bx / bl; fz[i] = bz / bl;
+        }
         const t = Math.min(1, Math.max(0, (SEP_FAR - Math.hypot(out.x - cam.x, out.z - cam.z)) / (SEP_FAR - SEP_NEAR)));
         sep[i] = t * t * (3 - 2 * t); // smoothstep: separation eases out with zero slope at both edges, so no push jump at a distance edge
       });

@@ -31,7 +31,7 @@ export function createAutoRide({ ys, onState, dwell = 3400, instant = false }) {
     for (const ev of stopEvents) addEventListener(ev, halt, { passive: true });
     for (let i = nextStop(stops, scrollY); i < stops.length; i++) {
       if (!(await travel(stops[i], id))) return;
-      if (i < stops.length - 1 && !(await pause(dwell, id))) return;
+      if (i < stops.length - 1 && !(await pause(typeof dwell === 'function' ? dwell() : dwell, id))) return;
     }
     if (id === token) stop();
   }

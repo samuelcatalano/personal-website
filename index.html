@@ -134,6 +134,7 @@
   <link rel="modulepreload" href="js/world/underpass.js">
   <link rel="modulepreload" href="js/world/university.js">
   <link rel="modulepreload" href="js/world/vehicle-assets.js">
+  <link rel="modulepreload" href="js/world/vehicle-fx.js">
   <link rel="modulepreload" href="js/world/vehicles.js">
   <link rel="modulepreload" href="js/world/voxel.js">
   <link rel="modulepreload" href="js/world/water-math.js">
@@ -155,8 +156,9 @@
       <div class="intro-text">
         <h2 id="intro-title" data-i18n="intro.title"></h2>
         <p id="intro-sub" data-i18n="intro.sub"></p>
+        <p class="greet" id="intro-greet"></p>
       </div>
-      <div class="intro-map" tabindex="0" autofocus role="group" aria-labelledby="intro-hint">
+      <div class="intro-map" role="group" aria-labelledby="intro-hint">
         <div class="intro-windshield" aria-hidden="true">
           <svg viewBox="0 0 480 170" preserveAspectRatio="xMidYMid slice" focusable="false">
             <defs>
@@ -236,7 +238,7 @@
       </div>
       <div class="status" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-labelledby="intro-status-text"><span class="leds" aria-hidden="true"></span><span id="intro-status-text"></span></div>
       <div class="actions">
-        <button type="button" data-intro-skip data-i18n="intro.skip"></button>
+        <button type="button" data-intro-skip autofocus data-i18n="intro.skip"></button>
       </div>
       <i class="door l" aria-hidden="true"></i><i class="door r" aria-hidden="true"></i>
     </div>
@@ -252,7 +254,7 @@
       <a href="#recs" data-nav="recs"></a>
       <a href="#contact" data-nav="contact">Contact</a>
     </nav>
-    <div class="controls"><button type="button" data-auto aria-pressed="false"><svg class="i-play" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false"><path d="M8 5v14l11-7z"/></svg><svg class="i-pause" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false"><path d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg></button><button type="button" data-photo><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button><button type="button" data-lang>PT</button><button type="button" data-theme>☀︎</button></div>
+    <div class="controls"><button type="button" data-auto aria-pressed="false"><svg class="i-play" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false"><path d="M8 5v14l11-7z"/></svg><svg class="i-pause" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false"><path d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg></button><button type="button" data-quick><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false"><path d="M4 5v14l8-7zm8 0v14l8-7z"/></svg></button><button type="button" data-photo><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button><button type="button" data-lang>PT</button><button type="button" data-theme>☀︎</button></div>
     <p id="announce" class="sr-only" aria-live="polite"></p>
   </header>
   <main id="panel" class="panel"><noscript>

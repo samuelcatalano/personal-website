@@ -57,6 +57,7 @@ export function createPost(renderer, scene, camera, { tier = 'high', sun } = {})
     tier,
     passes: { ao: heavy.find((p) => p instanceof AOPass) ?? null, rays, bloom, grade }, // read by the QA probes (?qa)
     setSize(w, h) { composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h); },
+    setFocus(d) { post.passes.ao?.setFocus(d); },
     setTier(t) {
       post.tier = t;
       heavy.forEach((p) => { p.enabled = t === 'high'; });

@@ -124,7 +124,16 @@ body.world-loading:not(.world-ready, .no-webgl, .intro-on) #loading { display: f
   border: 4px solid #322923; background: #322923;
   box-shadow: 0 2px 0 #a82028, 0 5px 0 #322923;
 }
-.intro-windshield svg { display: block; width: 100%; height: 100%; }
+/* the landscape slides with the toy bus, follows the visitor's clock, and gives way to the real city once the world has loaded */
+.intro-windshield svg { display: block; width: 100%; height: 100%; transform: translateX(calc((var(--p, 0) - .5) * -18px)) scale(1.08); transition: transform .35s linear, filter .6s; }
+#intro[data-tod="dusk"] .intro-windshield svg { filter: sepia(.4) saturate(1.35) brightness(.96) hue-rotate(-8deg); }
+#intro[data-tod="night"] .intro-windshield svg { filter: brightness(.5) saturate(.85) hue-rotate(-14deg); }
+.live-view { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 62%; opacity: 0; transition: opacity 1s ease; }
+.intro-windshield.live .live-view { opacity: 1; }
+.intro-map { cursor: grab; } .intro-map.dragging { cursor: grabbing; }
+.greet { margin: 9px 0 0; font: 700 11px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--ticket-green); }
+.greet:empty { display: none; }
+@media (prefers-reduced-motion: reduce) { .intro-windshield svg, .live-view { transition: none; } }
 .windshield-sky-top { stop-color: var(--preview-sky, #658891); }
 .windshield-sky-bottom { stop-color: var(--preview-horizon, #fae2b6); }
 #intro[data-preview="london"] { --preview-sky: #637b91; --preview-horizon: #dbcbc1; }
@@ -166,7 +175,7 @@ body.world-loading:not(.world-ready, .no-webgl, .intro-on) #loading { display: f
 .route-vehicle .mini, #intro[data-preview="sp"] .route-vehicle .bus { display: none; }
 #intro[data-preview="sp"] .route-vehicle .mini { display: inline; }
 .intro-guide { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 10px; }
-#intro-hint { margin: 0; font-size: 13px; color: var(--ticket-muted); }
+#intro-hint { margin: 0; font-size: 14px; font-weight: 600; color: var(--ticket-ink); }
 .intro-mouse { flex: none; overflow: visible; }
 .intro-mouse .body { fill: var(--ticket); stroke: var(--ticket-ink); stroke-width: 3; }
 .intro-mouse .wheel { fill: var(--ticket-red); animation: intro-wheel 1.4s ease-in-out infinite; }
@@ -196,8 +205,8 @@ body.world-loading:not(.world-ready, .no-webgl, .intro-on) #loading { display: f
   min-height: 44px; padding: 0 16px; border: 1px solid transparent; border-radius: 4px;
   font: 700 13px var(--sans); cursor: pointer;
 }
-[data-intro-skip] { background: var(--ticket-red); color: #fff8ec; }
-[data-intro-skip]:hover { background: #841920; }
+[data-intro-skip] { background: transparent; color: var(--ticket-red); border-color: currentColor !important; }
+[data-intro-skip]:hover, [data-intro-skip]:focus-visible { background: var(--ticket-red); color: #fff8ec; }
 #intro :focus-visible { outline: 2px solid var(--ticket-green); outline-offset: 3px; }
 #intro.leaving {
   opacity: 0; -webkit-backdrop-filter: blur(0); backdrop-filter: blur(0);
@@ -340,3 +349,37 @@ blockquote footer b { color: var(--ink); font-weight: 600; }
 [data-photo] svg { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 [data-photo]:disabled { opacity: .45; cursor: progress; }
 [data-theme] svg { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+/* City accents: one colour per city drives the proof bar, the availability dot, the ticket stamp and the route strip */
+body { --city: var(--uk); }
+body[data-city="sp"] { --city: var(--br); }
+body[data-city="gla"] { --city: #2a5da8; }
+.panel .proof { border-left-color: var(--city); }
+.panel .avail::before { background: var(--city); }
+/* Stop detail as a ticket: perforated notches, dashed tear line, city and year stamp */
+.detail { position: relative; margin: 2px 0 12px 56px; padding: 12px 14px 14px; border-radius: 10px; background: var(--ticket, #f7f1e5); color: var(--ticket-ink, #2d2822); border-left: 4px solid var(--city);
+  -webkit-mask: radial-gradient(circle 6px at 0 50%, transparent 98%, #000) , linear-gradient(#000, #000); -webkit-mask-composite: source-in; mask-composite: intersect; }
+.detail::before { content: ''; position: absolute; left: 14px; right: 14px; top: 34px; border-top: 1px dashed var(--ticket-line, #d9cbb7); }
+.detail .stamp { display: block; margin-bottom: 16px; font: 700 10px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--city); }
+.detail small { color: var(--ticket-muted, #665a4c); }
+body.theme-night .detail { background: #2a2622; color: var(--ink); } body.theme-night .detail small { color: var(--muted); }
+/* "Now arriving" banner when the line crosses into another city */
+#arrival { position: fixed; top: 84px; left: 50%; z-index: 6; display: flex; align-items: center; gap: 14px; margin: 0; padding: 10px 24px 10px 10px; transform: translate(-50%, -14px) scale(.96); opacity: 0; pointer-events: none;
+  transition: opacity .4s, transform .5s cubic-bezier(.2, .9, .3, 1.2); border-radius: 14px; background: linear-gradient(#17130f, #0a0807); border: 1px solid #2c2620; border-bottom: 3px solid var(--city);
+  box-shadow: 0 14px 36px rgba(20, 12, 4, .35), inset 0 1px 0 rgba(255, 255, 255, .06); }
+#arrival .num { display: grid; place-items: center; min-width: 46px; height: 46px; border-radius: 10px; background: var(--red); color: #fff; font: 400 28px/1 var(--display); font-style: normal; box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .22); }
+#arrival .txt { display: block; filter: drop-shadow(0 0 6px rgba(255, 170, 0, .45)); }
+#arrival small { display: block; margin-bottom: 4px; font: 700 10px/1 var(--sans); letter-spacing: .24em; text-transform: uppercase; color: #ffb21e; opacity: .8; }
+#arrival b { display: block; font: 800 26px/1.05 var(--sans); letter-spacing: .06em; text-transform: uppercase; color: #ffb21e;
+  -webkit-mask: radial-gradient(circle, #000 0 1.15px, transparent 1.55px) 0 0 / 3.4px 3.4px; mask: radial-gradient(circle, #000 0 1.15px, transparent 1.55px) 0 0 / 3.4px 3.4px; }
+#arrival.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
+/* The last stop reads as the return ticket */
+#panel[data-section="contact"] h2 { padding-bottom: 10px; border-bottom: 2px dashed var(--line); }
+#panel[data-section="contact"] h2::after { content: ' · 83'; color: var(--city); }
+@media (max-width: 640px) { #arrival { top: 70px; padding-right: 16px; } #arrival b { font-size: 20px; } #arrival .num { min-width: 38px; height: 38px; font-size: 22px; } }
+@media (prefers-reduced-motion: reduce) { #arrival { transition: none; } }
+.detail { transform: perspective(700px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .15s ease-out; }
+.controls [data-quick] svg { fill: currentColor; }
+@media (prefers-reduced-motion: reduce) { .detail { transform: none; transition: none; } }
+/* No selection box where focus is only placed by the page: the heading after the intro closes and the Skip button it opens on. Keyboard users still see the Skip fill red on focus. */
+#panel :is(h1, h2)[tabindex="-1"]:focus, #panel :is(h1, h2)[tabindex="-1"]:focus-visible { outline: none; }
+#intro [data-intro-skip]:focus, #intro [data-intro-skip]:focus-visible { outline: none; }

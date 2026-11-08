@@ -55,7 +55,7 @@ try:
         cdp('Input.dispatchTouchEvent', type='touchMove', touchPoints=[{'x': x, 'y': y - 50}])
         cdp('Input.dispatchTouchEvent', type='touchEnd', touchPoints=[])
     else:
-        assert js("document.activeElement.matches('.intro-map')")
+        assert js("document.activeElement.matches('[data-intro-skip]')")
         x, y = js("(()=>{const r=document.querySelector('.intro-windshield').getBoundingClientRect();return [r.x+r.width/2,r.y+r.height/2]})()")
         cdp('Input.dispatchMouseEvent', type='mouseWheel', x=x, y=y, deltaX=0, deltaY=120)
         js("new Promise(requestAnimationFrame)")
@@ -63,24 +63,24 @@ try:
     assert js("document.querySelector('#intro').dataset.dir === 'down'"), 'Forward should highlight the down arrow for wheel, touch and keyboard'
     if not mobile:
         js("document.querySelector('[data-intro-skip]').focus()")
-        arrow('ArrowDown', 40, 5)
-        arrow('ArrowUp', 38, 3)
-        assert js("document.querySelector('.intro-stations [aria-current]').dataset.previewStop === 'london'"), 'Up should drive forward while Skip has focus'
-        assert js("document.querySelector('#intro').dataset.dir === 'up'")
+        arrow('ArrowLeft', 37, 10)
+        arrow('ArrowRight', 39, 9)
+        assert js("document.querySelector('.intro-stations [aria-current]').dataset.previewStop === 'london'"), 'Right should drive forward while Skip has focus'
+        assert js("document.querySelector('#intro').dataset.dir === 'down'")
         assert js("getComputedStyle(document.querySelector('.route-vehicle .bus')).display !== 'none'")
         if out:
             time.sleep(.25)
             capture_screenshot(os.path.join(out, 'intro-london.png'))
-        arrow('ArrowUp', 38)
+        arrow('ArrowRight', 39, 6)
         assert js("document.querySelector('.intro-stations [aria-current]').dataset.previewStop === 'glasgow'")
         assert js("getComputedStyle(document.querySelector('.route-vehicle .bus')).display !== 'none'")
         js("document.activeElement.blur()")
         at_glasgow = js("Number(document.querySelector('#intro').style.getPropertyValue('--p'))")
-        arrow('ArrowDown', 40)
+        arrow('ArrowLeft', 37)
         assert js("Number(document.querySelector('#intro').style.getPropertyValue('--p'))") < at_glasgow
-        arrow('ArrowDown', 40, 4)
-        assert js("document.querySelector('.intro-stations [aria-current]').dataset.previewStop === 'sp'"), 'Down should drive backward after the control loses focus'
-        assert js("document.querySelector('#intro').dataset.dir === 'down'")
+        arrow('ArrowLeft', 37, 20)
+        assert js("document.querySelector('.intro-stations [aria-current]').dataset.previewStop === 'sp'"), 'Left should drive backward after the control loses focus'
+        assert js("document.querySelector('#intro').dataset.dir === 'up'")
     assert js("""(() => {
       const card = document.querySelector('.intro-card').getBoundingClientRect();
       const skip = document.querySelector('[data-intro-skip]').getBoundingClientRect();

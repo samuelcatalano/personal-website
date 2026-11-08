@@ -28,7 +28,7 @@ for stop, theme in shots:
     for _ in range(80):
         if js("document.body.classList.contains('world-ready')"): break
         time.sleep(.5)
-    js("const st=document.createElement('style');st.textContent='#panel,.bar,header,nav{visibility:hidden!important}';document.head.append(st)")
+    js("const st=document.createElement('style');st.textContent='#panel,.bar,header,nav,#route,#arrival{visibility:hidden!important}#intro{display:none!important}';document.head.append(st)")
     js("(async()=>{const s=await import('/js/scroll.js'),c=await import('/js/content.js'),L=await import('/js/world/layout.js');const n=c.stops.length,m=s.stopMarks(L.routePoints(n)),H=document.documentElement.scrollHeight,p=%s,i=Math.floor(p),f=p-i,a=s.scrollYForStop(i,n,H,innerHeight,m),b=s.scrollYForStop(Math.min(n-1,i+1),n,H,innerHeight,m);scrollTo({top:a+(b-a)*f,behavior:'instant'})})()" % float(stop))
     activate_tab(TAB); time.sleep(WAIT)  # re-front: another window/agent can hide the tab, and hidden tabs screenshot blank
     f = os.path.join(OUT, '%s-%s%s.png' % (stop, theme, '-m' if MOBILE else '')); capture_screenshot(f); files.append(f); print('ok', f)

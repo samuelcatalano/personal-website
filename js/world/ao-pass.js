@@ -34,13 +34,26 @@ void main(){
   }
   gl_FragColor = vec4(vec3(1.0 - occ / 10.0), 1.0);
 }`;
-const COMP_FRAG = `${LIN} uniform sampler2D tDiffuse, tAO; uniform vec2 uTexel; uniform float uStrength; varying vec2 vUv;
+const COMP_FRAG = `${LIN} uniform sampler2D tDiffuse, tAO; uniform vec2 uTexel, uTexelFull; uniform float uStrength, uFocus, uMaxPx; varying vec2 vUv;
+// depth of field: sharp around the focus distance (the hero vehicle), soft far background and very near foreground; 12 golden-angle taps, only where the blur is visible
+float cocAt(float z){ return max(smoothstep(uFocus * 3.0, uFocus * 8.0, z), 0.8 * (1.0 - smoothstep(uFocus * 0.25, uFocus * 0.5, z))); }
 void main(){
   vec4 c = texture2D(tDiffuse, vUv); float zc = lz(vUv);
   float s = texture2D(tAO, vUv).r, w = 1.0;
   vec2 o[4]; o[0] = vec2(1.0, 0.0); o[1] = vec2(-1.0, 0.0); o[2] = vec2(0.0, 1.0); o[3] = vec2(0.0, -1.0);
   for (int i = 0; i < 4; i++) { vec2 uv = vUv + o[i] * uTexel * 1.5; float k = exp(-abs(lz(uv) - zc) / zc * 60.0); s += texture2D(tAO, uv).r * k; w += k; }
-  c.rgb *= mix(1.0, s / w, uStrength);
+  float ao = mix(1.0, s / w, uStrength);
+  float coc = uFocus > 0.0 ? cocAt(zc) : 0.0;
+  if (coc > 0.02) {
+    vec3 acc = c.rgb * ao; float wsum = 1.0;
+    for (int i = 0; i < 12; i++) {
+      float fi = float(i) + 0.5, r = sqrt(fi / 12.0) * coc * uMaxPx, a = fi * 2.39996323;
+      vec2 uv = vUv + vec2(cos(a), sin(a)) * r * uTexelFull; float tz = lz(uv);
+      float wt = max(cocAt(tz), step(zc * 0.95, tz)); // a sharp nearer tap must not bleed onto a blurred background
+      acc += texture2D(tDiffuse, uv).rgb * ao * wt; wsum += wt;
+    }
+    c.rgb = acc / wsum;
+  } else c.rgb *= ao;
   gl_FragColor = c;
 }`;
 export class AOPass extends Pass {
@@ -51,10 +64,11 @@ export class AOPass extends Pass {
     const base = { depthTest: false, depthWrite: false, vertexShader: VERT };
     const shared = () => ({ tDepth: { value: null }, uNear: { value: 1 }, uFar: { value: 1 } });
     this.aoMat = new THREE.ShaderMaterial({ ...base, fragmentShader: AO_FRAG, uniforms: { ...shared(), uRadius: { value: radius }, uProj: { value: new THREE.Vector4(1, 0, 1, 0) }, uTexelFull: { value: new THREE.Vector2(1, 1) }, uAspect: { value: 1 } } });
-    this.compMat = new THREE.ShaderMaterial({ ...base, fragmentShader: COMP_FRAG, uniforms: { ...shared(), tDiffuse: { value: null }, tAO: { value: this.rt.texture }, uTexel: { value: new THREE.Vector2() }, uStrength: { value: strength } } });
+    this.compMat = new THREE.ShaderMaterial({ ...base, fragmentShader: COMP_FRAG, uniforms: { ...shared(), tDiffuse: { value: null }, tAO: { value: this.rt.texture }, uTexel: { value: new THREE.Vector2() }, uTexelFull: { value: new THREE.Vector2(1, 1) }, uStrength: { value: strength }, uFocus: { value: 0 }, uMaxPx: { value: 4 } } });
     this.quad = new FullScreenQuad(this.aoMat);
   }
-  setSize(w, h) { this.rt.setSize(Math.max(1, w >> 1), Math.max(1, h >> 1)); this.compMat.uniforms.uTexel.value.set(1 / this.rt.width, 1 / this.rt.height); this.aoMat.uniforms.uAspect.value = w / h; this.aoMat.uniforms.uTexelFull.value.set(1 / w, 1 / h); }
+  setSize(w, h) { this.rt.setSize(Math.max(1, w >> 1), Math.max(1, h >> 1)); this.compMat.uniforms.uTexel.value.set(1 / this.rt.width, 1 / this.rt.height); this.aoMat.uniforms.uAspect.value = w / h; this.aoMat.uniforms.uTexelFull.value.set(1 / w, 1 / h); this.compMat.uniforms.uTexelFull.value.set(1 / w, 1 / h); this.compMat.uniforms.uMaxPx.value = 4 * Math.max(1, h / 1080); }
+  setFocus(d) { this.compMat.uniforms.uFocus.value = d; } // camera-to-subject distance in metres, 0 = off
   render(renderer, writeBuffer, readBuffer) {
     const cam = this.camera, e = cam.projectionMatrix.elements;
     for (const m of [this.aoMat, this.compMat]) { m.uniforms.tDepth.value = readBuffer.depthTexture; m.uniforms.uNear.value = cam.near; m.uniforms.uFar.value = cam.far; }

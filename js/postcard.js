@@ -15,7 +15,7 @@ export function ledText(ctx, text, x, y, size, pitch = 7) {
   ctx.shadowBlur = 0;
   return w;
 }
-export async function makePostcard(blob, caption, url) {
+export async function makePostcard(blob, caption, url, stamps = []) {
   const img = await createImageBitmap(blob), c = document.createElement('canvas');
   c.width = W; c.height = H;
   const ctx = c.getContext('2d'), k = Math.max(W / img.width, H / img.height);
@@ -28,6 +28,12 @@ export async function makePostcard(blob, caption, url) {
   ledText(ctx, caption, bx + 48, by + 98, 72);
   ctx.fillStyle = 'rgba(244,240,233,.85)'; ctx.font = '500 26px Inter, system-ui, sans-serif'; ctx.textAlign = 'right';
   ctx.fillText(url, W - 70, H - 36);
+  stamps.forEach((name, i) => { // passport: one round stamp per city the visitor has ridden to
+    const x = 120 + i * 190, y = 130; ctx.save(); ctx.translate(x, y); ctx.rotate(-0.12 + i * 0.09);
+    ctx.strokeStyle = 'rgba(255,178,30,.9)'; ctx.fillStyle = 'rgba(255,178,30,.9)'; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.arc(0, 0, 70, 0, Math.PI * 2); ctx.stroke(); ctx.beginPath(); ctx.arc(0, 0, 58, 0, Math.PI * 2); ctx.lineWidth = 2; ctx.stroke();
+    ctx.textAlign = 'center'; ctx.font = '700 22px Inter, system-ui, sans-serif'; ctx.fillText(name.toUpperCase(), 0, 8); ctx.font = '600 13px Inter, sans-serif'; ctx.fillText('ROUTE 83', 0, 32); ctx.restore();
+  });
   ctx.textAlign = 'left'; ctx.font = '400 30px "Hammersmith One", Inter, sans-serif'; ctx.fillText('Samuel Catalano', 70, H - 36);
   return new Promise((resolve) => c.toBlob(resolve, 'image/png'));
 }
