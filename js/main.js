@@ -97,15 +97,20 @@ watchScroll((p) => {
 // Frozen stills of the three cities for the intro windshield: jump the camera to each, grab a frame, then put it back (skipped if the visitor is already driving)
 const stills = async (w) => {
   if (!w.snapshot || intro.interacted || !intro.active) return;
-  const wait = (ms) => new Promise((r) => setTimeout(r, ms)), at = (i) => marks[i], out = {};
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms)), frames = (k) => new Promise((r) => { const f = (i) => (i ? requestAnimationFrame(() => f(i - 1)) : r()); f(k); }), at = (i) => marks[i], out = {};
+  let cover = null, coverUrl = '';
   try {
     out.sp = await w.snapshot();
+    // the camera tours London and Glasgow for their stills: the first still stays on screen over the canvas so nobody sees it travel
+    cover = Object.assign(document.createElement('img'), { src: (coverUrl = URL.createObjectURL(out.sp)), alt: '' });
+    Object.assign(cover.style, { position: 'fixed', inset: '0', width: '100%', height: '100%', objectFit: 'cover', zIndex: '1', pointerEvents: 'none' });
+    document.body.append(cover); await cover.decode?.().catch(() => {});
     for (const [city, p] of [['london', (at(9) + at(10)) / 2], ['glasgow', at(stops.findIndex((s) => s.id === 'glasgow'))]]) {
       if (intro.interacted || !intro.active) return;
       w.jump(p); await wait(450); out[city] = await w.snapshot();
     }
     intro.showPreviews(out);
-  } finally { w.jump(progress); } // always hand the camera back to wherever the page scroll says, even if a snapshot fails
+  } finally { w.jump(progress); await frames(3); cover?.remove(); if (coverUrl) URL.revokeObjectURL(coverUrl); } // hand the camera back to the page scroll, then drop the cover once a frame is drawn
 };
 const DRIVE = 0.03; // share of the route the intro lets the visitor drive (about one stop)
 const intro = createIntro(document.getElementById('intro'), {

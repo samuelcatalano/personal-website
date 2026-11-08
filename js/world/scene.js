@@ -291,7 +291,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       plane.rotation.set(pose.bank, pose.heading, pose.pitch);
       baseScale ??= plane.scale.x;
       plane.scale.setScalar(baseScale * k);
-      hazePlane(Math.max(smooth(HAZE[0], HAZE[1], pose.dist), 1 - smooth(PLANE_IN, PLANE_IN + 0.3, d)));
+      hazePlane(smooth(HAZE[0], HAZE[1], pose.dist)); // distance haze only: the plane arrives fully solid
     }
     plane.visible = present > 0.01;
     shadow.visible = plane.visible && night < 0.9;
