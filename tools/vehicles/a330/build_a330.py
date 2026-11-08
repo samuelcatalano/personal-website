@@ -82,7 +82,7 @@ def ws(phi): k = min(1.0, abs(phi) / 1.58); s0 = 2.0 + 1.2 * k ** 1.5; return s0
 for p0, p1 in [(0.04, 0.7), (0.76, 1.17), (1.23, 1.58)]:   # continuous six-pane windscreen band; gaps = body-colour mullions
     for side in (1, -1):
         cols = [p0 + (p1 - p0) * j / 5 for j in range(6)]
-        vs = [[bm.verts.new(hull(ws(p)[0] + (ws(p)[1] - ws(p)[0]) * i / 3, side * p)) for p in cols] for i in range(4)]
+        vs = [[bm.verts.new(hull(ws(p)[0] + (ws(p)[1] - ws(p)[0]) * i / 3, side * (0.8 * p + 0.3))) for p in cols] for i in range(4)]
         for i in range(3):
             for j in range(5):
                 f = bm.faces.new((vs[i][j], vs[i + 1][j], vs[i + 1][j + 1], vs[i][j + 1]))

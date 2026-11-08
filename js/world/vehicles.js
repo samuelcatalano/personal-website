@@ -502,7 +502,7 @@ function a330Geos() {
     fus.setAttribute('color', new THREE.BufferAttribute(c, 3)); fus.deleteAttribute('uv'); trim.push(fus); }
   const win = (xs, a, l, seg = 2) => { const g = lathe(xs.map((x) => [fusR(x) + 0.04, x]), seg, a, l).rotateZ(-Math.PI / 2).toNonIndexed(); g.deleteAttribute('uv'); const p = g.attributes.position; for (let i = 0; i < p.count; i++) p.setY(i, upsweep(p.getY(i), p.getX(i))); return g; };
   for (let x = 15.2; x > -13; x -= 0.6) for (const a of [-0.27, Math.PI + 0.09]) glass.push(win([x - 0.34, x], a, 0.18)); // cabin windows, both sides
-  glass.push(win([17.5, 18.1, 18.7, 19.2], -1.0, 0.65, 3), win([17.5, 18.1, 18.7, 19.2], Math.PI + 0.35, 0.65, 3)); // cockpit window band
+  glass.push(win([17.5, 18.1, 18.7, 19.2], -0.814, 0.52, 3), win([17.5, 18.1, 18.7, 19.2], Math.PI + 0.295, 0.52, 3)); // cockpit band lowered along the fuselage sides
   const wing = (st, y0, dih, c) => [-1, 1].map((sg) => { // st: [z, xle, xte, thickness]; one tube of foil sections per side
     const g = tube(st.map(([z, xle, xte, t]) => foil(xle, xte, t, (x, h) => [x, y0 + z * dih + h, sg * z])));
     return colg(g, c);
