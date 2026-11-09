@@ -2,7 +2,7 @@
 cdp('Page.reload', ignoreCache=True); wait_for_load()
 result=js(r'''(async()=>{
  const T=await import('three'),{buildLandmarks}=await import('./js/world/landmarks.js'),{stops}=await import('./js/content.js'),{routePoints,LANDMARKS,stopIndex,RIVER_Z,copan}=await import('./js/world/layout.js'),{townhouseMaterials}=await import('./js/world/building-slice-materials.js');
- const pts=routePoints(stops.length),boxes=[],parts=buildLandmarks((...b)=>boxes.push(b),stops,pts),mats=townhouseMaterials(),metrics={};
+ const pts=routePoints(stops.length),boxes=[],parts=buildLandmarks((...b)=>boxes.push(b),stops,pts),mats=townhouseMaterials({landmark:true}),metrics={};
  const check=(ok,msg)=>{if(!ok)throw Error(msg)};let lightTris=0,lightMeshes=0;const lightMats=new Set(),washMats=new Set();
  for(const [name,key,dx,z0,z1,height,limit] of [['wembley','wembley',[-26,26],-88,-54,21.05,12000],['bigben','bigben',[-3.1,37],-65,-56.4,34,8000],['masp','masp',[-20,20],-69.5,-56.5,15.6,3000],['se','se',[-16,16],-70.5,-52,39.5,8000],['estaiada','estaiada',[-16,16],-80,-11.5,47,4000],['towerbridge','towerbridge',[-8,8],-63,-26,36,8000]]){
   const g=parts.details.getObjectByName(name+'-geometry');check(g,'Missing modernized '+name+' geometry');

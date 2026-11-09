@@ -315,7 +315,12 @@ export async function createNpc3d(scene, { people, pts, stops, count = +QUERY.ge
     w.fine = []; inst.traverse((o) => { if (o.isMesh && /^mh_(eyes|eyebrows)_/.test(o.material.name)) w.fine.push(o); }); // draw-call LOD: eyes and brows only near the camera
     scene.add(inst);
   }
-  shadow = new THREE.InstancedMesh(new THREE.CircleGeometry(0.3, 14).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#2a2622', transparent: true, opacity: 0.22, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 }), count);
+  const shadowMaterial = new THREE.MeshBasicMaterial({ color: '#2a2622', transparent: true, opacity: 0.3, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 });
+  shadowMaterial.onBeforeCompile = (shader) => {
+    shader.vertexShader = 'varying vec2 shadowUv;\n' + shader.vertexShader.replace('#include <uv_vertex>', '#include <uv_vertex>\nshadowUv = uv;');
+    shader.fragmentShader = 'varying vec2 shadowUv;\n' + shader.fragmentShader.replace('#include <opaque_fragment>', 'diffuseColor.a *= 1.0 - smoothstep(0.15, 0.5, length(shadowUv - 0.5));\n#include <opaque_fragment>');
+  };
+  shadow = new THREE.InstancedMesh(new THREE.CircleGeometry(0.3, 24).rotateX(-Math.PI / 2), shadowMaterial, count);
   Object.assign(shadow, { name: 'npc3d-shadow', frustumCulled: false, renderOrder: 0 });
   scene.add(shadow);
   const dummy = new THREE.Object3D(), fwd = new THREE.Vector3();

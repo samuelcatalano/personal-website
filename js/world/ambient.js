@@ -83,7 +83,7 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false,
     // London: 1 bus, 3 cabs, 2 Minis, 3 generic cars
     D('london', 0.71), D('cab', 0.47), D('cab', 0.88), D('cab', 0.12), D('mini', 0.6), D('mini', 0.79),
     G(11, 0.385, { uk: true, scot: false }), G(13, 0.675, { uk: true, scot: false }), G(15, 0.99, { uk: true, scot: false }),
-  ].map((v, i) => ({ lane: -1.75, livery: v.type === 'london' || v.type === 'glasgow' ? v.type : null, ...v, modelReady: !v.regionBus, base: SPEED[v.type] * (v.type === 'car' ? 0.9 + 0.2 * ((i * 7) % 5) / 4 : 1), p: v.offset, v: 0, brake: 0, yaw: null, x: 0, z: 0, active: false, fade: 0 }));
+  ].map((v, i) => ({ lane: -1.75, livery: v.type === 'london' || v.type === 'glasgow' ? v.type : null, ...v, modelReady: !v.regionBus, base: SPEED[v.type] * (v.type === 'car' ? 0.9 + 0.2 * ((i * 7) % 5) / 4 : 0.94 + 0.12 * ((i * 7) % 5) / 4), p: v.offset, v: 0, brake: 0, yaw: null, x: 0, z: 0, active: false, fade: 0 }));
   traffic.forEach((v) => { v.v = v.base; v.len = v.mesh.userData.length; v.tail = null; if (v.regionBus) { v.mesh.name = 'regional-bus'; v.mesh.userData.regionBus = true; } addBeams(v.mesh, v.mesh.userData.front, v.mesh.userData.beamY); v.tail = v.mesh.children[v.mesh.children.length - 1]; scene.add(v.mesh); });
   // Ponte Estaiada, two cars each way: 'in' cars take the avenue's oncoming lane, turn onto the S-ramp and cross to the far-bank ground;
   // 'out' cars come back over the river, down the ramp and away along the avenue. Spawns/despawns only happen BRIDGE_FAR m from the player.
@@ -102,6 +102,14 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false,
     const tail = mesh.children[mesh.children.length - 1], base = kind === 'in' ? 11.5 : 12.5;
     return { mesh, kind, phase, p: 0, t0: uIn + at / len, s: at * paths[kind].plen, body: CARS[c][0], slot: 4 + k, tail, base, v: base, brake: 0, x: 0, z: 0, len: mesh.userData.length };
   });
+  const shadowGeometry = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
+  const shadowMaterial = new THREE.MeshBasicMaterial({ color: '#181a1b', transparent: true, opacity: 0.28, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 });
+  shadowMaterial.onBeforeCompile = shader => {
+    shader.vertexShader = 'varying vec2 contactUv;\n' + shader.vertexShader.replace('#include <uv_vertex>', '#include <uv_vertex>\ncontactUv = uv;');
+    shader.fragmentShader = 'varying vec2 contactUv;\n' + shader.fragmentShader.replace('#include <opaque_fragment>', 'diffuseColor.a *= 1.0 - smoothstep(0.25, 0.5, length(contactUv - 0.5));\n#include <opaque_fragment>');
+  };
+  const contacts = new THREE.InstancedMesh(shadowGeometry, shadowMaterial, traffic.length + bridge.length), contactTransform = new THREE.Object3D();
+  contacts.name = 'traffic-contact-shadows'; contacts.frustumCulled = false; scene.add(contacts);
   const isDisposed = () => disposed;
   const ready = Promise.all(traffic.map(async (v, i) => {
     if (v.type === 'caio') { // Sao Paulo residents are always the Caio (same shared geometry as the regional bus), with beams re-fitted to its bounds
@@ -156,7 +164,7 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false,
   const frustum = new THREE.Frustum(), pv = new THREE.Matrix4(), ball = new THREE.Sphere(), SEEN_MARGIN = 4, tmp = new THREE.Vector3(), here = new THREE.Vector3(), nrm = new THREE.Vector3(), swap = swapAt(stops), [scotIn, scotOut] = scotRange(stops), wrap = (p) => ((p % 1) + 1) % 1;
   return {
     ready: Promise.all([ready, bridgeReady]),
-    dispose() { disposed = true; traffic.forEach((v) => disposeFade(v.mesh)); },
+    dispose() { disposed = true; traffic.forEach((v) => disposeFade(v.mesh)); scene.remove(contacts); contacts.dispose(); shadowGeometry.dispose(); shadowMaterial.dispose(); },
     update({ time, t: route, dt = 0, camera }) {
       let seen = () => false; // ponytail: no camera (tests) = nothing is on screen
       if (camera) { camera.updateMatrixWorld(); frustum.setFromProjectionMatrix(pv.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse)); seen = (x, z, len) => frustum.intersectsSphere(ball.set(tmp.set(x, 1.5, z), len / 2 + SEEN_MARGIN)); }
@@ -260,6 +268,13 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false,
         if (move && ds < 5) rollWheels(m.userData.wheels ?? [], ds); // skip respawn jumps
         b.tail.userData.swell?.(1 + 1.4 * b.brake);
       }
+      [...traffic, ...bridge].forEach((v, i) => {
+        const m = v.mesh, scale = m.visible ? (v.fade ?? 1) : 0;
+        contactTransform.position.copy(m.position); contactTransform.position.y += 0.012;
+        contactTransform.rotation.copy(m.rotation); contactTransform.scale.set(v.len * 0.9 * scale, 1, 1.7 * scale);
+        contactTransform.updateMatrix(); contacts.setMatrixAt(i, contactTransform.matrix);
+      });
+      contacts.instanceMatrix.needsUpdate = true;
       boats.forEach((b, i) => {
         b.position.y = 0.1 + Math.sin(time * 1.1 + i * 2) * 0.25;
         b.rotation.z = Math.sin(time * 0.9 + i) * 0.04;

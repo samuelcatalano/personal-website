@@ -98,6 +98,16 @@ print(js(r'''(async () => {
   check(fallback.children.length === fallbackMeshes && fallback.userData.length > 10 && fallback.userData.visualAsset === undefined, 'missing regional GLB leaves the procedural vehicle fallback intact');
   const previous = buildVehicle('london', { hero: true });
   await assets.upgradeBus(previous, 'london', { hero: false });
+  const busPane = (root) => {
+    let material;
+    root.traverse(o => { if (o.userData.role === 'BusGlass') material = o.material; });
+    return material;
+  };
+  const caioPane = busPane(spA), londonPane = busPane(previous);
+  check(caioPane && londonPane && caioPane !== londonPane && caioPane === busPane(spB), 'bus glass shares a material per cabin geometry');
+  assets.reskinBus(previous, 'glasgow');
+  check(busPane(previous) === londonPane, 'a livery change does not replace the double-decker cabin');
+  assets.reskinBus(previous, 'london');
   const oldVisual = previous.getObjectByName(previous.name + '-glb');
   const oldMetadata = JSON.stringify({ length: previous.userData.length, dimensions: previous.userData.dimensions, front: previous.userData.front, beamY: previous.userData.beamY, beamAnchors: previous.userData.beamAnchors });
   await assets.upgradeBus(previous, 'sao-paulo', { hero: false, asset: 'sao-paulo-missing' });

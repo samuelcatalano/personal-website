@@ -64,7 +64,13 @@ export function buildProps(items) {
     racks.forEach(({ x, y, z, yaw }, i) => { o.position.set(x, y, z); o.rotation.y = yaw + Math.PI / 2; o.updateMatrix(); m.setMatrixAt(i, o.matrix); });
     m.receiveShadow = true; m.computeBoundingSphere(); group.add(m); counts.bike = racks.length;
   }
+  const contactGeometry = new THREE.CircleGeometry(1, 16).rotateX(-Math.PI / 2);
+  const contactMaterial = new THREE.MeshBasicMaterial({ color: '#252726', transparent: true, opacity: 0.12, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 });
+  const contacts = new THREE.InstancedMesh(contactGeometry, contactMaterial, items.length);
+  contacts.name = 'prop-contact-shadows';
+  items.forEach(({ x, y, z, r }, i) => { o.position.set(x, y + 0.012, z); o.rotation.set(0, 0, 0); o.scale.setScalar(Math.min(0.7, Math.max(0.15, r * 0.65))); o.updateMatrix(); contacts.setMatrixAt(i, o.matrix); });
+  contacts.computeBoundingSphere(); group.add(contacts);
   group.userData.counts = counts;
-  group.userData.dispose = () => { geoms.forEach((g) => g.dispose()); metal.dispose(); glass.dispose(); };
+  group.userData.dispose = () => { geoms.forEach((g) => g.dispose()); contacts.dispose(); contactGeometry.dispose(); contactMaterial.dispose(); metal.dispose(); glass.dispose(); };
   return group;
 }

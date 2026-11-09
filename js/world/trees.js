@@ -72,7 +72,7 @@ export async function createProceduralTrees(placements, regionOf = null) {
       const t = (0.8 + r(5) * 0.45) * trunkK; // trunk thickness
       o.position.set(x, base + 0.02, z); o.scale.set(rw * t, yc, rw * t); o.updateMatrix(); lods[0].trunk.setMatrixAt(k,o.matrix);lods[1].trunk.setMatrixAt(k,o.matrix);
       o.position.set(x,base+.02,z);o.rotation.set(0,yaw,0);o.scale.set(rw*2,hq,1);o.updateMatrix();lods[2].impostor.setMatrixAt(k,o.matrix);
-      const c = new THREE.Color(pick(region ? PAL[region][type] : TINTS, r(8))); c.getHSL(hsl); c.setHSL(hsl.h + (r(6) - 0.5) * 0.04, hsl.s, hsl.l * (0.88 + r(9) * 0.24)); lods[0].canopy.setColorAt(k,c);lods[1].canopy.setColorAt(k,c);lods[2].impostor.setColorAt(k,c);
+      const c = new THREE.Color(pick(region ? PAL[region][type] : TINTS, r(8))); c.getHSL(hsl); c.setHSL(hsl.h + (r(6) - 0.5) * 0.05, hsl.s, hsl.l * (0.85 + r(9) * 0.30)); lods[0].canopy.setColorAt(k,c);lods[1].canopy.setColorAt(k,c);lods[2].impostor.setColorAt(k,c);
       const bark=new THREE.Color(0xffffff).multiplyScalar(type==='column'&&region==='glasgow'?1.35:0.8+r(7)*0.4);lods[0].trunk.setColorAt(k,bark);lods[1].trunk.setColorAt(k,bark);
       trees.push({x,z,base,rw,hq});bounds.expandByPoint(new THREE.Vector3(x-rw,base,z-rw));bounds.expandByPoint(new THREE.Vector3(x+rw,base+.02+hq,z+rw));
     });

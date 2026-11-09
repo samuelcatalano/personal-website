@@ -27,7 +27,7 @@ const GRASS = new Set([P.grass, P.patch]);
 export const surfaceNoiseTexture = noiseTexture;
 export function blockMaterial(color, { glow = false, k = 2.2 } = {}) {
   const mat = new THREE.MeshStandardMaterial({ color, map: noiseTexture(), roughness: 0.9, metalness: 0 });
-  const kind = GRASS.has(color) ? 1 : color === P.road ? 2 : 0; // 1 lawn, 2 asphalt: world-space tint noise
+  const kind = GRASS.has(color) ? 1 : color === P.road ? 2 : color === P.pave ? 3 : 0; // world-space tint noise
   mat.userData.glow = glow;
   if (kind === 2) { mat.userData.glow = true; mat.userData.glowColor = new THREE.Color('#151412'); mat.userData.glowK = 1; } // ponytail: neutral-warm flat night lift (no blue cast) on asphalt (sky.update drives emissive); no per-lamp light
   mat.userData.glowK = k; // night emissive multiplier, see sky.update
@@ -71,8 +71,10 @@ diffuseColor *= texture2D(map, tuv);
   float n = mix(mix(h.x, h.y, f.x), mix(h.z, h.w, f.x), f.y) - 0.5;
   #if GROUND == 1
   diffuseColor.rgb *= 1.0 + 0.12 * n + vec3(0.1, 0.0, -0.1) * n;
-  #else
+  #elif GROUND == 2
   diffuseColor.rgb *= (1.0 + 0.2 * n) * mix(vec3(2.9, 2.4, 1.95), vec3(1.0), uNight); // lighter warm day asphalt; albedo unchanged at night
+  #else
+  diffuseColor.rgb *= 1.0 + 0.10 * n;
   #endif
 }
 #endif

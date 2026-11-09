@@ -81,6 +81,19 @@ export function createRoadMarks(curve, stops, { bays, sample, pilotCrossings = [
       quad([c[0] - nx - tx, c[1] - nz - tz], [c[0] + nx - tx, c[1] + nz - tz], [c[0] + nx + tx, c[1] + nz + tz], [c[0] - nx + tx, c[1] - nz + tz], WHITE);
     }
   }
+  // Flush inspection covers use the same batched surface as the road markings.
+  const cover = new THREE.Color('#45494a');
+  for (let s = 35; s < len - 10; s += 65) {
+    if (inCrossing(s)) continue;
+    const { p, t } = sample(s), side = Math.floor(s / 65) % 2 ? 1 : -1;
+    const x = p.x - t.z * side * 2.8, z = p.z + t.x * side * 2.8, r = 0.32;
+    for (let i = 0; i < 12; i++) {
+      const a = i * Math.PI / 6, b = (i + 1) * Math.PI / 6;
+      for (const [dx, dz] of [[0, 0], [Math.cos(a) * r, Math.sin(a) * r], [Math.cos(b) * r, Math.sin(b) * r]]) {
+        pos.push(x + dx, Y, z + dz); col.push(cover.r, cover.g, cover.b);
+      }
+    }
+  }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));

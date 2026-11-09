@@ -137,6 +137,7 @@ const facadeWeather = cityWalls => `
     diffuseColor.rgb = mix(diffuseColor.rgb, vec3(lum) * vec3(0.93, 0.91, 0.87), 0.22 * base * dirt);
     diffuseColor.rgb *= (1.0 - 0.08 * base * dirt) * mix(vec3(1.0), vec3(0.92, 0.97, 0.89), damp * dirt * 0.5);
     diffuseColor.rgb *= 1.0 - 0.14 * dirt * smoothstep(0.55, 0.95, facadeN.y); // soot on sills, ledges, cornice tops
+    ${cityWalls ? 'diffuseColor.rgb *= 1.0 - 0.18 * smoothstep(0.35, 0.85, -facadeN.y);' : ''} // recessed undersides and overhangs
     float vertical = 1.0 - smoothstep(0.25, 0.5, abs(facadeN.y));
     float sx = facadeAlong * 1.2, aa = 1.0 - smoothstep(0.25, 0.6, fwidth(sx)); // fade before streaks alias (no shimmer at range)
     float runoff = sliceNoise(vec2(sx, vFloodP.y * 0.09 + facadeSeed * 9.0));
@@ -214,17 +215,33 @@ function metricAtlas(material, cityWalls = false) {
       let finish = '';
       if (architecture && chunk === 'normal_fragment_maps') finish = (cityWalls ? FACADE_RELIEF : '') + FACADE_DETAIL;
       if (cityWalls && chunk === 'roughnessmap_fragment') finish = '\nroughnessFactor *= 1.0 - 0.23 * facadeMoisture;';
+      if (chunk === 'emissivemap_fragment' && material.name.startsWith('slice-glass') && material.name !== 'slice-glass-landmark') finish = `
+        { vec2 cell = floor(vMapUv / vec2(1.0, 2.0));
+          float h = fract(sin(dot(cell + floor(vFloodP.xz / 13.0), vec2(12.9898, 78.233))) * 43758.5453);
+          ${material.name === 'slice-glass-city' ? 'if (vRoom.w > 0.0) h = vRoom.z;' : ''}
+          float k = fract(h * 7.13 + 0.37);
+          vec3 tone = mix(vec3(1.0, 0.88, 0.76), vec3(0.89, 0.94, 1.0), smoothstep(0.76, 0.96, h));
+          totalEmissiveRadiance *= tone * (k > 0.86 ? 0.1 : k > 0.7 ? 0.6 : 1.0) * smoothstep(0.12 + 0.22 * h, 0.42 + 0.22 * h, uGlassNight); }`;
       shader.fragmentShader=shader.fragmentShader.replace(`#include <${chunk}>`,code+finish);
     }
     // weathering + per-building variation on walls (supersedes the old uniform ground grime); doors and roofs are untouched
     if(architecture) shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
       ${facadeWeather(cityWalls)}`);
+    if (cityWalls) {
+      shader.uniforms.uEntryNight = night;
+      shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uEntryNight;')
+        .replace('#include <opaque_fragment>', `
+          float entry = (1.0 - step(0.25, abs(vSliceSurface - 7.0))) * (1.0 - smoothstep(2.0, 2.8, vFloodP.y));
+          outgoingLight += vec3(0.10, 0.055, 0.025) * entry * smoothstep(0.3, 0.7, uEntryNight) * step(0.45, facadeSeed);
+          #include <opaque_fragment>`);
+    }
     if(material.name==='slice-glass-office'){
       shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nattribute vec3 aPane; varying vec3 vPane;').replace('#include <begin_vertex>','#include <begin_vertex>\nvPane = aPane;');
     }
     if(material.name.startsWith('slice-glass')){
       const office=material.name==='slice-glass-office';
       const rooms=material.name==='slice-glass-city';
+      const cityLighting=material.name!=='slice-glass-landmark';
       if(rooms) shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nattribute vec4 aRoom; varying vec4 vRoom;')
         .replace('#include <begin_vertex>','#include <begin_vertex>\nvRoom = aRoom;');
       // lit panes: whole-pane warm glow with slight per-cell tone shift (no sub-pane grain)
@@ -245,7 +262,7 @@ ${GLASS_REFLECTION}`);
         float grazing=pow(1.0-clamp(dot(normal,glassView),0.0,1.0),2.8);
         vec3 reflected=inverseTransformDirection(reflect(-glassView,normal),viewMatrix);
         float litWindow=1.0-step(0.25,abs(vSliceSurface-5.0));
-        float reflectionWeight=(0.38+grazing*0.36)*(1.0-uGlassNight*litWindow*0.82)*(0.8+0.4*sliceNoise(vFloodP.xz/13.0+31.0)); // per-building glass reflectivity
+        float reflectionWeight=(0.38+grazing*0.36)*(1.0-uGlassNight*litWindow*${cityLighting?'0.68':'0.82'})*(0.8+0.4*sliceNoise(vFloodP.xz/13.0+31.0)); // per-building glass reflectivity
         vec3 paneTint=vColor.rgb/max(dot(vColor.rgb,vec3(.3333)),.01); // per-lot glass family tints the sky reflection too
         ${rooms?ROOM_INTERIOR:''}
         outgoingLight=mix(outgoingLight,glassReflection(reflected,uGlassNight)*mix(vec3(1.0),paneTint,.85),reflectionWeight);
@@ -266,7 +283,11 @@ export function townhouseMaterials({ landmark = false } = {}) {
     shared={architecture,glass};
   }
   if (!landmark) return shared;
-  return landmarkSet ??= { architecture: metricAtlas(shared.architecture.clone()), glass: shared.glass };
+  if (!landmarkSet) {
+    const glass = shared.glass.clone(); glass.name = 'slice-glass-landmark'; glass.userData = { ...shared.glass.userData };
+    landmarkSet = { architecture: metricAtlas(shared.architecture.clone()), glass: metricAtlas(glass) };
+  }
+  return landmarkSet;
 }
 
 // Office lot only (building-kit.js): its own glass material on the same atlas and maps, so recess shading never reaches the townhouse, shop, midrise or landmark families.

@@ -21,6 +21,7 @@ export function createLampPools(scene, streetLamps, size = 10) {
       lamps.forEach(([x,z,s=1],i)=>{m.makeScale(spread*s,1,spread*s).setPosition(x,.08,z);mesh.setMatrixAt(i,m);});
       mesh.instanceMatrix.needsUpdate=true;lastWet=wet;
     }
-    mat.opacity = night * (0.5 + wet*.12); mesh.visible = night > 0.01;
+    // A wider wet halo spreads the same light instead of creating extra brightness.
+    mat.opacity = night * 0.5 / (1 + wet * 0.35) ** 2; mesh.visible = night > 0.01;
   } };
 }

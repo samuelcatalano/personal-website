@@ -65,7 +65,7 @@ const rearLights = new Map();
 const frontLights = new Map();
 const parkedLenses = new Map();
 const lampNight = { value: 0 }, texturedLamps = new Map();
-const CAB_ENV_NIGHT = [['cabBody', 0.16], ['cabGlass', 0.28], ['cabTrim', 0.18], ['fleetGlass', 0.2], ['busGlass', 0.0], ['busWheel', 0.35]];
+const CAB_ENV_NIGHT = [['cabBody', 0.16], ['cabGlass', 0.28], ['cabTrim', 0.18], ['fleetGlass', 0.2], ['busWheel', 0.35]];
 export function initVehicleEnv(renderer) {
   if (envTex) return;
   const pm = new THREE.PMREMGenerator(renderer); envTex = pm.fromScene(new RoomEnvironment(), 0.04).texture; pm.dispose();
@@ -78,7 +78,6 @@ export function updateVehicleEnv(night) {
     const m = physCache.get(key); if (m) m.envMapIntensity = m.userData.envDay * (1 - night) + floor * night;
   }
   const glass = physCache.get('glass'); if (glass) glass.envMapIntensity = glass.userData.envDay * (1 - night) + 0.13 * night;
-  const bg = physCache.get('busGlass'); if (bg) { bg.emissive ??= new THREE.Color(); bg.emissive.set('#ffe0b0').multiplyScalar(0.022 * night); } // saloon light through the glass
   const fleetLights = physCache.get('fleetLights'); if (fleetLights) fleetLights.emissiveIntensity = 0.9 * night;
   const lights = physCache.get('cabLights'); if (lights) lights.emissiveIntensity = 0.9 * night;
   for (const m of rearLights.values()) m.emissiveIntensity = 0.8 * night;
@@ -102,6 +101,56 @@ const carPaint = (c) => phys('paint' + c, () => lowAO(new THREE.MeshPhysicalMate
 const busPaint = (c) => phys('busPaint' + c, () => lowAO(new THREE.MeshPhysicalMaterial({ color: c, roughness: 0.45, metalness: 0.05, clearcoat: 0.35, clearcoatRoughness: 0.3, envMapIntensity: 0.06 })));
 // Automotive glass: dark blue-green tint, mirror-like at grazing angles, clearer head-on; vertex colours (where authored) carry the frit border.
 const glass = (key, color, a0, env, vc) => phys(key, () => fresnel(new THREE.MeshPhysicalMaterial({ color, vertexColors: !!vc, roughness: 0.04, metalness: 0, envMapIntensity: env, transparent: true, opacity: a0, depthWrite: false }), a0));
+// The GLBs use closed shells behind the panes. Trace a virtual saloon in bus space
+// so ceiling lights and reflections move at different depths as the camera passes.
+const busGlass = (caio) => phys(caio ? 'caioGlass' : 'busGlass', () => {
+  const material = new THREE.MeshStandardMaterial({ color: '#263b46', roughness: 0.19, envMapIntensity: 0.32 });
+  material.onBeforeCompile = shader => {
+    shader.uniforms.uBusNight = lampNight;
+    const varyings = 'varying vec3 vBusPane, vBusEye;\n';
+    shader.vertexShader = varyings + shader.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+      vBusPane = position;
+      vBusEye = transpose(mat3(modelViewMatrix)) * -(modelViewMatrix * vec4(position, 1.0)).xyz;`);
+    shader.fragmentShader = varyings + `uniform float uBusNight;
+      vec2 busBox(vec3 p, vec3 invRay, vec3 lo, vec3 hi) {
+        vec3 a = (lo - p) * invRay, b = (hi - p) * invRay;
+        vec3 enter = min(a, b), leave = max(a, b);
+        return vec2(max(max(enter.x, enter.y), enter.z), min(min(leave.x, leave.y), leave.z));
+      }
+      ` + shader.fragmentShader.replace('#include <opaque_fragment>', `
+      vec3 view = normalize(vViewPosition), ray = -normalize(vBusEye), p = vBusPane;
+      // Floor/ceiling heights follow the two authored bodies and the double-decker's mid deck.
+      float floorY = ${caio ? '0.87' : 'p.y > 2.65 ? 2.79 : 0.92'};
+      float roofY = ${caio ? '2.69' : 'floorY > 2.0 ? 4.08 : 2.53'};
+      float lengthX = ${caio ? '8.18' : '5.66'};
+      vec3 invRay = mix(vec3(-1.0), vec3(1.0), step(0.0, ray)) / max(abs(ray), vec3(0.0001));
+      vec2 cabin = busBox(p, invRay, vec3(-lengthX, floorY, -1.16), vec3(lengthX, roofY, 1.16));
+      float farWall = max(0.12, cabin.y);
+      float cabinDetail = 1.0 - smoothstep(32.0, 60.0, length(vViewPosition));
+      vec3 hit = p + ray * farWall;
+      float overhead = smoothstep(roofY - 0.09, roofY - 0.02, hit.y);
+      float floorShade = smoothstep(floorY + 0.03, floorY + 0.52, hit.y);
+      float lamp = overhead * (1.0 - smoothstep(0.055, 0.16, abs(abs(hit.z) - 0.52)));
+      vec3 daylight = mix(${caio ? 'vec3(0.12, 0.14, 0.15), vec3(0.24, 0.27, 0.28)' : 'vec3(0.04, 0.045, 0.052), vec3(0.18, 0.19, 0.18)'}, floorShade);
+      vec3 lit = mix(vec3(0.05, 0.055, 0.06), vec3(0.25, 0.26, 0.27), floorShade);
+      vec3 saloon = mix(daylight, lit, uBusNight) + lamp * vec3(0.60, 0.62, 0.64) * uBusNight;
+      if (cabinDetail > 0.001) {
+        if (floorY < 2.0 && p.x > lengthX - 1.05) {
+          vec2 dash = busBox(p, invRay, vec3(lengthX - 1.08, floorY + 0.10, -1.0), vec3(lengthX - 0.18, floorY + 0.56, 1.0));
+          if (dash.x > 0.08 && dash.x < min(dash.y, farWall))
+            saloon = mix(saloon, vec3(0.033, 0.044, 0.050), cabinDetail);
+        }
+      }
+      float grazing = pow(1.0 - clamp(dot(normal, view), 0.0, 1.0), 3.0);
+      vec3 reflected = inverseTransformDirection(reflect(-view, normal), viewMatrix);
+      vec3 sky = mix(vec3(0.09, 0.12, 0.14), vec3(0.33, 0.49, 0.61), smoothstep(-0.08, 0.62, reflected.y));
+      sky *= mix(1.0, 0.22, uBusNight);
+      outgoingLight = mix(saloon, sky, 0.14 + 0.57 * grazing) + outgoingLight * (0.11 + 0.16 * grazing);
+      #include <opaque_fragment>`);
+  };
+  material.customProgramCacheKey = () => caio ? 'caio-saloon-v1' : 'double-decker-saloon-v1';
+  return material;
+});
 const CAR_FINISH = {
   CarChrome: () => phys('chrome', () => new THREE.MeshPhysicalMaterial({ color: '#e4e6e8', roughness: 0.14, metalness: 1, envMapIntensity: 0.7 })),
   CarRim: () => phys('rim', () => new THREE.MeshPhysicalMaterial({ color: '#4a4e54', roughness: 0.28, metalness: 0.85, clearcoat: 0.6, envMapIntensity: 0.5 })),
@@ -123,9 +172,9 @@ const CAB_FINISH = {
 };
 const ROLES = {
   ...CAB_FINISH,
-  BusBody: (v) => busPaint(v.body), BusAccent: (v) => busPaint(v.accent), BusStripe: (v) => busPaint(v.stripe ?? v.body), BusSkirtF: (v) => busPaint(v.skirtF ?? v.accent), BusSweep: (v) => busPaint(v.sweep ?? v.body), BusLilac: (v) => busPaint(v.lilac ?? v.body), BusRear: (v) => busPaint(v.rear ?? v.body), BusMark: (v) => busPaint(v.mark ?? '#f0efe9'), BusMark2: (v) => busPaint(v.mark2 ?? '#1c3f94'), BusTrim: () => fixed('dark'), BusGlass: () => glass('busGlass', '#14252e', 0.82, 0.6),
+  BusBody: (v) => busPaint(v.body), BusAccent: (v) => busPaint(v.accent), BusStripe: (v) => busPaint(v.stripe ?? v.body), BusSkirtF: (v) => busPaint(v.skirtF ?? v.accent), BusSweep: (v) => busPaint(v.sweep ?? v.body), BusLilac: (v) => busPaint(v.lilac ?? v.body), BusRear: (v) => busPaint(v.rear ?? v.body), BusMark: (v) => busPaint(v.mark ?? '#f0efe9'), BusMark2: (v) => busPaint(v.mark2 ?? '#1c3f94'), BusTrim: () => fixed('dark'),
   BusRubber: () => fixed('tyre'), BusMetal: () => fixed('chrome'), BusWheel: () => phys('busWheel', () => new THREE.MeshPhysicalMaterial({ color: '#aeb4ba', roughness: 0.5, metalness: 0.25, envMapIntensity: 0.25 })), BusHeadlight: () => fixed('head'), BusTaillight: () => fixed('tail'), // pressed-steel bus rim (BusWheel), kept matte enough to read under night lighting
-  BusDisplay: (v) => destMat(...v.dest), BusInterior: () => fixed('dark'), // the authored glazing is large: the shared warm 'cabin' glow would flood it cream at night, so the glow comes from busGlass only
+  BusDisplay: (v) => destMat(...v.dest), BusInterior: () => fixed('dark'),
   CarBody: (v) => carPaint(v.body), CarRoof: (v) => carPaint(v.roof), CarStripe: () => carPaint('#f2f0e9'), CarGlass: CAR_FINISH.CarGlass, CarTrim: CAR_FINISH.CarTrim, CarInterior: () => phys('miniInterior', () => new THREE.MeshStandardMaterial({ color: '#655d51', roughness: 0.85, envMapIntensity: 0.18 })), CarPlate: () => fixed('plate'), CarRim: CAR_FINISH.CarRim,
   CarChrome: CAR_FINISH.CarChrome, CarHeadlight: () => fixed('head'), CarTaillight: () => fixed('tail'),
 };
@@ -335,7 +384,8 @@ function upgrade(vehicle, key, v, hero, isDisposed = () => false, axles) {
       o.userData.role = name; // reskinBus maps it back to a livery
       if (name === 'BusDisplay') flipDisplayV(o.geometry);
       if (name === 'BusTaillight') faceRear(o.geometry);
-      if (paintMaterials.has(name)) o.material = fleetPaint(name, v.body);
+      if (name === 'BusGlass') o.material = busGlass(key === 'sao-paulo');
+      else if (paintMaterials.has(name)) o.material = fleetPaint(name, v.body);
       else if (FLEET_FINISH[name] ?? ROLES[name]) o.material = (FLEET_FINISH[name] ?? ROLES[name])(v);
       else if (!v.parked && /^(REAR_TAIL_LIGHT|M_2022_Honda_HR_V_eHEV_BrakeLightsBase)$/i.test(name)) o.material = rearLight(o.material);
       else if (!v.parked && /^(FRONT_DRL_LIGHTS|M_2022_Honda_HR_V_eHEV_(DRLs|HeadLightsBase|HeadLightsGlass))$/i.test(name)) o.material = frontLight(o.material);
@@ -350,6 +400,7 @@ function upgrade(vehicle, key, v, hero, isDisposed = () => false, axles) {
       }
       if (v.parked && o.material.map && /^(Index_0_[12](_SS)?|Index_1_1|BADG|qlight_tex1|Glass_light|Light)$/.test(name)) o.material = parkedLens(o.material);
       if (FLEET_FINISH[name]) o.material.name = name;
+      if (name === 'BusInterior') o.visible = false; // retained in the asset as a fallback backing
       o.castShadow = CASTS.has(name) || name === 'FleetBody' || !!v.shadowMaterials?.includes(name); o.receiveShadow = true;
     });
     adoptVisual(vehicle, glb, ['beam']);
