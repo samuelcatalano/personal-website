@@ -133,3 +133,9 @@ The Tower Bridge GLBs are procedural. No external 3D model, texture or image shi
 - Historical context: [Wikipedia, Tower Bridge](https://en.wikipedia.org/wiki/Tower_Bridge) (construction 1886–1894; Horace Jones and John Wolfe Barry).
 
 Scale decision: the owner, 2026-11-07, kept the frozen envelope, so the bridge is drawn at K = 0.40 of real metres. A real-scale rebuild needs an envelope and sightline review first.
+
+## Mercury Clipper independent asset — 2026-11-09
+
+`assets/uber-boat/exports/uber_boat.glb` and `assets/uber-boat/blender/uber_boat.blend` are original procedural geometry and an originally rasterized 2K livery atlas, created at the owner's explicit request on 2026-11-09. No external 3D model, photograph or downloaded texture is embedded or redistributed. The owner's subsequent request authorized replacing all seven Thames boats with shared instances at uniform 0.40 scene scale, initially preserving their moorings and the river layout. The latest placement correction reduces the runtime fleet to five, only on the Thames, in opposite-facing lanes; Pinheiros and Clyde remain boat-free.
+
+Primary reference sources: [operator fleet](https://www.thamesclippers.com/whats-on-board/fleet), [builder delivery dimensions](https://www.wightshipyard.com/single-post/2017/08/22/wight-shipyard-delivers-iconic-ferries-for-london), [operator Mercury photograph](https://www.thamesclippers.com/media/b3gjs0vs/mx102988.jpg?width=2000&quality=90), and [operator Hunt Mk II floorplan](https://www.thamesclippers.com/media/wm3nr2kw/hunt-mk-ii-floorplan.png). These are references only; their photographs/plans are not relicensed. The nine owner-supplied images were also inspected, with synthetic views subordinate to primary sources. Uber Boat and Thames Clippers branding remain their respective owners' marks and are not declared CC0. Full reference and uncertainty record: [asset reference notes](assets/uber-boat/references/README.md).

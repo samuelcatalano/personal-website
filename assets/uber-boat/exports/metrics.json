@@ -1,0 +1,75 @@
+{
+  "variant": "Mercury Clipper, Hunt Mk II (2017)",
+  "nominal_loa_m": 35.37,
+  "moulded_beam_m": 8.3,
+  "loaded_draft_reference_m": 1.03,
+  "waterline_blender_z": 0,
+  "bow_axis": "+X",
+  "glb_up_axis": "+Y",
+  "source": {
+    "triangles": 48213,
+    "mesh_objects": 23,
+    "materials": 6,
+    "textures": 1,
+    "bounds_blender": {
+      "min": [
+        -17.684999465942383,
+        -4.316999912261963,
+        -1.0299999713897705
+      ],
+      "max": [
+        17.684999465942383,
+        4.316999912261963,
+        5.900000095367432
+      ]
+    },
+    "dimensions_m": [
+      35.369998931884766,
+      8.633999824523926,
+      6.930000066757202
+    ],
+    "degenerate_triangles": 0,
+    "duplicate_triangles": 0
+  },
+  "glb": {
+    "triangles": 48213,
+    "mesh_objects": 6,
+    "materials": 6,
+    "textures": 1,
+    "bounds_blender": {
+      "min": [
+        -17.684999465942383,
+        -4.316999912261963,
+        -1.0299999713897705
+      ],
+      "max": [
+        17.684999465942383,
+        4.316999912261963,
+        5.900000095367432
+      ]
+    },
+    "dimensions_m": [
+      35.369998931884766,
+      8.633999824523926,
+      6.930000066757202
+    ],
+    "degenerate_triangles": 0,
+    "duplicate_triangles": 0
+  },
+  "glb_bytes": 2481368,
+  "glb_materials": [
+    "Seat_upholstery",
+    "Smoked_marine_glass",
+    "Graphite_structure",
+    "Brushed_aluminium",
+    "Mercury_atlas_paint",
+    "Rubber_fenders"
+  ],
+  "texture_size_px": [
+    2048,
+    2048
+  ],
+  "tunnel_clearance_samples": 15,
+  "clean_reimport_passed": true,
+  "extensions_used": []
+}

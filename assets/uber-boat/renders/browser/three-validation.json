@@ -1,0 +1,78 @@
+{
+  "metrics": {
+    "triangles": 48213,
+    "meshes": 6,
+    "materials": 6,
+    "textures": [
+      {
+        "width": 2048,
+        "height": 2048
+      }
+    ],
+    "size": [
+      35.369998931884766,
+      6.930000066757202,
+      8.633999824523926
+    ],
+    "webgl": true
+  },
+  "benchmark": {
+    "viewport": [
+      1440,
+      900
+    ],
+    "pixelRatio": 1,
+    "method": "Three rounds; 20 warmup + 60 samples per state; render plus gl.finish wall time; isolated asset, no city",
+    "rounds": [
+      {
+        "round": 0,
+        "boatVisible": false,
+        "medianMs": 0.30000001192092896,
+        "p95Ms": 8.599999994039536,
+        "calls": 0,
+        "triangles": 0
+      },
+      {
+        "round": 0,
+        "boatVisible": true,
+        "medianMs": 0.5,
+        "p95Ms": 0.7000000178813934,
+        "calls": 7,
+        "triangles": 48349
+      },
+      {
+        "round": 1,
+        "boatVisible": false,
+        "medianMs": 0.10000002384185791,
+        "p95Ms": 0.30000001192092896,
+        "calls": 0,
+        "triangles": 0
+      },
+      {
+        "round": 1,
+        "boatVisible": true,
+        "medianMs": 0.5,
+        "p95Ms": 0.800000011920929,
+        "calls": 7,
+        "triangles": 48349
+      },
+      {
+        "round": 2,
+        "boatVisible": false,
+        "medianMs": 0.10000002384185791,
+        "p95Ms": 0.4000000059604645,
+        "calls": 0,
+        "triangles": 0
+      },
+      {
+        "round": 2,
+        "boatVisible": true,
+        "medianMs": 0.20000001788139343,
+        "p95Ms": 1.0999999940395355,
+        "calls": 7,
+        "triangles": 48349
+      }
+    ]
+  },
+  "consoleErrors": []
+}

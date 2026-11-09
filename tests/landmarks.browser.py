@@ -12,11 +12,11 @@ print(js(r'''(async () => {
   const pts = routePoints(stops.length), bridgeX = towerX(stops, pts);
   const curve = routeCurve(THREE, pts), ambientScene = new Scene();
   const check = (ok, message) => { if (!ok) throw Error(message); };
-  createAmbient(ambientScene, { curve, pts, stops });
+  const ambient = createAmbient(ambientScene, { curve, pts, stops });
+  await ambient.boatsReady;
   ambientScene.updateMatrixWorld(true);
   const boats = ambientScene.children.filter(o => o.isGroup && o.position.y === 0.1 && Math.abs(o.position.z - RIVER_Z) <= 5.1);
-  const expectedBoatStyles = ['launch', 'cruiser', 'service', 'launch', 'cruiser', 'service', 'launch'];
-  check(boats.map(boat => boat.userData.boatStyle).join(',') === expectedBoatStyles.join(','), 'Seven Thames boats must retain their ordered launch/cruiser/service assignment');
+  check(boats.every(boat => boat.userData.boatStyle === 'mercury-clipper'), 'Five Thames boats must use the authored Mercury Clipper');
   const boxes = [];
   const landmarkParts = buildLandmarks((x, y, z, w, h, d, color) => boxes.push({ x, y, z, w, h, d, color }), stops, pts);
   const tb = landmarkParts.details.getObjectByName('towerbridge-geometry'), lay = tb?.userData.layout;
@@ -27,26 +27,17 @@ print(js(r'''(async () => {
   check(Math.abs(tb.position.x - bridgeX) < 1e-6 && Math.abs(tb.position.z - RIVER_Z) < 1e-6, 'Tower Bridge must stay on the crossing centerline');
   check(box.max.y >= 33 && box.max.y <= 36, `Tower height envelope; got ${box.max.y}`);
   const opening = [tz[0] + 3, tz[1] - 3];
-  check(boats.length === 7, `Expected seven Thames boats, all within the bridge opening in z; found ${boats.length}`);
-  const styles = new Set(boats.map(boat => boat.userData.boatStyle));
-  const signatures = [...styles].map(style => {
-    const boat = boats.find(boat => boat.userData.boatStyle === style), counts = [];
-    boat.traverse(o => { if (o.isMesh) counts.push(o.geometry.attributes.position.count); });
-    return counts.sort((a, b) => a - b).join(',');
-  });
-  check(styles.size === 3 && ['launch', 'cruiser', 'service'].every(style => styles.has(style)), `Expected launch, cruiser, and service boat styles; found ${[...styles].join(',')}`);
-  check(signatures.length === 3 && new Set(signatures).size === 3 && signatures.every(Boolean), 'Each boat style must have a distinct mesh position-count signature');
+  check(boats.length === 5, `Expected five Thames boats, all within the bridge opening in z; found ${boats.length}`);
+  check(boats.every(boat => boat.children.length === 1 && boat.children[0].scale.x === .4 && boat.children[0].scale.z === .4), 'All ferries retain uniform scene scale');
   check(box.min.z < RIVER_Z - 15 && box.max.z > RIVER_Z + 15, 'Road deck and abutments must span the river and reach both banks');
   const roadDeck = { y: lay.deckY };
   const boatBounds = boats.map(boat => new Box3().setFromObject(boat));
-  const profiles = ['cruiser', 'launch', 'service'].map(style => Math.max(...boats.filter(boat => boat.userData.boatStyle === style).map(boat => new Box3().setFromObject(boat).max.y)));
   const rolledBoatMaxY = boats.map(boat => {
     const original = boat.rotation.z;
     const maxY = [-.04, .04].map(roll => { boat.rotation.z = roll; boat.updateMatrixWorld(true); return new Box3().setFromObject(boat).max.y; });
     boat.rotation.z = original; boat.updateMatrixWorld(true);
     return Math.max(...maxY);
   });
-  check(profiles[1] - profiles[0] >= .45 && profiles[2] - profiles[1] >= .45, `Boat profiles must rise cruiser < launch < service by at least 0.45m; got ${profiles.join(',')}`);
   check(boatBounds.every(b => b.min.z >= opening[0] && b.max.z <= opening[1]), 'All ambient boat hulls must fit between the towers');
   check(boatBounds.every(b => b.max.y < roadDeck.y), 'All ambient boats must clear the road deck vertically');
   check(rolledBoatMaxY.every(maxY => maxY + .25 < roadDeck.y), 'All ambient boats must clear the road deck through the full 0.25m bob and 0.04-radian roll');

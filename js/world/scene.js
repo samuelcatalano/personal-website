@@ -205,7 +205,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const wellington = details.getObjectByName('wellington-geometry');
   if (wellington) upgradeWellington(wellington, () => disposed).then(wake);
   // Request startup landmarks first; all ambient/parked models still load at full quality.
-  units.push(createAmbient(scene, { curve, pts, stops, reducedMotion, tunnel: routeTunnel, dip: swapTunnel }), createParked(scene, { curve, pts, stops, pilotCrossings }));
+  const ambient = createAmbient(scene, { curve, pts, stops, reducedMotion, tunnel: routeTunnel, dip: swapTunnel });
+  units.push(ambient, createParked(scene, { curve, pts, stops, pilotCrossings }));
   const bridgeCars = createUnderpassTraffic(underpass.passes, { reducedMotion }); scene.add(bridgeCars.group);
   const figure = buildFigure(wake, { reducedMotion });
   const end = curve.getPointAt(1), endTan = curve.getTangentAt(1), near = new THREE.Vector3(-endTan.z, 0, endTan.x).normalize();
@@ -228,7 +229,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     scene.traverse((o) => {
       if (!o.name.startsWith('thames-boat')) return;
       boatBox.setFromObject(o);
-      bounds.push({ x: (boatBox.min.x + boatBox.max.x) / 2, z: (boatBox.min.z + boatBox.max.z) / 2, hx: (boatBox.max.x - boatBox.min.x) / 2, hz: Math.min((boatBox.max.z - boatBox.min.z) / 2, 1.08 * Math.abs(o.scale.z)) });
+      bounds.push({ x: (boatBox.min.x + boatBox.max.x) / 2, z: (boatBox.min.z + boatBox.max.z) / 2, hx: (boatBox.max.x - boatBox.min.x) / 2, hz: Math.min((boatBox.max.z - boatBox.min.z) / 2, o.userData.boatHalfWidth ?? 1.08 * Math.abs(o.scale.z)) });
     });
     return bounds;
   };
@@ -242,6 +243,18 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   });
   scene.add(water.mesh);
   if (water.bankReflection) scene.add(water.bankReflection);
+  ambient.boatsReady.then(() => {
+    if (disposed) return;
+    water.setBoats(boatBounds());
+    const materials = new Set();
+    for (const root of reflectRoots) if (root?.name.startsWith('thames-boat')) root.traverse((o) => {
+      if (!o.isMesh) return;
+      o.layers.enable(5); // Same reflection layer as the river's existing landmark pass.
+      for (const m of [].concat(o.material)) materials.add(m);
+    });
+    for (const m of materials) if (m.isMeshStandardMaterial) landmarkEnv.register(m, { k: 0.7 });
+    wake();
+  });
   if (qa) globalThis.__qaWater = water;
   let wet = 0;
   const post = createPost(renderer, scene, camera, { sun, tier: reducedMotion || matchMedia('(max-width: 767px)').matches ? 'medium' : 'high' });

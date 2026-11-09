@@ -1,0 +1,97 @@
+{
+  "viewport": [
+    1440,
+    900
+  ],
+  "boats": 7,
+  "foam": [
+    [
+      83.92857142857143,
+      -49,
+      7.073999786376959,
+      1.7267999649047852
+    ],
+    [
+      171.75737889527784,
+      -45,
+      7.112193249291934,
+      1.7267999649047852
+    ],
+    [
+      259.61223875893995,
+      -41,
+      7.114921453633855,
+      1.7267999649047852
+    ],
+    [
+      347.4952471035956,
+      -49,
+      7.0809656262446765,
+      1.7267999649047852
+    ],
+    [
+      435.38262807111425,
+      -45,
+      7.108714141028173,
+      1.7267999649047852
+    ],
+    [
+      523.2465743634762,
+      -41,
+      7.116884433738335,
+      1.7267999649047852
+    ],
+    [
+      611.0808390890354,
+      -49,
+      7.087573149172215,
+      1.7267999649047852
+    ]
+  ],
+  "errors": [],
+  "comparison": [
+    {
+      "boatsVisible": false,
+      "tier": "medium",
+      "medianFrameMs": 28.19999998807907,
+      "p95FrameMs": 34.099999994039536,
+      "calls": 2082,
+      "triangles": 15822061
+    },
+    {
+      "boatsVisible": true,
+      "tier": "medium",
+      "medianFrameMs": 27.69999998807907,
+      "p95FrameMs": 32.29999998211861,
+      "calls": 2124,
+      "triangles": 16325416
+    },
+    {
+      "boatsVisible": false,
+      "tier": "medium",
+      "medianFrameMs": 27.900000005960464,
+      "p95FrameMs": 31.099999994039536,
+      "calls": 2095,
+      "triangles": 16089591
+    },
+    {
+      "boatsVisible": true,
+      "tier": "medium",
+      "medianFrameMs": 26.80000001192093,
+      "p95FrameMs": 30.5,
+      "calls": 2146,
+      "triangles": 16626266
+    }
+  ],
+  "note": "Two on/off pairs in live London scene; RAF wall intervals include OS scheduling; visible/hidden compares added ferry cost, not old boat cost.",
+  "nightRuntime": {
+    "night": true,
+    "webglErrors": [],
+    "jsErrors": []
+  },
+  "dayRuntime": {
+    "night": false,
+    "webglErrors": [],
+    "jsErrors": []
+  }
+}

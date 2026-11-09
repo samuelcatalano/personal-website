@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mercury Clipper — asset inspection</title>
+<style>
+  body { margin: 0; background: #d9e2e8; color: #182c38; font: 14px system-ui; }
+  canvas { display: block; }
+  aside { position: fixed; top: 16px; left: 16px; padding: 12px; background: #fffffff0; border-radius: 6px; }
+  button { padding: 6px 10px; margin: 6px 2px 0 0; cursor: pointer; }
+  pre { margin-bottom: 0; }
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.min.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}</script>
+<aside aria-label="Asset inspection">
+  <strong>Mercury Clipper · independent GLB</strong>
+  <div id="views"></div><pre id="status">Loading asset…</pre>
+</aside>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { loadGlb } from '../../js/world/glb-loader.js';
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+document.body.append(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#d9e2e8');
+const pmrem = new THREE.PMREMGenerator(renderer);
+const room = new RoomEnvironment();
+const environment = pmrem.fromScene(room, .04);
+scene.environment = environment.texture;
+room.dispose();
+pmrem.dispose();
+scene.add(new THREE.HemisphereLight(0xe5f1ff, 0x8e969c, 2));
+const sun = new THREE.DirectionalLight(0xfff1db, 3);
+sun.position.set(10, 25, 15);
+scene.add(sun);
+const camera = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, .05, 500);
+const controls = new OrbitControls(camera, renderer.domElement);
+const directions = { front_3q: [1, .55, 1], rear_3q: [-1, .55, -1], left: [0, .07, 1], right: [0, .07, -1], front: [1, .07, 0], rear: [-1, .07, 0], top: [0, 1, .001] };
+const status = document.querySelector('#status');
+try {
+  const boat = await loadGlb('../../assets/uber-boat/exports/uber_boat.glb');
+  scene.add(boat);
+  const bounds = new THREE.Box3().setFromObject(boat);
+  const size = bounds.getSize(new THREE.Vector3());
+  const center = bounds.getCenter(new THREE.Vector3());
+  if (![...size].every(Number.isFinite) || size.x < 30 || size.x > 40 || size.z < 7 || size.z > 10) throw new Error('Invalid metric bounds or axis orientation');
+  const materials = new Set(), textures = new Set();
+  let triangles = 0, meshes = 0;
+  boat.traverse(object => {
+    if (!object.isMesh) return;
+    meshes++;
+    triangles += (object.geometry.index?.count ?? object.geometry.attributes.position.count) / 3;
+    for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
+      materials.add(material);
+      for (const value of Object.values(material)) if (value?.isTexture) textures.add(value);
+    }
+  });
+  function view(name) {
+    if (!directions[name]) throw new Error('Unknown view');
+    const direction = new THREE.Vector3(...directions[name]).normalize();
+    const right = new THREE.Vector3().crossVectors(camera.up, direction).normalize();
+    const up = new THREE.Vector3().crossVectors(direction, right);
+    const extent = axis => Math.abs(axis.x) * size.x / 2 + Math.abs(axis.y) * size.y / 2 + Math.abs(axis.z) * size.z / 2;
+    const tangent = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+    const distance = extent(direction) + 1.15 * Math.max(extent(up) / tangent, extent(right) / (tangent * camera.aspect));
+    camera.position.copy(center).addScaledVector(direction, distance);
+    camera.up.set(0, 1, 0);
+    controls.target.copy(center);
+    controls.update();
+    renderer.render(scene, camera);
+  }
+  for (const name of Object.keys(directions)) {
+    const button = document.createElement('button');
+    button.textContent = name.replaceAll('_', ' ');
+    button.onclick = () => view(name);
+    document.querySelector('#views').append(button);
+  }
+  const metrics = { triangles, meshes, materials: materials.size, textures: [...textures].map(t => ({ width: t.image.width, height: t.image.height })), size: size.toArray(), webgl: renderer.capabilities.isWebGL2 };
+  window.boatPreview = { renderer, scene, camera, view, metrics, ready: true };
+  view('front_3q');
+  status.textContent = JSON.stringify(metrics, null, 2);
+  renderer.setAnimationLoop(() => renderer.render(scene, camera));
+} catch (error) {
+  status.textContent = error.stack;
+  window.boatPreview = { ready: false, error: error.message };
+  console.error(error);
+}
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</html>

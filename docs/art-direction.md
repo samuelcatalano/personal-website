@@ -22,6 +22,10 @@ Technical release is separate: [final validation](architecture/rendering-budget.
 
 The user reopened visuals only for the seven existing Thames boats. Their procedural silhouettes may change; all rivers and water, bridges, routes, lighting and other frozen city visuals remain unchanged.
 
+**2026-11-09 initial owner update:** the seven Thames boats were replaced with the authored Mercury Clipper GLB at uniform 0.40 scale (14.148 m long, 3.454 m wide), initially keeping existing moorings and headings. River foam bounds follow the replacement envelope; the existing reflection pass and day/night environment are reused. Desktop day/night captures, shared-resource/fallback/disposal checks and Tower Bridge clearance passed. Mobile was not tested. See `assets/uber-boat/README.md` for evidence and visual limitations.
+
+**2026-11-09 river placement correction:** the owner reduced the fleet to five, solely on the Thames. Three face east and two west in separate lanes at river centre ±4 m. Placement ends at London’s suburban edge; Pinheiros and Clyde remain boat-free. Scale, river geometry, camera, menu and loading are unchanged.
+
 ## Visual principles
 
 - Believable proportions and human scale; clear facade hierarchy and clean silhouettes.

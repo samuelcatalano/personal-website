@@ -155,8 +155,11 @@ export function createWater({ x0, x1, z, width, reducedMotion = false, piers = [
   u.tDetail.value = getDetail(); u.tRefl.value = rt.texture; // after merge: UniformsUtils.merge clones textures
   piers.slice(0, MAX_PIERS).forEach((p, i) => u.uPiers.value[i].set(p.x, p.z, p.hx, p.hz));
   u.uPierN.value = Math.min(piers.length, MAX_PIERS);
-  boats.slice(0, MAX_BOATS).forEach((b, i) => u.uBoats.value[i].set(b.x, b.z, b.hx, b.hz));
-  u.uBoatN.value = Math.min(boats.length, MAX_BOATS);
+  const setBoats = (boats) => {
+    boats.slice(0, MAX_BOATS).forEach((b, i) => u.uBoats.value[i].set(b.x, b.z, b.hx, b.hz));
+    u.uBoatN.value = Math.min(boats.length, MAX_BOATS);
+  };
+  setBoats(boats);
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.set((x0 + x1) / 2, Y, z);
   // Planar reflection (Reflector-style mirrored camera with an oblique near plane at the waterline, so no shader variants).
@@ -194,7 +197,7 @@ export function createWater({ x0, x1, z, width, reducedMotion = false, piers = [
     return frustum.intersectsBox(box);
   };
   return {
-    mesh, bankReflection,
+    mesh, bankReflection, setBoats,
     get reflectMode() { return lastMode; }, // read by QA probes
     update(time, night, mood, tier = 'high', skyColors, sunDir) {
       u.uTime.value = reducedMotion ? 0 : time;

@@ -16,7 +16,7 @@ test('Thames boat foam uses hull-shaped bounds and a narrow band separate from p
   assert.ok(/FOAM_WIDTH = 1\.4, BOAT_FOAM_WIDTH = 0\.35/.test(water), 'boat foam width is narrower while pier width is unchanged');
   assert.ok(/uniform vec4 uBoats\[\$\{MAX_BOATS\}\]/.test(water), 'shader receives boat hull bounds separately');
   assert.ok(/uBoatFoamW: \{ value: BOAT_FOAM_WIDTH \}/.test(water), 'shader gets the narrower boat width');
-  assert.ok(/u\.uBoatN\.value = Math\.min\(boats\.length, MAX_BOATS\)/.test(water), 'shader gets the seven hull bounds');
+  assert.ok(/u\.uBoatN\.value = Math\.min\(boats\.length, MAX_BOATS\)/.test(water), 'shader gets the active hull bounds');
   assert.ok(/float capsuleDist\(/.test(water), 'boat bounds use a capsule distance field');
   assert.ok(/boats\.slice\(0, MAX_BOATS\)\.forEach/.test(water), 'hull bounds are initialized with the water shader');
   assert.ok(/smoothstep\(-0\.08, uBoatFoamW/.test(water), 'boat foam stays in a narrow band around the hull');

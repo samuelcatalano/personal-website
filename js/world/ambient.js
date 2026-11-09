@@ -2,11 +2,14 @@ import * as THREE from 'three';
 import { createBoat, estaiadaRoute } from './landmark-geometry.js';
 import { buildVehicle } from './vehicles.js';
 import { upgradeBus, reskinBus, upgradeMini, upgradeCab, loadFleetCatalog, loadVehicleAsset, regionalFleetModel, upgradeFleet, rollWheels } from './vehicle-assets.js';
-import { RIVER_Z, LANDMARKS, ukStart, stopIndex, swapAt, secondaryBusAssetAt, scotRange, riverEnd, riverStart } from './layout.js';
+import { RIVER_Z, LANDMARKS, ukStart, stopIndex, swapAt, secondaryBusAssetAt, scotRange, regions } from './layout.js';
 import { stopMarks, fineMarks, routeT } from '../scroll.js';
 import { addBeams, refitBeams } from './beams.js';
 import { fadeVehicle, disposeFade } from './fade.js';
 import { PORTAL } from './route-tunnel.js';
+import { loadGlb } from './glb-loader.js';
+let thamesBoat;
+const THAMES_BOAT_SCALE = 0.4; // Match the compressed landmark/river scale; never stretch individual axes.
 const cab = () => buildVehicle('cab'); // London black cab (LEVC TX)
 const car = (type, color) => buildVehicle(type, { color });
 function boat(hull = '#6b4f3a', cabin = '#f4f4f4', sx = 1, style = 'cruiser') {
@@ -140,15 +143,29 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false,
   }));
   const zebras = stops.map((_, i) => curve.getPointAt(Math.min(1, i / (stops.length - 1) + ZEBRA_AT / len)));
   const auto = traffic.filter((v) => !v.relative);
-  // Thames only: none on the Pinheiros
-  const bx = pts[ukStart(stops)].x - 15, bw = riverEnd(stops, pts) - bx;
+  // Thames only: stop at London's suburban edge, before the Clyde/Glasgow stretch.
+  const bx = pts[ukStart(stops)].x - 15, bw = regions(stops, pts)[0].sub[1] - bx;
   const boatPalette = [['#6b4f3a', '#f4f4f4', 1], ['#2b4a7a', '#f4f4f4', 1.2], ['#a8442f', '#e0c880', 0.85], ['#2f6b4a', '#f4f4f4', 1.1]];
-  const boatStyles = ['launch', 'cruiser', 'service', 'launch', 'cruiser', 'service', 'launch'];
-  const boats = Array.from({ length: 7 }, (_, i) => {
+  const boatStyles = ['launch', 'cruiser', 'service', 'launch', 'cruiser'];
+  const boats = Array.from({ length: 5 }, (_, i) => {
     const mesh = boat(...boatPalette[i % 4], boatStyles[i]);
-    mesh.position.set(bx + bw * (i + 0.5) / 7, 0.1, RIVER_Z + ((i % 3) - 1) * 4);
+    mesh.position.set(bx + bw * (i + 0.5) / 5, 0.1, RIVER_Z + (i % 2 ? 4 : -4));
+    mesh.rotation.y = i % 2 ? Math.PI : 0;
     scene.add(mesh);
     return mesh;
+  });
+  const boatsReady = (thamesBoat ??= loadGlb(new URL('../../assets/uber-boat/exports/uber_boat.glb', import.meta.url).href).catch(() => null)).then((source) => {
+    if (!source || disposed) return;
+    boats.forEach((mesh) => {
+      const visual = source.clone(true);
+      visual.name = 'mercury-clipper-visual';
+      visual.scale.setScalar(THAMES_BOAT_SCALE);
+      mesh.clear();
+      mesh.scale.setScalar(1);
+      mesh.add(visual);
+      mesh.userData.boatStyle = 'mercury-clipper';
+      mesh.userData.boatHalfWidth = 8.634 * THAMES_BOAT_SCALE / 2;
+    });
   });
   const invP = (t) => { let a = 0, b = 1; for (let i = 0; i < 30; i++) { const m = (a + b) / 2; if (routeT(m, pts.length, knots) < t) a = m; else b = m; } return (a + b) / 2; }; // route progress for a curve t
   bridge.forEach((b) => { if (b.phase === 'road') b.p = invP(b.t0); });
@@ -163,7 +180,8 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false,
   traffic.forEach((v) => { v.mesh.rotation.order = 'YZX'; }); // yaw, then ramp pitch (route-start tunnel, SP -> London dip)
   const frustum = new THREE.Frustum(), pv = new THREE.Matrix4(), ball = new THREE.Sphere(), SEEN_MARGIN = 4, tmp = new THREE.Vector3(), here = new THREE.Vector3(), nrm = new THREE.Vector3(), swap = swapAt(stops), [scotIn, scotOut] = scotRange(stops), wrap = (p) => ((p % 1) + 1) % 1;
   return {
-    ready: Promise.all([ready, bridgeReady]),
+    boatsReady,
+    ready: Promise.all([ready, bridgeReady, boatsReady]),
     dispose() { disposed = true; traffic.forEach((v) => disposeFade(v.mesh)); scene.remove(contacts); contacts.dispose(); shadowGeometry.dispose(); shadowMaterial.dispose(); },
     update({ time, t: route, dt = 0, camera }) {
       let seen = () => false; // ponytail: no camera (tests) = nothing is on screen
@@ -276,8 +294,8 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false,
       });
       contacts.instanceMatrix.needsUpdate = true;
       boats.forEach((b, i) => {
-        b.position.y = 0.1 + Math.sin(time * 1.1 + i * 2) * 0.25;
-        b.rotation.z = Math.sin(time * 0.9 + i) * 0.04;
+        b.position.y = 0.1 + (reducedMotion ? 0 : Math.sin(time * 1.1 + i * 2) * 0.25);
+        b.rotation.z = reducedMotion ? 0 : Math.sin(time * 0.9 + i) * 0.04;
       });
     },
   };
