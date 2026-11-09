@@ -181,10 +181,12 @@ body.world-loading:not(.world-ready, .no-webgl, .intro-on) #loading { display: f
 .intro-mouse .divider { fill: none; stroke: var(--ticket-ink); stroke-width: 2; stroke-linecap: round; }
 .intro-mouse .sonar { fill: none; stroke: var(--ticket-red); stroke-width: 1.5; opacity: 0; transform-box: fill-box; transform-origin: center; animation: intro-sonar 2s ease-out infinite; }
 .intro-mouse .wheel { fill: var(--ticket-red); animation: intro-wheel 2s ease-in-out infinite; }
+#intro[data-dir="up"] .intro-mouse .wheel { animation-name: intro-wheel-up; }
 .intro-mouse .arrow { fill: none; stroke: var(--ticket-muted); stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; opacity: .7; }
 #intro[data-dir="up"] .intro-mouse .up, #intro[data-dir="down"] .intro-mouse .down { stroke: var(--ticket-red); }
 .intro-mouse .touch { display: none; fill: #a8202830; stroke: var(--ticket-red); stroke-width: 3; }
 @keyframes intro-wheel { 0%, 20%, 100% { transform: translateY(0); } 50%, 65% { transform: translateY(5px); } }
+@keyframes intro-wheel-up { 0%, 20%, 100% { transform: translateY(0); } 50%, 65% { transform: translateY(-5px); } }
 @keyframes intro-sonar { 0%, 15% { opacity: 0; transform: scale(.8); } 25% { opacity: .45; } 75%, 100% { opacity: 0; transform: scale(2); } }
 @keyframes intro-swipe { 0%, 100% { transform: translateY(12px); } 50% { transform: translateY(-12px); } }
 @media (pointer: coarse) {
@@ -402,12 +404,13 @@ body.theme-night .detail .stamp { color: color-mix(in srgb, var(--city) 50%, #ff
   .panel .linkish { display: inline-flex; align-items: center; min-height: 44px; }
 }
 /* Intro v3: the button carries the progress then becomes the call to start; key caps; a windshield that drives; years on the line; compact and night variants */
-[data-intro-skip] { min-width: 232px; background: var(--ticket-red); color: #fff8ec; border-color: transparent !important; font-variant-numeric: tabular-nums; transition: background .25s, color .25s; }
+[data-intro-skip] { min-width: 232px; background: var(--ticket-red); color: #fff8ec; border-color: transparent !important; font-variant-numeric: tabular-nums; transition: background .4s ease, color .4s ease, border-color .4s ease; }
 [data-intro-skip]:disabled { background: transparent; color: var(--ticket-muted); border-color: var(--ticket-line) !important; cursor: progress; }
-[data-intro-skip]:not(:disabled) { animation: cta-pulse 2.2s ease-out infinite; }
+[data-intro-skip]:not(:disabled) { animation: intro-ready .45s ease-out, cta-pulse 2.2s .45s ease-out infinite; }
 [data-intro-skip]:not(:disabled):hover, [data-intro-skip]:not(:disabled):focus-visible { background: #841920; color: #fff8ec; }
 #intro.bell [data-intro-skip]:disabled { background: var(--ticket-red); color: #fff8ec; border-color: transparent !important; animation: none; }
 @keyframes cta-pulse { 0% { box-shadow: 0 0 0 0 rgba(168, 32, 40, .45); } 70%, 100% { box-shadow: 0 0 0 12px rgba(168, 32, 40, 0); } }
+@keyframes intro-ready { from { transform: translateY(2px); } to { transform: translateY(0); } }
 #intro-hint kbd { display: inline-grid; place-items: center; min-width: 24px; height: 24px; margin: 0 2px; padding: 0 6px; border: 1px solid var(--ticket-line); border-bottom-width: 3px; border-radius: 5px; background: #fffaf0; font: 700 13px/1 var(--sans); color: var(--ticket-ink); vertical-align: middle; }
 .live-view { animation: drift 28s ease-in-out infinite alternate; }
 @keyframes drift { from { transform: scale(1.02) translateX(-1%); } to { transform: scale(1.08) translateX(1%); } }
