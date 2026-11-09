@@ -177,19 +177,18 @@ body.world-loading:not(.world-ready, .no-webgl, .intro-on) #loading { display: f
 .intro-guide { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 10px; }
 #intro-hint { margin: 0; font-size: 14px; font-weight: 600; color: var(--ticket-ink); }
 .intro-mouse { flex: none; overflow: visible; }
-.intro-mouse .body { fill: var(--ticket); stroke: var(--ticket-ink); stroke-width: 3; }
-.intro-mouse .wheel { fill: var(--ticket-red); animation: intro-wheel 1.4s ease-in-out infinite; }
-.intro-mouse .arrow { fill: none; stroke: var(--ticket-muted); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-.intro-mouse .arrow.up { animation: intro-nudge-up 1.4s ease-in-out infinite; }
-.intro-mouse .arrow.down { animation: intro-nudge-down 1.4s .7s ease-in-out infinite; }
+.intro-mouse .body { fill: var(--ticket); stroke: var(--ticket-ink); stroke-width: 2.5; }
+.intro-mouse .divider { fill: none; stroke: var(--ticket-ink); stroke-width: 2; stroke-linecap: round; }
+.intro-mouse .sonar { fill: none; stroke: var(--ticket-red); stroke-width: 1.5; opacity: 0; transform-box: fill-box; transform-origin: center; animation: intro-sonar 2s ease-out infinite; }
+.intro-mouse .wheel { fill: var(--ticket-red); animation: intro-wheel 2s ease-in-out infinite; }
+.intro-mouse .arrow { fill: none; stroke: var(--ticket-muted); stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; opacity: .7; }
 #intro[data-dir="up"] .intro-mouse .up, #intro[data-dir="down"] .intro-mouse .down { stroke: var(--ticket-red); }
 .intro-mouse .touch { display: none; fill: #a8202830; stroke: var(--ticket-red); stroke-width: 3; }
-@keyframes intro-wheel { 50% { transform: translateY(6px); } }
-@keyframes intro-nudge-up { 50% { transform: translateY(-4px); } }
-@keyframes intro-nudge-down { 50% { transform: translateY(4px); } }
+@keyframes intro-wheel { 0%, 20%, 100% { transform: translateY(0); } 50%, 65% { transform: translateY(5px); } }
+@keyframes intro-sonar { 0%, 15% { opacity: 0; transform: scale(.8); } 25% { opacity: .45; } 75%, 100% { opacity: 0; transform: scale(2); } }
 @keyframes intro-swipe { 0%, 100% { transform: translateY(12px); } 50% { transform: translateY(-12px); } }
 @media (pointer: coarse) {
-  .intro-mouse .body, .intro-mouse .wheel { display: none; }
+  .intro-mouse .body, .intro-mouse .wheel, .intro-mouse .divider, .intro-mouse .sonar { display: none; }
   .intro-mouse .touch { display: block; animation: intro-swipe 1.6s ease-in-out infinite; }
 }
 #intro .status {
