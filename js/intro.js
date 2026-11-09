@@ -105,7 +105,7 @@ export function createIntro(root, { onDrive = () => {} } = {}) {
     setTimeout(close, 1300);
   };
   const step = (dy, direction = dy) => {
-    if (!active || !dy) return;
+    if (!active || bellTimer || !dy) return;
     if (!interacted) p = auto; // take over from the loading ride without a jump
     interacted = true;
     root.dataset.dir = direction > 0 ? 'down' : 'up';
@@ -141,6 +141,7 @@ export function createIntro(root, { onDrive = () => {} } = {}) {
     if (!active || bellTimer) return;
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) { dismiss(); return; }
     bellTimer = setTimeout(() => dismiss({ reveal: true }), 900);
+    onDrive(null); // let the camera return while the opaque intro is still visible
     root.classList.add('bell');
     paintBlind();
     if (!soundsPlayed) { soundsPlayed = 'bell'; ding(); }

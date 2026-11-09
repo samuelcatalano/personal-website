@@ -418,6 +418,8 @@ body.theme-night .detail .stamp { color: color-mix(in srgb, var(--city) 50%, #ff
 .road { margin-bottom: 28px; }
 .road .node b { position: absolute; top: 13px; left: 50%; transform: translateX(-50%); font: 600 9.5px/1 var(--sans); color: var(--ticket-muted); pointer-events: none; }
 .road .node.here b { color: var(--ticket-red); font-weight: 800; }
+.road .node.here b { animation: intro-year-arrive .4s ease-out; }
+@keyframes intro-year-arrive { from { transform: translateX(-50%) translateY(3px); opacity: .55; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
 @media (max-height: 820px) {
   .intro-card { gap: 10px; padding: 16px 20px; }
   .intro-windshield { height: clamp(104px, 20vh, 140px); }
