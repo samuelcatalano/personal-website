@@ -7,6 +7,7 @@ result = js(r'''(async () => {
   const T = await import('three');
   const { untone } = await import('./js/world/sky.js');
   const { createWetSurfaces } = await import('./js/world/wet-surfaces.js');
+  const { createVehicleFx } = await import('./js/world/vehicle-fx.js');
   const { blockMaterial } = await import('./js/world/textures.js');
   const { townhouseMaterials } = await import('./js/world/building-slice-materials.js');
   const { PALETTE: P } = await import('./js/world/palette.js');
@@ -28,23 +29,33 @@ result = js(r'''(async () => {
   atlasGeometry.setAttribute('color', new T.Float32BufferAttribute(new Float32Array(count * 3).fill(1), 3));
   const atlas = new T.Mesh(atlasGeometry, architecture); atlas.position.set(8, 2, 0); scene.add(atlas);
   const roofMesh = new T.Mesh(geometry, roof); roofMesh.position.set(-8, 3, 0); scene.add(roofMesh);
-  const excluded = [new T.MeshStandardMaterial({color:P.glass,name:'slice-glass'}), blockMaterial(P.grass), blockMaterial(P.road,{glow:true}), new T.MeshStandardMaterial({color:P.pave,transparent:true}), new T.MeshBasicMaterial({color:P.road})];
+  const excluded = [new T.MeshStandardMaterial({color:P.glass,name:'slice-glass'}), blockMaterial(P.grass), new T.MeshStandardMaterial({color:P.pave,transparent:true}), new T.MeshBasicMaterial({color:P.road})];
   const excludedHooks = excluded.map(m=>m.onBeforeCompile);
   for (const material of excluded) { const mesh = new T.Mesh(geometry, material); mesh.position.z = -20; scene.add(mesh); }
+  const glowingRoad = blockMaterial(P.road,{glow:true}), roadHook = glowingRoad.onBeforeCompile;
+  const glowingRoadMesh = new T.Mesh(geometry, glowingRoad); glowingRoadMesh.position.z = -30; scene.add(glowingRoadMesh);
   const originalSceneHook = scene.onBeforeRender;
   const lamps = [[9,0],[1,0],[8,0],[2,0],[7,0],[3,0],[6,0],[4,0],[5,0],[10,0]];
   const mood = {zen:[.435,.694,.91],hor:[.725,.863,.961]}, bus = new T.Vector3(2, 0, 2);
+  const vehicleFx = createVehicleFx(scene);
   let wet, other;
   try {
     wet = createWetSurfaces(scene, {lamps});
+    check(glowingRoad.onBeforeCompile!==roadHook, 'glowing road must retain wet reflections');
     check(excluded.every((m,i)=>m.onBeforeCompile===excludedHooks[i]), 'glass/vegetation/emissive/transparent/basic material must stay untouched');
     wet.update(3, 1, 1, .8, new T.Vector3(), mood, bus, 0, 'high');
     camera.position.set(0, 8, 0); camera.up.set(0, 0, -1); camera.lookAt(0, 0, 0); camera.updateMatrixWorld();
     renderer.compile(scene, camera);
     renderer.setRenderTarget(target); renderer.render(scene, camera);
+    const render = renderer.render;
+    renderer.render = function(...args) { check(!vehicleFx.points.visible, 'vehicle spray must be hidden in the reflection'); return render.apply(this, args); };
+    try { wet.reflect(renderer, camera, 'medium', [vehicleFx.points]); } finally { renderer.render = render; }
+    check(vehicleFx.points.visible, 'vehicle spray must remain visible in the main scene');
+    check(renderer.getRenderTarget()===target, 'reflection must restore the render target');
     check(shaders.has(floor) && shaders.has(architecture) && shaders.has(roof), 'standard and atlas shaders must really compile');
     check(renderer.info.programs.every(p=>p.diagnostics?.runnable !== false), 'wet shader failed WebGL linking');
     const shader = shaders.get(floor), atlasShader = shaders.get(architecture), u = shader.uniforms;
+    check(u.uWetReflect.value===1 && u.uWetReflection.value.image.width===16, 'wet road must receive a scene reflection at the tier resolution');
     check(shader.vertexShader.includes('wetPosition = instanceMatrix * wetPosition') && shader.vertexShader.indexOf('vec4 wetPosition') > shader.vertexShader.indexOf('#include <project_vertex>'), 'world varying must use transformed and instanced position after project_vertex');
     check(shader.fragmentShader.includes('diffuseColor *= texture2D(map, tuv)') && atlasShader.fragmentShader.includes('sliceSample'), 'existing block and metric-atlas shader hooks must remain intact');
     check(shader.fragmentShader.indexOf('diffuseColor.rgb *= 1.0 -') < shader.fragmentShader.indexOf('#include <lights_physical_fragment>'), 'wet albedo must darken before physical lighting');
@@ -84,10 +95,10 @@ result = js(r'''(async () => {
     check(floor.onBeforeCompile===chained[0], 'cached materials must register cleanly again after disposal');
     return {pass:true,programs:renderer.info.programs.length,dryTop,wetTop,dryWall,wetWall};
   } finally {
-    wet?.dispose(); other?.dispose();
+    wet?.dispose(); other?.dispose(); vehicleFx.dispose();
     for (const {material,before,key} of originals) {material.onBeforeCompile=before;material.customProgramCacheKey=key;material.needsUpdate=true;}
     renderer.setRenderTarget(null); target.dispose(); renderer.dispose(); geometry.dispose(); atlasGeometry.dispose();
-    floor.dispose(); roof.dispose(); excluded.forEach(m=>m.dispose());
+    floor.dispose(); roof.dispose(); glowingRoad.dispose(); excluded.forEach(m=>m.dispose());
   }
 })()''')
 print(result)

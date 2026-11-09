@@ -30,6 +30,7 @@ export function createVehicleFx(scene, { reducedMotion = false } = {}) {
   };
   const rnd = (a, b) => a + Math.random() * (b - a);
   return {
+    points,
     // p: world position of the vehicle, h: yaw, len/half: its size, speed in m/s, rain/cold 0..1, night 0..1, halfH: drawing-buffer height / 2
     update(dt, { p, h, len, halfW, speed, rain, cold, night, halfH }) {
       if (!dt) return;

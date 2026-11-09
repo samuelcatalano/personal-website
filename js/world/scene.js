@@ -167,7 +167,15 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const people = createPeople({ curve, pts, stops, obstacles: kioskClearance, reducedMotion });
   const units = [await createNpc3d(scene, { people, pts, stops })]; // finish startup NPCs before the bulk fleet can occupy the download queue
   let disposed = false, raf = 0, landmarksReady = false, startupLandmarksCancelled = false;
-  initVehicleEnv(renderer); upgradeMini(mini, { isDisposed: () => disposed }).then(() => refitBeams(mini)); upgradeBus(londonBus, 'london', { isDisposed: () => disposed }).then(() => refitBeams(londonBus)); upgradeBus(glasgowBus, 'glasgow', { isDisposed: () => disposed }).then(() => refitBeams(glasgowBus)); // authored shared London/Glasgow bus GLB
+  const wetReflectionHidden = [];
+  initVehicleEnv(renderer);
+  upgradeMini(mini, { isDisposed: () => disposed }).then(() => {
+    refitBeams(mini);
+    // Brake discs share this chrome mesh and reflect as bright circles under the car.
+    const chrome = mini.getObjectByName('Body_CarChrome');
+    if (chrome) wetReflectionHidden.push(chrome);
+  });
+  upgradeBus(londonBus, 'london', { isDisposed: () => disposed }).then(() => refitBeams(londonBus)); upgradeBus(glasgowBus, 'glasgow', { isDisposed: () => disposed }).then(() => refitBeams(glasgowBus)); // authored shared London/Glasgow bus GLB
   loadVehicleAsset('a330').then((glb) => { if (glb && !disposed) adoptVisual(plane, glb, ['nav', 'strobe']); }); // authored A330 (tools/vehicles/a330); procedural stays on failure
   const wake = () => { if (landmarksReady && !disposed && !raf && !document.hidden) raf = requestAnimationFrame(frame); };
   const startupLandmarks = [];
@@ -210,6 +218,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const pools = createLampPools(scene, lamps);
   const sky = createSky(scene, { hemi, sun, reducedMotion }), moodAt = createMood(stops), rain = createRain(scene, { reducedMotion, lamps });
   const wetSurfaces = createWetSurfaces(scene, { lamps, reducedMotion }), vehicleFx = createVehicleFx(scene, { reducedMotion });
+  wetReflectionHidden.push(...sky.objects);
+  if (vehicleFx.points) wetReflectionHidden.push(vehicleFx.points);
   // Foam rings Tower Bridge's piers and moored boats. The river reflects landmarks and bank-side lots.
   const piers = [], tb = towerX(stops, pts), boatBox = new THREE.Box3(), reflectRoots = [eye];
   for (const tz of [-9.5, 9.5]) piers.push({ x: tb, z: RIVER_Z + tz, hx: 3.1, hz: 2.9 });
@@ -423,6 +433,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       }
     }
     water.reflect(renderer, scene, camera, post.tier, sky.objects);
+    wetSurfaces.reflect(renderer, camera, post.tier, wetReflectionHidden);
     post.render(dt);
     if (shotResolve) { const done = shotResolve; shotResolve = null; canvas.toBlob(done, 'image/png'); } // same task as the render: the drawing buffer is still valid
     if (qa) globalThis.__qaWorldFrames++;

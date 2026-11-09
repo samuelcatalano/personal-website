@@ -15,6 +15,7 @@ function uniforms() {
     uWetSky: { value: new THREE.Color('#6fb1e8') }, uWetHorizon: { value: new THREE.Color('#b9dcf5') },
     uWetLamps: { value: Array.from({ length: 4 }, () => new THREE.Vector3(0, -10000, 0)) },
     uWetBus: { value: new THREE.Vector3(0, -10000, 0) }, uWetHeading: { value: new THREE.Vector2(1, 0) },
+    uWetReflection: { value: null }, uWetProjection: { value: new THREE.Matrix4() }, uWetReflect: { value: 0 },
   };
 }
 
@@ -22,6 +23,9 @@ const fragment = `
 uniform float uWet, uWeatherTime, uWetRain, uWetNight, uWetAnimate, uWetHigh;
 uniform vec3 uWetSky, uWetHorizon, uWetLamps[4], uWetBus;
 uniform vec2 uWetHeading;
+uniform sampler2D uWetReflection;
+uniform mat4 uWetProjection;
+uniform float uWetReflect;
 varying vec3 vWetWorld;
 float wetHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float wetNoise(vec2 p) {
@@ -40,19 +44,17 @@ const surface = `
 // Compute exposure before rain perturbs the shading normal: walls stay dry.
 vec3 wetWorldNormal = inverseTransformDirection(normal, viewMatrix);
 float wetMask = uWet * smoothstep(0.45, 0.85, wetWorldNormal.y);
-float wetPuddle = 0.0, wetSheen = 0.0;
+float wetPuddle = 0.0, wetRoad = 0.0;
 // ponytail: ground-level puddles stay off shared roof faces; add surface tags if elevated decks need puddles.
 if (wetMask > 0.001 && vWetWorld.y < 0.4) {
   // Dark base colour = asphalt; light = pavement. Pools cluster in low-frequency basins and stay small with feathered edges.
-  float wetRoad = 1.0 - smoothstep(0.16, 0.30, dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11)));
-  wetSheen = wetMask * wetRoad; // wet asphalt reflects everywhere, puddles only add
+  wetRoad = 1.0 - smoothstep(0.16, 0.30, dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11)));
   float basin = wetNoise(vWetWorld.xz * 0.09 + 7.0);
-  float pool = wetNoise(vWetWorld.xz * 0.55) * 0.65 + wetNoise(vWetWorld.xz * 1.9) * 0.35;
-  float edge = mix(0.80, 0.73, wetRoad) - 0.10 * smoothstep(0.45, 0.8, basin);
-  wetPuddle = wetMask * smoothstep(edge, edge + 0.10, pool) * (0.45 + 0.55 * wetRoad);
+  float pool = wetNoise(vWetWorld.xz * 0.42) * 0.8 + wetNoise(vWetWorld.xz * 1.1) * 0.2;
+  float edge = mix(0.81, 0.75, wetRoad) - 0.08 * smoothstep(0.45, 0.8, basin);
+  wetPuddle = wetMask * smoothstep(edge, edge + 0.16, pool) * (0.45 + 0.55 * wetRoad);
 }
 diffuseColor.rgb *= 1.0 - 0.30 * wetMask * (0.5 + 0.5 * mix(0.4, 1.0, wetNoise(vWetWorld.xz * 0.3)));
-diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 1.5 + 0.03, wetPuddle * 0.6);
 roughnessFactor = mix(roughnessFactor, max(0.22, roughnessFactor * 0.45), wetMask);
 roughnessFactor = mix(roughnessFactor, 0.12, wetPuddle);
 float wetGlint = 0.0;
@@ -67,12 +69,19 @@ if (uWetHigh > 0.5 && uWetAnimate > 0.5 && uWetRain > 0.01 && wetPuddle > 0.001)
 }
 `;
 const reflection = `
-if (wetPuddle > 0.001) {
+if (wetMask > 0.001 && (wetPuddle > 0.001 || wetRoad > 0.001)) {
   vec3 wetView = normalize(vViewPosition);
   vec3 wetRay = inverseTransformDirection(reflect(-wetView, normal), viewMatrix);
   float wetFresnel = pow(1.0 - clamp(dot(normal, wetView), 0.0, 1.0), 3.0);
   vec3 wetSky = mix(uWetHorizon, uWetSky, smoothstep(0.0, 0.7, wetRay.y));
-  outgoingLight = mix(outgoingLight, wetSky, wetPuddle * (0.5 + 0.4 * wetFresnel));
+  vec4 wetCoord = uWetProjection * vec4(vWetWorld, 1.0);
+  vec2 wetUv = wetCoord.xy / max(wetCoord.w, 0.001);
+  if (uWetReflect > 0.5 && wetCoord.w > 0.0 && all(greaterThanEqual(wetUv, vec2(0.0))) && all(lessThanEqual(wetUv, vec2(1.0)))) {
+    vec4 reflected = texture2D(uWetReflection, wetUv);
+    wetSky = mix(wetSky, reflected.rgb, reflected.a);
+  }
+  float reflectionAmount = wetMask * wetRoad * (0.035 + 0.15 * wetFresnel) + wetPuddle * (0.12 + 0.35 * wetFresnel);
+  outgoingLight = mix(outgoingLight, wetSky, clamp(reflectionAmount, 0.0, 0.65));
   if (uWetNight > 0.01) {
     float wetLights = 0.0;
     // ponytail: four nearby lamps (two below high) bound fragment cost; expand only after measured reflection gaps.
@@ -120,6 +129,12 @@ function register(material) {
 
 export function createWetSurfaces(scene, { lamps = [], reducedMotion = false } = {}) {
   const state = uniforms(), materials = new Set(), entries = [];
+  const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
+  const mirror = new THREE.PerspectiveCamera(), rotation = new THREE.Matrix4(), size = new THREE.Vector2();
+  const normal = new THREE.Vector3(0, 1, 0), origin = new THREE.Vector3(), look = new THREE.Vector3(), reflectedLook = new THREE.Vector3();
+  const plane = new THREE.Plane(), clip = new THREE.Vector4(), q = new THREE.Vector4(), clear = new THREE.Color();
+  const bias = new THREE.Matrix4().set(.5, 0, 0, .5, 0, .5, 0, .5, 0, 0, .5, .5, 0, 0, 0, 1);
+  state.uWetReflection.value = target.texture;
   scene.traverse(object => {
     for (const material of (Array.isArray(object.material) ? object.material : [object.material])) {
       if (!material?.isMeshStandardMaterial || material.emissiveMap || material.transparent) continue;
@@ -144,6 +159,45 @@ export function createWetSurfaces(scene, { lamps = [], reducedMotion = false } =
   state.uWetAnimate.value = reducedMotion ? 0 : 1;
   let disposed = false;
   return {
+    reflect(renderer, camera, tier, skyObjects = []) {
+      state.uWetReflect.value = 0; activate();
+      if (disposed || state.uWet.value < 0.01 || camera.position.y <= 0.1) return;
+      renderer.getDrawingBufferSize(size);
+      const scale = tier === 'high' ? 0.5 : 0.25;
+      const width = Math.max(1, Math.round(size.x * scale)), height = Math.max(1, Math.round(size.y * scale));
+      if (target.width !== width || target.height !== height) target.setSize(width, height);
+      const y = 0.07;
+      rotation.extractRotation(camera.matrixWorld);
+      look.set(0, 0, -1).applyMatrix4(rotation).add(camera.position);
+      mirror.position.set(camera.position.x, 2 * y - camera.position.y, camera.position.z);
+      reflectedLook.set(look.x, 2 * y - look.y, look.z);
+      mirror.up.set(0, 1, 0).applyMatrix4(rotation).reflect(normal);
+      mirror.lookAt(reflectedLook); mirror.far = camera.far; mirror.updateMatrixWorld();
+      mirror.projectionMatrix.copy(camera.projectionMatrix);
+      mirror.projectionMatrix.elements[8] *= -1;
+      state.uWetProjection.value.copy(bias).multiply(mirror.projectionMatrix).multiply(mirror.matrixWorldInverse);
+      plane.setFromNormalAndCoplanarPoint(normal, origin.set(0, y, 0)).applyMatrix4(mirror.matrixWorldInverse);
+      clip.set(plane.normal.x, plane.normal.y, plane.normal.z, plane.constant);
+      const e = mirror.projectionMatrix.elements;
+      q.set((Math.sign(clip.x) + e[8]) / e[0], (Math.sign(clip.y) + e[9]) / e[5], -1, (1 + e[10]) / e[14]);
+      clip.multiplyScalar(2 / clip.dot(q));
+      e[2] = clip.x; e[6] = clip.y; e[10] = clip.z + 1; e[14] = clip.w;
+      mirror.projectionMatrixInverse.copy(mirror.projectionMatrix).invert();
+      mirror.layers.mask = camera.layers.mask;
+      const previous = renderer.getRenderTarget(), alpha = renderer.getClearAlpha(), background = scene.background, auto = renderer.shadowMap.autoUpdate;
+      renderer.getClearColor(clear);
+      const visible = skyObjects.map(o => o.visible);
+      try {
+        skyObjects.forEach(o => { o.visible = false; });
+        scene.background = null; renderer.shadowMap.autoUpdate = false;
+        renderer.setClearColor(0, 0); renderer.setRenderTarget(target); renderer.clear(); renderer.render(scene, mirror);
+      } finally {
+        renderer.setRenderTarget(previous); renderer.setClearColor(clear, alpha);
+        renderer.shadowMap.autoUpdate = auto; scene.background = background;
+        skyObjects.forEach((o, i) => { o.visible = visible[i]; });
+      }
+      state.uWetReflect.value = 1; activate();
+    },
     update(time, wet, rain, night, cameraPosition, mood, busPosition, heading, tier = 'high') {
       if (disposed) return;
       state.uWet.value = clamp(wet); state.uWetRain.value = clamp(rain); state.uWetNight.value = clamp(night);
@@ -177,6 +231,7 @@ export function createWetSurfaces(scene, { lamps = [], reducedMotion = false } =
     dispose() {
       if (disposed) return;
       disposed = true;
+      target.dispose();
       sceneEntry.activate.delete(activate);
       if (!sceneEntry.activate.size) { scene.onBeforeRender = sceneEntry.before; sceneRegistrations.delete(scene); }
       for (const entry of entries) {
