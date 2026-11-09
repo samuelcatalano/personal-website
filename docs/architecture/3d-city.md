@@ -24,6 +24,16 @@ Known limits: physical mobile not validated; WebGL/browser scheduling, runtime/G
 
 The owner authorized removal of all 11 branded career plaques (PUC/AP/IG/TQ/ME/RA/MM/XD/OLM/OLM/TW) from the 3D scene. No replacement objects are authorized yet. The former anchors remain clearance reservations, preserving surrounding placement. Existing transit/route signage and the accessible HTML career panel, including EN/PT details and decorative initials, remain unchanged.
 
+## West-side density pilot — 2026-11-09
+
+The owner authorized three low buildings in the opening outlined in green in their screenshot. The initial survey mislocated this opening; the corrected `hero-west-infill-*` centres are (-389, -16), (-371, -12) and (-355, 0), replacing the initial pilot positions. `blocks.js` appends two 3-floor residential midrises and one 2-floor shop, each 10×9 m and below 10 m high. They reuse the existing regional recipes, rejection masks and architecture batching. The other survey candidates are not implemented.
+
+Focused validation after correction: 28 Node tests passed; browser comparison preserved all 713 previous architecture descriptors and 10,685 non-architecture boxes. The isolated pilot has three chunks, nine meshes and 4,936 geometry triangles; these are not full-frame draw-call or performance measurements. Desktop initial-view capture, including the left-half crop matching the supplied screenshot, and JavaScript error monitoring passed. Tree, pedestrian, park and former-plaque clearances were checked. No full product matrix or frame-time benchmark was run.
+
+The owner then authorized more houses and taller buildings in the same opening. Five 2-floor terraces (7×8 m, 6.4 m high) and two office buildings (12×12 m / 44.8 m high and 10×10 m / 32 m high) are appended as `hero-west-house-*` and `hero-west-tower-*`. The taller pair sits behind the low infill, west of landmark sightlines; original pilot positions are unchanged. No new assets, materials or dependencies are introduced.
+
+Expansion validation: all 205 Node tests passed. Browser comparison preserved the previous 716 lot descriptors, 10,685 scene boxes and 320 tree placements; the city now emits 723 architecture descriptors. The seven new lots clear neighboring lots, parks, walking areas, trees and reserved anchors. The isolated expansion measured four chunks, twelve meshes and 8,352 triangles before asynchronous townhouse-kit replacement. Desktop capture of the marked opening and JavaScript error monitoring passed; frame-time benchmarking and the full desktop/mobile product matrix were not run.
+
 ## Source of truth and flow
 
 Existing lot descriptors remain the source of truth: ID, kind, position, footprint and maximum height. Preserve generated map data, routes, landmarks, walking paths and logic. Replace the authorized lot's renderer, never layer duplicate buildings onto it.

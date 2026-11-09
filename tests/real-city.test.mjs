@@ -9,6 +9,49 @@ const curve = { getPointAt(u) { const f = u * (pts.length - 1), i = Math.min(Mat
 const plotsFor = () => { const plots = []; buildBlocks(() => {}, stops, pts, curve, [], (p) => plots.push(p)); return plots; };
 const overlaps = (p, b, e = 0) => p.x - p.width / 2 < b[1] + e && b[0] - e < p.x + p.width / 2 && p.z - p.depth / 2 < b[3] + e && b[2] - e < p.z + p.depth / 2;
 
+test('three low west-side infill lots clear neighbors and render in both architecture modes', () => {
+  const plots = [], boxes = [];
+  buildBlocks(() => {}, stops, pts, curve, [], undefined, p => plots.push(p));
+  buildBlocks((...b) => boxes.push(b), stops, pts, curve, []);
+  const infill = plots.filter(p => p.id.startsWith('hero-west-infill-'));
+  assert.deepEqual(infill.map(p => [p.id, p.x, p.z, p.width, p.depth, p.height, p.kind]), [
+    ['hero-west-infill-0', -389, -16, 10, 9, 3 * 3.2, 'midrise'],
+    ['hero-west-infill-1', -371, -12, 10, 9, 6.8, 'shop'],
+    ['hero-west-infill-2', -355, 0, 10, 9, 3 * 3.2, 'midrise'],
+  ]);
+  for (const p of infill) {
+    assert.equal(p.region, 'paulista');
+    assert.ok(p.x - p.width / 2 >= -400 && p.x + p.width / 2 <= -350 && p.z - p.depth / 2 >= -22 && p.z + p.depth / 2 <= 10, `${p.id} occupies the green-marked opening`);
+    assert.ok(p.height <= 10, `${p.id} stays below neighboring rooflines`);
+    assert.ok(p.x + p.width / 2 < -296, `${p.id} stays west of the starting garden and landmark views`);
+    for (const q of plots) if (q !== p) {
+      assert.ok(!overlaps(p, [q.x - q.width / 2, q.x + q.width / 2, q.z - q.depth / 2, q.z + q.depth / 2], 1.5), `${p.id} clears ${q.id}`);
+    }
+    assert.ok(boxes.some(b => b[0] === p.x && b[1] === 0 && b[2] === p.z && b[3] === p.width && b[4] === p.height && b[5] === p.depth), `${p.id} has fallback geometry`);
+  }
+});
+
+test('green-marked opening fits five more houses and two taller buildings without overlaps', () => {
+  const plots = [], boxes = [];
+  buildBlocks(() => {}, stops, pts, curve, [], undefined, p => plots.push(p));
+  buildBlocks((...b) => boxes.push(b), stops, pts, curve, []);
+  const houses = plots.filter(p => p.id.startsWith('hero-west-house-'));
+  const towers = plots.filter(p => p.id.startsWith('hero-west-tower-'));
+  assert.equal(houses.length, 5);
+  assert.equal(towers.length, 2);
+  assert.deepEqual(houses.map(p => [p.x, p.z, p.height]), [[-417, -9, 6.4], [-402, -8, 6.4], [-387, -2, 6.4], [-373, 1, 6.4], [-355, -15, 6.4]]);
+  assert.deepEqual(towers.map(p => [p.x, p.z, p.height]), [[-412, -27, 14 * 3.2], [-396, -29, 32]]);
+  for (const p of [...houses, ...towers]) {
+    assert.equal(p.region, 'paulista');
+    assert.equal(p.kind, houses.includes(p) ? 'terrace' : 'office');
+    assert.ok(p.x - p.width / 2 >= -425 && p.x + p.width / 2 <= -350 && p.z - p.depth / 2 >= -36 && p.z + p.depth / 2 <= 6, `${p.id} stays in the marked western opening`);
+    for (const q of plots) if (q !== p) {
+      assert.ok(!overlaps(p, [q.x - q.width / 2, q.x + q.width / 2, q.z - q.depth / 2, q.z + q.depth / 2], 1.5), `${p.id} clears ${q.id}`);
+    }
+    assert.ok(boxes.some(b => b[0] === p.x && b[1] === 0 && b[2] === p.z && b[3] === p.width && b[4] === p.height && b[5] === p.depth), `${p.id} has fallback geometry`);
+  }
+});
+
 test('confirmed foreground offices keep their capped mass, descriptor and RNG stream', () => {
   const fixtures = [
     ['block-623--38', 24, 6],

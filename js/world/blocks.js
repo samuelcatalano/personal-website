@@ -239,6 +239,15 @@ export function buildBlocks(add, stops, pts, curve, occ, onBuildingPlot, onArchi
     ...[595, 607, 619, 631, 643, 655, 667, 679, 691, 703, 713, 723, 733].map((x, i) => ({
       id: `london-return-density-${i}`, x, z: -127, width: 8, depth: 8, floors: 2 + (i % 4), floorHeight: 3.2, kind: i % 3 === 0 ? 'terrace' : 'midrise', region: 'london', wall: [B, LS, CR, OW][i % 4],
     })),
+    // Fill the owner's green-marked opening, farther west than the initial pilot; append to preserve earlier RNG draws.
+    { id: 'hero-west-infill-0', x: -389, z: -16, width: 10, depth: 9, floors: 3, floorHeight: 3.2, kind: 'midrise', region: 'paulista', archetype: 'paulista-brise-apartment', wall: CR },
+    { id: 'hero-west-infill-1', x: -371, z: -12, width: 10, depth: 9, floors: 2, floorHeight: 3.4, kind: 'shop', region: 'paulista', archetype: 'paulista-arcade-shop', wall: TC },
+    { id: 'hero-west-infill-2', x: -355, z: 0, width: 10, depth: 9, floors: 3, floorHeight: 3.2, kind: 'midrise', region: 'paulista', wall: OC },
+    ...[[-417, -9], [-402, -8], [-387, -2], [-373, 1], [-355, -15]].map(([x, z], i) => ({
+      id: `hero-west-house-${i}`, x, z, width: 7, depth: 8, floors: 2, floorHeight: 3.2, kind: 'terrace', region: 'paulista', wall: [CR, MN, OW, SA, OC][i],
+    })),
+    { id: 'hero-west-tower-0', x: -412, z: -27, width: 12, depth: 12, floors: 14, floorHeight: 3.2, kind: 'office', region: 'paulista', archetype: 'paulista-finned-tower', wall: CM },
+    { id: 'hero-west-tower-1', x: -396, z: -29, width: 10, depth: 10, floors: 10, floorHeight: 3.2, kind: 'office', region: 'paulista', wall: SS },
   ];
   for (const p of densityLots) {
     const bounds = [p.x - p.width / 2, p.x + p.width / 2, p.z - p.depth / 2, p.z + p.depth / 2];
