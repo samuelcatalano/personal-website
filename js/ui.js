@@ -13,7 +13,7 @@ const store = () => { try { return localStorage; } catch { return undefined; } }
 const flag = (c) => (c === 'BR' ? '🇧🇷' : '🇬🇧');
 // ponytail: innerHTML from static content.js only
 function sectionHTML(section, t, active, tool = null, seenSet = new Set(), fresh = -1) {
-  const s = t.sections[section];
+  const s = t.sections[section], latest = t.stops[stops.findLast(st => st.section === 'journey').id];
   const ext = (href, text, cls = '') => `<a${cls ? ` class="${cls}"` : ''} href="${href}" target="_blank" rel="noopener">${text}</a>`;
   const ic = (d) => `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true" focusable="false"><path d="${d}"/></svg>`;
   const mail = ic('M3 5h18v14H3zm2 2v.5l7 5 7-5V7zm14 3-7 5-7-5V17h14z');
@@ -24,13 +24,13 @@ function sectionHTML(section, t, active, tool = null, seenSet = new Set(), fresh
   const list = (items, f, url) => `<h2>${s.title}</h2><p>${s.intro}</p><ul class="rows">${items.map(f).join('')}</ul><p>${ext(url, s.more + ' ↗', 'btn more')}</p>`;
   switch (section) {
     case 'hero': return `
-      <img class="avatar" src="assets/avatar.png" alt="" width="96" height="96">
-      <h1>${s.title}</h1><p class="role">${s.role}</p><p class="meta">${s.meta}</p>
-      <p class="value">${s.value}</p><p class="tagline">${s.tagline}</p><p class="avail">${s.availability}</p><p class="clock">${t.ui.clock} <time data-london></time></p><ul class="hero-links contact">
+      <div class="profile-head"><img class="avatar" src="assets/avatar.png" alt="" width="96" height="96">
+        <div><p class="eyebrow">${s.kicker}</p><h1>${s.title}</h1><p class="role">${s.role}</p></div></div><p class="meta profile-meta">${s.meta}</p>
+      <p class="value">${s.value}</p><p class="tagline">${s.tagline}</p><div class="profile-status"><p class="avail">${s.availability}</p><p class="clock">${t.ui.clock} <time data-london></time></p></div><ul class="hero-links contact">
         ${contact(t.sections.contact)}</ul>
         <p class="proof">“${s.proof}” <span>${t.recs[0].name}, ${t.recs[0].role}</span></p><p class="hint">${matchMedia('(pointer: coarse)').matches ? t.ui.scrollTouch : t.ui.scroll} ↓</p>`;
     case 'journey': return `
-      <h2>${s.title}</h2><p>${s.intro}</p>${tool ? `<p class="filter">${t.ui.usedAt} <b>${tool}</b><button type="button" data-tool-clear aria-label="${t.ui.clearFilter}">&times;</button></p>` : ''}<ol class="stops">${stops.map((st, i) => {
+      <h2>${s.title}</h2><p>${s.intro}</p><div class="recent-role"><p class="eyebrow">${s.latest}</p><strong>${latest.role}</strong><p class="recent-company">${latest.title}</p><small>${latest.dates}</small><p class="recent-body">${latest.body}</p></div>${tool ? `<p class="filter">${t.ui.usedAt} <b>${tool}</b><button type="button" data-tool-clear aria-label="${t.ui.clearFilter}">&times;</button></p>` : ''}<ol class="stops">${stops.map((st, i) => {
         if (st.section !== 'journey') return '';
         const c = t.stops[st.id], on = i === active, hit = tool && toolStops[tool].includes(st.id);
         return `<li class="${st.country.toLowerCase()}${st.id === 'move' ? ' hub' : ''}${on ? ' on' : ''}${seenSet.has(i) ? ' seen' : ''}${tool ? (hit ? ' hit' : ' dim') : ''}"><button data-goto="${i}" aria-expanded="${on}">
@@ -40,7 +40,7 @@ function sectionHTML(section, t, active, tool = null, seenSet = new Set(), fresh
       <p class="zones"><span class="z br">${t.ui.zones.br}</span><span class="z uk">${t.ui.zones.uk}</span></p>`;
     case 'stack': return `<h2>${s.title}</h2><p>${s.intro}</p><div class="lines">${stackGroups.map(g => `<div class="line" style="--c:${g.color}"><h3>${s.groups[g.id]}</h3><ul>${g.items.map(x => `<li>${toolStops[x].length ? `<button type="button" class="station" data-tool="${x}" aria-pressed="${x === tool}">${x}</button>` : x}</li>`).join('')}</ul></div>`).join('')}</div>`;
     case 'articles': return list(articles, a => `<li>${ext(a.url, `<b>${a.title}</b><small>${s.src} ↗</small>`, 'row')}</li>`, links.medium);
-    case 'repos': return list(repos, r => `<li style="--c:${r.color}">${ext(r.url, `<code>${r.name}</code><span class="tags">${r.lang.split(' · ').map(x => `<i>${x}</i>`).join('')}</span><em aria-hidden="true">↗</em>`, 'row repo')}</li>`, links.github + '?tab=repositories');
+    case 'repos': return list(repos, r => `<li style="--c:${r.color}">${ext(r.url, `<code>${r.name}</code><span class="tags">${r.lang.split(' · ').map(x => `<i>${x}</i>`).join('')}</span><small>${s.descriptions[r.name]}</small><em aria-hidden="true">↗</em>`, 'row repo')}</li>`, links.github + '?tab=repositories');
     case 'recs': return `<h2>${s.title}</h2><p>${s.intro}</p>${t.recs.map(r => `<blockquote><span class="who" aria-hidden="true">${r.name.split(' ').filter((_, k, w) => k === 0 || k === w.length - 1).map(w => w[0]).join('')}</span><p>${r.quote}</p><footer><b>${r.name}</b><span>${r.role}</span></footer></blockquote>`).join('')}`;
     case 'contact': return `<h2>${s.title}</h2><p>${s.intro}</p><ul class="contact">${contact(s)}</ul>
       <p class="why">${s.why}</p><ul class="reasons">${s.reasons.map(r => `<li><a class="chip" data-bell href="${links.email}?subject=${encodeURIComponent(r.subject)}">${r.label}</a></li>`).join('')}</ul>
@@ -121,7 +121,6 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
       cur(a, a.dataset.nav === st.section);
     });
     led();
-    clock();
     const nav = document.querySelector('.bar nav'), here = nav.querySelector('[aria-current]'); // on phones the menu scrolls: keep the current section in view
     if (here && nav.scrollWidth > nav.clientWidth) nav.scrollTo({ left: here.offsetLeft - (nav.clientWidth - here.offsetWidth) / 2, behavior: 'smooth' });
     const langButton = document.querySelector('[data-lang]');
@@ -139,6 +138,8 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     const prev = document.activeElement;
     const key = ['data-tool', 'data-goto', 'data-nav', 'data-nav-home', 'data-lang', 'data-theme'].find(a => prev?.hasAttribute?.(a));
     const keep = key && [key, prev.getAttribute(key)];
+    const panelLinkIndex = panel.contains(prev) && prev.matches('a[href]') ? [...panel.querySelectorAll('a[href]')].indexOf(prev) : -1;
+    const panelCredits = panel.contains(prev) && prev.matches('[data-credits]');
     const top = panel.dataset.section === st.section ? panel.scrollTop : 0;
     const slide = lastIdx >= 0 && idx !== lastIdx && !matchMedia('(prefers-reduced-motion: reduce)').matches, sectionChanged = panel.dataset.section !== st.section, dir = idx >= lastIdx ? 1 : -1;
     lastIdx = idx;
@@ -149,8 +150,11 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     }
     panel.scrollTop = top;
     panel.dataset.section = st.section;
+    clock();
     if (reveal) panel.querySelector('.on')?.scrollIntoView({ block: 'nearest', behavior: 'instant' });
     if (keep) document.querySelector(`[${keep[0]}="${keep[1]}"]`)?.focus({ preventScroll: true });
+    else if (!sectionChanged && panelLinkIndex >= 0) panel.querySelectorAll('a[href]')[panelLinkIndex]?.focus({ preventScroll: true });
+    else if (!sectionChanged && panelCredits) panel.querySelector('[data-credits]')?.focus({ preventScroll: true });
     const c = t.stops[st.id];
     announce.textContent = (c ? `${st.year} ${c.title}` : t.sections[st.section].title) + `, ${t.ui.cities[city]}` + (notes.rain ? `, ${t.ui.led.rain}` : '');
   };

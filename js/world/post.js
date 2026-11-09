@@ -53,8 +53,10 @@ export function createPost(renderer, scene, camera, { tier = 'high', sun } = {})
   composer.addPass(new OutputPass());
   const grade = new ShaderPass(Grade); composer.addPass(grade);
   const v = new THREE.Vector3();
+  let disposed = false;
   const post = {
     tier,
+    dispose() { if (disposed) return; disposed = true; composer.passes.forEach((pass) => pass.dispose()); composer.dispose(); },
     passes: { ao: heavy.find((p) => p instanceof AOPass) ?? null, rays, bloom, grade }, // read by the QA probes (?qa)
     setSize(w, h) { composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h); },
     setFocus(d) { post.passes.ao?.setFocus(d); },

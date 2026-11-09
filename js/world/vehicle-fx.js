@@ -19,7 +19,7 @@ export function createVehicleFx(scene, { reducedMotion = false } = {}) {
       void main() { vec4 mv = modelViewMatrix * vec4(position, 1.0); vA = aAlpha; vK = aKind;
         gl_PointSize = aSize * projectionMatrix[1][1] * uHalfH / max(-mv.z, 0.5); gl_Position = projectionMatrix * mv; }`,
     fragmentShader: `uniform float uNight; varying float vA, vK;
-      void main() { float d = length(gl_PointCoord - 0.5) * 2.0; float a = smoothstep(1.0, 0.0, d); a *= a * vA; if (a < 0.01) discard;
+      void main() { float d = length(gl_PointCoord - 0.5) * 2.0; float a = (1.0 - smoothstep(0.0, 1.0, d)); a *= a * vA; if (a < 0.01) discard;
         vec3 c = mix(vec3(0.84, 0.86, 0.9), vec3(0.78, 0.88, 0.97), vK) * mix(1.0, 0.38, uNight); gl_FragColor = vec4(c, a); }`,
   });
   const points = new THREE.Points(geometry, material); points.frustumCulled = false; points.renderOrder = 6; scene.add(points);

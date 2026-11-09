@@ -78,3 +78,10 @@ The owner reopened the graphical quality of existing trees and plantings. Tree p
 ## Owner-supplied tree models — 2026-11-03
 
 The owner authorized replacing the five procedural tree silhouettes with deterministic authored trees. Desktop review found variants from the supplied Mighty Oak and Tree GN GLBs still read as sparse, fragmented foliage at game scale, so both are excluded from runtime. The full-canopy Realistic Tree is used at existing tree placements with two instanced geometry LODs and a single-tile impostor atlas. Existing tree centres, footprints, paths, height/landmark-clearance envelopes and understory planting remain fixed. Preparation, optimization and attribution are recorded in `tools/vegetation/README.md` and `ASSET_SOURCES.md`.
+
+
+## Portfolio panel graphic pass — 2026-11-09
+
+The owner requested a graphical refinement of the portfolio while preserving menu controls and the intro/loading screen. Panels retain the existing Hammersmith One/Inter typography, warm-paper and night palettes, and city accents. The profile uses a compact portrait/name lockup, a clearer professional statement and a separate status strip. Recent experience has its own hierarchy; project/article rows use editorial dividers and restrained technology badges; recommendations use lighter quote treatments. All new copy remains in EN/PT content data. Small labels use the theme's primary ink for contrast. No assets, dependencies, 3D geometry, camera or menu/loading styles were added or changed.
+
+Desktop validation: 215 Node tests passed, including existing content contracts; the panel browser test passed at 1280px and now checks that the London clock is populated immediately after rebuilding the profile. Captures at 1440×900 covered profile, journey, projects, articles and recommendations, plus EN/PT and day/night profile states. The profile fits the tested viewport; checked panels have no horizontal overflow. No mobile viewport/emulation tests, Lighthouse or performance benchmark were run.

@@ -473,6 +473,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       wake();
     },
     dispose() {
+      if (disposed) return;
       disposed = true;
       figure.userData.dispose();
       for (const u of units) u.dispose?.();
@@ -494,6 +495,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       for (const name of ['wembley', 'bigben', 'masp', 'se', 'estaiada', 'towerbridge', 'eyeframe', 'copan', 'riverside', 'university', 'chambers', 'wellington']) details.getObjectByName(name + '-geometry')?.userData.dispose();
       details.getObjectByName('hero-background')?.userData.dispose();
       details.getObjectByName('paulista-architecture')?.userData.dispose();
+      post.dispose(); landmarkEnv.dispose();
       renderer.dispose();
     },
   };

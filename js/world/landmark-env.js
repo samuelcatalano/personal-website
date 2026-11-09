@@ -18,7 +18,7 @@ function envScene(p) {
     fragmentShader: `uniform vec3 zen, hor, ground, disc, sunDir; uniform float tight; varying vec3 d;
       void main(){ float h = d.y;
         vec3 c = mix(hor, zen, smoothstep(0.0, 0.6, h));
-        c = mix(c, mix(hor, ground, 0.8), smoothstep(0.0, -0.15, h)); // warm ground bounce below the horizon
+        c = mix(c, mix(hor, ground, 0.8), (1.0 - smoothstep(-0.15, 0.0, h))); // warm ground bounce below the horizon
         c += disc * pow(max(dot(d, sunDir), 0.0), tight);
         gl_FragColor = vec4(c, 1.0); }`,
   })));
@@ -26,9 +26,15 @@ function envScene(p) {
 }
 export function createLandmarkEnv(renderer) {
   const pm = new THREE.PMREMGenerator(renderer);
-  const day = pm.fromScene(envScene(SETS.day), 0.03).texture, night = pm.fromScene(envScene(SETS.night), 0.03).texture;
+  const targets = [SETS.day, SETS.night].map((set) => {
+    const scene = envScene(set), mesh = scene.children[0];
+    const target = pm.fromScene(scene, 0.03);
+    mesh.geometry.dispose(); mesh.material.dispose();
+    return target;
+  });
+  const [day, night] = targets.map((target) => target.texture);
   pm.dispose();
-  const mats = []; let wd = 1, wn = 0;
+  const mats = []; let wd = 1, wn = 0, disposed = false;
   const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
   const apply = (m) => {
     m.envMap = wn > wd ? night : day;
@@ -37,6 +43,7 @@ export function createLandmarkEnv(renderer) {
   };
   return {
     day, night,
+    dispose() { if (disposed) return; disposed = true; targets.forEach((target) => target.dispose()); mats.length = 0; },
     // k = envMapIntensity at full day; metal = authored metalness restored while an env is active
     register(m, { k = 1, metal = null } = {}) { m.userData.envK = k; m.userData.envMetal = metal; mats.push(m); apply(m); m.needsUpdate = true; },
     update(n) { wd = smooth(0.5, 0.15, n); wn = smooth(0.5, 0.85, n); for (const m of mats) apply(m); },

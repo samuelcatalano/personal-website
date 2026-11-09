@@ -1,28 +1,36 @@
 # 3D city architecture
 
-> **2026-10-21 update:** the user reopened the visual freeze for the North Star full-scene upgrade. Current state: [visual atlas](../audits/full-scene-visual-atlas.md), [plan](../plans/north-star-full-scene-upgrade.md). Vehicles, all landmarks (London Eye now continuous), lighting, roads and vegetation were upgraded; approved building families are unchanged. The coplanar-face blocker below is resolved (0 pairs).
+## Current status — 2026-11-09
+
+The North Star work is recorded as complete; its validation reported 0 coplanar-face pairs and rebuilt the London Eye as a continuous wheel. These are scoped historical validation results, not a current production-readiness declaration. Physical mobile validation and fresh release-gate evidence are not established here. The dated sections below preserve their original results and boundaries; read them as snapshots, not current blockers or authorization unless a later entry says otherwise. Current references: [visual atlas](../audits/full-scene-visual-atlas.md), [North Star plan](../plans/north-star-full-scene-upgrade.md), [rendering budget](rendering-budget.md).
 
 **TOWNHOUSE SYSTEM = ARCHITECTURALLY VALIDATED**
 
-## Final visual freeze — 2026-10-21
+## Historical validation snapshot — 2026-10-21
 
-**VISUAL: GO — user approved and frozen. FUNCTIONAL: NO-GO. PRODUCTION-READY: NO.**
+**At this snapshot: VISUAL GO; FUNCTIONAL NO-GO; PRODUCTION-READY NO.** The North Star validation below later superseded the specific coplanar-face failure.
 
-The requested declaration `3D CITY VISUAL SYSTEM = PRODUCTION-READY` is withheld pending the final technical gate: the coplanar-face regression fails (327 pairs in its generated fixture;191 also detected in live production box batches, including soil/stone planter edges in parks.js). No geometry was changed or waiver added to make the check pass. This is a concrete technical blocker, not a request to reopen visual development.
+The original 2026-10-21 final-milestone record withheld the requested production-ready declaration because its coplanar-face regression found 327 fixture pairs and 191 live box-batch pairs. The subsequent North Star record reports 0 pairs; retain the original counts as historical evidence only.
 
-Approved delivered scope: townhouse/terrace, shop/mixed low-rise, midrise, office, tower; citywide rollout and deterministic diversity; hero/public realm, vegetation, lighting/atmosphere; shared glass, water; modernized Wembley, Big Ben/Parliament and MASP. No further visual work, rollout, optimization or new LOD is authorized. London Eye remains segmented by explicit decision.
+The approved scope at that snapshot included townhouse/terrace, shop/mixed low-rise, midrise, office, tower; citywide rollout and deterministic diversity; hero/public realm, vegetation, lighting/atmosphere; shared glass, water; and modernized Wembley, Big Ben/Parliament and MASP. Its restriction on additional visual work, rollout, optimization or new LOD was later revised by dated owner authorizations below. Its statement that the London Eye remained segmented was superseded by the North Star validation.
 
 **2026-10-29 exception:** the owner approved Asset Pipeline Phase 4. Tree LOD0/LOD1/LOD2 is authorized within the existing planting data and 160 m batches; this does not reopen building LODs, map/layout changes or broader city rollout. Runtime details are recorded in [the asset-pipeline architecture](blender-asset-pipeline.md#phase-4-runtime-slice--2026-10-29).
 
 **2026-10-31 exception:** the owner reopened graphical work for all buildings and houses only. This supersedes the visual-work restriction above for architecture; map/layout, roads, routes, landmark positions/sightlines, vehicles, pedestrians, vegetation, props, global lighting, and mobile remain outside this authorization. The completed refresh is documented below.
 
-Production flow and policies below remain authoritative. Dated boundaries and intermediate NO-GO notes are delivery history, superseded by the user's final visual approval. See [final measurements and release gate](rendering-budget.md#final-milestone-validation--2026-10-21) and [art direction](../art-direction.md).
+Production flow and policies below remain authoritative. Dated boundaries and intermediate NO-GO notes are delivery history. See [final measurements and release-gate snapshot](rendering-budget.md#historical-final-milestone-snapshot--2026-10-21) and [art direction](../art-direction.md).
 
-Known limits: physical mobile not validated; WebGL/browser scheduling, runtime/GPU and random cloud counts affect observed metrics; submitted triangles include multiple passes, not unique geometry; London Eye remains segmented. No physical-VRAM or universal-FPS guarantee. Five smoke shots (main/skyline/Wembley/London/MASP) show no new visual regression; final technical release remains blocked as above.
+Known limits from that snapshot: physical mobile was not validated; WebGL/browser scheduling, runtime/GPU and random cloud counts affect observed metrics; submitted triangles include multiple passes, not unique geometry. No physical-VRAM or universal-FPS guarantee. Five smoke shots (main/skyline/Wembley/London/MASP) showed no new visual regression. Its segmented-eye and release-blocker statements were superseded by the later North Star record.
 
 ## Career-plaque removal — 2026-11-03
 
 The owner authorized removal of all 11 branded career plaques (PUC/AP/IG/TQ/ME/RA/MM/XD/OLM/OLM/TW) from the 3D scene. No replacement objects are authorized yet. The former anchors remain clearance reservations, preserving surrounding placement. Existing transit/route signage and the accessible HTML career panel, including EN/PT details and decorative initials, remain unchanged.
+
+## Runtime and panel reliability — 2026-11-09
+
+Service-worker revalidation now keeps its event alive through cache writes, and cache failures preserve successful network responses. The CV privacy test requires successful `pdftotext` extraction; CI installs Poppler. Landmark environment and postprocessing resources have idempotent disposal wired into scene teardown, and descending GLSL `smoothstep` calls use ascending bounds with an inverted result. The panel adds factual EN/PT repository descriptions and a summary derived from the latest career stop; same-section rebuilds preserve ordinary-link and credits-button focus.
+
+Validation: 215 Node tests passed; desktop-only panel checks passed at 1280px, and a real Three.js resource check rendered both postprocessing tiers without WebGL errors and verified single disposal of environment/render targets. Commands: `browser-harness < tests/panel-focus.browser.py` and `browser-harness < tests/render-resources.browser.py` (desktop preview required). Menu controls, keyboard shortcuts, intro/loading, camera, CSS and HTML were preserved. No mobile viewport/emulation checks, Lighthouse or new performance benchmark were run; this is a scoped verification, not a global release verdict.
 
 ## West-side density pilot — 2026-11-09
 

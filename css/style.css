@@ -36,10 +36,10 @@ body { margin: 0; font: 15px/1.6 var(--sans); color: var(--ink); background: lin
 .controls button:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); color: var(--accent); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .panel { position: fixed; top: 92px; bottom: auto; left: 24px; width: min(420px, calc(100vw - 48px)); max-height: calc(100vh - 116px); overflow: auto;
-  background: color-mix(in srgb, var(--card) 90%, transparent); -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2); border: 1px solid var(--line); border-radius: 18px; padding: clamp(22px, 3vw, 32px); z-index: 4;
+  background: var(--card); -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2); border: 1px solid var(--line); border-top: 4px solid var(--city, var(--accent)); border-radius: 18px; padding: clamp(22px, 3vw, 32px); z-index: 4;
   box-shadow: 0 1px 2px rgba(40, 30, 20, .08), 0 12px 32px rgba(40, 30, 20, .14); }
 .panel h1 { font: 400 clamp(32px, 3.6vw, 42px)/1.1 var(--display); letter-spacing: -.01em; margin: 12px 0 8px; }
-.panel h2 { font: 400 26px/1.2 var(--display); letter-spacing: -.005em; margin: 0 0 9px; }
+.panel h2 { font: 400 30px/1.15 var(--display); letter-spacing: -.02em; margin: 0 0 12px; }
 .panel p { margin: 0 0 16px; }
 .panel .role { font-weight: 600; margin: 0; }
 .panel .meta, .panel small { color: var(--muted); }
@@ -58,6 +58,23 @@ body { margin: 0; font: 15px/1.6 var(--sans); color: var(--ink); background: lin
 @keyframes live { 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 22%, transparent); } }
 .panel .hint { color: var(--muted); font-size: 11px; letter-spacing: .04em; margin: 18px 0 0; }
 .avatar { display: block; width: 72px; height: 72px; object-fit: cover; border-radius: 50%; border: 1px solid var(--line); background: var(--sky); }
+.profile-head { display: grid; grid-template-columns: 64px minmax(0, 1fr); align-items: center; gap: 16px; }
+.profile-head .avatar { width: 64px; height: 80px; border-radius: 12px; }
+.panel .eyebrow { margin: 0 0 8px; color: var(--ink); font-size: 10px; line-height: 1.5; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.profile-head h1 { margin: 0 0 8px; font-size: clamp(28px, 2.7vw, 36px); line-height: 1.02; letter-spacing: -.025em; }
+.profile-head .role { font-size: 12px; line-height: 1.5; }
+.panel .profile-meta { margin: 18px 0 22px; padding-bottom: 14px; border-bottom: 1px solid var(--line); font-size: 12px; letter-spacing: .015em; }
+.panel[data-section="hero"] .value { margin: 0; font-size: 21px; line-height: 1.4; letter-spacing: -.025em; }
+.panel[data-section="hero"] .tagline { margin: 12px 0 20px; color: var(--muted); font-size: 13px; }
+.profile-status { padding: 12px 0; border-block: 1px dashed var(--line); }
+.panel .profile-status p { margin: 0; font-size: 12px; }
+.panel .profile-status .clock { margin: 6px 0 0; }
+.panel > h2 + p { color: var(--muted); font-size: 14px; line-height: 1.6; }
+.recent-role { margin: 22px 0; padding: 18px; border: 1px solid var(--line); border-left: 3px solid var(--city, var(--accent)); border-radius: 0 12px 12px 0; background: color-mix(in srgb, var(--city, var(--accent)) 4%, var(--card)); }
+.recent-role > strong { display: block; font-size: 17px; line-height: 1.35; letter-spacing: -.02em; }
+.panel .recent-company { margin: 6px 0 2px; font-size: 13px; font-weight: 600; }
+.recent-role small { display: block; font-size: 11px; font-variant-numeric: tabular-nums; }
+.panel .recent-body { margin: 12px 0 0; font-size: 12px; line-height: 1.65; color: var(--muted); }
 .hero-links, .contact { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 0; margin: 20px 0 0; }
 .contact li:first-child { grid-column: 1 / -1; }
 .contact li { display: flex; }
@@ -308,6 +325,16 @@ body.no-webgl #world { display: none; }
 .panel a.repo { display: grid; grid-template-columns: 1fr auto; }
 .repo code, .repo .tags { grid-column: 1; overflow-wrap: anywhere; }
 .repo em { grid-column: 2; grid-row: 1 / 3; }
+.panel[data-section="repos"] .rows, .panel[data-section="articles"] .rows { gap: 0; border-top: 1px solid var(--line); }
+.panel[data-section="repos"] .rows li, .panel[data-section="articles"] .rows li { border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; }
+.panel[data-section="repos"] a.row, .panel[data-section="articles"] a.row { padding: 12px 8px 12px 12px; border-left-width: 2px; }
+.panel a.repo { gap: 8px 12px; }
+.panel a.repo code { font-size: 12px; line-height: 1.5; font-weight: 600; }
+.panel a.repo small { grid-column: 1 / -1; font-size: 12px; line-height: 1.6; }
+.panel a.repo .tags { gap: 5px; }
+.panel a.repo .tags i { padding: 0 6px; border-color: color-mix(in srgb, var(--c) 22%, var(--line)); border-radius: 4px; font-size: 10px; }
+.panel a.repo em { align-self: start; padding: 2px 6px; border: 1px solid var(--line); border-radius: 6px; font-size: 14px; }
+.panel[data-section="articles"] a.row b { font-size: 16px; line-height: 1.45; letter-spacing: -.015em; }
 /* Recommendations */
 blockquote { position: relative; margin: 14px 0 0; padding: 16px 16px 14px 64px; border-radius: 12px; background: color-mix(in srgb, var(--ink) 4%, transparent); }
 .who { position: absolute; left: 16px; top: 16px; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--ink); color: var(--card); font: 400 13px var(--display); }
@@ -316,6 +343,9 @@ blockquote p::before { content: '\201C'; }
 blockquote p::after { content: '\201D'; }
 blockquote footer { display: grid; font-size: 12px; color: var(--muted); }
 blockquote footer b { color: var(--ink); font-weight: 600; }
+.panel blockquote { margin-top: 20px; padding: 0 0 20px 52px; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; }
+.panel blockquote .who { top: 0; left: 0; width: 32px; height: 32px; font-size: 11px; }
+.panel blockquote p { font-size: 15px; line-height: 1.7; }
 @media (max-width: 767px) {
   .bar { top: 10px; left: 12px; right: 12px; flex-wrap: wrap; gap: 8px; }
   .brand { padding: 8px 11px; font-size: 12px; }

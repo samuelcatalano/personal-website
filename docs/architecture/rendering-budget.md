@@ -4,7 +4,7 @@
 
 Scoped startup measurements and fixes are recorded in [the startup audit](../audits/startup-performance-2026-11-06.md): local cold-cache median 11.202 s → 2.493 s, with source-quality rendering preserved. Full-quality vehicle compression reduces the observed GLB payload from 147.15 MiB to 101.24 MiB; NPCs and startup landmarks take priority over bulk fleet downloads. These are startup/delivery measurements, not replacement steady-state FPS or GPU-memory budgets.
 
-Current measurement record frozen2026-10-21. Final visual approval is recorded in [architecture](3d-city.md); technical release remains blocked by the coplanar-face regression. The final milestone below supersedes earlier operational references; dated measurements remain evidence, **not global performance guarantees**. Follow AGENTS.md validation levels.
+Measurements in this document are dated snapshots, not global performance guarantees. The 2026-10-21 North Star record reports the coplanar-face check at 0 pairs; the earlier 327-fixture/191-live-pair failure below is historical and superseded by that later record. This document does not establish a current production-readiness verdict or fresh benchmark. Follow AGENTS.md validation levels.
 
 ## 2026-10-23 scope update
 
@@ -146,9 +146,9 @@ Whole-scene sample:930 renderables (random cloud count varies),150 materials,25 
 Three focused Node tests (Wembley/Glasgow landmark contracts),four browser contracts (material-polish/building-slice/citywide/landmarks), day/night uniform check, syntax and git diff --check passed. Three same-camera BEFORE/AFTER pairs and raw evidence: local `final-material-landmark-polish-2026-10-21` folder. No broad benchmark.
 
 
-## Final milestone validation — 2026-10-21
+## Historical final milestone snapshot — 2026-10-21
 
-Visual system approved/frozen; **PERFORMANCE: GO local, FUNCTIONAL: NO-GO, PRODUCTION-READY: NO** because zfight.browser.py still fails. No automatic optimization or geometry correction performed.
+At this historical snapshot: visual system approved/frozen; **PERFORMANCE: GO local, FUNCTIONAL: NO-GO, PRODUCTION-READY: NO** because `zfight.browser.py` failed. The later North Star snapshot below supersedes its coplanar-face result. No automatic optimization or geometry correction was performed in this milestone.
 
 One day sample per device in the same normal main shot;2s warmup,10s sampling, tier locked only in temporary validation snapshots. Dedicated Chrome155 Headless, ANGLE Metal/AppleM3Max. Desktop1440×900 DPR1.5/high (2160×1350 buffer); mobile emulated375×812 DPR1/medium (375×812 buffer). No CPU throttling or physical-phone measurement. No anomalous sample required an additional performance confirmation.
 
@@ -163,11 +163,11 @@ Architectural resources remain2 materials/4 maps/~4.33MiB; scene totals above in
 
 Modernized landmarks: Wembley3 meshes/5,812 unique triangles/8 high submissions; Big Ben-Parliament plus clocks4 meshes/2,496 triangles/10 submissions; MASP3 meshes/552 triangles/8 submissions. Existing pipeline counts include color/normal/shadow; no new materials/maps/lights/passes.
 
-Final checks:101/101 Node tests;31/32 browser suites. The legacy z-fighting scan initially timed out; a sorted X-interval candidate sweep retains every original face predicate and now reports327 conflicting pairs. A separate live-scene probe confirms191 pairs in production box batches, including parks.js soil/rim faces. This gate is not waived. Syntax:54 ES modules/32 Python suites; git diff --check clean. Fallback/EN-PT/navigation/reduced-motion/resize contracts pass. Five visual smoke captures show no new regression; London Eye remains segmented. Lighthouse and physical-mobile validation were not run.
+Checks recorded at this historical snapshot: 101/101 Node tests; 31/32 browser suites. The legacy z-fighting scan initially timed out; a sorted X-interval candidate sweep retained every original face predicate and reported 327 fixture pairs. A separate live-scene probe reported 191 pairs in production box batches, including parks.js soil/rim faces. These results were superseded by the later North Star check, which reported 0 pairs. Syntax: 54 ES modules/32 Python suites; git diff --check clean. Fallback/EN-PT/navigation/reduced-motion/resize contracts passed. Five visual smoke captures showed no new regression; the later North Star work rebuilt the London Eye as a continuous wheel. Lighthouse and physical-mobile validation were not run in this historical milestone.
 
 Evidence: machine-local artifact folder `city-final-milestone-freeze-2026-10-21` contains raw samples, suite results, coplanar diagnostic, source-preservation audit and exactly five smoke captures. Validation hooks and adaptive-tier lock exist only in the temporary snapshot, not shipped source. No commit/deploy.
 
-## North Star full-scene upgrade — 2026-10-21
+## North Star full-scene upgrade validation — 2026-10-21
 
 New resources: one display-space grade ShaderPass after OutputPass (both tiers; full-screen, no texture fetch beyond the frame); one road-marking mesh (vertex colours, 1 material); vehicle family shared per type (sedan/hatch/SUV/cab/van ≤ 3k tris each, Mini 4.5k, bus 4.2k); landmark creators reuse the shared atlas mass/trim/glass buckets (Eye 3.9k, Estaiada 0.7k, Sé 4.7k, Tower Bridge 5.7k, Heathrow 0.9k, plane 2.3k, Copan 4.0k, Riverside 0.6k, University 4.0k, City Chambers 6.9k, Wellington 1.3k tris). No new textures, lights, shadow maps or cubemaps.
 

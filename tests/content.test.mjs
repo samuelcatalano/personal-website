@@ -64,8 +64,7 @@ test('CV download is a real PDF with no address or phone, and both languages lab
   const file = join(root, links.cv);
   assert.equal(readFileSync(file).subarray(0, 4).toString(), '%PDF');
   for (const lang of ['en', 'pt']) assert.ok(i18n[lang].sections.contact.cv?.trim(), `${lang} contact.cv`);
-  let text;
-  try { text = execFileSync('pdftotext', [file, '-'], { encoding: 'utf8' }); } catch { return; } // ponytail: needs poppler's pdftotext; skipped where absent, run it before publishing a new CV
+  const text = execFileSync('pdftotext', [file, '-'], { encoding: 'utf8' });
   for (const re of [/\+?44[\s\d]{9,}/, /\b7\d{3}\s?\d{6}\b/, /\bFlat\s*\d/i, /\bStation Grove\b/i, /\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b/]) assert.ok(!re.test(text), `CV text matches ${re}`);
 });
 

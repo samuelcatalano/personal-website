@@ -12,19 +12,29 @@ self.addEventListener('activate', (event) => event.waitUntil((async () => {
   await self.clients.claim();
 })()));
 
-async function staleWhileRevalidate(request) {
-  const cache = await caches.open(CACHE), hit = await cache.match(request);
-  const fresh = fetch(request).then((res) => { if (res.ok) cache.put(request, res.clone()); return res; }).catch(() => hit);
-  return hit || fresh;
+function staleWhileRevalidate(request, event) {
+  const cache = caches.open(CACHE).catch(() => null);
+  const hit = cache.then((store) => store?.match(request).catch(() => null));
+  const fresh = Promise.all([cache, hit]).then(async ([store, cached]) => {
+    try {
+      const res = await fetch(request);
+      if (res.ok && store) await store.put(request, res.clone()).catch(() => {});
+      return res;
+    } catch {
+      return cached;
+    }
+  });
+  event.waitUntil(fresh.then(() => {}));
+  return hit.then((cached) => cached || fresh);
 }
 async function networkFirst(request) {
-  const cache = await caches.open(CACHE);
+  const cache = await caches.open(CACHE).catch(() => null);
   try {
     const res = await Promise.race([fetch(request), new Promise((_, reject) => setTimeout(() => reject(new Error('slow')), 4000))]);
-    if (res.ok) cache.put(request, res.clone());
+    if (res.ok && cache) await cache.put(request, res.clone()).catch(() => {});
     return res;
   } catch {
-    return (await cache.match(request)) || fetch(request);
+    return (await cache?.match(request).catch(() => null)) || fetch(request);
   }
 }
 self.addEventListener('fetch', (event) => {
@@ -32,6 +42,6 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET' || request.headers.has('range')) return;
   const url = new URL(request.url), sameOrigin = url.origin === self.location.origin;
   if (!sameOrigin && url.hostname !== 'cdn.jsdelivr.net') return;
-  if (!sameOrigin || STATIC.test(url.pathname)) event.respondWith(staleWhileRevalidate(request));
+  if (!sameOrigin || STATIC.test(url.pathname)) event.respondWith(staleWhileRevalidate(request, event));
   else if (request.mode === 'navigate' || CODE.test(url.pathname) || url.pathname.endsWith('/')) event.respondWith(networkFirst(request));
 });
