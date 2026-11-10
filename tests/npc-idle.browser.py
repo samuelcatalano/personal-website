@@ -4,6 +4,7 @@ import time
 tab=new_tab('about:blank')
 activate_tab(tab if isinstance(tab,str) else tab.get('targetId',tab))
 cdp('Network.enable');cdp('Network.setCacheDisabled',cacheDisabled=True)
+cdp('Network.setBypassServiceWorker',bypass=True)
 cdp('Emulation.setEmulatedMedia',features=[{'name':'prefers-reduced-motion','value':'reduce' if os.environ.get('REDUCED')=='1' else 'no-preference'}])
 goto_url('http://localhost:8000/?qa=1&weather=clear');wait_for_load()
 deadline=time.monotonic()+30
@@ -27,6 +28,18 @@ result=js(r'''(async()=>{
   check(Math.abs(bounds.min.y)<1e-5,`shoe geometry stays in contact with the ground: ${variant.name} minY=${bounds.min.y}, toe=${floor}`);
   const chest=find('spine_03').quaternion.clone();mixer.update(2);check(chest.angleTo(find('spine_03').quaternion)>.007,'subtle breathing remains animated');
   poses.push({rig:variant.rig??'adult',floor,minY:bounds.min.y});mixer.stopAllAction();mixer.uncacheRoot(root);
+  const waveBefore=JSON.stringify(bones.map(b=>[b.position.toArray(),b.quaternion.toArray()]));
+  const wave=createIdleClip(root,true);check(wave.name==='NPC_Wave','greeting has its own clip');
+  check(waveBefore===JSON.stringify(bones.map(b=>[b.position.toArray(),b.quaternion.toArray()])),'greeting generation restores the pool body');
+  const greeting=new T.AnimationMixer(root),action=greeting.clipAction(wave);action.play();greeting.update(0);
+  const rest=find('upperarm_r').quaternion.clone();greeting.setTime(1.3);root.updateMatrixWorld(true);
+  check(rest.angleTo(find('upperarm_r').quaternion)>.8,'greeting raises the arm');
+  check(point('hand_r').y>point('upperarm_r').y,'greeting hand is raised above the shoulder');
+  check(Math.abs(new T.Box3().setFromObject(root,true).min.y)<1e-5,'greeting keeps the shoes grounded');
+  const raised=find('lowerarm_r').quaternion.clone();greeting.setTime(1.7);
+  check(raised.angleTo(find('lowerarm_r').quaternion)>.1,'forearm waves');
+  greeting.setTime(3.9);check(rest.angleTo(find('upperarm_r').quaternion)<.001,'greeting returns to the relaxed pose');
+  greeting.stopAllAction();greeting.uncacheRoot(root);
  }
  const pts=L.routePoints(stops.length),curve=L.routeCurve(T,pts),people=createPeople({curve,pts,stops}),scene=new T.Scene(),actions=[];
  const original=T.AnimationMixer.prototype.clipAction;
@@ -41,6 +54,19 @@ result=js(r'''(async()=>{
   check(idle.length===4,'both stationary pairs use the standing clip');
   const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
   if(reduced)check(idle.every(a=>a.action.time===0),'reduced motion installs a standing pose without advancing breathing');
+  for(let i=0;i<180;i++)move(frame.x,frame.z);
+  const waves=actions.filter(a=>a.clip==='NPC_Wave');
+  check(reduced?waves.length===0:waves.some(a=>a.action.isRunning()),'occasional greeting only runs with motion enabled');
+  check(waves.filter(a=>a.action.isRunning()).length<=1,'only one person greets at a time');
+  for(let i=0;i<50;i++)move(frame.x,frame.z);
+  check(waves.every(a=>!a.action.isRunning()),'greeting ends without looping');
+  if(!reduced){
+   for(let i=0;i<200;i++)move(frame.x,frame.z);
+   check(waves.every(a=>!a.action.isRunning()),'greetings have a quiet cooldown');
+   for(let i=0;i<500&&!waves.some(a=>a.action.isRunning());i++)move(frame.x,frame.z);
+   check(waves.some(a=>a.action.isRunning()),'greeting can recur after the cooldown');
+   move(-283,0);check(waves.every(a=>!a.action.isRunning()),'pool reuse cancels a greeting immediately');move(frame.x,frame.z);
+  }
   move(-283,0);
   const reused=idle.filter(a=>a.root.visible);
   check(reused.length>0&&reused.every(a=>!a.action.isRunning()),'reused bodies leave the idle clip when walking again');

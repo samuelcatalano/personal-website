@@ -5,7 +5,7 @@ import { PALETTE as P } from './palette.js';
 const DAY_SKY = new THREE.Color(0x8fc0e4), NIGHT_SKY = new THREE.Color(0x18203a);
 // Owner tweakables: how strongly the water mirrors (stylised floor added to Fresnel), sun/moon glint strength, foam band widths (m).
 export const REFLECT_FLOOR = 0.16, GLINT = 1.0, FOAM_WIDTH = 1.4, BOAT_FOAM_WIDTH = 0.35;
-const RANGE = 420, REFLECT_LAYER = 5, MAX_PIERS = 12, MAX_BOATS = 7;
+const RANGE = 420, REFLECT_LAYER = 5, MAX_PIERS = 12, MAX_BOATS = 7, MAX_TAPS = 4, TAP_LIFE = 2.4;
 const vertexShader = /* glsl */`
 #include <fog_pars_vertex>
 uniform mat4 uTexMat;
@@ -25,6 +25,7 @@ uniform vec3 uSun;
 uniform vec3 uDeep, uShallow, uBed, uGlint, uNightTint, uSky, uZen;
 uniform vec4 uPiers[${MAX_PIERS}];
 uniform vec4 uBoats[${MAX_BOATS}];
+uniform vec4 uTaps[${MAX_TAPS}];
 uniform sampler2D tDetail, tRefl;
 uniform vec2 uReflTexel;
 varying vec3 vPos;
@@ -56,6 +57,17 @@ float across = (vPos.z - uRiverCenter) / uHalfWidth, shore = clamp(1.0 - abs(acr
 vec3 v = normalize(cameraPosition - vPos);
 float dist = length(cameraPosition - vPos), fade = 1.0 / (1.0 + dist * 0.012);
 vec2 g = waveSlope(vPos.xz, uTime, dist) + detailSlope(vPos.xz, uTime) * (0.45 + 0.55 * fade);
+float tapFoam = 0.0;
+for (int i = 0; i < ${MAX_TAPS}; i++) {
+  if (uTaps[i].w < 0.5) continue;
+  float age = max(0.0, uTime - uTaps[i].z);
+  vec2 local = vPos.xz - uTaps[i].xy;
+  float radius = length(local), front = radius - age * 3.0;
+  float envelope = exp(-front * front * 3.0) * (1.0 - smoothstep(0.0, ${TAP_LIFE.toFixed(1)}, age));
+  float ring = cos(front * 9.0) * envelope;
+  g += local / max(radius, 0.02) * ring * 0.18;
+  tapFoam += max(0.0, ring) * 0.06;
+}
 if(uRainMotion>0.001){ // rain: local expanding rings, faded before their cell edge and at distance
   vec2 cell=floor(vPos.xz*.65),local=fract(vPos.xz*.65)-.5;
   float seed=fract(sin(dot(cell,vec2(127.1,311.7)))*43758.5453);
@@ -117,6 +129,7 @@ float boatFoam = smoothstep(0.35, 0.7, boatBand * (0.55 + 0.9 * fn2));
 boatFoam = mix(boatFoam, boatBand * 0.3, smoothstep(0.15, 0.9, fwidth(boat)));
 foam = max(foam, boatFoam);
 c = mix(c, vec3(0.86, 0.9, 0.9) * (1.0 - uNight * 0.75), foam * 0.55);
+c += vec3(0.7, 0.8, 0.85) * tapFoam * (1.0 - uNight * 0.65);
 gl_FragColor = vec4(c, 1.0);
 #include <tonemapping_fragment>
 #include <colorspace_fragment>
@@ -144,6 +157,7 @@ export function createWater({ x0, x1, z, width, reducedMotion = false, piers = [
       uRainMotion: { value: 0 }, uKey: { value: 1 }, uReflect: { value: 0 }, uFloor: { value: REFLECT_FLOOR }, uFoamW: { value: FOAM_WIDTH }, uBoatFoamW: { value: BOAT_FOAM_WIDTH },
       uPierN: { value: 0 }, uPiers: { value: Array.from({ length: MAX_PIERS }, () => new THREE.Vector4()) },
       uBoatN: { value: 0 }, uBoats: { value: Array.from({ length: MAX_BOATS }, () => new THREE.Vector4()) },
+      uTaps: { value: Array.from({ length: MAX_TAPS }, () => new THREE.Vector4()) },
       tDetail: { value: null }, tRefl: { value: null }, uTexMat: { value: new THREE.Matrix4() }, uReflTexel: { value: new THREE.Vector2(1, 1) },
       uDeep: { value: new THREE.Color(0x1d4448) }, uShallow: { value: new THREE.Color(0x4d706c) }, uBed: { value: new THREE.Color(0x6e6a4c) },
       uGlint: { value: new THREE.Color(0xfff0c8) }, uNightTint: { value: new THREE.Color(0x0a1330) }, uSky: { value: new THREE.Color(0xacc9d8) },
@@ -183,7 +197,7 @@ export function createWater({ x0, x1, z, width, reducedMotion = false, piers = [
   const view = new THREE.Vector3(), target = new THREE.Vector3(), look = new THREE.Vector3(), rot = new THREE.Matrix4(), N = new THREE.Vector3(0, 1, 0);
   const clipPlane = new THREE.Plane(), clip = new THREE.Vector4(), q = new THREE.Vector4(), size = new THREE.Vector2(), clear = new THREE.Color();
   const bias = new THREE.Matrix4().set(0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 0.5, 0.5, 0, 0, 0, 1);
-  let tagFrame = 0, lastMode = 'off';
+  let tagFrame = 0, lastMode = 'off', nextTap = 0;
   const tag = (scene) => {
     for (const root of reflectRoots) root?.traverse((o) => o.layers.enable(REFLECT_LAYER));
     for (const o of scene.children) if (o.isLight) o.layers.enable(REFLECT_LAYER);
@@ -198,9 +212,16 @@ export function createWater({ x0, x1, z, width, reducedMotion = false, piers = [
   };
   return {
     mesh, bankReflection, setBoats,
+    ripple(x, zTap) {
+      if (reducedMotion || !Number.isFinite(x) || !Number.isFinite(zTap) || x < x0 || x > x1 || Math.abs(zTap - z) > width / 2) return false;
+      u.uTaps.value[nextTap].set(x, zTap, u.uTime.value, 1);
+      nextTap = (nextTap + 1) % MAX_TAPS;
+      return true;
+    },
     get reflectMode() { return lastMode; }, // read by QA probes
     update(time, night, mood, tier = 'high', skyColors, sunDir) {
       u.uTime.value = reducedMotion ? 0 : time;
+      for (const tap of u.uTaps.value) if (time - tap.z >= TAP_LIFE) tap.w = 0;
       u.uNight.value = night;
       u.uSky.value.lerpColors(DAY_SKY, NIGHT_SKY, night);
       let cover = 0, rain = 0;

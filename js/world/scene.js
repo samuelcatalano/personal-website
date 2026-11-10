@@ -260,7 +260,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const post = createPost(renderer, scene, camera, { sun, tier: reducedMotion || matchMedia('(max-width: 767px)').matches ? 'medium' : 'high' });
   if (qa) globalThis.__qaPost = post;
   if (qa) globalThis.__qaFigure = { figure, camera, end, endTan, near };
-  const stopPicker = createLandmarkPicker({ canvas, camera, details, bus, onPick });
+  const stopPicker = createLandmarkPicker({ canvas, camera, details, bus, onPick, scene, water });
   let fpsT = 0, fpsN = 0, settle = 3, slowWindows = 0, night = 0, nightTarget = 0, mobile = false;
   const bar = document.querySelector('.bar'), panel = document.querySelector('#panel');
   let fitKey = '';

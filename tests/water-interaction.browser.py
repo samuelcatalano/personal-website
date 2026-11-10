@@ -1,0 +1,43 @@
+# browser-harness < tests/water-interaction.browser.py (open local preview first)
+print(js(r'''(async()=>{
+ const T=await import('three'),{createWater}=await import('./js/world/water.js'),{createLandmarkPicker}=await import('./js/world/landmark-pick.js');
+ const check=(ok,message)=>{if(!ok)throw Error(message);};
+ const water=createWater({x0:-10,x1:10,z:0,width:10}),still=createWater({x0:-10,x1:10,z:0,width:10,reducedMotion:true});
+ water.update(10,0);check(water.ripple(0,0),'water accepts a tap');
+ check(!water.ripple(11,0)&&!water.ripple(0,6)&&!water.ripple(NaN,0),'land and invalid points cannot ripple');
+ check(!still.ripple(0,0),'reduced motion suppresses tap ripples');
+ for(let i=0;i<12;i++)water.ripple(i%5,0);
+ const u=water.mesh.material.uniforms;
+ check(u.uTaps.value.length===4,'rapid tapping stays bounded to four ripples');
+ water.update(13,0);check(u.uTaps.value.every(t=>t.w===0),'ripples expire');
+ const scene=new T.Scene(),details=new T.Group(),camera=new T.PerspectiveCamera(45,1,.1,100);
+ scene.add(details,water.mesh);camera.position.set(0,12,12);camera.lookAt(0,.1,0);camera.updateMatrixWorld();scene.updateMatrixWorld(true);
+ const canvas=document.createElement('canvas');canvas.style.cssText='position:fixed;left:100px;top:100px;width:300px;height:300px';document.body.append(canvas);
+ const rect=canvas.getBoundingClientRect(),cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
+ const bus=new T.Mesh(new T.BoxGeometry(2,2,2),new T.MeshBasicMaterial());bus.position.set(0,1.5,0);bus.visible=false;scene.add(bus);
+ let taps=0,picks=0;const original=water.ripple;water.ripple=(...args)=>{taps++;return original(...args);};
+ const dispose=createLandmarkPicker({canvas,camera,details,scene,water,bus,onPick:id=>{check(id==='bus','bus callback preserved');picks++;}});
+ const event=(type,x=cx,y=cy)=>canvas.dispatchEvent(new PointerEvent(type,{clientX:x,clientY:y,pointerId:1,isPrimary:true,button:0,pointerType:'touch'}));
+ const tap=()=>{event('pointerdown');event('pointerup');event('click');};
+ bus.position.set(0,-3,-3.1);scene.updateMatrixWorld(true);tap();check(taps===1&&picks===0,'water wins over a target behind its surface');
+ check(Math.abs(u.uTaps.value.find(t=>t.w===1).x)<1e-5,'ripple appears at the ray intersection');
+ event('pointerdown');event('pointermove',cx+30);event('pointermove');event('pointerup');event('click');
+ check(taps===1,'swiping out and back does not create a ripple');
+ event('pointerdown');event('pointercancel');event('click');check(taps===1,'cancelled touch does not ripple');
+ const bridge=new T.Mesh(new T.BoxGeometry(5,1,5),new T.MeshBasicMaterial());bridge.position.y=2;scene.add(bridge);scene.updateMatrixWorld(true);
+ tap();check(taps===1,'bridge blocks taps on water behind it');
+ bridge.visible=false;tap();check(taps===2,'hidden objects do not block the water');
+ bus.visible=true;bus.position.set(0,1.5,0);scene.updateMatrixWorld(true);tap();check(picks===1&&taps===2,'bus still receives its click');
+ bus.visible=false;bus.position.y=-30;scene.updateMatrixWorld(true);
+ const renderer=new T.WebGLRenderer();renderer.setSize(160,160);renderer.render(scene,camera);
+ check(!renderer.info.programs.some(p=>p.diagnostics?.runnable===false),'tap shader compiles');
+ const target=new T.WebGLRenderTarget(160,160),pixels=new Uint8Array(160*160*4),baseline=new Uint8Array(pixels.length);
+ renderer.setRenderTarget(target);water.update(20,0);water.ripple(0,0);water.update(20.5,0);
+ const tapState=u.uTaps.value.map(t=>t.w);u.uTaps.value.forEach(t=>t.w=0);
+ renderer.render(scene,camera);renderer.readRenderTargetPixels(target,0,0,160,160,baseline);
+ u.uTaps.value.forEach((t,i)=>t.w=tapState[i]);renderer.render(scene,camera);renderer.readRenderTargetPixels(target,0,0,160,160,pixels);
+ check(pixels.some((v,i)=>Math.abs(v-baseline[i])>3),'ripple changes rendered pixels');
+ dispose();tap();check(taps===3,'disposing removes pointer listeners');
+ canvas.remove();water.dispose();still.dispose();bridge.geometry.dispose();bridge.material.dispose();bus.geometry.dispose();bus.material.dispose();target.dispose();renderer.dispose();
+ return {tap:true,swipe:true,cancel:true,occlusion:true,reducedMotion:true,bounded:true,shader:true};
+})()'''))

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 // Build a neutral standing pose from the existing rig; restore the pool body before returning the reusable clip.
-export function createIdleClip(root) {
+export function createIdleClip(root, wave = false) {
   const bones=[]; root.traverse(o=>{if(o.isBone)bones.push(o);});
   const saved=bones.map(b=>({bone:b,position:b.position.clone(),quaternion:b.quaternion.clone()}));
   const find=name=>bones.find(b=>b.name===name||(b.name.startsWith(name+'_')&&/^\d+$/.test(b.name.slice(name.length+1)))),axis=new THREE.Vector3(),direction=new THREE.Vector3();
@@ -37,14 +37,31 @@ export function createIdleClip(root) {
       const offset=new THREE.Vector3(0,root.getWorldPosition(new THREE.Vector3()).y-bounds.min.y,0);
       base.position.copy(base.parent.worldToLocal(base.getWorldPosition(new THREE.Vector3()).add(offset)));
     }
-    const tracks=[],chest=find('spine_03');
+    const tracks=[],chest=find('spine_03'),rest=new Map(bones.map(b=>[b,b.quaternion.clone()]));
+    let greeting;
+    if(wave){
+      const arm=find('upperarm_r'),pelvis=find('pelvis');
+      if(arm&&pelvis){
+        const sign=Math.sign(root.worldToLocal(arm.getWorldPosition(new THREE.Vector3())).x-root.worldToLocal(pelvis.getWorldPosition(new THREE.Vector3())).x)||1;
+        aim('upperarm_r','lowerarm_r',new THREE.Vector3(sign*.55,-.25,.08));
+        aim('lowerarm_r','hand_r',new THREE.Vector3(sign*.35,1,.08));
+        const raised=new Map(bones.map(b=>[b,b.quaternion.clone()]));
+        aim('lowerarm_r','hand_r',new THREE.Vector3(-sign*.15,1,.08));
+        greeting={raised,sway:find('lowerarm_r')?.quaternion.clone()};
+      }
+    }
     for(const bone of bones){
-      const q=bone.quaternion.clone(),breath=q.clone();
+      const q=rest.get(bone),breath=q.clone();
+      if(greeting&&(bone===find('upperarm_r')||bone===find('lowerarm_r'))){
+        const raised=greeting.raised.get(bone),sway=bone===find('lowerarm_r')?greeting.sway:raised;
+        tracks.push(new THREE.QuaternionKeyframeTrack(bone.name+'.quaternion',[0,.65,1,1.35,1.7,2.05,2.4,3.2,4],[q,raised,raised,sway,raised,sway,raised,q,q].flatMap(v=>v.toArray())));
+        continue;
+      }
       if(bone===chest)breath.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),.008));
       tracks.push(new THREE.QuaternionKeyframeTrack(bone.name+'.quaternion',[0,2,4],[...q.toArray(),...breath.toArray(),...q.toArray()]));
     }
     if(base)tracks.push(new THREE.VectorKeyframeTrack(base.name+'.position',[0,4],[...base.position.toArray(),...base.position.toArray()]));
-    return new THREE.AnimationClip('NPC_Idle',4,tracks);
+    return new THREE.AnimationClip(wave?'NPC_Wave':'NPC_Idle',4,tracks);
   } finally {
     for(const {bone,position,quaternion}of saved){bone.position.copy(position);bone.quaternion.copy(quaternion);}
     root.updateMatrixWorld(true);

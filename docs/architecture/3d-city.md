@@ -42,6 +42,14 @@ The owner then authorized more houses and taller buildings in the same opening. 
 
 Expansion validation: all 205 Node tests passed. Browser comparison preserved the previous 716 lot descriptors, 10,685 scene boxes and 320 tree placements; the city now emits 723 architecture descriptors. The seven new lots clear neighboring lots, parks, walking areas, trees and reserved anchors. The isolated expansion measured four chunks, twelve meshes and 8,352 triangles before asynchronous townhouse-kit replacement. Desktop capture of the marked opening and JavaScript error monitoring passed; frame-time benchmarking and the full desktop/mobile product matrix were not run.
 
+## Subtle city interactions — 2026-11-10
+
+The owner authorized water taps and an occasional pedestrian detail. A click/tap on visible river water now creates a fading 2.4-second ripple in the existing shader, with four reusable uniform slots and no additional geometry or draw passes. The shared picker rejects swipes/cancelled touches, uses canvas-relative coordinates and checks visible city geometry for occlusion. Existing landmark/bus clicks remain available; water takes priority over targets behind its surface.
+
+The existing stationary conversation pairs in the São Paulo–London transition plaza occasionally wave to each other. One four-second greeting runs at a time, with 32–44 seconds between starts; no nearby pair means a two-second retry. The standing-pose generator reuses the adult/child rigs and restores the body after clip creation. Pool reassignment cancels the greeting. Walking paths, crowd placement and assets are unchanged. Both additions suppress animation with reduced motion.
+
+Focused validation: 31 related Node tests; `tests/water-interaction.browser.py`, `tests/water-weather.browser.py` and `tests/npc-idle.browser.py` (normal and reduced motion). The browser checks cover tap bounds/expiry, bounded rapid tapping, swipe/cancel rejection, occlusion, bus click preservation, rendered-pixel changes, shader compilation, adult/child poses, grounding and pool reuse. Real CDP mouse and touch events reached the river at desktop and 375×812 emulation. Local captures: `/tmp/subtle-city-interactions/`. No full regression/product matrix, Lighthouse, physical mobile or frame-time benchmark was run.
+
 ## Source of truth and flow
 
 Existing lot descriptors remain the source of truth: ID, kind, position, footprint and maximum height. Preserve generated map data, routes, landmarks, walking paths and logic. Replace the authorized lot's renderer, never layer duplicate buildings onto it.

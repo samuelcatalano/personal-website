@@ -349,7 +349,7 @@ export async function createNpc3d(scene, { people, pts, stops, count = +QUERY.ge
   };
   const eventHistory = QA ? [] : null;
   const noteEvent = QA ? (event) => { eventHistory.push({ ...event, tick }); if (eventHistory.length > QA_EVENT_LIMIT) eventHistory.shift(); } : null;
-  let tick = 0, viewCamera = null;
+  let tick = 0, viewCamera = null, greetingClock = 0, nextGreeting = 16, greeting = null;
   const lastCam = new THREE.Vector3(Infinity, 0, Infinity);
   const assign = (cam) => { // retain only in-view owners; fill free slots from visible, distance-bounded candidates
     updateFrustum(cam);
@@ -411,6 +411,24 @@ export async function createNpc3d(scene, { people, pts, stops, count = +QUERY.ge
       const cp = f.camera.position, jump = Math.hypot(cp.x - lastCam.x, cp.z - lastCam.z) > 15; // a fast scroll: hand the bodies over now
       if (QA) viewCamera = f.camera;
       if (tick++ % 12 === 0 || jump) { assign(f.camera); lastCam.copy(cp); }
+      greetingClock += dt;
+      if (greeting && (greeting.who !== greeting.waveWho || greetingClock >= greeting.waveEnd)) {
+        greeting.waveAction.stop();
+        if (greeting.idle) greeting.idleAction.reset().play();
+        greeting = null;
+      }
+      if (!REDUCED && !greeting && greetingClock >= nextGreeting) {
+        nextGreeting = greetingClock + 2; // Retry quietly if the nearby pair is outside the camera's pool.
+        const pair = walkers.filter(w => w.idle && w.who >= 0 && plan[w.who].path.type === 'idle' && Math.hypot(w.x - cp.x, w.z - cp.z) < FAR_ANIM);
+        const w = pair.find(a => pair.some(b => b !== a && Math.hypot(a.x - b.x, a.z - b.z) < 2));
+        if (w) {
+          w.waveAction ??= w.mixer.clipAction(createIdleClip(w.inst, true));
+          w.idleAction?.stop();
+          w.waveAction.reset().setLoop(THREE.LoopOnce, 1).play();
+          w.waveWho = w.who; w.waveEnd = greetingClock + 4; greeting = w;
+          nextGreeting = greetingClock + 32 + (w.who % 13);
+        }
+      }
       walkers.forEach((w, n) => {
         if (w.who < 0) { dummy.scale.setScalar(0); dummy.updateMatrix(); shadow.setMatrixAt(n, dummy.matrix); return; }
         const i = w.who, fx = route.fx[i], fz = route.fz[i], sp = plan[i].look.speed;
