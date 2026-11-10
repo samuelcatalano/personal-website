@@ -70,6 +70,11 @@ body { margin: 0; font: 15px/1.6 var(--sans); color: var(--ink); background: lin
 .panel .profile-status p { margin: 0; font-size: 12px; }
 .panel .profile-status .clock { margin: 6px 0 0; }
 .panel > h2 + p { color: var(--muted); font-size: 14px; line-height: 1.6; }
+.journey-progress { display: grid; gap: 6px; margin: 18px 0 0; color: var(--muted); font-size: 11px; }
+.journey-progress progress { width: 100%; height: 6px; accent-color: var(--accent); }
+.journey-finish { margin: 18px 0; padding: 14px 16px; border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 0 10px 10px 0; background: color-mix(in srgb, var(--accent) 5%, var(--card)); font-size: 13px; line-height: 1.55; }
+.journey-finish p { margin: 0; }
+.journey-finish p + p { margin-top: 8px; color: var(--muted); font-size: 11px; }
 .recent-role { margin: 22px 0; padding: 18px; border: 1px solid var(--line); border-left: 3px solid var(--city, var(--accent)); border-radius: 0 12px 12px 0; background: color-mix(in srgb, var(--city, var(--accent)) 4%, var(--card)); }
 .recent-role > strong { display: block; font-size: 17px; line-height: 1.35; letter-spacing: -.02em; }
 .panel .recent-company { margin: 6px 0 2px; font-size: 13px; font-weight: 600; }
