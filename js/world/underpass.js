@@ -1,12 +1,15 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { PALETTE as P } from './palette.js';
+import { buildLamps } from './lamp-mesh.js';
+import { createLampPools } from './lamps.js';
 import { blockMaterial } from './textures.js';
 import { underpassFrames, UNDERPASS } from './layout.js';
+import { riverProfile, RIVER_RUN, RIVER_WIDTH, RIVER_CUT_HW, DECK_T, BRIDGE_H } from './underwater-profile.js';
 // Countryside embankment carrying a two-lane road over the route with a masonry arch underpass across the road at each Glasgow livery boundary (scotRange). The bus is
 // completely inside the tunnel for a moment, so scene.js swaps London <-> Glasgow there and the camera never sees the model pop.
-// Local frame: x along the road, z across it (embankment), y up. 5 meshes per crossing (stone / light stone / lawn / asphalt / lines), shared block materials.
-export const HX = 7.5, W = 9, H = 7.5, ARCH_HALF_WIDTH = 5.5; // tunnel half length, masonry half width, deck height, clear arch half width
+// Local frame: x along the route, z across it, y up. Shared material buckets, instanced lanterns and deck light pools.
+export const HX = 7.5, W = 9, H = BRIDGE_H, ARCH_HALF_WIDTH = 5.5; // tunnel half length, masonry half width, deck height, clear arch half width
 const AW = ARCH_HALF_WIDTH, AWALL = 3.4, AB = 3.0; // opening half width, vertical wall height, elliptical crown rise
 export const CLEARANCE = AWALL + AB * Math.sqrt(1 - (3.05 / AW) ** 2); // headroom over the outer edge of a bus in its lane (~5.9 m)
 export const ROAD_HW = 3; // half width of the overpass road: two 3 m lanes
@@ -30,8 +33,33 @@ function archShape(rt = 0) { // arch outline: rt = 0 the opening itself, rt > 0 
   s.moveTo(-a, 0); s.lineTo(-a, AWALL); s.absellipse(0, AWALL, a, b, Math.PI, 0, true); s.lineTo(a, 0);
   return s;
 }
-function parts() {
-  const stone = [], light = [], lawn = [], road = [], line = [];
+export const deckHeight = (z, river) => river && z * river.sigma >= 0 ? riverProfile(Math.abs(z), river.bankAz) : crest(Math.abs(z));
+// Finish is shared by both bridges; joints fade with pixel footprint instead of sparkling at distance.
+function finishMaterial(mat, masonry) {
+  const compile = mat.onBeforeCompile, key = mat.customProgramCacheKey();
+  mat.customProgramCacheKey = () => key + '-bridge-finish-' + masonry;
+  mat.onBeforeCompile = (sh) => {
+    compile(sh);
+    sh.fragmentShader = sh.fragmentShader.replace('#include <roughnessmap_fragment>', `
+      vec2 face = abs(vLN.x) > abs(vLN.z) ? vLP.zy : vLP.xy;
+      float course = floor(face.y / 0.62);
+      vec2 cell = vec2(face.x / 1.6 + mod(course, 2.0) * 0.5, face.y / 0.62);
+      vec2 edge = min(fract(cell), 1.0-fract(cell));
+      vec2 aa = max(fwidth(cell), vec2(0.001));
+      float joint = 1.0 - min(smoothstep(0.008, 0.008+aa.x, edge.x), smoothstep(0.018, 0.018+aa.y, edge.y));
+      float detail = 1.0 - smoothstep(0.08, 0.35, max(aa.x, aa.y));
+      float blockTint = fract(sin(dot(floor(cell), vec2(31.1, 71.7))) * 14531.7);
+      float verticalFace = 1.0 - smoothstep(0.3, 0.8, abs(vLN.y));
+      diffuseColor.rgb *= 1.0 - ${masonry ? '0.18' : '0.04'} * joint * detail * verticalFace;
+      diffuseColor.rgb *= 1.0 + ${masonry ? '0.045' : '0.018'} * (blockTint-0.5) * detail;
+      float damp = (1.0-smoothstep(0.05, 0.65, vLP.y)) * verticalFace;
+      diffuseColor.rgb *= 1.0 - damp * 0.12;
+      #include <roughnessmap_fragment>`);
+  };
+  return mat;
+}
+function parts(river) {
+  const stone = [], light = [], lawn = [], road = [], line = [], para = [];
   const body = new THREE.Shape(); // masonry block with the opening cut out of its base
   body.moveTo(-W, 0); body.lineTo(-AW, 0); body.lineTo(-AW, AWALL); body.absellipse(0, AWALL, AW, AB, Math.PI, 0, true); body.lineTo(AW, 0); body.lineTo(W, 0); body.lineTo(W, H); body.lineTo(-W, H); body.closePath();
   stone.push(along(body, 2 * HX, -HX));
@@ -39,43 +67,128 @@ function parts() {
   ring.lineTo(AW, 0); ring.lineTo(AW, AWALL); ring.absellipse(0, AWALL, AW, AB, 0, Math.PI, false); ring.lineTo(-AW, 0); ring.closePath();
   for (const f of [1, -1]) {
     light.push(along(ring, 0.15, f > 0 ? HX : -HX - 0.15));
+    const joints = soup(), face = f * (HX + 0.153);
+    for (let k = 1; k < 22; k++) {
+      const a = k * Math.PI / 22, da = 0.006;
+      const point = (t, r) => V(face, AWALL + (AB+r)*Math.sin(t), (AW+r)*Math.cos(t));
+      joints.quad(point(a-da,0.025),point(a+da,0.025),point(a+da,0.49),point(a-da,0.49),V(f,0,0));
+    }
+    stone.push(joints.geo());
+    light.push(box(f*(HX+0.2)-0.04, f*(HX+0.2)+0.04, AWALL+AB+0.015, AWALL+AB+0.49, -0.19,0.19));
+    for (const side of [-1,1]) light.push(box(f*HX-0.07,f*HX+0.07,0.02,0.28,side*(AW+0.8)-0.4,side*(AW+0.8)+0.4));
     light.push(box(f * HX - 0.12 * (f > 0 ? 0 : 1), f * HX + 0.12 * (f > 0 ? 1 : 0), 7.0, 7.3, -W - 0.1, W + 0.1)); // string course
     light.push(box(f * (HX - 0.4) - 0.35, f * (HX - 0.4) + 0.35, H + 0.9, H + 1.02, -W, W)); // coping
     stone.push(box(f * (HX - 0.4) - 0.25, f * (HX - 0.4) + 0.25, H, H + 0.9, -W, W)); // parapet
   }
-  const lo = soup();
+  const lo = soup(), riverWalls = soup();
   for (const s of [-1, 1]) { // concrete wings, sloped sides, easing into the fields
-    const az = [W - 0.1, FLAT, ...Array.from({ length: 10 }, (_, k) => FLAT + (END - FLAT) * (k + 1) / 10)], prof = az.map((a) => { const y = crest(a), cw = BASE - (BASE - CREST) * y / H; return { z: s * a, y, cw }; });
+    const az = [W - 0.1, FLAT, ...Array.from({ length: 10 }, (_, k) => FLAT + (END - FLAT) * (k + 1) / 10)], prof = az.map((a) => { const y = deckHeight(s * a, river), cw = river && s === river.sigma ? RIVER_CUT_HW : BASE - (BASE - CREST) * y / H; return { z: s * a, y, cw }; });
     for (let i = 0; i < prof.length - 1; i++) {
       const a = prof[i], b = prof[i + 1];
-      for (const x of [-1, 1]) lo.quad(V(x * BASE, -0.05, a.z), V(x * a.cw, a.y, a.z), V(x * b.cw, b.y, b.z), V(x * BASE, -0.05, b.z), V(x, 0.4, 0));
+      for (const x of [-1, 1]) {
+        if (river && s === river.sigma) riverWalls.quad(V(x * RIVER_CUT_HW, -0.05, a.z), V(x * RIVER_CUT_HW, a.y + 0.07, a.z), V(x * RIVER_CUT_HW, b.y + 0.07, b.z), V(x * RIVER_CUT_HW, -0.05, b.z), V(x, 0, 0));
+        else lo.quad(V(x * BASE, -0.05, a.z), V(x * a.cw, a.y, a.z), V(x * b.cw, b.y, b.z), V(x * BASE, -0.05, b.z), V(x, 0.4, 0));
+      }
       lo.quad(V(-a.cw, a.y, a.z), V(a.cw, a.y, a.z), V(b.cw, b.y, b.z), V(-b.cw, b.y, b.z), V(0, 1, 0));
     }
   }
   lawn.push(lo.geo());
+  if (river) stone.push(riverWalls.geo());
   // two-lane road over the crest (level over the masonry, sloping off with the wings): asphalt, centre line, edge lines and low parapets
   const zs = [-END, ...Array.from({ length: 10 }, (_, k) => -(END - (END - FLAT) * (k + 1) / 10)), FLAT, ...Array.from({ length: 10 }, (_, k) => FLAT + (END - FLAT) * (k + 1) / 10)];
   const bed = soup(), mk = soup(), UP = V(0, 1, 0), strip = (g, x0, x1, y, z0, z1, h0, h1) => g.quad(V(x0, h0 + y, z0), V(x1, h0 + y, z0), V(x1, h1 + y, z1), V(x0, h1 + y, z1), UP);
   for (let i = 0; i < zs.length - 1; i++) {
-    const z0 = zs[i], z1 = zs[i + 1], y0 = crest(Math.abs(z0)), y1 = crest(Math.abs(z1));
+    const z0 = zs[i], z1 = zs[i + 1], y0 = deckHeight(z0, river), y1 = deckHeight(z1, river);
     strip(bed, -ROAD_HW, ROAD_HW, 0.12, z0, z1, y0, y1);
     for (const c of [0, -ROAD_HW + 0.3, ROAD_HW - 0.3]) strip(mk, c - 0.07, c + 0.07, 0.14, z0, z1, y0, y1);
   }
   for (const x of [-1, 1]) {
-    stone.push(box(x * ROAD_HW - 0.15, x * ROAD_HW + 0.15, H, H + 0.7, -W, W));
-    light.push(box(x * ROAD_HW - 0.25, x * ROAD_HW + 0.25, H + 0.7, H + 0.78, -W, W)); // coping
+    const outer = river ? RIVER_CUT_HW : ROAD_HW + 0.15;
+    const inner = outer - 0.3, x0 = x < 0 ? -outer : inner, x1 = x < 0 ? -inner : outer;
+    (river ? para : stone).push(box(x0, x1, H + 0.07, H + 0.92, -W, W));
+    (river ? para : light).push(box(x0 - 0.05, x1 + 0.05, H + 0.92, H + 1, -W, W));
   }
   road.push(bed.geo()); line.push(mk.geo());
-  return { stone, light, lawn, road, line };
+  return { stone, light, lawn, road, line, ...(river ? { para } : {}) };
 }
-export function createUnderpass(curve, stops) {
-  const colors = { stone: P.stone, light: P.concreteMid, lawn: P.concreteMid, road: P.road, line: P.arch }, mats = {}, geos = [];
+// River leg stays level with the arch crest across the channel and comes
+// down the exit past the far bank (underwater-profile.js). Land approaches have vertical retaining walls; the channel has a thin stone slab.
+// The stone abutments at the banks carry it; no pier stands in the water. Light curbs, walkways and pale parapets with a cap run the whole length.
+// Local frame of the pass: x along the route, z across it; `sigma` is the side the river lies on (-1 for both current crossings).
+const PH = 0.8; // parapet height over the walkway
+function riverBridge(sigma, bankAz) {
+  const far = bankAz + RIVER_RUN + 2, b0 = bankAz, b1 = bankAz + RIVER_WIDTH, UP = V(0, 1, 0), DOWN = V(0, -1, 0);
+  const az = [...new Set([W, END, ...Array.from({ length: Math.ceil(far - W) + 1 }, (_, i) => Math.min(far, W + i)), b0, b1])].sort((p, q) => p - q);
+  const road = soup(), line = soup(), stone = soup(), light = soup(), pave = soup(); // light = pale parapet stone (own 'para' mesh)
+  const h = (a) => riverProfile(a, bankAz), top = (a) => h(a) + 0.12, Z = (a) => sigma * a, HW = RIVER_CUT_HW, KW = ROAD_HW + 0.25, PI = HW - 0.3;
+  const strip = (g, x0, x1, ya, yb, a, b, n = UP) => g.quad(V(x0, ya, Z(a)), V(x1, ya, Z(a)), V(x1, yb, Z(b)), V(x0, yb, Z(b)), n);
+  const wall = (g, x, y0a, y1a, y0b, y1b, a, b, out) => g.quad(V(x, y0a, Z(a)), V(x, y1a, Z(a)), V(x, y1b, Z(b)), V(x, y0b, Z(b)), V(out, 0, 0));
+  for (let i = 0; i < az.length - 1; i++) {
+    const a = az[i], b = az[i + 1], ya = top(a), yb = top(b), wet = a >= b0 && b <= b1;
+    if (a >= END) { // existing arch approach already supplies the asphalt and markings
+      strip(road, -ROAD_HW, ROAD_HW, ya, yb, a, b);
+      for (const c of [0, -ROAD_HW + 0.3, ROAD_HW - 0.3]) strip(line, c - 0.07, c + 0.07, ya + 0.02, yb + 0.02, a, b);
+    }
+    for (const x of [-1, 1]) {
+      const [k0, k1] = x < 0 ? [-KW, -ROAD_HW] : [ROAD_HW, KW], [w0, w1] = x < 0 ? [-PI, -KW] : [KW, PI], [p0, p1] = x < 0 ? [-HW - 0.05, -PI + 0.05] : [PI - 0.05, HW + 0.05];
+      strip(line, k0, k1, ya + 0.12, yb + 0.12, a, b); // light curb
+      wall(line, x * ROAD_HW, ya, ya + 0.12, yb, yb + 0.12, a, b, -x); // curb face toward the road
+      strip(pave, w0, w1, ya + 0.12, yb + 0.12, a, b); // walkway in bank pavers
+      wall(light, x * PI, ya + 0.12, ya + PH, yb + 0.12, yb + PH, a, b, -x); // parapet, inner face
+      wall(light, x * HW, ya - 0.05, ya + PH, yb - 0.05, yb + PH, a, b, x); // parapet, outer face
+      strip(light, p0, p1, ya + PH + 0.08, yb + PH + 0.08, a, b); // cap, slightly wider than the parapet
+      for (const [xc, o] of [[p0, -1], [p1, 1]]) wall(light, xc, ya + PH, ya + PH + 0.08, yb + PH, yb + PH + 0.08, a, b, o);
+      if (wet) wall(stone, x * HW, ya - DECK_T, ya - 0.05, yb - DECK_T, yb - 0.05, a, b, x); // slab edge
+      else if (a >= END) wall(stone, x * HW, -0.05, ya - 0.05, -0.05, yb - 0.05, a, b, x); // vertical retaining wall keeps the approaches inside the deck footprint
+    }
+    if (wet) strip(stone, -HW, HW, ya - DECK_T, yb - DECK_T, a, b, DOWN); // soffit
+  }
+  for (const [a, out] of [[b0, sigma], [b1, -sigma]]) { // abutments: stone face from the ground to the soffit, as wide as the embankment foot
+    const y = top(a) - DECK_T;
+    stone.quad(V(-HW, -0.05, Z(a)), V(HW, -0.05, Z(a)), V(HW, y, Z(a)), V(-HW, y, Z(a)), V(0, 0, out));
+  }
+  return { road: road.geo(), line: line.geo(), stone: stone.geo(), para: light.geo(), pave: pave.geo() };
+}
+export function createUnderpass(curve, stops, river = null) {
+  const colors = { stone: '#a49b87', light: '#d4c8af', lawn: '#a49b87', road: P.road, line: P.arch, pave: P.paverWarm, para: '#c9c1af' }, mats = {}, geos = [];
   for (const k in colors) mats[k] = blockMaterial(colors[k]);
-  const root = new THREE.Group(); root.name = 'underpasses';
+  mats.pave.color.set('#a9a69b');
+  for (const k of ['stone', 'lawn', 'para']) finishMaterial(mats[k], k !== 'para');
+  const root = new THREE.Group(), lampSpots = [], spillSpots = []; root.name = 'underpasses';
   const passes = underpassFrames(curve, stops).map(({ t, tc }, i) => {
     const c = curve.getPointAt(tc), tan = curve.getTangentAt(tc), g = new THREE.Group();
     g.name = 'underpass-' + i; g.position.copy(c); g.rotation.y = Math.atan2(-tan.z, tan.x);
-    const pr = parts();
+    // river crossing: the centre sits inside the river's x-range; the near bank is 11 m (half the channel) from the river centreline
+    const onRiver = !!river && c.x > river.x0 && c.x < river.x1;
+    const bankAz = onRiver ? Math.abs(river.z + Math.sign(c.z - river.z) * river.width / 2 - c.z) * Math.abs(tan.x) : 0;
+    const sigma = onRiver ? Math.sign(river.z - c.z) * Math.sign(tan.x) : 1;
+    const riverLeg = onRiver ? { bankAz, sigma, inAz: bankAz + RIVER_RUN + 2 } : null;
+    const pr = parts(riverLeg);
+    if (onRiver) {
+      const br = riverBridge(sigma, bankAz); for (const k in br) (pr[k] ??= []).push(br[k]);
+      const farBank = bankAz + RIVER_WIDTH, end = bankAz + RIVER_RUN;
+      for (const side of [-1, 1]) {
+        const x = side * RIVER_CUT_HW;
+        // Cornice and base courses follow each bank approach; nothing narrows the navigable channel.
+        for (let a = W; a < end; a += 1) {
+          const b = Math.min(end, a + 1), ya = riverProfile(a, bankAz), yb = riverProfile(b, bankAz);
+          const band = soup();
+          band.quad(V(x + side*0.055, ya-0.16, sigma*a), V(x + side*0.055, ya+0.035, sigma*a), V(x + side*0.055, yb+0.035, sigma*b), V(x + side*0.055, yb-0.16, sigma*b), V(side,0,0));
+          pr.light.push(band.geo());
+          if (a < bankAz || a >= farBank) {
+            const bh = Math.min(0.3, ya), base = soup();
+            base.quad(V(x+side*0.06,0,sigma*a), V(x+side*0.06,bh,sigma*a), V(x+side*0.06,Math.min(0.3,yb),sigma*b), V(x+side*0.06,0,sigma*b), V(side,0,0));
+            pr.light.push(base.geo());
+          }
+        }
+        for (let az = 16; az < end-3; az += 8) {
+          if (az > bankAz-1 && az < farBank+1) continue;
+          const y = riverProfile(az, bankAz);
+          if (y < 0.7) continue;
+          pr.stone.push(box(Math.min(x,x+side*0.1),Math.max(x,x+side*0.1),0.25,y-0.18,sigma*az-0.23,sigma*az+0.23));
+        }
+      }
+    }
     for (const k in pr) {
       const geo = mergeGeometries(pr[k].map((x) => { if (!x.attributes.normal) x.computeVertexNormals(); return x.index ? x.toNonIndexed() : x; }));
       geos.push(geo);
@@ -83,10 +196,30 @@ export function createUnderpass(curve, stops) {
       m.castShadow = k === 'stone' || k === 'lawn'; m.receiveShadow = true;
       g.add(m);
     }
+    if (onRiver) {
+      g.updateMatrix();
+      for (let az = 0; az < bankAz + RIVER_RUN - 3; az += 12) {
+        // Low heritage lanterns follow the continuous parapet caps.
+        for (const side of [-1, 1]) {
+          const x = side * (RIVER_CUT_HW - 0.15);
+          const y = deckHeight(sigma * az, riverLeg) + 1;
+          const p = V(x, y, sigma * az).applyMatrix4(g.matrix);
+          lampSpots.push([p.x, p.z, 0, 'uk', p.y, 0.38]);
+          if (az <= bankAz + RIVER_WIDTH) {
+            const q = V(side * 2.55, H + 0.15, sigma * az).applyMatrix4(g.matrix);
+            spillSpots.push([q.x, q.z, 1, q.y]);
+          }
+        }
+      }
+    }
     root.add(g);
-    return { t: tc, boundary: t, x: c.x, z: c.z, tx: tan.x, tz: tan.z, half: HX };
+    return { t: tc, boundary: t, x: c.x, z: c.z, tx: tan.x, tz: tan.z, half: HX, river: riverLeg };
   });
-  root.userData.dispose = () => { geos.forEach((g) => g.dispose()); Object.values(mats).forEach((m) => m.dispose()); };
+  const lamps = lampSpots.length ? buildLamps(lampSpots) : null;
+  if (lamps) root.add(lamps);
+  const spill = createLampPools(root, spillSpots, 1.8, [], false);
+  root.userData.setNight = (n) => { lamps?.userData.setNight(n); spill.update(n); };
+  root.userData.dispose = () => { spill.dispose(); lamps?.userData.dispose(); geos.forEach((g) => g.dispose()); Object.values(mats).forEach((m) => m.dispose()); };
   const offset = (p, x, z) => (x - p.x) * p.tx + (z - p.z) * p.tz; // signed distance along the road from the arch centre
   return { group: root, passes, offset };
 }

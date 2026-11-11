@@ -1,5 +1,6 @@
 import { ROAD as RD, furnitureSpots, LEGACY_GAPS as GAPS, GAP_TOTAL, SWAP_GAP, east, eastAdd, routePoints, routeCurve, STOP_SPACING, RIVER_Z, LANDMARKS, LONDON_EYE_X_OFFSET, rng, riverEnd, riverStart, stopIndex, ukStart, regions, towerX, underpassFrames, UNDERPASS, swapTunnelFrame } from './layout.js';
 import { house } from './houses.js';
+import { RIVER_RUN } from './underwater-profile.js';
 import { phoneBox } from './phone.js';
 import { lampPost, lampPoolAt } from './street-lamp.js';
 import { PALETTE as P } from './palette.js';
@@ -93,6 +94,7 @@ function buildRoad(add, stops, pts, curve) {
   add(GAP_TOTAL / 2, -1, 100, span + 1200, 1, 400, P.pave);
   const x0 = riverStart(stops, pts), rEnd = riverEnd(stops, pts), mid = (x0 + rEnd) / 2, len = rEnd - x0;
   const pilotX0 = pts[stopIndex(stops, LANDMARKS.eye)].x + 12, pilotX1 = towerX(stops, pts) - 20;
+  // quay and path stay continuous at the viaduct crossings: the river bridge (underpass.js riverBridge) passes over them at 3.6 m or more
   for (const side of [-1, 1]) {
     const edge = RIVER_Z + side * 12;
     add(mid, -0.08, edge, len, 0.18, 2.2, BANK);
@@ -137,7 +139,11 @@ function buildLegacy(add, stops, pts, curve, onTree, onBuildingPlot, onArchitect
   const ex = pts[stopIndex(stops, LANDMARKS.estaiada)].x, ex0 = ex - 16, ex1 = ex + 7, ez0 = RIVER_Z - 43, ez1 = pts[stopIndex(stops, LANDMARKS.estaiada)].z + 1;
   const onEstaiada = (x, z) => x > ex0 && x < ex1 && z > ez0 && z < ez1; // ponytail: bbox, not per-segment distance
   // Overpass corridors: the embankment road runs across the route to +-UNDERPASS.end; nothing of the countryside/Glasgow edge may stand on it (cars drive there)
-  const ups = underpassFrames(curve, stops), onOverpass = (x, z, r) => ups.some((u) => { const dx = x - u.x, dz = z - u.z, a = dx * u.tx + dz * u.tz, c = -dx * u.tz + dz * u.tx; return Math.abs(a) < UNDERPASS.base + 2 + r && Math.abs(c) < UNDERPASS.end + 3 + r; });
+  // River leg of a crossing (underpass.js riverBridge): nothing (plaza paving, planters, trees) stands within 13 m of the road axis from the embankment end to 6 m past the far
+  // bank, on either side of the water. ponytail: river range in the legacy frame this function draws in (riverStart/End of the same pts); bank = river edge 11 m from RIVER_Z.
+  const rx0 = riverStart(stops, pts), rx1 = riverEnd(stops, pts);
+  const onRiverLeg = (u, a, c, r) => { if (u.x <= rx0 || u.x >= rx1 || Math.abs(a) >= 13 + r) return false; const sg = Math.sign(RIVER_Z - u.z) * Math.sign(u.tx), bank = Math.abs(RIVER_Z + Math.sign(u.z - RIVER_Z) * 11 - u.z) * Math.abs(u.tx); return sg * c > UNDERPASS.end && sg * c < bank + RIVER_RUN + 6 + r; };
+  const ups = underpassFrames(curve, stops), onOverpass = (x, z, r) => ups.some((u) => { const dx = x - u.x, dz = z - u.z, a = dx * u.tx + dz * u.tz, c = -dx * u.tz + dz * u.tx; return Math.abs(a) < UNDERPASS.base + 2 + r && Math.abs(c) < UNDERPASS.end + 3 + r || onRiverLeg(u, a, c, r); });
   const treeAt = onTree && ((x, z, shape) => { if (!onEstaiada(x, z) && !onOverpass(x, z, (shape.crown || 2) / 2 + 0.3)) onTree(x, z, shape); });
   const drawTree = treeAt ? (_add, x, z, shape) => treeAt(x, z, shape) : (a, x, z, shape) => { if (!onEstaiada(x, z) && !onOverpass(x, z, (shape.crown || 2) / 2 + 0.3)) tree(a, x, z, shape); };
   const spots = furnitureSpots(stops, curve).map((o) => o.xz);

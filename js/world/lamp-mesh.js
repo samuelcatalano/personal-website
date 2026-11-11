@@ -32,6 +32,7 @@ function brParts() {
   return [mergeGeometries(metal), mergeGeometries(glass)];
 }
 
+// Spots: [x, z, yaw, style, baseY = 0, scale = 1]; elevated low posts reuse the same lamp geometry.
 export function buildLamps(spots) {
   const group = new THREE.Group(), o = new THREE.Object3D(); group.name = 'street-lamps';
   const metal = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, metalness: 0.55 });
@@ -44,13 +45,13 @@ export function buildLamps(spots) {
     make().forEach((g, j) => {
       geoms.push(g);
       const m = new THREE.InstancedMesh(g, j ? glass : metal, list.length); m.name = `lamp-${style}-${j ? 'glass' : 'post'}`;
-      list.forEach(([x, z, yaw], i) => { o.position.set(x, 0, z); o.rotation.y = yaw; o.updateMatrix(); m.setMatrixAt(i, o.matrix); });
+      list.forEach(([x, z, yaw, , y = 0, scale = 1], i) => { o.position.set(x, y, z); o.scale.setScalar(scale); o.rotation.y = yaw; o.updateMatrix(); m.setMatrixAt(i, o.matrix); });
       m.castShadow = !j; m.receiveShadow = true; m.computeBoundingSphere(); group.add(m);
     });
   }
   // Warm halo at each lamp head: one camera-facing Points draw, blooms through the existing bloom pass. Restrained, not a flare.
   const HEAD = { uk: [0, 3.82, 0], br: [1.57, 5.1, 0] }, hp = [];
-  for (const [x, z, yaw, style] of spots) { o.position.set(x, 0, z); o.rotation.y = yaw; o.updateMatrix(); hp.push(...new THREE.Vector3(...HEAD[style]).applyMatrix4(o.matrix).toArray()); }
+  for (const [x, z, yaw, style, y = 0, scale = 1] of spots) { o.position.set(x, y, z); o.scale.setScalar(scale); o.rotation.y = yaw; o.updateMatrix(); hp.push(...new THREE.Vector3(...HEAD[style]).applyMatrix4(o.matrix).toArray()); }
   const hg = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(hp, 3));
   const hm = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, toneMapped: false,
@@ -60,7 +61,7 @@ export function buildLamps(spots) {
     fragmentShader: `uniform float uNight; varying float vA; void main(){ float r = length(gl_PointCoord - 0.5) * 2.0; float a = pow(max(0.0, 1.0 - r), 2.2) * 0.55 * uNight * vA; gl_FragColor = vec4(vec3(1.0, 0.72, 0.4) * a, a); }`,
   });
   const halo = new THREE.Points(hg, hm); halo.name = 'lamp-halos'; halo.frustumCulled = false; halo.renderOrder = 6; group.add(halo);
-  group.userData.setNight = (n) => { hm.uniforms.uNight.value = n; hm.uniforms.uPx.value = innerHeight * Math.min(devicePixelRatio || 1, 1.5) * 0.5; halo.visible = n > 0.02; };
+  group.userData.setNight = (n) => { glass.emissive.copy(glass.userData.glowColor).multiplyScalar(n * glass.userData.glowK); hm.uniforms.uNight.value = n; hm.uniforms.uPx.value = innerHeight * Math.min(devicePixelRatio || 1, 1.5) * 0.5; halo.visible = n > 0.02; };
   group.userData.dispose = () => { geoms.forEach((g) => g.dispose()); metal.dispose(); glass.dispose(); hg.dispose(); hm.dispose(); };
   return group;
 }

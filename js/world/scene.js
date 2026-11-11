@@ -3,7 +3,7 @@ import { streetEnvironment, setStreetRegions, shopFrontages } from './streetscap
 import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
 import { routeT, nearestStop, stopMarks, fineMarks } from '../scroll.js';
-import { regions, routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, towerX, FRAME_LIFT, swapAt, heroVehicleAt, ukStart, treeRegion, SWAP_GAP, east, eastAdd, stretch, LEGACY_GAPS } from './layout.js';
+import { regions, routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, towerX, FRAME_LIFT, swapAt, heroVehicleAt, ukStart, treeRegion, SWAP_GAP, east, eastAdd, stretch, LEGACY_GAPS, underpassFrames } from './layout.js';
 import { createBoxes, buildMeshes } from './voxel.js';
 import { buildMotion } from './motion.js';
 import { buildCity, tree } from './city.js';
@@ -47,6 +47,7 @@ import { createPost } from './post.js';
 import { createVehicleFx } from './vehicle-fx.js';
 import { createRoadMarks } from './roadmarks.js';
 import { loadVehicleAsset, adoptVisual, upgradeBus, upgradeMini, rollWheels, initVehicleEnv, updateVehicleEnv } from './vehicle-assets.js';
+import { RIVER_RUN } from './underwater-profile.js';
 import { createUnderpass } from './underpass.js';
 import { createUnderpassTraffic } from './underpass-traffic.js';
 import { createRouteTunnel } from './route-tunnel.js';
@@ -122,10 +123,15 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const { add, list } = createBoxes();
   const cornerAdd = clearClosingCorner(add);
   const treePlacements = [], buildingPlots = [], architecturePlots = [], publicRealmZones = [];
-  const { lamps, pilotCrossings } = buildCity(cornerAdd, stops, pts, curve, (x, z, shape) => treePlacements.push({ x, z, ...shape }), plot => buildingPlots.push(plot), plot => architecturePlots.push(plot), zone => publicRealmZones.push(zone));
+  // the lot on the viaduct's road extension toward the river is removed (no building there; the road ramps up onto the river bridge)
+  const removedPlots = []; if (qa) globalThis.__qaRemoved = removedPlots; // QA probe: lots dropped by onRiverRoad
+  const onRiverRoad = (p) => { const hit = onRiverRoad0(p); if (hit) removedPlots.push([p.id, p.kind, +p.x.toFixed(1), +p.z.toFixed(1)]); return hit; };
+  const onRiverRoad0 = (p) => underpassFrames(curve, stops).some((u) => u.x > riverStart(stops, pts) && u.x < riverEnd(stops, pts) && (Math.abs(p.x - u.x) < 7 && p.z > RIVER_Z - 14 && p.z < u.z - 32 || Math.abs(p.x - u.x) < 8 + (p.width || 0) / 2 && p.z < RIVER_Z && p.z > RIVER_Z + 11 - RIVER_RUN - 6 - (p.depth || 0) / 2)); // + far-bank lots in front of the exit (to 6 m past the far end of the ramp)
+  const { lamps, pilotCrossings } = buildCity(cornerAdd, stops, pts, curve, (x, z, shape) => treePlacements.push({ x, z, ...shape }), plot => { if (!onRiverRoad(plot)) buildingPlots.push(plot); }, plot => { if (!onRiverRoad(plot)) architecturePlots.push(plot); }, zone => publicRealmZones.push(zone));
   const heroRealm=publicRealmZones.length?createHeroRealm():null;
   if(heroRealm)scene.add(heroRealm);
   const realCity = buildRealCity(architecturePlots);
+  if (qa) globalThis.__qaPlots = architecturePlots; // QA probe: lots, for the underwater-road house check (no visual effect)
   resetFloodlights(); // landmark builders re-register their night floodlight boxes
   const { eye, details } = buildLandmarks(cornerAdd, stops, pts, (x, z, shape) => treePlacements.push({ x, z, ...shape }));
   const plane = buildVehicle('a330'), planeAt = ukStart(stops) / (n - 1), { nav, strobe, shadow } = plane.userData; // flies past the bus at the first UK stop
@@ -151,9 +157,11 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const bus = createHeroGroup(candidates), swap = swapAt(stops);
   candidates.forEach((v) => { v.visible = false; });
   // Glasgow livery between the two railway underpasses (each within 7 m of its scotRange boundary); the visible swap happens inside the tunnel (see frame())
-  const underpass = createUnderpass(curve, stops), [ARCH_IN, ARCH_OUT] = underpass.passes.map((a) => a.t);
+  const closeUp = qa && new URLSearchParams(location.search).get('closeup') ? (() => { const v = new URLSearchParams(location.search).get('closeup').split(',').map(Number); return v.length === 7 && v.every(Number.isFinite) ? { p: v.slice(0, 3), t: v.slice(3, 6), fov: v[6] } : null; })() : null; // QA probe: fixed close-up camera
+  const underpass = createUnderpass(curve, stops, qa && new URLSearchParams(location.search).has('noriver') ? null : { x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z: RIVER_Z, width: 22 }), [ARCH_IN, ARCH_OUT] = underpass.passes.map((a) => a.t);
+  if (qa) globalThis.__qaUnderpass = underpass.passes; // QA probe: pass centres and frames for the river survey (no visual effect)
   scene.add(underpass.group);
-  let shown = null, frameNo = 0, swapFade = null; const SWAP_OUT = 0.3, SWAP_IN = 0.35; // Hero changes scale down then up; never both visible outside this fade.
+  let shown = null, frameNo = 0, swapFade = null; const archPrev = [], SWAP_OUT = 0.3, SWAP_IN = 0.35; // Hero changes scale down then up; never both visible outside this fade.
   const frustum = new THREE.Frustum(), pv = new THREE.Matrix4(), sphere = new THREE.Sphere(), ray = new THREE.Raycaster();
   for (const v of candidates) addBeams(v, v.userData.front, v.userData.beamY);
   const WIN_L = '#2b2621', RG = '#27394b', RB = '#c9ccd1'; // Glasgow Uni windows, Riverside glass + band
@@ -243,6 +251,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   scene.traverse((o) => { if (o.name.startsWith('thames-boat')) reflectRoots.push(o); });
   for (const name of ['bigben', 'towerbridge', 'eyeframe', 'estaiada', 'masp', 'se', 'copan', 'riverside', 'university', 'chambers', 'wembley']) reflectRoots.push(details.getObjectByName(name + '-geometry'));
   reflectRoots.push(details.getObjectByName('estaiada-deck')?.parent, details.getObjectByName('bigben-four-clock-faces'));
+  if (qa) globalThis.__qaRiver = { x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z: RIVER_Z, width: 22 }; // QA probe: river extent for the underpass survey
   const water = createWater({
     x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z: RIVER_Z, width: 22,
     reducedMotion, piers, boats, reflectRoots, bankPlots: architecturePlots,
@@ -299,6 +308,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   if (bar) observer?.observe(bar);
   if (panel) observer?.observe(panel);
   const busPos = { x: 0, y: 0, z: 0 }, prevBus = { x: null, z: 0, h: 0 }, MINI_WHEELBASE = 2.5, MAX_STEER = 0.5;
+  if (qa) globalThis.__qaBus = busPos; // QA probe: projects the bus onto screen for framing checks (no visual effect)
   let heroSpeed = 0, steer = 0;
   // Flyover at the first UK stop: the path, the pull-in that keeps it clear of the buildings and the timing live in plane-path.js.
   // Atmospheric perspective instead of transparency: the plane stays opaque and solid, and is tinted toward the horizon colour with distance
@@ -370,13 +380,17 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const shot = blendShots(shotFor(ka, busPos, { mobile, lift }), shotFor(kb, busPos, { mobile, lift }), s - i, ka === kb ? 0 : ARC);
     camera.position.fromArray(shot.position);
     camera.lookAt(shot.target[0], shot.target[1], shot.target[2]);
+    if (closeUp) { camera.position.set(...closeUp.p); camera.lookAt(...closeUp.t); camera.fov = closeUp.fov; camera.updateProjectionMatrix(); } // QA only: ?qa=1&closeup=px,py,pz,tx,ty,tz,fov
     // The primary Mini returns as a Mini; regional São Paulo buses belong to secondary traffic.
     const want = heroVehicleAt(t, swapTunnel?.t ?? swap, ARCH_IN, ARCH_OUT, heroVehicles); // Mini <-> bus inside the tunnel (its centre), else at the region border
     frameNo++;
+    if (qa) globalThis.__qaSwap = { p, shown: candidates.indexOf(shown), want: candidates.indexOf(want), visible: candidates.map((v) => (v.visible ? 1 : 0)).join(''), k: swapFade ? swapFade.k : -1, y: bus.position.y, s: swapTunnel ? swapTunnel.offset(busPos.x, busPos.z) : null, h: swapTunnel?.half ?? null }; // QA probe: which hero candidate is shown per frame (no visual effect)
+    // Bus centre crossing an arch centre since the last frame: fast scrolls skip the ±1.8 m 'fully under' window between frames
+    const archCross = underpass.passes.map((a, i) => { const o = underpass.offset(a, busPos.x, busPos.z), c = archPrev[i] !== undefined && Math.sign(archPrev[i]) !== Math.sign(o); archPrev[i] = o; return c; }).some(Boolean);
     if (shown !== want) {
       const half = (v) => (v.userData.length ?? 4) / 2, under = shown && swapTunnel?.covered(busPos.x, busPos.z, Math.max(half(shown), half(want)));
       // Mini <-> bus: only once the whole of both is inside the tunnel (instant, unseen); a nav jump far from it still shrinks/grows
-      let why = !shown ? 'immediate' : shown === mini || want === mini ? (!swapTunnel ? 'immediate' : under ? 'arch' : Math.abs(swapTunnel.offset(busPos.x, busPos.z)) > swapTunnel.half + 12 ? 'immediate' : '') : underpass.passes.some((a) => Math.abs(underpass.offset(a, busPos.x, busPos.z)) <= a.half - 5.7) ? 'arch' : Math.abs(s - Math.round(s)) < 0.12 ? 'stop' : ka !== kb && s - i > 0.15 && s - i < 0.85 ? 'blend' : '';
+      let why = !shown ? 'immediate' : shown === mini || want === mini ? (!swapTunnel ? 'immediate' : under ? 'arch' : Math.abs(swapTunnel.offset(busPos.x, busPos.z)) > swapTunnel.half + 12 ? 'immediate' : '') : (archCross || underpass.passes.some((a) => Math.abs(underpass.offset(a, busPos.x, busPos.z)) <= a.half - 5.7)) ? 'arch' : Math.abs(s - Math.round(s)) < 0.12 ? 'stop' : ka !== kb && s - i > 0.15 && s - i < 0.85 ? 'blend' : '';
       if (!why) {
         camera.updateMatrixWorld();
         sphere.set(lateral.clone().add(bp).setY(bp.y + 2.2), 6.4);
@@ -438,7 +452,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     post.setFocus?.(camera.position.distanceTo(bus.position)); // depth of field focuses on the hero vehicle
     vehicleFx.update(dt, { p: busPos, h: bus.rotation.y, len: hl, halfW: hl > 6 ? 1.3 : 0.95, speed: heroSpeed, rain: mood.rain ?? 0, cold: Math.min(1, (1 - (mood.rs ?? 0)) * 0.8 + night * 0.4), night, halfH: renderer.domElement.height / 2 });
     wetSurfaces.update(clock, wet, mood.rain, night, camera.position, sky.colors, bus.position, bus.rotation.y, post.tier);
-    updateBeams(night); pools.update(night, wet); shopSpill.update(night, wet); lampPosts?.userData.setNight?.(night);
+    updateBeams(night); pools.update(night, wet); shopSpill.update(night, wet); lampPosts?.userData.setNight?.(night); underpass.group.userData.setNight(night);
     water.update(clock, night, mood, post.tier, sky.colors, sky.sunDir);
     world.userData.updateLandmarkNight?.(night);
     updateVehicleEnv(night); landmarkEnv.update(night);

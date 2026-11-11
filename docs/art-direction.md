@@ -105,3 +105,11 @@ Owner authorised visibly moving, more realistic water. Keep low six-way jets and
 ## Ordinary facade realism — 2026-11-11 owner authorization
 
 The owner requested more realistic facades throughout the city and reopened the previous townhouse restriction for this pass. Preserve architectural family identity and existing envelopes. Exposed side/rear elevations now have designed openings, frontages have clearer sash/lintel/drainage detail, commercial grids have bounded relief and quieter metal finishes, and glazing retains shallow interiors behind the frame. Upper-wall weathering is restrained; low-level dampness remains. Existing distant skyline silhouettes stay economical. Map, routes, landmarks, vegetation, pedestrians, camera and global lighting remain unchanged. [Rendered evidence and limits](audits/2026-11-11-facade-realism.md).
+
+## River arch bridges — 2026-11-11 continuity correction
+
+Owner approved a continuous 7.5 m crest from each livery-change arch through the far river bank, preserving bus and boat clearance. Only the land entry and far-bank exit descend to ground; the former intermediate valley is removed. Low heritage lanterns sit on the existing parapet caps, sharing instanced geometry and warm emissive night heads/halos through `setNight`, with no new dynamic lights or render pass. [Validation and limits](audits/2026-11-11-river-bridges.md).
+
+## Bridge masonry finish — 2026-11-11 owner request
+
+Both livery-change bridges gain restrained ashlar joints and shallow approach pilasters, lighter radial arch surrounds and coping, continuous deck cornices and discreet base courses. Existing aligned parapets and channel/bus clearance remain. Low lanterns pair with warm additive patches on the elevated level roadway through the existing night control, with no new dynamic lights or render pass. Far-bank exits extend from 14 to 28 m, halving peak grade. [Evidence and limits](audits/2026-11-11-bridge-finish.md).

@@ -204,3 +204,11 @@ Owner requested more realistic moving water after the plaza passes. `plaza-water
 ## Ordinary facade realism — 2026-11-11
 
 The owner reopened all ordinary house/building facades, including townhouses. Exposed townhouse returns/rears and midrise rears gain real openings while touching party walls remain solid. Sashes, lintels, gutters, bounded office/tower relief and restrained commercial trim reuse the existing architecture pipeline. Authored rebuilds now retain room coordinates; legacy and backdrop panes no longer sit behind opaque backing. Redundant coplanar wall subdivisions were removed without changing lots, buckets, LOD or culling. [Scope, implementation and validation](../audits/2026-11-11-facade-realism.md) separates the delivered facade work from inherited citywide validation failures.
+
+## River arch bridge continuity — 2026-11-11
+
+The owner approved keeping both arch-crossing decks at the existing 7.5 m crest through the far river bank. Geometry, cars and projected headlights share `deckHeight`; the far-bank eased exit returns to ground. The arch aperture, anchors and livery-swap logic remain unchanged by this correction. One instanced low-lantern group serves both bridges, with the existing night control and disposal, no new dynamic lights or render pass. [Evidence and validation limits](../audits/2026-11-11-river-bridges.md).
+
+## Bridge finish and eased far-bank exits — 2026-11-11
+
+Owner authorised the complete bridge finish proposal. Masonry detail remains merged into shared material buckets; one instanced additive pool mesh illuminates the level road without new dynamic lights or render passes. `createLampPools` accepts optional per-spot elevation and can exclude the registered ground lamps for bridge-local use. The far-bank exit is 28 m; `RIVER_RUN` continues to drive geometry, clearance and traffic. Arch openings, anchors, route and livery triggers are unchanged. [Validation](../audits/2026-11-11-bridge-finish.md).

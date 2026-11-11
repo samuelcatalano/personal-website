@@ -11,7 +11,7 @@ export function shotFor(kind, bus, { mobile = false, lift = 0 }) {
       const L = lift;
       return {
         position: [x + (20 + 6 * L) * k, y + (29 + 10 * L) * k, z + (50 + 14 * L) * k],
-        target: [x + 2, y + 5 + 9 * up + 9 * L, z + 2 - 10 * L],
+        target: [x + 2, y + 5 + 9 * up + 4 * L, z + 2 - 5 * L], // lifted stops: half the earlier aim shift, so the bus stays in the lower-middle of the frame
       };
     }
     case 'high': return { position: [x + 30 * k, y + 34 * k, z + 60 * k], target: [x - 6, y + 6 + 10 * up, z - 20] };
