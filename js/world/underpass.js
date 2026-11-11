@@ -5,7 +5,7 @@ import { buildLamps } from './lamp-mesh.js';
 import { createLampPools } from './lamps.js';
 import { blockMaterial } from './textures.js';
 import { underpassFrames, UNDERPASS } from './layout.js';
-import { riverProfile, RIVER_RUN, RIVER_WIDTH, RIVER_CUT_HW, DECK_T, BRIDGE_H } from './underwater-profile.js';
+import { riverProfile, RIVER_RUN, RIVER_WIDTH, RIVER_CUT_HW, DECK_T, BRIDGE_H, PARAPET_H, PARAPET_T, CAP_T, CAP_OVERHANG, parapetHeight } from './underwater-profile.js';
 // Countryside embankment carrying a two-lane road over the route with a masonry arch underpass across the road at each Glasgow livery boundary (scotRange). The bus is
 // completely inside the tunnel for a moment, so scene.js swaps London <-> Glasgow there and the camera never sees the model pop.
 // Local frame: x along the route, z across it, y up. Shared material buckets, instanced lanterns and deck light pools.
@@ -40,6 +40,7 @@ function finishMaterial(mat, masonry) {
   mat.customProgramCacheKey = () => key + '-bridge-finish-' + masonry;
   mat.onBeforeCompile = (sh) => {
     compile(sh);
+    sh.fragmentShader = sh.fragmentShader.replace('diffuseColor *= texture2D(map, tuv);', 'diffuseColor *= mix(vec4(1.0), texture2D(map, tuv * 0.45), 0.25);');
     sh.fragmentShader = sh.fragmentShader.replace('#include <roughnessmap_fragment>', `
       vec2 face = abs(vLN.x) > abs(vLN.z) ? vLP.zy : vLP.xy;
       float course = floor(face.y / 0.62);
@@ -50,8 +51,8 @@ function finishMaterial(mat, masonry) {
       float detail = 1.0 - smoothstep(0.08, 0.35, max(aa.x, aa.y));
       float blockTint = fract(sin(dot(floor(cell), vec2(31.1, 71.7))) * 14531.7);
       float verticalFace = 1.0 - smoothstep(0.3, 0.8, abs(vLN.y));
-      diffuseColor.rgb *= 1.0 - ${masonry ? '0.18' : '0.04'} * joint * detail * verticalFace;
-      diffuseColor.rgb *= 1.0 + ${masonry ? '0.045' : '0.018'} * (blockTint-0.5) * detail;
+      diffuseColor.rgb *= 1.0 - ${masonry ? '0.14' : '0.04'} * joint * detail * verticalFace;
+      diffuseColor.rgb *= 1.0 + ${masonry ? '0.03' : '0.018'} * (blockTint-0.5) * detail;
       float damp = (1.0-smoothstep(0.05, 0.65, vLP.y)) * verticalFace;
       diffuseColor.rgb *= 1.0 - damp * 0.12;
       #include <roughnessmap_fragment>`);
@@ -104,9 +105,9 @@ function parts(river) {
   }
   for (const x of [-1, 1]) {
     const outer = river ? RIVER_CUT_HW : ROAD_HW + 0.15;
-    const inner = outer - 0.3, x0 = x < 0 ? -outer : inner, x1 = x < 0 ? -inner : outer;
-    (river ? para : stone).push(box(x0, x1, H + 0.07, H + 0.92, -W, W));
-    (river ? para : light).push(box(x0 - 0.05, x1 + 0.05, H + 0.92, H + 1, -W, W));
+    const inner = outer - (river ? PARAPET_T : 0.3), x0 = x < 0 ? -outer : inner, x1 = x < 0 ? -inner : outer;
+    (river ? para : stone).push(box(x0, x1, H + 0.07, H + PARAPET_H - CAP_T, -W, W));
+    (river ? para : light).push(box(x0 - CAP_OVERHANG, x1 + CAP_OVERHANG, H + PARAPET_H - CAP_T, H + PARAPET_H, -W, W));
   }
   road.push(bed.geo()); line.push(mk.geo());
   return { stone, light, lawn, road, line, ...(river ? { para } : {}) };
@@ -115,33 +116,37 @@ function parts(river) {
 // down the exit past the far bank (underwater-profile.js). Land approaches have vertical retaining walls; the channel has a thin stone slab.
 // The stone abutments at the banks carry it; no pier stands in the water. Light curbs, walkways and pale parapets with a cap run the whole length.
 // Local frame of the pass: x along the route, z across it; `sigma` is the side the river lies on (-1 for both current crossings).
-const PH = 0.8; // parapet height over the walkway
+// Parapet wall and cap share the same profile on the arch and river approaches.
 function riverBridge(sigma, bankAz) {
   const far = bankAz + RIVER_RUN + 2, b0 = bankAz, b1 = bankAz + RIVER_WIDTH, UP = V(0, 1, 0), DOWN = V(0, -1, 0);
   const az = [...new Set([W, END, ...Array.from({ length: Math.ceil(far - W) + 1 }, (_, i) => Math.min(far, W + i)), b0, b1])].sort((p, q) => p - q);
   const road = soup(), line = soup(), stone = soup(), light = soup(), pave = soup(); // light = pale parapet stone (own 'para' mesh)
-  const h = (a) => riverProfile(a, bankAz), top = (a) => h(a) + 0.12, Z = (a) => sigma * a, HW = RIVER_CUT_HW, KW = ROAD_HW + 0.25, PI = HW - 0.3;
+  const h = (a) => riverProfile(a, bankAz), top = (a) => h(a) + 0.12, Z = (a) => sigma * a, HW = RIVER_CUT_HW, KW = ROAD_HW + 0.25, PI = HW - PARAPET_T;
   const strip = (g, x0, x1, ya, yb, a, b, n = UP) => g.quad(V(x0, ya, Z(a)), V(x1, ya, Z(a)), V(x1, yb, Z(b)), V(x0, yb, Z(b)), n);
   const wall = (g, x, y0a, y1a, y0b, y1b, a, b, out) => g.quad(V(x, y0a, Z(a)), V(x, y1a, Z(a)), V(x, y1b, Z(b)), V(x, y0b, Z(b)), V(out, 0, 0));
   for (let i = 0; i < az.length - 1; i++) {
-    const a = az[i], b = az[i + 1], ya = top(a), yb = top(b), wet = a >= b0 && b <= b1;
+    const a = az[i], b = az[i + 1], ya = top(a), yb = top(b), pa = parapetHeight(a, bankAz) - 0.12 - CAP_T, pb = parapetHeight(b, bankAz) - 0.12 - CAP_T, wet = a >= b0 && b <= b1;
     if (a >= END) { // existing arch approach already supplies the asphalt and markings
       strip(road, -ROAD_HW, ROAD_HW, ya, yb, a, b);
       for (const c of [0, -ROAD_HW + 0.3, ROAD_HW - 0.3]) strip(line, c - 0.07, c + 0.07, ya + 0.02, yb + 0.02, a, b);
     }
     for (const x of [-1, 1]) {
-      const [k0, k1] = x < 0 ? [-KW, -ROAD_HW] : [ROAD_HW, KW], [w0, w1] = x < 0 ? [-PI, -KW] : [KW, PI], [p0, p1] = x < 0 ? [-HW - 0.05, -PI + 0.05] : [PI - 0.05, HW + 0.05];
+      const [k0, k1] = x < 0 ? [-KW, -ROAD_HW] : [ROAD_HW, KW], [w0, w1] = x < 0 ? [-PI, -KW] : [KW, PI], [p0, p1] = x < 0 ? [-HW - CAP_OVERHANG, -PI + CAP_OVERHANG] : [PI - CAP_OVERHANG, HW + CAP_OVERHANG];
       strip(line, k0, k1, ya + 0.12, yb + 0.12, a, b); // light curb
       wall(line, x * ROAD_HW, ya, ya + 0.12, yb, yb + 0.12, a, b, -x); // curb face toward the road
       strip(pave, w0, w1, ya + 0.12, yb + 0.12, a, b); // walkway in bank pavers
-      wall(light, x * PI, ya + 0.12, ya + PH, yb + 0.12, yb + PH, a, b, -x); // parapet, inner face
-      wall(light, x * HW, ya - 0.05, ya + PH, yb - 0.05, yb + PH, a, b, x); // parapet, outer face
-      strip(light, p0, p1, ya + PH + 0.08, yb + PH + 0.08, a, b); // cap, slightly wider than the parapet
-      for (const [xc, o] of [[p0, -1], [p1, 1]]) wall(light, xc, ya + PH, ya + PH + 0.08, yb + PH, yb + PH + 0.08, a, b, o);
+      wall(light, x * PI, ya + 0.12, ya + pa, yb + 0.12, yb + pb, a, b, -x); // parapet, inner face
+      wall(light, x * HW, ya - 0.05, ya + pa, yb - 0.05, yb + pb, a, b, x); // parapet, outer face
+      strip(light, p0, p1, ya + pa + CAP_T, yb + pb + CAP_T, a, b); // cap, slightly wider than the parapet
+      for (const [xc, o] of [[p0, -1], [p1, 1]]) wall(light, xc, ya + pa, ya + pa + CAP_T, yb + pb, yb + pb + CAP_T, a, b, o);
       if (wet) wall(stone, x * HW, ya - DECK_T, ya - 0.05, yb - DECK_T, yb - 0.05, a, b, x); // slab edge
       else if (a >= END) wall(stone, x * HW, -0.05, ya - 0.05, -0.05, yb - 0.05, a, b, x); // vertical retaining wall keeps the approaches inside the deck footprint
     }
     if (wet) strip(stone, -HW, HW, ya - DECK_T, yb - DECK_T, a, b, DOWN); // soffit
+  }
+  for (const side of [-1, 1]) {
+    const inner = side * PI, outer = side * HW, y = top(far), p = parapetHeight(far, bankAz) - 0.12;
+    light.quad(V(inner,y-0.05,Z(far)),V(outer,y-0.05,Z(far)),V(outer,y+p,Z(far)),V(inner,y+p,Z(far)),V(0,0,sigma));
   }
   for (const [a, out] of [[b0, sigma], [b1, -sigma]]) { // abutments: stone face from the ground to the soffit, as wide as the embankment foot
     const y = top(a) - DECK_T;
@@ -153,7 +158,7 @@ export function createUnderpass(curve, stops, river = null) {
   const colors = { stone: '#a49b87', light: '#d4c8af', lawn: '#a49b87', road: P.road, line: P.arch, pave: P.paverWarm, para: '#c9c1af' }, mats = {}, geos = [];
   for (const k in colors) mats[k] = blockMaterial(colors[k]);
   mats.pave.color.set('#a9a69b');
-  for (const k of ['stone', 'lawn', 'para']) finishMaterial(mats[k], k !== 'para');
+  for (const k of ['stone', 'lawn', 'para', 'light']) finishMaterial(mats[k], k === 'stone' || k === 'lawn');
   const root = new THREE.Group(), lampSpots = [], spillSpots = []; root.name = 'underpasses';
   const passes = underpassFrames(curve, stops).map(({ t, tc }, i) => {
     const c = curve.getPointAt(tc), tan = curve.getTangentAt(tc), g = new THREE.Group();
@@ -165,6 +170,12 @@ export function createUnderpass(curve, stops, river = null) {
     const riverLeg = onRiver ? { bankAz, sigma, inAz: bankAz + RIVER_RUN + 2 } : null;
     const pr = parts(riverLeg);
     if (onRiver) {
+      const shoulder = soup();
+      for (const side of [-1, 1]) {
+        shoulder.quad(V(side*HX,0,sigma*W),V(side*HX,H+0.07,sigma*W),V(side*RIVER_CUT_HW,H+0.07,sigma*(W+4)),V(side*RIVER_CUT_HW,0,sigma*(W+4)),V(side,0,0));
+      }
+      shoulder.quad(V(-HX,H+0.07,sigma*W),V(HX,H+0.07,sigma*W),V(RIVER_CUT_HW,H+0.07,sigma*(W+4)),V(-RIVER_CUT_HW,H+0.07,sigma*(W+4)),V(0,1,0));
+      pr.stone.push(shoulder.geo());
       const br = riverBridge(sigma, bankAz); for (const k in br) (pr[k] ??= []).push(br[k]);
       const farBank = bankAz + RIVER_WIDTH, end = bankAz + RIVER_RUN;
       for (const side of [-1, 1]) {
@@ -191,6 +202,11 @@ export function createUnderpass(curve, stops, river = null) {
     }
     for (const k in pr) {
       const geo = mergeGeometries(pr[k].map((x) => { if (!x.attributes.normal) x.computeVertexNormals(); return x.index ? x.toNonIndexed() : x; }));
+      const masonry = ['stone','light','lawn','para'].includes(k);
+      const tint = new THREE.Color(...(masonry ? (i === 0 ? [0.99, 1.005, 1.015] : [1.035, 1.005, 0.975]) : [1,1,1]));
+      const color = new Float32Array(geo.attributes.position.count * 3);
+      for (let v = 0; v < geo.attributes.position.count; v++) tint.toArray(color,v*3);
+      geo.setAttribute('color',new THREE.BufferAttribute(color,3)); mats[k].vertexColors = true;
       geos.push(geo);
       const m = new THREE.Mesh(geo, mats[k]);
       m.castShadow = k === 'stone' || k === 'lawn'; m.receiveShadow = true;
@@ -201,8 +217,8 @@ export function createUnderpass(curve, stops, river = null) {
       for (let az = 0; az < bankAz + RIVER_RUN - 3; az += 12) {
         // Low heritage lanterns follow the continuous parapet caps.
         for (const side of [-1, 1]) {
-          const x = side * (RIVER_CUT_HW - 0.15);
-          const y = deckHeight(sigma * az, riverLeg) + 1;
+          const x = side * (RIVER_CUT_HW - PARAPET_T / 2);
+          const y = deckHeight(sigma * az, riverLeg) + parapetHeight(az, bankAz);
           const p = V(x, y, sigma * az).applyMatrix4(g.matrix);
           lampSpots.push([p.x, p.z, 0, 'uk', p.y, 0.38]);
           if (az <= bankAz + RIVER_WIDTH) {

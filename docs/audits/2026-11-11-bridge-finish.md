@@ -29,3 +29,15 @@ Visual evidence is retained locally under `/Users/samuel.catalano/.codex/visuali
 ## Limits
 
 No paired GPU/frame-time benchmark, physical mobile test, full product matrix or fresh exhaustive livery-swap sweep. The aperture, swap triggers and hero route were not edited in this pass. The exit profile is an art-directed improvement, not a civil-engineering design. Emission/halos and additive road patches approximate lamp illumination; they do not cast dynamic light or new shadows. No external assets, dependencies, commit, push or deployment.
+
+## Owner follow-up on proportions and integration
+
+The owner authorised all six subsequent proposals. Parapet nominal height is now 0.86 m (previously 1 m), wall thickness 0.24 m (0.30 m), and cap thickness/overhang 0.06/0.025 m (0.08/0.05 m). Arch and river segments use these same measures, including lamp bases. At the ground-level exit, the last four metres ease the wall down to 0.20 m and close the end face; protection remains full-height over the elevated span.
+
+The river slab is 0.65 m thick instead of 0.40 m, giving its edge a more convincing structural depth. With asphalt at 7.62 m, its underside is 6.97 m; the existing 2.78 m boat-top envelope leaves **4.19 m** calculated clearance. This supersedes the earlier 4.44 m measurement. The arch aperture and livery-swap anchors are unchanged.
+
+Four-metre masonry shoulders connect the wide arch body to the narrower retaining walls, outside the lower road/pedestrian aperture. Material noise contrast is reduced and its frequency lowered; block joints remain legible. Shared masonry materials use per-vertex tints: London slightly cooler/neutral, Glasgow subtly warmer, without cloned regional materials.
+
+Validation: **233 Node tests passed**; new terminal-height test reproduced the missing behaviour before implementation. Browser regression passed for both bridges, checking updated cap alignment, shoulders, road/exit geometry, clearances, shared materials/regional tints, lamps and spill. Desktop day/night captures at both bridge stops were inspected; an additional close-up checked the shoulder and parapet. Shader probe: zero failed programs, WebGL error 0, no error-level events returned. Mobile 375 px scene capture checked at stop 10.54 in daylight. No new dynamic lights, render passes, dependencies or external assets. No new performance benchmark, physical-device check or exhaustive swap sweep.
+
+Current evidence: `/Users/samuel.catalano/.codex/visualizations/2026/11/11/01a1cbac-eeff-7523-9867-01876cdad409/bridge-proportions/`.

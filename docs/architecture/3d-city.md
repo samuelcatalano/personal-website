@@ -212,3 +212,7 @@ The owner approved keeping both arch-crossing decks at the existing 7.5 m crest 
 ## Bridge finish and eased far-bank exits — 2026-11-11
 
 Owner authorised the complete bridge finish proposal. Masonry detail remains merged into shared material buckets; one instanced additive pool mesh illuminates the level road without new dynamic lights or render passes. `createLampPools` accepts optional per-spot elevation and can exclude the registered ground lamps for bridge-local use. The far-bank exit is 28 m; `RIVER_RUN` continues to drive geometry, clearance and traffic. Arch openings, anchors, route and livery triggers are unchanged. [Validation](../audits/2026-11-11-bridge-finish.md).
+
+## Bridge proportions follow-up — 2026-11-11
+
+Shared parapet dimensions and the ground-level terminal easing live in `underwater-profile.js`; geometry and lamp bases consume them. Slab thickness is 0.65 m, retaining 4.19 m calculated boat headroom. Four-metre shoulders join the existing arch to the retaining walls outside the lower aperture. Regional vertex tints reuse the same material objects. [Validation](../audits/2026-11-11-bridge-finish.md#owner-follow-up-on-proportions-and-integration).

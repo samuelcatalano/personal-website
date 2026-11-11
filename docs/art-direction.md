@@ -113,3 +113,7 @@ Owner approved a continuous 7.5 m crest from each livery-change arch through the
 ## Bridge masonry finish — 2026-11-11 owner request
 
 Both livery-change bridges gain restrained ashlar joints and shallow approach pilasters, lighter radial arch surrounds and coping, continuous deck cornices and discreet base courses. Existing aligned parapets and channel/bus clearance remain. Low lanterns pair with warm additive patches on the elevated level roadway through the existing night control, with no new dynamic lights or render pass. Far-bank exits extend from 14 to 28 m, halving peak grade. [Evidence and limits](audits/2026-11-11-bridge-finish.md).
+
+## Bridge proportions and integration — 2026-11-11 follow-up
+
+Owner authorised slimmer lower parapets and caps, a visibly deeper river slab, quieter stone texture, short masonry shoulders between arch and retaining wall, tapered ground-level parapet ends and subtle London/Glasgow masonry tints. Continuous alignment and the 7.5 m level deck remain; the slab leaves 4.19 m calculated boat headroom. [Updated evidence and dimensions](audits/2026-11-11-bridge-finish.md#owner-follow-up-on-proportions-and-integration).

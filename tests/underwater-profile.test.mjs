@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { riverProfile, BRIDGE_H, DECK_T, BOAT_TOP, RIVER_WIDTH, RIVER_EXIT } from '../js/world/underwater-profile.js';
+import { riverProfile, BRIDGE_H, DECK_T, BOAT_TOP, RIVER_WIDTH, RIVER_EXIT, RIVER_RUN } from '../js/world/underwater-profile.js';
 const BANK = 46.6; // near bank of the London crossing
 test('the road stays at the 7.5 m arch crest through the far bank without a valley', () => {
   assert.equal(BRIDGE_H, 7.5);
@@ -43,4 +43,11 @@ test('the extended exit halves the former peak grade without moving the level ri
   for (let az = start; az < start + RIVER_EXIT; az += 0.1) {
     assert.ok((riverProfile(az, BANK) - riverProfile(az + 0.1, BANK)) / 0.1 <= 0.36);
   }
+});
+test('parapets keep a constant low height over the span and taper only at the ground exit', async () => {
+  const { parapetHeight, PARAPET_H } = await import('../js/world/underwater-profile.js');
+  assert.equal(typeof parapetHeight, 'function');
+  assert.equal(PARAPET_H, 0.86);
+  for (let az = 0; az <= BANK + RIVER_RUN - 2; az += 1) assert.equal(parapetHeight(az, BANK), PARAPET_H);
+  assert.ok(Math.abs(parapetHeight(BANK + RIVER_RUN + 2, BANK) - 0.2) < 1e-9);
 });

@@ -33,16 +33,16 @@ print(js(r'''(async () => {
       ray.set(parapetOrigin, direction);
       check(ray.intersectObjects(g.children).length > 0, `continuous parapet bridge ${i}, side ${side}, at ${az}`);
       const local = g.worldToLocal(hit.point.clone());
-      check(Math.abs(local.x - side * 3.6) < 0.001, `uniform vertical wall bridge ${i}, side ${side}, at ${az}`);
+      check(Math.abs(local.x - side * Math.max(3.6, 7.5 - (7.5-3.6)*(az-9)/4)) < 0.001, `uniform vertical wall bridge ${i}, side ${side}, at ${az}`);
     }
 
     for (const side of [-1, 1]) for (const az of [0, 8.9, 9.1, 12, END - 0.1, END + 0.1]) {
       const direction = new T.Vector3(-side,0,0).transformDirection(g.matrixWorld);
-      ray.set(new T.Vector3(side*6, H+0.96, river.sigma*az).applyMatrix4(g.matrixWorld), direction);
+      ray.set(new T.Vector3(side*6, H+0.83, river.sigma*az).applyMatrix4(g.matrixWorld), direction);
       const hit = ray.intersectObjects(g.children)[0];
       check(!!hit, 'parapet cap exists');
       const p = g.worldToLocal(hit.point.clone());
-      check(Math.abs(p.x-side*3.65)<0.001, `aligned cap ${i}/${side}/${az}: ${p.x}`);
+      check(Math.abs(p.x-side*3.625)<0.001, `aligned cap ${i}/${side}/${az}: ${p.x}`);
     }
 
     for (let az = river.bankAz + RIVER_WIDTH; az <= river.inAz; az += 0.5) {
@@ -64,6 +64,11 @@ print(js(r'''(async () => {
     check(position.y >= h + 0.7 && position.y <= h + 1.01, 'lamp base follows parapet height');
     check(Math.abs(new T.Vector3().setFromMatrixScale(matrix).y - 0.38) < 1e-6, 'low lamp scale');
   }
+
+  const londonStone = up.group.getObjectByName('underpass-0').children[0];
+  const glasgowStone = up.group.getObjectByName('underpass-1').children[0];
+  check(londonStone.material === glasgowStone.material, 'regional tints share the masonry material');
+  check(glasgowStone.geometry.attributes.color.getX(0) > londonStone.geometry.attributes.color.getX(0), 'Glasgow stone is subtly warmer');
   const pools = up.group.getObjectByName('lamp-pools');
   check(pools && pools.count > 0 && pools.count < glass.count, 'only bridge deck pools, no duplicated city lamps');
   const poolPosition = new T.Vector3();
