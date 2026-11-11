@@ -2,6 +2,17 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
+import { animationDue } from '../js/world/npc-motion-state.js';
+
+const actionStub = () => ({
+  running: true,
+  play() { this.running = true; return this; },
+  stop() { this.running = false; return this; },
+  reset() { return this; },
+  setEffectiveWeight(weight) { this.weight = weight; return this; },
+  isRunning() { return this.running; },
+  getClip() { return { tracks: [] }; },
+});
 
 function setup(load, search = '') {
   const crowd = { visible: true, instanceMatrix: { array: [] }, geometry: { attributes: { aInfo: { array: [] } } } }, shadow = { visible: true };
@@ -31,7 +42,7 @@ function setup(load, search = '') {
     updateMatrix() {}
   }
   const context = vm.createContext({ URL, URLSearchParams, location: { search },
-    ROAD: { padIn: 1 }, crowdPlan: () => [], GLTFLoader: class { loadAsync() { return load; } },
+    ROAD: { padIn: 1 }, crowdPlan: () => [], GLTFLoader: class { loadAsync() { return load; } }, createIdleClip: () => ({ name: 'NPC_Idle' }), animationDue, createNpcPose: () => null,
     SkeletonUtils: { clone: (root) => root },
     THREE: { CircleGeometry: class { rotateX() { return this; } dispose() {} }, MeshBasicMaterial: class { dispose() {} },
       InstancedMesh: class { constructor(geometry, material) { Object.assign(this, { geometry, material, instanceMatrix: {} }); } traverse(fn) { fn(this); } setMatrixAt() {} }, Object3D, Vector3, Matrix4, Sphere, Frustum },
@@ -107,7 +118,7 @@ test('partial walker assembly removes walkers and disposes shared assets once', 
     getObjectByProperty() { return { material: { map: true } }; }, scale: { set() {} } });
   const s = setup(Promise.resolve({ scene: makeRoot(), animations: [{ name: 'NPC_Walk', duration: 1 }] }));
   s.context.SkeletonUtils.clone = makeRoot;
-  s.context.THREE.AnimationMixer = class { clipAction() { return { play() {} }; } };
+  s.context.THREE.AnimationMixer = class { clipAction() { return actionStub(); } };
   s.context.THREE.Color = class {};
   const added = [], removed = [];
   s.scene.add = (object) => { if (added.length) throw new Error('second walker failed'); added.push(object); };
@@ -133,7 +144,7 @@ test('camera jumps use the current crowd and hide walkers with no visible candid
   s.context.crowdPlan = () => Array.from({ length: 2 }, () => ({ look: { kind: 'man', speed: 1, height: 1.8 }, path: {} }));
   s.context.SkeletonUtils.clone = root;
   s.context.THREE.Color = class {};
-  s.context.THREE.AnimationMixer = class { clipAction() { return { play() {} }; } update() {} };
+  s.context.THREE.AnimationMixer = class { clipAction() { return actionStub(); } update() {} };
   s.context.THREE.Object3D = class { constructor() { this.scale = { setScalar() {} }; this.position = { set() {} }; this.matrix = {}; } updateMatrix() {} };
   s.context.THREE.InstancedMesh = class { constructor() { this.instanceMatrix = {}; } setMatrixAt() {} };
   const added = []; s.scene.add = (o) => added.push(o);
@@ -167,7 +178,7 @@ test('an in-frustum owner beyond the pool distance releases its slot to a nearby
   s.context.crowdPlan = () => Array.from({ length: 2 }, () => ({ look: { kind: 'man', speed: 1, height: 1.8 }, path: { type: 'loop' } }));
   s.context.SkeletonUtils.clone = root;
   s.context.THREE.Color = class {};
-  s.context.THREE.AnimationMixer = class { clipAction() { return { play() {} }; } update() {} };
+  s.context.THREE.AnimationMixer = class { clipAction() { return actionStub(); } update() {} };
   const added = []; s.scene.add = (o) => added.push(o);
   const unit = await s.create(s.scene, { stops: [], pts: [], count: 1 });
   const walker = added[0], camera = { position: { x: 0, y: 5, z: 0 }, projectionMatrix: {}, matrixWorldInverse: {}, viewRadius: 500,
@@ -232,7 +243,7 @@ test('an incompatible adult candidate does not block a later child from using it
   }));
   s.context.SkeletonUtils.clone = root;
   s.context.THREE.Color = class {};
-  s.context.THREE.AnimationMixer = class { clipAction() { return { play() {} }; } update() {} };
+  s.context.THREE.AnimationMixer = class { clipAction() { return actionStub(); } update() {} };
   const unit = await s.create(s.scene, { stops: [], pts: [], count: 10 });
   const camera = { position: { x: 0, y: 5, z: 0 }, projectionMatrix: {}, matrixWorldInverse: {}, viewRadius: 300,
     updateMatrixWorld() { Object.assign(this.matrixWorldInverse, { cameraX: this.position.x, cameraZ: this.position.z, viewRadius: this.viewRadius }); },
@@ -259,7 +270,7 @@ test('QA diagnostics expose crowd identity, representation, slot and ownership e
   s.context.crowdPlan = () => [{ look: { kind: 'man', speed: 1, height: 1.8 }, path: { type: 'loop', name: 'masp', dir: 1 }, s0: 0 }];
   s.context.SkeletonUtils.clone = root;
   s.context.THREE.Color = class {};
-  s.context.THREE.AnimationMixer = class { clipAction() { return { play() {} }; } update() {} };
+  s.context.THREE.AnimationMixer = class { clipAction() { return actionStub(); } update() {} };
   const added = []; s.scene.add = (o) => added.push(o);
   const unit = await s.create(s.scene, { stops: [{ id: 'move' }, { id: 'glasgow' }], pts: [{ x: 0 }, { x: 100 }, { x: 200 }], count: 1 });
   const camera = { position: { x: 0, y: 5, z: 0 }, projectionMatrix: {}, matrixWorldInverse: {}, viewRadius: 250,

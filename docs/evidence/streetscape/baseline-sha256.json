@@ -1,0 +1,13 @@
+{
+  "kit-place.js": "f10b74c61c5f9923586ff1811702e2df1e59285241c8a4cfb872ac69204a0dd0",
+  "authored-trees.js": "ec38480da29aa45d19e0530fa097673a53fff738ea0f69895673030eef07c8a5",
+  "building-slice-materials.js": "d64fdf4577cd5c1005a4560993f916c262526c27ca173509db3cff8709cf4b1c",
+  "scene.js": "105fc28e8b4b8b7f89917f50a7ef061cca801842a78e9289d7e26d68d5d0d6c5",
+  "city-rollout.js": "bbf2e2e6131f4ab29aa71b2de1b5e2c51cb59da2ecc6f361897aa77ef59f0eaf",
+  "facade-kit.js": "efa993766bebceea29c2b57f2397a3ff995ab9fa3a9e1231ed5a5366e1b47333",
+  "textures.js": "9727aee01150e1b8e30b7870cde51f233330f7efe1d82be968d617b468684af3",
+  "street-props.js": "edc630f2c4ad0144fb25ec2d502b414a5064c442325ed1221c9d8d36800ac404",
+  "street-props-mesh.js": "0fc9c6807cc85c521668d58cb1be893dfedf3dd6cb60a2d9fae0422ebaacacf3",
+  "lamps.js": "3d0ee43cfde198ef0f91a8b6b05758929b5b3274a78d1f11b923673e9f614dbc",
+  "shop-slice.js": "f4983de2412cec96758729e9439ebe1bf16db7a451bec98f46877de57a1338b7"
+}

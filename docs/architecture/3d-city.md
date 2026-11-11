@@ -50,6 +50,12 @@ The existing stationary conversation pairs in the São Paulo–London transition
 
 Focused validation: 31 related Node tests; `tests/water-interaction.browser.py`, `tests/water-weather.browser.py` and `tests/npc-idle.browser.py` (normal and reduced motion). The browser checks cover tap bounds/expiry, bounded rapid tapping, swipe/cancel rejection, occlusion, bus click preservation, rendered-pixel changes, shader compilation, adult/child poses, grounding and pool reuse. Real CDP mouse and touch events reached the river at desktop and 375×812 emulation. Local captures: `/tmp/subtle-city-interactions/`. No full regression/product matrix, Lighthouse, physical mobile or frame-time benchmark was run.
 
+## NPC motion refinement — 2026-11-10
+
+The owner reopened the existing NPCs for graphical and especially motion refinement. Simulation and animation now agree when stopping near the bus; measured travel steers the body and cadence; low speeds blend into a grounded standing pose; neutral toe rotation comes from the rig's bind matrices. Existing materials gain differentiated roughness/filtering and contact shadows follow person height. Routes, population/pool sizes, GLB, assets and global lighting are preserved. [NPC motion audit](../audits/2026-11-10-npc-motion.md) records the reproduced defects, 216 passing Node tests, adult/child browser checks and isolated CPU/render-count comparison, including the added CPU cost and validation limits.
+
+The owner subsequently authorized all seven proposed behavior refinements: independent gaze, occasional standing/hand movement, supporting turn steps, three upper-body walking profiles, time-based distant animation, anticipated encounters/companion pace and bounded near-camera foot IK. The new [NPC behavior audit](../audits/2026-11-10-npc-behavior.md) owns their interfaces, limits and validation. The former checkpoint's absence of runtime foot IK is superseded only within this bounded near-camera implementation.
+
 ## Source of truth and flow
 
 Existing lot descriptors remain the source of truth: ID, kind, position, footprint and maximum height. Preserve generated map data, routes, landmarks, walking paths and logic. Replace the authorized lot's renderer, never layer duplicate buildings onto it.
@@ -178,3 +184,19 @@ The counts in this inventory are the 2026-10-21 snapshot. The 2026-10-31 citywid
 The owner reopened visual work for existing vegetation only. Five distinct procedural crown families are used in the existing 160 m tree chunks, with detailed LOD0/LOD1 and a family-matched atlas impostor at LOD2; tree placement, centers, clearance caps, update/disposal behavior, and landmark/path checks are unchanged. Existing park beds now use shared instanced low-poly flowers, shrubs, and hedges. Hero and countryside pocket gardens use the same low-plant geometry inside their existing footprints. `createBoxes`/`buildMeshes` owns park batches; `hero-realm.js` owns its merged inputs. No map, lot, camera, route, landmark, pedestrian, lighting, or mobile behavior was changed by this scope.
 
 The 2026-11-03 grass pass adds real curved blade geometry on existing low `P.patch` and `P.grass` ground surfaces. Tufts are placed deterministically on an inset grid and skip voxel obstacles, low plants, tree footprints, separately-rendered building plots, streetlamp bases, and phone-box footprints. They share one cached geometry/material in one instanced batch and do not cast or receive shadows. Original lawn surfaces, circulation, lot data, and existing tree LODs remain unchanged; nearby and mid-distance trees already use volumetric meshes, while the distant LOD2 impostor remains an intentional optimization.
+
+## Streetscape refinement — 2026-11-10
+
+The owner authorised all seven streetscape suggestions: pavement composition, regional street identity, selected commercial displays, small cafe compositions, surface-edge finish, night hierarchy and coordinated ambient wind. Existing lot/route/camera data and prior NPC refinements are preserved. Pavement detail runs in the existing block material; awning weights survive procedural and authored-kit chunk merges; authored foliage shares the frozen-under-reduced-motion scene clock. Selected storefront light spill uses one instanced draw without extra dynamic lights or passes. See [scope and validation](../audits/2026-11-10-streetscape.md). This is not approval to change the skyline or expand architecture.
+
+## Start plaza — 2026-11-10 owner authorisation
+
+The owner authorised all seven refinements to the pictured initial plaza: soft paving joints, a shaped fountain with shallow animated water and low jets, circular surround, paired seating, low planting, reduced duplicate lamp poles, and stone finish at the existing portal. `HERO_BOUNDS`, all thirteen tree placements, both pedestrian routes and the vehicle ramp/soffit remain unchanged. Four static architecture/water meshes, no new dynamic lights or passes; the private fountain material shares the existing reduced-motion-aware clock. See [scope, evidence and checks](../audits/2026-11-10-hero-plaza.md).
+
+### Initial plaza — second refinement, 2026-11-10
+
+Owner requested a further local polish pass: six passable seating pads with curb notches at the two shaded benches, warmer timber and armrests, a segmented fountain apron, richer existing planters/low planting, and less regular water ripples. Tree/bench/post positions and pedestrian routes stay unchanged. The same four meshes, three materials and four shared textures now contain 11,028 triangles, under the existing 12,000 local ceiling. [Evidence and checks](../audits/2026-11-10-hero-plaza-polish.md).
+
+### Fountain water motion — 2026-11-11
+
+Owner requested more realistic moving water after the plaza passes. `plaza-water.js` now displaces the surface and streams on the GPU, using six impact-wave sources and the existing reduced-motion-aware clock. Angle-dependent analytic reflection, shallow-floor refraction/caustic cues and restrained impact foam replace the normal-only concentric rings. The opaque single water draw remains; no texture asset, dynamic light or render pass is added. Plaza count is 11,772 triangles under the unchanged 12,000 local ceiling. [Motion evidence and checks](../audits/2026-11-11-plaza-water.md).

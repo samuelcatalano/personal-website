@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { allLampSpots } from './street-lamp.js';
 // Additive light pools under street lamps: one InstancedMesh, opacity follows night.
-export function createLampPools(scene, streetLamps, size = 10) {
+export function createLampPools(scene, streetLamps, size = 10, shopFronts = []) {
   const seen = new Set(), lamps = [...streetLamps, ...allLampSpots()].filter(([x, z]) => { const k = `${Math.round(x * 4)},${Math.round(z * 4)}`; return !seen.has(k) && seen.add(k); }); // park and Glasgow lamps get a pool too
   const c = document.createElement('canvas');
   c.width = c.height = 128;
@@ -12,6 +12,7 @@ export function createLampPools(scene, streetLamps, size = 10) {
   const mat = new THREE.MeshBasicMaterial({ map: Object.assign(new THREE.CanvasTexture(c), { colorSpace: THREE.SRGBColorSpace }), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1, opacity: 0, fog: false });
   const mesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(size, size).rotateX(-Math.PI / 2), mat, lamps.length), m = new THREE.Matrix4();
   lamps.forEach(([x, z, s = 1], i) => mesh.setMatrixAt(i, m.makeScale(s, 1, s).setPosition(x, 0.08, z))); // s: per-lamp size (the plaza lantern's is wider)
+  lamps.forEach(([x, z], i) => { const commercial = shopFronts.some(p => Math.hypot(p.x - x, p.z - z) < 16); mesh.setColorAt(i, new THREE.Color().setScalar(commercial ? 1 : .78)); });
   mesh.frustumCulled = false; mesh.renderOrder = 2;
   scene.add(mesh);
   let lastWet=-1;

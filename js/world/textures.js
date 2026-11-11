@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
+import { streetEnvironment } from './streetscape-state.js';
 let noise;
 function noiseTexture() {
   if (noise) return noise;
@@ -27,12 +28,13 @@ const GRASS = new Set([P.grass, P.patch]);
 export const surfaceNoiseTexture = noiseTexture;
 export function blockMaterial(color, { glow = false, k = 2.2 } = {}) {
   const mat = new THREE.MeshStandardMaterial({ color, map: noiseTexture(), roughness: 0.9, metalness: 0 });
-  const kind = GRASS.has(color) ? 1 : color === P.road ? 2 : color === P.pave ? 3 : 0; // world-space tint noise
+  const kind = GRASS.has(color) ? 1 : color === P.road ? 2 : [P.pave, P.paverWarm].includes(color) ? 3 : 0; // world-space tint noise
   mat.userData.glow = glow;
   if (kind === 2) { mat.userData.glow = true; mat.userData.glowColor = new THREE.Color('#151412'); mat.userData.glowK = 1; } // ponytail: neutral-warm flat night lift (no blue cast) on asphalt (sky.update drives emissive); no per-lamp light
   mat.userData.glowK = k; // night emissive multiplier, see sky.update
-  mat.customProgramCacheKey = () => 'block' + glow + kind; // glow/non-glow differ by define only
+  mat.customProgramCacheKey = () => 'block-streetscape-1' + glow + kind; // glow/non-glow differ by define only
   mat.onBeforeCompile = (sh) => {
+    sh.uniforms.uStreetRegions = streetEnvironment.regions;
     const common = '#include <common>\nvarying vec3 vWP; varying vec3 vWN; varying vec3 vLP; varying vec3 vLN; varying vec3 vSc; varying float vH;';
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', common)
@@ -55,7 +57,7 @@ vLP = position; vLN = normal; vSc = vec3(length(bm[0].xyz), length(bm[1].xyz), l
     if (glow) sh.fragmentShader = '#define STAGGER\n' + sh.fragmentShader;
     if (!glow) sh.fragmentShader = '#define VOXEL_EDGE\n' + sh.fragmentShader;
     sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', common)
+      .replace('#include <common>', common + '\nuniform vec3 uStreetRegions;')
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
 #ifdef STAGGER
 totalEmissiveRadiance *= smoothstep(0.0, 0.1, uNight - (0.1 + 0.8 * vH) + 0.05); // each instance switches on at its own night level
@@ -75,6 +77,29 @@ diffuseColor *= texture2D(map, tuv);
   diffuseColor.rgb *= (1.0 + 0.2 * n) * mix(vec3(2.9, 2.4, 1.95), vec3(1.0), uNight); // lighter warm day asphalt; albedo unchanged at night
   #else
   diffuseColor.rgb *= 1.0 + 0.10 * n;
+  if (vWN.y > 0.9 && vWP.y < 0.4) {
+    float uk = smoothstep(uStreetRegions.x - 18.0, uStreetRegions.x + 18.0, vWP.x);
+    float scot = smoothstep(uStreetRegions.y - 20.0, uStreetRegions.y + 20.0, vWP.x)
+      * (1.0 - smoothstep(uStreetRegions.z - 20.0, uStreetRegions.z + 20.0, vWP.x));
+    vec2 size = mix(vec2(0.7), vec2(0.9, 0.6), uk); size.x = mix(size.x, 1.2, scot);
+    vec2 metric = vLP.xz * vSc.xz;
+    vec2 tile = metric / size;
+    tile.x += mod(floor(tile.y), 2.0) * 0.5 * uk;
+    vec2 joint = min(fract(tile), 1.0 - fract(tile)) * size;
+    vec2 aa = max(fwidth(metric), vec2(0.001));
+    float seam = 1.0 - smoothstep(0.009, 0.009 + max(aa.x, aa.y), min(joint.x, joint.y));
+    float detail = 1.0 - smoothstep(65.0, 145.0, distance(cameraPosition, vWP));
+    float slab = fract(sin(dot(floor(tile), vec2(12.9898,78.233))) * 43758.5453);
+    float edge = min((0.5 - abs(vLP.x)) * vSc.x, (0.5 - abs(vLP.z)) * vSc.z);
+    float bounded = 1.0 - step(80.0, max(vSc.x, vSc.z));
+    float band = (1.0 - smoothstep(0.16, 0.22, edge)) * bounded;
+    float dirt = (1.0 - smoothstep(0.0, 0.13, edge)) * bounded;
+    float mosaic = mod(floor(metric.x / 0.24) + floor(metric.y / 0.24), 2.0);
+    vec3 regionTint = mix(vec3(1.02, 1.0, 0.97), vec3(0.97, 0.99, 1.03), uk);
+    regionTint = mix(regionTint, vec3(0.92, 0.96, 1.0), scot);
+    diffuseColor.rgb *= regionTint * (1.0 + detail * ((slab - 0.5) * 0.035 - seam * 0.12
+      - band * (0.035 + (1.0 - uk) * mosaic * 0.08) - dirt * 0.07));
+  }
   #endif
 }
 #endif

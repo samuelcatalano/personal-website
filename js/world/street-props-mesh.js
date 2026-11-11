@@ -31,8 +31,12 @@ GEOMS.shelter = () => { // posts, roof with overhang, bench seat, back rail; the
 };
 GEOMS.cafe = () => { // round table with two chairs facing it
   const g = [cyl(0.4, 0.4, 0.04, 0.72, '#d8cdb6', 14), cyl(0.04, 0.04, 0.72, 0, '#26292c', 6), cyl(0.2, 0.2, 0.025, 0, '#26292c', 10)];
-  for (const s of [-1, 1]) { const x = s * 0.66; g.push(box(0.4, 0.04, 0.4, x, 0.44, 0, '#7a2f2a'), box(0.04, 0.42, 0.4, x + s * 0.18, 0.46, 0, '#7a2f2a'));
+  for (const s of [-1, 1]) { const x = s * 0.65; g.push(box(0.4, 0.04, 0.4, x, 0.44, 0, '#7a2f2a'), box(0.04, 0.42, 0.4, x + s * 0.17, 0.46, 0, '#7a2f2a'));
     for (const dx of [-0.16, 0.16]) for (const dz of [-0.16, 0.16]) g.push(box(0.03, 0.44, 0.03, x + dx, 0, dz, '#26292c')); }
+  g.push(box(.09,.10,.09,-.15,.76,.10,'#eee5d6'), box(.09,.10,.09,.15,.76,-.10,'#eee5d6'));
+  // A low terracotta pot beside the table, clear of both chairs and their original footprint.
+  g.push(box(.22,.24,.22,0,0,-.34,'#a76d50'), box(.26,.04,.26,0,.24,-.34,'#b17a59'),
+    box(.16,.19,.16,0,.28,-.34,'#526747'), box(.10,.10,.10,-.06,.43,-.34,'#657850'));
   return [mergeGeometries(g)];
 };
 GEOMS.board = () => [mergeGeometries([tilt(new THREE.BoxGeometry(0.5, 0.86, 0.03), '#2b3a32', 0.2, 0, 0.43, 0.13), tilt(new THREE.BoxGeometry(0.5, 0.86, 0.03), '#2b3a32', -0.2, 0, 0.43, -0.13), tilt(new THREE.BoxGeometry(0.38, 0.5, 0.012), '#e8e2d2', 0.2, 0, 0.5, 0.15)])];
@@ -46,13 +50,14 @@ export function buildProps(items) {
   const metal = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0.35 });
   const glass = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.25, emissive: '#000000' });
   glass.userData.glow = true; glass.userData.glowK = 2.2; glass.userData.glowColor = new THREE.Color('#ffa21f'); // sky.js: emissive = glowColor * night * glowK
+  const advert = glass.clone(); advert.userData = { glow: true, glowK: .85, glowColor: new THREE.Color('#ffe7c4') };
   for (const kind of Object.keys(FOOT)) {
     const list = items.filter((i) => i.kind === kind);
     if (!list.length) continue;
     counts[kind] = list.length;
     GEOMS[kind]().forEach((g, j) => {
       geoms.push(g);
-      const m = new THREE.InstancedMesh(g, j ? glass : metal, list.length); m.name = `prop-${kind}${j ? '-glass' : ''}`;
+      const m = new THREE.InstancedMesh(g, j ? (kind === 'shelter' ? advert : glass) : metal, list.length); m.name = `prop-${kind}${j ? '-glass' : ''}`;
       list.forEach(({ x, y, z, yaw }, i) => { o.position.set(x, y, z); o.rotation.y = yaw; o.updateMatrix(); m.setMatrixAt(i, o.matrix); });
       m.receiveShadow = true; m.computeBoundingSphere(); group.add(m); // no cast: tiny props, keeps the shadow pass untouched
     });
@@ -71,6 +76,6 @@ export function buildProps(items) {
   items.forEach(({ x, y, z, r }, i) => { o.position.set(x, y + 0.012, z); o.rotation.set(0, 0, 0); o.scale.setScalar(Math.min(0.7, Math.max(0.15, r * 0.65))); o.updateMatrix(); contacts.setMatrixAt(i, o.matrix); });
   contacts.computeBoundingSphere(); group.add(contacts);
   group.userData.counts = counts;
-  group.userData.dispose = () => { geoms.forEach((g) => g.dispose()); contacts.dispose(); contactGeometry.dispose(); contactMaterial.dispose(); metal.dispose(); glass.dispose(); };
+  group.userData.dispose = () => { geoms.forEach((g) => g.dispose()); contacts.dispose(); contactGeometry.dispose(); contactMaterial.dispose(); metal.dispose(); glass.dispose(); advert.dispose(); };
   return group;
 }

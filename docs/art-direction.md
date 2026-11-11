@@ -85,3 +85,19 @@ The owner authorized replacing the five procedural tree silhouettes with determi
 The owner requested a graphical refinement of the portfolio while preserving menu controls and the intro/loading screen. Panels retain the existing Hammersmith One/Inter typography, warm-paper and night palettes, and city accents. The profile uses a compact portrait/name lockup, a clearer professional statement and a separate status strip. Recent experience has its own hierarchy; project/article rows use editorial dividers and restrained technology badges; recommendations use lighter quote treatments. All new copy remains in EN/PT content data. Small labels use the theme's primary ink for contrast. No assets, dependencies, 3D geometry, camera or menu/loading styles were added or changed.
 
 Desktop validation: 215 Node tests passed, including existing content contracts; the panel browser test passed at 1280px and now checks that the London clock is populated immediately after rebuilding the profile. Captures at 1440×900 covered profile, journey, projects, articles and recommendations, plus EN/PT and day/night profile states. The profile fits the tested viewport; checked panels have no horizontal overflow. No mobile viewport/emulation tests, Lighthouse or performance benchmark were run.
+
+## Streetscape polish — 2026-11-10 owner authorisation
+
+The owner requested all seven proposed refinements: subtle paving joints/perimeter bands, regional paving tones and module sizes, selected recessed shop displays and thresholds, small objects within existing cafe footprints, restrained paving-edge dirt, commercial/residential night hierarchy, and shared gentle wind for foliage and awnings. Preserve map, routes, building envelopes and landmark views. This pass does not reopen skyline composition or townhouse design. See [implementation and validation](audits/2026-11-10-streetscape.md).
+
+## Initial plaza — 2026-11-10
+
+Owner authorised the pictured plaza refinement: neutral stone joints replace dark rails in the paving; a circular stone apron and shaped basin establish the meeting point; low water arcs and restrained ripples animate the fountain. Six benches form paired seating, low green clusters and pale flowers enrich the existing beds, four peripheral posts replace the competing park/realm pole layout, and the existing tunnel portal gains warm stone coping and low outer planters. Preserve tree positions, the two walking corridors, road profile and tunnel clearance. [Validation](audits/2026-11-10-hero-plaza.md).
+
+### Initial plaza — seating and planting polish, 2026-11-10
+
+Owner authorised further refinement of the same plaza. Seating pockets, discreet stone sectors around the fountain, warmer timber, denser pale flowers and layered low greens reinforce the existing composition. Preserve the trees, routes, fountain/portal positions and the restrained night palette. [Validation](audits/2026-11-10-hero-plaza-polish.md).
+
+### Fountain water — 2026-11-11
+
+Owner authorised visibly moving, more realistic water. Keep low six-way jets and the existing basin: streams narrow and sway subtly, small waves spread from their landing points, pale foam stays near impacts, and shallow stone-floor detail appears refracted under angle-dependent reflections. Night keeps restrained warm rim bounce; reduced motion holds a still state while WebGL stays active. [Validation and motion preview](audits/2026-11-11-plaza-water.md).

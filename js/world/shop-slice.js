@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { SURFACE as S, townhouseMaterials } from './building-slice-materials.js';
-import { tint } from './lot-tint.js';
+import { tint, hash } from './lot-tint.js';
 
 const descriptors=[['frontage-stop-hero--255--1--9','terrace',9,7,9.7],['frontage-stop-hero--255--1-0','terrace',9,7,9.7],['corner-shop','shop',5.5,6,6],
   ['block--295--34','shop',10,10,6.8],['block--282--34','shop',10,10,6.8],
@@ -33,15 +33,17 @@ export function heroShopRecipe(plot,neighbors=[],compositionOverride){
 }
 export function createShopSlice(plot,neighbors=[],recipe=shopRecipe(plot,neighbors)){
   const {x,z,width,depth,height}=plot;
+  const commercialAccent = plot.kind === 'shop' && hash(plot.id) % 3 === 0;
   if(!['shop','terrace','midrise'].includes(plot.kind)||(plot.kind==='midrise'&&height>10)||![x,z,width,depth,height].every(Number.isFinite)||width<5||depth<5||height<5.5)throw new TypeError('Invalid mixed low-rise plot');
   const w=width-.24,d=depth-.4,front=d/2,roofY=height-(recipe.roofCap==='pavilion'?.95:.55),upper=(roofY-recipe.ground)/(recipe.floors-1);
-  const buckets=Array.from({length:3},()=>({position:[],normal:[],uv:[],aSurface:[],color:[]})),openings=[];
+  const buckets=Array.from({length:3},()=>({position:[],normal:[],uv:[],aSurface:[],aFlutter:[],color:[]})),openings=[];
   const colors={[S.plaster]:[[1,.99,.96],[.97,1,1],[1,.96,.90]][recipe.palette],[S.brick]:[[.96,.91,.86],[.83,.92,1],[1,.89,.76]][recipe.palette],[S.stone]:[.93,.97,1],[S.trim]:[1,1,1],[S.roof]:[.62,.72,.79],[S.glass]:[.93,1,1]};
+  let flutter = 0;
   function quad(points,normal,surface,bucket=0){
     const p=points.map(v=>new THREE.Vector3(...v));
     if(new THREE.Vector3().subVectors(p[1],p[0]).cross(new THREE.Vector3().subVectors(p[2],p[0])).dot(new THREE.Vector3(...normal))<0)p.reverse();
     const b=buckets[bucket],axis=Math.abs(normal[1])>.7?'y':Math.abs(normal[0])>.7?'x':'z';
-    for(const i of [0,1,2,0,2,3]){const v=p[i];b.position.push(v.x,v.y,v.z);b.normal.push(...normal);b.aSurface.push(surface);b.color.push(...(colors[surface]||[1,1,1]).map((c,j)=>c*(recipe.tint&&[S.plaster,S.brick].includes(surface)?recipe.tint[j]:1)));b.uv.push(...(axis==='x'?[v.z,v.y]:axis==='y'?[v.x,v.y*normal[2]-v.z*normal[1]]:[v.x,v.y]));}
+    for(const i of [0,1,2,0,2,3]){const v=p[i];b.position.push(v.x,v.y,v.z);b.normal.push(...normal);b.aSurface.push(surface);b.aFlutter.push(flutter);b.color.push(...(colors[surface]||[1,1,1]).map((c,j)=>c*(recipe.tint&&[S.plaster,S.brick].includes(surface)?recipe.tint[j]:1)));b.uv.push(...(axis==='x'?[v.z,v.y]:axis==='y'?[v.x,v.y*normal[2]-v.z*normal[1]]:[v.x,v.y]));}
   }
   function box(cx,cy,cz,bw,bh,bd,surface,bucket=0){
     const X=[cx-bw/2,cx+bw/2],Y=[cy-bh/2,cy+bh/2],Z=[cz-bd/2,cz+bd/2];
@@ -69,7 +71,7 @@ export function createShopSlice(plot,neighbors=[],recipe=shopRecipe(plot,neighbo
       openings.push({...o,face,reveal:r});
       for(const [u,n]of [[a,1],[b,-1]])quad([pt(u,lo),pt(u,hi),pt(u,hi,-r),pt(u,lo,-r)],lateral.map(v=>v*n),S.stone);
       for(const [y,n]of [[lo,1],[hi,-1]])quad([pt(a,y),pt(b,y),pt(b,y,-r),pt(a,y,-r)],[0,n,0],S.stone);
-      panel(o.u,o.y,-r,o.w,o.h,o.type==='window'&&(i+recipe.windowSeed)%9===0?S.litGlass:S.glass,2);
+      panel(o.u,o.y,-r,o.w,o.h,(o.type==='window'&&(i+recipe.windowSeed)%9===0)||(o.type==='storefront'&&commercialAccent)?S.litGlass:S.glass,2);
       for(const u of [a-f/2,b+f/2])panel(u,o.y,.025,f,o.h+2*f,S.trim);
       for(const y of [lo-f/2,hi+f/2])panel(o.u,y,.025,o.w,f,S.trim);
       if(o.type==='window'){
@@ -79,6 +81,14 @@ export function createShopSlice(plot,neighbors=[],recipe=shopRecipe(plot,neighbo
         else box(side*(w/2+.045),lo-.055,o.u,.15,.11,o.w+.16,S.stone,1);
       }else{
         panel(o.u,o.y,-r+.03,.04,o.h,S.roof);
+        if (frontFace && o.type === 'storefront' && recipe.windowSeed % 3 !== 1) {
+          // Display pieces remain inside the existing reveal, in front of the opaque interior pane.
+          for (const yy of [0.72, 1.22]) {
+            box(o.u, yy, front-r+.13, o.w*.82, .045, .16, S.stone, 1);
+            for (const dx of [-.26, .22]) box(o.u+dx*o.w, yy+.14, front-r+.13, .15, .23, .12, S.door, 1);
+          }
+        }
+        if (frontFace && o.type === 'entry') box(o.u,.025,front-.13,o.w*.85,.035,.24,S.roof,1);
         if(o.type==='entry'){if(frontFace)box(o.u+.36,1.18,front-r+.04,.045,.25,.04,S.trim,1);else panel(o.u+.36,1.18,-r+.04,.045,.25,S.trim);}
       }
     }
@@ -131,10 +141,12 @@ export function createShopSlice(plot,neighbors=[],recipe=shopRecipe(plot,neighbo
   }else if(recipe.canopy!==false){
   const aw=recipe.ground-.18;
   quad([[-w*.48,aw,front+.14],[w*.48,aw,front+.14],[w*.48,aw+.18,front-.60],[-w*.48,aw+.18,front-.60]],[0,.74/Math.hypot(.74,.18),.18/Math.hypot(.74,.18)],awning);
+  flutter = 1;
   box(0,aw-.04,front+.10,w*.96,.11,.08,awning);
+  flutter = 0;
   }
   const materials=townhouseMaterials(),g=new THREE.Group();g.name=plot.id;g.position.set(x,0,z);
-  buckets.forEach((data,k)=>{const geometry=new THREE.BufferGeometry();for(const [key,size]of [['position',3],['normal',3],['uv',2],['aSurface',1],['color',3]])geometry.setAttribute(key,new THREE.Float32BufferAttribute(data[key],size));geometry.computeBoundingBox();geometry.computeBoundingSphere();const m=new THREE.Mesh(geometry,k===2?materials.glass:materials.architecture);m.name=['shop-mass','shop-trim','shop-glass'][k];m.castShadow=k===0;m.receiveShadow=true;g.add(m);});
+  buckets.forEach((data,k)=>{const geometry=new THREE.BufferGeometry();for(const [key,size]of [['position',3],['normal',3],['uv',2],['aSurface',1],['aFlutter',1],['color',3]])geometry.setAttribute(key,new THREE.Float32BufferAttribute(data[key],size));geometry.computeBoundingBox();geometry.computeBoundingSphere();const m=new THREE.Mesh(geometry,k===2?materials.glass:materials.architecture);m.name=['shop-mass','shop-trim','shop-glass'][k];m.castShadow=k===0;m.receiveShadow=true;g.add(m);});
   g.userData={recipe,openings,awning};return g;
 }
 export function createShopChunk(plots,neighbors=plots){

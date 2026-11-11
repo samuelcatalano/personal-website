@@ -1,0 +1,38 @@
+[
+  {
+    "label": "before",
+    "medianUpdateMs": 4,
+    "p95UpdateMs": 6.299999952316284,
+    "calls": 819,
+    "triangles": 1689609,
+    "active": 200,
+    "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M3 Max, Unspecified Version)"
+  },
+  {
+    "label": "after",
+    "medianUpdateMs": 4.600000023841858,
+    "p95UpdateMs": 7.100000023841858,
+    "calls": 819,
+    "triangles": 1689609,
+    "active": 200,
+    "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M3 Max, Unspecified Version)"
+  },
+  {
+    "label": "after",
+    "medianUpdateMs": 25.19999998807907,
+    "p95UpdateMs": 45,
+    "calls": 819,
+    "triangles": 1689609,
+    "active": 200,
+    "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M3 Max, Unspecified Version)"
+  },
+  {
+    "label": "before",
+    "medianUpdateMs": 22.600000023841858,
+    "p95UpdateMs": 36.40000003576279,
+    "calls": 819,
+    "triangles": 1689609,
+    "active": 200,
+    "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M3 Max, Unspecified Version)"
+  }
+]

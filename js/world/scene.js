@@ -1,7 +1,9 @@
+import { createShopSpill } from './shop-spill.js';
+import { streetEnvironment, setStreetRegions, shopFrontages } from './streetscape-state.js';
 import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
 import { routeT, nearestStop, stopMarks, fineMarks } from '../scroll.js';
-import { routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, towerX, FRAME_LIFT, swapAt, heroVehicleAt, ukStart, treeRegion, SWAP_GAP, east, eastAdd, stretch, LEGACY_GAPS } from './layout.js';
+import { regions, routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, towerX, FRAME_LIFT, swapAt, heroVehicleAt, ukStart, treeRegion, SWAP_GAP, east, eastAdd, stretch, LEGACY_GAPS } from './layout.js';
 import { createBoxes, buildMeshes } from './voxel.js';
 import { buildMotion } from './motion.js';
 import { buildCity, tree } from './city.js';
@@ -98,6 +100,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   scene.add(hemi, sun, sun.target);
   const n = stops.length, pts = routePoints(n), marks = stopMarks(pts);
   const curve = routeCurve(THREE, pts), knots = fineMarks(marks, curve);
+  const streetRegions = regions(stops, pts);
+  setStreetRegions(pts[ukStart(stops)].x - 15, streetRegions[0].ctry[0], streetRegions[1].ctry[1]);
   const distant = createBoxes();
   const far = createBoxes();
   const addBackdrop = eastAdd(distant.add, stretch);
@@ -165,7 +169,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   if (swapTunnel) { scene.add(swapTunnel.group); swapTunnel.cut(scene); }
   bus.rotation.order = 'YZX'; // yaw, then the dip's pitch
   const people = createPeople({ curve, pts, stops, obstacles: kioskClearance, reducedMotion });
-  const units = [await createNpc3d(scene, { people, pts, stops })]; // finish startup NPCs before the bulk fleet can occupy the download queue
+  const units = [await createNpc3d(scene, { people, pts, stops, lookTargets: details.children.filter(o=>o.name.endsWith('-geometry')) })]; // finish startup NPCs before the bulk fleet can occupy the download queue
   let disposed = false, raf = 0, landmarksReady = false, startupLandmarksCancelled = false;
   const wetReflectionHidden = [];
   initVehicleEnv(renderer);
@@ -216,7 +220,9 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const closingCam = shotFor('closing', end, { mobile: matchMedia('(max-width: 767px)').matches }).position;
   figure.userData.facing = Math.atan2(closingCam[0] - figure.position.x, closingCam[2] - figure.position.z) + BODY_TURN;
   scene.add(figure);
-  const pools = createLampPools(scene, lamps);
+  const frontages = shopFrontages(architecturePlots);
+  const pools = createLampPools(scene, [...lamps, ...(heroRealm?.userData.lampPools ?? [])], 10, frontages);
+  const shopSpill = createShopSpill(scene, frontages, list);
   const sky = createSky(scene, { hemi, sun, reducedMotion }), moodAt = createMood(stops), rain = createRain(scene, { reducedMotion, lamps });
   const wetSurfaces = createWetSurfaces(scene, { lamps, reducedMotion }), vehicleFx = createVehicleFx(scene, { reducedMotion });
   wetReflectionHidden.push(...sky.objects);
@@ -413,6 +419,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     people.update(dt, camera.position, { x: busPos.x, z: busPos.z, speed: heroSpeed });
     figure.userData.update(dt, camera, night);
     for (const u of units) u.update(f);
+    streetEnvironment.time.value = clock;
     trees?.userData.update(camera, clock);
     night = reducedMotion || dt === 0 ? nightTarget : approach(night, nightTarget, dt, 1.4);
     const mood = moodAt(t);
@@ -431,7 +438,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     post.setFocus?.(camera.position.distanceTo(bus.position)); // depth of field focuses on the hero vehicle
     vehicleFx.update(dt, { p: busPos, h: bus.rotation.y, len: hl, halfW: hl > 6 ? 1.3 : 0.95, speed: heroSpeed, rain: mood.rain ?? 0, cold: Math.min(1, (1 - (mood.rs ?? 0)) * 0.8 + night * 0.4), night, halfH: renderer.domElement.height / 2 });
     wetSurfaces.update(clock, wet, mood.rain, night, camera.position, sky.colors, bus.position, bus.rotation.y, post.tier);
-    updateBeams(night); pools.update(night, wet); lampPosts?.userData.setNight?.(night);
+    updateBeams(night); pools.update(night, wet); shopSpill.update(night, wet); lampPosts?.userData.setNight?.(night);
     water.update(clock, night, mood, post.tier, sky.colors, sky.sunDir);
     world.userData.updateLandmarkNight?.(night);
     updateVehicleEnv(night); landmarkEnv.update(night);
@@ -485,6 +492,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       architecture.userData.dispose?.();
       underpass.group.userData.dispose(); bridgeCars.dispose(); routeTunnel.dispose(); swapTunnel?.dispose();
       heroRealm?.userData.dispose();
+      shopSpill.dispose();
       roadMarks.userData.dispose(); propsGroup?.userData.dispose();
       eye.userData.dispose?.();
       rain.dispose?.();

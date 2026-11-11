@@ -119,19 +119,49 @@ export function createPeople({ curve, pts, stops, obstacles = [], reducedMotion 
   };
   plan.forEach((p, i) => { place(p.path, st[i].s, p.look); st[i].pace = out.speed; px[i] = out.x; pz[i] = out.z; if (p.path.type === 'lane') { rememberLane(i); avoidKiosks(i); out.x = px[i]; out.z = pz[i]; } fx[i] = out.fx; fz[i] = out.fz; walkPace[i] = Math.min(1, out.speed); visible[i] = 1; });
   const react = new Float32Array(N); // 0..1 how much each walker is watching the hero vehicle
+  const yieldPace = new Float32Array(N).fill(1), travelX = fx.slice(), travelZ = fz.slice(), encounterCells = new Map();
+  const anticipate = (dt, cam) => {
+    const blend=1-Math.exp(-4*dt);
+    encounterCells.clear();
+    for (let i=0;i<N;i++) if(plan[i].path.type!=='idle'&&Math.hypot(px[i]-cam.x,pz[i]-cam.z)<SEP_FAR){
+      const key=`${Math.floor(px[i]/2.5)},${Math.floor(pz[i]/2.5)}`;
+      let bucket=encounterCells.get(key);if(!bucket)encounterCells.set(key,bucket=[]);bucket.push(i);
+    }
+    for(let i=0;i<N;i++){
+      let want=1;
+      const cx=Math.floor(px[i]/2.5),cz=Math.floor(pz[i]/2.5),speed=plan[i].look.speed*(1-react[i]);
+      if(plan[i].path.type!=='idle'&&Math.hypot(px[i]-cam.x,pz[i]-cam.z)<SEP_FAR){
+      for(let x=cx-1;x<=cx+1;x++)for(let z=cz-1;z<=cz+1;z++)for(const j of encounterCells.get(`${x},${z}`)||[]){
+        if(j===i)continue;
+        const dx=px[j]-px[i],dz=pz[j]-pz[i],distance=Math.hypot(dx,dz);
+        if(distance>2.5||distance<.01)continue;
+        const other=plan[j].look.speed*(1-react[j]),along=dx*travelX[i]+dz*travelZ[i],alignment=travelX[i]*travelX[j]+travelZ[i]*travelZ[j];
+        // Side-by-side companions gently match pace; a faster follower leaves room ahead.
+        if(alignment>.9&&Math.abs(along)<.6&&distance<1.4&&Math.abs(speed-other)<.18)want=Math.min(want,other/Math.max(speed,.01));
+        const vx=travelX[i]*speed*yieldPace[i]-travelX[j]*other*yieldPace[j],vz=travelZ[i]*speed*yieldPace[i]-travelZ[j]*other*yieldPace[j],v2=vx*vx+vz*vz;
+        if(v2<.01)continue;
+        const t=(dx*vx+dz*vz)/v2,gap=Math.hypot(dx-vx*t,dz-vz*t);
+        if(t>.05&&t<2&&gap<CROWD_GAP+.15&&(i>j||alignment>.7&&along>0))want=Math.min(want,.35+.65*Math.min(1,t/2));
+      }
+      }
+      yieldPace[i]+=(Math.max(.35,Math.min(1,want))-yieldPace[i])*blend;
+    }
+  };
   return {
     count: N, route: { x: px, z: pz, fx, fz }, walkPace, visible,
     update(dt, cam, hero) { // hero: { x, z, speed } of the stopped-or-moving hero vehicle; walkers near it slow to a stop and turn to watch it halt
       if (reducedMotion || dt < 0) dt = 0;
+      if(dt>0)anticipate(dt,cam);
       plan.forEach(({ look: k, path }, i) => {
         const s = st[i];
         const want = hero && hero.speed < 1.5 && path.type !== 'idle' ? Math.max(0, Math.min(1, (16 - Math.hypot(px[i] - hero.x, pz[i] - hero.z)) / 10)) : 0;
         react[i] += (want - react[i]) * Math.min(1, dt * 2.5); // eased both ways, so nobody freezes or restarts in a single frame
-        s.s += path.dir * k.speed * dt * (1 - 0.95 * react[i]) / Math.max(1, s.pace);
+        s.s += path.dir * k.speed * dt * (1 - react[i]) * yieldPace[i] / Math.max(1, s.pace);
         place(path, s.s, k);
         if (path.type === 'lane') rememberLane(i);
-        s.pace = out.speed; walkPace[i] = Math.min(1, out.speed) * (1 - react[i]);
+        s.pace = out.speed; walkPace[i] = Math.min(1, out.speed) * (1 - react[i]) * yieldPace[i];
         px[i] = out.x; pz[i] = out.z; fx[i] = out.fx; fz[i] = out.fz;
+        travelX[i]=out.fx;travelZ[i]=out.fz;
         if (react[i] > 0.25 && hero) { // turn towards the vehicle
           const tx = hero.x - px[i], tz = hero.z - pz[i], tl = Math.hypot(tx, tz) || 1, m = (react[i] - 0.25) / 0.75;
           const bx = fx[i] + (tx / tl - fx[i]) * m, bz = fz[i] + (tz / tl - fz[i]) * m, bl = Math.hypot(bx, bz) || 1;

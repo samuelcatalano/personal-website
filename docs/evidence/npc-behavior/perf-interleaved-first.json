@@ -1,0 +1,18 @@
+[
+  {
+    "label": "before",
+    "medianUpdateMs": 4.100000023841858,
+    "p95UpdateMs": 6.800000011920929,
+    "calls": 817,
+    "triangles": 1689245,
+    "samples": 240
+  },
+  {
+    "label": "after",
+    "medianUpdateMs": 5.100000023841858,
+    "p95UpdateMs": 8.400000035762787,
+    "calls": 817,
+    "triangles": 1689245,
+    "samples": 240
+  }
+]

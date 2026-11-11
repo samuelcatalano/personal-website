@@ -88,7 +88,7 @@ function houseGeometries(p,kind,neighbors,cell,level,modules) {
   let geometries,dispose=null;
   if(modules&&level===0&&kitLot(p,kind)){geometries=modularGeometry(p,rolloutRecipe(p,kind,neighbors),modules,true);tint({children:geometries.map(geometry=>({geometry}))},p);}
   else{const h=building(p,kind,neighbors,level);tint(h,p);geometries=h.children.map(m=>m.geometry);}
-  geometries.forEach(g=>g.translate(p.x-cell.x,0,p.z-cell.z));
+  geometries.forEach(g=>{if(!g.hasAttribute('aFlutter'))g.setAttribute('aFlutter',new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count),1));g.translate(p.x-cell.x,0,p.z-cell.z);});
   return geometries;
 }
 function mergeCell(cell,neighbors,level,modules) {

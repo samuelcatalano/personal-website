@@ -6,6 +6,8 @@ import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { ROAD } from './layout.js';
 import { crowdPlan } from './crowd.js'; // read only: the crowd's people and paths
 import { createIdleClip } from './npc-idle.js';
+import { animationDue } from './npc-motion-state.js';
+import { createNpcPose } from './npc-pose.js';
 
 const GLB = new URL('../../assets/npc/npc_pack.glb', import.meta.url).href;
 const QUERY = new URLSearchParams(location.search), NEAR = QUERY.has('npcnear'), SHOT = Number(QUERY.get('npcshot')) || 0; // debug only
@@ -43,7 +45,7 @@ const IN = ROAD.padIn + 0.4, OUT = ROAD.padIn + 1.05, LANES = [[IN, 1], [OUT, -1
 const CLIP_SPEED = { NPC_Walk: 0.621, NPC_Walk2: 0.628, NPC_Walk3: 0.592, NPC_Walk_C: 0.402, NPC_Walk2_C: 0.407, NPC_Walk3_C: 0.418 };
 function clipsForRig(clips, rig) { return clips.filter((clip) => clip.name.endsWith('_C') === (rig === 'child') && clip.name !== (rig === 'child' ? 'NPC_Walk2_C' : 'NPC_Walk2') && clip.name !== (rig === 'child' ? 'NPC_Walk_C' : '')); } // the formal cycle is stiff; the short child stride exceeds the playback cap
 function clipStride(name, scale, wide) { return CLIP_SPEED[name] * scale * wide; }
-function clipTimeScale(speed, stride) { return Math.min(1.76, speed / stride); }
+function clipTimeScale(speed, stride) { return Math.min(1.76, Math.max(.8, speed / stride)); }
 function poolKinds(count) {
   const children = Math.round(count * 0.3);
   let adults = 0;
@@ -268,7 +270,7 @@ function disposeNpcObjects(roots) {
 const FEMALE = new Set(['NPC_F', 'NPC_G', 'NPC_H', 'NPC_K', 'NPC_L', 'NPC_P', 'NPC_R', 'NPC_T', 'NPC_KA', 'NPC_KC']);
 const CASTERS = 16; // walkers nearest the camera that cast sun shadows (desktop)
 const PAVE_TOP = 0.1; // pavement slab top (city.js: bottom -0.02, 0.12 thick); the crowd's lanes run on it
-export async function createNpc3d(scene, { people, pts, stops, count = +QUERY.get('npccount') || (globalThis.innerWidth < 700 ? 48 : 200) }) { // ~7 draw calls per walker
+export async function createNpc3d(scene, { people, pts, stops, lookTargets = [], count = +QUERY.get('npccount') || (globalThis.innerWidth < 700 ? 48 : 200) }) { // ~7 draw calls per walker
   const plan = crowdPlan(stops, pts, 1017); // people.js seed: index i here is person i there
   let timer, expired = false;
   const gltf = await Promise.race([
@@ -281,6 +283,8 @@ export async function createNpc3d(scene, { people, pts, stops, count = +QUERY.ge
   clearTimeout(timer);
   if (!gltf) return { update() {} };
   const walkers = [];
+  const landmarks = lookTargets.map(root=>new THREE.Box3().setFromObject(root)).filter(box=>!box.isEmpty()).map(box=>box.getCenter(new THREE.Vector3()));
+  const poseSlots=new Set(),contactSlots=new Set(),narrow=globalThis.innerWidth<700,poseBudget=narrow?12:24,contactBudget=narrow?4:8;
   let shadow;
   try {
   const clips = gltf.animations.filter((a) => a.name in CLIP_SPEED);
@@ -288,7 +292,16 @@ export async function createNpc3d(scene, { people, pts, stops, count = +QUERY.ge
   // so strands flickered and showed the head through the hair); opaque cards also write depth and take shadows correctly
   gltf.scene.traverse((o) => {
     if (!o.isMesh) return;
-    for (const m of [o.material].flat()) if (m.transparent && m.map) Object.assign(m, { transparent: false, alphaTest: 0.45, depthWrite: true });
+    for (const m of [o.material].flat()) {
+      if (m.transparent && m.map) Object.assign(m, { transparent: false, alphaTest: 0.45, depthWrite: true });
+      if (m.isMeshStandardMaterial) {
+        if (m.name.startsWith('mh_skin_')) m.roughness = .65;
+        else if (m.name.startsWith('mh_eyes_')) m.roughness = .35;
+        else if (m.name.startsWith('mh_clothes_shoes')) m.roughness = .72;
+        else if (m.name.startsWith('mh_clothes_')) m.roughness = .94;
+      }
+      for (const map of [m.map, m.normalMap]) if (map) map.anisotropy = 4;
+    }
   });
   const templates = VARIANTS.map((v) => personTemplate(gltf.scene, v));
   const rng = mulberry32(777);
@@ -378,7 +391,9 @@ export async function createNpc3d(scene, { people, pts, stops, count = +QUERY.ge
       if (!free) continue;
       const slot = walkers.indexOf(free), previous = released.get(slot);
       free.who = i; owner[i] = slot;
+      free.pose?.reset(i);
       free.x = route.x[i]; free.z = route.z[i]; free.y = groundOf(i); free.yaw = Math.atan2(route.fx[i], route.fz[i]);
+      free.fresh = true;
       free.inst.visible = true;
       active++;
       if (noteEvent) noteEvent(previous ? { type: 'reassignment', fromNpcId: previous.npcId, npcId: i, slot, reason: previous.reason } : { type: 'spawn', npcId: i, slot, reason: 'visible-ranked-candidate' });
@@ -389,6 +404,14 @@ export async function createNpc3d(scene, { people, pts, stops, count = +QUERY.ge
     let c = 0;
     for (let r = 0; r < N && c < CASTERS; r++) { const n = owner[order[r]]; if (n >= 0) { walkers[n].cast = true; c++; } }
     for (const w of walkers) { const on = !!w.cast && w.who >= 0; if (on !== w.casting) { w.casting = on; w.inst.traverse((o) => { if (o.isMesh) o.castShadow = on; }); } w.cast = false; }
+    poseSlots.clear();contactSlots.clear();
+    // The normal elevated camera is ~60 m from the pavement; cap bodies as well as distance.
+    for(const id of order){
+      const slot=owner[id];if(slot<0)continue;const w=walkers[slot],distance=Math.hypot(w.x-cam.position.x,w.z-cam.position.z);
+      if(distance<100&&poseSlots.size<poseBudget)poseSlots.add(w);
+      if(poseSlots.has(w)&&distance<90&&contactSlots.size<contactBudget)contactSlots.add(w);
+      if(poseSlots.size>=poseBudget&&contactSlots.size>=contactBudget)break;
+    }
   };
   const walkPace = people.walkPace;
   const diagnostic = QA ? {
@@ -399,7 +422,7 @@ export async function createNpc3d(scene, { people, pts, stops, count = +QUERY.ge
         const x = walker ? walker.x : route.x[id], y = walker ? walker.y : groundOf(id), z = walker ? walker.z : route.z[id], h = walker?.height ?? plan[id].look.height;
         const distance = viewCamera ? Math.hypot(x - viewCamera.position.x, z - viewCamera.position.z) : null;
         const onScreen = !!viewCamera && isVisibleAt(x, y, z, h), representation = walker ? 'npc3d-full' : !vis[id] ? 'hidden-in-arch' : 'hidden-no-pool-slot';
-        return { id, position: { x, y, z }, region: regionOf(path, x), path: { name: path.name || 'sidewalk-lane', type: path.type, dir: path.dir, offset: path.offset ?? null }, distanceMeters: distance, visibility: { inCameraFrustum: onScreen, rendered: !!walker?.inst.visible && onScreen }, renderRepresentation: representation, poolSlot: slot >= 0 ? slot : null };
+        return { id, position: { x, y, z }, region: regionOf(path, x), path: { name: path.name || 'sidewalk-lane', type: path.type, dir: path.dir, offset: path.offset ?? null }, distanceMeters: distance, visibility: { inCameraFrustum: onScreen, rendered: !!walker?.inst.visible && onScreen }, renderRepresentation: representation, poolSlot: slot >= 0 ? slot : null, motion: walker?.pose ? {...walker.pose.state,active:poseSlots.has(walker),contact:contactSlots.has(walker),feet:walker.pose.feet?.state} : null };
       });
     },
     events: () => eventHistory.slice(),
@@ -408,6 +431,7 @@ export async function createNpc3d(scene, { people, pts, stops, count = +QUERY.ge
   return {
     update(f) {
       const dt = REDUCED ? 0 : f.dt;
+      for(const w of walkers)w.pose?.restore(); // Action changes and generated greetings must see the unmodified mixer pose.
       const cp = f.camera.position, jump = Math.hypot(cp.x - lastCam.x, cp.z - lastCam.z) > 15; // a fast scroll: hand the bodies over now
       if (QA) viewCamera = f.camera;
       if (tick++ % 12 === 0 || jump) { assign(f.camera); lastCam.copy(cp); }
@@ -434,23 +458,44 @@ export async function createNpc3d(scene, { people, pts, stops, count = +QUERY.ge
         const i = w.who, fx = route.fx[i], fz = route.fz[i], sp = plan[i].look.speed;
         const idle=plan[i].path.type==='idle';
         if(idle!==!!w.idle){
-          if(idle){w.action.stop();w.idleAction??=w.mixer.clipAction(createIdleClip(w.inst));w.idleAction.reset().play();}
+          if(idle){w.action.stop();w.idleAction??=w.mixer.clipAction(createIdleClip(w.inst));w.idleAction.reset().setEffectiveWeight(1).play();}
           else{w.idleAction.stop();w.action.reset().play();}
           w.idle=idle;
           w.mixer.update(0); // install the pose immediately, including a single reduced-motion frame
         }
+        const dx = route.x[i] - w.x, dz = route.z[i] - w.z;
+        const speed = w.fresh || dt === 0 ? sp * (walkPace?.[i] ?? 1) : Math.hypot(dx, dz) / dt;
+        w.speed = w.fresh ? speed : w.speed + (speed - w.speed) * (1 - Math.exp(-10 * dt));
         w.x = route.x[i]; w.z = route.z[i];
-        let dy = Math.atan2(fx, fz) - w.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
-        w.yaw += dy * (1 - Math.exp(-18 * dt)); // keep heading smooth while staying close to the route tangent
+        // Travel steers the body; only a stopped person turns fully toward the bus.
+        const heading = speed > .08 && !w.fresh && dt > 0 ? Math.atan2(dx, dz) : Math.atan2(fx, fz);
+        let dy = heading - w.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+        const turn=Math.max(-3 * dt, Math.min(3 * dt, dy * (1 - Math.exp(-10 * dt))));w.yaw+=turn;
         w.y = groundOf(i);
-        w.action.timeScale = clipTimeScale(sp * (walkPace?.[i] ?? 1), w.stride); // match foot cadence to eased lane turns
+        if (!idle) {
+          // Shorten the step into a standing pose instead of playing a full stride in slow motion.
+          const target = Math.min(1, w.speed / (w.stride * .8));
+          w.gaitWeight = w.fresh ? target : w.gaitWeight + (target - w.gaitWeight) * (1 - Math.exp(-10 * dt));
+          if (w.gaitWeight > .999) w.gaitWeight = 1;
+          w.action.setEffectiveWeight(w.gaitWeight);
+          w.action.timeScale = clipTimeScale(w.speed, w.stride);
+          if (w.gaitWeight < 1) {
+            w.idleAction ??= w.mixer.clipAction(createIdleClip(w.inst));
+            if (!w.idleAction.isRunning()) w.idleAction.reset().play();
+            w.idleAction.setEffectiveWeight(1 - w.gaitWeight);
+          } else w.idleAction?.stop();
+        }
         const near = Math.hypot(w.x - cp.x, w.z - cp.z) < FINE_DETAIL;
         if (near !== w.near) { w.near = near; for (const o of w.fine) o.visible = near; }
-        w.acc = (w.acc || 0) + dt; // animation LOD: beyond FAR_ANIM the pose refreshes every 3rd frame (the bones are most of the CPU cost)
-        if (Math.hypot(w.x - cp.x, w.z - cp.z) < FAR_ANIM || (tick + n) % 3 === 0) { w.mixer.update(w.acc); w.acc = 0; }
+        if (animationDue(w,dt,poseSlots.has(w)||Math.hypot(w.x-cp.x,w.z-cp.z)<FAR_ANIM,w.fresh,n)) { w.mixer.update(w.acc); w.acc = 0; }
         w.inst.position.set(w.x, w.y, w.z);
         w.inst.rotation.y = w.yaw;
-        dummy.position.set(w.x, w.y + 0.01, w.z); dummy.scale.setScalar(1); dummy.updateMatrix();
+        if(poseSlots.has(w)&&!REDUCED){
+          if(!w.pose){w.idleAction??=w.mixer.clipAction(createIdleClip(w.inst));w.pose=createNpcPose(w.inst,w.idleAction.getClip());w.pose?.reset(i);}
+          w.pose?.update({dt,ground:w.y,speed:w.speed,yaw:w.yaw,gaitWeight:idle?0:w.gaitWeight,turnRate:dt>0?turn/dt:0,contact:contactSlots.has(w),bus:f.bus,people:walkers,landmarks,greeting:greeting===w});
+        }else w.pose?.suspend();
+        w.fresh = false;
+        dummy.position.set(w.x, w.y + 0.01, w.z); dummy.scale.setScalar(w.height / 1.8); dummy.updateMatrix();
         shadow.setMatrixAt(n, dummy.matrix);
       });
       shadow.instanceMatrix.needsUpdate = true;

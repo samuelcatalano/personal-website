@@ -50,7 +50,9 @@ result=js(r'''(async()=>{
   const frame=L.swapTunnelFrame(curve,stops),camera=new T.PerspectiveCamera(70,1.6,.1,1000);
   const move=(x,z)=>{camera.position.set(x,18,z+18);camera.lookAt(x,.5,z);camera.updateMatrixWorld();people.update(.1,camera.position);npc.update({camera,dt:.1});};
   move(frame.x,frame.z);
-  const idle=actions.filter(a=>a.clip==='NPC_Idle'&&a.root.visible&&a.action.isRunning());
+  // Walking people can now blend toward idle while yielding; identify the fixed pairs by their paths.
+  const bodies=scene.children.filter(o=>o.isGroup),standingRoots=new Set(__npcDiagnostics.snapshot().filter(p=>p.path.type==='idle'&&p.poolSlot!==null).map(p=>bodies[p.poolSlot]));
+  const idle=actions.filter(a=>a.clip==='NPC_Idle'&&standingRoots.has(a.root)&&a.root.visible&&a.action.isRunning());
   check(idle.length===4,'both stationary pairs use the standing clip');
   const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
   if(reduced)check(idle.every(a=>a.action.time===0),'reduced motion installs a standing pose without advancing breathing');
@@ -69,7 +71,8 @@ result=js(r'''(async()=>{
   }
   move(-283,0);
   const reused=idle.filter(a=>a.root.visible);
-  check(reused.length>0&&reused.every(a=>!a.action.isRunning()),'reused bodies leave the idle clip when walking again');
+  check(reused.length>0&&reused.every(a=>actions.some(w=>w.root===a.root&&w.clip.startsWith('NPC_Walk')&&w.action.isRunning())),'reused bodies resume walking actions');
+  for(const a of reused){const walk=actions.find(w=>w.root===a.root&&w.clip.startsWith('NPC_Walk'));if(walk.action.getEffectiveWeight()>.999)check(!a.action.isRunning(),'full-speed walkers retire the standing action');}
   npc.dispose();return {pass:true,poses,idlePairs:idle.length/2,reusedWalkers:reused.length,reduced};
  }finally{T.AnimationMixer.prototype.clipAction=original;}
 })()''')

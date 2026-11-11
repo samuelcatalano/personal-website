@@ -1,0 +1,10 @@
+{
+  "beforeTriangles": 9000,
+  "afterTriangles": 11028,
+  "triangleCeiling": 12000,
+  "meshes": 4,
+  "materials": 3,
+  "textures": 4,
+  "newDynamicLights": 0,
+  "additionalDrawCalls": 0
+}

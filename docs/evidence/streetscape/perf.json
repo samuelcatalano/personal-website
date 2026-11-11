@@ -1,0 +1,62 @@
+[
+  {
+    "frames": 120,
+    "median": 33.29999999999927,
+    "p95": 35.599999999998545,
+    "callsMedian": 1832,
+    "trianglesMedian": 10620509,
+    "flutterBytes": 0,
+    "tier": "high",
+    "viewport": [
+      1728,
+      963
+    ],
+    "errors": [],
+    "port": 8001
+  },
+  {
+    "frames": 120,
+    "median": 33.29999999999927,
+    "p95": 37.60000000000218,
+    "callsMedian": 1833,
+    "trianglesMedian": 10712865,
+    "flutterBytes": 11233440,
+    "tier": "high",
+    "viewport": [
+      1728,
+      963
+    ],
+    "errors": [],
+    "port": 8002
+  },
+  {
+    "frames": 120,
+    "median": 24.5,
+    "p95": 33.30000000000291,
+    "callsMedian": 953,
+    "trianglesMedian": 6911580,
+    "flutterBytes": 10548960,
+    "tier": "high",
+    "viewport": [
+      1728,
+      963
+    ],
+    "errors": [],
+    "port": 8002
+  },
+  {
+    "frames": 120,
+    "median": 33.29999999999927,
+    "p95": 34.29999999999927,
+    "callsMedian": 1832,
+    "trianglesMedian": 10575452,
+    "flutterBytes": 0,
+    "tier": "high",
+    "viewport": [
+      1728,
+      963
+    ],
+    "errors": [],
+    "port": 8001
+  }
+]

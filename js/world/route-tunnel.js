@@ -47,6 +47,9 @@ function parts() {
   const portal = [ // lintel over the opening and the two jambs down the sides of the cut
     box(L - 0.2, L + 0.6, LID, TOP, W0 - 0.5, W1 + 0.5),
     box(L - 0.2, L + 0.6, -D - 0.2, TOP, W0 - 0.5, W0 + 0.15), box(L - 0.2, L + 0.6, -D - 0.2, TOP, W1 - 0.15, W1 + 0.5),
+    // Coping and a narrow plinth articulate the existing lintel; all detail stays outside the opening.
+    box(L-.24,L+.64,TOP,TOP+.10,W0-.54,W1+.54),
+    box(L-.24,L-.201,.12,.24,W0-.5,W1+.5),
   ];
   return { road: [road.geo()], dark: [dark.geo()], wall: portal, paint: [paint.geo()] };
 }
@@ -77,7 +80,7 @@ export function createRouteTunnel(curve) {
   const p0 = curve.getPointAt(0), tan = curve.getTangentAt(0), back = tan.clone().negate(), across = V(tan.z, 0, -tan.x); // local x = back, local z = across
   const group = new THREE.Group(); group.name = 'route-tunnel';
   group.position.copy(p0); group.rotation.y = Math.atan2(tan.z, -tan.x);
-  const mats = { road: blockMaterial(P.road), wall: blockMaterial(P.concrete), dark: blockMaterial(P.iron),
+  const mats = { road: blockMaterial(P.road), wall: blockMaterial(P.paverWarm), dark: blockMaterial(P.iron),
     paint: new THREE.MeshStandardMaterial({ color: '#e9b93a', roughness: 0.85, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }) }, geos = []; // paint as roadmarks.js
   const pr = parts();
   for (const k in pr) {

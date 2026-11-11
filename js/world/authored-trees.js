@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { streetEnvironment, STREET_WIND } from './streetscape-state.js';
 import { loadGlb } from './glb-loader.js';
 import { impostorGeometry } from './tree-mesh.js';
 import { addTreeUnderstory } from './tree-understory.js';
@@ -52,9 +53,23 @@ const PALETTE_FRAGMENT = {
 };
 function setPaletteShader(material, kind) {
   material.onBeforeCompile = (shader) => {
+    // shortcut: sub-5 cm foliage sway keeps static shadow geometry; add matching depth deformation for closer cameras.
+    if (kind !== 'trunk') {
+      shader.uniforms.uStreetTime = streetEnvironment.time;
+      shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nuniform float uStreetTime;\n' + STREET_WIND)
+        .replace('#include <begin_vertex>', `#include <begin_vertex>
+#ifdef USE_INSTANCING
+        vec3 direction = vec3(0.92, 0.0, 0.38);
+        vec3 localDirection = vec3(dot(instanceMatrix[0].xyz, direction) / dot(instanceMatrix[0].xyz, instanceMatrix[0].xyz),
+          dot(instanceMatrix[1].xyz, direction) / dot(instanceMatrix[1].xyz, instanceMatrix[1].xyz),
+          dot(instanceMatrix[2].xyz, direction) / dot(instanceMatrix[2].xyz, instanceMatrix[2].xyz));
+        float tip = pow(clamp(position.y, 0.0, 1.0), 2.0);
+        transformed += localDirection * (0.035 * tip * streetGust(uStreetTime, instanceMatrix[3].xz));
+#endif`);
+    }
     shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>', PALETTE_FRAGMENT[kind]);
   };
-  material.customProgramCacheKey = () => 'authored-tree-palette-' + kind + '-1';
+  material.customProgramCacheKey = () => 'authored-tree-palette-' + kind + '-wind-2';
 }
 const urls = SOURCES.map(([, file]) => new URL(`../../assets/processed/vegetation/${file}?v=${VERSION}`, import.meta.url).href);
 const atlasUrl = new URL(`../../assets/processed/vegetation/tree-impostors.png?v=${VERSION}`, import.meta.url).href;
@@ -180,13 +195,14 @@ export async function createAuthoredTrees(placements) {
         bounds.expandByPoint(new THREE.Vector3(p.x - radius, base, p.z - radius)); bounds.expandByPoint(new THREE.Vector3(p.x + radius, top, p.z + radius));
         worldTrees.push({ x: p.x, z: p.z, base, radius, billboardX, billboardY, yaw });
       });
-      lods.forEach((mesh) => { mesh.instanceMatrix.needsUpdate = true; mesh.computeBoundingBox(); mesh.computeBoundingSphere(); });
+      lods.forEach((mesh) => { mesh.instanceMatrix.needsUpdate = true; mesh.computeBoundingBox(); mesh.computeBoundingSphere(); mesh.boundingSphere.radius += 0.06; });
       batches.push({ lods, bounds, trees: worldTrees, level: null, lastCameraX: -Infinity, lastCameraZ: -Infinity });
     });
 
     const shrubs = addTreeUnderstory(group, placements);
     group.userData.batches = batches;
-    group.userData.update = (camera) => {
+    group.userData.update = (camera, time = 0) => {
+      streetEnvironment.time.value = time;
       for (const batch of batches) {
         const d = batch.bounds.distanceToPoint(camera.position), prev = batch.level;
         batch.level = prev === null ? (d < 70 ? 0 : d < 150 ? 1 : 2) : prev === 0 ? (d > 80 ? (d > 160 ? 2 : 1) : 0) : prev === 1 ? (d < 60 ? 0 : d > 160 ? 2 : 1) : (d < 60 ? 0 : d < 140 ? 1 : 2);
@@ -196,7 +212,7 @@ export async function createAuthoredTrees(placements) {
             object.position.set(tree.x, tree.base + 0.02, tree.z); object.rotation.set(0, Math.atan2(camera.position.x - tree.x, camera.position.z - tree.z), 0); object.scale.set(tree.billboardX, tree.billboardY, 1); object.updateMatrix();
             batch.lods[2].setMatrixAt(i, object.matrix);
           });
-          batch.lods[2].instanceMatrix.needsUpdate = true; batch.lods[2].computeBoundingBox(); batch.lods[2].computeBoundingSphere(); batch.lastCameraX = camera.position.x; batch.lastCameraZ = camera.position.z;
+          batch.lods[2].instanceMatrix.needsUpdate = true; batch.lods[2].computeBoundingBox(); batch.lods[2].computeBoundingSphere(); batch.lods[2].boundingSphere.radius += 0.06; batch.lastCameraX = camera.position.x; batch.lastCameraZ = camera.position.z;
         }
       }
     };

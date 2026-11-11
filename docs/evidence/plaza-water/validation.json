@@ -1,0 +1,15 @@
+{
+  "materialMovingPixels320px": 9173,
+  "flatSilhouetteMovingPixels320px": 68,
+  "fixedClockChangedPixels": 0,
+  "waterTriangles": 1968,
+  "plazaTriangles": 11772,
+  "ceiling": 12000,
+  "meshes": 4,
+  "materials": 3,
+  "textures": 4,
+  "videoFrames": 90,
+  "videoDurationSeconds": 3,
+  "videoFirstLastChangedPixels": 20199,
+  "baselineSHA256": "c920310afd605dfbb796fc289dbf099f90c6cdaf8b0f0fcca1007f6ad5a64be0"
+}

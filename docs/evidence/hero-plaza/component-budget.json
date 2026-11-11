@@ -1,0 +1,14 @@
+[
+  {
+    "meshes": 3,
+    "triangles": 4920,
+    "materials": 2,
+    "state": "before"
+  },
+  {
+    "meshes": 4,
+    "triangles": 9000,
+    "materials": 3,
+    "state": "after"
+  }
+]

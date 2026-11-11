@@ -172,7 +172,7 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
     for (let u = -L / 2 + 5; u < L / 2 - 3; u += 15) for (const f of [-1, 1]) { // lamps, head P.lit so it glows at night
       const lv = f * (ring ? S / 2 - 0.9 : 1.4);
       if (!ring && S < 7 && f > 0 || !clearOfSigns(u, lv)) continue;
-      const [x, z] = world(u, lv); lampPost(x, z, wide ? f * Math.PI / 2 : (f < 0 ? 0 : Math.PI), park.uk ? 'uk' : 'br'); // br arm (+x local) reaches over the path, not always east fur.push([u - 0.3, u + 0.3, lv - 0.3, lv + 0.3]);
+      const [x, z] = world(u, lv); if (!hero) lampPost(x, z, wide ? f * Math.PI / 2 : (f < 0 ? 0 : Math.PI), park.uk ? 'uk' : 'br'); // br arm (+x local) reaches over the path, not always east fur.push([u - 0.3, u + 0.3, lv - 0.3, lv + 0.3]);
     }
     if (park.rail) { // black railings round the park with gates where the paths enter
       const hu = L / 2 + 0.9, hv = S / 2 + 0.9;

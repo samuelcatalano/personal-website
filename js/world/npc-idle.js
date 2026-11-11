@@ -4,6 +4,8 @@ import * as THREE from 'three';
 export function createIdleClip(root, wave = false) {
   const bones=[]; root.traverse(o=>{if(o.isBone)bones.push(o);});
   const saved=bones.map(b=>({bone:b,position:b.position.clone(),quaternion:b.quaternion.clone()}));
+  const bind=new Map();
+  root.traverse(o=>{if(o.isSkinnedMesh&&!bind.size)o.skeleton.bones.forEach((bone,i)=>bind.set(bone,o.skeleton.boneInverses[i].clone().invert()));});
   const find=name=>bones.find(b=>b.name===name||(b.name.startsWith(name+'_')&&/^\d+$/.test(b.name.slice(name.length+1)))),axis=new THREE.Vector3(),direction=new THREE.Vector3();
   const parent=new THREE.Quaternion(), world=new THREE.Quaternion(), delta=new THREE.Quaternion();
   const rotation=root.getWorldQuaternion(new THREE.Quaternion());
@@ -20,7 +22,13 @@ export function createIdleClip(root, wave = false) {
     for(const side of ['l','r']){
       aim('thigh_'+side,'calf_'+side,new THREE.Vector3(0,-1,0));
       aim('calf_'+side,'foot_'+side,new THREE.Vector3(0,-1,0));
-      aim('foot_'+side,'ball_'+side,new THREE.Vector3(0,0,1));
+      const foot=find('foot_'+side),ball=find('ball_'+side),footBind=bind.get(foot),ballBind=bind.get(ball);
+      if(footBind&&ballBind){
+        // The ankle sits above the toes; horizontal aiming and inherited toe roll tilt the resting shoes.
+        const direction=new THREE.Vector3().setFromMatrixPosition(ballBind).sub(new THREE.Vector3().setFromMatrixPosition(footBind));
+        aim('foot_'+side,'ball_'+side,direction);
+        ball.quaternion.setFromRotationMatrix(footBind.clone().invert().multiply(ballBind));
+      }
       root.updateMatrixWorld(true);
       const arm=find('upperarm_'+side),pelvis=find('pelvis');
       if(arm&&pelvis){

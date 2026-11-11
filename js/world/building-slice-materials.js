@@ -1,3 +1,4 @@
+import { streetEnvironment, STREET_WIND } from './streetscape-state.js';
 import * as THREE from 'three';
 import { GLASS_REFLECTION } from './glass-reflection.js';
 
@@ -196,7 +197,7 @@ const ROOM_INTERIOR = `
     reflectionWeight = mix(reflectionWeight, 0.27 + 0.58 * grazing, roomFade);
   }`;
 function metricAtlas(material, cityWalls = false) {
-  material.customProgramCacheKey=()=> material.name+(cityWalls?'-metric-atlas-v9':'-metric-atlas-v8');
+  material.customProgramCacheKey=()=> material.name+(cityWalls?'-metric-atlas-v10':'-metric-atlas-v8');
   material.onBeforeCompile=shader=>{
     shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nattribute float aSurface; varying float vSliceSurface; varying float vSliceY;').replace('#include <begin_vertex>','#include <begin_vertex>\nvSliceSurface = aSurface; vSliceY = (modelMatrix * vec4(position,1.0)).y;');
     shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
@@ -209,6 +210,16 @@ function metricAtlas(material, cityWalls = false) {
       }
       ${FACADE_GLSL}`);
     const architecture=material.name==='slice-architecture';
+    if (architecture) {
+      material.defaultAttributeValues = { aFlutter: [0] };
+      shader.uniforms.uStreetTime = streetEnvironment.time;
+      shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nattribute float aFlutter; uniform float uStreetTime;\n' + STREET_WIND)
+        .replace('#include <begin_vertex>', `#include <begin_vertex>
+          if (aFlutter > 0.0) {
+          vec2 anchor = (modelMatrix * vec4(position, 1.0)).xz;
+          transformed.y += aFlutter * 0.012 * streetGust(uStreetTime, anchor);
+          transformed.x += aFlutter * 0.006 * streetGust(uStreetTime, anchor); }`);
+    }
     // Keep continuous metric UVs for the tangent frame; wrap only texture sampling.
     for(const chunk of ['map_fragment','normal_fragment_maps','roughnessmap_fragment','metalnessmap_fragment','emissivemap_fragment']) {
       const code=THREE.ShaderChunk[chunk].replace(/texture2D\(\s*(map|normalMap|roughnessMap|metalnessMap|emissiveMap)\s*,\s*(v\w+Uv)\s*\)/g,'sliceSample( $1, $2 )');

@@ -17,6 +17,43 @@ const loadPeople = (plan, passages = [], options = {}) => load(plan, passages).c
 // A walker standing exactly at (x, z) on a 10 m loop, walking +x at 1 m/s.
 const walker = (x, z) => ({ s0: 0, look: { height: 1, speed: 1 }, path: { type: 'loop', dir: 1, inset: 0, rect: { x0: x - 0.75, x1: x + 9.25, z0: z, z1: z + 10 } } });
 
+test('approaching walkers yield before contact and resume without leaving their paths', () => {
+  const a=walker(0,0),b=walker(2,0);b.path.dir=-1;
+  const people=loadPeople([a,b]),initial=people.route.x[1],dt=1/60;
+  let minPace=1;
+  for(let i=0;i<45;i++){
+    people.update(dt,{x:0,z:0});minPace=Math.min(minPace,people.walkPace[1]);
+    assert.ok(Math.abs(people.route.z[1])<=.55,'avoidance stays within the existing separation envelope');
+  }
+  assert.ok(minPace<.9,'one walker anticipates the encounter');
+  assert.ok(people.route.x[1]<initial,'yielding keeps forward progress instead of deadlocking');
+  for(let i=0;i<300;i++)people.update(dt,{x:0,z:0});
+  assert.ok(people.walkPace[1]>.95,'normal pace returns after passing');
+});
+
+test('nearby parallel companions match pace without changing their paths', () => {
+  const a=walker(0,0),b=walker(0,1);b.look.speed=.92;
+  const people=loadPeople([a,b]),dt=1/60;
+  let first=0,second=0;
+  for(let i=0;i<120;i++){
+    const x=people.route.x[0],other=people.route.x[1];people.update(dt,{x:0,z:0});
+    first=(people.route.x[0]-x)/dt;second=(people.route.x[1]-other)/dt;
+  }
+  assert.ok(Math.abs(first-second)<.015,'companions settle to the same walking speed');
+  assert.ok(people.route.x[0]>1&&people.route.x[1]>1,'matching pace does not stall the pair');
+  assert.equal(people.route.z[0],0);assert.equal(people.route.z[1],1);
+});
+
+test('a walker watching the stopped bus really stops instead of drifting with a frozen gait', () => {
+  const people = loadPeople([walker(0, 0)]), { route } = people, dt = 1 / 60;
+  for (let i = 0; i < 480; i++) people.update(dt, { x: 0, z: 0 }, { x: route.x[0], z: route.z[0], speed: 0 });
+  const x = route.x[0], z = route.z[0];
+  people.update(dt, { x: 0, z: 0 }, { x, z, speed: 0 });
+  const speed = Math.hypot(route.x[0] - x, route.z[0] - z) / dt;
+  assert.ok(speed < .001, `stopped pedestrian still drifts at ${speed} m/s`);
+  assert.ok(Math.abs(speed - people.walkPace[0]) < .001, 'translation and animation report the same pace');
+});
+
 test('a frozen crowd (reduced motion) keeps its route positions; a moving one advances', () => {
   for (const reducedMotion of [false, true]) {
     const people = loadPeople([walker(0, 0)], [], { reducedMotion });

@@ -139,6 +139,7 @@ function buildChunk(chunk, byId, neighbors, kits, kitIds) {
       h.children.forEach((m, k) => {
         const extra = geometryOf(overlays.at(-1)[1][k]);
         if (!extra) return;
+        if (!m.geometry.hasAttribute('aFlutter')) m.geometry.setAttribute('aFlutter', new THREE.Float32BufferAttribute(new Float32Array(m.geometry.attributes.position.count), 1));
         const g = mergeGeometries([m.geometry, extra], false);
         m.geometry.dispose(); extra.dispose(); m.geometry = g;
       });
@@ -146,7 +147,7 @@ function buildChunk(chunk, byId, neighbors, kits, kitIds) {
     } else {
       h = building(p, kind, neighbors, 0); tint(h, p);
     }
-    h.children.forEach((m) => m.geometry.translate(p.x - cx, 0, p.z - cz));
+    h.children.forEach((m) => {if (!m.geometry.hasAttribute('aFlutter')) m.geometry.setAttribute('aFlutter', new THREE.Float32BufferAttribute(new Float32Array(m.geometry.attributes.position.count), 1));m.geometry.translate(p.x - cx, 0, p.z - cz);});
     for (let k = 0; k < 3; k++) merged[k].push(h.children[k].geometry);
   }
   return merged.map((items) => {

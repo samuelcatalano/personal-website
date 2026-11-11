@@ -22,16 +22,16 @@ test('hero realm uses shared low planting and preserves its obstacle records',()
   'for(const x of [-5.6,5.6])for(const z of [-18.5,18.5])',
   "obstacle('planting',x,z,2.6,1);",
   "obstacle('fountain',0,0,6.5,6.5);",
-  'for(const x of [-5.7,5.7])for(const z of [-4.8,4.8])',
-  "obstacle('bench',x,z,2.5,.8);",
+  'for(const side of [-1,1]){bench(side*5.9,-3.7,-1,side*-.28);bench(side*7.6,3.8,1,side*.52);}',
+  "obstacle('bench',x,z,2.5*c+.8*sn,.8*c+2.5*sn);",
   'for(const x of [-8.6,8.6])for(const z of [-19,19])',
   "obstacle('planter',x,z,1.9,1.9);",
-  'for(const x of [-8.8,8.8])for(const z of [-8.2,8.2])',
+  'for(const x of [-8.7,8.7])for(const z of [-14,14])',
   "obstacle('lamp',x,z,.8,.8);",
  ])assert.ok(source.includes(record),`hero realm keeps ${record}`);
 });
 
-test('hero garden trees keep the benches and their foreground clear without removing trees',()=>{
+test('hero garden retains thirteen trees and the previously open central forecourt',()=>{
  const trees=[];buildParks(()=>{},stops,pts,curve,[],(x,z,shape)=>trees.push({x,z,...shape}),()=>{});
  const garden=trees.filter(t=>t.x>-293&&t.x<-273&&t.z>-24&&t.z<24);
  assert.equal(garden.length,13,'relocate the three obstructing trees, retain all thirteen');
