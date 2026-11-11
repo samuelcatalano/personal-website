@@ -120,7 +120,10 @@ export function createBuilding(plot, benchmark = false) {
     const shell = new THREE.Mesh(profileGeometry[kind], benchmarkFacade);
     shell.position.y = 0; shell.scale.set(w, bodyHeight, d); shell.userData.benchmarkTint = benchmarkTint[kind];
     shell.castShadow = shell.receiveShadow = true; building.add(shell);
-  } else addBox(building, facade[kind][style % facade[kind].length], 0, bodyHeight / 2, 0, w, bodyHeight, d);
+  } else {
+    addBox(building, facade[kind][style % facade[kind].length], 0, bodyHeight / 2, 0, Math.max(w-.24,w*.8), bodyHeight, Math.max(d-.24,d*.8));
+    addBox(building, trim, 0, Math.min(.12, bodyHeight) / 2, 0, w, Math.min(.12, bodyHeight), d);
+  }
   const roofY = bodyHeight;
   if (!benchmark && (kind !== 'terrace' || h <= 3)) addBox(building, roofs[kind], 0, roofY + roofH / 2, 0, w * 0.96, roofH, d * 0.96);
 
@@ -169,7 +172,7 @@ export function createBuilding(plot, benchmark = false) {
   const floors = Math.max(1, Math.floor(bodyHeight / (kind === 'terrace' || kind === 'shop' ? 2.6 : 3.1)));
   const columns = Math.max(2, Math.floor(w / (kind === 'terrace' ? 2.1 : 2.4)));
   const sideColumns = Math.max(1, Math.floor(d / 2.4));
-  const windows = [], recesses = [], borders = [];
+  const windows = [], recesses = [], borders = [], sideWindows = [], sideBorders = [];
   const winW = Math.min(0.85, w / columns * 0.46), winH = Math.min(1.35, bodyHeight / floors * 0.48);
   const frameW = Math.min(winW + 0.1, w / columns * 0.9), frameH = Math.min(winH + 0.1, bodyHeight / floors * 0.9);
   const frontDepth = Math.min(0.035, d * 0.04), paneDepth = Math.min(0.025, d * 0.025), sideWidth = Math.min(0.03, w * 0.05);
@@ -178,18 +181,27 @@ export function createBuilding(plot, benchmark = false) {
     const x = -w / 2 + (column + 0.5) * w / columns;
     const y = (floor + 0.55) * bodyHeight / floors;
     if (kind !== 'shop' || floor > 0) {
-      windows.push([x, y, paneZ, winW, winH, paneDepth]);
+      windows.push([x, y, paneZ, winW, winH, paneDepth], [x, y, -paneZ, winW, winH, paneDepth]);
       recesses.push([x, y, paneZ - paneDepth * 0.7, frameW, frameH, paneDepth]);
       const top = y + frameH / 2 - rail / 2, bottom = y - frameH / 2 + rail / 2;
       borders.push([x - frameW / 2 + rail / 2, y, frameZ, rail, frameH, frontDepth], [x + frameW / 2 - rail / 2, y, frameZ, rail, frameH, frontDepth]);
       borders.push([x, top, frameZ, frameW, rail, frontDepth], [x, bottom, frameZ, frameW, rail, frontDepth]);
       borders.push([x, y, frameZ, Math.min(0.035, frameW * 0.035), winH, frontDepth]);
     }
-    if (kind !== 'shop') for (let sideColumn = 0; sideColumn < sideColumns; sideColumn++) {
+    if (column === 0) for (let sideColumn = 0; sideColumn < sideColumns; sideColumn++) {
       const z = -d / 2 + (sideColumn + 0.5) * d / sideColumns;
-      windows.push([w / 2 - sideWidth / 2, y, z, sideWidth, winH, Math.min(0.85, d / sideColumns * 0.46)]);
+      for (const side of [-1,1]) {
+        const ww=Math.min(0.85,d/sideColumns*.46), sx=side*(w/2-.06);
+        sideWindows.push([sx,y,z,sideWidth,winH,ww]);
+        for(const zz of [z-ww/2-.035,z+ww/2+.035])sideBorders.push([sx,y,zz,sideWidth+.02,winH+.14,.07]);
+        for(const yy of [y-winH/2-.035,y+winH/2+.035])sideBorders.push([sx,yy,z,sideWidth+.02,.07,ww]);
+      }
     }
   }
+  windows.push(...sideWindows);
+  const frontBorders=borders.filter(b=>b[5]===frontDepth);
+  borders.push(...frontBorders.map(([x,y,z,w,h,d])=>[x,y,-z,w,h,d]));
+  borders.push(...sideBorders);
   addInstances(building, recess, recesses);
   addInstances(building, glass, windows);
   addInstances(building, frames, borders);

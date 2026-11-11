@@ -76,6 +76,8 @@ export function createShopSlice(plot,neighbors=[],recipe=shopRecipe(plot,neighbo
       for(const y of [lo-f/2,hi+f/2])panel(o.u,y,.025,o.w,f,S.trim);
       if(o.type==='window'){
         panel(o.u,o.y,-r+.03,.045,o.h,S.trim);
+        panel(o.u,o.y+.12,-r+.035,o.w,.05,S.trim);
+        if(frontFace)box(o.u,hi+.065,front+.04,o.w+.18,.09,.13,S.stone,1);
         if(frontFace)box(o.u,lo-.055,front+.045,o.w+.16,.11,.15,S.stone,1);
         else if(back)box(-o.u,lo-.055,-front-.045,o.w+.16,.11,.15,S.stone,1);
         else box(side*(w/2+.045),lo-.055,o.u,.15,.11,o.w+.16,S.stone,1);

@@ -200,3 +200,7 @@ Owner requested a further local polish pass: six passable seating pads with curb
 ### Fountain water motion — 2026-11-11
 
 Owner requested more realistic moving water after the plaza passes. `plaza-water.js` now displaces the surface and streams on the GPU, using six impact-wave sources and the existing reduced-motion-aware clock. Angle-dependent analytic reflection, shallow-floor refraction/caustic cues and restrained impact foam replace the normal-only concentric rings. The opaque single water draw remains; no texture asset, dynamic light or render pass is added. Plaza count is 11,772 triangles under the unchanged 12,000 local ceiling. [Motion evidence and checks](../audits/2026-11-11-plaza-water.md).
+
+## Ordinary facade realism — 2026-11-11
+
+The owner reopened all ordinary house/building facades, including townhouses. Exposed townhouse returns/rears and midrise rears gain real openings while touching party walls remain solid. Sashes, lintels, gutters, bounded office/tower relief and restrained commercial trim reuse the existing architecture pipeline. Authored rebuilds now retain room coordinates; legacy and backdrop panes no longer sit behind opaque backing. Redundant coplanar wall subdivisions were removed without changing lots, buckets, LOD or culling. [Scope, implementation and validation](../audits/2026-11-11-facade-realism.md) separates the delivered facade work from inherited citywide validation failures.

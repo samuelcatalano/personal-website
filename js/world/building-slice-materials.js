@@ -145,19 +145,19 @@ const facadeWeather = cityWalls => `
     float streak = smoothstep(0.62, 0.9, runoff);
     float storey = fract((vFloodP.y - 0.85) / 3.0);
     float belowSill = ${cityWalls ? 'smoothstep(0.18, 0.86, storey) * (1.0 - smoothstep(0.90, 1.0, storey))' : '1.0 - storey'};
-    diffuseColor.rgb *= 1.0 - 0.14 * dirt * streak * belowSill * vertical * aa * step(0.35, facadeSeed2 + 0.25);
+    diffuseColor.rgb *= 1.0 - ${cityWalls ? '0.06' : '0.14'} * dirt * streak * belowSill * vertical * aa * step(0.35, facadeSeed2 + 0.25);
     ${cityWalls ? `
       float dampPatch = smoothstep(0.35, 0.83, runoff) * aa;
       float risingDamp = 1.0 - smoothstep(0.12, 0.45 + dampPatch * 1.2, vFloodP.y);
       float porous = step(0.25, abs(vSliceSurface - 3.0));
-      facadeMoisture = clamp((risingDamp * 0.75 + dampPatch * belowSill * 0.40) * vertical * porous, 0.0, 1.0);
+      facadeMoisture = clamp((risingDamp * 0.75 + dampPatch * belowSill * 0.12) * vertical * porous, 0.0, 1.0);
       diffuseColor.rgb *= mix(vec3(1.0), vec3(0.74, 0.79, 0.78), facadeMoisture);
     ` : ''}
   }`;
 const FACADE_RELIEF = `
   float masonry = 1.0 - step(0.25, min(abs(vSliceSurface - 1.0), abs(vSliceSurface - 4.0)));
   float plaster = 1.0 - step(0.25, abs(vSliceSurface));
-  float relief = 0.75 * masonry + 0.35 * plaster;
+  float relief = 0.75 * masonry + 0.15 * plaster;
   if (relief > 0.0) normal = normalize(normal + (normal - nonPerturbedNormal) * relief);`;
 const FACADE_DETAIL = `
   if (facadeWall > 0.5) {
@@ -192,12 +192,20 @@ const ROOM_INTERIOR = `
     float blind = smoothstep(0.52, 0.58, shadePoint.y + (roomSeed - 0.6) * 0.4);
     float curtain = 1.0 - smoothstep(0.17, 0.23, min(shadePoint.x, 1.0 - shadePoint.x));
     float covered = roomSeed < 0.32 ? curtain : roomSeed > 0.65 ? blind : 0.0;
-    roomColor = mix(roomColor, vec3(0.18, 0.16, 0.13) * (1.0 - 0.72 * uGlassNight) + light * occupied * 0.19, covered);
+    float fabricAA = 1.0 - smoothstep(0.025, 0.08, max(roomPixel.x, roomPixel.y));
+    float pleats = 0.88 + 0.12 * cos(shadePoint.x * 62.83);
+    float slats = 0.90 + 0.10 * cos(shadePoint.y * 100.53);
+    vec3 fabric = (vec3(0.25, 0.23, 0.19) * (1.0 - 0.72 * uGlassNight) + light * occupied * 0.24)
+      * mix(1.0, roomSeed < 0.32 ? pleats : slats, fabricAA);
+    roomColor = mix(roomColor, fabric, covered);
+    float edge = min(min(entry.x, 1.0 - entry.x) * (4.0 * vRoom.w), min(entry.y, 1.0 - entry.y));
+    float revealShadow = smoothstep(0.0, 0.065, edge);
+    roomColor *= mix(0.48, 1.0, revealShadow);
     outgoingLight = mix(outgoingLight, roomColor, roomFade * (1.0 - 0.35 * grazing));
-    reflectionWeight = mix(reflectionWeight, 0.27 + 0.58 * grazing, roomFade);
+    reflectionWeight = mix(reflectionWeight, (0.27 + 0.58 * grazing) * mix(0.60, 1.0, revealShadow), roomFade);
   }`;
 function metricAtlas(material, cityWalls = false) {
-  material.customProgramCacheKey=()=> material.name+(cityWalls?'-metric-atlas-v10':'-metric-atlas-v8');
+  material.customProgramCacheKey=()=> material.name+(cityWalls||material.name==='slice-glass-city'?'-metric-atlas-v11':'-metric-atlas-v8');
   material.onBeforeCompile=shader=>{
     shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nattribute float aSurface; varying float vSliceSurface; varying float vSliceY;').replace('#include <begin_vertex>','#include <begin_vertex>\nvSliceSurface = aSurface; vSliceY = (modelMatrix * vec4(position,1.0)).y;');
     shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>

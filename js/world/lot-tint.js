@@ -33,10 +33,11 @@ export function tint(g,p,{walls:wallStrength=1}={}) { // walls: 0 = leave wall c
   const regionalBrick=region==='glasgow'?bricks[[2,5,7][Math.floor(seed/3)%3]]:region==='london'?bricks[[0,5,7][Math.floor(seed/3)%3]]:region==='countryside'?bricks[[2,3,7][Math.floor(seed/3)%3]]:bricks[Math.floor(seed/3)%bricks.length];
   const pitched=p.kind==='terrace'||p.kind==='shop',gt=glassTints[glassPick[region||'none'][Math.floor(seed/7)%6]];
   const roofTop=roofFor(pitched?roofs.pitched[region||'none'][Math.floor(seed/13)%4]:roofs.flat[Math.floor(seed/13)%8]);
+  const metalTrim=(p.kind==='office'||p.kind==='tower'||p.height>=40)?[[.72,.77,.80],[.58,.64,.68],[.90,.82,.68]][seed%3]:[1,1,1];
   const wallValue = 0.86 + (Math.floor(seed / 223) % 15) * 0.02;
   for(const m of g.children){const a=m.geometry.attributes;
     for(let i=0;i<a.position.count;i++){
-      const s=a.aSurface.getX(i),t0=!wallsOn&&(s===S.plaster||s===S.stone||s===S.brick)?[1,1,1]:s===S.plaster?regionalWall:s===S.stone?(region?regionalWall:p.kind==='office'?walls[(seed%3)*2]:[1,1,1]):s===S.brick?regionalBrick:s===S.roof?(pitched||a.normal.getY(i)>.7?roofTop:region==='glasgow'?walls[5]:roof):s===S.glass||s===S.litGlass?gt:[1,1,1];
+      const s=a.aSurface.getX(i),t0=!wallsOn&&(s===S.plaster||s===S.stone||s===S.brick)?[1,1,1]:s===S.plaster?regionalWall:s===S.stone?(region?regionalWall:p.kind==='office'?walls[(seed%3)*2]:[1,1,1]):s===S.brick?regionalBrick:s===S.roof?(pitched||a.normal.getY(i)>.7?roofTop:region==='glasgow'?walls[5]:roof):s===S.glass||s===S.litGlass?gt:s===S.trim?metalTrim:[1,1,1];
       const isWall = s === S.plaster || s === S.stone || s === S.brick, t = isWall && wallK > 0 && wallK < 1 ? t0.map(v => 1 + (v - 1) * wallK) : t0;
       const value = wallsOn && isWall ? 1 + (wallValue - 1) * wallK : 1;
       a.color.setXYZ(i,a.color.getX(i)*t[0]*value,a.color.getY(i)*t[1]*value,a.color.getZ(i)*t[2]*value);

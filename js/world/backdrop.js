@@ -29,7 +29,11 @@ export function buildBackdrop(add, stops, pts, addSky = add) {
         pane(along + paneW / 2 - 0.035, by, surface + outward * 0.075, 0.07, bh, 0.08, frame);
         pane(along, by - paneH / 2 + 0.035, surface + outward * 0.075, paneW, 0.07, 0.08, frame);
         pane(along, by + paneH / 2 - 0.035, surface + outward * 0.075, paneW, 0.07, 0.08, frame);
-        pane(along, by, surface + outward * 0.015, paneW - 0.1, paneH - 0.1, 0.03, window);
+        pane(along, by, surface + outward * 0.043, paneW - 0.1, paneH - 0.1, 0.03, window);
+        if(near){
+          pane(along,by,surface+outward*.075,.045,paneH,.04,frame);
+          pane(along,by+paneH*.5-.04,surface+outward*.09,paneW+.14,.08,.12,frame);
+        }
       }
     };
     face(w, x, 'z', z + depth / 2, 1);

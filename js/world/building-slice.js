@@ -16,8 +16,9 @@ export function townhouseRecipe(plot,neighbors=[]) {
   let seed=2166136261;
   for(const c of plot.id)seed=Math.imul(seed^c.charCodeAt(0),16777619)>>>0;
   const alternate=seed%2===1;
-  const exposedWest=!neighbors.some(p=>p.id!==plot.id&&Math.abs((p.x+p.width/2)-(plot.x-plot.width/2))<.5&&Math.abs(p.z-plot.z)<(p.depth+plot.depth)/2);
-  return {...profile,structural:alternate?'B':'A',floors:3,bays:2,roof:'gable',entrySide:alternate?-1:1,bayOffset:alternate?.20:.24,windowWidth:alternate?1.08:1.15,palette:Math.floor(seed/2)%3,windowSeed:seed%3,exposedWest};
+  const exposed=side=>!neighbors.some(p=>p.id!==plot.id&&Math.abs((p.x-side*p.width/2)-(plot.x+side*plot.width/2))<.5&&Math.abs(p.z-plot.z)<(p.depth+plot.depth)/2);
+  const exposedBack=!neighbors.some(p=>p.id!==plot.id&&Math.abs((p.z+p.depth/2)-(plot.z-plot.depth/2))<.5&&Math.abs(p.x-plot.x)<(p.width+plot.width)/2);
+  return {...profile,structural:alternate?'B':'A',floors:3,bays:2,roof:'gable',entrySide:alternate?-1:1,bayOffset:alternate?.20:.24,windowWidth:alternate?1.08:1.15,palette:Math.floor(seed/2)%3,windowSeed:seed%3,exposedWest:exposed(-1),exposedEast:exposed(1),exposedBack};
 }
 
 function townhouseGeometry(plot,recipe,level=0,storage=null,modular=false) {
@@ -32,7 +33,7 @@ function townhouseGeometry(plot,recipe,level=0,storage=null,modular=false) {
     for(const i of [0,1,2,0,2,3]) {
       const p=points[i],tint=palettes[recipe.palette][surface];
       if(storage){
-        const v=b.count++;if(v>=4096)throw new RangeError('Townhouse scratch capacity exceeded');
+        const v=b.count++;if(v>=b.surface.length)throw new RangeError('Townhouse scratch capacity exceeded');
         b.position[v*3]=p.x;b.position[v*3+1]=p.y;b.position[v*3+2]=p.z;
         for(let k=0;k<3;k++){b.normal[v*3+k]=normal[k];b.color[v*3+k]=tint?.[k]??1;}
         b.surface[v]=surface;b.uv[v*2]=uv?.[i]?.[0]??(axis==='x'?p.z:p.x);b.uv[v*2+1]=uv?.[i]?.[1]??(axis==='y'?p.z:p.y);
@@ -50,36 +51,41 @@ function townhouseGeometry(plot,recipe,level=0,storage=null,modular=false) {
     for(const [yy,n] of [[Y[0],-1],[Y[1],1]])quad([[X[0],yy,Z[0]],[X[1],yy,Z[0]],[X[1],yy,Z[1]],[X[0],yy,Z[1]]],[0,n,0],surface,bucket);
   }
   function facade(face,span,holes) {
-    const frontFace=face==='front',normal=frontFace?[0,0,1]:[-1,0,0];
-    const pt=(u,y,v=0)=>frontFace?[u,y,front+v]:[-w/2-v,y,u];
+    const frontFace=face==='front',back=face==='back',side=face==='east'?1:-1,alongZ=frontFace||back,normal=alongZ?[0,0,back?-1:1]:[side,0,0];
+    const useModules=modular&&(frontFace||face==='west');
+    const pt=(u,y,v=0)=>alongZ?[back?-u:u,y,(back?-1:1)*(front+v)]:[side*(w/2+v),y,u];
     const piece=(u,y,v,wu,h,t,surface,bucket=1)=>{
-      if(level===1&&bucket===1){quad([pt(u-wu/2,y-h/2,v),pt(u+wu/2,y-h/2,v),pt(u+wu/2,y+h/2,v),pt(u-wu/2,y+h/2,v)],normal,surface,bucket);return;}
-      return frontFace?box(u,y,front+v,wu,h,t,surface,bucket):box(-w/2-v,y,u,t,h,wu,surface,bucket);
+      if((level===1||back||side===1&&!frontFace)&&bucket===1){quad([pt(u-wu/2,y-h/2,v),pt(u+wu/2,y-h/2,v),pt(u+wu/2,y+h/2,v),pt(u-wu/2,y+h/2,v)],normal,surface,bucket);return;}
+      const [px,py,pz]=pt(u,y,v);
+      return alongZ?box(px,py,pz,wu,h,t,surface,bucket):box(px,py,pz,t,h,wu,surface,bucket);
     };
-    const xs=[...new Set([-span/2,span/2,...holes.flatMap(o=>[o.u-o.w/2,o.u+o.w/2])])].sort((a,b)=>a-b);
     const ys=[...new Set([0,.35,recipe.ground,recipe.eaves,...holes.flatMap(o=>[o.y-o.h/2,o.y+o.h/2])])].sort((a,b)=>a-b);
-    for(let i=1;i<xs.length;i++)for(let j=1;j<ys.length;j++){
-      const u=(xs[i-1]+xs[i])/2,y=(ys[j-1]+ys[j])/2;
-      if(holes.some(o=>Math.abs(u-o.u)<o.w/2&&Math.abs(y-o.y)<o.h/2))continue;
-      quad([pt(xs[i-1],ys[j-1]),pt(xs[i],ys[j-1]),pt(xs[i],ys[j]),pt(xs[i-1],ys[j])],normal,y<.35?S.stone:y<recipe.ground?S.brick:S.plaster);
+    // Emit only the wall spans between openings in this row; a global X/Y grid over-tessellates blank wall.
+    for(let j=1;j<ys.length;j++){
+      const y=(ys[j-1]+ys[j])/2,active=holes.filter(o=>Math.abs(y-o.y)<o.h/2).sort((a,b)=>a.u-b.u);
+      let left=-span/2;
+      const wallTo=right=>{if(right>left+1e-6)quad([pt(left,ys[j-1]),pt(right,ys[j-1]),pt(right,ys[j]),pt(left,ys[j])],normal,y<.35?S.stone:y<recipe.ground?S.brick:S.plaster);};
+      for(const o of active){wallTo(o.u-o.w/2);left=Math.max(left,o.u+o.w/2);}
+      wallTo(span/2);
     }
     holes.forEach((o,index)=>{
       openings.push({...o,face});const a=o.u-o.w/2,b=o.u+o.w/2,lo=o.y-o.h/2,hi=o.y+o.h/2;
-      const side=frontFace?[1,0,0]:[0,0,1];
-      for(const [u,sign] of [[a,1],[b,-1]])quad([pt(u,lo),pt(u,hi),pt(u,hi,-recipe.reveal),pt(u,lo,-recipe.reveal)],side.map(n=>n*sign),S.stone);
+      const lateral=alongZ?[back?-1:1,0,0]:[0,0,1];
+      for(const [u,sign] of [[a,1],[b,-1]])quad([pt(u,lo),pt(u,hi),pt(u,hi,-recipe.reveal),pt(u,lo,-recipe.reveal)],lateral.map(n=>n*sign),S.stone);
       for(const [y,sign] of [[lo,1],[hi,-1]])quad([pt(a,y),pt(b,y),pt(b,y,-recipe.reveal),pt(a,y,-recipe.reveal)],[0,sign,0],S.stone);
       const f=recipe.frame;
-      if(!modular){
+      if(!useModules){
       for(const u of [a-f/2,b+f/2])piece(u,o.y,.025,f,o.h+2*f,.09,S.trim);
       piece(o.u,hi+f/2,.025,o.w,f,.09,S.trim);
       }
-      if(o.type==='door'&&!modular){
+      if(o.type==='door'&&!useModules){
         piece(o.u,o.y,-.185,o.w,o.h,.03,S.door,0);
       }else if(o.type!=='door'){
-        if(level===0&&!modular)piece(o.u,lo-f/2,.06,o.w+.22,.10,.15,S.stone);
+        if(level===0&&!useModules)piece(o.u,lo-f/2,.06,o.w+.22,.10,.15,S.stone);
         if(recipe.bayWindows&&frontFace&&o.y>recipe.ground){box(o.u,o.y,front+.12,o.w+.28,o.h+.22,.24,S.stone,1);box(o.u,o.y,front+.12,o.w,o.h,.18,S.glass,2);}
-        if(modular)return;
-        piece(o.u,o.y,.005,.065,o.h,.075,S.trim);
+        if(useModules)return;
+        quad([pt(o.u-.0275,lo,-recipe.reveal+.045),pt(o.u+.0275,lo,-recipe.reveal+.045),pt(o.u+.0275,hi,-recipe.reveal+.045),pt(o.u-.0275,hi,-recipe.reveal+.045)],normal,S.trim,1);
+        quad([pt(a,o.y+.09,-recipe.reveal+.05),pt(b,o.y+.09,-recipe.reveal+.05),pt(b,o.y+.145,-recipe.reveal+.05),pt(a,o.y+.145,-recipe.reveal+.05)],normal,S.trim,1);
         const lit=(index+(frontFace?1:0)+recipe.windowSeed)%3===0;
         const u0=index*.137+(frontFace?0:.19)+recipe.windowSeed*.07,v0=index*.271;
         quad([pt(a,lo,-recipe.reveal),pt(b,lo,-recipe.reveal),pt(b,hi,-recipe.reveal),pt(a,hi,-recipe.reveal)],normal,lit?S.litGlass:S.glass,2,[[u0,v0],[u0+.78,v0],[u0+.78,v0+1.65],[u0,v0+1.65]]);
@@ -96,9 +102,14 @@ function townhouseGeometry(plot,recipe,level=0,storage=null,modular=false) {
   facade('front',w,frontHoles);
   if(recipe.exposedWest)facade('west',d,sideHoles);
   else quad([[-w/2,0,-d/2],[-w/2,0,d/2],[-w/2,recipe.eaves,d/2],[-w/2,recipe.eaves,-d/2]],[-1,0,0],S.plaster);
-  // Party/rear faces stay closed; the only recesses are shallow, visible openings.
-  quad([[-w/2,0,-d/2],[w/2,0,-d/2],[w/2,recipe.eaves,-d/2],[-w/2,recipe.eaves,-d/2]],[0,0,-1],S.plaster);
-  quad([[w/2,0,-d/2],[w/2,0,d/2],[w/2,recipe.eaves,d/2],[w/2,recipe.eaves,-d/2]],[1,0,0],S.plaster);
+  if(recipe.exposedBack!==false)facade('back',w,frontHoles.filter(o=>o.type==='window'));
+  else quad([[-w/2,0,-d/2],[w/2,0,-d/2],[w/2,recipe.eaves,-d/2],[-w/2,recipe.eaves,-d/2]],[0,0,-1],S.plaster);
+  if(recipe.exposedEast!==false)facade('east',d,sideHoles);
+  else quad([[w/2,0,-d/2],[w/2,0,d/2],[w/2,recipe.eaves,d/2],[w/2,recipe.eaves,-d/2]],[1,0,0],S.plaster);
+  if(level===0){
+    for(const side of [-1,1])box(side*(w/2-.10),recipe.eaves/2,front+.045,.065,recipe.eaves-.16,.065,S.roof,1);
+    box(0,recipe.eaves-.20,front+.06,w,.09,.10,S.roof,1);
+  }
   if(level===0&&recipe.bands!==false)for(const y of [recipe.ground,recipe.ground+recipe.upper])box(0,y,0,w+.14,.12,d+.14,S.stone,1);
   if(!modular)box(0,recipe.eaves-.09,0,width-.04,.18,depth-.04,S.trim);
   const half=width/2-.02,rz=(recipe.bayWindows?d:depth)/2-.02,dy=recipe.ridge-recipe.eaves,slope=Math.hypot(half,dy);
@@ -178,7 +189,7 @@ const moduleNames={
 const SP={upper:[8,1,8,0,4,8],ground:[7,7,7,2],side:[1,0,4,7],door:[6,7,6,0,7],cornice:[5,5,2,0,5],roof:[3,5,3,0,5,3]};
 export function modularGeometry(plot,recipe,modules,variety=false) {
   const sp=variety&&plot.x<0;
-  const {geometries,metadata}=townhouseGeometry(plot,recipe,0,null,true),extra=[[],[],[]],w=plot.width-.3,d=plot.depth-.3,front=d/2;
+  const {geometries,metadata}=townhouseGeometry(plot,recipe,0,null,true),extra=[[],[],[]],w=plot.width-.3,d=plot.depth-.3,front=metadata.front;
   const moduleGeometry=(category,index,position,rotation,scale,surfaceByRole)=>{
     const name=moduleNames[category][index%moduleNames[category].length],module=modules.get(name);
     const anchor={window:'center of sill line on facade plane',door:'center of threshold on facade plane',cornice:'center of wall run at underside datum',roof:'center of roof contact footprint'}[category];
@@ -199,6 +210,7 @@ export function modularGeometry(plot,recipe,modules,variety=false) {
   const hash=(()=>{let seed=2166136261;for(const c of plot.id)seed=Math.imul(seed^c.charCodeAt(0),16777619)>>>0;return seed;})();
   const faceIndices={front:0,west:0};
   for(const [index,o] of metadata.openings.entries()){
+    if(o.face!=='front'&&o.face!=='west')continue;
     const face=o.face==='front',angle=face?0:-Math.PI/2,rotation=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),angle);
     const faceIndex=faceIndices[o.face]++;
     const x=face?o.u:-w/2,z=face?front:o.u,scale=new THREE.Vector3(o.w,o.h,1);
@@ -277,7 +289,7 @@ export function createTownhouseExperiment(plots,neighbors) {
   if(plots.length!==9||new Set(plots.map(p=>p.id)).size!==9||plots.some(p=>!EXPERIMENT_LOT_IDS.includes(p.id)||p.width!==6||p.depth!==9||p.height!==12))throw new TypeError('Townhouse experiment descriptors diverge');
   const experiment=new THREE.Group();experiment.name='townhouse-experiment';
   const materials=townhouseMaterials();
-  // shortcut: 4096 vertices per bucket cover these two approved recipes; resize for any future recipe.
+  // Scratch includes the exposed return and rear facades; it is shared between lots.
   const scratch=Array.from({length:3},()=>Object.fromEntries([['position',3],['normal',3],['uv',2],['surface',1],['color',3]].map(([key,size])=>[key,new Float32Array(4096*size)])));
   for(const [index,x]of [678,710].map(east).entries()){
     const group=new THREE.Group();group.name=`townhouse-chunk-${index?'B':'A'}`;group.position.set(x,0,-96);

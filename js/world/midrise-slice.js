@@ -32,23 +32,25 @@ export function createMidriseSlice(plot,recipe=midriseRecipe(plot)) {
     for(const [yy,n]of [[Y[0],-1],[Y[1],1]])quad([[X[0],yy,Z[0]],[X[1],yy,Z[0]],[X[1],yy,Z[1]],[X[0],yy,Z[1]]],[0,n,0],surface,bucket);
   }
   function facade(face,span,bays){
-    const front=face==='front',side=face==='east'?1:-1,normal=front?[0,0,1]:[side,0,0];
-    const pt=(u,y,v=0)=>front?[u,y,d/2+v]:[side*(w/2+v),y,u];
+    const front=face==='front',back=face==='back',alongZ=front||back,side=face==='east'?1:-1,normal=alongZ?[0,0,back?-1:1]:[side,0,0];
+    const pt=(u,y,v=0)=>alongZ?[back?-u:u,y,(back?-1:1)*(d/2+v)]:[side*(w/2+v),y,u];
     const panel=(u,y,v,pw,ph,surface,bucket=1)=>quad([pt(u-pw/2,y-ph/2,v),pt(u+pw/2,y-ph/2,v),pt(u+pw/2,y+ph/2,v),pt(u-pw/2,y+ph/2,v)],normal,surface,bucket);
     const positions=Array.from({length:bays},(_,i)=>(i-(bays-1)/2)*span/bays),holes=[];
     for(let f=1;f<recipe.floors;f++)for(const u of positions)holes.push({u,y:recipe.ground+(f-.5)*upper,w:front?1.58:1.42,h:recipe.windowHeight??1.8,type:'window'});
     for(let i=0;i<bays;i++){const door=front&&i===Math.floor(bays/2);holes.push({u:positions[i],y:door?1.42:(recipe.compact?Math.min(1.72,recipe.ground*.52):1.72),w:door?1.5:1.7,h:door?2.6:Math.min(2.25,recipe.ground-.4),type:door?'door':'window'});}
-    const xs=[...new Set([-span/2,span/2,...holes.flatMap(o=>[o.u-o.w/2,o.u+o.w/2])])].sort((a,b)=>a-b);
     const ys=[...new Set([0,.3,recipe.ground,roofY,...holes.flatMap(o=>[o.y-o.h/2,o.y+o.h/2])])].sort((a,b)=>a-b);
-    for(let i=1;i<xs.length;i++)for(let j=1;j<ys.length;j++){
-      const u=(xs[i-1]+xs[i])/2,y=(ys[j-1]+ys[j])/2;
-      if(holes.some(o=>Math.abs(u-o.u)<o.w/2&&Math.abs(y-o.y)<o.h/2))continue;
-      quad([pt(xs[i-1],ys[j-1]),pt(xs[i],ys[j-1]),pt(xs[i],ys[j]),pt(xs[i-1],ys[j])],normal,y<recipe.ground?S.stone:S.plaster);
+    // Emit only the wall spans between openings in this row; a global X/Y grid over-tessellates blank wall.
+    for(let j=1;j<ys.length;j++){
+      const y=(ys[j-1]+ys[j])/2,active=holes.filter(o=>Math.abs(y-o.y)<o.h/2).sort((a,b)=>a.u-b.u);
+      let left=-span/2;
+      const wallTo=right=>{if(right>left+1e-6)quad([pt(left,ys[j-1]),pt(right,ys[j-1]),pt(right,ys[j]),pt(left,ys[j])],normal,y<recipe.ground?S.stone:S.plaster);};
+      for(const o of active){wallTo(o.u-o.w/2);left=Math.max(left,o.u+o.w/2);}
+      wallTo(span/2);
     }
     for(const [i,o]of holes.entries()){
       const a=o.u-o.w/2,b=o.u+o.w/2,lo=o.y-o.h/2,hi=o.y+o.h/2,r=recipe.reveal+(o.type==='door'?.12:0),f=.085;
       openings.push({...o,face,reveal:r});
-      const lateral=front?[1,0,0]:[0,0,1];
+      const lateral=alongZ?[back?-1:1,0,0]:[0,0,1];
       for(const [u,n]of [[a,1],[b,-1]])quad([pt(u,lo),pt(u,hi),pt(u,hi,-r),pt(u,lo,-r)],lateral.map(v=>v*n),S.stone);
       for(const [y,n]of [[lo,1],[hi,-1]])quad([pt(a,y),pt(b,y),pt(b,y,-r),pt(a,y,-r)],[0,n,0],S.stone);
       for(const u of [a-f/2,b+f/2])panel(u,o.y,.035,f,o.h+2*f,S.trim);
@@ -58,9 +60,12 @@ export function createMidriseSlice(plot,recipe=midriseRecipe(plot)) {
         const lit=(i+recipe.windowSeed+(front?0:2))%7===0;
         panel(o.u,o.y,-r,o.w,o.h,lit?S.litGlass:S.glass,2);
         panel(o.u,o.y,-r+.06,.055,o.h,S.trim);
-        // Only the sill has projection; frames reuse the depth of the real reveal.
+        panel(o.u,o.y+.16,-r+.065,o.w,.055,S.trim);
+        // Front lintels and sills project; economical rear trim shares the real reveal depth.
         if(!recipe.simplified){
-        if(front)box(o.u,lo-.075,d/2+.045,o.w+.18,.12,.16,S.stone,1);
+        if(front)box(o.u,hi+.09,d/2+.05,o.w+.24,.10,.15,S.stone,1);
+        if(back)panel(o.u,lo-.075,.08,o.w+.18,.12,S.stone);
+        else if(front)box(o.u,lo-.075,d/2+.045,o.w+.18,.12,.16,S.stone,1);
         else box(side*(w/2+.045),lo-.075,o.u,.16,.12,o.w+.18,S.stone,1);
         }
         if(lo>recipe.ground)panel(o.u,lo-.30,.012,o.w,.34,S.brick,0);
@@ -72,14 +77,15 @@ export function createMidriseSlice(plot,recipe=midriseRecipe(plot)) {
     }
     if(recipe.brise&&front)for(let f=1;f<recipe.floors;f++)box(0,recipe.ground+f*upper-.08,d/2,w+.08,.14,.32,S.stone,1);
     // Continuous piers establish a vertical order distinct from the terrace rhythm.
-    if(recipe.emphasis!=='horizontal')for(let i=0;i<=bays;i++){
+    if(!back&&recipe.emphasis!=='horizontal')for(let i=0;i<=bays;i++){
       const u=-span/2+.14+i*(span-.28)/bays,y=(recipe.ground+roofY)/2,h=roofY-recipe.ground;
       if(front)box(u,y,d/2+.045,.16,h,.12,S.trim,0);
       else box(side*(w/2+.045),y,u,.12,h,.16,S.trim,0);
     }
   }
   facade('front',w,recipe.bays);facade('east',d,3);facade('west',d,3);
-  quad([[-w/2,0,-d/2],[w/2,0,-d/2],[w/2,roofY,-d/2],[-w/2,roofY,-d/2]],[0,0,-1],S.plaster);
+  if(recipe.exposedBack!==false)facade('back',w,Math.max(2,recipe.bays-1));
+  else quad([[-w/2,0,-d/2],[w/2,0,-d/2],[w/2,roofY,-d/2],[-w/2,roofY,-d/2]],[0,0,-1],S.plaster);
   if(!recipe.simplified)for(let f=0;f<recipe.floors;f++)box(0,recipe.ground+f*upper-.055,0,w+.16,.11,d+.16,S.trim,1);
   box(0,roofY-.10,0,w+.22,.20,d+.22,S.stone);
   box(0,roofY+.025,0,w,.05,d,S.roof);

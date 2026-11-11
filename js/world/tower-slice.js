@@ -56,7 +56,7 @@ export function createTowerSlice(plot,recipe=towerRecipe(plot)) {
         panel(0,len,hi-.045,hi,.015,S.trim,1);
       }
       // Continuous projecting ribs, unlike the office's horizontal structural grid.
-      const finDepth=recipe.finDepth??.10,finWidth=recipe.finWidth??.13;
+      const finDepth=recipe.finDepth??.18,finWidth=recipe.finWidth??.13;
       for(let i=0;i<=bays;i++){
         const lo=Math.max(0,i*bay-finWidth),hi=Math.min(len,i*bay+finWidth);
         panel(lo,hi,y0,y1,finDepth,S.trim);

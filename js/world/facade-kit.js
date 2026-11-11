@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { stops } from '../content.js';
 import { routePoints } from './layout.js';
-import { SURFACE as S } from './building-slice-materials.js';
+import { SURFACE as S, addRoomCoordinates } from './building-slice-materials.js';
 import { classifyPlot, rolloutRecipe, building, tint } from './city-rollout.js';
 import { createShopSlice } from './shop-slice.js';
 import { createMidriseSlice } from './midrise-slice.js';
@@ -150,10 +150,11 @@ function buildChunk(chunk, byId, neighbors, kits, kitIds) {
     h.children.forEach((m) => {if (!m.geometry.hasAttribute('aFlutter')) m.geometry.setAttribute('aFlutter', new THREE.Float32BufferAttribute(new Float32Array(m.geometry.attributes.position.count), 1));m.geometry.translate(p.x - cx, 0, p.z - cz);});
     for (let k = 0; k < 3; k++) merged[k].push(h.children[k].geometry);
   }
-  return merged.map((items) => {
+  return merged.map((items, k) => {
     const g = mergeGeometries(items, false);
     items.forEach((i) => i.dispose());
     if (!g) throw new Error('Incompatible facade kit bucket');
+    if(k===2)addRoomCoordinates(g,cx,cz);
     g.computeBoundingBox(); g.computeBoundingSphere(); return g;
   });
 }

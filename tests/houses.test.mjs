@@ -32,3 +32,15 @@ test('house roof profiles vary deterministically within the existing footprint',
     if (y > 9.3) assert.ok(y + h <= 3 * 3.1 + 1.06);
   }
 });
+
+test('street windows expose glass between the sash rails instead of a solid white panel', () => {
+  for (const boxes of [render(0), render(8)]) {
+    const panes = boxes.filter(([, y, , w, h, , c]) => y < 9.3 && w === 1.1 && h === 1.8 && [P.glass, P.lit].includes(c));
+    assert.ok(panes.length >= 6);
+    for (const [x,y,z,w,h,d] of panes) {
+      const px=x+.22, py=y+.32, front=z+d/2;
+      assert.ok(!boxes.some(([bx,by,bz,bw,bh,bd,c]) => ![P.glass,P.lit].includes(c)
+        && px>bx-bw/2 && px<bx+bw/2 && py>by && py<by+bh && bz+bd/2>front+1e-6), 'opaque backing must stay behind the visible glass');
+    }
+  }
+});

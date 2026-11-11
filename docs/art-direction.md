@@ -101,3 +101,7 @@ Owner authorised further refinement of the same plaza. Seating pockets, discreet
 ### Fountain water — 2026-11-11
 
 Owner authorised visibly moving, more realistic water. Keep low six-way jets and the existing basin: streams narrow and sway subtly, small waves spread from their landing points, pale foam stays near impacts, and shallow stone-floor detail appears refracted under angle-dependent reflections. Night keeps restrained warm rim bounce; reduced motion holds a still state while WebGL stays active. [Validation and motion preview](audits/2026-11-11-plaza-water.md).
+
+## Ordinary facade realism — 2026-11-11 owner authorization
+
+The owner requested more realistic facades throughout the city and reopened the previous townhouse restriction for this pass. Preserve architectural family identity and existing envelopes. Exposed side/rear elevations now have designed openings, frontages have clearer sash/lintel/drainage detail, commercial grids have bounded relief and quieter metal finishes, and glazing retains shallow interiors behind the frame. Upper-wall weathering is restrained; low-level dampness remains. Existing distant skyline silhouettes stay economical. Map, routes, landmarks, vegetation, pedestrians, camera and global lighting remain unchanged. [Rendered evidence and limits](audits/2026-11-11-facade-realism.md).

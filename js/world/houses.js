@@ -21,7 +21,7 @@ export function house(add, q, x, z, o, w, d, n, fh = 3.1, lo = false) {
   const P0 = d * 0.4 + 0.45; // dormer front, behind the eave
   for (const dx of q() < 0.5 ? [0] : [-w * 0.28, w * 0.28]) {
     A(x + dx, h + 1.06, z + o * (d * 0.4 - 0.2), 1.5, 1.4, 1.3, W);
-    A(x + dx, h + 1.36, z + o * (P0 + 0.02), 0.9, 0.8, 0.08, P.glass);
+    A(x + dx, h + 1.36, z + o * (P0 + 0.04), 0.9, 0.8, 0.08, P.glass);
     A(x + dx, h + 2.46, z + o * (d * 0.4 - 0.2), 1.9, 0.25, 1.6, roof);
   }
   for (let k = 0; k < n; k++) {
@@ -31,7 +31,8 @@ export function house(add, q, x, z, o, w, d, n, fh = 3.1, lo = false) {
       const wx = x + (c - (nc - 1) / 2) * 3;
       if (!k && c === dc) {
         F(wx, 0, 1.9, 0.3, 0.7, W);
-        F(wx, 0.3, 1.5, 2.4, 0.16, W);
+        for(const dx of [-.65,.65])F(wx+dx,.3,.2,2.4,.16,W);
+        F(wx,2.5,1.1,.2,.16,W);
         F(wx, 0.3, 1.1, 2.1, 0.12, door, -0.06);
         for (const y0 of [0.62, 1.72]) F(wx, y0, 0.72, 0.48, 0.18, P.ink, 0.13);
         F(wx, 2.45, 0.9, 0.22, 0.24, P.glass);
@@ -45,8 +46,9 @@ export function house(add, q, x, z, o, w, d, n, fh = 3.1, lo = false) {
         F(wx, y + 1.0, 2.4, 0.08, 0.9, W, 0.82);
         for (const j of [-1.1, -0.55, 0, 0.55, 1.1]) F(wx + j, y + 0.44, 0.07, 0.56, 0.9, W, 0.83);
       } else F(wx, y + 0.46, 1.8, 0.12, 0.4, W); // top 0.02 under the 0.6 lintel/roof-cap planes
-      F(wx, y + 0.6, 1.5, 2.2, 0.14, W);
-      F(wx, y + 0.8, 1.1, 1.8, 0.1, q() < 0.08 ? P.lit : P.glass, 0.02);
+      for(const dx of [-.65,.65])F(wx+dx,y+.6,.2,2.2,.14,W);
+      for(const yy of [y+.6,y+2.6])F(wx,yy,1.1,.2,.14,W);
+      F(wx, y + 0.8, 1.1, 1.8, 0.12, q() < 0.08 ? P.lit : P.glass, 0.105);
       F(wx, y + 0.43, 1.7, 0.14, 0.3, W, 0.12);
       F(wx, y + 0.83, 0.08, 1.74, 0.24, W, 0.16);
       F(wx, y + 2.0, 1.16, 0.08, 0.24, W, 0.16);

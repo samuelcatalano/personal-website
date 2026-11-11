@@ -1,0 +1,80 @@
+[
+  {
+    "port": 8001,
+    "initial": {
+      "residentMiB": 189.1743621826172,
+      "activeMiB": 133.44824981689453,
+      "roomMiB": 1.02685546875,
+      "activeTriangles": 892282,
+      "lots": 698,
+      "chunks": 194,
+      "renderables": 582,
+      "materials": 2,
+      "maps": 4
+    },
+    "loaded": {
+      "residentMiB": 384.1036605834961,
+      "activeMiB": 138.63583374023438,
+      "roomMiB": 0.89337158203125,
+      "activeTriangles": 926524,
+      "lots": 698,
+      "chunks": 194,
+      "renderables": 582,
+      "materials": 2,
+      "maps": 4
+    },
+    "kits": {
+      "shops": 21,
+      "midrises": 252,
+      "offices": 32,
+      "towers": 12,
+      "chunks": 140,
+      "radius": 10000,
+      "buildMs": 835.8000000715256
+    },
+    "camera": [
+      115,
+      30,
+      60
+    ]
+  },
+  {
+    "port": 8000,
+    "initial": {
+      "residentMiB": 185.71865844726562,
+      "activeMiB": 130.4179458618164,
+      "roomMiB": 1.3934326171875,
+      "activeTriangles": 870418,
+      "lots": 698,
+      "chunks": 194,
+      "renderables": 582,
+      "materials": 2,
+      "maps": 4
+    },
+    "loaded": {
+      "residentMiB": 380.1126937866211,
+      "activeMiB": 136.59027099609375,
+      "roomMiB": 2.360595703125,
+      "activeTriangles": 911196,
+      "lots": 698,
+      "chunks": 194,
+      "renderables": 582,
+      "materials": 2,
+      "maps": 4
+    },
+    "kits": {
+      "shops": 21,
+      "midrises": 252,
+      "offices": 32,
+      "towers": 12,
+      "chunks": 140,
+      "radius": 10000,
+      "buildMs": 902.3999997973442
+    },
+    "camera": [
+      115,
+      30,
+      60
+    ]
+  }
+]

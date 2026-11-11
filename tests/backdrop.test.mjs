@@ -31,8 +31,8 @@ test('all visible neighborhood bands have recessed, framed facade openings', () 
     for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) candidates.push(...(spatial.get(`${Math.floor(pane.x / 20) + dx},${Math.floor(pane.z / 20) + dz}`) ?? []));
     const supported = candidates.some((wall) =>
       pane.y - pane.h / 2 >= wall.y && pane.y + pane.h / 2 <= wall.y + wall.h && (
-        pane.d === 0.03 && Math.abs(pane.z - (wall.z + wall.d / 2 + 0.015)) < 1e-9 && pane.x - pane.w / 2 >= wall.x - wall.w / 2 && pane.x + pane.w / 2 <= wall.x + wall.w / 2 ||
-        pane.w === 0.03 && Math.abs(Math.abs(pane.x - wall.x) - wall.w / 2 - 0.015) < 1e-9 && pane.z - pane.d / 2 >= wall.z - wall.d / 2 && pane.z + pane.d / 2 <= wall.z + wall.d / 2
+        pane.d === 0.03 && pane.z+pane.d/2 > wall.z+wall.d/2 && pane.z+pane.d/2 < wall.z+wall.d/2+.075 && pane.x - pane.w / 2 >= wall.x - wall.w / 2 && pane.x + pane.w / 2 <= wall.x + wall.w / 2 ||
+        pane.w === 0.03 && Math.abs(pane.x-wall.x)+pane.w/2 > wall.w/2 && Math.abs(pane.x-wall.x)+pane.w/2 < wall.w/2+.075 && pane.z - pane.d / 2 >= wall.z - wall.d / 2 && pane.z + pane.d / 2 <= wall.z + wall.d / 2
       ));
     assert.ok(supported, `window at ${pane.x},${pane.y},${pane.z} belongs to a real wall segment`);
   }

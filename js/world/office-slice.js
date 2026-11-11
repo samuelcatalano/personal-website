@@ -41,12 +41,12 @@ export function createOfficeSlice(plot,recipe=officeRecipe(plot)) {
     for(let f=0;f<recipe.floors;f++){
       const lo=f===0?.3:recipe.lobbyHeight+(f-1)*step,hi=f===0?recipe.lobbyHeight:lo+step;
       const bottom=lo+(f===0?.10:.22),upper=hi-(f===0?.24:(recipe.spandrel??.56));
-      panel(-span/2,span/2,lo,bottom,0,S.stone);
-      panel(-span/2,span/2,upper,hi,0,f===0?S.stone:S.roof);
+      panel(-span/2-.12,span/2+.12,lo,bottom,.12,S.stone);
+      panel(-span/2-.12,span/2+.12,upper,hi,.12,f===0?S.stone:S.roof);
       for(let i=0;i<bays;i++){
         const a=-span/2+i*bay+.16,b=-span/2+(i+1)*bay-.16,r=f===0?.50:recipe.reveal;
-        for(const [u,n]of [[a,1],[b,-1]])quad([pt(u,bottom),pt(u,upper),pt(u,upper,-r),pt(u,bottom,-r)],lateral.map(v=>v*n),S.trim);
-        for(const [y,n]of [[bottom,1],[upper,-1]])quad([pt(a,y),pt(b,y),pt(b,y,-r),pt(a,y,-r)],[0,n,0],S.trim);
+        for(const [u,n]of [[a,1],[b,-1]])quad([pt(u,bottom,.12),pt(u,upper,.12),pt(u,upper,-r),pt(u,bottom,-r)],lateral.map(v=>v*n),S.trim);
+        for(const [y,n]of [[bottom,1],[upper,-1]])quad([pt(a,y,.12),pt(b,y,.12),pt(b,y,-r),pt(a,y,-r)],[0,n,0],S.trim);
         const lit=f>0&&(f*7+i+recipe.windowSeed)%17===0;
         panel(a,b,bottom,upper,-r,lit?S.litGlass:S.glass,2);
         panel((a+b)/2-.025,(a+b)/2+.025,bottom,upper,-r+.035,S.trim,1);
@@ -56,11 +56,11 @@ export function createOfficeSlice(plot,recipe=officeRecipe(plot)) {
         }
       }
       // Flat transoms share a bucket; floor lines remain subordinate to the vertical piers.
-      panel(-span/2,span/2,hi-.065,hi,.025,S.trim,1);
+      panel(-span/2-.16,span/2+.16,hi-.065,hi,.16,S.trim,1);
     }
     for(let i=0;i<=bays;i++){
       const u=-span/2+i*bay;
-      panel(Math.max(-span/2,u-.16),Math.min(span/2,u+.16),.3,top,0,recipe.emphasis==='horizontal'?S.roof:S.trim);
+      panel(i===0?-span/2-.12:u-.16,i===bays?span/2+.12:u+.16,.3,top,.12,recipe.emphasis==='horizontal'?S.roof:S.trim);
     }
   }
   // Depth variant (recipe.depth): fins and slab edges stand proud of the wall plane, the panes sit deeper, soffits are dark shadow bands,
