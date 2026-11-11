@@ -1,7 +1,10 @@
 // Tiny synthesized sounds (no audio files). Only ever called from a click or tap, so autoplay rules allow them.
-let ac;
+// The audio context is made on the first sound and released when the intro closes; after that these sounds do nothing.
+let ac, released = false;
 const ctx = () => (ac ||= new (window.AudioContext || window.webkitAudioContext)());
+export const releaseSounds = () => { released = true; ac?.close().catch(() => {}); ac = null; };
 function tone(freqs, { type = 'sine', gain = 0.15, attack = 0.01, decay = 1, at = 0 } = {}) {
+  if (released) return;
   try {
     const c = ctx(), t = c.currentTime + at;
     for (const [f, v] of freqs) {
@@ -14,10 +17,9 @@ function tone(freqs, { type = 'sine', gain = 0.15, attack = 0.01, decay = 1, at 
 }
 // London bell: two sine partials with a fast decay.
 export const ding = () => tone([[1568, 1], [2352, 0.33]], { decay: 1.1 });
-// Bus horn: two close sawtooth notes, played twice.
-export const horn = () => { for (const at of [0, 0.32]) tone([[392, 1], [494, 0.8]], { type: 'sawtooth', gain: 0.05, attack: 0.02, decay: 0.26, at }); };
 // Pneumatic door hiss: a burst of high-passed noise with a quick attack and a long decay.
 export const hiss = () => {
+  if (released) return;
   try {
     const c = ctx(), t = c.currentTime, len = Math.floor(c.sampleRate * 0.6), buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
     for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len) ** 1.5;

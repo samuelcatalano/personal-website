@@ -1,4 +1,4 @@
-import { ding, hiss } from './sound.js';
+import { ding, hiss, releaseSounds } from './sound.js';
 import { stops, i18n } from './content.js';
 import { loadState, onLoadChange } from './world/load-progress.js';
 // Intro shown on every load. A toy bus follows the scroll wheel (or swipe, or arrow keys) along a miniature of the career line while the 3D world loads;
@@ -92,6 +92,7 @@ export function createIntro(root, { onDrive = () => {} } = {}) {
     unsubscribe();
     document.removeEventListener('keydown', onKey);
     const close = () => {
+      releaseSounds(); // the bell and the hiss end with the intro: the audio context is closed
       root.close();
       document.body.classList.remove('intro-on');
       const heading = document.querySelector('#panel :is(h1, h2)');

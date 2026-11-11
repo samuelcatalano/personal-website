@@ -3,7 +3,6 @@ import { watchScroll, stopMarks, nearestStop, scrollYForStop, progressFromScroll
 import { routePoints, STOP_SPACING } from './world/layout.js';
 import { initUI } from './ui.js';
 import { createIntro } from './intro.js';
-import { horn } from './sound.js';
 import { createAutoRide, travelMs } from './autoride.js';
 import { whenSettled } from './world/load-progress.js';
 import { makePostcard, download } from './postcard.js';
@@ -79,6 +78,7 @@ photoBtn.addEventListener('click', async () => {
   try {
     const caption = ui.caption(), blob = await makePostcard(await world.snapshot(), caption, location.host + location.pathname.replace(/\/$/, ''), ui.stamps());
     download(blob, `samuel-catalano-${caption.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-')}.png`);
+    ui.discover('postcard');
   } catch (err) { console.warn('postcard failed:', err); } finally { photoBtn.disabled = false; }
 });
 const target = SECTIONS.includes(hash) ? sectionStart(hash) : stops.findIndex((s) => s.id === hash);
@@ -122,7 +122,7 @@ if (hasWebGL()) {
   intro.start();
   import('./world/scene.js')
     .then((m) => m.createWorld(document.getElementById('world'), stops, {
-      reducedMotion, onProgress: follow, onPick: (id) => (id === 'bus' ? (horn(), ui.say('horn')) : goto(stops.findIndex((s) => s.id === id))),
+      reducedMotion, onProgress: follow, onPick: (id) => (id === 'bus' ? ui.say('horn') : goto(stops.findIndex((s) => s.id === id))),
     }))
     .then((w) => { world = w; w.setProgress(progress); w.setTheme(ui.theme); document.body.classList.add('world-ready'); intro.worldLoaded();
       whenSettled().then(() => { document.body.classList.add('world-settled'); intro.ready(); stills(w).catch(() => {}); }); })
