@@ -3,6 +3,7 @@
   --card: rgba(248, 246, 241, .97); --line: #d8d0c4; --red: #c9252b; --accent: #b51f27;
   --sans: 'Inter', system-ui, sans-serif; --display: 'Hammersmith One', 'Gill Sans', system-ui, sans-serif;
   --br: #1f8a4c; --uk: var(--accent);
+  --surface-radius: 8px; --control-radius: 4px; --surface-shadow: 0 4px 16px #20160f14;
 }
 body.theme-night { --sky: #252b31; --sky2: #41464a; --ink: #f4f0e9; --muted: #c2b9ac; --card: rgba(35, 39, 42, .97); --line: #5b5d5b; --accent: #ef7772; }
 * { box-sizing: border-box; }
@@ -75,11 +76,10 @@ body { margin: 0; font: 15px/1.6 var(--sans); color: var(--ink); background: lin
 .journey-finish { margin: 18px 0; padding: 14px 16px; border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 0 10px 10px 0; background: color-mix(in srgb, var(--accent) 5%, var(--card)); font-size: 13px; line-height: 1.55; }
 .journey-finish p { margin: 0; }
 .journey-finish p + p { margin-top: 8px; color: var(--muted); font-size: 11px; }
-.recent-role { margin: 22px 0; padding: 18px; border: 1px solid var(--line); border-left: 3px solid var(--city, var(--accent)); border-radius: 0 12px 12px 0; background: color-mix(in srgb, var(--city, var(--accent)) 4%, var(--card)); }
-.recent-role > strong { display: block; font-size: 17px; line-height: 1.35; letter-spacing: -.02em; }
-.panel .recent-company { margin: 6px 0 2px; font-size: 13px; font-weight: 600; }
+.recent-role { margin: 20px 0; padding: 0 0 16px; border-bottom: 1px solid var(--line); }
+.panel .recent-role .eyebrow { margin-bottom: 4px; color: var(--muted); font-size: 9px; }
+.panel .recent-company { margin: 0 0 2px; font-size: 12px; font-weight: 600; }
 .recent-role small { display: block; font-size: 11px; font-variant-numeric: tabular-nums; }
-.panel .recent-body { margin: 12px 0 0; font-size: 12px; line-height: 1.65; color: var(--muted); }
 .hero-links, .contact { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 0; margin: 20px 0 0; }
 .contact li:first-child { grid-column: 1 / -1; }
 .contact li { display: flex; }
@@ -358,6 +358,33 @@ blockquote footer b { color: var(--ink); font-weight: 600; }
 .panel blockquote { margin-top: 20px; padding: 0 0 20px 52px; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; }
 .panel blockquote .who { top: 0; left: 0; width: 32px; height: 32px; font-size: 11px; }
 .panel blockquote p { font-size: 15px; line-height: 1.7; }
+/* Desktop reading surfaces share the ticket's restrained edges; mobile layout stays as authored. */
+@media (min-width: 768px) {
+  .brand, .bar nav, .controls, .panel { border-radius: var(--surface-radius); box-shadow: var(--surface-shadow); }
+  .bar nav a, .controls button, .panel a.btn, .postcard-btn { border-radius: var(--control-radius); }
+  .panel { border-top-color: var(--accent); }
+  .profile-head { grid-template-columns: 56px minmax(0, 1fr); }
+  .profile-head .avatar { width: 56px; height: 72px; border-radius: var(--control-radius); }
+  .profile-head h1 { font-size: clamp(28px, 2.7vw, 36px); }
+  .profile-head .role { font-size: 13px; }
+  .panel .profile-head .eyebrow { margin: 8px 0 0; color: var(--muted); font-size: 9px; letter-spacing: .08em; }
+  .panel .profile-meta { margin: 16px 0; padding: 0; border: 0; }
+  .panel[data-section="hero"] .value { font-size: 17px; line-height: 1.6; letter-spacing: -.01em; }
+  .hero-links { gap: 4px 16px; margin-top: 20px; }
+  .hero-links li:not(:first-child) > a { flex-direction: row; gap: 6px; min-height: 40px; padding: 4px 0; border: 0; font-size: 11px; }
+  .hero-links li:not(:first-child) > a:hover { background: none; color: var(--accent); text-decoration: underline; }
+  .profile-status { margin-top: 12px; padding: 0; border: 0; }
+  .panel .profile-status .clock { margin-top: 4px; font-size: 11px; }
+  .panel[data-section="hero"] .tagline { margin: 16px 0 0; font-size: 11px; line-height: 1.5; }
+  .panel .proof { margin-top: 20px; border-left-color: var(--line); font-size: 12px; }
+  .panel .profile-status .avail::before { background: var(--br); animation: none; }
+  .led { border-radius: var(--control-radius); filter: none; }
+  #arrival { border-radius: var(--surface-radius); border-bottom-color: var(--red); box-shadow: var(--surface-shadow); }
+  #arrival .num { border-radius: var(--control-radius); }
+  #arrival .txt { filter: none; }
+  #ui-restore, #credits, .ticket { border-radius: var(--surface-radius); box-shadow: var(--surface-shadow); }
+  .stops { position: relative; max-height: 176px; margin-inline: -4px; padding: 4px; overflow-y: auto; overscroll-behavior-y: contain; scrollbar-width: thin; }
+}
 @media (max-width: 767px) {
   .bar { top: 10px; left: 12px; right: 12px; flex-wrap: wrap; gap: 8px; }
   .brand { padding: 8px 11px; font-size: 12px; }
@@ -380,7 +407,7 @@ blockquote footer b { color: var(--ink); font-weight: 600; }
 @media (min-width: 768px) and (max-width: 1050px) {
   .bar { left: 16px; right: 16px; gap: 8px; }
   .brand { padding: 10px 12px; }
-  .bar nav { gap: 11px; padding: 9px 10px; }
+  .bar nav { min-width: 0; overflow-x: auto; gap: 11px; padding: 9px 10px; }
   .bar nav a { font-size: 11px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
@@ -396,7 +423,7 @@ blockquote footer b { color: var(--ink); font-weight: 600; }
 body { --city: var(--uk); }
 body[data-city="sp"] { --city: var(--br); }
 body[data-city="gla"] { --city: #2a5da8; }
-.panel .proof { border-left-color: var(--city); }
+.panel .proof { border-left-color: var(--line); }
 .panel .avail::before { background: var(--city); }
 /* Stop detail as a ticket: perforated notches, dashed tear line, city and year stamp */
 .detail { position: relative; margin: 2px 0 12px 56px; padding: 12px 14px 14px; border-radius: 10px; background: var(--ticket, #f7f1e5); color: var(--ticket-ink, #2d2822); border-left: 4px solid var(--city);
@@ -405,6 +432,15 @@ body[data-city="gla"] { --city: #2a5da8; }
 .detail .stamp { display: block; margin-bottom: 16px; font: 700 10px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--city); }
 .detail small { color: var(--ticket-muted, #665a4c); }
 body.theme-night .detail { background: #2a2622; color: var(--ink); } body.theme-night .detail small { color: var(--muted); }
+.detail.current-stop { margin: 20px 0 0; padding: 16px 20px 20px; border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: var(--surface-radius); transform: none; }
+.current-stop::before { display: none; }
+.current-stop .stamp { margin: 0 0 16px; padding: 0 20px 12px 0; border-bottom: 1px dashed var(--line); line-height: 1.5; }
+.current-stop h3 { margin: 0 0 4px; font: 400 24px/1.2 var(--display); letter-spacing: -.02em; }
+.panel .current-stop .role { margin: 0 0 8px; font-size: 14px; line-height: 1.5; }
+.current-stop small { margin: 0 0 16px; font-size: 11px; line-height: 1.6; }
+.panel .current-stop > p:last-child { margin: 0; font-size: 13px; line-height: 1.7; }
+.current-stop .punch { display: none; }
+.current-stop.seen .punch { display: block; }
 /* "Now arriving" banner when the line crosses into another city */
 #arrival { position: fixed; top: 84px; left: 50%; z-index: 6; display: flex; align-items: center; gap: 14px; margin: 0; padding: 10px 24px 10px 10px; transform: translate(-50%, -14px) scale(.96); opacity: 0; pointer-events: none;
   transition: opacity .4s, transform .5s cubic-bezier(.2, .9, .3, 1.2); border-radius: 14px; background: linear-gradient(#17130f, #0a0807); border: 1px solid #2c2620; border-bottom: 3px solid var(--city);
@@ -420,7 +456,6 @@ body.theme-night .detail { background: #2a2622; color: var(--ink); } body.theme-
 #panel[data-section="contact"] h2::after { content: ' · 83'; color: var(--city); }
 @media (max-width: 640px) { #arrival { top: 70px; padding-right: 16px; } #arrival b { font-size: 20px; } #arrival .num { min-width: 38px; height: 38px; font-size: 22px; } }
 @media (prefers-reduced-motion: reduce) { #arrival { transition: none; } }
-.detail { transform: perspective(700px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .15s ease-out; }
 .controls [data-quick] svg { fill: currentColor; }
 @media (prefers-reduced-motion: reduce) { .detail { transform: none; transition: none; } }
 /* No selection box where focus is only placed by the page: the heading after the intro closes and the Skip button it opens on. Keyboard users still see the Skip fill red on focus. */

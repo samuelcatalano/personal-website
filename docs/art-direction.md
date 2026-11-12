@@ -1,5 +1,9 @@
 # 3D city art direction
 
+## Editorial and city polish — 2026-11-12
+
+The owner authorized panel hierarchy, consistent transit styling, selected-stop emphasis, desktop framing and atmospheric depth; mobile and intro redesigns were excluded. This scoped update retains the map, assets and architectural language. [Implementation and validation](audits/2026-11-12-editorial-city-polish.md) records its boundaries, local MSAA samples and remaining verification limits; it is not a new citywide rollout or production-readiness approval.
+
 ## Sky and weather — 2026-10-26
 
 The owner reopened sky/weather in the [five-slice brief](prompts/2026-10-26-sky-weather-upgrade.md). Sky uses an art-directed zenith/mid/haze gradient aligned to the visible upper frame, warm directional glow and purple/orange theme transitions. Horizon and fog share the exact colour. All authored sky colours pass through the existing ACES inverse; puddles and river consume the dome's final palette, including sunset and storm-night dimming.

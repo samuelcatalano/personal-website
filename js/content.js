@@ -80,7 +80,7 @@ export const i18n = {
     },
     sections: {
       hero: { title: 'Samuel Catalano', kicker: 'Backend & platform engineering', role: 'Senior Software Engineer', value: 'Backend engineer for systems that keep working after launch.', proof: 'Samuel is a committed, serious and extremely responsible professional.', tagline: 'Ranked #1 Software Engineer in the world according to my parents.', availability: 'Now boarding: backend and platform conversations. Plenty of seats upstairs.', meta: '17+ years · Java · Backend · London' },
-      journey: { title: 'Journey', intro: 'Every stop is a chapter. Hop on the bus through my career.', latest: 'Latest stop:' },
+      journey: { title: 'Journey', intro: 'Every stop is a chapter. Hop on the bus through my career.', latest: 'Current role' },
       stack: { title: 'Stack', intro: 'The tools I reach for when a system has to keep working after launch.', groups: { core: 'Core', messaging: 'Messaging', cloud: 'Cloud', data: 'Data' } },
       articles: { title: 'Writing', intro: 'Practical engineering notes on Medium.', more: 'All articles', src: 'Medium' },
       repos: { title: 'Code', intro: 'A few public repositories worth a look.', more: 'All repositories', descriptions: {
@@ -122,7 +122,7 @@ export const i18n = {
     },
     sections: {
       hero: { title: 'Samuel Catalano', kicker: 'Engenharia backend e plataforma', role: 'Engenheiro de Software Sênior', value: 'Engenheiro backend para sistemas que continuam funcionando depois do lançamento.', proof: 'Samuel é um profissional comprometido, sério e extremamente responsável.', tagline: 'Engenheiro de software nº 1 do mundo, segundo meus pais.', availability: 'Embarque aberto: conversas sobre backend e plataforma. Ainda tem lugar no andar de cima.', meta: '17+ anos · Java · Backend · Londres' },
-      journey: { title: 'Trajetória', intro: 'Cada parada, um capítulo. Embarque no ônibus pela minha carreira.', latest: 'Parada mais recente:' },
+      journey: { title: 'Trajetória', intro: 'Cada parada, um capítulo. Embarque no ônibus pela minha carreira.', latest: 'Cargo atual' },
       stack: { title: 'Stack', intro: 'As ferramentas que uso quando um sistema precisa continuar funcionando depois do lançamento.', groups: { core: 'Base', messaging: 'Mensageria', cloud: 'Nuvem', data: 'Dados' } },
       articles: { title: 'Artigos', intro: 'Notas práticas de engenharia no Medium.', more: 'Todos os artigos', src: 'Medium' },
       repos: { title: 'Código', intro: 'Alguns repositórios públicos que valem a visita.', more: 'Todos os repositórios', descriptions: {

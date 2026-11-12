@@ -68,19 +68,29 @@ function sectionHTML(section, t, active, tool = null, route = { seen: new Set(),
   switch (section) {
     case 'hero': return `
       <div class="profile-head"><img class="avatar" src="assets/avatar.png" alt="" width="96" height="96">
-        <div><p class="eyebrow">${s.kicker}</p><h1>${s.title}</h1><p class="role">${s.role}</p></div></div><p class="meta profile-meta">${s.meta}</p>
-      <p class="value">${s.value}</p><p class="tagline">${s.tagline}</p><div class="profile-status"><p class="avail">${s.availability}</p><p class="clock">${t.ui.clock} <time data-london></time></p></div><ul class="hero-links contact">
+        <div><h1>${s.title}</h1><p class="role">${s.role}</p><p class="eyebrow">${s.kicker}</p></div></div><p class="meta profile-meta">${s.meta}</p>
+      <p class="value">${s.value}</p><ul class="hero-links contact">
         ${contact(t.sections.contact)}</ul>
-        <p class="proof">“${s.proof}” <span>${t.recs[0].name}, ${t.recs[0].role}</span></p><p class="hint">${matchMedia('(pointer: coarse)').matches ? t.ui.scrollTouch : t.ui.scroll} ↓</p>`;
-    case 'journey': return `
-      <h2>${s.title}</h2><p>${s.intro}</p>${journeyLine(t, seenSet)}${nextButton(t, seenSet)}<div class="recent-role"><p class="eyebrow">${s.latest}</p><strong>${latest.role}</strong><p class="recent-company">${latest.title}</p><small>${latest.dates}</small><p class="recent-body">${latest.body}</p></div>${tool ? `<p class="filter">${t.ui.usedAt} <b>${tool}</b><button type="button" data-tool-clear aria-label="${t.ui.clearFilter}">&times;</button></p>` : ''}<ol class="stops">${stops.map((st, i) => {
+      <div class="profile-status"><p class="avail">${s.availability}</p><p class="clock">${t.ui.clock} <time data-london></time></p></div>
+        <p class="proof">“${s.proof}” <span>${t.recs[0].name}, ${t.recs[0].role}</span></p><p class="tagline">${s.tagline}</p><p class="hint">${matchMedia('(pointer: coarse)').matches ? t.ui.scrollTouch : t.ui.scroll} ↓</p>`;
+    case 'journey': {
+      const selected = stops[active], c = t.stops[selected.id];
+      return `
+      <h2>${s.title}</h2><p>${s.intro}</p>
+      <section id="career-detail" class="detail current-stop${seenSet.has(active) ? ' seen' : ''}" data-stop="${active}" aria-labelledby="career-title">
+        <span class="punch" aria-hidden="true"></span><span class="stamp">${t.ui.cities[cityOf(selected)]} · ${selected.year}</span>
+        <h3 id="career-title">${c.title}</h3><p class="role">${c.role}</p><small>${c.dates} · ${c.place}</small><p>${c.body}</p>
+      </section>
+      <aside class="recent-role"><p class="eyebrow">${s.latest}</p><p class="recent-company">${latest.title}</p><small>${latest.role} · ${latest.dates}</small></aside>
+      ${tool ? `<p class="filter">${t.ui.usedAt} <b>${tool}</b><button type="button" data-tool-clear aria-label="${t.ui.clearFilter}">&times;</button></p>` : ''}<ol class="stops">${stops.map((st, i) => {
         if (st.section !== 'journey') return '';
         const c = t.stops[st.id], on = i === active, hit = tool && toolStops[tool].includes(st.id);
-        return `<li class="${st.country.toLowerCase()}${st.id === 'move' ? ' hub' : ''}${on ? ' on' : ''}${seenSet.has(i) ? ' seen' : ''}${tool ? (hit ? ' hit' : ' dim') : ''}"><button data-goto="${i}" aria-expanded="${on}">
+        return `<li class="${st.country.toLowerCase()}${st.id === 'move' ? ' hub' : ''}${on ? ' on' : ''}${seenSet.has(i) ? ' seen' : ''}${tool ? (hit ? ' hit' : ' dim') : ''}"><button data-goto="${i}" aria-controls="career-detail" aria-expanded="${on}"${on ? ' aria-current="step"' : ''}>
           <span class="yr">${st.year}</span><span class="node" aria-hidden="true"></span>${st.brand ? `<span class="mono" style="--c:${st.brand.color}" aria-hidden="true">${st.brand.initials}</span>` : ''}<span class="name">${c.title}</span></button>
-          ${on ? `<div class="detail"><span class="punch" aria-hidden="true"></span><span class="stamp">${t.ui.cities[cityOf(st)]} · ${st.year}</span><strong>${c.role}</strong><small>${c.dates} · ${c.place}</small><p>${c.body}</p></div>` : ''}</li>`;
+          </li>`;
       }).join('')}</ol>
-      <p class="zones"><span class="z br">${t.ui.zones.br}</span><span class="z uk">${t.ui.zones.uk}</span></p>`;
+      <p class="zones"><span class="z br">${t.ui.zones.br}</span><span class="z uk">${t.ui.zones.uk}</span></p>${journeyLine(t, seenSet)}${nextButton(t, seenSet)}`;
+    }
     case 'stack': return `<h2>${s.title}</h2><p>${s.intro}</p><div class="lines">${stackGroups.map(g => `<div class="line" style="--c:${g.color}"><h3>${s.groups[g.id]}</h3><ul>${g.items.map(x => `<li>${toolStops[x].length ? `<button type="button" class="station" data-tool="${x}" aria-pressed="${x === tool}">${x}</button>` : x}</li>`).join('')}</ul></div>`).join('')}</div>`;
     case 'articles': return list(articles, a => `<li>${ext(a.url, `<b>${a.title}</b><small>${s.src} ↗</small>`, 'row')}</li>`, links.medium);
     case 'repos': return list(repos, r => `<li style="--c:${r.color}">${ext(r.url, `<code>${r.name}</code><span class="tags">${r.lang.split(' · ').map(x => `<i>${x}</i>`).join('')}</span><small>${s.descriptions[r.name]}</small><em aria-hidden="true">↗</em>`, 'row repo')}</li>`, links.github + '?tab=repositories');
@@ -152,7 +162,9 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     const city = cityOf(stops[idx]), newCity = !cities.has(city), t = i18n[prefs.lang].ui;
     seen.add(idx); cities.add(city);
     const li = panel.querySelector(`[data-goto="${idx}"]`)?.closest('li');
-    if (li) { li.classList.add('seen'); li.querySelector('.punch')?.classList.add('fresh'); }
+    if (li) li.classList.add('seen');
+    const ticket = panel.querySelector(`.current-stop[data-stop="${idx}"]`);
+    if (ticket) { ticket.classList.add('seen'); ticket.querySelector('.punch')?.classList.add('fresh'); }
     const line = panel.querySelector('.journey-progress');
     if (line) line.outerHTML = journeyLine(i18n[prefs.lang], seen);
     const nextBtn = panel.querySelector('.next-stop'); if (nextBtn) nextBtn.outerHTML = nextButton(i18n[prefs.lang], seen); // empty string removes it once nothing is left
@@ -189,7 +201,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
   let introWasOn = false, introDone = false; // introDone: the intro has opened and closed once, so visit timers may run from now on
   // the intro closing re-arms the stop already under the bus: it was active while the intro was still up, so no render follows
   new MutationObserver(() => { const on = document.body.classList.contains('intro-on'); if (introWasOn && !on) { introDone = true; arm(); } introWasOn = on; }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
-  const render = (reveal = false) => {
+  const render = () => {
     const t = i18n[prefs.lang];
     const st = stops[Math.max(active, 0)];
     document.documentElement.lang = prefs.lang === 'pt' ? 'pt-BR' : 'en';
@@ -230,7 +242,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     const keep = key && [key, prev.getAttribute(key)];
     const panelLinkIndex = panel.contains(prev) && prev.matches('a[href]') ? [...panel.querySelectorAll('a[href]')].indexOf(prev) : -1;
     const panelCredits = panel.contains(prev) && prev.matches('[data-credits]');
-    const top = panel.dataset.section === st.section ? panel.scrollTop : 0;
+    const top = panel.dataset.section === st.section && !(st.section === 'journey' && idx !== lastIdx) ? panel.scrollTop : 0;
     const slide = lastIdx >= 0 && idx !== lastIdx && !matchMedia('(prefers-reduced-motion: reduce)').matches, sectionChanged = panel.dataset.section !== st.section, dir = idx >= lastIdx ? 1 : -1;
     lastIdx = idx;
     panel.innerHTML = sectionHTML(st.section, t, active, tool, route);
@@ -240,10 +252,11 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     }
     panel.scrollTop = top;
     panel.dataset.section = st.section;
+    const routeList = panel.querySelector('.stops'), currentRow = routeList?.querySelector('.on');
+    if (currentRow && matchMedia('(min-width: 768px)').matches) routeList.scrollTop = currentRow.offsetTop - 4;
     clock();
     const introTime = document.getElementById('intro-time'); // ride lengths for the intro card, in the current language
     if (introTime) introTime.textContent = t.ui.rideTime.replace('{auto}', rideSeconds(stops.length, 3400)).replace('{quick}', rideSeconds(QUICK.length, 1600));
-    if (reveal) panel.querySelector('.on')?.scrollIntoView({ block: 'nearest', behavior: 'instant' });
     if (keep) document.querySelector(`[${keep[0]}="${keep[1]}"]`)?.focus({ preventScroll: true });
     else if (!sectionChanged && panelLinkIndex >= 0) panel.querySelectorAll('a[href]')[panelLinkIndex]?.focus({ preventScroll: true });
     else if (!sectionChanged && panelCredits) panel.querySelector('[data-credits]')?.focus({ preventScroll: true });
@@ -282,7 +295,8 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
       const r = themeBtn.getBoundingClientRect(), root = document.documentElement.style;
       root.setProperty('--tx', `${r.left + r.width / 2}px`); root.setProperty('--ty', `${r.top + r.height / 2}px`);
       // ponytail: the reveal is skipped (plain swap) where View Transitions are missing or motion is reduced
-      if (document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.startViewTransition(applyTheme);
+      // A hidden tab can abort the reveal after the theme has already changed.
+      if (document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.startViewTransition(applyTheme).ready.catch(() => {});
       else applyTheme();
     }
   });
@@ -300,19 +314,12 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     if (e.key === 'j') onGoto(Math.min(active + 1, stops.length - 1));
     if (e.key === 'k') onGoto(Math.max(active - 1, 0));
   });
-  if (matchMedia('(pointer: fine)').matches && !matchMedia('(prefers-reduced-motion: reduce)').matches) { // tickets tilt a few degrees towards the pointer
-    let raf = 0;
-    document.addEventListener('pointermove', (e) => {
-      if (raf) return;
-      raf = requestAnimationFrame(() => { raf = 0; panel.style.setProperty('--ry', `${((e.clientX / innerWidth) - 0.5) * 5}deg`); panel.style.setProperty('--rx', `${((e.clientY / innerHeight) - 0.5) * -5}deg`); });
-    }, { passive: true });
-  }
   document.addEventListener('keyup', (e) => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') onHold(0); });
   addEventListener('blur', () => onHold(0));
   applyTheme();
   return {
     get theme() { return prefs.theme; },
-    setActive(i) { if (i !== active) { active = i; render(true); } },
+    setActive(i) { if (i !== active) { active = i; render(); } },
     say,
     discover,
     stamps: () => [...cities].map((c) => i18n[prefs.lang].ui.cities[c]),

@@ -33,6 +33,7 @@ import { lagWetness } from './weather.js';
 import { createWetSurfaces } from './wet-surfaces.js';
 import { createSky, EXPOSURE, SUN_DIR } from './sky.js';
 import { createWater } from './water.js';
+import { towerPierBounds } from './water-math.js';
 import { createAmbient } from './ambient.js';
 import { createParked } from './parked.js';
 import { parkingBays } from './bays.js';
@@ -200,7 +201,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   if (se && !seForced()) startupLandmarks.push(upgradeSe(se, { isDisposed: () => disposed || startupLandmarksCancelled, track: (m) => sky.track(m), env: landmarkEnv }).then((l) => { seLod = l; wake(); }));
   let towerBridgeLod = null; // authored Tower Bridge LOD0/LOD1 (tools/landmarks/towerbridge); procedural group stays hidden underneath as fallback
   const towerbridge = details.getObjectByName('towerbridge-geometry');
-  if (towerbridge && !towerBridgeForced()) upgradeTowerBridge(towerbridge, { isDisposed: () => disposed, track: (m) => sky.track(m), env: landmarkEnv }).then((l) => { towerBridgeLod = l; wake(); });
+  if (towerbridge && !towerBridgeForced()) upgradeTowerBridge(towerbridge, { isDisposed: () => disposed, track: (m) => sky.track(m), env: landmarkEnv }).then((l) => { towerBridgeLod = l; if (l) water.setPiers(towerPierBounds(towerbridge.position.x, RIVER_Z, true)); wake(); });
   let maspLod = null; // authored MASP LOD0 (tools/landmarks/masp); procedural group stays hidden underneath as fallback
   const masp = details.getObjectByName('masp-geometry');
   if (masp && !maspForced()) startupLandmarks.push(upgradeMasp(masp, { isDisposed: () => disposed || startupLandmarksCancelled, track: (m) => sky.track(m), env: landmarkEnv }).then((l) => { maspLod = l; wake(); }));
@@ -236,8 +237,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   wetReflectionHidden.push(...sky.objects);
   if (vehicleFx.points) wetReflectionHidden.push(vehicleFx.points);
   // Foam rings Tower Bridge's piers and moored boats. The river reflects landmarks and bank-side lots.
-  const piers = [], tb = towerX(stops, pts), boatBox = new THREE.Box3(), reflectRoots = [eye];
-  for (const tz of [-9.5, 9.5]) piers.push({ x: tb, z: RIVER_Z + tz, hx: 3.1, hz: 2.9 });
+  const piers = towerPierBounds(towerX(stops, pts), RIVER_Z), boatBox = new THREE.Box3(), reflectRoots = [eye];
   const boatBounds = () => {
     const bounds = [];
     scene.traverse((o) => {
@@ -377,7 +377,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const ka = SECTION_SHOT[stops[i].section], kb = SECTION_SHOT[stops[i + 1].section];
     const la = FRAME_LIFT[stops[i].id] ?? 0, lb = FRAME_LIFT[stops[i + 1].id] ?? 0;
     const lift = la + (lb - la) * (s - i);
-    const shot = blendShots(shotFor(ka, busPos, { mobile, lift }), shotFor(kb, busPos, { mobile, lift }), s - i, ka === kb ? 0 : ARC);
+    const shot = blendShots(shotFor(ka, busPos, { mobile, lift, stop: stops[i].id }), shotFor(kb, busPos, { mobile, lift, stop: stops[i + 1].id }), s - i, ka === kb ? 0 : ARC);
     camera.position.fromArray(shot.position);
     camera.lookAt(shot.target[0], shot.target[1], shot.target[2]);
     if (closeUp) { camera.position.set(...closeUp.p); camera.lookAt(...closeUp.t); camera.fov = closeUp.fov; camera.updateProjectionMatrix(); } // QA only: ?qa=1&closeup=px,py,pz,tx,ty,tz,fov
@@ -441,7 +441,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     wet = lagWetness(wet, mood.wet, dt);
     const flash = rain.update(clock, camera, mood, night, post.tier, busPos, bus.rotation.y);
     sky.update(night, dt, camera.position, camera, mood, flash);
-    skyline.userData.update(night);
+    skyline.userData.update(night, scene.fog.color);
     bigBenLod?.update(camera.position);
     seLod?.update(camera.position);
     towerBridgeLod?.update(camera.position);

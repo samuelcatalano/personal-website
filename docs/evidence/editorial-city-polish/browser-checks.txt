@@ -1,0 +1,14 @@
+{'pass': True, 'width': 1280, 'repositoryDescriptions': 6}
+{'pass': True, 'mobileWidth': 375, 'pageOverflow': 0}
+{'pass': True, 'careerRows': 12}
+{'pass': True, 'checked': ['hero title/role/tagline/meta EN/PT', 'career role EN/PT']}
+{'pass': True, 'width': 800, 'nav': [170.9609375, 521], 'controls': [529, 769]}
+tests/camera-framing.browser.py
+{'pass': True, 'bounds': [{'kind': 'hero', 'left': 752.4300506695414, 'right': 994.9131834019827, 'top': 451.75490673639496, 'bottom': 616.0815669104187}, {'kind': 'follow', 'left': 714.5060365003689, 'right': 967.4884684563398, 'top': 502.2696017846515, 'bottom': 646.115371494994}, {'kind': 'follow', 'stop': 'mira', 'left': 723.2147012177879, 'right': 918.2861164137503, 'top': 561.7731968900054, 'bottom': 674.6239496254973}, {'kind': 'follow', 'stop': 'xdesign', 'left': 477.2266935889991, 'right': 662.8851356401126, 'top': 529.0009842212796, 'bottom': 630.1555858864299}, {'kind': 'follow', 'stop': 'olm', 'left': 637.6003746312765, 'right': 824.682069049705, 'top': 512.5873795541647, 'bottom': 628.5581408539912}, {'kind': 'follow', 'stop': 'glasgow', 'left': 721.6465800329968, 'right': 926.0583767580633, 'top': 552.1802487514824, 'bottom': 670.1005938262724}, {'kind': 'high', 'left': 718.972215777236, 'right': 923.9055358485823, 'top': 607.1467905564816, 'bottom': 729.92591786054}, {'kind': 'closing', 'left': 565.9018060493485, 'right': 1088.4297295067133, 'top': 408.2874924522127, 'bottom': 654.3624250445721}]}
+tests/city-depth.browser.py
+{'pass': True, 'samples': [{'weather': 'clear', 'night': 0, 'fog': [195, 962], 'calls': 26}, {'weather': 'clear', 'night': 0.5, 'fog': [188.5, 897], 'calls': 28}, {'weather': 'clear', 'night': 1, 'fog': [182, 832], 'calls': 27}, {'weather': 'rain', 'night': 0, 'fog': [101.4, 500.24], 'calls': 19}, {'weather': 'rain', 'night': 0.5, 'fog': [98.02000000000001, 466.44000000000005], 'calls': 19}, {'weather': 'rain', 'night': 1, 'fog': [94.64, 432.64000000000004], 'calls': 19}]}
+tests/sky-weather.browser.py
+{'celestialOcclusion': True, 'fogSeam': True, 'staticClouds': True, 'staticStars': True, 'shaders': True}
+tests/render-resources.browser.py
+{'width': 1280, 'pass': True, 'environmentTargets': 2, 'tiers': [{'tier': 'high', 'samples': 4, 'targetsDisposed': 14}, {'tier': 'medium', 'samples': 2, 'targetsDisposed': 13}]}
+{'width': 375, 'pass': True, 'environmentTargets': 2, 'tiers': [{'tier': 'high', 'samples': 4, 'targetsDisposed': 14}, {'tier': 'medium', 'samples': 0, 'targetsDisposed': 13}]}

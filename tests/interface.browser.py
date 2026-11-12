@@ -11,6 +11,8 @@ def screenshot(name):
     (out / name).write_bytes(base64.b64decode(cdp('Page.captureScreenshot', format='png')['data']))
 
 fallback_script = cdp('Page.addScriptToEvaluateOnNewDocument', source="HTMLCanvasElement.prototype.__originalGetContext = HTMLCanvasElement.prototype.getContext; HTMLCanvasElement.prototype.getContext = function(type, ...args) { return type === 'webgl2' ? null : Reflect.apply(this.__originalGetContext, this, [type, ...args]); }")['identifier']
+# These assertions isolate interface state from the ongoing stop-to-stop glide.
+cdp('Emulation.setEmulatedMedia', features=[{'name': 'prefers-reduced-motion', 'value': 'reduce'}])
 cdp('Runtime.evaluate', expression="history.replaceState(null, '', location.pathname); localStorage.setItem('lang', 'en'); localStorage.setItem('theme', 'day')")
 cdp('Page.reload', ignoreCache=True)
 wait_for_load()
@@ -112,6 +114,7 @@ finally:
     js("if (HTMLCanvasElement.prototype.__originalGetContext) HTMLCanvasElement.prototype.getContext = HTMLCanvasElement.prototype.__originalGetContext; delete HTMLCanvasElement.prototype.__originalGetContext")
     cdp('Page.removeScriptToEvaluateOnNewDocument', identifier=fallback_script)
     cdp('Emulation.clearDeviceMetricsOverride')
+    cdp('Emulation.setEmulatedMedia', features=[])
 
 cdp('Emulation.setDeviceMetricsOverride', width=800, height=900, deviceScaleFactor=1, mobile=False)
 print(js("""(() => {

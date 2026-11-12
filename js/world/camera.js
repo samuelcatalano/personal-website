@@ -1,20 +1,22 @@
 export const SECTION_SHOT = {
   hero: 'hero', journey: 'follow', stack: 'high', articles: 'high', repos: 'high', recs: 'high', contact: 'closing',
 };
-export function shotFor(kind, bus, { mobile = false, lift = 0 }) {
+export function shotFor(kind, bus, { mobile = false, lift = 0, stop } = {}) {
   const k = mobile ? 0.95 : 1;
   const up = mobile ? 0 : 1; // tilt up on desktop to show sky; on mobile the panel already hides the lower frame, so the bus must stay high
   const { x, y, z } = bus;
   switch (kind) {
-    case 'hero': return { position: [x + 28 * k, y + 32 * k, z + 45 * k], target: [x + 2, y + 4 + 9 * up, z + 4] };
+    case 'hero': return { position: [x + 28 * k, y + 32 * k, z + 45 * k], target: [x + 2, y + 4 + 6 * up, z + 4] };
     case 'follow': {
-      const L = lift;
+      const L = lift + (!mobile && stop === 'glasgow' ? 0.8 : 0);
+      const london = !mobile && (stop === 'xdesign' || stop === 'olm');
+      const pan = london ? (stop === 'xdesign' ? 20 : 8) : 0;
       return {
-        position: [x + (20 + 6 * L) * k, y + (29 + 10 * L) * k, z + (50 + 14 * L) * k],
-        target: [x + 2, y + 5 + 9 * up + 4 * L, z + 2 - 5 * L], // lifted stops: half the earlier aim shift, so the bus stays in the lower-middle of the frame
+        position: [x + (20 + 6 * L) * k + (london ? 18 : 0), y + (29 + 10 * L) * k, z + (50 + 14 * L) * k],
+        target: [x + 2 + pan, y + 5 + 6 * up + 4 * L, z + 2 - 5 * L], // London's extra parallax separates the wheel and clock tower; lower aim reserves space for the vehicle.
       };
     }
-    case 'high': return { position: [x + 30 * k, y + 34 * k, z + 60 * k], target: [x - 6, y + 6 + 10 * up, z - 20] };
+    case 'high': return { position: [x + 30 * k, y + 34 * k, z + 60 * k], target: [x - 6, y + 6 + 7 * up, z - 20] };
     case 'closing': {
       // Desktop dollies in 15% so the waving character gains ~1.2x pixels; any closer crops Wembley's arch legs and stadium.
       const c = mobile ? 1 : 0.85;

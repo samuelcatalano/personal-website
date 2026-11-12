@@ -28,3 +28,17 @@ test('detail slopes average to flat, so mipmaps calm the far water', () => {
   const n = t.length / 4;
   assert.ok(Math.abs(r / n - 127.5) < 4 && Math.abs(g / n - 127.5) < 4);
 });
+
+test('Tower Bridge foam follows the active model pier footprints on both banks', async () => {
+  const { towerPierBounds } = await import('../js/world/water-math.js');
+  assert.equal(typeof towerPierBounds, 'function');
+  const old = towerPierBounds(100, -45), authored = towerPierBounds(100, -45, true);
+  assert.deepEqual(old.map(p => p.z), [-54.5, -35.5]);
+  for (const [i, p] of authored.entries()) {
+    assert.equal(p.x, 100);
+    assert.ok(Math.abs(Math.abs(p.z + 45) - 14.6) < 1e-9);
+    assert.ok(Math.abs(p.hx - 4.704) < 1e-9);
+    assert.ok(Math.abs(p.hz - 3.504) < 1e-9);
+    assert.ok(Math.abs(old[i].z - p.z) > old[i].hz + 1);
+  }
+});

@@ -199,6 +199,22 @@ test('follow shot is unchanged without lift', () => {
   assert.deepEqual(shotFor('follow', bus, { mobile: false, lift: 0 }), shotFor('follow', bus, { mobile: false }));
 });
 
+test('landmark framing preserves mobile shots and gives London a separate desktop angle', () => {
+  const bus = { x: 10, y: 2, z: -3 };
+  for (const lift of [0, .6, 1]) {
+    const original = { position: [10 + (20 + 6 * lift) * .95, 2 + (29 + 10 * lift) * .95, -3 + (50 + 14 * lift) * .95], target: [12, 7 + 4 * lift, -1 - 5 * lift] };
+    for (const stop of ['mira', 'xdesign', 'olm', 'glasgow', 'tribal']) {
+      assert.deepEqual(shotFor('follow', bus, { mobile: true, lift, stop }), original);
+    }
+  }
+  const standard = shotFor('follow', bus, { lift: 1 });
+  const london = shotFor('follow', bus, { lift: 1, stop: 'xdesign' });
+  assert.ok(Math.abs(london.position[0] - standard.position[0]) >= 12, 'London needs enough parallax to separate landmark silhouettes');
+  assert.ok(london.target[1] < 20, 'The vehicle stays above the lower edge');
+  const glasgow = shotFor('follow', bus, { stop: 'glasgow' });
+  assert.ok(Math.hypot(...glasgow.position) > Math.hypot(...shotFor('follow', bus).position), 'Glasgow needs room above its tall university');
+});
+
 test('lift raises the aim and pulls the camera back for tall landmarks', () => {
   const bus = { x: 0, y: 0, z: 0 };
   const flat = shotFor('follow', bus, { mobile: false }), tall = shotFor('follow', bus, { mobile: false, lift: 1 });

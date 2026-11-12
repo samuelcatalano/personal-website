@@ -22,7 +22,7 @@ w *= 0.96;
 gl_FragColor = vec4(base.rgb + acc / 40.0 * uStrength, base.a);
 }`,
 };
-// Display-space grade after tone mapping: ACES flattens colour, the North Star look is saturated and warm.
+// Restrained display-space grade keeps facade detail without pushing the distant city forward.
 const Grade = {
   uniforms: { tDiffuse: { value: null }, uSat: { value: 1.18 }, uContrast: { value: 1.07 }, uWarm: { value: new THREE.Vector3(1.03, 1.0, 0.95) } },
   vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
@@ -37,7 +37,8 @@ gl_FragColor = vec4(clamp(g * uWarm, 0.0, 1.0), c.a);
 };
 export function createPost(renderer, scene, camera, { tier = 'high', sun } = {}) {
   const size = renderer.getSize(new THREE.Vector2());
-  const pr = renderer.getPixelRatio(), msaa = (t) => (t === 'high' ? 4 : 0); // the default composer target drops the canvas antialias, so thin detail (A330 windows, railings) stair-steps; MSAA rides the high tier (desktop p95 9 -> 17 ms at 120 Hz, the fps governor demotes it)
+  // The composer bypasses canvas AA; retain two samples on desktop medium for thin wheel spokes and facade edges.
+  const pr = renderer.getPixelRatio(), msaa = t => t === 'high' ? 4 : globalThis.matchMedia?.('(min-width: 768px)').matches ? 2 : 0;
   const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(size.x * pr, size.y * pr, { type: THREE.HalfFloatType, samples: msaa(tier), depthTexture: tier === 'high' ? new THREE.DepthTexture(size.x * pr, size.y * pr) : null }));
   composer.addPass(new RenderPass(scene, camera));
   const heavy = [];
@@ -58,7 +59,7 @@ export function createPost(renderer, scene, camera, { tier = 'high', sun } = {})
     tier,
     dispose() { if (disposed) return; disposed = true; composer.passes.forEach((pass) => pass.dispose()); composer.dispose(); },
     passes: { ao: heavy.find((p) => p instanceof AOPass) ?? null, rays, bloom, grade }, // read by the QA probes (?qa)
-    setSize(w, h) { composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h); },
+    setSize(w, h) { post.setTier(post.tier); composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h); },
     setFocus(d) { post.passes.ao?.setFocus(d); },
     setTier(t) {
       post.tier = t;
@@ -73,8 +74,8 @@ export function createPost(renderer, scene, camera, { tier = 'high', sun } = {})
       }
       const day = sun ? Math.min(1, sun.intensity / 2.4) : 1; // night keeps its own cool palette
       // ponytail: key intensity approximates time of day; no additional exposure pass.
-      grade.uniforms.uContrast.value = 1.025 + 0.045 * day;
-      grade.uniforms.uSat.value = 1 + 0.14 * day; grade.uniforms.uWarm.value.set(1 + 0.02 * day, 1, 1 - 0.03 * day);
+      grade.uniforms.uContrast.value = 1.015 + 0.025 * day;
+      grade.uniforms.uSat.value = 1 + 0.08 * day; grade.uniforms.uWarm.value.set(1 + 0.015 * day, 1, 1 - 0.02 * day);
       composer.render(dt);
     },
   };

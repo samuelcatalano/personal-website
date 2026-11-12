@@ -48,3 +48,9 @@ export function detailTexture(size = 128, waves = detailWaves()) {
   }
   return data;
 }
+
+// Waterline footprints: procedural towers are at ±9.5 m; the authored builder uses K=.4, TZ=36.5.
+// At water y=.1, the battered authored pier half-extents are .4*(12-.24), .4*(9-.24).
+export function towerPierBounds(x, z, authored = false) {
+  return [-1, 1].map(side => ({ x, z: z + side * (authored ? 14.6 : 9.5), hx: authored ? 4.704 : 2.6, hz: authored ? 3.504 : 2.4 }));
+}

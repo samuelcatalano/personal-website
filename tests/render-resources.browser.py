@@ -1,7 +1,7 @@
 # Desktop only. Run with the local preview open: browser-harness < tests/render-resources.browser.py
 assert page_info()['url'].startswith('http://localhost:'), 'Open the local preview first'
 assert js('innerWidth >= 1100'), 'Use a desktop viewport (at least 1100px)'
-reply = cdp('Runtime.evaluate', expression=r'''(async () => {
+expression = r'''(async () => {
   const T = await import('three');
   const { createPost } = await import('./js/world/post.js');
   const { createLandmarkEnv } = await import('./js/world/landmark-env.js');
@@ -40,15 +40,24 @@ reply = cdp('Runtime.evaluate', expression=r'''(async () => {
       finally { T.WebGLRenderTarget.prototype.dispose = original; }
       check(calls.size >= 2, `${tier}: render targets released`);
       check([...calls.values()].every(n => n === 1), `${tier}: targets released once`);
-      tiers.push({ tier, targetsDisposed: calls.size });
+      const samples = [...calls.keys()].filter(target => target.samples > 0).map(target => target.samples);
+      const expected = tier === 'high' ? 4 : matchMedia('(min-width: 768px)').matches ? 2 : 0;
+      check(expected ? samples.length >= 2 && samples.every(n => n === expected) : samples.length === 0, `${tier}: wrong multisampling for viewport`);
+      tiers.push({ tier, samples: expected, targetsDisposed: calls.size });
     }
     check(renderer.getContext().getError() === 0, 'no WebGL error after teardown');
     return { pass: true, environmentTargets: targets.length, tiers };
   } finally {
     env.dispose(); geometry.dispose(); material.dispose(); renderer.dispose();
   }
-})()''', returnByValue=True, awaitPromise=True, _response_timeout=60)
-assert 'exceptionDetails' not in reply, reply.get('exceptionDetails')
-result = reply['result'].get('value')
-print(result)
-assert result and result.get('pass'), result
+})()'''
+try:
+    for width in [1280, 375]:
+        cdp('Emulation.setDeviceMetricsOverride', width=width, height=800, deviceScaleFactor=1, mobile=width == 375)
+        reply = cdp('Runtime.evaluate', expression=expression, returnByValue=True, awaitPromise=True, _response_timeout=60)
+        assert 'exceptionDetails' not in reply, reply.get('exceptionDetails')
+        result = reply['result'].get('value')
+        assert result and result.get('pass'), result
+        print(dict(width=width, **result))
+finally:
+    cdp('Emulation.clearDeviceMetricsOverride')

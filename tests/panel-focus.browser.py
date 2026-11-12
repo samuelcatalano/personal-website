@@ -27,6 +27,8 @@ try:
   document.querySelector('[data-lang]').click();
   check(/\d{2}:\d{2}/.test(document.querySelector('[data-london]')?.textContent), 'London clock is empty after panel rebuild');
   document.querySelector('[data-lang]').click();
+  const heroLinks = panel.querySelector('.hero-links');
+  check(heroLinks.compareDocumentPosition(panel.querySelector('.tagline')) & Node.DOCUMENT_POSITION_FOLLOWING, 'Hero humour competes with contact actions');
   await open('repos');
   check(panel.querySelectorAll('a.repo small').length === 6, 'Repository descriptions are missing');
   const repo = panel.querySelector('a.repo');
@@ -37,8 +39,24 @@ try:
   check(document.activeElement?.getAttribute('href') === href, 'Repository link lost focus on panel rebuild');
   check(panel.querySelector('a.repo small')?.textContent.includes('Exemplo'), 'Portuguese description is missing');
   await open('journey');
-  check(panel.textContent.includes('Parada mais recente:'), 'Recent experience summary is missing');
-  check(panel.textContent.includes('Volkswagen'), 'Recent experience context is missing');
+  const selected = panel.querySelector('[data-goto="9"]');
+  selected.focus(); selected.click();
+  for (let i = 0; i < 30 && !panel.querySelector('.current-stop[data-stop="9"]'); i++) await new Promise(resolve => setTimeout(resolve, 30));
+  const ticket = panel.querySelector('.current-stop');
+  check(ticket?.dataset.stop === '9', 'Selected stop has no leading ticket');
+  check(ticket.compareDocumentPosition(panel.querySelector('.stops')) & Node.DOCUMENT_POSITION_FOLLOWING, 'Timeline precedes selected experience');
+  check(ticket.compareDocumentPosition(panel.querySelector('.recent-role')) & Node.DOCUMENT_POSITION_FOLLOWING, 'Current role competes with selected experience');
+  check(ticket.textContent.includes('xDesign') && ticket.textContent.includes('FanDuel'), 'Selected ticket has wrong company or contribution');
+  check(panel.querySelector('.recent-role').textContent.includes('Tribal'), 'Compact current role is missing');
+  check(!panel.querySelector('.recent-body'), 'Current role still repeats its full description');
+  check(panel.scrollTop < 8, 'Selected ticket is scrolled out of view');
+  check(document.activeElement?.dataset.goto === '9', 'Selected stop lost keyboard focus');
+  const selectionBox = document.activeElement.getBoundingClientRect(), panelBox = panel.getBoundingClientRect();
+  check(selectionBox.top >= panelBox.top && selectionBox.bottom <= panelBox.bottom, 'Keyboard focus is clipped below the selected ticket');
+  document.querySelector('[data-lang]').click();
+  check(panel.querySelector('.current-stop').textContent.includes('Senior Java Software Engineer'), 'Selected ticket did not translate');
+  check(document.activeElement?.dataset.goto === '9', 'Selected stop lost focus on translation');
+  document.querySelector('[data-lang]').click();
   await open('contact');
   const email = panel.querySelector('a[href^="mailto:"]');
   email.focus();
@@ -47,6 +65,23 @@ try:
   panel.querySelector('[data-credits]').focus();
   document.querySelector('[data-lang]').click();
   check(document.activeElement?.matches('[data-credits]'), 'Credits control lost focus on panel rebuild');
+  if (document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const start = document.startViewTransition;
+    let unhandled = false;
+    const rejection = event => { unhandled = true; event.preventDefault(); };
+    addEventListener('unhandledrejection', rejection);
+    try {
+      document.startViewTransition = update => { update(); return { ready: Promise.reject(new DOMException('Document hidden', 'InvalidStateError')) }; };
+      document.querySelector('[data-theme]').click();
+      await new Promise(resolve => setTimeout(resolve, 100));
+      check(!unhandled, 'Aborted theme reveal leaves an unhandled rejection');
+    } finally {
+      document.startViewTransition = undefined;
+      document.querySelector('[data-theme]').click();
+      document.startViewTransition = start;
+      removeEventListener('unhandledrejection', rejection);
+    }
+  }
   return { pass: true, width: innerWidth, repositoryDescriptions: 6 };
 })()""", returnByValue=True, awaitPromise=True, _response_timeout=60)
 finally:

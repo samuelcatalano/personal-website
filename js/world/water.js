@@ -167,8 +167,11 @@ export function createWater({ x0, x1, z, width, reducedMotion = false, piers = [
   });
   const u = mat.uniforms;
   u.tDetail.value = getDetail(); u.tRefl.value = rt.texture; // after merge: UniformsUtils.merge clones textures
-  piers.slice(0, MAX_PIERS).forEach((p, i) => u.uPiers.value[i].set(p.x, p.z, p.hx, p.hz));
-  u.uPierN.value = Math.min(piers.length, MAX_PIERS);
+  const setPiers = (piers) => {
+    piers.slice(0, MAX_PIERS).forEach((p, i) => u.uPiers.value[i].set(p.x, p.z, p.hx, p.hz));
+    u.uPierN.value = Math.min(piers.length, MAX_PIERS);
+  };
+  setPiers(piers);
   const setBoats = (boats) => {
     boats.slice(0, MAX_BOATS).forEach((b, i) => u.uBoats.value[i].set(b.x, b.z, b.hx, b.hz));
     u.uBoatN.value = Math.min(boats.length, MAX_BOATS);
@@ -211,7 +214,7 @@ export function createWater({ x0, x1, z, width, reducedMotion = false, piers = [
     return frustum.intersectsBox(box);
   };
   return {
-    mesh, bankReflection, setBoats,
+    mesh, bankReflection, setBoats, setPiers,
     ripple(x, zTap) {
       if (reducedMotion || !Number.isFinite(x) || !Number.isFinite(zTap) || x < x0 || x > x1 || Math.abs(zTap - z) > width / 2) return false;
       u.uTaps.value[nextTap].set(x, zTap, u.uTime.value, 1);

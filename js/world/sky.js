@@ -17,7 +17,7 @@ export function untone(c) {
 }
 const C = (h) => new THREE.Color(h);
 export const DAY = { zen: C(0x6fb1e8), hor: C(0xb9dcf5), cloud: C(0xf4f9ff), sun: 2.35, hemi: 1.08, light: C(0xfff0d0) };
-export const NIGHT = { zen: C(0x0b1530), hor: C(0x1d2b4f), cloud: C(0x3b4668), sun: 0.40, hemi: 0.60, light: C(0xaec4ff) };
+export const NIGHT = { zen: C(0x0b1530), hor: C(0x1d2b4f), cloud: C(0x3b4668), sun: 0.40, hemi: 0.68, light: C(0xaec4ff) };
 export const SUN_DIR = new THREE.Vector3(110, 45, 40).normalize(); // directional light + sun + moon share this direction
 const DIST = 1300; // just inside camera.far (1400), beyond every building
 function disc(draw) {
@@ -183,7 +183,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
       u.uClear.value = clear; u.uNight.value = night;
       scene.fog.color.copy(u.uHor.value); // already tone-inverted
       scene.background?.copy(scene.fog.color);
-      scene.fog.near = (200 - 20 * night) * mood.fogK; scene.fog.far = (820 - 140 * night) * mood.fogK;
+      scene.fog.near = (150 - 10 * night) * mood.fogK; scene.fog.far = (740 - 100 * night) * mood.fogK;
       for(const mat of [cloudMat,cirrusMat,deckMat]){
         const cu=mat.uniforms;
         cu.uTop.value.lerpColors(day(mood.cloud,d1),NIGHT.cloud,night);untone(cu.uTop.value);
