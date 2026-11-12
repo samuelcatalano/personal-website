@@ -1,8 +1,9 @@
+import { finishBuilding, finishLegacyBuilding } from './building-finish.js';
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { classifyPlot, createCityRollout } from './city-rollout.js';
 import { upgradeFacadeKits } from './facade-kit.js';
 import { trackWork } from './load-progress.js';
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { surfaceNoiseTexture } from './textures.js';
 import { isWembleyBenchmark } from './layout.js';
 import { PALETTE as P } from './palette.js';
@@ -90,6 +91,7 @@ function addInstances(group, mat, details, castShadow = true) {
   mesh.castShadow = castShadow;
   mesh.receiveShadow = true;
   group.add(mesh);
+  return mesh;
 }
 
 function coloredGeometry(source, matrix, tint) {
@@ -161,11 +163,12 @@ export function createBuilding(plot, benchmark = false) {
     if (kind === 'shop') glass.push([-w * 0.16, bodyHeight * 0.17, d / 2 - 0.04, w * 0.37, bodyHeight * 0.235, 0.04]);
     const dx = kind === 'shop' ? 0.37 : 0.33;
     doors.push([w * dx, bodyHeight * 0.15, d / 2 - 0.025, w * 0.095, bodyHeight * 0.24, 0.035]);
-    addInstances(building, benchmarkDetails, [
+    const details=addInstances(building, benchmarkDetails, [
       ...glass.map(item => [...item, '#78aebf']),
       ...frame.map(item => [...item, '#e5d8bd']),
       ...doors.map(item => [...item, '#493d34']),
     ], false);
+    details.userData.instanceSurface=new Uint8Array([...glass.map(()=>6),...frame.map(()=>3),...doors.map(()=>7)]);
     return building;
   }
 
@@ -239,11 +242,12 @@ export function createCityBuildings(plots,{rollout=true,kits=true}={}) {
     if (SHOP_INTEGRATION_IDS.includes(plot.id)) { shopIntegrationPlots.push(plot); continue; }
     if (SHOP_LOT_IDS.includes(plot.id)) { shopPlots.push(plot); continue; }
     if (HERO_LOT_IDS.includes(plot.id)) { heroPlots.push(plot); continue; }
-    if (plot.id === TOWER_LOT_ID) { city.add(createTowerSlice(plot)); continue; }
-    if (plot.id === OFFICE_LOT_ID) { city.add(applyOfficeFacade(createOfficeSlice(plot, officeDepthRecipe(plot)))); continue; }
-    if (plot.id === MIDRISE_LOT_ID) { city.add(createMidriseSlice(plot)); continue; }
+    if (plot.id === TOWER_LOT_ID) { city.add(finishBuilding(createTowerSlice(plot),plot,'tower')); continue; }
+    if (plot.id === OFFICE_LOT_ID) { city.add(applyOfficeFacade(finishBuilding(createOfficeSlice(plot, officeDepthRecipe(plot)),plot,'office'))); continue; }
+    if (plot.id === MIDRISE_LOT_ID) { city.add(finishBuilding(createMidriseSlice(plot),plot,'midrise')); continue; }
     if (MIDRISE_REPLICATION_IDS.includes(plot.id)) { midrisePlots.push(plot); continue; }
     if (rollout && classifyPlot(plot)) { rolloutPlots.push(plot); continue; }
+    if(rollout){city.add(finishLegacyBuilding(createBuilding(plot, benchmark),plot));continue;}
     const building = createBuilding(plot, benchmark);
     building.updateMatrix();
     for (const child of building.children) {
@@ -316,13 +320,13 @@ export function createCityBuildings(plots,{rollout=true,kits=true}={}) {
     mesh.receiveShadow = true;
     city.add(mesh);
   }
-  const slices = city.children.filter(o=>['midrise-slice','office-slice','tower-slice','hero-zone-architecture','shop-slice','shop-integration','citywide-architecture'].includes(o.userData.archetype));
+  const slices = city.children.filter(o=>['midrise-slice','office-slice','tower-slice','hero-zone-architecture','shop-slice','shop-integration','citywide-architecture','ordinary-legacy-finish','townhouse-benchmark-chunk'].includes(o.userData.archetype));
   if (slices.length) {
     const dispose = city.userData.dispose;let disposed = false;
     city.userData.dispose = () => { if (disposed) return;disposed = true;dispose?.();for (const group of slices) { if(group.userData.dispose)group.userData.dispose();else for (const mesh of group.children) mesh.geometry.dispose(); } };
   }
   const rolloutGroup=city.getObjectByName('citywide-architecture');
-  if (rolloutGroup) { const update=city.userData.update;city.userData.update=camera=>{update?.(camera);rolloutGroup.userData.update(camera);}; }
+  if (rolloutGroup) { const update=city.userData.update;city.userData.update=camera=>{update?.(camera);return rolloutGroup.userData.update(camera);}; }
   city.userData.buildingCount = buildingCount;
   city.userData.sliceCount = sliceCount;
   city.userData.benchmarkCount = benchmarkCount;

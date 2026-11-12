@@ -19,8 +19,8 @@ export function officeOverlay(p, r, kit, hs) {
     { ry: -QUARTER, span: d, run: d - .5, bays: sideBays, at: (u) => [-w / 2, u] },
   ];
   const surf = { mass: S.stone, trim: S.trim, glass: S.glass }, dark = { mass: S.roof, trim: S.trim, glass: S.glass };
-  const bay = ['bay_square_01', 'bay_blade_02', 'bay_twin_03'][pick(hs, 0, 3)], rib = ['ribbon_frit_01', 'ribbon_louvre_02', 'ribbon_fascia_03'][pick(hs, 3, 3)];
-  const cornice = ['cornice_bands_01', 'cornice_dentil_02', 'cornice_corbel_03'][pick(hs, 10, 3)], parapet = pick(hs, 12, 2) ? 'parapet_coping_01' : 'parapet_rail_02';
+  const bay = r.emphasis==='vertical'?'bay_blade_02':'bay_square_01', rib = 'ribbon_fascia_03';
+  const cornice = 'cornice_bands_01', parapet = pick(hs, 12, 2) ? 'parapet_coping_01' : 'parapet_rail_02';
   for (const f of faces) {
     for (let i = 1; i < f.bays; i++) { // vertical mullion fins from the podium up to the crown
       const [x, z] = f.at(-f.span / 2 + i * f.span / f.bays);

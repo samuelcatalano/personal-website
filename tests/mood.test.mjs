@@ -28,6 +28,19 @@ test('mood is continuous across every boundary', () => {
 
 test('output object is reused', () => assert.equal(moodAt(0), moodAt(0.5)));
 
+test('runtime climate transitions ease colour and rain while reduced motion snaps', () => {
+  const mixed = { sp: clearWeather.sp, lon: createWeather({ override: 'rain' }).lon, gla: clearWeather.gla };
+  const smooth = createMood(stops, { weather: mixed }), instant = createMood(stops, { weather: mixed, reducedMotion: true });
+  smooth(0, 0); instant(0, 0);
+  const target = createMood(stops, { weather: mixed })(.5);
+  const first = smooth(.5, 1 / 60);
+  assert.ok(first.rain > 0 && first.rain < target.rain * .1);
+  const reference = first;
+  for (let i = 0; i < 600; i++) smooth(.5, 1 / 60);
+  assert.ok(reference.rain > target.rain * .98);
+  assert.deepEqual(instant(.5, 1 / 60), target);
+});
+
 test('weather data blends continuously with regional mood', () => {
   for (const b of [sw, g0, g1]) for (let d = -1; d <= 1; d += 0.01) {
     const a = snap(b + d * u), c = snap(b + d * u + 1e-4);

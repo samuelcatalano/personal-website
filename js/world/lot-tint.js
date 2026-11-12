@@ -14,7 +14,7 @@ export function regionForPlot(p){
 }
 
 // Vertex tints vary the shared metric atlas; materials and maps are never cloned.
-const walls=[[1.12,1.14,1.16],[.55,.80,1.12],[.65,.92,.60],[1.18,.82,.45],[1.10,.65,.70],[.58,.64,.72],[1.10,1.04,.80],[.83,.75,.64],[1.15,.95,.62],[.72,.95,.88],[1.05,.55,.45],[.92,.88,1.08],[1.16,1.08,.92],[.62,.72,.58],[1.12,.90,.88],[.86,.94,1.08],[.88,1.02,.93],[1.14,1.08,.80],[.80,.82,.85],[1.15,.80,.66]]; // 14-19: painted pink, powder blue, mint, butter yellow, grey stone, terracotta
+const walls=[[1.12,1.14,1.16],[.40,.74,1.18],[.48,.96,.55],[1.24,.77,.28],[1.20,.55,.65],[.48,.57,.68],[1.14,1.05,.76],[.82,.70,.56],[1.22,.94,.46],[.53,.97,.83],[1.12,.40,.29],[.95,.83,1.10],[1.19,1.10,.94],[.52,.72,.49],[1.20,.76,.73],[.70,.89,1.12],[.72,1.04,.84],[1.22,1.10,.65],[.78,.82,.87],[1.20,.69,.47]]; // regional pigments: ochre, terracotta, sage, powder blue and warm mineral neutrals
 // Glass tint families (multipliers on the shared teal pane): 0 cool blue, 1 green-teal, 2 bronze, 3 silver, 4 smoked.
 const glassTints=[[.82,1.03,1.25],[.79,1.10,.94],[1.35,1.08,.82],[1.24,1.16,1.07],[.58,.64,.7]];
 const glassPick={london:[0,3,4,0,3,2],paulista:[1,2,3,1,0,4],countryside:[0,3,4,1,2,0],glasgow:[3,4,0,3,2,1],none:[0,1,3,2,4,0]};
@@ -33,7 +33,7 @@ export function tint(g,p,{walls:wallStrength=1}={}) { // walls: 0 = leave wall c
   const regionalBrick=region==='glasgow'?bricks[[2,5,7][Math.floor(seed/3)%3]]:region==='london'?bricks[[0,5,7][Math.floor(seed/3)%3]]:region==='countryside'?bricks[[2,3,7][Math.floor(seed/3)%3]]:bricks[Math.floor(seed/3)%bricks.length];
   const pitched=p.kind==='terrace'||p.kind==='shop',gt=glassTints[glassPick[region||'none'][Math.floor(seed/7)%6]];
   const roofTop=roofFor(pitched?roofs.pitched[region||'none'][Math.floor(seed/13)%4]:roofs.flat[Math.floor(seed/13)%8]);
-  const metalTrim=(p.kind==='office'||p.kind==='tower'||p.height>=40)?[[.72,.77,.80],[.58,.64,.68],[.90,.82,.68]][seed%3]:[1,1,1];
+  const metalTrim=(p.kind==='office'||p.kind==='tower'||p.height>=40)?[[.36,.44,.51],[.28,.34,.40],[.66,.50,.30]][seed%3]:[1.18,1.20,1.22];
   const wallValue = 0.86 + (Math.floor(seed / 223) % 15) * 0.02;
   for(const m of g.children){const a=m.geometry.attributes;
     for(let i=0;i<a.position.count;i++){

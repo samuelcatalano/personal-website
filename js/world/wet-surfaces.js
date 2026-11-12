@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
 import { untone } from './sky.js';
+import { coverShader, coverUniforms } from './weather-cover.js';
 
 const registrations = new WeakMap();
 const sceneRegistrations = new WeakMap();
@@ -10,6 +11,7 @@ const defaultZenith = [0.435, 0.694, 0.91], defaultHorizon = [0.725, 0.863, 0.96
 const clamp = n => Math.max(0, Math.min(1, n));
 function uniforms() {
   return {
+    ...coverUniforms(),
     uWet: { value: 0 }, uWeatherTime: { value: 0 }, uWetRain: { value: 0 }, uWetNight: { value: 0 },
     uWetAnimate: { value: 1 }, uWetHigh: { value: 1 },
     uWetSky: { value: new THREE.Color('#6fb1e8') }, uWetHorizon: { value: new THREE.Color('#b9dcf5') },
@@ -20,6 +22,7 @@ function uniforms() {
 }
 
 const fragment = `
+${coverShader}
 uniform float uWet, uWeatherTime, uWetRain, uWetNight, uWetAnimate, uWetHigh;
 uniform vec3 uWetSky, uWetHorizon, uWetLamps[4], uWetBus;
 uniform vec2 uWetHeading;
@@ -44,19 +47,24 @@ const surface = `
 // Compute exposure before rain perturbs the shading normal: walls stay dry.
 vec3 wetWorldNormal = inverseTransformDirection(normal, viewMatrix);
 float wetMask = uWet * smoothstep(0.45, 0.85, wetWorldNormal.y);
+float wetExposed = 1.0;
 float wetPuddle = 0.0, wetRoad = 0.0;
 // ponytail: ground-level puddles stay off shared roof faces; add surface tags if elevated decks need puddles.
 if (wetMask > 0.001 && vWetWorld.y < 0.4) {
+  wetExposed = 1.0 - step(vWetWorld.y + .6, weatherRoof(vWetWorld.xz));
+  float wetPatch = smoothstep(.18, .82, wetNoise(vWetWorld.xz * .19) + wetNoise(vWetWorld.xz * .73) * .22);
+  wetMask *= mix(.28, 1.0, wetPatch) * mix(.15, 1.0, wetExposed);
   // Dark base colour = asphalt; light = pavement. Pools cluster in low-frequency basins and stay small with feathered edges.
   wetRoad = 1.0 - smoothstep(0.16, 0.30, dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11)));
   float basin = wetNoise(vWetWorld.xz * 0.09 + 7.0);
   float pool = wetNoise(vWetWorld.xz * 0.42) * 0.8 + wetNoise(vWetWorld.xz * 1.1) * 0.2;
-  float edge = mix(0.81, 0.75, wetRoad) - 0.08 * smoothstep(0.45, 0.8, basin);
-  wetPuddle = wetMask * smoothstep(edge, edge + 0.16, pool) * (0.45 + 0.55 * wetRoad);
+  float edge = mix(.86, .74, wetRoad) + .10 * (1.0 - uWet) - .08 * smoothstep(.45, .8, basin);
+  wetPuddle = wetMask * smoothstep(edge, edge + .16, pool) * (.3 + .7 * wetRoad) * wetExposed;
 }
 diffuseColor.rgb *= 1.0 - 0.30 * wetMask * (0.5 + 0.5 * mix(0.4, 1.0, wetNoise(vWetWorld.xz * 0.3)));
-roughnessFactor = mix(roughnessFactor, max(0.22, roughnessFactor * 0.45), wetMask);
-roughnessFactor = mix(roughnessFactor, 0.12, wetPuddle);
+float wetRoughness = mix(max(.38, roughnessFactor * .7), max(.24, roughnessFactor * .48), wetRoad);
+roughnessFactor = mix(roughnessFactor, wetRoughness, wetMask);
+roughnessFactor = mix(roughnessFactor, .16, wetPuddle);
 float wetGlint = 0.0;
 if (uWetHigh > 0.5 && uWetAnimate > 0.5 && uWetRain > 0.01 && wetPuddle > 0.001) {
   vec2 cell = floor(vWetWorld.xz * 1.3), local = fract(vWetWorld.xz * 1.3) - 0.5;
@@ -80,7 +88,7 @@ if (wetMask > 0.001 && (wetPuddle > 0.001 || wetRoad > 0.001)) {
     vec4 reflected = texture2D(uWetReflection, wetUv);
     wetSky = mix(wetSky, reflected.rgb, reflected.a);
   }
-  float reflectionAmount = wetMask * wetRoad * (0.035 + 0.15 * wetFresnel) + wetPuddle * (0.12 + 0.35 * wetFresnel);
+  float reflectionAmount = wetMask * wetRoad * (.02 + .08 * wetFresnel) + wetPuddle * (.12 + .30 * wetFresnel);
   outgoingLight = mix(outgoingLight, wetSky, clamp(reflectionAmount, 0.0, 0.65));
   if (uWetNight > 0.01) {
     float wetLights = 0.0;
@@ -121,14 +129,15 @@ function register(material) {
       .replace('#include <lights_physical_fragment>', surface + '\n#include <lights_physical_fragment>')
       .replace('#include <opaque_fragment>', reflection + '\n#include <opaque_fragment>');
   };
-  material.customProgramCacheKey = function() { return (defaultKey ?? key.call(this)) + '-wet-surfaces-v3'; };
+  material.customProgramCacheKey = function() { return (defaultKey ?? key.call(this)) + '-wet-surfaces-v4'; };
   material.needsUpdate = true;
   registrations.set(material, entry);
   return entry;
 }
 
-export function createWetSurfaces(scene, { lamps = [], reducedMotion = false } = {}) {
+export function createWetSurfaces(scene, { lamps = [], reducedMotion = false, cover } = {}) {
   const state = uniforms(), materials = new Set(), entries = [];
+  Object.assign(state, coverUniforms(cover));
   const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
   const mirror = new THREE.PerspectiveCamera(), rotation = new THREE.Matrix4(), size = new THREE.Vector2();
   const normal = new THREE.Vector3(0, 1, 0), origin = new THREE.Vector3(), look = new THREE.Vector3(), reflectedLook = new THREE.Vector3();
@@ -160,7 +169,8 @@ export function createWetSurfaces(scene, { lamps = [], reducedMotion = false } =
   let disposed = false;
   return {
     reflect(renderer, camera, tier, skyObjects = []) {
-      state.uWetReflect.value = 0; activate();
+      // WebGL rejects framebuffer feedback even behind a uniform-disabled shader branch.
+      state.uWetReflection.value = null; state.uWetReflect.value = 0; activate();
       if (disposed || state.uWet.value < 0.01 || camera.position.y <= 0.1) return;
       renderer.getDrawingBufferSize(size);
       const scale = tier === 'high' ? 0.5 : 0.25;
@@ -193,6 +203,7 @@ export function createWetSurfaces(scene, { lamps = [], reducedMotion = false } =
         renderer.setClearColor(0, 0); renderer.setRenderTarget(target); renderer.clear(); renderer.render(scene, mirror);
       } finally {
         renderer.setRenderTarget(previous); renderer.setClearColor(clear, alpha);
+        state.uWetReflection.value = target.texture;
         renderer.shadowMap.autoUpdate = auto; scene.background = background;
         skyObjects.forEach((o, i) => { o.visible = visible[i]; });
       }

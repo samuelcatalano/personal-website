@@ -7,23 +7,31 @@ const rainFields = {
   gla: { rain: 0.75, wet: 1, storm: 0.08, cover: 1, fall: 0.6, wind: 0.8 },
 };
 
-// ponytail: one roll drives both rain and cloud cover; add separate weather variables only if measured variety requires them.
+const drizzleFields = {
+  sp: { rain: .34, wet: .60, storm: 0, cover: .80, fall: .80, wind: .65 },
+  lon: { rain: .24, wet: .48, storm: 0, cover: .82, fall: .52, wind: .55 },
+  gla: { rain: .30, wet: .65, storm: 0, cover: .88, fall: .48, wind: .80 },
+};
+const heavyShare = { sp: .70, lon: .18, gla: .22 };
+// One independent regional roll chooses stable artwork for this visit; it does not consume the city's RNG.
 export function createWeather({ random = Math.random, override } = {}) {
   const weather = {};
   for (const region of ['sp', 'lon', 'gla']) {
     const roll = Math.max(0, Math.min(1, random()));
     const [minCover, maxCover] = coverRange[region];
     const raining = roll < rainChance[region];
-    weather[region] = override === 'rain'
-      ? { ...rainFields[region] }
-      : {
+    const state = ['clear', 'cloudy', 'drizzle', 'rain'].includes(override) ? override
+      : raining ? (roll < rainChance[region] * heavyShare[region] ? 'rain' : 'drizzle')
+      : minCover + roll * (maxCover - minCover) > .5 ? 'cloudy' : 'clear';
+    weather[region] = {
           rain: 0,
           wet: 0,
           storm: 0,
-          cover: override === 'clear' ? clearCover[region] : minCover + roll * (maxCover - minCover),
+          cover: override === 'clear' ? clearCover[region] : override === 'cloudy' ? .78 + (region === 'gla' ? .12 : 0) : minCover + roll * (maxCover - minCover),
           fall: rainFields[region].fall,
           wind: rainFields[region].wind,
-          ...(raining && override !== 'clear' ? rainFields[region] : {}),
+          ...(state === 'rain' ? rainFields[region] : state === 'drizzle' ? drizzleFields[region] : {}),
+          state,
         };
     Object.freeze(weather[region]);
   }

@@ -1,6 +1,7 @@
+import { finishArchitecture } from './building-finish.js';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { SURFACE as S, townhouseMaterials } from './building-slice-materials.js';
+import { SURFACE as S, townhouseMaterials, roomGlassMaterial, addRoomCoordinates } from './building-slice-materials.js';
 import { loadGlb } from './glb-loader.js';
 import { east } from './layout.js';
 
@@ -107,8 +108,9 @@ function townhouseGeometry(plot,recipe,level=0,storage=null,modular=false) {
   if(recipe.exposedEast!==false)facade('east',d,sideHoles);
   else quad([[w/2,0,-d/2],[w/2,0,d/2],[w/2,recipe.eaves,d/2],[w/2,recipe.eaves,-d/2]],[1,0,0],S.plaster);
   if(level===0){
-    for(const side of [-1,1])box(side*(w/2-.10),recipe.eaves/2,front+.045,.065,recipe.eaves-.16,.065,S.roof,1);
-    box(0,recipe.eaves-.20,front+.06,w,.09,.10,S.roof,1);
+    // Painted drainage belongs to trim; the roof surface receives dark commercial-spandrel shading.
+    for(const side of [-1,1])box(side*(w/2-.10),recipe.eaves/2,front+.045,.065,recipe.eaves-.16,.065,S.trim,1);
+    box(0,recipe.eaves-.20,front+.06,w,.09,.10,S.trim,1);
   }
   if(level===0&&recipe.bands!==false)for(const y of [recipe.ground,recipe.ground+recipe.upper])box(0,y,0,w+.14,.12,d+.14,S.stone,1);
   if(!modular)box(0,recipe.eaves-.09,0,width-.04,.18,depth-.04,S.trim);
@@ -263,11 +265,12 @@ const CELL_X=east(820); // legacy literals (layout.js east()): the lots come out
 export function createTownhouseChunk(plots) {
   // Only the approved benchmark cell is assembled here; other city batches stay untouched.
   const group=new THREE.Group();group.name='townhouse-benchmark-chunk';group.position.set(CELL_X,0,-81);
-  const buckets=[[],[],[]],houses=[],materials=townhouseMaterials();
+  const buckets=[[],[],[]],houses=[],materials={...townhouseMaterials(),glass:roomGlassMaterial()};
   for(const plot of plots.slice().sort((a,b)=>a.id.localeCompare(b.id))) {
     if(!TOWNHOUSE_LOT_IDS.includes(plot.id))throw new TypeError('Lot is outside townhouse benchmark');
     if(plot.x-plot.width/2<CELL_X||plot.x+plot.width/2>CELL_X+32||plot.z-plot.depth/2< -81||plot.z+plot.depth/2> -49)throw new TypeError('Townhouse is outside benchmark cell');
-    const {geometries,metadata}=townhouseGeometry(plot,townhouseRecipe(plot,plots));
+    const recipe=townhouseRecipe(plot,plots),{geometries,metadata}=townhouseGeometry(plot,recipe);
+    finishArchitecture(geometries,plot,'townhouse',recipe);
     const transform=new THREE.Matrix4().makeTranslation(plot.x-CELL_X,0,plot.z+81);
     geometries.forEach((geometry,i)=>buckets[i].push(geometry.applyMatrix4(transform)));
     houses.push(metadata);
@@ -277,9 +280,10 @@ export function createTownhouseChunk(plots) {
     items.forEach(item=>item.dispose());
     if(!geometry)throw new Error('Unable to merge townhouse bucket');
     geometry.computeBoundingBox();geometry.computeBoundingSphere();
+    if(i===2)addRoomCoordinates(geometry,CELL_X,-81);
     group.add(part(geometry,i,materials));
   });
-  group.userData={plotIds:houses.map(h=>h.plotId),houses};
+  let disposed=false;group.userData={archetype:'townhouse-benchmark-chunk',plotIds:houses.map(h=>h.plotId),houses,dispose(){if(disposed)return;disposed=true;group.children.forEach(m=>m.geometry.dispose());}};
   return group;
 }
 
@@ -288,7 +292,7 @@ export const EXPERIMENT_LOT_IDS=Object.freeze([...Array.from({length:5},(_,i)=>`
 export function createTownhouseExperiment(plots,neighbors) {
   if(plots.length!==9||new Set(plots.map(p=>p.id)).size!==9||plots.some(p=>!EXPERIMENT_LOT_IDS.includes(p.id)||p.width!==6||p.depth!==9||p.height!==12))throw new TypeError('Townhouse experiment descriptors diverge');
   const experiment=new THREE.Group();experiment.name='townhouse-experiment';
-  const materials=townhouseMaterials();
+  const materials={...townhouseMaterials(),glass:roomGlassMaterial()};
   // Scratch includes the exposed return and rear facades; it is shared between lots.
   const scratch=Array.from({length:3},()=>Object.fromEntries([['position',3],['normal',3],['uv',2],['surface',1],['color',3]].map(([key,size])=>[key,new Float32Array(4096*size)])));
   for(const [index,x]of [678,710].map(east).entries()){
@@ -299,12 +303,15 @@ export function createTownhouseExperiment(plots,neighbors) {
     for(let level=0;level<2;level++){
       const start=performance.now(),buckets=[[],[],[]];
       selected.forEach((p,i)=>{
-        const {geometries}=townhouseGeometry(p,houses[i].recipe,level,scratch),matrix=new THREE.Matrix4().makeTranslation(p.x-x,0,p.z+96);
+        const {geometries}=townhouseGeometry(p,houses[i].recipe,level,scratch);
+        finishArchitecture(geometries,p,'townhouse',houses[i].recipe,level);
+        const matrix=new THREE.Matrix4().makeTranslation(p.x-x,0,p.z+96);
         geometries.forEach((g,k)=>buckets[k].push(g.applyMatrix4(matrix)));
       });
-      lods.push(buckets.map(items=>{
+      lods.push(buckets.map((items,k)=>{
         const g=mergeGeometries(items,false);items.forEach(v=>v.dispose());
         if(!g)throw new Error('Unable to merge townhouse LOD');
+        if(k===2)addRoomCoordinates(g,x,-96);
         g.computeBoundingBox();g.computeBoundingSphere();return g;
       }));
       buildMs.push(performance.now()-start);
@@ -330,12 +337,15 @@ export function createTownhouseExperiment(plots,neighbors) {
         const d=chunk.userData,x=chunk.position.x,selected=plots.filter(p=>d.plotIds.includes(p.id)).sort((a,b)=>a.id.localeCompare(b.id));
         const buckets=[[],[],[]];
         selected.forEach(p=>{
-          const geometry=modularGeometry(p,townhouseRecipe(p,neighbors),modules),matrix=new THREE.Matrix4().makeTranslation(p.x-x,0,p.z+96);
+          const recipe=townhouseRecipe(p,neighbors),geometry=modularGeometry(p,recipe,modules);
+          finishArchitecture(geometry,p,'townhouse',recipe);
+          const matrix=new THREE.Matrix4().makeTranslation(p.x-x,0,p.z+96);
           geometry.forEach((g,k)=>buckets[k].push(g.applyMatrix4(matrix)));
         });
-        replacements.push(buckets.map(items=>{
+        replacements.push(buckets.map((items,k)=>{
           const geometry=mergeGeometries(items,false);items.forEach(g=>g.dispose());
           if(!geometry)throw new Error('Unable to merge townhouse module chunk');
+          if(k===2)addRoomCoordinates(geometry,x,-96);
           geometry.computeBoundingBox();geometry.computeBoundingSphere();return geometry;
         }));
       }

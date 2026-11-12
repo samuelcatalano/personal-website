@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { coverShader, coverUniforms } from './weather-cover.js';
+import { celestialVisibility } from './weather-math.js';
 import { SUN_DIR, untone } from './sky.js';
 import { reflectionMode, detailTexture } from './water-math.js';
 import { PALETTE as P } from './palette.js';
@@ -20,6 +22,7 @@ gl_Position = projectionMatrix * mvPosition;
 #include <fog_vertex>
 }`;
 const fragmentShader = /* glsl */`
+${coverShader}
 uniform float uTime, uNight, uRiverCenter, uHalfWidth, uRainMotion, uKey, uReflect, uPierN, uBoatN, uFloor, uFoamW, uBoatFoamW;
 uniform vec3 uSun;
 uniform vec3 uDeep, uShallow, uBed, uGlint, uNightTint, uSky, uZen;
@@ -68,7 +71,7 @@ for (int i = 0; i < ${MAX_TAPS}; i++) {
   g += local / max(radius, 0.02) * ring * 0.18;
   tapFoam += max(0.0, ring) * 0.06;
 }
-if(uRainMotion>0.001){ // rain: local expanding rings, faded before their cell edge and at distance
+if(uRainMotion>0.001 && weatherRoof(vPos.xz) < vPos.y + .6){ // exposed rain rings; bridge decks shelter the river below
   vec2 cell=floor(vPos.xz*.65),local=fract(vPos.xz*.65)-.5;
   float seed=fract(sin(dot(cell,vec2(127.1,311.7)))*43758.5453);
   float age=fract(uTime*.9+seed),radius=length(local);
@@ -146,7 +149,7 @@ function getDetail() {
   return detailMap;
 }
 const SUNSET = new THREE.Color(0xff9a50), SUN_GLINT = new THREE.Color(0xfff0c8), MOON_GLINT = new THREE.Color(0xc8d8ff);
-export function createWater({ x0, x1, z, width, reducedMotion = false, piers = [], boats = [], reflectRoots = [], bankPlots = [] }) {
+export function createWater({ x0, x1, z, width, reducedMotion = false, piers = [], boats = [], reflectRoots = [], bankPlots = [], cover }) {
   const Y = 0.1;
   const geo = new THREE.PlaneGeometry(x1 - x0, width).rotateX(-Math.PI / 2);
   const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthBuffer: true });
@@ -166,6 +169,7 @@ export function createWater({ x0, x1, z, width, reducedMotion = false, piers = [
     vertexShader, fragmentShader, fog: true,
   });
   const u = mat.uniforms;
+  Object.assign(u, coverUniforms(cover));
   u.tDetail.value = getDetail(); u.tRefl.value = rt.texture; // after merge: UniformsUtils.merge clones textures
   const setPiers = (piers) => {
     piers.slice(0, MAX_PIERS).forEach((p, i) => u.uPiers.value[i].set(p.x, p.z, p.hx, p.hz));
@@ -227,15 +231,13 @@ export function createWater({ x0, x1, z, width, reducedMotion = false, piers = [
       for (const tap of u.uTaps.value) if (time - tap.z >= TAP_LIFE) tap.w = 0;
       u.uNight.value = night;
       u.uSky.value.lerpColors(DAY_SKY, NIGHT_SKY, night);
-      let cover = 0, rain = 0;
       if(mood){
         u.uSky.value.setRGB(...mood.hor,THREE.SRGBColorSpace).lerp(NIGHT_SKY,night);
-        cover = THREE.MathUtils.smoothstep(mood.cover ?? 0, .48, .98); rain = Math.min(1, (mood.rain ?? 0) * 2);
       }
-      // Glint: warm sun by day, orange at sunset, a cooler and weaker moon path at night; gone under overcast or rain.
-      const sunset = Math.sin(Math.PI * night) ** 3, clearSky = (1 - cover) * (1 - rain);
+      // Match the astro's visibility, including light through broken drizzle clouds.
+      const sunset = Math.sin(Math.PI * night) ** 3, clearSky = celestialVisibility(mood?.cover ?? 0, mood?.rain ?? 0);
       u.uGlint.value.copy(SUN_GLINT).lerp(SUNSET, sunset).lerp(MOON_GLINT, THREE.MathUtils.smoothstep(night, 0.55, 0.9));
-      u.uKey.value = GLINT * clearSky * (night > 0.7 ? 0.45 : 1);
+      u.uKey.value = GLINT * clearSky * (night > 0.7 ? 0.16 : 1);
       if (sunDir) u.uSun.value.copy(sunDir);
       u.uRainMotion.value=reducedMotion||tier!=='high'?0:mood?.rain??0;
       untone(u.uSky.value);

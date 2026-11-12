@@ -1,0 +1,20 @@
+tests/styled-facades.browser.py
+{'pass': True, 'commercialTrim': [0.2800000011920929, 0.3400000035762787, 0.4000000059604645], 'residentialTrim': [1.1799999475479126, 1.2000000476837158, 1.2200000286102295]}
+tests/ordinary-finish.browser.py
+{'pass': True, 'hashes': {'map': 1485052815, 'normalMap': 4103241495, 'roughnessMap': 3868138199}, 'ordinaryResolution': 1024, 'trimVertices': 16080}
+tests/architecture-archetypes.browser.py
+{'pass': True, 'catalogCount': 24, 'archetypes': {'townhouse': ['brick-terrace', 'country-garden-pair', 'country-slate-cottage', 'glasgow-sandstone-gabled-row', 'hip-roof-terrace', 'london-bay-terrace', 'side-gable-terrace'], 'shop': ['high-street-shop', 'london-corner-pub', 'paulista-arcade-shop', 'wraparound-shop'], 'midrise': ['banded-apartment', 'country-garden-flat', 'glasgow-blonde-bay-tenement', 'glasgow-red-stepped-tenement', 'london-mansion-block', 'paulista-brise-apartment', 'stone-tenement'], 'office': ['horizontal-office', 'vertical-office'], 'tower': ['asymmetric-tower', 'paulista-finned-tower', 'stepped-tower', 'straight-tower']}, 'regions': ['countryside', 'glasgow', 'london', 'paulista']}
+tests/facade-realism.browser.py
+{'pass': True, 'faces': ['front', 'west', 'back', 'east'], 'houseTriangles': [1116, 586], 'midriseTriangles': 4656, 'materials': 2}
+tests/building-kit.browser.py
+{'pass': True, 'kinds': ['terrace', 'shop', 'midrise', 'office', 'tower'], 'drawMeshes': [9, 9, 7, 7, 7], 'instances': [529, 462, 420, 420, 1155]}
+tests/office-facade.browser.py
+{'pass': True, 'id': 'block--183--37', 'panes': 108, 'distinctSeeds': 108, 'materials': ['slice-architecture', 'slice-architecture', 'slice-glass-office']}
+tests/facade-interiors.browser.py
+{'face': [87, 43, 18], 'angle': [94, 63, 37], 'flat': [1, 1, 2]}
+tests/render-resources.browser.py
+{'width': 1280, 'pass': True, 'environmentTargets': 2, 'tiers': [{'tier': 'high', 'samples': 4, 'targetsDisposed': 14}, {'tier': 'medium', 'samples': 2, 'targetsDisposed': 13}]}
+{'width': 375, 'pass': True, 'environmentTargets': 2, 'tiers': [{'tier': 'high', 'samples': 4, 'targetsDisposed': 14}, {'tier': 'medium', 'samples': 0, 'targetsDisposed': 13}]}
+tests/citywide.browser.py
+{'exceptionId': 1, 'text': 'Uncaught (in promise) Error: source footprint/height', 'lineNumber': 2, 'columnNumber': 398, 'scriptId': '14', 'stackTrace': {'callFrames': [{'functionName': 'check', 'scriptId': '14', 'url': '', 'lineNumber': 1, 'columnNumber': 397}, {'functionName': '', 'scriptId': '14', 'url': '', 'lineNumber': 5, 'columnNumber': 592}]}, 'exception': {'type': 'object', 'subtype': 'error', 'className': 'Error', 'description': 'Error: source footprint/height\n    at check (<anonymous>:2:398)\n    at <anonymous>:6:593', 'objectId': '6316945777836318695.2.1'}}
+[{"test": "tests/styled-facades.browser.py", "pass": true}, {"test": "tests/ordinary-finish.browser.py", "pass": true}, {"test": "tests/architecture-archetypes.browser.py", "pass": true}, {"test": "tests/facade-realism.browser.py", "pass": true}, {"test": "tests/building-kit.browser.py", "pass": true}, {"test": "tests/office-facade.browser.py", "pass": true}, {"test": "tests/facade-interiors.browser.py", "pass": true}, {"test": "tests/render-resources.browser.py", "pass": true}, {"test": "tests/citywide.browser.py", "pass": false, "error": "{'exceptionId': 1, 'text': 'Uncaught (in promise) Error: source footprint/height', 'lineNumber': 2, 'columnNumber': 398, 'scriptId': '14', 'stackTrace': {'callFrames': [{'functionName': 'check', 'scriptId': '14', 'url': '', 'lineNumber': 1, 'columnNumber': 397}, {'functionName': '', 'scriptId': '14', 'url': '', 'lineNumber': 5, 'columnNumber': 592}]}, 'exception': {'type': 'object', 'subtype': 'error', 'className': 'Error', 'description': 'Error: source footprint/height\\n    at check (<anonymous>:2:398)\\n    at <anonymous>:6:593', 'objectId': '6316945777836318695.2.1'}}"}]

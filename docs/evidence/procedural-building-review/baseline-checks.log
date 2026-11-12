@@ -1,0 +1,8 @@
+tests/facade-realism.browser.py
+{'pass': True, 'faces': ['front', 'west', 'back', 'east'], 'houseTriangles': [1116, 586], 'midriseTriangles': 4656, 'materials': 2}
+tests/building-kit.browser.py
+{'pass': True, 'kinds': ['terrace', 'shop', 'midrise', 'office', 'tower'], 'drawMeshes': [9, 9, 7, 7, 7], 'instances': [529, 462, 420, 420, 1155]}
+tests/office-facade.browser.py
+{'pass': True, 'id': 'block--183--37', 'panes': 108, 'distinctSeeds': 108, 'materials': ['slice-architecture', 'slice-architecture', 'slice-glass-office']}
+tests/facade-interiors.browser.py
+{'face': [134, 89, 50], 'angle': [90, 60, 36], 'flat': [1, 1, 2]}

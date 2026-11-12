@@ -1,5 +1,18 @@
 # 3D city art direction
 
+## Livelier stylized realism — 2026-11-12
+
+Owner chose stylized realism with livelier colours. Existing regional pigments gain clearer chroma; brighter mineral residential frames and charcoal/bronze commercial metal distinguish construction materials. Full near profiles/interiors remain, with coated-metal PBR and varied glass roughness; distant representations omit construction below useful viewing scale. Map, lots, roof forms, landmarks and lighting are preserved. [Visual and performance delivery](audits/2026-11-12-styled-realism-performance.md).
+
+
+## Ordinary authored-quality finish — 2026-11-12
+
+The owner approved the complete ordinary-building construction/material package within the existing hybrid generator, then explicitly prioritised quality/design over performance limits. Added near construction profiles, beveled glazing beads/sills, supported roof courses, richer metric surfaces and room layers; commercial assemblies use restrained modern bands. Existing regional profiles, plot envelopes, openings and landmarks remain. Ordinary atlas/maps are isolated from landmark and public-realm finish; both procedural and loaded-kit paths and production legacy buildings are covered. No global-lighting redesign, external building asset, dependency or new pass. [Delivery and evidence](audits/2026-11-12-ordinary-building-realism.md).
+
+## Weather refinement — 2026-11-12
+
+The owner authorized all seven sky/weather recommendations. The current artwork uses continuous sky gradients, layered directional clouds with local celestial occlusion, a smaller framed sun, a fixed gibbous moon, finer depth-dependent rain, varied wet surfaces and four regional states with eased transitions. This supersedes the always-full moon and global-only cloud veiling described in the historical entry below. The visible astro azimuth drives the existing key/shadows and water glint; key elevation stays bounded above ground for this camera-composed miniature, rather than claiming astronomical accuracy. A shared roof/deck height field shelters falling drops, ground impacts and river rings. No map, architecture, route, light count, dependency or render-pass changes. [Implementation, evidence and limitations](audits/2026-11-12-weather-art-direction.md).
+
 ## Editorial and city polish — 2026-11-12
 
 The owner authorized panel hierarchy, consistent transit styling, selected-stop emphasis, desktop framing and atmospheric depth; mobile and intro redesigns were excluded. This scoped update retains the map, assets and architectural language. [Implementation and validation](audits/2026-11-12-editorial-city-polish.md) records its boundaries, local MSAA samples and remaining verification limits; it is not a new citywide rollout or production-readiness approval.

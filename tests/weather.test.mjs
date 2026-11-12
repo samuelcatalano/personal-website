@@ -10,9 +10,26 @@ test('weather makes one independent roll per region and uses the regional chance
   const weather = createWeather({ random: () => rolls[calls++] });
   assert.equal(calls, 3);
   assert.equal(weather.entry, weather.sp);
-  assert.deepEqual(regions.map((region) => weather[region].rain), [1, 0, 0]);
+  assert.ok(weather.sp.rain > 0);
+  assert.deepEqual([weather.lon.rain, weather.gla.rain], [0, 0]);
   const clearEnds = createWeather({ random: () => 1 });
   assert.deepEqual(regions.map((region) => clearEnds[region].cover), [0.4, 0.7, 0.85]);
+});
+
+test('cloudy and drizzle are distinct stable regional states', () => {
+  const cloudy = createWeather({ override: 'cloudy' }), drizzle = createWeather({ override: 'drizzle' });
+  for (const region of regions) {
+    assert.equal(cloudy[region].state, 'cloudy');
+    assert.equal(cloudy[region].rain, 0);
+    assert.ok(cloudy[region].cover >= .7 && cloudy[region].cover < 1);
+    assert.equal(drizzle[region].state, 'drizzle');
+    assert.ok(drizzle[region].rain > 0 && drizzle[region].rain < .5);
+    assert.ok(drizzle[region].wet > 0 && drizzle[region].wet < 1);
+    assert.ok(drizzle[region].storm === 0);
+  }
+  const sp = createWeather({ random: () => .05 }), london = createWeather({ random: () => .3 });
+  assert.equal(sp.sp.state, 'rain');
+  assert.equal(london.lon.state, 'drizzle');
 });
 
 test('rain overrides every region; clear and unknown overrides preserve stable rolls', () => {

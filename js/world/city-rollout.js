@@ -1,3 +1,4 @@
+import { finishArchitecture } from './building-finish.js';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { townhouseRecipe, createTownhouseSlice, loadTownhouseKit, modularGeometry } from './building-slice.js';
@@ -75,24 +76,23 @@ export function rolloutRecipe(p,kind,neighbors=[p]){
 }
 export function building(p,kind,neighbors,level=0){
   const recipe=rolloutRecipe(p,kind,neighbors);
-  if(kind==='townhouse')return createTownhouseSlice(p,recipe,level);
-  if(kind==='shop')return createShopSlice(p,neighbors,recipe);
-  if(kind==='midrise')return createMidriseSlice(p,recipe);
-  if(kind==='office')return createOfficeSlice(p,recipe);
-  return createTowerSlice(p,recipe);
+  const h=kind==='townhouse'?createTownhouseSlice(p,recipe,level):kind==='shop'?createShopSlice(p,neighbors,recipe):kind==='midrise'?createMidriseSlice(p,recipe):kind==='office'?createOfficeSlice(p,recipe):createTowerSlice(p,recipe);
+  const geometries=finishArchitecture(h.children.map(m=>m.geometry),p,kind,recipe,level);
+  h.children.forEach((m,k)=>m.geometry=geometries[k]);
+  return h;
 }
 // Kit rollout: every terraced townhouse (UK x>0 and Sao Paulo x<0, which gets its own variant pools in building-slice.js) swaps their LOD0 for authored kit modules once the GLB loads. `?kit=off` keeps the procedural facade.
 const KIT_ON=!(typeof location!=='undefined'&&/[?&]kit=off\b/.test(location.search));
 const kitLot=(p,kind)=>KIT_ON&&kind==='townhouse';
 function houseGeometries(p,kind,neighbors,cell,level,modules) {
-  let geometries,dispose=null;
-  if(modules&&level===0&&kitLot(p,kind)){geometries=modularGeometry(p,rolloutRecipe(p,kind,neighbors),modules,true);tint({children:geometries.map(geometry=>({geometry}))},p);}
+  let geometries;
+  if(modules&&level===0&&kitLot(p,kind)){geometries=modularGeometry(p,rolloutRecipe(p,kind,neighbors),modules,true);finishArchitecture(geometries,p,kind,rolloutRecipe(p,kind,neighbors));tint({children:geometries.map(geometry=>({geometry}))},p);}
   else{const h=building(p,kind,neighbors,level);tint(h,p);geometries=h.children.map(m=>m.geometry);}
   geometries.forEach(g=>{if(!g.hasAttribute('aFlutter'))g.setAttribute('aFlutter',new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count),1));g.translate(p.x-cell.x,0,p.z-cell.z);});
   return geometries;
 }
 function mergeCell(cell,neighbors,level,modules) {
-  const houses=cell.plots.map(({p,kind})=>houseGeometries(p,kind,neighbors,cell,kind==='townhouse'?level:0,modules));
+  const houses=cell.plots.map(({p,kind})=>houseGeometries(p,kind,neighbors,cell,level,modules));
   const merged=[0,1,2].map(k=>{
     const geometry=mergeGeometries(houses.map(h=>h[k]),false);
     if(!geometry)throw new Error('Incompatible city architecture bucket');geometry.computeBoundingBox();geometry.computeBoundingSphere();return geometry;
@@ -109,31 +109,43 @@ export function createCityRollout(plots,neighbors=plots) {
     const x=Math.floor(p.x/32)*32,z=Math.floor(p.z/32)*32,key=`${x}:${z}`;
     if(!cells.has(key))cells.set(key,{x,z,plots:[]});cells.get(key).plots.push({p,kind});
   }
-  let kitLots=0;const {architecture}=townhouseMaterials(),glass=roomGlassMaterial(),start=performance.now(),chunkOf=new Map();
+  let kitLots=0;const {architecture}=townhouseMaterials(),glass=roomGlassMaterial(),start=performance.now();
   for(const cell of cells.values()){
     const chunk=new THREE.Group();chunk.name=`architecture-cell-${cell.x}-${cell.z}`;chunk.position.set(cell.x,0,cell.z);
-    const hasLod=cell.plots.some(({kind})=>kind==='townhouse'),lods=[];
-    for(let level=0;level<(hasLod?2:1);level++)lods.push(mergeCell(cell,neighbors,level,null));
-    lods[0].forEach((geometry,k)=>{const mesh=new THREE.Mesh(geometry,k===2?glass:architecture);mesh.name=['city-mass','city-trim','city-glass'][k];mesh.castShadow=k===0;mesh.receiveShadow=true;chunk.add(mesh);});
-    const bounds=new THREE.Box3();lods.flat().forEach(g=>bounds.union(g.boundingBox));bounds.translate(chunk.position);
-    chunk.userData={plotIds:cell.plots.map(({p})=>p.id),lods,bounds,level:null};group.add(chunk);chunkOf.set(cell,chunk);
+    const far=mergeCell(cell,neighbors,1,null),lods=[far,far];
+    far.forEach((geometry,k)=>{const mesh=new THREE.Mesh(geometry,k===2?glass:architecture);mesh.name=['city-mass','city-trim','city-glass'][k];mesh.castShadow=k===0;mesh.receiveShadow=true;chunk.add(mesh);});
+    const bounds=new THREE.Box3();far.forEach(g=>bounds.union(g.boundingBox));bounds.translate(chunk.position);
+    const n=cell.plots.filter(({p,kind})=>kitLot(p,kind)).length;kitLots+=n;
+    chunk.userData={plotIds:cell.plots.map(({p})=>p.id),lods,bounds,level:null,cell,near:null,nearFactory:null,builtFactory:null,builtKit:null,...(n?{kitCell:cell,kit:null}:{})};group.add(chunk);
   }
-  for(const [cell,chunk] of chunkOf){const n=cell.plots.filter(({p,kind})=>kitLot(p,kind)).length;if(n){chunk.userData.kitCell=cell;chunk.userData.kit=null;kitLots+=n;}}
-  let disposed=false;let kit=null;group.userData={archetype:'citywide-architecture',get kitLots(){return kitLots},get kitReady(){return !!kit},plotIds:[...ids],counts,buildMs:performance.now()-start,
+  let disposed=false,kit=null;
+  function replaceNear(chunk,next){
+    const d=chunk.userData,previous=d.near;
+    d.near=next;d.lods[0]=next||d.lods[1];d.kit=next&&d.kitCell&&kit?next:null;
+    const active=d.lods[d.level??1];chunk.children.forEach((m,k)=>m.geometry=active[k]);
+    d.bounds.makeEmpty();new Set(d.lods.flat()).forEach(g=>d.bounds.union(g.boundingBox));d.bounds.translate(chunk.position);
+    previous?.forEach(g=>g.dispose());
+  }
+  group.userData={archetype:'citywide-architecture',get disposed(){return disposed},get kitLots(){return kitLots},get kitReady(){return !!kit},plotIds:[...ids],counts,buildMs:performance.now()-start,
     update(camera){
-      let built=0;
-      for(const c of group.children){
-        const d=c.userData,distance=d.bounds.distanceToPoint(camera.position);
-        // Kit LOD0 is built lazily (max one cell per update, from 140 m, LOD0 starts at 120) and dropped beyond 180 m, so resident memory follows the camera, not the city.
-        if(d.kitCell){
-          if(kit&&!d.kit&&distance<140&&built<(distance<125?3:1)){d.kit=mergeCell(d.kitCell,neighbors,0,kit);built++;d.level=d.level===0?null:d.level;if(d.lods[0]){d.lods[0].forEach(g=>g.dispose());d.lods[0]=null;}}
-          else if(d.kit&&distance>180){d.kit.forEach(g=>g.dispose());d.kit=null;d.level=d.level===0?null:d.level;}
-        }
-        const level=d.lods.length===1?0:d.level===null?(distance<120?0:1):d.level===0?(distance>129?1:0):(distance<111?0:1);
-        if(level!==d.level){const set=level===0?d.kit||d.lods[0]:d.lods[level];if(!set)continue;c.children.forEach((m,k)=>m.geometry=set[k]);d.level=level;}
+      if(disposed)return;
+      let closest=null,best=Infinity;
+      for(const chunk of group.children){
+        const d=chunk.userData,distance=d.bounds.distanceToPoint(camera.position);
+        d.level=d.level===null?(distance<120?0:1):d.level===0?(distance>129?1:0):(distance<111?0:1);
+        // Build one nearest cell inside 140 m; retain detail until 180 m to avoid rebuilding on every LOD switch.
+        if(d.near&&distance>180)replaceNear(chunk,null);
+        if(distance<140&&distance<best&&(!d.near||d.builtFactory!==d.nearFactory||(d.kitCell&&d.builtKit!==kit))){closest=chunk;best=distance;}
+        const set=d.lods[d.level];chunk.children.forEach((m,k)=>m.geometry=set[k]);
       }
+      if(closest){
+        const d=closest.userData,buildTownhouse=p=>houseGeometries(p,'townhouse',neighbors,d.cell,0,kit);
+        const next=d.nearFactory?d.nearFactory(buildTownhouse):mergeCell(d.cell,neighbors,0,kit);
+        replaceNear(closest,next);d.builtFactory=d.nearFactory;d.builtKit=kit;
+      }
+      return !!closest;
     },
-    dispose(){if(disposed)return;disposed=true;group.children.forEach(c=>{c.userData.lods.flat().forEach(g=>g?.dispose());c.userData.kit?.forEach(g=>g.dispose());});}};
-  if(kitLots)trackWork(loadTownhouseKit().then(m=>{kit=m;}).catch(()=>{}));
+    dispose(){if(disposed)return;disposed=true;const geometries=new Set(group.children.flatMap(c=>c.userData.lods.flat()));geometries.forEach(g=>g.dispose());}};
+  if(kitLots)trackWork(loadTownhouseKit().then(m=>{if(!disposed)kit=m;}).catch(()=>{}));
   return group;
 }

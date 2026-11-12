@@ -1,0 +1,5 @@
+11:night {'rain': 0.7498230961073356, 'cover': 1, 'wind': 0.808991657290349, 'sun': [-0.19781246682745376, 0.3876190125286971, -0.900345338797239], 'coverBytes': 131072, 'coverCells': 24249, 'programErrors': 0}
+errors []
+architecture {'lots': 687, 'chunks': 194, 'meshes': 582, 'materials': 2, 'residentGeometryMiB': 1106.0429992675781, 'residentGeometryTriangles': 7421576}
+legacy {'groups': 3, 'glazingTrianglePairs': 72}
+sceneGL 0

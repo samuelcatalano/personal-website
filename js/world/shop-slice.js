@@ -1,3 +1,4 @@
+import { finishBuilding } from './building-finish.js';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { SURFACE as S, townhouseMaterials } from './building-slice-materials.js';
@@ -153,7 +154,7 @@ export function createShopSlice(plot,neighbors=[],recipe=shopRecipe(plot,neighbo
 }
 export function createShopChunk(plots,neighbors=plots){
   const group=new THREE.Group();group.name='hero-shopfronts';group.position.set(-272,0,-32);
-  const houses=plots.map(p=>{const spec=descriptors.find(d=>d[0]===p.id);if(!spec||[p.kind,p.width,p.depth,p.height].some((v,i)=>typeof v==='number'?Math.abs(v-spec[i+1])>1e-6:v!==spec[i+1]))throw new TypeError('Incompatible shop lot');const hero=[...SHOP_LOT_IDS,...SHOP_INTEGRATION_IDS].includes(p.id),h=createShopSlice(p,neighbors,hero?heroShopRecipe(p,neighbors):shopRecipe(p,neighbors));tint(h,p,{walls:hero?.5:1});return h});
+  const houses=plots.map(p=>{const spec=descriptors.find(d=>d[0]===p.id);if(!spec||[p.kind,p.width,p.depth,p.height].some((v,i)=>typeof v==='number'?Math.abs(v-spec[i+1])>1e-6:v!==spec[i+1]))throw new TypeError('Incompatible shop lot');const hero=[...SHOP_LOT_IDS,...SHOP_INTEGRATION_IDS].includes(p.id),h=createShopSlice(p,neighbors,hero?heroShopRecipe(p,neighbors):shopRecipe(p,neighbors));finishBuilding(h,p,'shop');tint(h,p,{walls:hero?.5:1});return h});
   for(let k=0;k<3;k++){const inputs=houses.map(h=>h.children[k].geometry.translate(h.position.x+272,0,h.position.z+32)),geometry=mergeGeometries(inputs,false);inputs.forEach(g=>g.dispose());if(!geometry)throw new Error('Unable to merge shop bucket');geometry.computeBoundingBox();geometry.computeBoundingSphere();const m=new THREE.Mesh(geometry,houses[0].children[k].material);m.name=['shop-mass','shop-trim','shop-glass'][k];m.castShadow=k===0;m.receiveShadow=true;group.add(m);}
   group.userData={archetype:'shop-slice',plotIds:plots.map(p=>p.id),recipes:houses.map(h=>h.userData.recipe)};return group;
 }

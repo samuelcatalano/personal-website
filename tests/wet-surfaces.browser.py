@@ -55,6 +55,9 @@ result = js(r'''(async () => {
     check(shaders.has(floor) && shaders.has(architecture) && shaders.has(roof), 'standard and atlas shaders must really compile');
     check(renderer.info.programs.every(p=>p.diagnostics?.runnable !== false), 'wet shader failed WebGL linking');
     const shader = shaders.get(floor), atlasShader = shaders.get(architecture), u = shader.uniforms;
+    const perspective=new T.PerspectiveCamera(60,1,.1,100);perspective.position.set(10,8,12);perspective.lookAt(3,1,0);perspective.updateMatrixWorld();
+    wet.reflect(renderer,perspective,'medium',[vehicleFx.points]);wet.reflect(renderer,perspective,'medium',[vehicleFx.points]);
+    check(renderer.getContext().getError()===0,'Wet reflection samples its own render target');
     check(u.uWetReflect.value===1 && u.uWetReflection.value.image.width===16, 'wet road must receive a scene reflection at the tier resolution');
     check(shader.vertexShader.includes('wetPosition = instanceMatrix * wetPosition') && shader.vertexShader.indexOf('vec4 wetPosition') > shader.vertexShader.indexOf('#include <project_vertex>'), 'world varying must use transformed and instanced position after project_vertex');
     check(shader.fragmentShader.includes('diffuseColor *= texture2D(map, tuv)') && atlasShader.fragmentShader.includes('sliceSample'), 'existing block and metric-atlas shader hooks must remain intact');

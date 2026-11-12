@@ -112,14 +112,13 @@ function mergeParts(parts, materialOrder = null) {
 }
 
 export async function createAuthoredTrees(placements) {
-  const settled = await Promise.allSettled(urls.map((url) => loadGlb(url)));
-  const roots = settled.filter((r) => r.status === 'fulfilled').map((r) => r.value);
+  const settled = await Promise.allSettled([...urls.map((url) => loadGlb(url)), new THREE.TextureLoader().loadAsync(atlasUrl)]);
   const failed = settled.find((r) => r.status === 'rejected');
-  if (failed) { disposeRoots(roots); throw failed.reason; }
-  let atlas;
+  const atlas = settled.pop().value;
+  const roots = settled.filter((r) => r.status === 'fulfilled').map((r) => r.value);
+  if (failed) { atlas?.dispose(); disposeRoots(roots); throw failed.reason; }
   const geometries = new Set(), materials = new Set(), textures = new Set(), sourceGeometries = new Set(), sourceMaterials = new Set();
   try {
-    atlas = await new THREE.TextureLoader().loadAsync(atlasUrl);
     atlas.colorSpace = THREE.SRGBColorSpace; atlas.anisotropy = 4;
     const sourceMeshes = new Map();
     roots.forEach((root) => {

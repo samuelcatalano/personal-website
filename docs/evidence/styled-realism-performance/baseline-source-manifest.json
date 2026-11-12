@@ -1,0 +1,38 @@
+[
+  {
+    "file": "index.html",
+    "sha256": "6836cfd6b685dbc77a52ee06508c36bf09eb91ab06bce0ce774f1697fddd2642"
+  },
+  {
+    "file": "js/world/authored-trees.js",
+    "sha256": "4dd35fce3fb8d118598409357e64b03598225aba0ba2efa7c8982a5c6fb2506e"
+  },
+  {
+    "file": "js/world/building-kit.js",
+    "sha256": "5b95b7ddf8e35c60aeb836e5a2a0bfa94d17dbc8bcac14b3e4b0839939a9e5bf"
+  },
+  {
+    "file": "js/world/building-slice-materials.js",
+    "sha256": "caf12851dbf7fa6f35cbcd39f676c07c77ee697b6dbd9b80e7e2a78b524884bd"
+  },
+  {
+    "file": "js/world/city-rollout.js",
+    "sha256": "fc9aa6793536aa15a7793b2fb0dc1b1b56e35f969a9f1d360e8a40c2f1d68d4a"
+  },
+  {
+    "file": "js/world/facade-kit.js",
+    "sha256": "e151d2285c129d528ae99f88c2fe3acadddd612f3efcdcbebe444e1cacbc3816"
+  },
+  {
+    "file": "js/world/glb-loader.js",
+    "sha256": "ba09df9697103968a19881e5c83e8fe489514bea6af96efb05084ab94cc300fb"
+  },
+  {
+    "file": "js/world/lot-tint.js",
+    "sha256": "f5f53948a47f138e5e79d61f997bfd002b413ae635324a3231dd7a4e383a5a2a"
+  },
+  {
+    "file": "js/world/scene.js",
+    "sha256": "2aa0c26c981004d81a7720e321ee672df1b800ea933240ea8a2dcc68d6f22c94"
+  }
+]

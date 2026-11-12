@@ -1,0 +1,398 @@
+--- a/index.html
++++ b/index.html
+@@ -62,0 +63 @@
++  <link rel="modulepreload" href="js/world/building-atlas.js">
+--- a/js/world/authored-trees.js
++++ b/js/world/authored-trees.js
+@@ -115 +115,3 @@
+-  const settled = await Promise.allSettled(urls.map((url) => loadGlb(url)));
++  const settled = await Promise.allSettled([...urls.map((url) => loadGlb(url)), new THREE.TextureLoader().loadAsync(atlasUrl)]);
++  const failed = settled.find((r) => r.status === 'rejected');
++  const atlas = settled.pop().value;
+@@ -117,3 +119 @@
+-  const failed = settled.find((r) => r.status === 'rejected');
+-  if (failed) { disposeRoots(roots); throw failed.reason; }
+-  let atlas;
++  if (failed) { atlas?.dispose(); disposeRoots(roots); throw failed.reason; }
+@@ -122 +121,0 @@
+-    atlas = await new THREE.TextureLoader().loadAsync(atlasUrl);
+--- a/js/world/building-atlas.js
++++ b/js/world/building-atlas.js
+@@ -0,0 +1,85 @@
++// Pure metric-atlas pixels: shared by the scene fallback and its module worker.
++export const SURFACE = Object.freeze({ plaster: 0, brick: 1, roof: 2, trim: 3, stone: 4, litGlass: 5, glass: 6, door: 7 });
++const hash = (x, y) => { let n = Math.imul(x + 131, 374761393) ^ Math.imul(y + 719, 668265263); n = Math.imul(n ^ n >>> 13, 1274126177); return (n >>> 0) / 4294967295; };
++const mod = (x, n) => (x % n + n) % n;
++const palette = [[220,211,191],[160,96,73],[68,80,94],[230,221,201],[196,186,164],[65,94,112],[65,94,112],[52,67,69]];
++
++// Periodic, interpolated grain avoids a visible seam or a low-frequency sine pattern.
++function grain(u,v,columns,rows) {
++  const x=u*columns,y=v*rows,ix=Math.floor(x),iy=Math.floor(y);
++  const fx=x-ix,fy=y-iy,s=fx*fx*(3-2*fx),t=fy*fy*(3-2*fy);
++  const h=(dx,dy)=>hash(mod(ix+dx,columns),mod(iy+dy,rows));
++  return (h(0,0)*(1-s)+h(1,0)*s)*(1-t)+(h(0,1)*(1-s)+h(1,1)*s)*t;
++}
++function texel(surface, x, y, quality = false) {
++  const u=mod(x-4,120)/120,v=mod(y-4,248)/248;
++  const fine=hash(Math.floor(u*120),Math.floor(v*248))-.5;
++  let color=palette[surface],shade=1+fine*.012,height=fine*.00008,rough=.84,metal=0;
++  if(surface===SURFACE.brick||surface===SURFACE.stone){
++    const brick=surface===SURFACE.brick,rows=brick?24:8,columns=brick?4:2;
++    const row=Math.floor(v*rows),column=Math.floor(u*columns+(row%2)*.5);
++    const bx=mod(u*columns+(row%2)*.5,1),by=mod(v*rows,1);
++    const joint=Math.min(bx,1-bx)<.018||Math.min(by,1-by)<.045;
++    const tone=hash(mod(column,columns),row)-.5;
++    color=joint?(brick?[168,150,128]:[169,159,141]):color.map((c,i)=>c+tone*(brick?[26,16,12]:[12,10,8])[i]);
++    shade=1+fine*.02; height=joint?-.0008:fine*.0002;
++    rough=joint?.95:(brick?.86:.78)+tone*.05;
++  }else if(surface===SURFACE.roof){
++    const row=Math.floor(v*6),column=Math.floor(u*4+(row%2)*.5);
++    const rx=mod(u*4+(row%2)*.5,1),ry=mod(v*6,1);
++    const tone=hash(mod(column,4),row)-.5;
++    shade=.96+tone*.09+fine*.012;
++    if(rx<.018||ry<.03)shade*=.87;
++    height=ry<.03?-.0006:.0006*(1-ry);rough=.79+tone*.06;
++  }else if(surface===SURFACE.glass||surface===SURFACE.litGlass){
++    // flat, dark, cool pane: sky reflection comes from glass-reflection.js, not baked gradients
++    color=[65,94,112];shade=.95+(hash(Math.floor(u*8),Math.floor(v*16))-.5)*.04;
++    height=0;rough=.24;
++  }else if(surface===SURFACE.trim){
++    height=fine*.00004;rough=.64;metal=0;shade=1+fine*.01;
++  }else if(surface===SURFACE.door){
++    const edge=Math.min(mod(u*2,1),1-mod(u*2,1),mod(v*3,1),1-mod(v*3,1));
++    shade=edge<.07?.81:1+fine*.012;height=edge<.07?-.001:0;rough=.69;
++  }else{
++    // plaster: metre-scale tone drift (+-2.5%), fine trowel grain, slight roughness variation
++    const micro=grain(u,v,30,62)-.5,soft=grain(u,v,2,4)-.5;
++    shade=1+soft*.05+micro*.02+fine*.008;
++    height=micro*.00015+fine*.00004;rough=.83+soft*.06+micro*.03;
++  }
++  if (quality) {
++    const pores = grain(u,v,80,160)-.5, mineral = grain(u,v,12,24)-.5;
++    if (surface===SURFACE.brick || surface===SURFACE.stone) {
++      const brick=surface===SURFACE.brick, rows=brick?24:8, columns=brick?4:2;
++      const row=Math.floor(v*rows), bx=mod(u*columns+(row%2)*.5,1), by=mod(v*rows,1);
++      const edge=Math.min(bx,1-bx,by*.65,(1-by)*.65);
++      const lip=Math.min(1,Math.max(0,edge/(brick?.035:.025)));
++      height=surface===SURFACE.brick ? -.0016*(1-lip)+pores*.00035 : -.0012*(1-lip)+mineral*.0007+pores*.00025;
++      shade*=.98+lip*.02+mineral*.035+pores*.025;
++      rough=Math.min(.98,rough+pores*.1+mineral*.05);
++    } else if (surface===SURFACE.roof) {
++      const row=Math.floor(v*6), ry=mod(v*6,1), rx=mod(u*4+(row%2)*.5,1);
++      height=.002*(1-ry)-.0015*(ry<.025?1:0)+pores*.0003;
++      shade*=.97+mineral*.04+pores*.025+Math.min(1,rx/.025)*.03;
++      rough=.76+mineral*.1+pores*.05;
++    } else if (surface===SURFACE.plaster) {
++      height=pores*.00008+mineral*.00002;shade=1+pores*.009+mineral*.006;rough=.86+pores*.08;
++    } else if (surface===SURFACE.trim) { height=pores*.00004;rough=.57+mineral*.06; }
++  }
++  const emission=surface===SURFACE.litGlass?.68:0;
++  return {rgb:color.map(c=>Math.max(0,Math.min(255,c*shade))),height,rough,metal,emission};
++}
++
++
++export function makeAtlasPixels(quality = false) {
++  const factor=quality?2:1,size=512*factor;
++  const data = Array.from({length:4},()=>new Uint8ClampedArray(size*size*4));
++  for (let surface=0;surface<8;surface++) for(let y=0;y<256*factor;y++) for(let x=0;x<128*factor;x++) {
++    const px=x/factor,py=y/factor,p=texel(surface,px,py,quality), hx=texel(surface,px+1/factor,py,quality).height-texel(surface,px-1/factor,py,quality).height, hy=texel(surface,px,py+1/factor,quality).height-texel(surface,px,py-1/factor,quality).height;
++    const nx=-hx*220*factor,ny=hy*220*factor,scale=1/Math.sqrt(nx*nx+ny*ny+1);
++    const normal={x:nx*scale,y:ny*scale,z:scale};
++    const i=(((1-Math.floor(surface/4))*256*factor+y)*size+(surface%4)*128*factor+x)*4;
++    const emission=[162,123,77].map(c=>c*p.emission);
++    [ [...p.rgb,255],[(normal.x*.5+.5)*255,(normal.y*.5+.5)*255,(normal.z*.5+.5)*255,255],[255,p.rough*255,p.metal*255,255],[...emission,255] ].forEach((rgba,k)=>data[k].set(rgba,i));
++  }
++  return data;
++}
+--- a/js/world/building-atlas.worker.js
++++ b/js/world/building-atlas.worker.js
+@@ -0,0 +1,3 @@
++import { makeAtlasPixels } from './building-atlas.js';
++const pixels=[makeAtlasPixels(true),makeAtlasPixels(false)];
++postMessage(pixels,pixels.flat().map(array=>array.buffer));
+--- a/js/world/building-kit.js
++++ b/js/world/building-kit.js
+@@ -329 +329 @@
+-  if (rolloutGroup) { const update=city.userData.update;city.userData.update=camera=>{update?.(camera);rolloutGroup.userData.update(camera);}; }
++  if (rolloutGroup) { const update=city.userData.update;city.userData.update=camera=>{update?.(camera);return rolloutGroup.userData.update(camera);}; }
+--- a/js/world/building-slice-materials.js
++++ b/js/world/building-slice-materials.js
+@@ -0,0 +1 @@
++import { SURFACE, makeAtlasPixels } from './building-atlas.js';
+@@ -7,69 +8,13 @@
+-export const SURFACE = Object.freeze({ plaster: 0, brick: 1, roof: 2, trim: 3, stone: 4, litGlass: 5, glass: 6, door: 7 });
+-let shared, landmarkSet, surfaceSet, legacyMaps;
+-const hash = (x, y) => { let n = Math.imul(x + 131, 374761393) ^ Math.imul(y + 719, 668265263); n = Math.imul(n ^ n >>> 13, 1274126177); return (n >>> 0) / 4294967295; };
+-const mod = (x, n) => (x % n + n) % n;
+-const palette = [[220,211,191],[160,96,73],[68,80,94],[230,221,201],[196,186,164],[65,94,112],[65,94,112],[52,67,69]];
+-
+-// Periodic, interpolated grain avoids a visible seam or a low-frequency sine pattern.
+-function grain(u,v,columns,rows) {
+-  const x=u*columns,y=v*rows,ix=Math.floor(x),iy=Math.floor(y);
+-  const fx=x-ix,fy=y-iy,s=fx*fx*(3-2*fx),t=fy*fy*(3-2*fy);
+-  const h=(dx,dy)=>hash(mod(ix+dx,columns),mod(iy+dy,rows));
+-  return (h(0,0)*(1-s)+h(1,0)*s)*(1-t)+(h(0,1)*(1-s)+h(1,1)*s)*t;
+-}
+-function texel(surface, x, y, quality = false) {
+-  const u=mod(x-4,120)/120,v=mod(y-4,248)/248;
+-  const fine=hash(Math.floor(u*120),Math.floor(v*248))-.5;
+-  let color=palette[surface],shade=1+fine*.012,height=fine*.00008,rough=.84,metal=0;
+-  if(surface===SURFACE.brick||surface===SURFACE.stone){
+-    const brick=surface===SURFACE.brick,rows=brick?24:8,columns=brick?4:2;
+-    const row=Math.floor(v*rows),column=Math.floor(u*columns+(row%2)*.5);
+-    const bx=mod(u*columns+(row%2)*.5,1),by=mod(v*rows,1);
+-    const joint=Math.min(bx,1-bx)<.018||Math.min(by,1-by)<.045;
+-    const tone=hash(mod(column,columns),row)-.5;
+-    color=joint?(brick?[168,150,128]:[169,159,141]):color.map((c,i)=>c+tone*(brick?[26,16,12]:[12,10,8])[i]);
+-    shade=1+fine*.02; height=joint?-.0008:fine*.0002;
+-    rough=joint?.95:(brick?.86:.78)+tone*.05;
+-  }else if(surface===SURFACE.roof){
+-    const row=Math.floor(v*6),column=Math.floor(u*4+(row%2)*.5);
+-    const rx=mod(u*4+(row%2)*.5,1),ry=mod(v*6,1);
+-    const tone=hash(mod(column,4),row)-.5;
+-    shade=.96+tone*.09+fine*.012;
+-    if(rx<.018||ry<.03)shade*=.87;
+-    height=ry<.03?-.0006:.0006*(1-ry);rough=.79+tone*.06;
+-  }else if(surface===SURFACE.glass||surface===SURFACE.litGlass){
+-    // flat, dark, cool pane: sky reflection comes from glass-reflection.js, not baked gradients
+-    color=[65,94,112];shade=.95+(hash(Math.floor(u*8),Math.floor(v*16))-.5)*.04;
+-    height=0;rough=.24;
+-  }else if(surface===SURFACE.trim){
+-    height=fine*.00004;rough=.64;metal=0;shade=1+fine*.01;
+-  }else if(surface===SURFACE.door){
+-    const edge=Math.min(mod(u*2,1),1-mod(u*2,1),mod(v*3,1),1-mod(v*3,1));
+-    shade=edge<.07?.81:1+fine*.012;height=edge<.07?-.001:0;rough=.69;
+-  }else{
+-    // plaster: metre-scale tone drift (+-2.5%), fine trowel grain, slight roughness variation
+-    const micro=grain(u,v,30,62)-.5,soft=grain(u,v,2,4)-.5;
+-    shade=1+soft*.05+micro*.02+fine*.008;
+-    height=micro*.00015+fine*.00004;rough=.83+soft*.06+micro*.03;
+-  }
+-  if (quality) {
+-    const pores = grain(u,v,80,160)-.5, mineral = grain(u,v,12,24)-.5;
+-    if (surface===SURFACE.brick || surface===SURFACE.stone) {
+-      const brick=surface===SURFACE.brick, rows=brick?24:8, columns=brick?4:2;
+-      const row=Math.floor(v*rows), bx=mod(u*columns+(row%2)*.5,1), by=mod(v*rows,1);
+-      const edge=Math.min(bx,1-bx,by*.65,(1-by)*.65);
+-      const lip=Math.min(1,Math.max(0,edge/(brick?.035:.025)));
+-      height=surface===SURFACE.brick ? -.0016*(1-lip)+pores*.00035 : -.0012*(1-lip)+mineral*.0007+pores*.00025;
+-      shade*=.98+lip*.02+mineral*.035+pores*.025;
+-      rough=Math.min(.98,rough+pores*.1+mineral*.05);
+-    } else if (surface===SURFACE.roof) {
+-      const row=Math.floor(v*6), ry=mod(v*6,1), rx=mod(u*4+(row%2)*.5,1);
+-      height=.002*(1-ry)-.0015*(ry<.025?1:0)+pores*.0003;
+-      shade*=.97+mineral*.04+pores*.025+Math.min(1,rx/.025)*.03;
+-      rough=.76+mineral*.1+pores*.05;
+-    } else if (surface===SURFACE.plaster) {
+-      height=pores*.00008+mineral*.00002;shade=1+pores*.009+mineral*.006;rough=.86+pores*.08;
+-    } else if (surface===SURFACE.trim) { height=pores*.00004;rough=.57+mineral*.06; }
+-  }
+-  const emission=surface===SURFACE.litGlass?.68:0;
+-  return {rgb:color.map(c=>Math.max(0,Math.min(255,c*shade))),height,rough,metal,emission};
++export { SURFACE } from './building-atlas.js';
++let shared, landmarkSet, surfaceSet, legacyMaps, atlasPixels, atlasPreparation;
++
++export function prepareArchitectureMaterials() {
++  return atlasPreparation ??= new Promise(resolve => {
++    let worker;
++    const finish=()=>{worker?.terminate();resolve();};
++    try {
++      worker=new Worker(new URL('./building-atlas.worker.js',import.meta.url),{type:'module'});
++      worker.onmessage=event=>{atlasPixels=event.data;finish();};
++      worker.onerror=event=>{event.preventDefault();finish();};
++    } catch { finish(); }
++  });
+@@ -79,9 +24,3 @@
+-  const factor=quality?2:1,size=512*factor;
+-  const data = Array.from({length:4},()=>new Uint8ClampedArray(size*size*4));
+-  for (let surface=0;surface<8;surface++) for(let y=0;y<256*factor;y++) for(let x=0;x<128*factor;x++) {
+-    const px=x/factor,py=y/factor,p=texel(surface,px,py,quality), hx=texel(surface,px+1/factor,py,quality).height-texel(surface,px-1/factor,py,quality).height, hy=texel(surface,px,py+1/factor,quality).height-texel(surface,px,py-1/factor,quality).height;
+-    const normal=new THREE.Vector3(-hx*220*factor,hy*220*factor,1).normalize();
+-    const i=(((1-Math.floor(surface/4))*256*factor+y)*size+(surface%4)*128*factor+x)*4;
+-    const emission=[162,123,77].map(c=>c*p.emission);
+-    [ [...p.rgb,255],[(normal.x*.5+.5)*255,(normal.y*.5+.5)*255,(normal.z*.5+.5)*255,255],[255,p.rough*255,p.metal*255,255],[...emission,255] ].forEach((rgba,k)=>data[k].set(rgba,i));
+-  }
++  const factor=quality?2:1,size=512*factor,index=quality?0:1;
++  const data=atlasPixels?.[index]??makeAtlasPixels(quality);
++  if(atlasPixels)atlasPixels[index]=null;
+@@ -200 +139 @@
+-  material.customProgramCacheKey=()=> material.name+(cityWalls||material.name==='slice-glass-city'?'-metric-atlas-v11':'-metric-atlas-v8')+(quality?'-construction-v1':'');
++  material.customProgramCacheKey=()=> material.name+(cityWalls||material.name==='slice-glass-city'?'-metric-atlas-v11':'-metric-atlas-v8')+(quality?'-construction-v2':'');
+@@ -231,2 +170,7 @@
+-      if (cityWalls && chunk === 'roughnessmap_fragment') finish = '\nroughnessFactor *= 1.0 - 0.23 * facadeMoisture;' + (quality?' roughnessFactor=mix(roughnessFactor,.42,spandrel);':'');
+-      if (quality && cityWalls && chunk === 'metalnessmap_fragment') finish = '\nmetalnessFactor=mix(metalnessFactor,.35,spandrel);';
++      if (cityWalls && chunk === 'roughnessmap_fragment') finish = '\nroughnessFactor *= 1.0 - 0.23 * facadeMoisture;' + (quality?`
++        float frameFinish=(1.0-step(.25,abs(vSliceSurface-3.0)))*(1.0-smoothstep(.24,.65,dot(vColor.rgb,vec3(.2126,.7152,.0722))));
++        roughnessFactor=mix(roughnessFactor,.42,spandrel);
++        roughnessFactor=mix(roughnessFactor,.30,frameFinish);`: '');
++      if (quality && cityWalls && chunk === 'metalnessmap_fragment') finish = '\nmetalnessFactor=mix(metalnessFactor,.35,spandrel);metalnessFactor=mix(metalnessFactor,.48,frameFinish);';
++      if (quality && material.name.startsWith('slice-glass') && chunk === 'roughnessmap_fragment') finish = `
++        roughnessFactor*=mix(.74,1.18,sliceHash(floor(vFloodP.xz/9.0)+floor(vSliceY/3.0)));`;
+--- a/js/world/city-rollout.js
++++ b/js/world/city-rollout.js
+@@ -88 +88 @@
+-  let geometries,dispose=null;
++  let geometries;
+@@ -95 +95 @@
+-  const houses=cell.plots.map(({p,kind})=>houseGeometries(p,kind,neighbors,cell,kind==='townhouse'?level:0,modules));
++  const houses=cell.plots.map(({p,kind})=>houseGeometries(p,kind,neighbors,cell,level,modules));
+@@ -112 +112 @@
+-  let kitLots=0;const {architecture}=townhouseMaterials(),glass=roomGlassMaterial(),start=performance.now(),chunkOf=new Map();
++  let kitLots=0;const {architecture}=townhouseMaterials(),glass=roomGlassMaterial(),start=performance.now();
+@@ -115,5 +115,5 @@
+-    const hasLod=cell.plots.some(({kind})=>kind==='townhouse'),lods=[];
+-    for(let level=0;level<(hasLod?2:1);level++)lods.push(mergeCell(cell,neighbors,level,null));
+-    lods[0].forEach((geometry,k)=>{const mesh=new THREE.Mesh(geometry,k===2?glass:architecture);mesh.name=['city-mass','city-trim','city-glass'][k];mesh.castShadow=k===0;mesh.receiveShadow=true;chunk.add(mesh);});
+-    const bounds=new THREE.Box3();lods.flat().forEach(g=>bounds.union(g.boundingBox));bounds.translate(chunk.position);
+-    chunk.userData={plotIds:cell.plots.map(({p})=>p.id),lods,bounds,level:null};group.add(chunk);chunkOf.set(cell,chunk);
++    const far=mergeCell(cell,neighbors,1,null),lods=[far,far];
++    far.forEach((geometry,k)=>{const mesh=new THREE.Mesh(geometry,k===2?glass:architecture);mesh.name=['city-mass','city-trim','city-glass'][k];mesh.castShadow=k===0;mesh.receiveShadow=true;chunk.add(mesh);});
++    const bounds=new THREE.Box3();far.forEach(g=>bounds.union(g.boundingBox));bounds.translate(chunk.position);
++    const n=cell.plots.filter(({p,kind})=>kitLot(p,kind)).length;kitLots+=n;
++    chunk.userData={plotIds:cell.plots.map(({p})=>p.id),lods,bounds,level:null,cell,near:null,nearFactory:null,builtFactory:null,builtKit:null,...(n?{kitCell:cell,kit:null}:{})};group.add(chunk);
+@@ -121,2 +121,9 @@
+-  for(const [cell,chunk] of chunkOf){const n=cell.plots.filter(({p,kind})=>kitLot(p,kind)).length;if(n){chunk.userData.kitCell=cell;chunk.userData.kit=null;kitLots+=n;}}
+-  let disposed=false;let kit=null;group.userData={archetype:'citywide-architecture',get kitLots(){return kitLots},get kitReady(){return !!kit},plotIds:[...ids],counts,buildMs:performance.now()-start,
++  let disposed=false,kit=null;
++  function replaceNear(chunk,next){
++    const d=chunk.userData,previous=d.near;
++    d.near=next;d.lods[0]=next||d.lods[1];d.kit=next&&d.kitCell&&kit?next:null;
++    const active=d.lods[d.level??1];chunk.children.forEach((m,k)=>m.geometry=active[k]);
++    d.bounds.makeEmpty();new Set(d.lods.flat()).forEach(g=>d.bounds.union(g.boundingBox));d.bounds.translate(chunk.position);
++    previous?.forEach(g=>g.dispose());
++  }
++  group.userData={archetype:'citywide-architecture',get disposed(){return disposed},get kitLots(){return kitLots},get kitReady(){return !!kit},plotIds:[...ids],counts,buildMs:performance.now()-start,
+@@ -124,10 +131,9 @@
+-      let built=0;
+-      for(const c of group.children){
+-        const d=c.userData,distance=d.bounds.distanceToPoint(camera.position);
+-        // Kit LOD0 is built lazily (max one cell per update, from 140 m, LOD0 starts at 120) and dropped beyond 180 m, so resident memory follows the camera, not the city.
+-        if(d.kitCell){
+-          if(kit&&!d.kit&&distance<140&&built<(distance<125?3:1)){d.kit=mergeCell(d.kitCell,neighbors,0,kit);built++;d.level=d.level===0?null:d.level;if(d.lods[0]){d.lods[0].forEach(g=>g.dispose());d.lods[0]=null;}}
+-          else if(d.kit&&distance>180){d.kit.forEach(g=>g.dispose());d.kit=null;d.level=d.level===0?null:d.level;}
+-        }
+-        const level=d.lods.length===1?0:d.level===null?(distance<120?0:1):d.level===0?(distance>129?1:0):(distance<111?0:1);
+-        if(level!==d.level){const set=level===0?d.kit||d.lods[0]:d.lods[level];if(!set)continue;c.children.forEach((m,k)=>m.geometry=set[k]);d.level=level;}
++      if(disposed)return;
++      let closest=null,best=Infinity;
++      for(const chunk of group.children){
++        const d=chunk.userData,distance=d.bounds.distanceToPoint(camera.position);
++        d.level=d.level===null?(distance<120?0:1):d.level===0?(distance>129?1:0):(distance<111?0:1);
++        // Build one nearest cell inside 140 m; retain detail until 180 m to avoid rebuilding on every LOD switch.
++        if(d.near&&distance>180)replaceNear(chunk,null);
++        if(distance<140&&distance<best&&(!d.near||d.builtFactory!==d.nearFactory||(d.kitCell&&d.builtKit!==kit))){closest=chunk;best=distance;}
++        const set=d.lods[d.level];chunk.children.forEach((m,k)=>m.geometry=set[k]);
+@@ -134,0 +141,6 @@
++      if(closest){
++        const d=closest.userData,buildTownhouse=p=>houseGeometries(p,'townhouse',neighbors,d.cell,0,kit);
++        const next=d.nearFactory?d.nearFactory(buildTownhouse):mergeCell(d.cell,neighbors,0,kit);
++        replaceNear(closest,next);d.builtFactory=d.nearFactory;d.builtKit=kit;
++      }
++      return !!closest;
+@@ -136,2 +148,2 @@
+-    dispose(){if(disposed)return;disposed=true;group.children.forEach(c=>{c.userData.lods.flat().forEach(g=>g?.dispose());c.userData.kit?.forEach(g=>g.dispose());});}};
+-  if(kitLots)trackWork(loadTownhouseKit().then(m=>{kit=m;}).catch(()=>{}));
++    dispose(){if(disposed)return;disposed=true;const geometries=new Set(group.children.flatMap(c=>c.userData.lods.flat()));geometries.forEach(g=>g.dispose());}};
++  if(kitLots)trackWork(loadTownhouseKit().then(m=>{if(!disposed)kit=m;}).catch(()=>{}));
+--- a/js/world/facade-kit.js
++++ b/js/world/facade-kit.js
+@@ -16,4 +16,3 @@
+-// Shop + midrise facade kits (tools/buildings/{shop,midrise}-kit). The rollout builds every chunk procedurally first;
+-// once the kits load, chunks that hold kit lots are rebuilt with module geometry merged into the same mass/trim/glass
+-// buckets (no new draw calls, no new materials). The procedural geometry stays as LOD1, so the existing hysteresis switch
+-// (rollout.update, 120/129/111 m) swaps kit detail out at distance. Roll back with createCityBuildings(plots,{kits:false})
++// Facade kits register near-cell builders after loading; rollout.update constructs at most one nearby cell per frame.
++// Far procedural geometry remains resident in the same mass/trim/glass buckets and shared materials.
++// Roll back with createCityBuildings(plots,{kits:false})
+@@ -116 +115 @@
+-function buildChunk(chunk, byId, neighbors, kits, kitIds) {
++function buildChunk(chunk, byId, neighbors, kits, kitIds, buildTownhouse) {
+@@ -119,0 +119 @@
++    if(kind==='townhouse'){buildTownhouse(p).forEach((g,k)=>merged[k].push(g));continue;}
+@@ -165 +165 @@
+-// Async: resolves with coverage stats; the scene keeps rendering the procedural chunks until each swap.
++// Async: resolves with selected-lot coverage; chunks/buildMs count work as nearby cells are actually built.
+@@ -181 +181 @@
+-  const names = Object.keys(lots).filter((k) => lots[k].length), loaded = await Promise.all(names.map((k) => loadKit(URLS[k])));
++  const names = Object.keys(lots).filter((k) => lots[k].length), loaded = await Promise.all(names.map((k) => loadKit(URLS[k]).catch(()=>null)));
+@@ -182,0 +183,2 @@
++  if(dead||rollout.userData.disposed)return stats;
++  const availableIds=new Set([...kitIds].filter(id=>kits[classifyPlot(byId.get(id))]));
+@@ -184,11 +186,7 @@
+-  for (const chunk of rollout.children.filter((c) => c.userData.plotIds.some((id) => kitIds.has(id)))) {
+-    await new Promise((r) => setTimeout(r, 0)); // one chunk per task: no long main-thread stall
+-    if (dead) return stats;
+-    const t0 = performance.now(), d = chunk.userData, next = buildChunk(chunk, byId, neighbors, kits, kitIds);
+-    if (dead) { next.forEach((g) => g.dispose()); return stats; }
+-    // Procedural level-0 geometry becomes (or stays) the far level, so the existing hysteresis switch hides kit detail at distance.
+-    if (d.lods.length === 1) d.lods.push(d.lods[0]); else d.lods[0].forEach((g) => g.dispose());
+-    d.lods[0] = next;
+-    if (d.level === null || d.level === 0) { chunk.children.forEach((m, k) => m.geometry = next[k]); }
+-    d.bounds.makeEmpty(); d.lods.flat().forEach((g) => d.bounds.union(g.boundingBox)); d.bounds.translate(chunk.position);
+-    stats.chunks++; stats.buildMs += performance.now() - t0;
++  for(const chunk of rollout.children.filter(c=>c.userData.plotIds.some(id=>availableIds.has(id)))){
++    chunk.userData.nearFactory=buildTownhouse=>{
++      if(dead||rollout.userData.disposed)return null;
++      const start=performance.now(),next=buildChunk(chunk,byId,neighbors,kits,availableIds,buildTownhouse);
++      stats.chunks++;stats.buildMs+=performance.now()-start;
++      return next;
++    };
+--- a/js/world/glb-loader.js
++++ b/js/world/glb-loader.js
+@@ -7,2 +7,9 @@
+-let renderer, ktx2;
+-export const initGlbLoader = (r) => { renderer = r; };
++let renderer, ktx2, decoderInitialized = false;
++export const initGlbLoader = (r) => {
++  renderer = r;
++  if (!decoderInitialized) {
++    decoderInitialized = true;
++    // One shared worker also leaves the synchronous decoder intact if worker creation is blocked.
++    try { MeshoptDecoder.useWorkers(1); } catch { /* main-thread decoding remains available */ }
++  }
++};
+--- a/js/world/lot-tint.js
++++ b/js/world/lot-tint.js
+@@ -17 +17 @@
+-const walls=[[1.12,1.14,1.16],[.55,.80,1.12],[.65,.92,.60],[1.18,.82,.45],[1.10,.65,.70],[.58,.64,.72],[1.10,1.04,.80],[.83,.75,.64],[1.15,.95,.62],[.72,.95,.88],[1.05,.55,.45],[.92,.88,1.08],[1.16,1.08,.92],[.62,.72,.58],[1.12,.90,.88],[.86,.94,1.08],[.88,1.02,.93],[1.14,1.08,.80],[.80,.82,.85],[1.15,.80,.66]]; // 14-19: painted pink, powder blue, mint, butter yellow, grey stone, terracotta
++const walls=[[1.12,1.14,1.16],[.40,.74,1.18],[.48,.96,.55],[1.24,.77,.28],[1.20,.55,.65],[.48,.57,.68],[1.14,1.05,.76],[.82,.70,.56],[1.22,.94,.46],[.53,.97,.83],[1.12,.40,.29],[.95,.83,1.10],[1.19,1.10,.94],[.52,.72,.49],[1.20,.76,.73],[.70,.89,1.12],[.72,1.04,.84],[1.22,1.10,.65],[.78,.82,.87],[1.20,.69,.47]]; // regional pigments: ochre, terracotta, sage, powder blue and warm mineral neutrals
+@@ -36 +36 @@
+-  const metalTrim=(p.kind==='office'||p.kind==='tower'||p.height>=40)?[[.72,.77,.80],[.58,.64,.68],[.90,.82,.68]][seed%3]:[1,1,1];
++  const metalTrim=(p.kind==='office'||p.kind==='tower'||p.height>=40)?[[.36,.44,.51],[.28,.34,.40],[.66,.50,.30]][seed%3]:[1.18,1.20,1.22];
+--- a/js/world/scene.js
++++ b/js/world/scene.js
+@@ -1 +1 @@
+-import { townhouseMaterials, roomGlassMaterial, officeFacadeMaterials } from './building-slice-materials.js';
++import { townhouseMaterials, roomGlassMaterial, officeFacadeMaterials, prepareArchitectureMaterials } from './building-slice-materials.js';
+@@ -26,0 +27 @@
++import { onLoadChange } from './load-progress.js';
+@@ -86,0 +88 @@
++  await prepareArchitectureMaterials();
+@@ -150,0 +153,3 @@
++  const [forest, ...streetAssembly] = await Promise.allSettled([
++    createTrees(treePlacements, treeRegion(stops, pts)), buildPhoneBoxes(), buildLampPosts(), buildStreetProps(streetProps),
++  ]);
+@@ -152,5 +157,7 @@
+-  try { trees = await createTrees(treePlacements, treeRegion(stops, pts)); scene.add(trees); }
+-  catch { treePlacements.forEach(({ x, z, ...shape }) => tree(cornerAdd, x, z, shape)); } // retain trees if the texture cannot load
+-  const phones = await buildPhoneBoxes(); if (phones) scene.add(phones);
+-  const lampPosts = await buildLampPosts(); if (lampPosts) scene.add(lampPosts);
+-  const propsGroup = await buildStreetProps(streetProps); if (propsGroup) scene.add(propsGroup); // before createSky: the Belisha globes join its night glow loop
++  if (forest.status === 'fulfilled') { trees = forest.value; scene.add(trees); }
++  else treePlacements.forEach(({ x, z, ...shape }) => tree(cornerAdd, x, z, shape)); // retain trees if the texture cannot load
++  const [phones, lampPosts, propsGroup] = streetAssembly.map(result => {
++    if (result.status === 'rejected') throw result.reason;
++    if (result.value) scene.add(result.value); // preserve source order, before createSky collects the Belisha globes
++    return result.value;
++  });
+@@ -197,0 +205 @@
++  const stopLoadWake = onLoadChange(wake);
+@@ -438 +446,2 @@
+-    architecture.userData.update?.(camera);
++    const architecturePending = architecture.userData.update?.(camera);
++    const paulistaPending = details.getObjectByName('paulista-architecture')?.userData.update(camera);
+@@ -491 +500 @@
+-    if (!reducedMotion) wake();
++    if (!reducedMotion || architecturePending || paulistaPending) wake();
+@@ -519,0 +529 @@
++      stopLoadWake();

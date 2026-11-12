@@ -1,8 +1,9 @@
+import { finishBuilding } from './building-finish.js';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createMidriseSlice } from './midrise-slice.js';
 import { createOfficeSlice } from './office-slice.js';
-import { SURFACE as S, townhouseMaterials } from './building-slice-materials.js';
+import { SURFACE as S, preservedSurfaceMaterials } from './building-slice-materials.js';
 
 const lots=Object.freeze([
   ['infill--52-0','midrise',10,10,12],['west-30--50','midrise',10,10,12],
@@ -22,7 +23,7 @@ export function createHeroIntegration(plots,allPlots=plots){
   }
   for(const cell of cells.values()){
     const chunk=new THREE.Group();chunk.name=`hero-cell-${cell.x}-${cell.z}`;chunk.position.set(cell.x,0,cell.z);
-    const houses=cell.plots.map(p=>p.kind==='office'?createOfficeSlice(p):createMidriseSlice(p));
+    const houses=cell.plots.map(p=>finishBuilding(p.kind==='office'?createOfficeSlice(p):createMidriseSlice(p),p,p.kind==='office'?'office':'midrise'));
     for(let k=0;k<3;k++){
       const inputs=houses.map(h=>h.children[k].geometry.translate(h.position.x-cell.x,0,h.position.z-cell.z));
       const geometry=mergeGeometries(inputs,false);inputs.forEach(g=>g.dispose());
@@ -43,7 +44,7 @@ export function createHeroIntegration(plots,allPlots=plots){
     for(const [a,b]of [[xs[i-1],zs[j-1]],[xs[i-1],zs[j]],[xs[i],zs[j]],[xs[i-1],zs[j-1]],[xs[i],zs[j]],[xs[i],zs[j-1]]]){position.push(a,.085,b);normal.push(0,1,0);uv.push(a,b);color.push(...tint);surface.push(S.stone);}
   }
   const paving=new THREE.BufferGeometry();for(const [name,data,size]of [['position',position,3],['normal',normal,3],['uv',uv,2],['color',color,3],['aSurface',surface,1]])paving.setAttribute(name,new THREE.Float32BufferAttribute(data,size));
-  paving.computeBoundingBox();paving.computeBoundingSphere();const apron=new THREE.Mesh(paving,townhouseMaterials().architecture);apron.name='hero-transition-paving';apron.receiveShadow=true;group.add(apron);
+  paving.computeBoundingBox();paving.computeBoundingSphere();const apron=new THREE.Mesh(paving,preservedSurfaceMaterials().architecture);apron.name='hero-transition-paving';apron.receiveShadow=true;group.add(apron);
   let disposed=false;group.userData={archetype:'hero-zone-architecture',plotIds:plots.map(p=>p.id),dispose(){if(disposed)return;disposed=true;group.traverse(m=>{if(m.isMesh)m.geometry.dispose()});}};
   return group;
 }

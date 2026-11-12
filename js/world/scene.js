@@ -1,3 +1,4 @@
+import { townhouseMaterials, roomGlassMaterial, officeFacadeMaterials, prepareArchitectureMaterials } from './building-slice-materials.js';
 import { createShopSpill } from './shop-spill.js';
 import { streetEnvironment, setStreetRegions, shopFrontages } from './streetscape-state.js';
 import * as THREE from 'three';
@@ -23,12 +24,14 @@ import { upgradeTowerBridge, towerBridgeForced } from './towerbridge-asset.js';
 import { upgradeMasp, maspForced } from './masp-asset.js';
 import { authoredLandmarksForced, upgradeAuthoredLandmark, upgradeLondonEye } from './authored-landmarks.js';
 import { resetFloodlights } from './building-slice-materials.js';
+import { onLoadChange } from './load-progress.js';
 import { polishLandmarkMaterials } from './landmark-materials.js';
 import { createLandmarkEnv } from './landmark-env.js';
 import { buildVehicle } from './vehicles.js';
 import { planePose, smooth, PLANE_IN, PLANE_OUT, TURN_AT, HAZE } from './plane-path.js';
 import { createMood } from './mood.js';
 import { createRain } from './rain.js';
+import { createWeatherCover } from './weather-cover.js';
 import { lagWetness } from './weather.js';
 import { createWetSurfaces } from './wet-surfaces.js';
 import { createSky, EXPOSURE, SUN_DIR } from './sky.js';
@@ -49,7 +52,7 @@ import { createVehicleFx } from './vehicle-fx.js';
 import { createRoadMarks } from './roadmarks.js';
 import { loadVehicleAsset, adoptVisual, upgradeBus, upgradeMini, rollWheels, initVehicleEnv, updateVehicleEnv } from './vehicle-assets.js';
 import { RIVER_RUN } from './underwater-profile.js';
-import { createUnderpass } from './underpass.js';
+import { createUnderpass, HX as UNDERPASS_HALF, W as UNDERPASS_WIDTH, H as UNDERPASS_HEIGHT } from './underpass.js';
 import { createUnderpassTraffic } from './underpass-traffic.js';
 import { createRouteTunnel } from './route-tunnel.js';
 import { createSwapTunnel } from './swap-tunnel.js';
@@ -82,6 +85,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   Object.assign(renderer, { toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: EXPOSURE, outputColorSpace: THREE.SRGBColorSpace });
   initGlbLoader(renderer);
+  await prepareArchitectureMaterials();
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xa8d0f2);
@@ -146,12 +150,17 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const lampClearance = lampSpots(), kioskClearance = kioskSpots();
   const arc = parkingBays(curve, pts, stops, pilotCrossings); // shared by the street props and the road marks
   const streetProps = placeStreetProps({ stops, pts, curve, arc, pilotCrossings, boxes: list, trees: treePlacements, lamps: lampClearance, kiosks: kioskClearance, plots: [...architecturePlots, ...buildingPlots], exclude: publicRealmZones });
+  const [forest, ...streetAssembly] = await Promise.allSettled([
+    createTrees(treePlacements, treeRegion(stops, pts)), buildPhoneBoxes(), buildLampPosts(), buildStreetProps(streetProps),
+  ]);
   let trees;
-  try { trees = await createTrees(treePlacements, treeRegion(stops, pts)); scene.add(trees); }
-  catch { treePlacements.forEach(({ x, z, ...shape }) => tree(cornerAdd, x, z, shape)); } // retain trees if the texture cannot load
-  const phones = await buildPhoneBoxes(); if (phones) scene.add(phones);
-  const lampPosts = await buildLampPosts(); if (lampPosts) scene.add(lampPosts);
-  const propsGroup = await buildStreetProps(streetProps); if (propsGroup) scene.add(propsGroup); // before createSky: the Belisha globes join its night glow loop
+  if (forest.status === 'fulfilled') { trees = forest.value; scene.add(trees); }
+  else treePlacements.forEach(({ x, z, ...shape }) => tree(cornerAdd, x, z, shape)); // retain trees if the texture cannot load
+  const [phones, lampPosts, propsGroup] = streetAssembly.map(result => {
+    if (result.status === 'rejected') throw result.reason;
+    if (result.value) scene.add(result.value); // preserve source order, before createSky collects the Belisha globes
+    return result.value;
+  });
   const architecture = await realCity;scene.add(architecture);
   const mini = buildVehicle('mini', { hero: true }), londonBus = buildVehicle('london', { hero: true }), glasgowBus = buildVehicle('glasgow', { hero: true });
   const candidates = [mini, londonBus, glasgowBus], heroVehicles = { mini, london: londonBus, glasgow: glasgowBus };
@@ -169,6 +178,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const world = buildMeshes(list, { glow: [P.lit, '#ffd86b', '#fff7c2', P.arch, WIN_L, RG, RB], glowK: { [P.arch]: 1.1, [WIN_L]: 1.0, [RG]: 0.55, [RB]: 0.2 }, grass: { trees: treePlacements, plots: architecturePlots, lamps: lampClearance, kiosks: kioskClearance } });
   world.traverse((o) => { const h = o.material?.color?.getHexString(); if (o.material?.userData.glow) { if (h === WIN_L.slice(1)) o.material.userData.glowColor = new THREE.Color('#ffb04a'); if (h === RG.slice(1)) o.material.userData.glowColor = new THREE.Color('#d8e86a'); if (h === RB.slice(1)) o.material.userData.glowColor = new THREE.Color('#bcd4ff'); } });
   const landmarkEnv = createLandmarkEnv(renderer);
+  // Reuse the existing prefiltered sky for ordinary PBR: no new environment capture/target.
+  for (const material of [townhouseMaterials().architecture, townhouseMaterials().glass, roomGlassMaterial(), officeFacadeMaterials().glass]) landmarkEnv.register(material, { k: material.name==='slice-architecture'?.28:.40 });
   polishLandmarkMaterials(world,stops,pts,landmarkEnv);
   const motion = buildMotion(); scene.add(motion.group);
   const roadMarks = createRoadMarks(curve, stops, { ...arc, pilotCrossings });
@@ -191,6 +202,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   upgradeBus(londonBus, 'london', { isDisposed: () => disposed }).then(() => refitBeams(londonBus)); upgradeBus(glasgowBus, 'glasgow', { isDisposed: () => disposed }).then(() => refitBeams(glasgowBus)); // authored shared London/Glasgow bus GLB
   loadVehicleAsset('a330').then((glb) => { if (glb && !disposed) adoptVisual(plane, glb, ['nav', 'strobe']); }); // authored A330 (tools/vehicles/a330); procedural stays on failure
   const wake = () => { if (landmarksReady && !disposed && !raf && !document.hidden) raf = requestAnimationFrame(frame); };
+  const stopLoadWake = onLoadChange(wake);
   const startupLandmarks = [];
   const authoredLods = [];
   let bigBenLod = null; // authored Big Ben LOD0/LOD1 (tools/landmarks/bigben); the procedural group stays hidden underneath as fallback
@@ -232,8 +244,17 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const frontages = shopFrontages(architecturePlots);
   const pools = createLampPools(scene, [...lamps, ...(heroRealm?.userData.lampPools ?? [])], 10, frontages);
   const shopSpill = createShopSpill(scene, frontages, list);
-  const sky = createSky(scene, { hemi, sun, reducedMotion }), moodAt = createMood(stops), rain = createRain(scene, { reducedMotion, lamps });
-  const wetSurfaces = createWetSurfaces(scene, { lamps, reducedMotion }), vehicleFx = createVehicleFx(scene, { reducedMotion });
+  const footprints = [...architecturePlots, ...buildingPlots].map(p => ({ x: p.x, z: p.z, hx: p.width / 2, hz: p.depth / 2, height: p.height }));
+  footprints.push(...underpass.passes.map(p => ({ x: p.x, z: p.z, hx: UNDERPASS_HALF, hz: UNDERPASS_WIDTH, height: UNDERPASS_HEIGHT, tx: p.tx, tz: p.tz })));
+  footprints.push({ x: towerX(stops, pts), z: RIVER_Z, hx: 4, hz: 42, height: 5.2 }); // existing Tower Bridge carriageway, including its open river span
+  if (masp) {
+    const b = new THREE.Box3().setFromObject(masp);
+    footprints.push({ x: (b.min.x + b.max.x) / 2, z: (b.min.z + b.max.z) / 2, hx: (b.max.x - b.min.x) / 2, hz: (b.max.z - b.min.z) / 2, height: b.max.y });
+  }
+  const weatherCover = createWeatherCover(footprints);
+  if (qa) globalThis.__qaWeatherCover = weatherCover;
+  const sky = createSky(scene, { hemi, sun, reducedMotion }), moodAt = createMood(stops, { reducedMotion }), rain = createRain(scene, { reducedMotion, lamps, cover: weatherCover });
+  const wetSurfaces = createWetSurfaces(scene, { lamps, reducedMotion, cover: weatherCover }), vehicleFx = createVehicleFx(scene, { reducedMotion });
   wetReflectionHidden.push(...sky.objects);
   if (vehicleFx.points) wetReflectionHidden.push(vehicleFx.points);
   // Foam rings Tower Bridge's piers and moored boats. The river reflects landmarks and bank-side lots.
@@ -254,7 +275,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   if (qa) globalThis.__qaRiver = { x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z: RIVER_Z, width: 22 }; // QA probe: river extent for the underpass survey
   const water = createWater({
     x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z: RIVER_Z, width: 22,
-    reducedMotion, piers, boats, reflectRoots, bankPlots: architecturePlots,
+    reducedMotion, piers, boats, reflectRoots, bankPlots: architecturePlots, cover: weatherCover,
   });
   scene.add(water.mesh);
   if (water.bankReflection) scene.add(water.bankReflection);
@@ -286,6 +307,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const key = JSON.stringify([width, height, mobile, headerBottom, panelBox]);
     if (key === fitKey) return false;
     fitKey = key;
+    sky.setViewport(width, height, headerBottom);
     vo.tx = mobile ? 0 : panel ? -panelBox.right / 2 : 0;
     vo.ty = mobile ? height / 2 - (headerBottom + (panelBox?.top ?? height)) / 2 : panel ? -headerBottom / 2 : 0;
     if (vo.x === undefined) { vo.x = vo.tx; vo.y = vo.ty; }
@@ -421,26 +443,30 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       }
     }
     bridgeCars.update(dt);
-    architecture.userData.update?.(camera);
-    // snap the shadow centre to whole shadow texels in light space, so shadow edges don't shimmer while moving
-    const a = Math.round(bp.dot(LU) / TEXEL_X) * TEXEL_X, b = Math.round(bp.dot(LV) / TEXEL_Y) * TEXEL_Y;
-    sun.target.position.copy(LU).multiplyScalar(a).addScaledVector(LV, b).addScaledVector(LD, bp.dot(LD));
-    sun.position.copy(sun.target.position).add(SUN);
+    const architecturePending = architecture.userData.update?.(camera);
+    const paulistaPending = details.getObjectByName('paulista-architecture')?.userData.update(camera);
     eye.rotation.z = clock * 0.1; motion.uT.value = clock;
     updatePlane(t);
     const f = { camera, time: clock, dt, progress: p, t, active: nearestStop(p, n, marks), bus: busPos };
-    onProgress(p);
     people.update(dt, camera.position, { x: busPos.x, z: busPos.z, speed: heroSpeed });
     figure.userData.update(dt, camera, night);
     for (const u of units) u.update(f);
     streetEnvironment.time.value = clock;
     trees?.userData.update(camera, clock);
     night = reducedMotion || dt === 0 ? nightTarget : approach(night, nightTarget, dt, 1.4);
-    const mood = moodAt(t);
-    raining = mood.rain > 0.25;
+    const mood = moodAt(t, dt);
+    if (qa) globalThis.__qaWeather = mood;
+    raining = mood.rain > 0.05;
+    onProgress(p);
     wet = lagWetness(wet, mood.wet, dt);
     const flash = rain.update(clock, camera, mood, night, post.tier, busPos, bus.rotation.y);
     sky.update(night, dt, camera.position, camera, mood, flash);
+    // Share the visible astro's azimuth with shadows and water, retaining positive elevation and texel snapping.
+    LD.copy(sky.sunDir); SUN.copy(LD).multiplyScalar(95);
+    LU.set(0, 1, 0).cross(LD).normalize(); LV.copy(LD).cross(LU);
+    const a = Math.round(bp.dot(LU) / TEXEL_X) * TEXEL_X, b = Math.round(bp.dot(LV) / TEXEL_Y) * TEXEL_Y;
+    sun.target.position.copy(LU).multiplyScalar(a).addScaledVector(LV, b).addScaledVector(LD, bp.dot(LD));
+    sun.position.copy(sun.target.position).add(SUN); sun.shadow.camera.up.copy(LV);
     skyline.userData.update(night, scene.fog.color);
     bigBenLod?.update(camera.position);
     seLod?.update(camera.position);
@@ -471,7 +497,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     post.render(dt);
     if (shotResolve) { const done = shotResolve; shotResolve = null; canvas.toBlob(done, 'image/png'); } // same task as the render: the drawing buffer is still valid
     if (qa) globalThis.__qaWorldFrames++;
-    if (!reducedMotion) wake();
+    if (!reducedMotion || architecturePending || paulistaPending) wake();
   }
   const visibility = () => { last = 0; wake(); };
   addEventListener('resize', resize);
@@ -500,6 +526,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       for (const u of units) u.dispose?.();
       cancelAnimationFrame(raf); raf = 0;
       removeEventListener('resize', resize);
+      stopLoadWake();
       stopPicker();
       document.removeEventListener('visibilitychange', visibility);
       observer?.disconnect();
@@ -511,6 +538,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       eye.userData.dispose?.();
       rain.dispose?.();
       wetSurfaces.dispose(); vehicleFx.dispose(); water.dispose();
+      weatherCover.dispose();
       sky.dispose();
       trees?.userData.dispose?.();
       phones?.userData.dispose(); lampPosts?.userData.dispose();

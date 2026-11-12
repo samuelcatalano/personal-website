@@ -1,3 +1,4 @@
+import { finishArchitecture } from './building-finish.js';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { stops } from '../content.js';
@@ -12,10 +13,9 @@ import { loadKit } from './kit-loader.js';
 import { place, hash, pick, accumulators, geometryOf } from './kit-place.js';
 import { officeOverlay, towerOverlay } from './hirise-kit.js';
 
-// Shop + midrise facade kits (tools/buildings/{shop,midrise}-kit). The rollout builds every chunk procedurally first;
-// once the kits load, chunks that hold kit lots are rebuilt with module geometry merged into the same mass/trim/glass
-// buckets (no new draw calls, no new materials). The procedural geometry stays as LOD1, so the existing hysteresis switch
-// (rollout.update, 120/129/111 m) swaps kit detail out at distance. Roll back with createCityBuildings(plots,{kits:false})
+// Facade kits register near-cell builders after loading; rollout.update constructs at most one nearby cell per frame.
+// Far procedural geometry remains resident in the same mass/trim/glass buckets and shared materials.
+// Roll back with createCityBuildings(plots,{kits:false})
 // or ?kits=0.
 // Everything stays inside the 0.2 m facade margin of the lot (modules are authored <= 0.19 m deep).
 const URLS = {
@@ -112,10 +112,11 @@ export function selectKitLots(plots, radius = KIT_RADIUS, pts = routePoints(stop
   return { shops, midrises, offices, towers };
 }
 
-function buildChunk(chunk, byId, neighbors, kits, kitIds) {
+function buildChunk(chunk, byId, neighbors, kits, kitIds, buildTownhouse) {
   const cx = chunk.position.x, cz = chunk.position.z, merged = [[], [], []], overlays = [];
   for (const id of chunk.userData.plotIds) {
     const p = byId.get(id), kind = classifyPlot(p);
+    if(kind==='townhouse'){buildTownhouse(p).forEach((g,k)=>merged[k].push(g));continue;}
     let h;
     if (kitIds.has(id)) {
       const hs = hash(id), r = rolloutRecipe(p, kind, neighbors);
@@ -143,6 +144,8 @@ function buildChunk(chunk, byId, neighbors, kits, kitIds) {
         const g = mergeGeometries([m.geometry, extra], false);
         m.geometry.dispose(); extra.dispose(); m.geometry = g;
       });
+      const finished=finishArchitecture(h.children.map(m=>m.geometry),p,kind,r);
+      h.children.forEach((m,k)=>m.geometry=finished[k]);
       tint(h, p);
     } else {
       h = building(p, kind, neighbors, 0); tint(h, p);
@@ -159,7 +162,7 @@ function buildChunk(chunk, byId, neighbors, kits, kitIds) {
   });
 }
 
-// Async: resolves with coverage stats; the scene keeps rendering the procedural chunks until each swap.
+// Async: resolves with selected-lot coverage; chunks/buildMs count work as nearby cells are actually built.
 // ?kits=0 disables every kit; ?kits=shop,midrise,office,tower enables only the listed ones (default: all).
 export const enabledKits = (search = typeof location !== 'undefined' ? location.search : '') => {
   const v = /[?&]kits=([^&]*)/.exec(search)?.[1];
@@ -175,20 +178,18 @@ export async function upgradeFacadeKits(rollout, rolloutPlots, neighbors = rollo
   const sel = selectKitLots(rolloutPlots, radius), lots = { shop: sel.shops, midrise: sel.midrises, office: sel.offices, tower: sel.towers };
   for (const k of Object.keys(lots)) if (!on.has(k)) lots[k] = [];
   const kitIds = new Set(Object.values(lots).flat().map((p) => p.id)), byId = new Map(rolloutPlots.map((p) => [p.id, p]));
-  const names = Object.keys(lots).filter((k) => lots[k].length), loaded = await Promise.all(names.map((k) => loadKit(URLS[k])));
+  const names = Object.keys(lots).filter((k) => lots[k].length), loaded = await Promise.all(names.map((k) => loadKit(URLS[k]).catch(()=>null)));
   const kits = Object.fromEntries(names.map((k, i) => [k, loaded[i]])), stats = { shops: lots.shop.length, midrises: lots.midrise.length, offices: lots.office.length, towers: lots.tower.length, chunks: 0, radius, buildMs: 0 };
+  if(dead||rollout.userData.disposed)return stats;
+  const availableIds=new Set([...kitIds].filter(id=>kits[classifyPlot(byId.get(id))]));
   rollout.userData.kit = stats;
-  for (const chunk of rollout.children.filter((c) => c.userData.plotIds.some((id) => kitIds.has(id)))) {
-    await new Promise((r) => setTimeout(r, 0)); // one chunk per task: no long main-thread stall
-    if (dead) return stats;
-    const t0 = performance.now(), d = chunk.userData, next = buildChunk(chunk, byId, neighbors, kits, kitIds);
-    if (dead) { next.forEach((g) => g.dispose()); return stats; }
-    // Procedural level-0 geometry becomes (or stays) the far level, so the existing hysteresis switch hides kit detail at distance.
-    if (d.lods.length === 1) d.lods.push(d.lods[0]); else d.lods[0].forEach((g) => g.dispose());
-    d.lods[0] = next;
-    if (d.level === null || d.level === 0) { chunk.children.forEach((m, k) => m.geometry = next[k]); }
-    d.bounds.makeEmpty(); d.lods.flat().forEach((g) => d.bounds.union(g.boundingBox)); d.bounds.translate(chunk.position);
-    stats.chunks++; stats.buildMs += performance.now() - t0;
+  for(const chunk of rollout.children.filter(c=>c.userData.plotIds.some(id=>availableIds.has(id)))){
+    chunk.userData.nearFactory=buildTownhouse=>{
+      if(dead||rollout.userData.disposed)return null;
+      const start=performance.now(),next=buildChunk(chunk,byId,neighbors,kits,availableIds,buildTownhouse);
+      stats.chunks++;stats.buildMs+=performance.now()-start;
+      return next;
+    };
   }
   return stats;
 }

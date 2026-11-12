@@ -12,9 +12,9 @@ const city=kit.createCityBuildings(plots),group=city.getObjectByName(p.id);
 check(group&&group.userData.archetype==='office-slice'&&group.children.length===3,'office slice replaces the lot in three buckets');
 for(const [k,m] of group.children.entries()){
   const a=m.geometry.attributes.position,b=ref.children[k].geometry.attributes.position;
-  check(a.count===b.count,'vertex count matches the depth factory: '+m.name);
+  check(k===1?a.count>b.count:a.count===b.count,'vertex count matches the depth factory plus construction finish: '+m.name);
   for(let i=0;i<a.count;i++){
-    if(Math.abs(a.getX(i)-b.getX(i))>1e-6||Math.abs(a.getY(i)-b.getY(i))>1e-6||Math.abs(a.getZ(i)-b.getZ(i))>1e-6)throw Error('geometry differs from the depth factory: '+m.name);
+    if(i<b.count&&(Math.abs(a.getX(i)-b.getX(i))>1e-6||Math.abs(a.getY(i)-b.getY(i))>1e-6||Math.abs(a.getZ(i)-b.getZ(i))>1e-6))throw Error('geometry differs from the depth factory: '+m.name);
     if(Math.abs(a.getX(i))>p.width/2+1e-4||Math.abs(a.getZ(i))>p.depth/2+1e-4||a.getY(i)<-1e-6||a.getY(i)>p.height+1e-4)throw Error('outside the lot envelope: '+m.name);
   }
 }

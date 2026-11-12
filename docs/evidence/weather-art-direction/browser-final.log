@@ -1,0 +1,10 @@
+tests/weather-art.browser.py
+{'pass': True, 'sun': {'clear': 607, 'blocked': 0, 'uncovered': 607}, 'rain': {'exposed': 9728, 'sheltered': 0}, 'coverBytes': 131072}
+tests/sky-weather.browser.py
+{'celestialOcclusion': True, 'fogSeam': True, 'staticClouds': True, 'staticStars': True, 'shaders': True}
+tests/rain.browser.py
+{'rainShaders': True, 'tierBudgets': [6480, 2700, 1260], 'cameraFollowing': True, 'lampLighting': True, 'reducedMotion': True}
+tests/water-weather.browser.py
+{'riverRings': True, 'stormReflection': True, 'reducedMotion': True, 'tierBudget': True, 'shader': True}
+tests/wet-surfaces.browser.py
+{'pass': True, 'programs': 16, 'dryTop': [0.09969446063041687, 0.1012178435921669, 0.09680014848709106, 1], 'wetTop': [0.09868292510509491, 0.10166099667549133, 0.10215816646814346, 1], 'dryWall': [0.05618860945105553, 0.05704369395971298, 0.054564014077186584, 1], 'wetWall': [0.05618860945105553, 0.05704369395971298, 0.054564014077186584, 1]}

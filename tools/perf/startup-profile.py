@@ -1,4 +1,4 @@
-# CACHE=cold|warm RUNS=3 OUT=/tmp/startup.json browser-harness < tools/perf/startup-profile.py
+# CACHE=cold|warm RUNS=3 THEME=day OUT=/tmp/startup.json browser-harness < tools/perf/startup-profile.py
 import json
 import os
 import time
@@ -13,17 +13,26 @@ tab = new_tab('about:blank')
 target = tab if isinstance(tab, str) else tab.get('targetId', tab)
 activate_tab(target)
 cdp('Network.enable')
+cdp('Network.setBypassServiceWorker', bypass=True)
 cdp('Network.setCacheDisabled', cacheDisabled=os.environ.get('CACHE', 'cold') == 'cold')
 if os.environ.get('MBPS'):
     cdp('Network.emulateNetworkConditions', offline=False, latency=40, downloadThroughput=float(os.environ['MBPS']) * 1000000 / 8, uploadThroughput=1000000)
 else:
     cdp('Network.emulateNetworkConditions', offline=False, latency=0, downloadThroughput=-1, uploadThroughput=-1)
 cdp('Emulation.setDeviceMetricsOverride', width=1440, height=900, deviceScaleFactor=1, mobile=False)
+cdp('Page.addScriptToEvaluateOnNewDocument', source='localStorage.setItem("theme", %s)' % json.dumps(os.environ.get('THEME', 'day')))
 cdp('Page.addScriptToEvaluateOnNewDocument', source=r'''(() => {
   const state = window.__startup = { longtasks: [], stages: [], errors: [] };
   new PerformanceObserver(list => state.longtasks.push(...list.getEntries().map(e => [e.startTime, e.duration]))).observe({type:'longtask', buffered:true});
   new MutationObserver(() => {
-    if (!state.ready && document.body?.classList.contains('world-ready')) state.ready = performance.now();
+    if (!state.ready && document.body?.classList.contains('world-ready')) {
+      state.ready = performance.now();
+      const frame = () => {
+        if (window.__qaWorldFrames > 0) state.firstFrame = performance.now();
+        else requestAnimationFrame(frame);
+      };
+      requestAnimationFrame(frame);
+    }
   }).observe(document, {subtree:true, attributes:true, attributeFilter:['class']});
   addEventListener('error', e => state.errors.push(e.message));
   addEventListener('unhandledrejection', e => state.errors.push(String(e.reason)));
@@ -50,7 +59,7 @@ for run in range(int(os.environ.get('RUNS', '1'))):
     cdp('Page.navigate', url=os.environ.get('URL', 'http://localhost:8000/?weather=clear&qa=1'), _response_timeout=180)
     deadline = time.monotonic() + 150
     while time.monotonic() < deadline:
-        if evaluate('!!window.__startup?.ready || document.body?.classList.contains("no-webgl")'):
+        if evaluate('!!window.__startup?.firstFrame || document.body?.classList.contains("no-webgl")'):
             break
         time.sleep(0.2)
     time.sleep(2)
@@ -72,7 +81,7 @@ for run in range(int(os.environ.get('RUNS', '1'))):
     with open(os.environ.get('OUT', '/tmp/startup-profile.json'), 'w') as output:
         json.dump(results, output)
     assert result.get('ready') and result['frames'] > 0, 'World did not become ready and render within the profiling deadline'
-    print(json.dumps({'run':run, 'ready':result.get('ready'), 'npc':result['npc'], 'GLB_MiB':round(sum(r['bytes'] for r in result['resources'] if '.glb' in r['name'])/1048576,2), 'longtask_ms':round(sum(t[1] for t in result['longtasks'])), 'errors':result['errors'], 'cpuTop':result['cpuTop'][:8]}))
+    print(json.dumps({'run':run, 'ready':result.get('ready'), 'firstFrame':result.get('firstFrame'), 'npc':result['npc'], 'GLB_MiB':round(sum(r['bytes'] for r in result['resources'] if '.glb' in r['name'])/1048576,2), 'longtask_ms':round(sum(t[1] for t in result['longtasks'])), 'errors':result['errors'], 'cpuTop':result['cpuTop'][:8]}))
 cdp('Emulation.clearDeviceMetricsOverride')
 cdp('Network.emulateNetworkConditions', offline=False, latency=0, downloadThroughput=-1, uploadThroughput=-1)
 close_tab(target)

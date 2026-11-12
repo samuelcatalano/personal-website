@@ -1,5 +1,14 @@
 # 3D city architecture
 
+## Styled realism and bounded delivery — 2026-11-12
+
+Owner selected livelier stylized realism and authorized strong loading/performance work. Ordinary cells now start with shared far buffers and construct full near detail on demand, one nearest cell per update, retaining hysteresis and 180 m eviction. Authored facade kits register lazy factories; reduced motion drains preparation then idles. Atlas preparation and Meshopt decoding use bounded workers with fallback; independent tree/props loading overlaps. [Implementation, measured comparison and remaining limits](../audits/2026-11-12-styled-realism-performance.md).
+
+
+## Ordinary building finish — 2026-11-12
+
+Owner approved the full architecture-only finish and explicitly made quality/design the priority over geometry, memory and timing ceilings for this pass. Ordinary lot assembly calls `building-finish.js` before tint/chunk merge; procedural and authored-kit rebuilds retain construction profiles. Production legacy fallback parts become owned mass/trim/glass groups with metric attributes and room coordinates; the explicit `rollout:false` diagnostic keeps its original baseline renderer. Public-realm and landmark materials retain their old atlas/shader path. Existing map, descriptors, adjacency, principal roofs and landmark sightlines remain fixed. [Implementation, tests, measured costs and limits](../audits/2026-11-12-ordinary-building-realism.md).
+
 ## Current status — 2026-11-09
 
 The North Star work is recorded as complete; its validation reported 0 coplanar-face pairs and rebuilt the London Eye as a continuous wheel. These are scoped historical validation results, not a current production-readiness declaration. Physical mobile validation and fresh release-gate evidence are not established here. The dated sections below preserve their original results and boundaries; read them as snapshots, not current blockers or authorization unless a later entry says otherwise. Current references: [visual atlas](../audits/full-scene-visual-atlas.md), [North Star plan](../plans/north-star-full-scene-upgrade.md), [rendering budget](rendering-budget.md).

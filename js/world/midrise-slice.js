@@ -1,3 +1,4 @@
+import { finishBuilding } from './building-finish.js';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { SURFACE as S, townhouseMaterials } from './building-slice-materials.js';
@@ -136,7 +137,7 @@ export function createMidriseReplication(plots) {
   for(const p of plots)bounds.expandByPoint(new THREE.Vector3(p.x,0,p.z));
   const origin=bounds.getCenter(new THREE.Vector3()),group=new THREE.Group();
   group.name='midrise-replication';group.position.copy(origin);
-  const houses=plots.map(p=>createMidriseSlice(p));
+  const houses=plots.map(p=>finishBuilding(createMidriseSlice(p),p,'midrise'));
   for(let k=0;k<3;k++){
     const geometries=houses.map(h=>h.children[k].geometry.translate(h.position.x-origin.x,0,h.position.z-origin.z));
     const geometry=mergeGeometries(geometries,false);

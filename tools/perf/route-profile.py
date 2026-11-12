@@ -1,5 +1,5 @@
 # Scripted route-scroll profile. Run: BU_NAME=perf BU_CDP_URL=http://127.0.0.1:9431 CONFIG="kit=off" SEG=8.5:11.5 browser-harness < tools/perf/route-profile.py
-# Env: CONFIG (query string), SEG "S0:S1" (default 8.5:11.5), STEPS (default 600), DUR seconds (default 25), URL.
+# Env: CONFIG, SEG "S0:S1", STEPS, DUR seconds, URL. WIDTH/HEIGHT/DPR fix the viewport; TIER pins the QA postprocessing tier.
 # Draw calls/triangles come from a WebGL2 prototype hook (all passes incl. shadows); the scene graph is not reachable
 # without code changes, so "visible meshes" is approximated by draw calls. Prints one JSON line.
 import os, time, json
@@ -13,11 +13,17 @@ w('drawElementsInstanced',a=>a[0]>=4?a[1]/3*a[4]:0);w('drawArraysInstanced',a=>a
 w('drawRangeElements',a=>a[0]>=4?a[4]/3:0);})()"""
 t = new_tab('about:blank'); TAB = t if isinstance(t, str) else t.get('targetId', t); activate_tab(TAB)
 cdp('Network.enable'); cdp('Network.setCacheDisabled', cacheDisabled=True)
+cdp('Network.setBypassServiceWorker', bypass=True)
+if os.environ.get('WIDTH'):
+    cdp('Emulation.setDeviceMetricsOverride', width=int(os.environ['WIDTH']), height=int(os.environ.get('HEIGHT', 900)), deviceScaleFactor=float(os.environ.get('DPR', 1.5)), mobile=False)
 cdp('Page.enable'); cdp('Page.addScriptToEvaluateOnNewDocument', source=HOOK)
+cdp('Page.addScriptToEvaluateOnNewDocument', source='localStorage.setItem("theme", %s)' % json.dumps(os.environ.get('THEME', 'day')))
 goto_url(URL); wait_for_load()
 for _ in range(240):
     if js("document.body.classList.contains('world-ready')"): break
     time.sleep(.5)
+if os.environ.get('TIER'):
+    js("window.__qaPost.setTier(%s);window.__qaPost.setTier=()=>{}" % json.dumps(os.environ['TIER']))
 time.sleep(4)  # let lazy kits / GLBs settle
 js("""(async()=>{const s=await import('/js/scroll.js'),c=await import('/js/content.js'),L=await import('/js/world/layout.js');
 const n=c.stops.length,m=s.stopMarks(L.routePoints(n)),H=document.documentElement.scrollHeight;
@@ -37,6 +43,9 @@ for _ in range(int(DUR * 8) + 60):
     time.sleep(1)
     if js("!!window.__R"): break
 R = json.loads(js("JSON.stringify(window.__R)"))
+context = js("({width:innerWidth,height:innerHeight,dpr:devicePixelRatio,tier:window.__qaPost?.tier})")
+if os.environ.get('OUT'):
+    with open(os.environ['OUT'], 'w') as output: json.dump({'context':context, **R}, output)
 F = R['F'][2:]
 def q(a, p):
     a = sorted(a); return a[min(len(a) - 1, int(len(a) * p))]
@@ -49,8 +58,9 @@ for i in range(1, len(F)):
     if d > th: pops.append((d, round(S0 + (S1 - S0) * i / len(F), 2), ca[i - 1], ca[i]))
 pops.sort(reverse=True)
 MB = 1048576
-print(json.dumps(dict(config=os.environ.get('CONFIG', ''), seg=[S0, S1], frames=len(F), median=round(med(dt), 2), p95=round(q(dt, .95), 2),
+print(json.dumps(dict(config=os.environ.get('CONFIG', ''), context=context, seg=[S0, S1], frames=len(F), median=round(med(dt), 2), p95=round(q(dt, .95), 2),
   p99=round(q(dt, .99), 2), max=round(max(dt), 1), longtasks=len(R['long']), longtask_max=round(max(R['long'] or [0]), 1),
   calls_med=med(ca), calls_p95=q(ca, .95), tris_med=round(med(tr)), tris_p95=round(q(tr, .95)),
   heap_start_mb=round(R['h0'] / MB), heap_end_mb=round(R['h1'] / MB), heap_peak_mb=round(R['hp'] / MB), pops=pops[:10])))
+if os.environ.get('WIDTH'): cdp('Emulation.clearDeviceMetricsOverride')
 cdp('Target.closeTarget', targetId=TAB)

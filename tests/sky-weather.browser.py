@@ -16,7 +16,7 @@ print(js("""(async()=>{
  const stars=scene.getObjectByName('weather-stars');if(stars.visible)throw Error('Stars visible under overcast');
  const renderer=new THREE.WebGLRenderer();renderer.setSize(400,250);renderer.render(scene,cam);
  if(renderer.info.programs.some(p=>p.diagnostics?.runnable===false))throw Error('Sky shader failed');
- const cloudy={...mood,cover:.9,rain:0};sky.update(1,0,cam.position,cam,cloudy);if(moon.material.opacity>.1)throw Error('Moon not veiled by cover');
+ const cloudy={...mood,cover:.9,rain:0};sky.update(1,0,cam.position,cam,cloudy);const veiled=moon.material.opacity;sky.update(1,0,cam.position,cam,{...mood,cover:0,rain:0});if(!(veiled>0&&veiled<moon.material.opacity*.35))throw Error('Partial overcast must attenuate the moon without replacing local cloud occlusion');
  const clouds=scene.getObjectByName('weather-clouds');const positions=clouds.children.map(c=>c.position.toArray().join());
  sky.update(1,10,cam.position,cam,cloudy);if(positions.some((p,i)=>p!==clouds.children[i].position.toArray().join()))throw Error('Reduced motion cloud drift');
  const t=stars.material.uniforms.uTime.value;sky.update(1,10,cam.position,cam,{...mood,cover:0,rain:0});if(stars.material.uniforms.uTime.value!==t)throw Error('Reduced motion twinkle');

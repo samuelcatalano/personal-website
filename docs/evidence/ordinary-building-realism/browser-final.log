@@ -1,0 +1,15 @@
+tests/ordinary-finish.browser.py
+{'pass': True, 'hashes': {'map': 1485052815, 'normalMap': 4103241495, 'roughnessMap': 3868138199}, 'ordinaryResolution': 1024, 'trimVertices': 16080}
+tests/architecture-archetypes.browser.py
+{'pass': True, 'catalogCount': 24, 'archetypes': {'townhouse': ['brick-terrace', 'country-garden-pair', 'country-slate-cottage', 'glasgow-sandstone-gabled-row', 'hip-roof-terrace', 'london-bay-terrace', 'side-gable-terrace'], 'shop': ['high-street-shop', 'london-corner-pub', 'paulista-arcade-shop', 'wraparound-shop'], 'midrise': ['banded-apartment', 'country-garden-flat', 'glasgow-blonde-bay-tenement', 'glasgow-red-stepped-tenement', 'london-mansion-block', 'paulista-brise-apartment', 'stone-tenement'], 'office': ['horizontal-office', 'vertical-office'], 'tower': ['asymmetric-tower', 'paulista-finned-tower', 'stepped-tower', 'straight-tower']}, 'regions': ['countryside', 'glasgow', 'london', 'paulista']}
+tests/facade-realism.browser.py
+{'pass': True, 'faces': ['front', 'west', 'back', 'east'], 'houseTriangles': [1116, 586], 'midriseTriangles': 4656, 'materials': 2}
+tests/building-kit.browser.py
+{'pass': True, 'kinds': ['terrace', 'shop', 'midrise', 'office', 'tower'], 'drawMeshes': [9, 9, 7, 7, 7], 'instances': [529, 462, 420, 420, 1155]}
+tests/office-facade.browser.py
+{'pass': True, 'id': 'block--183--37', 'panes': 108, 'distinctSeeds': 108, 'materials': ['slice-architecture', 'slice-architecture', 'slice-glass-office']}
+tests/facade-interiors.browser.py
+{'face': [87, 43, 18], 'angle': [94, 63, 37], 'flat': [1, 1, 2]}
+tests/render-resources.browser.py
+{'width': 1280, 'pass': True, 'environmentTargets': 2, 'tiers': [{'tier': 'high', 'samples': 4, 'targetsDisposed': 14}, {'tier': 'medium', 'samples': 2, 'targetsDisposed': 13}]}
+{'width': 375, 'pass': True, 'environmentTargets': 2, 'tiers': [{'tier': 'high', 'samples': 4, 'targetsDisposed': 14}, {'tier': 'medium', 'samples': 0, 'targetsDisposed': 13}]}

@@ -18,11 +18,12 @@ const P = Object.fromEntries(Object.entries(M).map(([k, m]) => [k, { ...m, zen: 
 const RP = Object.fromEntries(Object.entries(RAIN).map(([region, palette]) => [region, Object.fromEntries(Object.entries(palette).map(([k, hex]) => [k, rgb(hex)]))]));
 const ss = (a, b, x) => { x = Math.min(1, Math.max(0, (x - a) / (b - a))); return x * x * (3 - 2 * x); };
 const COLS = ['zen', 'hor', 'cloud', 'light'], NUM = ['sun', 'hemi', 'fogK', 'cloudOp', 'rain', 'cover', 'wet', 'storm', 'fall', 'wind'];
+const FIELDS = [...NUM, 'rs', 'rl', 'rg'];
 // Factory: ranges are computed once; the returned (t) => mood reuses one output object (no per-frame allocation).
-export function createMood(stops, { weather = visitWeather } = {}) {
+export function createMood(stops, { weather = visitWeather, reducedMotion = false } = {}) {
   const h = 0.3 / (stops.length - 1), sw = swapAt(stops), [g0, g1] = scotRange(stops); // blend = 0.6 stop wide, centred on each boundary
   const prepare = (base, climate, region) => {
-    const amount = climate.rain > 0 ? climate.cover : 0, palette = { ...base };
+    const amount = Math.max(climate.rain > 0 ? climate.cover : 0, Math.max(0, (climate.cover - .5) / .5)), palette = { ...base };
     for (const k of COLS) palette[k] = base[k].map((v, i) => v + (RP[region][k][i] - v) * amount);
     palette.sun = base.sun * (1 - 0.72 * amount);
     palette.hemi = base.hemi + 0.25 * amount;
@@ -38,7 +39,9 @@ export function createMood(stops, { weather = visitWeather } = {}) {
     gla: prepare(P.gla, weather.gla, 'gla'),
   };
   const out = Object.fromEntries([...COLS.map((k) => [k, [0, 0, 0]]), ...NUM.map((k) => [k, 0]), ['rs', 1], ['rl', 0], ['rg', 0]]);
-  return (t) => {
+  const eased = Object.fromEntries(Object.entries(out).map(([k, v]) => [k, Array.isArray(v) ? [...v] : v]));
+  let initialized = false;
+  return (t, dt = 0) => {
     const g = ss(g0 - h, g0 + h, t) * (1 - ss(g1 - h, g1 + h, t)), sp = (1 - ss(sw - h, sw + h, t)) * (1 - g), l = 1 - g - sp;
     for (const k of COLS) for (let i = 0; i < 3; i++) out[k][i] = weatherMood.sp[k][i] * sp + weatherMood.lon[k][i] * l + weatherMood.gla[k][i] * g;
     for (const k of NUM) out[k] = weatherMood.sp[k] * sp + weatherMood.lon[k] * l + weatherMood.gla[k] * g;
@@ -46,6 +49,14 @@ export function createMood(stops, { weather = visitWeather } = {}) {
     const entry=1-ss(.5/(stops.length-1),1.5/(stops.length-1),t);
     for(const k of COLS)for(let i=0;i<3;i++)out[k][i]+=(weatherMood.entry[k][i]-out[k][i])*entry;
     for(const k of NUM)out[k]+=(weatherMood.entry[k]-out[k])*entry;
-    return out;
+    const snap = !initialized || dt <= 0 || reducedMotion;
+    const slow = snap ? 1 : 1 - Math.exp(-Math.min(dt, .1) / 3.5), drops = snap ? 1 : 1 - Math.exp(-Math.min(dt, .1) / 1.5), wind = snap ? 1 : 1 - Math.exp(-Math.min(dt, .1) / 2.5);
+    for (const k of COLS) for (let i = 0; i < 3; i++) eased[k][i] += (out[k][i] - eased[k][i]) * slow;
+    for (const k of FIELDS) {
+      const amount = k === 'rain' || k === 'storm' ? drops : k === 'wind' || k === 'fall' ? wind : slow;
+      eased[k] += (out[k] - eased[k]) * amount;
+    }
+    initialized = true;
+    return eased;
   };
 }

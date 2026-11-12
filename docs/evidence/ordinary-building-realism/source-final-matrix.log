@@ -1,0 +1,12 @@
+STATE source-final-clear
+5:day {'rain': 0, 'cover': 0.12, 'wind': 1.1, 'sun': [-0.1957921785046583, 0.38758941182240825, -0.9007995729792281], 'coverBytes': 131072, 'coverCells': 24249, 'programErrors': 0}
+9.5:day {'rain': 0, 'cover': 0.23864354920832428, 'wind': 0.6648265013448393, 'sun': [-0.2603766016367036, 0.387488354785584, -0.8843397538421999], 'coverBytes': 131072, 'coverCells': 24249, 'programErrors': 0}
+11:night {'rain': 0, 'cover': 0.4304183481059174, 'wind': 0.7941577275856897, 'sun': [-0.19781246682745376, 0.3876190125286971, -0.900345338797239], 'coverBytes': 131072, 'coverCells': 24249, 'programErrors': 0}
+errors []
+architecture {'lots': 687, 'chunks': 194, 'meshes': 582, 'materials': 2, 'residentGeometryMiB': 1067.2393798828125, 'residentGeometryTriangles': 7161044}
+legacy {'groups': 3, 'glazingTrianglePairs': 72}
+STATE source-final-mobile-rain
+9.5:night {'rain': 0.65, 'cover': 1, 'wind': 0.65, 'sun': [-0.15473756410970257, 0.3971953503609596, -0.9045950143047605], 'coverBytes': 131072, 'coverCells': 24249, 'programErrors': 0}
+errors []
+architecture {'lots': 687, 'chunks': 194, 'meshes': 582, 'materials': 2, 'residentGeometryMiB': 1290.4235229492188, 'residentGeometryTriangles': 8659040}
+legacy {'groups': 3, 'glazingTrianglePairs': 72}

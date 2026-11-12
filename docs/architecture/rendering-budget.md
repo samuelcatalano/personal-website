@@ -1,5 +1,20 @@
 # Rendering budget
 
+## Bounded architecture delivery — 2026-11-12
+
+The new performance pass supersedes eager citywide construction costs below: a matched 691-lot fixture drops initial unique attribute buffers from 861.51 to 110.83 MiB; 25 prepared near cells bring that sample to 174.77 MiB. Full near quality and texture resolution remain. Three local cold-cache runs reduce median scene readiness 6.684 → 3.427 s and first frame 7.329 → 4.131 s. These are CPU/loading and bounded-buffer measurements, not physical VRAM or a universal FPS guarantee. [Method, raw evidence and inherited citywide envelope failure](../audits/2026-11-12-styled-realism-performance.md).
+
+
+## Ordinary building quality-first pass — 2026-11-12
+
+Owner explicitly prioritised quality/design and removed performance ceilings as blockers for this scoped ordinary-building pass. The ordinary metric atlas is 1024px; old 512px maps remain shared by preserved landmarks/public realm. Calculated architecture-atlas payload including mipmaps rises from about 4.33 MiB to 21.67 MiB (ordinary 17.33 + preserved 4.33); this is not physical GPU-memory measurement. Route snapshots of cached rollout geometry record roughly 1.04–1.26 GiB depending on lazy-loaded cells; those include active and inactive buffers, not frame submissions or all scene memory. The scoped rollout still uses 687 lots in 194 chunks / 582 meshes and two active materials in the sampled runtime. Existing day/night environment maps are reused without new captures or render targets. These costs are documented rather than used to lower the selected visual finish. [Audit and exact limits](../audits/2026-11-12-ordinary-building-realism.md).
+
+## Weather refinement — 2026-11-12
+
+One generated shared 512×256 R8 shelter field adds **128 KiB** of texture payload, without mipmaps or downloads. Rain, wet materials and water share that texture and uniform references; scene teardown owns its disposal. Height values use 0.5 m steps; horizontal resolution depends on the existing city envelope. Rain retains its single batch and high/medium/low ceilings of 1080/450/210 ribbons. Cloud counts, lights, scene geometry and render passes remain unchanged. Existing key orientation now follows the framed astro azimuth, which can change shadow-caster workload.
+
+Functional and resource checks passed locally. Short route samples showed a potential slowdown, but the baseline recorded a hidden-tab interval and the pair had different shadow workloads. These samples cannot establish an isolated shader cost or a performance GO; see the [audit](../audits/2026-11-12-weather-art-direction.md) for raw numbers and limits. Physical mobile performance and GPU memory remain unmeasured.
+
 ## Editorial polish — 2026-11-12
 
 Desktop medium retains 2× MSAA on the existing composer targets; high remains at 4× and mobile medium at zero. No render pass, light, texture or scene geometry was added. Multisample storage/bandwidth increases on desktop medium; physical VRAM was not measured. Skyline haze and a restrained existing grade provide depth without another pass. [Audit and short local comparisons](../audits/2026-11-12-editorial-city-polish.md) record the scoped evidence and its limits; no global performance or production-readiness GO is established.

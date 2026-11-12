@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { SURFACE as S, townhouseMaterials } from './building-slice-materials.js';
+import { SURFACE as S, preservedSurfaceMaterials } from './building-slice-materials.js';
 import { createPlantGeometry } from './plant-mesh.js';
 import { createPlazaWater } from './plaza-water.js';
 
@@ -112,7 +112,7 @@ export function createHeroRealm(){
     plant('shrub',9.15,.38,z,.78,.32,.88);
     obstacle('portal-planter',9.15,z,1.05,1.15);
   }
-  const materials=townhouseMaterials();
+  const materials=preservedSurfaceMaterials();
   buckets.forEach((items,k)=>{
     const geometry=mergeGeometries(items,false);items.forEach(g=>g.dispose());
     if(!geometry)throw new Error('Unable to merge hero realm bucket');
