@@ -1,21 +1,21 @@
 {
-  "generated": "2026-11-07",
+  "generated": "2026-11-12",
   "tool": "blender -b --python tools/landmarks/towerbridge/build_towerbridge.py",
   "source": "tools/landmarks/towerbridge/build_towerbridge.py (procedural, real metres scaled by K = 0.40, vertex-colour PBR)",
-  "note": "Three.js GLTFLoader asset; one mesh per LOD with one primitive per material (vertex-colour PBR atlas, night lights, two floodlit stone bands). No textures. Whole bridge: round-turreted towers with mullioned window groups, slate roofs and gilt cresting, walkways with a mid-span crest, Union Jack and St George flags, side spans with suspension chains and shore abutments. Loaded by js/world/towerbridge-asset.js; ?landmarks=procedural forces the procedural fallback.",
+  "note": "Three.js GLTFLoader asset; one mesh per LOD with one primitive per material (vertex-colour PBR atlas, night lights, two floodlit stone bands). No textures. Whole bridge: round-turreted towers with mullioned window groups, slate roofs and gilt cresting, walkways with a mid-span crest, Union Jack and St George flags, side spans with suspension chains and shore abutments. Loaded by js/world/towerbridge-asset.js; ?landmarks=procedural forces the procedural fallback. Carriageway portals remain open through stone barrel vaults in both LODs, including the shore towers; no blind dark backing planes.",
   "outputs": {
     "lod0": {
       "path": "assets/processed/landmarks/towerbridge.lod0.glb",
-      "bytes": 925316,
-      "sha256": "de52fdc3d903c158f06b15ac25a598ba2b65344c03961426a4bc6d3d7dd2a794",
-      "triangles": 14144,
+      "bytes": 919556,
+      "sha256": "e63387e3cfe255e369d5ae19e4abaaa9280a8386b801ca27835dea466e9cdb62",
+      "triangles": 14072,
       "primitives": 4
     },
     "lod1": {
       "path": "assets/processed/landmarks/towerbridge.lod1.glb",
-      "bytes": 287964,
-      "sha256": "fe4540051ce7affa29c608d214d3f21b8d0c5f9e7ec475a176b879ed71d66880",
-      "triangles": 3792,
+      "bytes": 296696,
+      "sha256": "854bbe9847a0d05201607dcb2971f859bc6e2ac3b83ebc5940759c3adddef7fd",
+      "triangles": 4000,
       "primitives": 4
     }
   }

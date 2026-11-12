@@ -1,5 +1,9 @@
 # 3D city architecture
 
+## Bridge finish and landmark portals — 2026-11-12
+
+Owner reopened the two existing road bridges plus Tower Bridge/Sé portal backgrounds. Road bridge finish stays merged into existing buckets, preserving decks, apertures, traffic and clearances. Tower Bridge has true through-vaults in both existing LODs; Sé has raised oak door geometry baked into its existing one-material/three-map atlas. No new light, pass, dependency or route. [Scoped delivery and validation](../audits/2026-11-12-bridges-landmark-portals.md).
+
 ## Styled realism and bounded delivery — 2026-11-12
 
 Owner selected livelier stylized realism and authorized strong loading/performance work. Ordinary cells now start with shared far buffers and construct full near detail on demand, one nearest cell per update, retaining hysteresis and 180 m eviction. Authored facade kits register lazy factories; reduced motion drains preparation then idles. Atlas preparation and Meshopt decoding use bounded workers with fallback; independent tree/props loading overlaps. [Implementation, measured comparison and remaining limits](../audits/2026-11-12-styled-realism-performance.md).

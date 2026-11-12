@@ -1,0 +1,7 @@
+tests/bridge-finish.browser.py
+{'pass': True, 'bridges': 2, 'triangles': [7540, 7540], 'resources': 29, 'deck': 7.5}
+tests/river-bridge.browser.py
+{'pass': True, 'bridges': 2, 'lamps': 32, 'dynamicLights': 0, 'deck': 7.5}
+tests/underpass.browser.py
+{'pass': True, 'tris': 1.3333333333333333, 'underpasses': 2, 'laneDirections': 4, 'laneSamples': 8}
+[{"test": "tests/bridge-finish.browser.py", "pass": true}, {"test": "tests/river-bridge.browser.py", "pass": true}, {"test": "tests/underpass.browser.py", "pass": true}]

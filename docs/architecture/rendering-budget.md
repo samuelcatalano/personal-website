@@ -1,5 +1,9 @@
 # Rendering budget
 
+## Bridge finish and landmark portals — 2026-11-12
+
+Each existing river bridge grows from 5,816 to 7,540 unique triangles, retaining seven meshes, existing material buckets and 32 shared existing lamps across both crossings. The unchanged no-river underpass fixture guard passes at 2,936 triangles. Tower Bridge/Sé regenerated GLBs add 9,004 bytes total; material/map counts and render passes remain fixed. This is measured geometry/payload cost, not an FPS or physical-VRAM claim. [Comparison, checks and limits](../audits/2026-11-12-bridges-landmark-portals.md).
+
 ## Bounded architecture delivery — 2026-11-12
 
 The new performance pass supersedes eager citywide construction costs below: a matched 691-lot fixture drops initial unique attribute buffers from 861.51 to 110.83 MiB; 25 prepared near cells bring that sample to 174.77 MiB. Full near quality and texture resolution remain. Three local cold-cache runs reduce median scene readiness 6.684 → 3.427 s and first frame 7.329 → 4.131 s. These are CPU/loading and bounded-buffer measurements, not physical VRAM or a universal FPS guarantee. [Method, raw evidence and inherited citywide envelope failure](../audits/2026-11-12-styled-realism-performance.md).

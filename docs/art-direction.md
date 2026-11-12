@@ -1,5 +1,9 @@
 # 3D city art direction
 
+## Bridge stonework and readable portals — 2026-11-12
+
+The two existing road bridges use clearer mineral stone, restrained ashlar joints, stepped voussoirs, keystones and quoins, preserving regional tints and silhouettes. Tower Bridge's dark carriageway fills become real open stone vaults with the city visible beyond. Sé retains a closed, recessed entrance expressed as panelled oak with bronze hardware and restrained baked warmth at night. No global lighting change. [Before/after evidence and scoped GO](audits/2026-11-12-bridges-landmark-portals.md).
+
 ## Livelier stylized realism — 2026-11-12
 
 Owner chose stylized realism with livelier colours. Existing regional pigments gain clearer chroma; brighter mineral residential frames and charcoal/bronze commercial metal distinguish construction materials. Full near profiles/interiors remain, with coated-metal PBR and varied glass roughness; distant representations omit construction below useful viewing scale. Map, lots, roof forms, landmarks and lighting are preserved. [Visual and performance delivery](audits/2026-11-12-styled-realism-performance.md).

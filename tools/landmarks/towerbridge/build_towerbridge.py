@@ -99,14 +99,14 @@ class B:
         P = lambda u, v: (O[0] + U[0] * u, O[1] + v, O[2] + U[2] * u)
         lod0 = s.lod == 0
         outer = [(0, 0), (w, 0), (w, h), (0, h)]
-        polys = [outer] + ([o[0] for o in ops] if lod0 else [])
+        polys = [outer] + [o[0] for o in ops if lod0 or o[1] is None]
         flat = [p for pl in polys for p in pl]
         for a, b, c in geometry.tessellate_polygon([[Vector((u, v, 0)) for u, v in pl] for pl in polys]):
             s.poly([P(*flat[a]), P(*flat[b]), P(*flat[c])], m, N)
         for pts, pm, dp in ops:
             dp = dp or depth
             Q = lambda u, v, d: tuple(P(u, v)[i] - N[i] * d for i in range(3))
-            if lod0:
+            if lod0 or pm is None:
                 cu = sum(p[0] for p in pts) / len(pts); cv = sum(p[1] for p in pts) / len(pts)
                 for i in range(len(pts)):
                     a, b = pts[i], pts[(i + 1) % len(pts)]
@@ -223,7 +223,7 @@ def tower(b, tz):
         wd = 2 * TX if N[2] else 2 * TZH
         ops = []
         if N[2]:
-            ops.append((rarch(wd / 2, 0, 10.0, 10.5), DK, 1.2))          # carriageway portal
+            ops.append((rarch(wd / 2, 0, 10.0, 10.5), None, TZH))        # half-vaults meet inside the through carriageway
             ops.append((rarch(wd / 2, 22.6, 1.8, 5.0), GL, .3))          # tall arched light above the balcony
         gcs = [wd / 2 - 4.7, wd / 2 + 4.7] if N[2] else [wd / 2]
         tiers = [t for t in TIERS if not (N[2] and t[0] < 12)]
@@ -397,7 +397,7 @@ def abutment(b, s):
     for N, U in SIDES:
         wd = 2 * AW if N[2] else 2 * AD
         ops = []
-        if N[2]: ops.append((rarch(wd / 2, 13.0, 10.0, 10.5), DK, 1.2))
+        if N[2]: ops.append((rarch(wd / 2, 13.0, 10.0, 10.5), None, AD))
         gcs = [wd / 2 - 3.6, wd / 2 + 3.6] if N[2] else [wd / 2]
         facade(b, 0, cz, AW, AD, N, U, y0, ((26.0, 3.0), (31.0, 3.0)), gcs, ops, lambda v0, h: False, None, 0, L0)
         b.face(0, cz, AW, AD, N, U, y0, top - y0, ops, ST, .4)

@@ -11,6 +11,7 @@ import { riverProfile, RIVER_RUN, RIVER_WIDTH, RIVER_CUT_HW, DECK_T, BRIDGE_H, P
 // Local frame: x along the route, z across it, y up. Shared material buckets, instanced lanterns and deck light pools.
 export const HX = 7.5, W = 9, H = BRIDGE_H, ARCH_HALF_WIDTH = 5.5; // tunnel half length, masonry half width, deck height, clear arch half width
 const AW = ARCH_HALF_WIDTH, AWALL = 3.4, AB = 3.0; // opening half width, vertical wall height, elliptical crown rise
+const ARCH_SEGMENTS = 16;
 export const CLEARANCE = AWALL + AB * Math.sqrt(1 - (3.05 / AW) ** 2); // headroom over the outer edge of a bus in its lane (~5.9 m)
 export const ROAD_HW = 3; // half width of the overpass road: two 3 m lanes
 export const END = UNDERPASS.end;
@@ -37,25 +38,35 @@ export const deckHeight = (z, river) => river && z * river.sigma >= 0 ? riverPro
 // Finish is shared by both bridges; joints fade with pixel footprint instead of sparkling at distance.
 function finishMaterial(mat, masonry) {
   const compile = mat.onBeforeCompile, key = mat.customProgramCacheKey();
-  mat.customProgramCacheKey = () => key + '-bridge-finish-' + masonry;
+  mat.customProgramCacheKey = () => key + '-bridge-finish-2-' + masonry;
   mat.onBeforeCompile = (sh) => {
     compile(sh);
-    sh.fragmentShader = sh.fragmentShader.replace('diffuseColor *= texture2D(map, tuv);', 'diffuseColor *= mix(vec4(1.0), texture2D(map, tuv * 0.45), 0.25);');
+    // Merged metric geometry has no unit-box edges; its own coursing supplies the relief.
+    sh.fragmentShader = sh.fragmentShader.replace('#define VOXEL_EDGE\n', '');
+    sh.fragmentShader = sh.fragmentShader.replace('diffuseColor *= texture2D(map, tuv);', 'diffuseColor *= mix(vec4(1.0), texture2D(map, tuv * 0.45), 0.18);');
     sh.fragmentShader = sh.fragmentShader.replace('#include <roughnessmap_fragment>', `
       vec2 face = abs(vLN.x) > abs(vLN.z) ? vLP.zy : vLP.xy;
       float course = floor(face.y / 0.62);
       vec2 cell = vec2(face.x / 1.6 + mod(course, 2.0) * 0.5, face.y / 0.62);
       vec2 edge = min(fract(cell), 1.0-fract(cell));
       vec2 aa = max(fwidth(cell), vec2(0.001));
-      float joint = 1.0 - min(smoothstep(0.008, 0.008+aa.x, edge.x), smoothstep(0.018, 0.018+aa.y, edge.y));
+      float joint = 1.0 - min(smoothstep(0.005, 0.005+aa.x, edge.x), smoothstep(0.012, 0.012+aa.y, edge.y));
       float detail = 1.0 - smoothstep(0.08, 0.35, max(aa.x, aa.y));
       float blockTint = fract(sin(dot(floor(cell), vec2(31.1, 71.7))) * 14531.7);
       float verticalFace = 1.0 - smoothstep(0.3, 0.8, abs(vLN.y));
-      diffuseColor.rgb *= 1.0 - ${masonry ? '0.14' : '0.04'} * joint * detail * verticalFace;
-      diffuseColor.rgb *= 1.0 + ${masonry ? '0.03' : '0.018'} * (blockTint-0.5) * detail;
+      diffuseColor.rgb *= 1.0 - ${masonry ? '0.23' : '0.08'} * joint * detail * verticalFace;
+      diffuseColor.rgb *= vec3(1.0) + ${masonry ? 'vec3(0.09,0.065,0.035)' : 'vec3(0.035,0.027,0.018)'} * (blockTint-0.5) * detail;
       float damp = (1.0-smoothstep(0.05, 0.65, vLP.y)) * verticalFace;
       diffuseColor.rgb *= 1.0 - damp * 0.12;
-      #include <roughnessmap_fragment>`);
+      #include <roughnessmap_fragment>
+      roughnessFactor = clamp(roughnessFactor + (joint * 0.06 + (blockTint-0.5)*0.055) * detail, 0.76, 1.0);`);
+    sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+      float stoneRelief = min(smoothstep(0.005,0.014,edge.x),smoothstep(0.012,0.035,edge.y)) * ${masonry ? '0.004' : '0.0015'};
+      vec3 bridgeDx = dFdx(-vViewPosition), bridgeDy = dFdy(-vViewPosition);
+      vec3 bridgeRx = cross(bridgeDy,normal), bridgeRy = cross(normal,bridgeDx);
+      float bridgeDet = dot(bridgeDx,bridgeRx);
+      vec3 bridgeGrad = sign(bridgeDet) * (dFdx(stoneRelief)*bridgeRx + dFdy(stoneRelief)*bridgeRy) * detail * verticalFace;
+      normal = normalize(max(abs(bridgeDet),1e-8)*normal - bridgeGrad);`);
   };
   return mat;
 }
@@ -67,15 +78,31 @@ function parts(river) {
   const ring = archShape(0.5); // voussoir ring: outer arch, then back along the opening
   ring.lineTo(AW, 0); ring.lineTo(AW, AWALL); ring.absellipse(0, AWALL, AW, AB, 0, Math.PI, false); ring.lineTo(-AW, 0); ring.closePath();
   for (const f of [1, -1]) {
-    light.push(along(ring, 0.15, f > 0 ? HX : -HX - 0.15));
-    const joints = soup(), face = f * (HX + 0.153);
-    for (let k = 1; k < 22; k++) {
-      const a = k * Math.PI / 22, da = 0.006;
-      const point = (t, r) => V(face, AWALL + (AB+r)*Math.sin(t), (AW+r)*Math.cos(t));
-      joints.quad(point(a-da,0.025),point(a+da,0.025),point(a+da,0.49),point(a-da,0.49),V(f,0,0));
+    light.push(along(ring, 0.10, f > 0 ? HX : -HX - 0.10));
+    const moulding = soup(), profiles = [[0.04,0.12],[0.09,0.16],[0.15,0.16],[0.20,0.22],[0.40,0.22],[0.46,0.15],[0.50,0.15]];
+    const point = (t,r,d) => V(f*(HX+d), AWALL+(AB+r)*Math.sin(t), (AW+r)*Math.cos(t));
+    for (let k = 0; k < ARCH_SEGMENTS; k++) {
+      const a = k*Math.PI/ARCH_SEGMENTS+0.003, b = (k+1)*Math.PI/ARCH_SEGMENTS-0.003;
+      for (let j = 0; j < profiles.length-1; j++) {
+        const [r,d] = profiles[j], [r1,d1] = profiles[j+1];
+        moulding.quad(point(a,r,d),point(b,r,d),point(b,r1,d1),point(a,r1,d1),V(f,0,0));
+        for (const [t,out] of [[a,V(0,-Math.cos(a),Math.sin(a))],[b,V(0,Math.cos(b),-Math.sin(b))]])
+          moulding.quad(point(t,r,0.10),point(t,r,d),point(t,r1,d1),point(t,r1,0.10),out);
+      }
+      for (const [r,d] of [profiles[0],profiles.at(-1)])
+        moulding.quad(point(a,r,0.10),point(b,r,0.10),point(b,r,d),point(a,r,d),V(0,Math.sin(a),Math.cos(a)).multiplyScalar(r < 0.1 ? -1 : 1));
     }
-    stone.push(joints.geo());
-    light.push(box(f*(HX+0.2)-0.04, f*(HX+0.2)+0.04, AWALL+AB+0.015, AWALL+AB+0.49, -0.19,0.19));
+    light.push(moulding.geo());
+    const crown = new THREE.Shape();
+    crown.moveTo(-0.18,AWALL+AB+0.04); crown.lineTo(0.18,AWALL+AB+0.04); crown.lineTo(0.36,AWALL+AB+0.60); crown.lineTo(-0.36,AWALL+AB+0.60); crown.closePath();
+    light.push(along(crown,0.17,f > 0 ? HX+0.13 : -HX-0.30));
+    for (const side of [-1,1]) {
+      const faceBox = (depth,y0,y1,z0,z1) => box(f > 0 ? HX : -HX-depth,f > 0 ? HX+depth : -HX,y0,y1,Math.min(side*z0,side*z1),Math.max(side*z0,side*z1));
+      for (let k = 0; k < 7; k++) light.push(faceBox(0.065,0.38+k*0.94,0.88+k*0.94,W-(k%2 ? 0.55 : 0.80),W-0.03));
+      // Raised surrounds leave a quiet recessed panel on each existing solid pier.
+      for (const [z0,z1] of [[6.50,6.60],[8.02,8.12]]) stone.push(faceBox(0.055,1.05,5.90,z0,z1));
+      for (const [y0,y1] of [[1.05,1.15],[5.80,5.90]]) stone.push(faceBox(0.055,y0,y1,6.50,8.12));
+    }
     for (const side of [-1,1]) light.push(box(f*HX-0.07,f*HX+0.07,0.02,0.28,side*(AW+0.8)-0.4,side*(AW+0.8)+0.4));
     light.push(box(f * HX - 0.12 * (f > 0 ? 0 : 1), f * HX + 0.12 * (f > 0 ? 1 : 0), 7.0, 7.3, -W - 0.1, W + 0.1)); // string course
     light.push(box(f * (HX - 0.4) - 0.35, f * (HX - 0.4) + 0.35, H + 0.9, H + 1.02, -W, W)); // coping
@@ -155,7 +182,7 @@ function riverBridge(sigma, bankAz) {
   return { road: road.geo(), line: line.geo(), stone: stone.geo(), para: light.geo(), pave: pave.geo() };
 }
 export function createUnderpass(curve, stops, river = null) {
-  const colors = { stone: '#a49b87', light: '#d4c8af', lawn: '#a49b87', road: P.road, line: P.arch, pave: P.paverWarm, para: '#c9c1af' }, mats = {}, geos = [];
+  const colors = { stone: '#b6afa0', light: '#dfd9cb', lawn: '#b6afa0', road: P.road, line: P.arch, pave: P.paverWarm, para: '#d1cbbd' }, mats = {}, geos = [];
   for (const k in colors) mats[k] = blockMaterial(colors[k]);
   mats.pave.color.set('#a9a69b');
   for (const k of ['stone', 'lawn', 'para', 'light']) finishMaterial(mats[k], k === 'stone' || k === 'lawn');
@@ -235,7 +262,8 @@ export function createUnderpass(curve, stops, river = null) {
   if (lamps) root.add(lamps);
   const spill = createLampPools(root, spillSpots, 1.8, [], false);
   root.userData.setNight = (n) => { lamps?.userData.setNight(n); spill.update(n); };
-  root.userData.dispose = () => { spill.dispose(); lamps?.userData.dispose(); geos.forEach((g) => g.dispose()); Object.values(mats).forEach((m) => m.dispose()); };
+  let disposed = false;
+  root.userData.dispose = () => { if (disposed) return; disposed = true; spill.dispose(); lamps?.userData.dispose(); geos.forEach((g) => g.dispose()); Object.values(mats).forEach((m) => m.dispose()); };
   const offset = (p, x, z) => (x - p.x) * p.tx + (z - p.z) * p.tz; // signed distance along the road from the arch centre
   return { group: root, passes, offset };
 }

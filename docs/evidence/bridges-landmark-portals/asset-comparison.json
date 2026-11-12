@@ -1,0 +1,53 @@
+[
+  {
+    "asset": "se.lod0.glb",
+    "before": {
+      "bytes": 583332,
+      "triangles": 4544,
+      "materials": 1,
+      "textures": 3,
+      "sha256": "5655bdbb9fa55b4f3932f6317f0c4f42ab4345d0a704294d0dbd0a13cf93801e"
+    },
+    "after": {
+      "bytes": 589364,
+      "triangles": 4718,
+      "materials": 1,
+      "textures": 3,
+      "sha256": "5491ca288b1d3e77ab8daf7b03289d6afd048841062368c1c81a88325e80cd86"
+    }
+  },
+  {
+    "asset": "towerbridge.lod0.glb",
+    "before": {
+      "bytes": 925316,
+      "triangles": 14144,
+      "materials": 4,
+      "textures": 0,
+      "sha256": "de52fdc3d903c158f06b15ac25a598ba2b65344c03961426a4bc6d3d7dd2a794"
+    },
+    "after": {
+      "bytes": 919556,
+      "triangles": 14072,
+      "materials": 4,
+      "textures": 0,
+      "sha256": "e63387e3cfe255e369d5ae19e4abaaa9280a8386b801ca27835dea466e9cdb62"
+    }
+  },
+  {
+    "asset": "towerbridge.lod1.glb",
+    "before": {
+      "bytes": 287964,
+      "triangles": 3792,
+      "materials": 4,
+      "textures": 0,
+      "sha256": "fe4540051ce7affa29c608d214d3f21b8d0c5f9e7ec475a176b879ed71d66880"
+    },
+    "after": {
+      "bytes": 296696,
+      "triangles": 4000,
+      "materials": 4,
+      "textures": 0,
+      "sha256": "854bbe9847a0d05201607dcb2971f859bc6e2ac3b83ebc5940759c3adddef7fd"
+    }
+  }
+]

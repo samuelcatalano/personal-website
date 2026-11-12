@@ -11,10 +11,10 @@ OUT = os.path.abspath(os.path.join(HERE, '..', '..', '..', 'assets', 'models', '
 TEX = os.path.join(OUT, 'tex')
 os.makedirs(TEX, exist_ok=True)
 SIZES = {0: 1024, 1: 512}
-ST, TR, SL, VD, GD, GL, DR = range(7)   # authoring slots
-MATS = ['stone', 'trim', 'slate', 'verd', 'gold', 'glass', 'door']
-ROUGH = [.88, .8, .65, .55, .3, .1, .7]
-METAL = [0, 0, 0, 0, 1, 0, 0]
+ST, TR, SL, VD, GD, GL, DR, BR = range(8)   # authoring slots
+MATS = ['stone', 'trim', 'slate', 'verd', 'gold', 'glass', 'door', 'bronze']
+ROUGH = [.88, .8, .65, .55, .3, .1, .7, .42]
+METAL = [0, 0, 0, 0, 1, 0, 0, .75]
 STONES = {'stone': ('#a89f8c', '#c4bba6'), 'trim': ('#cdc5b0', '#e0d9c6')}
 V = lambda x, y, z: Vector((x, -z, y))
 sin, cos, pi = math.sin, math.cos, math.pi
@@ -134,6 +134,28 @@ def frame(b, O, U, N, u, v0, w, h, grow=.4):
 DT = pi / 16
 
 
+def portal_door(b):
+    """Raised oak panels sit inside the existing Gothic reveal; bronze stays in the shared atlas."""
+    if not b.hi: return
+    for x in (-.78, .78):
+        for y, h in ((1.90, .82), (3.20, .82), (4.30, .44)):
+            w, bevel = 1.20, .08
+            outer = [(x-w/2,y,6.305),(x+w/2,y,6.305),(x+w/2,y+h,6.305),(x-w/2,y+h,6.305)]
+            inner = [(x-w/2+bevel,y+bevel,6.39),(x+w/2-bevel,y+bevel,6.39),
+                     (x+w/2-bevel,y+h-bevel,6.39),(x-w/2+bevel,y+h-bevel,6.39)]
+            b.poly(inner, DR, (0,0,1))
+            for i in range(4):
+                j=(i+1)%4
+                b.poly([outer[i],outer[j],inner[j],inner[i]],DR,(0,0,1))
+        b.box(x,1.58,6.35,1.32,.20,.08,BR)
+    b.box(0,1.54,6.34,.07,6.30,.10,DR)
+    for x in (-.18,.18):
+        b.box(x,3.17,6.39,.095,.49,.07,BR)
+        b.beam((x,3.25,6.48),(x,3.57,6.48),.026,BR,6)
+    for x,y in [(-1.18,5.8),(-.65,6.9),(0,7.65),(.65,6.9),(1.18,5.8)]:
+        b.beam((0,4.86,6.35),(x,y,6.35),.018,BR,4)
+
+
 def building(b):
     hi = b.hi
     # --- lower body (30 x 12 x 14); front handled by wall pieces, back + sides by windowed walls
@@ -151,6 +173,7 @@ def building(b):
     rose = (circ(8, 11.6, 1.45, 24 if hi else 12), GL, .25)
     pent = [(0, 0), (16, 0), (16, 15.5), (15.8, 15.5), (8, 19.5), (.2, 15.5), (0, 15.5)]
     b.wall(OF, UF, NF, 16, 19.5, [lancet(8, 1.5, 3.2, 6.4, DR, .7), lancet(3, 3, 1.3, 4.8), lancet(13, 3, 1.3, 4.8), rose], ST, .3, pent)
+    portal_door(b)
     frame(b, OF, UF, NF, 8, 1.5, 3.2, 6.4, .7); frame(b, OF, UF, NF, 3, 3, 1.3, 4.8); frame(b, OF, UF, NF, 13, 3, 1.3, 4.8)
     if hi:   # portal inner arch, string courses, gable coping
         b.plate(OF, UF, NF, [arch(8, 1.4, 4.4, 7.4), arch(8, 1.5, 3.2, 6.4)], TR, .12, True)
@@ -312,8 +335,11 @@ def mat_nodes(m, chan, img, idx):
         if name == 'glass':   # stained-glass mottling: voronoi cells, deep blue to amber
             vo = node('ShaderNodeTexVoronoi'); vo.inputs['Scale'].default_value = 5; link(P, vo.inputs['Vector'])
             return ramp(vo.outputs['Distance'], '#2a3e66', '#7a5a38')
+        if name == 'door':
+            base = ramp(noise(8, 2, (5,5,.18)), '#7b5636', '#b58a56')
+            return mul(base, ramp(noise(55, 1, (4,4,.15)), '#d1bca1', '#ffffff'))
         return None
-    COL = {'gold': '#d9a93a', 'door': '#3a281c'}
+    COL = {'gold': '#d9a93a', 'door': '#3a281c', 'bronze': '#9c7b4d'}
     if chan == 'ALB':
         s = albedo()
         if s is not None: link(s, em.inputs['Color'])
@@ -329,6 +355,7 @@ def mat_nodes(m, chan, img, idx):
             vo = node('ShaderNodeTexVoronoi'); vo.inputs['Scale'].default_value = 5; link(P, vo.inputs['Vector'])
             link(ramp(vo.outputs['Distance'], '#ff8a2e', '#ffd27a'), em.inputs['Color']); em.inputs['Strength'].default_value = .9
         elif name == 'gold': em.inputs['Color'].default_value = lin('#d9a93a'); em.inputs['Strength'].default_value = .12
+        elif name == 'door': link(albedo(), em.inputs['Color']); em.inputs['Strength'].default_value = .13
         elif name in ('verd', 'slate'):
             c = albedo(); tint = node('ShaderNodeMixRGB', blend_type='MULTIPLY'); tint.inputs['Fac'].default_value = 1
             link(c, tint.inputs['Color1']); tint.inputs['Color2'].default_value = (*WARM, 1); link(tint.outputs['Color'], em.inputs['Color']); em.inputs['Strength'].default_value = .16 if name == 'verd' else .05

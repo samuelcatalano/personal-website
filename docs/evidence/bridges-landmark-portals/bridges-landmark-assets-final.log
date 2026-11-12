@@ -1,0 +1,8 @@
+tests/towerbridge-asset.browser.py
+{"pass":true,"out":[{"lod":0,"tris":14072},{"lod":1,"tris":4000}]}
+{"fallback":"ok"}
+tests/se-asset.browser.py
+{"pass":true,"out":[{"lod":0,"tris":4718}]}
+{"pass":true,"lod":["1","1","1","1","1"]}
+True
+[{"test": "tests/towerbridge-asset.browser.py", "pass": true}, {"test": "tests/se-asset.browser.py", "pass": true}]

@@ -1,5 +1,10 @@
 # Tower Bridge
 
+## Carriageway portals — 2026-11-12
+
+Both main towers and both shore towers now have open stone barrel-vault passages. Front and back half-vaults meet at each tower centre; the road openings stay actual holes at both LODs. This replaces the flat dark backing panels without adding materials or textures. Current export: LOD0 **14,072 triangles / 919,556 bytes**, LOD1 **4,000 triangles / 296,696 bytes**, four material primitives each. Bounds, road height, spans, piers, lights and foam anchors remain fixed. Runtime cache version 12. Older figures below describe preceding model snapshots.
+
+
 Procedural Blender build; no external meshes, textures or baked lighting.
 
 ```bash

@@ -1,0 +1,77 @@
+[INFO ] services.locationservice ...............: Not adding link to MakeHuman user data, since neither explicit path nor auto-discovery is set in preferences.
+[INFO ] mpfb.init ..............................: Build info 20261010
+[INFO ] mpfb.init ..............................: MPFB initialization has finished.
+2026-11-12 22:03:27,021 - bl_ext.user_default.keentools - INFO -
+---
+System Info:
+Blender version: 5.2.3 LTS release API: 5.2.3 Hash: e13b728c6880
+Python: 3.13.13 (main, Apr 25 2025, 12:39:20) [Clang 21.0.0 (clang-2100.0.123.102)]
+Platform: Mach-O / 64bit
+Machine: arm64, arm
+System: macOS-26.7.2-arm64-arm-64bit-Mach-O
+GPU backend: METAL
+NumPy version: 2.3.4
+Package: bl_ext.user_default.keentools
+Addon: KeenTools: FaceBuilder, FaceTracker, GeoTracker 2026.3.1
+Package: bl_ext.user_default.keentools
+---
+
+2026-11-12 22:03:27,035 - bl_ext.user_default.keentools - INFO - Basic checks have been passed
+2026-11-12 22:03:27,156 - bl_ext.user_default.keentools - INFO - KeenTools addon classes have been registered
+2026-11-12 22:03:27,161 - bl_ext.user_default.keentools - INFO - FaceBuilder classes have been registered
+2026-11-12 22:03:27,162 - bl_ext.user_default.keentools - INFO - GeoTracker classes have been registered
+2026-11-12 22:03:27,163 - bl_ext.user_default.keentools - INFO - FaceTracker classes have been registered
+2026-11-12 22:03:27,163 - bl_ext.user_default.keentools - INFO - Common timeline panel has been registered
+2026-11-12 22:03:27,174 - bl_ext.user_default.keentools - INFO - Common timeline panel has been unregistered
+2026-11-12 22:03:27,174 - bl_ext.user_default.keentools - INFO - FaceTracker classes have been unregistered
+2026-11-12 22:03:27,174 - bl_ext.user_default.keentools - INFO - GeoTracker classes have been unregistered
+2026-11-12 22:03:27,174 - bl_ext.user_default.keentools - INFO - FaceBuilder classes have been unregistered
+2026-11-12 22:03:27,174 - bl_ext.user_default.keentools - INFO - KeenTools addon classes have been unregistered
+/Users/samuel.catalano/Projects/samuelcatalano/personal-website/tools/landmarks/se/build_se.py:369: DeprecationWarning: 'Material.use_nodes' is expected to be removed in Blender 6.0
+  m.use_nodes = True
+/Users/samuel.catalano/Projects/samuelcatalano/personal-website/tools/landmarks/se/build_se.py:416: DeprecationWarning: 'Material.use_nodes' is expected to be removed in Blender 6.0
+  m = bpy.data.materials.new('SeAtlas'); m.use_nodes = True; m.use_backface_culling = True; N = m.node_tree.nodes; L = m.node_tree.links; N.clear()
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+LITCHECK 0 73/73
+INFO Draco is available, use library at /Users/samuel.catalano/Applications/Blender.app/Contents/Resources/5.2/scripts/addons_core/io_scene_gltf2/libbf_intern_draco_bridge.dylib
+INFO MeshOptimizer is available, use library at /Users/samuel.catalano/Applications/Blender.app/Contents/Resources/5.2/scripts/addons_core/io_scene_gltf2/libbf_intern_meshopt_bridge.dylib
+22:03:29 | INFO: Starting glTF 2.0 export
+2026-11-12 22:03:29,275 - glTFImporter - INFO - Starting glTF 2.0 export
+22:03:29 | INFO: Extracting primitive: Se_LOD0
+2026-11-12 22:03:29,276 - glTFImporter - INFO - Extracting primitive: Se_LOD0
+22:03:29 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+2026-11-12 22:03:29,294 - glTFImporter - WARNING - More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+22:03:29 | INFO: Primitives created: 1
+2026-11-12 22:03:29,319 - glTFImporter - INFO - Primitives created: 1
+22:03:29 | INFO: Finished glTF 2.0 export in 0.047051191329956055 s
+2026-11-12 22:03:29,322 - glTFImporter - INFO - Finished glTF 2.0 export in 0.047051191329956055 s
+
+RESULT [
+ {
+  "lod": 0,
+  "tris": 4718,
+  "verts": 3447,
+  "min": [
+   -15.8,
+   0,
+   -7.3
+  ],
+  "max": [
+   15.8,
+   39.3,
+   10.875
+  ],
+  "bake_s": 0.9,
+  "images": 3,
+  "mats": [
+   "SeAtlas"
+  ],
+  "glb": "/Users/samuel.catalano/Projects/samuelcatalano/personal-website/assets/models/source/se/se.lod0.raw.glb"
+ }
+]
+Blender 5.2.3 LTS (hash e13b728c6880 built 2026-10-22 01:31:22)
+
+Blender quit

@@ -1,5 +1,10 @@
 # Catedral da Se (Sao Paulo)
 
+## Main entrance — 2026-11-12
+
+The existing Gothic reveal now contains a two-leaf oak door with six beveled raised panels (about 9 cm), a meeting stile, a restrained upper fan pattern, bronze pulls and kick plates. Directional wood grain and a restrained warm night bounce are baked into the existing atlas. Runtime remains one opaque `SeAtlas` material, three KTX2 maps and Meshopt geometry, using only the existing LOD0; no extra light, pass or dependency. LOD0 has **4,718 triangles**; the baked-glass check remains **73/73**. Cache version 5. The unused LOD1 was not regenerated.
+
+
 Original procedural geometry (bmesh), baked in Blender Cycles (CPU), exported as raw glTF. No external meshes or textures. Same pipeline as `tools/landmarks/bigben`.
 
 ```bash

@@ -1,0 +1,10 @@
+tests/underpass.browser.py
+{'exceptionId': 1, 'text': 'Uncaught (in promise) Error: underpass <= 3k tris 3416', 'lineNumber': 9, 'columnNumber': 45, 'scriptId': '28', 'stackTrace': {'callFrames': [{'functionName': 'check', 'scriptId': '28', 'url': '', 'lineNumber': 8, 'columnNumber': 44}, {'functionName': '', 'scriptId': '28', 'url': '', 'lineNumber': 14, 'columnNumber': 147}, {'functionName': '', 'scriptId': '28', 'url': '', 'lineNumber': 14, 'columnNumber': 34}]}, 'exception': {'type': 'object', 'subtype': 'error', 'className': 'Error', 'description': 'Error: underpass <= 3k tris 3416\n    at check (<anonymous>:9:45)\n    at <anonymous>:15:148\n    at Array.forEach (<anonymous>)\n    at <anonymous>:15:35', 'objectId': '-8115360741745000304.2.1'}}
+tests/towerbridge-asset.browser.py
+{"pass":true,"out":[{"lod":0,"tris":14072},{"lod":1,"tris":4000}]}
+{"fallback":"ok"}
+tests/se-asset.browser.py
+{"pass":true,"out":[{"lod":0,"tris":4718}]}
+{"pass":true,"lod":["1","1","1","1","1"]}
+True
+[{"test": "tests/underpass.browser.py", "pass": false, "error": "{'exceptionId': 1, 'text': 'Uncaught (in promise) Error: underpass <= 3k tris 3416', 'lineNumber': 9, 'columnNumber': 45, 'scriptId': '28', 'stackTrace': {'callFrames': [{'functionName': 'check', 'scriptId': '28', 'url': '', 'lineNumber': 8, 'columnNumber': 44}, {'functionName': '', 'scriptId': '28', 'url': '', 'lineNumber': 14, 'columnNumber': 147}, {'functionName': '', 'scriptId': '28', 'url': '', 'lineNumber': 14, 'columnNumber': 34}]}, 'exception': {'type': 'object', 'subtype': 'error', 'className': 'Error', 'description': 'Error: underpass <= 3k tris 3416\\n    at check (<anonymous>:9:45)\\n    at <anonymous>:15:148\\n    at Array.forEach (<anonymous>)\\n    at <anonymous>:15:35', 'objectId': '-8115360741745000304.2.1'}}"}, {"test": "tests/towerbridge-asset.browser.py", "pass": true}, {"test": "tests/se-asset.browser.py", "pass": true}]
