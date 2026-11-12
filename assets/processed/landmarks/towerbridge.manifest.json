@@ -2,19 +2,19 @@
   "generated": "2026-11-12",
   "tool": "blender -b --python tools/landmarks/towerbridge/build_towerbridge.py",
   "source": "tools/landmarks/towerbridge/build_towerbridge.py (procedural, real metres scaled by K = 0.40, vertex-colour PBR)",
-  "note": "Three.js GLTFLoader asset; one mesh per LOD with one primitive per material (vertex-colour PBR atlas, night lights, two floodlit stone bands). No textures. Whole bridge: round-turreted towers with mullioned window groups, slate roofs and gilt cresting, walkways with a mid-span crest, Union Jack and St George flags, side spans with suspension chains and shore abutments. Loaded by js/world/towerbridge-asset.js; ?landmarks=procedural forces the procedural fallback. Carriageway portals remain open through stone barrel vaults in both LODs, including the shore towers; no blind dark backing planes.",
+  "note": "Three.js GLTFLoader asset; one mesh per LOD with one primitive per material (vertex-colour PBR atlas, night lights, two floodlit stone bands). No textures. Whole bridge: round-turreted towers with mullioned window groups, slate roofs and gilt cresting, walkways with a mid-span crest, Union Jack and St George flags, side spans with suspension chains and shore abutments. Loaded by js/world/towerbridge-asset.js; ?landmarks=procedural forces the procedural fallback. Carriageway portals remain open through stone barrel vaults in both LODs, including the shore towers; no blind dark backing planes. Face orientation uses direction vectors without the deck translation; all six unit-box directions are validated before export.",
   "outputs": {
     "lod0": {
       "path": "assets/processed/landmarks/towerbridge.lod0.glb",
-      "bytes": 919556,
-      "sha256": "e63387e3cfe255e369d5ae19e4abaaa9280a8386b801ca27835dea466e9cdb62",
+      "bytes": 924452,
+      "sha256": "f2cefe3f807a8f863db7a2a0e2affc04befdd5c940cf71a57fef2db5e05a6d2e",
       "triangles": 14072,
       "primitives": 4
     },
     "lod1": {
       "path": "assets/processed/landmarks/towerbridge.lod1.glb",
-      "bytes": 296696,
-      "sha256": "854bbe9847a0d05201607dcb2971f859bc6e2ac3b83ebc5940759c3adddef7fd",
+      "bytes": 295832,
+      "sha256": "3dbb186df16d45f4286b2ef83d4658d26eea1d481b88461c0876754592e57915",
       "triangles": 4000,
       "primitives": 4
     }

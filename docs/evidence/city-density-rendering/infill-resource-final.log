@@ -1,0 +1,6 @@
+tests/urban-infill.browser.py
+{'pass': True, 'newLots': 27, 'totalLots': 743, 'chunks': 17, 'meshes': 51, 'vertices': 576318, 'nearTriangles': 164088, 'initialMiB': 4.199134826660156, 'materials': 2, 'fallbackMeshes': 15}
+tests/render-resources.browser.py
+{'width': 1280, 'pass': True, 'environmentTargets': 2, 'tiers': [{'tier': 'high', 'samples': 4, 'targetsDisposed': 14}, {'tier': 'medium', 'samples': 2, 'targetsDisposed': 13}]}
+{'width': 375, 'pass': True, 'environmentTargets': 2, 'tiers': [{'tier': 'high', 'samples': 4, 'targetsDisposed': 14}, {'tier': 'medium', 'samples': 0, 'targetsDisposed': 13}]}
+[{"test": "tests/urban-infill.browser.py", "pass": true}, {"test": "tests/render-resources.browser.py", "pass": true}]

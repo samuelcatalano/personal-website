@@ -1,5 +1,9 @@
 # 3D city architecture
 
+## Surveyed infill and rendering correctness — 2026-11-12
+
+Owner authorized further realism, density expansion and rendering-bug fixes. `urban-infill.js` appends 27 explicit real-coordinate lots after existing city/parks generation, reusing regional families and shared near/far batches. Previous lot/tree/prop data remain fixed. Shop roof plant now fits its source height, facade grain uses a world frame, and Tower Bridge face hints use a direction transform. The inherited citywide envelope guard now passes. [Design, costs and scoped validation](../audits/2026-11-12-city-density-rendering.md).
+
 ## Bridge finish and landmark portals — 2026-11-12
 
 Owner reopened the two existing road bridges plus Tower Bridge/Sé portal backgrounds. Road bridge finish stays merged into existing buckets, preserving decks, apertures, traffic and clearances. Tower Bridge has true through-vaults in both existing LODs; Sé has raised oak door geometry baked into its existing one-material/three-map atlas. No new light, pass, dependency or route. [Scoped delivery and validation](../audits/2026-11-12-bridges-landmark-portals.md).

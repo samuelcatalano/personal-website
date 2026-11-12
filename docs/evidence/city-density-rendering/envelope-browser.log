@@ -1,0 +1,15 @@
+tests/shop-envelope.browser.py
+{'pass': True, 'fixtures': 770, 'vertices': 5000304}
+tests/citywide.browser.py
+{'exceptionId': 1, 'text': "Uncaught (in promise) TypeError: Cannot read properties of undefined (reading 'traverse')", 'lineNumber': 10, 'columnNumber': 27, 'scriptId': '14', 'stackTrace': {'callFrames': [{'functionName': 'fp', 'scriptId': '14', 'url': '', 'lineNumber': 9, 'columnNumber': 26}, {'functionName': '', 'scriptId': '14', 'url': '', 'lineNumber': 10, 'columnNumber': 352}]}, 'exception': {'type': 'object', 'subtype': 'error', 'className': 'TypeError', 'description': "TypeError: Cannot read properties of undefined (reading 'traverse')\n    at fp (<anonymous>:10:27)\n    at <anonymous>:11:353", 'objectId': '-8387730675956833624.2.1'}}
+[{"test": "tests/shop-envelope.browser.py", "pass": true}, {"test": "tests/citywide.browser.py", "pass": false, "error": "{'exceptionId': 1, 'text': \"Uncaught (in promise) TypeError: Cannot read properties of undefined (reading 'traverse')\", 'lineNumber': 10, 'columnNumber': 27, 'scriptId': '14', 'stackTrace': {'callFrames': [{'functionName': 'fp', 'scriptId': '14', 'url': '', 'lineNumber': 9, 'columnNumber': 26}, {'functionName': '', 'scriptId': '14', 'url': '', 'lineNumber': 10, 'columnNumber': 352}]}, 'exception': {'type': 'object', 'subtype': 'error', 'className': 'TypeError', 'description': \"TypeError: Cannot read properties of undefined (reading 'traverse')\\n    at fp (<anonymous>:10:27)\\n    at <anonymous>:11:353\", 'objectId': '-8387730675956833624.2.1'}}"}]
+Traceback (most recent call last):
+  File "/Users/samuel.catalano/.local/bin/browser-harness", line 10, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/Users/samuel.catalano/.local/share/uv/tools/browser-harness/lib/python3.12/site-packages/browser_harness/run.py", line 255, in main
+    _run(args)
+  File "/Users/samuel.catalano/.local/share/uv/tools/browser-harness/lib/python3.12/site-packages/browser_harness/run.py", line 406, in _run
+    exec(code, globals())
+  File "<string>", line 20, in <module>
+AssertionError: [{'test': 'tests/shop-envelope.browser.py', 'pass': True}, {'test': 'tests/citywide.browser.py', 'pass': False, 'error': '{\'exceptionId\': 1, \'text\': "Uncaught (in promise) TypeError: Cannot read properties of undefined (reading \'traverse\')", \'lineNumber\': 10, \'columnNumber\': 27, \'scriptId\': \'14\', \'stackTrace\': {\'callFrames\': [{\'functionName\': \'fp\', \'scriptId\': \'14\', \'url\': \'\', \'lineNumber\': 9, \'columnNumber\': 26}, {\'functionName\': \'\', \'scriptId\': \'14\', \'url\': \'\', \'lineNumber\': 10, \'columnNumber\': 352}]}, \'exception\': {\'type\': \'object\', \'subtype\': \'error\', \'className\': \'TypeError\', \'description\': "TypeError: Cannot read properties of undefined (reading \'traverse\')\\n    at fp (<anonymous>:10:27)\\n    at <anonymous>:11:353", \'objectId\': \'-8387730675956833624.2.1\'}}'}]

@@ -1,5 +1,9 @@
 # Rendering budget
 
+## Surveyed urban infill — 2026-11-12
+
+The 27 new ordinary lots increase the actual-route rollout from 194 to 200 cells / 582 to 600 stable meshes and initial unique buffers from 110.83 to 115.03 MiB (+4.20 MiB). Shared resources remain two materials/four maps; nearest-cell construction, hysteresis and eviction remain. Tower Bridge normal correction retains 14,072/4,000 triangles and adds 4,032 combined GLB bytes. One local diagnostic A/B showed no obvious slowdown, but adaptive tiers and a single pair prevent an attributable performance claim. [Methods, passing guards and limits](../audits/2026-11-12-city-density-rendering.md).
+
 ## Bridge finish and landmark portals — 2026-11-12
 
 Each existing river bridge grows from 5,816 to 7,540 unique triangles, retaining seven meshes, existing material buckets and 32 shared existing lamps across both crossings. The unchanged no-river underpass fixture guard passes at 2,936 triangles. Tower Bridge/Sé regenerated GLBs add 9,004 bytes total; material/map counts and render passes remain fixed. This is measured geometry/payload cost, not an FPS or physical-VRAM claim. [Comparison, checks and limits](../audits/2026-11-12-bridges-landmark-portals.md).

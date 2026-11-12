@@ -1,5 +1,9 @@
 # 3D city art direction
 
+## More inhabited streets and stable material relief — 2026-11-12
+
+Owner reopened further realism/density work. Selected vacant pockets receive 17 low houses, two shops, seven residential midrises and one rear office using existing regional construction and vivid pigments. Heights step from low foreground to rear buildings; parks, walking areas, water/banks, content reservations and landmark fronts remain clear. Facade grain now stays fixed as the camera turns, rooftop equipment stays within its lot, and Tower Bridge undersides use correctly oriented faces. [Comparisons and scoped visual GO](audits/2026-11-12-city-density-rendering.md).
+
 ## Bridge stonework and readable portals — 2026-11-12
 
 The two existing road bridges use clearer mineral stone, restrained ashlar joints, stepped voussoirs, keystones and quoins, preserving regional tints and silhouettes. Tower Bridge's dark carriageway fills become real open stone vaults with the city visible beyond. Sé retains a closed, recessed entrance expressed as panelled oak with bronze hardware and restrained baked warmth at night. No global lighting change. [Before/after evidence and scoped GO](audits/2026-11-12-bridges-landmark-portals.md).

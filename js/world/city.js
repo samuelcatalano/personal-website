@@ -5,6 +5,7 @@ import { phoneBox } from './phone.js';
 import { lampPost, lampPoolAt } from './street-lamp.js';
 import { PALETTE as P } from './palette.js';
 import { buildBlocks, buildGapFill } from './blocks.js';
+import { buildUrbanInfill } from './urban-infill.js';
 import { buildParks } from './parks.js';
 import { buildCountry } from './country.js';
 import { buildGlasgowEdges } from './glasgow.js';
@@ -82,6 +83,7 @@ export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArch
   const lamps = buildLegacy(eastAdd(add), stops, lp, legacyCurve(curve, lp), onTree && ((x, ...a) => onTree(east(x), ...a)), onBuildingPlot && ((p) => onBuildingPlot(mv(p))),
     onArchitecturePlot && ((p) => onArchitecturePlot(mv(p))), onPublicRealm && ((z) => { const d = east((z.x0 + z.x1) / 2) - (z.x0 + z.x1) / 2; onPublicRealm({ ...z, x0: z.x0 + d, x1: z.x1 + d }); }));
   buildGapFill(add, onArchitecturePlot); // the strip SWAP_GAP opened (real coordinates, own rng)
+  buildUrbanInfill(add, onArchitecturePlot);
   const f = swapTunnelFrame(curve, stops); // the plaza over the tunnel (swap-plaza.js): the fingerpost's lantern lights the whole plaza
   lampPoolAt(f.x, f.z, 1.8);
   return { lamps: lamps.map(([x, z]) => [east(x), z]), pilotCrossings };

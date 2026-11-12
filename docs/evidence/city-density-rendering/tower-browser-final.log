@@ -1,0 +1,6 @@
+tests/towerbridge-asset.browser.py
+{"pass":true,"out":[{"lod":0,"tris":14072},{"lod":1,"tris":4000}]}
+{"fallback":"ok"}
+tests/landmark-portals.browser.py
+{'pass': True, 'tower': [{'lod': 0, 'open': True}, {'lod': 1, 'open': True}], 'sePanelDepth': 6.389999866485596, 'seRecessDepth': 6.300000190734863}
+[{"test": "tests/towerbridge-asset.browser.py", "pass": true}, {"test": "tests/landmark-portals.browser.py", "pass": true}]

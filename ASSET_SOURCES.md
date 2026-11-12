@@ -143,3 +143,5 @@ Primary reference sources: [operator fleet](https://www.thamesclippers.com/whats
 ## Landmark entrance refinement — 2026-11-12
 
 Owner authorized removing solid black portal backgrounds on Tower Bridge and Catedral da Sé. Existing project-owned authoring sources were refined: Tower Bridge now has continuous open stone carriageway vaults at both existing LODs; Sé LOD0 has a recessed paneled oak door with bronze fittings baked into the same single atlas. No external geometry, imagery, texture, licence or attribution was added.
+
+2026-11-12 city rendering audit: regenerated the project-owned Tower Bridge GLBs after correcting face-orientation hints (direction transform excludes deck translation). Existing source/provenance and materials retained; no external asset added.

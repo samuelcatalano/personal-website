@@ -1,0 +1,24 @@
+[render_docx] $ /Users/samuel.catalano/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override/soffice -env:UserInstallation=file:///private/tmp/soffice_profile_y8_bga9n --invisible --headless --norestore --convert-to pdf --outdir /private/tmp/soffice_convert_2l8gktly /private/tmp/city-system-design/system-design.docx
+/Users/samuel.catalano/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override/soffice: line 6: /Users/samuel.catalano/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override/../../native/libreoffice-headless/libreoffice/LibreOfficeDev.app/Contents/MacOS/soffice: No such file or directory
+
+[render_docx] $ /Users/samuel.catalano/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override/soffice -env:UserInstallation=file:///private/tmp/soffice_profile_y8_bga9n --invisible --headless --norestore --convert-to odt --outdir /private/tmp/soffice_convert_2l8gktly /private/tmp/city-system-design/system-design.docx
+/Users/samuel.catalano/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override/soffice: line 6: /Users/samuel.catalano/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override/../../native/libreoffice-headless/libreoffice/LibreOfficeDev.app/Contents/MacOS/soffice: No such file or directory
+
+Traceback (most recent call last):
+  File "/Users/samuel.catalano/.codex/plugins/cache/openai-primary-runtime/documents/26.1111.10934/skills/documents/render_docx.py", line 546, in <module>
+    main()
+  File "/Users/samuel.catalano/.codex/plugins/cache/openai-primary-runtime/documents/26.1111.10934/skills/documents/render_docx.py", line 538, in main
+    rasterize(render_input_path, out_dir, dpi, verbose=args.verbose, emit_pdf=args.emit_pdf)
+  File "/Users/samuel.catalano/.codex/plugins/cache/openai-primary-runtime/documents/26.1111.10934/skills/documents/render_docx.py", line 423, in rasterize
+    raise RuntimeError(
+RuntimeError: Failed to produce PDF for rasterization (direct and ODT fallback).
+--- DOCX->PDF ---
+CMD: /Users/samuel.catalano/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override/soffice -env:UserInstallation=file:///private/tmp/soffice_profile_y8_bga9n --invisible --headless --norestore --convert-to pdf --outdir /private/tmp/soffice_convert_2l8gktly /private/tmp/city-system-design/system-design.docx
+EXIT: 1
+STDERR:
+/Users/samuel.catalano/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override/soffice: line 6: /Users/samuel.catalano/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override/../../native/libreoffice-headless/libreoffice/LibreOfficeDev.app/Contents/MacOS/soffice: No such file or directory
+--- DOCX->ODT ---
+CMD: /Users/samuel.catalano/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override/soffice -env:UserInstallation=file:///private/tmp/soffice_profile_y8_bga9n --invisible --headless --norestore --convert-to odt --outdir /private/tmp/soffice_convert_2l8gktly /private/tmp/city-system-design/system-design.docx
+EXIT: 1
+STDERR:
+/Users/samuel.catalano/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override/soffice: line 6: /Users/samuel.catalano/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override/../../native/libreoffice-headless/libreoffice/LibreOfficeDev.app/Contents/MacOS/soffice: No such file or directory

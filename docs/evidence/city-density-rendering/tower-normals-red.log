@@ -1,0 +1,37 @@
+[INFO ] services.locationservice ...............: Not adding link to MakeHuman user data, since neither explicit path nor auto-discovery is set in preferences.
+[INFO ] mpfb.init ..............................: Build info 20261010
+[INFO ] mpfb.init ..............................: MPFB initialization has finished.
+2026-11-12 23:10:09,989 - bl_ext.user_default.keentools - INFO -
+---
+System Info:
+Blender version: 5.2.3 LTS release API: 5.2.3 Hash: e13b728c6880
+Python: 3.13.13 (main, Apr 25 2025, 12:39:20) [Clang 21.0.0 (clang-2100.0.123.102)]
+Platform: Mach-O / 64bit
+Machine: arm64, arm
+System: macOS-26.7.2-arm64-arm-64bit-Mach-O
+GPU backend: METAL
+NumPy version: 2.3.4
+Package: bl_ext.user_default.keentools
+Addon: KeenTools: FaceBuilder, FaceTracker, GeoTracker 2026.3.1
+Package: bl_ext.user_default.keentools
+---
+
+2026-11-12 23:10:10,001 - bl_ext.user_default.keentools - INFO - Basic checks have been passed
+2026-11-12 23:10:10,159 - bl_ext.user_default.keentools - INFO - KeenTools addon classes have been registered
+2026-11-12 23:10:10,164 - bl_ext.user_default.keentools - INFO - FaceBuilder classes have been registered
+2026-11-12 23:10:10,166 - bl_ext.user_default.keentools - INFO - GeoTracker classes have been registered
+2026-11-12 23:10:10,167 - bl_ext.user_default.keentools - INFO - FaceTracker classes have been registered
+2026-11-12 23:10:10,167 - bl_ext.user_default.keentools - INFO - Common timeline panel has been registered
+Traceback (most recent call last):
+  File "/tmp/city-render-audit/tower-normal-check.py", line 7, in <module>
+    assert f.normal.dot(f.calc_center_median()-center)>0,'Tower Bridge box has an inward-facing surface'
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Tower Bridge box has an inward-facing surface
+2026-11-12 23:10:10,178 - bl_ext.user_default.keentools - INFO - Common timeline panel has been unregistered
+2026-11-12 23:10:10,178 - bl_ext.user_default.keentools - INFO - FaceTracker classes have been unregistered
+2026-11-12 23:10:10,178 - bl_ext.user_default.keentools - INFO - GeoTracker classes have been unregistered
+2026-11-12 23:10:10,178 - bl_ext.user_default.keentools - INFO - FaceBuilder classes have been unregistered
+2026-11-12 23:10:10,178 - bl_ext.user_default.keentools - INFO - KeenTools addon classes have been unregistered
+Blender 5.2.3 LTS (hash e13b728c6880 built 2026-10-22 01:31:22)
+
+Blender quit

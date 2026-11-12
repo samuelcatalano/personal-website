@@ -16,6 +16,7 @@ MATS = ['stone', 'slate', 'blue', 'trim', 'glass', 'gilt', 'deck', 'lampw', 'wgl
 K = 0.40                     # scene metres per real metre: one factor keeps the proportions inside the frozen envelope
 DECK_TOP = 5.2               # scene height of the carriageway, unchanged
 V = lambda x, y, z: Vector((K * x, -K * z, K * y + DECK_TOP))
+N = lambda x, y, z: Vector((x, -z, y))  # Directions rotate axes; the deck translation applies only to points.
 SIDES = [((0, 0, 1), (1, 0, 0)), ((0, 0, -1), (-1, 0, 0)), ((1, 0, 0), (0, 0, -1)), ((-1, 0, 0), (0, 0, 1))]
 TZ = 36.5                    # tower centres (+-z); the inner faces are 61 m apart, the central span
 TX, TZH = 9.0, 6.0           # tower half widths (across x, along z)
@@ -50,7 +51,7 @@ class B:
         try: f = s.bm.faces.new([s.bm.verts.new(V(*p)) for p in q])
         except ValueError: return
         f.material_index = m; f.normal_update()
-        if f.normal.dot(V(*hint)) < 0: bmesh.ops.reverse_faces(s.bm, faces=[f])
+        if f.normal.dot(N(*hint)) < 0: bmesh.ops.reverse_faces(s.bm, faces=[f])
 
     def box(s, cx, y0, cz, w, h, d, m=ST, skip=('-y',)):
         x0, x1, z0, z1, y1 = cx - w / 2, cx + w / 2, cz - d / 2, cz + d / 2, y0 + h
@@ -523,5 +524,16 @@ def run(lod):
                 bytes=os.path.getsize(glb), mats=[x['name'] for x in doc['materials']], images=0, reimport='ok', glb=glb)
 
 
+def validate_face_directions():
+    b = B(0)
+    b.box(0, -.5, 0, 1, 1, 1, skip=())
+    center = V(0, 0, 0)
+    for face in b.bm.faces:
+        face.normal_update()
+        assert face.normal.dot(face.calc_center_median() - center) > 0, 'inward-facing unit-box surface'
+    b.bm.free()
+
+
 if __name__ == '__main__':
+    validate_face_directions()
     print('RESULT', json.dumps([run(0), run(1)], indent=1))

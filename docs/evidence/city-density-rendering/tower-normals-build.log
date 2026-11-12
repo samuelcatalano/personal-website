@@ -1,0 +1,116 @@
+[INFO ] services.locationservice ...............: Not adding link to MakeHuman user data, since neither explicit path nor auto-discovery is set in preferences.
+[INFO ] mpfb.init ..............................: Build info 20261010
+[INFO ] mpfb.init ..............................: MPFB initialization has finished.
+2026-11-12 23:11:14,509 - bl_ext.user_default.keentools - INFO -
+---
+System Info:
+Blender version: 5.2.3 LTS release API: 5.2.3 Hash: e13b728c6880
+Python: 3.13.13 (main, Apr 25 2025, 12:39:20) [Clang 21.0.0 (clang-2100.0.123.102)]
+Platform: Mach-O / 64bit
+Machine: arm64, arm
+System: macOS-26.7.2-arm64-arm-64bit-Mach-O
+GPU backend: METAL
+NumPy version: 2.3.4
+Package: bl_ext.user_default.keentools
+Addon: KeenTools: FaceBuilder, FaceTracker, GeoTracker 2026.3.1
+Package: bl_ext.user_default.keentools
+---
+
+2026-11-12 23:11:14,523 - bl_ext.user_default.keentools - INFO - Basic checks have been passed
+2026-11-12 23:11:14,595 - bl_ext.user_default.keentools - INFO - KeenTools addon classes have been registered
+2026-11-12 23:11:14,599 - bl_ext.user_default.keentools - INFO - FaceBuilder classes have been registered
+2026-11-12 23:11:14,600 - bl_ext.user_default.keentools - INFO - GeoTracker classes have been registered
+2026-11-12 23:11:14,601 - bl_ext.user_default.keentools - INFO - FaceTracker classes have been registered
+2026-11-12 23:11:14,601 - bl_ext.user_default.keentools - INFO - Common timeline panel has been registered
+2026-11-12 23:11:14,613 - bl_ext.user_default.keentools - INFO - Common timeline panel has been unregistered
+2026-11-12 23:11:14,614 - bl_ext.user_default.keentools - INFO - FaceTracker classes have been unregistered
+2026-11-12 23:11:14,614 - bl_ext.user_default.keentools - INFO - GeoTracker classes have been unregistered
+2026-11-12 23:11:14,614 - bl_ext.user_default.keentools - INFO - FaceBuilder classes have been unregistered
+2026-11-12 23:11:14,614 - bl_ext.user_default.keentools - INFO - KeenTools addon classes have been unregistered
+INFO Draco is available, use library at /Users/samuel.catalano/Applications/Blender.app/Contents/Resources/5.2/scripts/addons_core/io_scene_gltf2/libbf_intern_draco_bridge.dylib
+INFO MeshOptimizer is available, use library at /Users/samuel.catalano/Applications/Blender.app/Contents/Resources/5.2/scripts/addons_core/io_scene_gltf2/libbf_intern_meshopt_bridge.dylib
+23:11:16 | INFO: Starting glTF 2.0 export
+2026-11-12 23:11:16,076 - glTFImporter - INFO - Starting glTF 2.0 export
+23:11:16 | INFO: Extracting primitive: TowerBridge_LOD0
+2026-11-12 23:11:16,078 - glTFImporter - INFO - Extracting primitive: TowerBridge_LOD0
+23:11:16 | INFO: Primitives created: 4
+2026-11-12 23:11:16,091 - glTFImporter - INFO - Primitives created: 4
+23:11:16 | INFO: Finished glTF 2.0 export in 0.017166852951049805 s
+2026-11-12 23:11:16,094 - glTFImporter - INFO - Finished glTF 2.0 export in 0.017166852951049805 s
+
+23:11:16 | INFO: Data are loaded, start creating Blender stuff
+2026-11-12 23:11:16,124 - glTFImporter - INFO - Data are loaded, start creating Blender stuff
+23:11:16 | INFO: Blender create Mesh node TowerBridge_LOD0
+2026-11-12 23:11:16,124 - glTFImporter - INFO - Blender create Mesh node TowerBridge_LOD0
+23:11:16 | INFO: glTF import finished in 0.03s
+2026-11-12 23:11:16,157 - glTFImporter - INFO - glTF import finished in 0.03s
+23:11:16 | INFO: Starting glTF 2.0 export
+2026-11-12 23:11:16,516 - glTFImporter - INFO - Starting glTF 2.0 export
+23:11:16 | INFO: Extracting primitive: TowerBridge_LOD1
+2026-11-12 23:11:16,517 - glTFImporter - INFO - Extracting primitive: TowerBridge_LOD1
+23:11:16 | INFO: Primitives created: 4
+2026-11-12 23:11:16,521 - glTFImporter - INFO - Primitives created: 4
+23:11:16 | INFO: Finished glTF 2.0 export in 0.022837162017822266 s
+2026-11-12 23:11:16,539 - glTFImporter - INFO - Finished glTF 2.0 export in 0.022837162017822266 s
+
+23:11:16 | INFO: Data are loaded, start creating Blender stuff
+2026-11-12 23:11:16,563 - glTFImporter - INFO - Data are loaded, start creating Blender stuff
+23:11:16 | INFO: Blender create Mesh node TowerBridge_LOD1
+2026-11-12 23:11:16,563 - glTFImporter - INFO - Blender create Mesh node TowerBridge_LOD1
+23:11:16 | INFO: glTF import finished in 0.01s
+2026-11-12 23:11:16,575 - glTFImporter - INFO - glTF import finished in 0.01s
+RESULT [
+ {
+  "lod": 0,
+  "tris": 14072,
+  "verts": 23222,
+  "min": [
+   -4.8,
+   -0.8,
+   -29.2
+  ],
+  "max": [
+   4.8,
+   31.44,
+   29.2
+  ],
+  "bytes": 924452,
+  "mats": [
+   "TowerBridgeAtlas",
+   "TowerBridgeLights",
+   "TowerBridgeFloodLow",
+   "TowerBridgeFloodHigh"
+  ],
+  "images": 0,
+  "reimport": "ok",
+  "glb": "/Users/samuel.catalano/Projects/samuelcatalano/personal-website/assets/processed/landmarks/towerbridge.lod0.glb"
+ },
+ {
+  "lod": 1,
+  "tris": 4000,
+  "verts": 7442,
+  "min": [
+   -4.8,
+   -0.8,
+   -29.16
+  ],
+  "max": [
+   4.8,
+   31,
+   29.16
+  ],
+  "bytes": 295832,
+  "mats": [
+   "TowerBridgeAtlas",
+   "TowerBridgeLights",
+   "TowerBridgeFloodLow",
+   "TowerBridgeFloodHigh"
+  ],
+  "images": 0,
+  "reimport": "ok",
+  "glb": "/Users/samuel.catalano/Projects/samuelcatalano/personal-website/assets/processed/landmarks/towerbridge.lod1.glb"
+ }
+]
+Blender 5.2.3 LTS (hash e13b728c6880 built 2026-10-22 01:31:22)
+
+Blender quit

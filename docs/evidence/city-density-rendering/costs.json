@@ -1,0 +1,43 @@
+{
+  "lots": {
+    "baselineActual": 716,
+    "afterActual": 743,
+    "added": 27,
+    "terrace": 17,
+    "shop": 2,
+    "midrise": 7,
+    "office": 1
+  },
+  "citywideFar": {
+    "before": {
+      "plots": 691,
+      "chunks": 194,
+      "meshes": 582,
+      "triangles": 738828,
+      "attributeMiB": 110.83415222167969
+    },
+    "after": {
+      "plots": 718,
+      "chunks": 200,
+      "meshes": 600,
+      "triangles": 766846,
+      "attributeMiB": 115.03328704833984
+    }
+  },
+  "materials": 2,
+  "maps": 4,
+  "towerbridge": [
+    {
+      "lod": 0,
+      "beforeBytes": 919556,
+      "afterBytes": 924452,
+      "sha256": "f2cefe3f807a8f863db7a2a0e2affc04befdd5c940cf71a57fef2db5e05a6d2e"
+    },
+    {
+      "lod": 1,
+      "beforeBytes": 296696,
+      "afterBytes": 295832,
+      "sha256": "3dbb186df16d45f4286b2ef83d4658d26eea1d481b88461c0876754592e57915"
+    }
+  ]
+}

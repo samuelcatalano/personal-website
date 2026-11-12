@@ -129,13 +129,18 @@ export function createShopSlice(plot,neighbors=[],recipe=shopRecipe(plot,neighbo
     let hid=2166136261;for(const ch of plot.id)hid=Math.imul(hid^ch.charCodeAt(0),16777619)>>>0;
     const pick=(n,m)=>((hid>>>n)&255)%m,ry=roofY+.05,sp=plot.x<0,free=!recipe.roofCap;
     const pieces={
-      ac:(px,pz)=>{for(const k of [-1,1]){box(px+k*.5,ry+.28,pz,.82,.56,.62,S.stone);box(px+k*.5,ry+.585,pz,.5,.03,.5,S.door);}},
-      tank:(px,pz)=>{for(const lx of [-.34,.34])for(const lz of [-.34,.34])box(px+lx,ry+.25,pz+lz,.07,.5,.07,S.trim);box(px,ry+.92,pz,.96,.86,.96,S.stone);box(px,ry+1.37,pz,.84,.06,.84,S.trim);},
-      mast:(px,pz)=>{box(px,ry+1.2,pz,.05,2.4,.05,S.trim);for(const [yy,ww] of [[1.0,.7],[1.55,.5],[2.0,.32]])box(px,ry+yy,pz,ww,.035,.035,S.trim);},
-      core:(px,pz)=>{box(px,ry+.5,pz,Math.min(w*.26,1.8),1.0,Math.min(d*.28,1.6),S.plaster);box(px,ry+1.03,pz,Math.min(w*.26,1.8)+.12,.06,Math.min(d*.28,1.6)+.12,S.stone);}
+      ac:[.60,(part,px,pz)=>{for(const k of [-1,1]){part(px+k*.5,.28,pz,.82,.56,.62,S.stone);part(px+k*.5,.585,pz,.5,.03,.5,S.door);}}],
+      tank:[1.40,(part,px,pz)=>{for(const lx of [-.34,.34])for(const lz of [-.34,.34])part(px+lx,.25,pz+lz,.07,.5,.07,S.trim);part(px,.92,pz,.96,.86,.96,S.stone);part(px,1.37,pz,.84,.06,.84,S.trim);}],
+      mast:[2.40,(part,px,pz)=>{part(px,1.2,pz,.05,2.4,.05,S.trim);for(const [yy,ww] of [[1.0,.7],[1.55,.5],[2.0,.32]])part(px,yy,pz,ww,.035,.035,S.trim);}],
+      core:[1.06,(part,px,pz)=>{part(px,.5,pz,Math.min(w*.26,1.8),1.0,Math.min(d*.28,1.6),S.plaster);part(px,1.03,pz,Math.min(w*.26,1.8)+.12,.06,Math.min(d*.28,1.6)+.12,S.stone);}]
     };
+    function placePlant(type,px,pz){
+      // Fit equipment above the unchanged roof, preserving facade floors and the reserved lot height.
+      const [top,build]=pieces[type],sy=Math.min(1,(height-ry-.01)/top);
+      build((x,y,z,bw,bh,bd,surface)=>box(x,ry+y*sy,z,bw,bh*sy,bd,surface),px,pz);
+    }
     const first=['ac','core','tank','mast'][sp?[2,0,3,1][pick(3,4)]:[0,1,0,3][pick(3,4)]],second=['mast','ac','tank','core'][pick(11,4)];
-    if(w>4.2&&d>4){pieces[first](free?w*.26:w*.3,free?d*.1:d*.2);if(pick(19,3)&&second!==first&&free)pieces[second](-w*.26,-d*.2);}
+    if(w>4.2&&d>4){placePlant(first,free?w*.26:w*.3,free?d*.1:d*.2);if(pick(19,3)&&second!==first&&free)placePlant(second,-w*.26,-d*.2);}
   }
   // The awning projects inside the existing lot, so the sidewalk stays clear. Its colour accent comes from surfaces already in the family atlas; hero recipes without a palette keep roof.
   const awning=[S.brick,S.roof,S.door][(recipe.palette??1)%3];

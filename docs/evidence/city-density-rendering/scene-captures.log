@@ -1,0 +1,5 @@
+west-day before {'gl': 0, 'lost': False, 'failedPrograms': 0, 'errors': [], 'bad': [], 'meshes': 4886, 'vertices': 62095783, 'calls': 1, 'triangles': 1}
+west-day after {'gl': 0, 'lost': False, 'failedPrograms': 0, 'errors': [], 'bad': [], 'meshes': 4904, 'vertices': 62384215, 'calls': 1, 'triangles': 1}
+london-day before {'gl': 0, 'lost': False, 'failedPrograms': 0, 'errors': [], 'bad': [], 'meshes': 4886, 'vertices': 62717803, 'calls': 1, 'triangles': 1}
+london-day after {'gl': 0, 'lost': False, 'failedPrograms': 0, 'errors': [], 'bad': [], 'meshes': 4904, 'vertices': 62878885, 'calls': 1, 'triangles': 1}
+clyde-night after {'gl': 0, 'lost': False, 'failedPrograms': 0, 'errors': [], 'bad': [], 'meshes': 4904, 'vertices': 62598811, 'calls': 1, 'triangles': 1}

@@ -1,0 +1,3 @@
+tests/facade-grain.browser.py
+{'pass': True, 'materials': 3, 'surfaces': 6, 'views': 4, 'maxDrift': 3.2885346947035128e-06, 'minGrain': 0.003494667350857488}
+[{"test": "tests/facade-grain.browser.py", "pass": true}]

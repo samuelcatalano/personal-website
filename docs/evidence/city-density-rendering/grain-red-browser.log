@@ -1,0 +1,13 @@
+tests/facade-grain.browser.py
+{'exceptionId': 1, 'text': 'Uncaught (in promise) Error: Facade grain rotates with camera: world-normal drift 0.03339344051632844', 'lineNumber': 37, 'columnNumber': 26, 'scriptId': '14', 'stackTrace': {'callFrames': [{'functionName': '', 'scriptId': '14', 'url': '', 'lineNumber': 36, 'columnNumber': 25}]}, 'exception': {'type': 'object', 'subtype': 'error', 'className': 'Error', 'description': 'Error: Facade grain rotates with camera: world-normal drift 0.03339344051632844\n    at <anonymous>:37:26', 'objectId': '4043784797279358155.2.1'}}
+[{"test": "tests/facade-grain.browser.py", "pass": false, "error": "{'exceptionId': 1, 'text': 'Uncaught (in promise) Error: Facade grain rotates with camera: world-normal drift 0.03339344051632844', 'lineNumber': 37, 'columnNumber': 26, 'scriptId': '14', 'stackTrace': {'callFrames': [{'functionName': '', 'scriptId': '14', 'url': '', 'lineNumber': 36, 'columnNumber': 25}]}, 'exception': {'type': 'object', 'subtype': 'error', 'className': 'Error', 'description': 'Error: Facade grain rotates with camera: world-normal drift 0.03339344051632844\\n    at <anonymous>:37:26', 'objectId': '4043784797279358155.2.1'}}"}]
+Traceback (most recent call last):
+  File "/Users/samuel.catalano/.local/bin/browser-harness", line 10, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/Users/samuel.catalano/.local/share/uv/tools/browser-harness/lib/python3.12/site-packages/browser_harness/run.py", line 255, in main
+    _run(args)
+  File "/Users/samuel.catalano/.local/share/uv/tools/browser-harness/lib/python3.12/site-packages/browser_harness/run.py", line 406, in _run
+    exec(code, globals())
+  File "<string>", line 20, in <module>
+AssertionError: [{'test': 'tests/facade-grain.browser.py', 'pass': False, 'error': "{'exceptionId': 1, 'text': 'Uncaught (in promise) Error: Facade grain rotates with camera: world-normal drift 0.03339344051632844', 'lineNumber': 37, 'columnNumber': 26, 'scriptId': '14', 'stackTrace': {'callFrames': [{'functionName': '', 'scriptId': '14', 'url': '', 'lineNumber': 36, 'columnNumber': 25}]}, 'exception': {'type': 'object', 'subtype': 'error', 'className': 'Error', 'description': 'Error: Facade grain rotates with camera: world-normal drift 0.03339344051632844\\n    at <anonymous>:37:26', 'objectId': '4043784797279358155.2.1'}}"}]

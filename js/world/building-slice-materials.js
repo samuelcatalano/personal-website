@@ -133,10 +133,13 @@ const facadeDetail = quality => `
     vec2 q = vec2(facadeAlong, vFloodP.y) * 14.0;
     near *= 1.0 - smoothstep(0.4, 0.9, fwidth(q.x) + fwidth(q.y));
     if (near > 0.0) { float a = sliceNoise(q), b = sliceNoise(q.yx + 5.3);
-      normal = normalize(normal + vec3(a - 0.5, b - 0.5, 0.0) * ${quality?'0.035':'0.16'} * near); }
+      vec3 grainT = normalize(cross(facadeN, abs(facadeN.y) < 0.999 ? vec3(0.0, 1.0, 0.0) : vec3(0.0, 0.0, 1.0)));
+      vec3 grainB = cross(grainT, facadeN);
+      vec3 grain = grainT * (a - 0.5) + grainB * (b - 0.5);
+      normal = normalize(normal + (viewMatrix * vec4(grain, 0.0)).xyz * ${quality?'0.035':'0.16'} * near); }
   }`;
 function metricAtlas(material, cityWalls = false, quality = false) {
-  material.customProgramCacheKey=()=> material.name+(cityWalls||material.name==='slice-glass-city'?'-metric-atlas-v11':'-metric-atlas-v8')+(quality?'-construction-v2':'');
+  material.customProgramCacheKey=()=> material.name+(cityWalls||material.name==='slice-glass-city'?'-metric-atlas-v11':'-metric-atlas-v8')+(quality?'-construction-v2':'')+(material.name==='slice-architecture'?'-world-grain-v1':'');
   material.onBeforeCompile=shader=>{
     shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nattribute float aSurface; varying float vSliceSurface; varying float vSliceY;').replace('#include <begin_vertex>','#include <begin_vertex>\nvSliceSurface = aSurface; vSliceY = (modelMatrix * vec4(position,1.0)).y;');
     shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>

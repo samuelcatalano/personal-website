@@ -16,7 +16,9 @@ result=js(r'''(async()=>{
   ray.set(new T.Vector3(2.5,7.2,34),new T.Vector3(0,0,-1));
   check(ray.intersectObject(root,true).length>0,'Portal jamb missing');
   ray.set(new T.Vector3(0,7.2,27.2),new T.Vector3(0,1,0));
-  check(ray.intersectObject(root,true).some(h=>h.point.y>9.1&&h.point.y<9.6),'Portal vault is not continuous');
+  const crown=ray.intersectObject(root,true).find(h=>h.point.y>9.1&&h.point.y<9.6);
+  check(crown,'Portal vault is not continuous');
+  check(crown.face.normal.y<-.15,'Portal vault underside faces inward');
   out.push({lod,open:true});
  }
  const se=(await(await import('/js/world/se-asset.js')).loadSeAsset())[0];se.updateMatrixWorld(true);

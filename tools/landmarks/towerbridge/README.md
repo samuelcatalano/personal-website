@@ -32,3 +32,5 @@ Validated export: LOD0 14,144 triangles / 925,316 bytes; LOD1 3,792 triangles / 
 The browser test checks that both LODs load, that the atlas is opaque vertex-colour PBR without maps, that the light and floodlit materials glow without maps, the envelope, the triangle budgets, the LOD swap, and that the procedural fallback stays untouched when the GLB fails.
 
 References and sources are recorded in `ASSET_SOURCES.md`.
+
+2026-11-12 rendering audit: polygon normal hints now rotate axes without the point translation at `DECK_TOP`. A six-face unit-box self-check runs before each export; portal crown normals are checked after GLB loading. Shape, counts and material buckets remain fixed.
