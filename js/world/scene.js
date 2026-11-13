@@ -528,6 +528,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   clearTimeout(startupTimeout);
   landmarksReady = true;
   resize();
+  await renderer.compileAsync(scene, camera).catch(() => {}); // link the visible materials' programs before world-ready; ponytail: visible objects only, hidden LOD/kit materials still compile on first show
   return {
     get raining() { return raining; },
     get routeS() { return routeS; }, // where the bus is on the route, in stops, on the same fine knots as the picture: the sound driver times the plane from it
