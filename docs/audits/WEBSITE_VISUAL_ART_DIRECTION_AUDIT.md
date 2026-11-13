@@ -140,6 +140,14 @@ Baixo esforço, alto impacto. Itens 1–3 tocam materiais e não exigem decisão
 - **Prévia do embarque (item 4):** feito. `css/style.css`: cartão 560 → 620 px; prévia até 220 → 270 px; véu 28% → 16%; blur 14 → 9 px. No mobile, a prévia tem o mesmo mínimo.
 - **Ressalva de captura:** o clima é sorteado a cada carga. As capturas de Glasgow não são comparáveis em céu entre antes e depois.
 
+**Status da Fase 3 (2026-11-13, itens escolhidos pelo dono):**
+- **Contraste de Glasgow (`js/world/mood.js`):** sol 1.20 → 1.25 (ainda abaixo de Londres, 1.28); névoa `fogK` 1.05 → 1.15 (menos névoa). Teste `tests/mood.test.mjs` atualizado para os novos valores. Antes e depois com clima fixo em limpo: fachadas mais claras e sombras mais nítidas.
+- **Painel 360 px (`css/style.css`):** de 420 para 360. Mobile inalterado.
+- **Enquadramento:** já existia. `scene.js` (`fit()`) centraliza a área livre à direita do painel, com deslocamento igual à metade do painel. Com o painel mais estreito, o deslocamento caiu de 222 para 192 px. O MASP, que estava sob o painel, agora fica inteiro à direita dele. Não adicionei deslocamento extra.
+- **Nuvens (`js/world/sky.js`):** bordas dos lobos (`smoothstep` ±0.15 → ±0.35) e borda externa (−0.12..0.25 → −0.2..0.4) mais suaves. Efeito modesto: o horizonte ficou mais uniforme.
+- **Vidro das torres (`js/world/building-kit.js`, `scene.js`):** `tower-glass` registrado no ambiente dos landmarks com `k` = 0.22. Efeito não visível à escala das capturas.
+- **Ressalvas:** o clima de Glasgow e de Londres é sorteado por carga. As comparações foram feitas com `weather=clear`.
+
 ## 8. Strategic Improvements
 
 - **S1 — Reflexo de ambiente para vidro (item 9).** Estender o PMREM dos landmarks às torres. Conflita com "no cubemaps" do North Star. Precisa de decisão do dono.
