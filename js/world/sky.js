@@ -112,12 +112,12 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
           vec2 surface=vec2(p.x/(.93+j.x*.3),(p.y+.22)/(.42+j.y*.12));
           float shape=1.0-length(surface);
           vec2 lobe=(p-vec2(-.42+j.z*.3,.02))/vec2(.34,.58+j.w*.3);float s=1.0-length(lobe);
-          surface=mix(surface,lobe,smoothstep(-.15,.15,s-shape));shape=max(shape,s);
+          surface=mix(surface,lobe,smoothstep(-.35,.35,s-shape));shape=max(shape,s);
           lobe=(p-vec2(.02+j.w*.3,.18))/vec2(.42,.69+j.x*.3);s=1.0-length(lobe);
-          surface=mix(surface,lobe,smoothstep(-.15,.15,s-shape));shape=max(shape,s);
+          surface=mix(surface,lobe,smoothstep(-.35,.35,s-shape));shape=max(shape,s);
           lobe=(p-vec2(.47+j.y*.2,.02))/vec2(.33,.50+j.z*.3);s=1.0-length(lobe);
-          surface=mix(surface,lobe,smoothstep(-.15,.15,s-shape));shape=max(shape,s);
-          a=smoothstep(-.12,.25,shape+(n-.5)*.4);
+          surface=mix(surface,lobe,smoothstep(-.35,.35,s-shape));shape=max(shape,s);
+          a=smoothstep(-.2,.4,shape+(n-.5)*.3);
           vec3 normal=normalize(vec3(surface*.85,sqrt(max(.06,1.0-dot(surface,surface)))));
           vec3 key=normalize(vec3(uLight-p*.15,.65));
           float lit=max(dot(normal,key),0.0);
