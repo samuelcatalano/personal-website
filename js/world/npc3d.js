@@ -310,6 +310,7 @@ export async function createNpc3d(scene, { people, pts, stops, lookTargets = [],
   const kinds = { man: [], woman: [], kid: [] };
   VARIANTS.forEach((v, k) => kinds[kindOf(v)].push(k));
   const pool = poolKinds(count);
+  const setLive = (w, on) => w.inst.traverse((o) => { o.matrixAutoUpdate = on; }); // updateMatrixWorld still walks a parked walker's bones; this skips their composes
   for (let i = 0; i < pool.length; i++) {
     const kind = pool[i], list = kinds[kind], k = list[Math.floor(i / 2) % list.length], v = VARIANTS[k];
     const inst = shareSkeleton(SkeletonUtils.clone(templates[k]));
@@ -326,6 +327,7 @@ export async function createNpc3d(scene, { people, pts, stops, lookTargets = [],
     tintNpc(inst, mulberry32(1000 + i));
     Object.assign(w, { mixer, action, kind, height: v.height, stride: clipStride(clip.name, sc, wide), who: -1, x: 0, y: 0, z: 0, yaw: 0 });
     w.fine = []; inst.traverse((o) => { if (o.isMesh && /^mh_(eyes|eyebrows)_/.test(o.material.name)) w.fine.push(o); }); // draw-call LOD: eyes and brows only near the camera
+    setLive(w, false); // parked until assign() spawns it: no matrix composes for hidden bones
     scene.add(inst);
   }
   const shadowMaterial = new THREE.MeshBasicMaterial({ color: '#2a2622', transparent: true, opacity: 0.3, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 });
@@ -378,7 +380,7 @@ export async function createNpc3d(scene, { people, pts, stops, lookTargets = [],
       const d = Math.hypot(w.x - cam.position.x, w.z - cam.position.z), reason = d > POOL_MAX_DISTANCE ? 'distance-cap' : !isWalkerVisible(w) ? 'outside-frustum' : null;
       if (!reason) return;
       released.set(slot, { npcId: w.who, reason });
-      owner[w.who] = -1; w.who = -1; w.inst.visible = false;
+      owner[w.who] = -1; w.who = -1; w.inst.visible = false; setLive(w, false);
     });
     let active = walkers.reduce((n, w) => n + (w.who >= 0 ? 1 : 0), 0);
     for (let r = 0; r < N && active < count; r++) {
@@ -394,7 +396,7 @@ export async function createNpc3d(scene, { people, pts, stops, lookTargets = [],
       free.pose?.reset(i);
       free.x = route.x[i]; free.z = route.z[i]; free.y = groundOf(i); free.yaw = Math.atan2(route.fx[i], route.fz[i]);
       free.fresh = true;
-      free.inst.visible = true;
+      free.inst.visible = true; setLive(free, true);
       active++;
       if (noteEvent) noteEvent(previous ? { type: 'reassignment', fromNpcId: previous.npcId, npcId: i, slot, reason: previous.reason } : { type: 'spawn', npcId: i, slot, reason: 'visible-ranked-candidate' });
       released.delete(slot);

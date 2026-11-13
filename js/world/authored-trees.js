@@ -177,11 +177,12 @@ export async function createAuthoredTrees(placements) {
       ], bounds = new THREE.Box3(), worldTrees = [];
       geometries.add(lods[2].geometry);
       lods.forEach((mesh, level) => {
-        mesh.name = `trees-canopy-${variant.name}-lod${level}`; mesh.visible = level === 0; mesh.castShadow = mesh.receiveShadow = level < 2;
+        mesh.name = `trees-canopy-${variant.name}-lod${level}`; mesh.visible = level === 0; mesh.castShadow = false; mesh.receiveShadow = level < 2; // casters: the shadow proxy below
         mesh.userData.sourceIndices = trees.map((e) => e.i); group.add(mesh);
       });
+      // ponytail: one height scale for every tree; placements carry no street/park kind, so the 7–10 m and 10–14 m bands are not split yet
       trees.forEach(({ p, i }, k) => {
-        const base = p.base ?? 0.1, height = Math.min(6.2, (p.h + 0.65) * 1.2) * (0.8 + rnd(p.x, p.z, 2) * 0.25), width = Math.min(p.crown / (2 * variant.radius), height), yaw = rnd(p.x, p.z, 4) * Math.PI * 2;
+        const base = p.base ?? 0.1, height = Math.min(12, (p.h + 0.65) * 1.2 * 2.1) * (0.8 + rnd(p.x, p.z, 2) * 0.25), width = Math.min(p.crown / (2 * variant.radius), height), yaw = rnd(p.x, p.z, 4) * Math.PI * 2;
         object.position.set(p.x, base + 0.02, p.z); object.rotation.set(0, yaw, 0); object.scale.set(width, height, width); object.updateMatrix();
         lods[0].setMatrixAt(k, object.matrix); lods[1].setMatrixAt(k, object.matrix);
         const billboardFit = Math.max(1, 2 * variant.radius) * 1.16, billboardX = width * billboardFit, billboardY = height * billboardFit;
@@ -195,11 +196,17 @@ export async function createAuthoredTrees(placements) {
         worldTrees.push({ x: p.x, z: p.z, base, radius, billboardX, billboardY, yaw });
       });
       lods.forEach((mesh) => { mesh.instanceMatrix.needsUpdate = true; mesh.computeBoundingBox(); mesh.computeBoundingSphere(); mesh.boundingSphere.radius += 0.06; });
-      batches.push({ lods, bounds, trees: worldTrees, level: null, lastCameraX: -Infinity, lastCameraZ: -Infinity });
+      // Shadow proxy: LOD1 canopy (~1/4 of LOD0 triangles) casts whatever LOD is on screen; drawn only inside the shadow pass (see setShadowProxies).
+      const proxy = new THREE.InstancedMesh(variant.lod1, variant.materials, trees.length);
+      proxy.name = `trees-shadow-${variant.name}`; proxy.instanceMatrix = lods[1].instanceMatrix; proxy.instanceColor = lods[1].instanceColor;
+      proxy.castShadow = true; proxy.visible = false; proxy.computeBoundingBox(); proxy.computeBoundingSphere(); proxy.boundingSphere.radius += 0.06; group.add(proxy);
+      batches.push({ lods, proxy, bounds, trees: worldTrees, level: null, lastCameraX: -Infinity, lastCameraZ: -Infinity });
     });
 
     const shrubs = addTreeUnderstory(group, placements);
     group.userData.batches = batches;
+    // Same casters as before (near and mid batches), but with LOD1 geometry. Hidden during the main pass, so no extra draw there.
+    group.userData.setShadowProxies = (on) => { for (const b of batches) b.proxy.visible = on && (b.level === 0 || b.level === 1); };
     group.userData.update = (camera, time = 0) => {
       streetEnvironment.time.value = time;
       for (const batch of batches) {

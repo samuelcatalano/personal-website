@@ -82,6 +82,14 @@ const clearClosingCorner = (add) => Object.assign((x, y, z, w, h, d, color, ry =
   return add(x + middle * Math.cos(ry), y, z - middle * Math.sin(ry), kept, h, d, color, ry, ...rest);
 }, add, { plant: (kind, x, y, z, ...rest) => { if (!inClosingCorner(x, z)) add.plant(kind, x, y, z, ...rest); } });
 
+// Static roots keep their world matrices: matrixAutoUpdate off skips the per-frame compose for every object under them.
+// ponytail: one-way and manual; a root that is moved later must get matrixAutoUpdate back on.
+const freezeStatic = (root) => {
+  if (!root) return;
+  root.updateMatrixWorld(true);
+  root.traverse((o) => { if (!o.isBone && !o.isSkinnedMesh) o.matrixAutoUpdate = false; });
+};
+
 export async function createWorld(canvas, stops, { reducedMotion = false, onProgress = () => {}, onPick = () => {} } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   Object.assign(renderer, { toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: EXPOSURE, outputColorSpace: THREE.SRGBColorSpace });
@@ -158,6 +166,9 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   let trees;
   if (forest.status === 'fulfilled') { trees = forest.value; scene.add(trees); }
   else treePlacements.forEach(({ x, z, ...shape }) => tree(cornerAdd, x, z, shape)); // retain trees if the texture cannot load
+  // Tree shadow proxies exist only for the shadow pass: three checks the main camera's layers there, so visibility is switched around it.
+  const shadowRender = renderer.shadowMap.render.bind(renderer.shadowMap); // render reads this.type
+  renderer.shadowMap.render = (...args) => { trees?.userData.setShadowProxies?.(true); shadowRender(...args); trees?.userData.setShadowProxies?.(false); }; // the procedural fallback has no proxies
   const [phones, lampPosts, propsGroup] = streetAssembly.map(result => {
     if (result.status === 'rejected') throw result.reason;
     if (result.value) scene.add(result.value); // preserve source order, before createSky collects the Belisha globes
@@ -187,6 +198,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const motion = buildMotion(); scene.add(motion.group);
   const roadMarks = createRoadMarks(curve, stops, { ...arc, pilotCrossings });
   scene.add(world, eye, details, plane, shadow, bus, roadMarks);
+  for (const root of [backdrop, skyline, trees, phones, lampPosts, propsGroup, architecture, world, roadMarks]) freezeStatic(root);
   const routeTunnel = createRouteTunnel(curve); scene.add(routeTunnel.group); routeTunnel.cut(scene); // after the world/road meshes: cuts the paving over the ramp
   const swapTunnel = SWAP_GAP ? createSwapTunnel(curve, stops) : null; // SP -> London: the hero turns Mini <-> bus inside it (needs SWAP_GAP of road; off while 0)
   if (swapTunnel) { scene.add(swapTunnel.group); swapTunnel.cut(scene); }
@@ -495,9 +507,12 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
         fpsT = fpsN = 0;
       }
     }
+    // One matrix pass per frame: both mirror renders and the main render reuse these world matrices (nothing moves between them).
+    scene.updateMatrixWorld(); scene.matrixWorldAutoUpdate = false;
     water.reflect(renderer, scene, camera, post.tier, sky.objects);
     wetSurfaces.reflect(renderer, camera, post.tier, wetReflectionHidden);
     post.render(dt);
+    scene.matrixWorldAutoUpdate = true;
     if (shotResolve) { const done = shotResolve; shotResolve = null; canvas.toBlob(done, 'image/png'); } // same task as the render: the drawing buffer is still valid
     if (qa) globalThis.__qaWorldFrames++;
     if (!reducedMotion || architecturePending || paulistaPending) wake();
