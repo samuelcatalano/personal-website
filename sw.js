@@ -2,7 +2,7 @@
 // - models, textures, fonts and the pinned three.js from jsDelivr: stale-while-revalidate (instant from cache, refreshed in the background for the next visit)
 // - HTML, JS, CSS and JSON: network first (4 s), cache as the offline / slow fallback, so a deploy is picked up on the next load
 // Bump CACHE when assets change in place without a new ?v= query. Add ?nosw to a URL to skip registration (tests, captures).
-const CACHE = 'catalano-v1';
+const CACHE = 'catalano-v3';
 const STATIC = /\.(glb|gltf|hdr|bin|ktx2|png|jpe?g|webp|woff2?)$/i;
 const CODE = /\.(m?js|css|html|json)$/i;
 

@@ -145,3 +145,7 @@ Primary reference sources: [operator fleet](https://www.thamesclippers.com/whats
 Owner authorized removing solid black portal backgrounds on Tower Bridge and Catedral da Sé. Existing project-owned authoring sources were refined: Tower Bridge now has continuous open stone carriageway vaults at both existing LODs; Sé LOD0 has a recessed paneled oak door with bronze fittings baked into the same single atlas. No external geometry, imagery, texture, licence or attribution was added.
 
 2026-11-12 city rendering audit: regenerated the project-owned Tower Bridge GLBs after correcting face-orientation hints (direction transform excludes deck translation). Existing source/provenance and materials retained; no external asset added.
+
+## Sound system — 2026-11-13
+
+No audio asset is used. Every sound (rain, wind, thunder, city beds, bus engine, passing cars, horns, boat horn, plane, crowd murmur, footsteps, birds, gulls, crickets, Big Ben and Glasgow bells, UI clicks, camera shutter) is synthesized at runtime with native Web Audio in `js/audio/`. Nothing to license or attribute. If a CC0 sample ever replaces a synthesized voice, record it here with its licence.

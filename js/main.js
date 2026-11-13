@@ -6,6 +6,7 @@ import { createIntro } from './intro.js';
 import { createAutoRide, travelMs } from './autoride.js';
 import { whenSettled } from './world/load-progress.js';
 import { makePostcard, download } from './postcard.js';
+import { setEnabled } from './audio/engine.js';
 const n = stops.length;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const pts = routePoints(n), marks = stopMarks(pts);
@@ -78,9 +79,33 @@ photoBtn.addEventListener('click', async () => {
   try {
     const caption = ui.caption(), blob = await makePostcard(await world.snapshot(), caption, location.host + location.pathname.replace(/\/$/, ''), ui.stamps());
     download(blob, `samuel-catalano-${caption.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-')}.png`);
+    sound?.shutter();
     ui.discover('postcard');
   } catch (err) { console.warn('postcard failed:', err); } finally { photoBtn.disabled = false; }
 });
+// Sound is on by default; the visitor's choice is remembered on this device. The driver module loads on first use.
+const soundBtn = document.querySelector('[data-sound]');
+let sound = null;
+const setSound = (v, save = true) => {
+  soundBtn.setAttribute('aria-pressed', String(v));
+  if (save) try { localStorage.setItem('sound', v ? 'on' : 'off'); } catch { /* storage blocked */ }
+  setEnabled(v); // inside the click or key press: browsers only start audio from a gesture
+  if (v && !sound) import('./audio/index.js')
+    .then((m) => { sound ||= m.createSound({ stops, marks, progress: () => progress, night: () => ui.theme === 'night', world: () => world }); })
+    .catch(() => {});
+};
+soundBtn.addEventListener('click', () => setSound(soundBtn.getAttribute('aria-pressed') !== 'true'));
+let soundPref = null;
+try { soundPref = localStorage.getItem('sound'); } catch { /* storage blocked */ }
+if (soundPref !== 'off') { // on by default (nothing chosen yet counts as on); it still waits for the first click or key press of this visit
+  soundBtn.setAttribute('aria-pressed', 'true');
+  const wake = (e) => {
+    removeEventListener('pointerdown', wake, true); removeEventListener('keydown', wake, true);
+    if (!e.target.closest?.('[data-sound]') && soundBtn.getAttribute('aria-pressed') === 'true') setSound(true, false);
+  };
+  addEventListener('pointerdown', wake, true); addEventListener('keydown', wake, true);
+}
+document.addEventListener('click', (e) => { if (e.target.closest?.('button, a')) sound?.tick(); });
 const target = SECTIONS.includes(hash) ? sectionStart(hash) : stops.findIndex((s) => s.id === hash);
 if (target > 0 || SECTIONS.includes(hash)) addEventListener('load', () => requestAnimationFrame(() => {
   if (scrollY === 0) {
@@ -125,7 +150,9 @@ if (hasWebGL()) {
       reducedMotion, onProgress: follow, onPick: (id) => (id === 'bus' ? ui.say('horn') : goto(stops.findIndex((s) => s.id === id))),
     }))
     .then((w) => { world = w; w.setProgress(progress); w.setTheme(ui.theme); document.body.classList.add('world-ready'); intro.worldLoaded();
-      whenSettled().then(() => { document.body.classList.add('world-settled'); intro.ready(); stills(w).catch(() => {}); }); })
+      whenSettled().then(async () => { document.body.classList.add('world-settled');
+        await stills(w).catch(() => {}); // the still tour moves the camera and streams more of the city: Board opens only after it has finished and the load has settled again, so nothing changes after the release
+        await whenSettled(); intro.ready(); }); })
     .catch((err) => { console.warn('3D world unavailable:', err); intro.dismiss(); document.body.classList.add('no-webgl'); });
 } else {
   document.body.classList.add('no-webgl');

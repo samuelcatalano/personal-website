@@ -421,6 +421,9 @@ blockquote footer b { color: var(--ink); font-weight: 600; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 [data-auto] svg { fill: currentColor; }
 [data-auto][aria-pressed="false"] .i-pause, [data-auto][aria-pressed="true"] .i-play { display: none; }
+[data-sound] svg { fill: currentColor; }
+[data-sound] svg .i-on, [data-sound] svg .i-off { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; }
+[data-sound][aria-pressed="false"] .i-on, [data-sound][aria-pressed="true"] .i-off { display: none; }
 [data-auto][aria-pressed="true"] { color: var(--accent); }
 [data-photo] svg { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 [data-photo]:disabled { opacity: .45; cursor: progress; }

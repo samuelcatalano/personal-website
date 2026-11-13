@@ -139,6 +139,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   if (qa) globalThis.__qaPlots = architecturePlots; // QA probe: lots, for the underwater-road house check (no visual effect)
   resetFloodlights(); // landmark builders re-register their night floodlight boxes
   const { eye, details } = buildLandmarks(cornerAdd, stops, pts, (x, z, shape) => treePlacements.push({ x, z, ...shape }));
+  let routeS = 0;
   const plane = buildVehicle('a330'), planeAt = ukStart(stops) / (n - 1), { nav, strobe, shadow } = plane.userData; // flies past the bus at the first UK stop
   plane.visible = shadow.visible = nav.visible = strobe.visible = false;
   // Only the explicitly marked garden lots give way to new buildings.
@@ -366,7 +367,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     nav.visible = plane.visible && night > 0.35; strobe.visible = nav.visible && clock % 1.3 < 0.12; // red left / green right steady, white strobe blinks
     if (shadow.visible) { shadow.position.set(plane.position.x, 0.14, plane.position.z); shadow.scale.set(34, 1, 15); shadow.scale.multiplyScalar(k); shadow.material.opacity = 0.3 * (1 - night) * present * k * Math.max(0.15, 1 - (plane.position.y - 24) / 70); } // smaller and fainter as it recedes and climbs
   };
-  let scroll = { value: 0, velocity: 0 }, target = 0, clock = 0, last = 0, raining = false, shotResolve = null;
+  let scroll = { value: 0, velocity: 0 }, target = 0, clock = 0, last = 0, raining = false, flash = 0, shotResolve = null;
   const lateral = new THREE.Vector3();
   function frame(now) {
     raf = 0;
@@ -377,7 +378,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     if (!reducedMotion) clock += dt;
     const ox = reducedMotion || !dt ? vo.tx : approach(vo.x, vo.tx, dt, 300), oy = reducedMotion || !dt ? vo.ty : approach(vo.y, vo.ty, dt, 300);
     if (ox !== vo.x || oy !== vo.y) { vo.x = ox; vo.y = oy; applyView(); camera.updateProjectionMatrix(); }
-    const p = scroll.value, t = routeT(p, n, knots);
+    const p = scroll.value, t = routeT(p, n, knots); routeS = t * (n - 1);
     const bp = curve.getPointAt(t), tan = curve.getTangentAt(t);
     lateral.set(tan.z, 0, -tan.x).normalize().multiplyScalar(BUS_LANE);
     applyHeroPose(bus, bp, lateral, Math.atan2(-tan.z, tan.x));
@@ -459,7 +460,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     raining = mood.rain > 0.05;
     onProgress(p);
     wet = lagWetness(wet, mood.wet, dt);
-    const flash = rain.update(clock, camera, mood, night, post.tier, busPos, bus.rotation.y);
+    flash = rain.update(clock, camera, mood, night, post.tier, busPos, bus.rotation.y);
     sky.update(night, dt, camera.position, camera, mood, flash);
     // Share the visible astro's azimuth with shadows and water, retaining positive elevation and texel snapping.
     LD.copy(sky.sunDir); SUN.copy(LD).multiplyScalar(95);
@@ -512,6 +513,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   resize();
   return {
     get raining() { return raining; },
+    get routeS() { return routeS; }, // where the bus is on the route, in stops, on the same fine knots as the picture: the sound driver times the plane from it
+    get flash() { return flash; }, // lightning brightness this frame: the sound driver times thunder from it
     snapshot() { return new Promise((res, rej) => { shotResolve = res; wake(); setTimeout(() => rej(new Error('snapshot timeout')), 3000); }); },
     setProgress(p) { target = p; wake(); },
     jump(p) { target = p; scroll = { value: p, velocity: 0 }; wake(); },

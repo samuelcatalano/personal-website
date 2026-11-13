@@ -55,4 +55,4 @@ Inspiration: bridglabs.com (scroll-driven voxel San Francisco with a cable car).
 - All 12 Journey entries reachable by scroll and keyboard (current content count).
 
 ## Out of scope
-Blog engine, CMS, analytics, contact form, sound, multiplayer, controllable driving.
+Blog engine, CMS, analytics, contact form, multiplayer, controllable driving.

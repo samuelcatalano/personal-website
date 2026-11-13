@@ -43,7 +43,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Hammersmith+One&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.min.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }</script>
-  <link rel="modulepreload" href="js/autoride.js">
+  <link rel="modulepreload" href="js/audio/engine.js">
+<link rel="modulepreload" href="js/autoride.js">
   <link rel="modulepreload" href="js/content.js">
   <link rel="modulepreload" href="js/intro.js">
   <link rel="modulepreload" href="js/postcard.js">
@@ -281,7 +282,7 @@
       <a href="#recs" data-nav="recs"></a>
       <a href="#contact" data-nav="contact">Contact</a>
     </nav>
-    <div class="controls"><button type="button" data-auto aria-pressed="false"><svg class="i-play" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false"><path d="M8 5v14l11-7z"/></svg><svg class="i-pause" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false"><path d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg></button><button type="button" data-quick><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false"><path d="M4 5v14l8-7zm8 0v14l8-7z"/></svg></button><button type="button" data-hide aria-pressed="false"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M12 5c-5 0-9 4.500-10 7 1 2.500 5 7 10 7s9-4.500 10-7c-1-2.500-5-7-10-7zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-2a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/></svg></button><button type="button" data-photo><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button><button type="button" data-lang>PT</button><button type="button" data-theme>☀︎</button></div>
+    <div class="controls"><button type="button" data-auto aria-pressed="false"><svg class="i-play" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false"><path d="M8 5v14l11-7z"/></svg><svg class="i-pause" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false"><path d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg></button><button type="button" data-quick><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false"><path d="M4 5v14l8-7zm8 0v14l8-7z"/></svg></button><button type="button" data-hide aria-pressed="false"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M12 5c-5 0-9 4.500-10 7 1 2.500 5 7 10 7s9-4.500 10-7c-1-2.500-5-7-10-7zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-2a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/></svg></button><button type="button" data-photo><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button><button type="button" data-sound aria-pressed="false"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M4 9.500v5h3.500L12 18.500v-13L7.500 9.500z"/><path class="i-on" d="M15 9a4.200 4.200 0 0 1 0 6m2.500-8.500a7.800 7.800 0 0 1 0 11"/><path class="i-off" d="m15.500 9.500 5 5m0-5-5 5"/></svg></button><button type="button" data-lang>PT</button><button type="button" data-theme>☀︎</button></div>
     <p id="announce" class="sr-only" aria-live="polite"></p>
   </header>
   <main id="panel" class="panel"><noscript>

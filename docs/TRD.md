@@ -20,6 +20,11 @@ css/style.css              layout, day/night tokens, responsive panel and WebGL 
 js/content.js              sections, stops, localized copy, articles, repos, stack and external links
 js/main.js                 panel boot, stop-sized scroll track, WebGL detection, lazy world import and wiring
 js/ui.js                   HTML panel rendering, section navigation, language/theme preferences and announcements
+js/sound.js                intro bell and door hiss: a facade over the audio engine's direct output
+js/audio/engine.js         one AudioContext: buses -> outside low-pass -> mix (Sound toggle) -> compressor -> master
+js/audio/state.js          pure mix: scene facts in, voice gains / cutoffs / event rates out (node-tested)
+js/audio/index.js          sound driver, lazy-loaded on first use: a 10 Hz tick that moves the voices to the state
+js/audio/voices/{beds,shots}.js continuous voices (rain, wind, city beds, engine, plane, crowd) and one-shots (thunder, cars, bells, UI)
 js/scroll.js               scroll progress, nearest stop, stop navigation positions and passive scroll listener
 js/world/scene.js          renderer, route, scene assembly, camera framing, animation, resize and lifecycle
 js/world/layout.js         route point spacing, landmark anchors, camera lifts, furniture anchors and seeded RNG
@@ -47,6 +52,7 @@ tests/*.browser.py         browser checks for scene, landmarks, vehicles, people
 - `sectionStart(section)` returns the first stop index for a section. `SECTIONS` defines the section order used by navigation and content tests.
 - `scroll.js` exports `progressFromScroll(scrollY, scrollHeight, viewport)`, `nearestStop(progress, count)`, `routeT(progress, count)`, `scrollYForStop(index, count, scrollHeight, viewport)` and `watchScroll(callback)`. The callback receives progress only.
 - `initUI({ onGoto, onTheme })` renders the current panel and returns `{ theme, setActive(index) }`. Language and theme preferences use guarded `localStorage` access. Keyboard `j`/`k`, buttons and section links navigate by stop index.
+- Sound is synthesized with native Web Audio (no audio files, no dependency) and is on by default. The `[data-sound]` button toggles it; the choice is stored as `localStorage.sound` (`on`/`off`, guarded), and a saved `off` wins over the default. The audio starts on the first click or key press of the visit, since browsers block audio before a gesture. `setEnabled(v)` (engine) fades the mix; `createSound({ stops, marks, progress, night, world })` (driver) returns `{ tick(), shutter(), state, live }`. The driver only reads: scroll progress, the theme, its own `createMood(stops)` instance and the world's `flash` getter (thunder). `audioState(input)` in `js/audio/state.js` is the single place levels are set; `VOICE_CAP` bounds one-shot voices per family. The intro's `ding()`/`hiss()` bypass the toggle and the compressor, as before.
 - `createWorld(canvas, stops, { reducedMotion, onProgress })` asynchronously returns `{ setProgress(p), jump(p), setTheme(name), dispose() }`. `onProgress` receives current animated progress. `dispose()` cancels the frame, removes resize/visibility listeners, disconnects the resize observer and disposes the renderer.
 
 ## Scene and rendering
@@ -76,7 +82,8 @@ The city includes road and sidewalk surfaces, plaza details, landmarks, bridge/w
 ## Motion and accessibility behavior
 
 - With `prefers-reduced-motion`, route progress snaps to the nearest stop, ambient time and pedestrian movement are paused, and the world starts on the medium postprocessing tier. The HTML panel and its navigation remain available.
-- Without WebGL, or if dynamic world loading fails, the panel remains usable over a CSS gradient background.
+- Without WebGL, or if dynamic world loading fails, the panel remains usable over a CSS gradient background. Sound then plays only the city bed and the weather (no vehicles, plane, crowd or bells).
+- Sound is not motion: it stays available with `prefers-reduced-motion`. The audio context is suspended while the tab is hidden and while sound is off; any audio failure is silence, never a console error.
 - The canvas is `aria-hidden`; content, links, controls and announcements are HTML. The panel is the source of truth; the 3D world is decorative.
 - Mobile CSS turns the panel into a bottom sheet; the scene reframes its camera around the visible viewport region.
 
@@ -85,6 +92,7 @@ The city includes road and sidewalk surfaces, plaza details, landmarks, bridge/w
 - `node --test tests/` checks localized content integrity, route and camera math, palette, landmark geometry, pedestrian plans, park clearance and Glasgow footprint clearance.
 - `tests/*.browser.py` exercise real WebGL rendering and browser behavior, including fallback, world assembly, camera, vehicles, people and visual regressions.
 - `tests/building-kit.browser.py` checks five procedural archetypes, lot bounds and instancing; `tests/real-city.browser.py` checks ordinary plot integration, shared batches, road/path continuity and Tower Bridge clearance; `tests/citywide.browser.py` covers the production rollout and controls; `tests/vehicles.browser.py` checks consistent distance-mapped traffic speed.
+- `tests/audio-state.test.mjs` checks the pure mix (gain bounds, region crossfade, day/night, tunnel, voice caps, thunder delay, door and bell cues). `tests/audio.browser.py` renders two reference scenes through the real graph on an `OfflineAudioContext` (not silent, peak below -1 dBFS), drives the Sound button with a real click, and rides the whole route to hear every family.
 - The manual verification matrix is in `CLAUDE.md`: desktop and 375px mobile, day/night, EN/PT, WebGL disabled, reduced motion, no console errors and Lighthouse accessibility at least 95.
 
 ## Privacy
