@@ -1,5 +1,9 @@
 # Tower Bridge
 
+## Passage floor — 2026-11-13
+
+The road now runs through both main-tower passages and through the shore-abutment passages: the carriageway is the passage floor at y = 0 (the side span now runs to the far abutment face). The pier top sits 0.3 m under the road (it had been the pale floor showing through each arch), and the road-level sill of each portal is no longer emitted (it z-fought with the carriageway). Export: LOD0 **14,440 triangles / 946,248 bytes**, LOD1 **4,064 triangles / 295,644 bytes**. The side-span road stops 0.05 m inside the far abutment face, so its end does not z-fight the stone. Runtime cache version 15.
+
 ## Carriageway portals — 2026-11-12
 
 Both main towers and both shore towers now have open stone barrel-vault passages. Front and back half-vaults meet at each tower centre; the road openings stay actual holes at both LODs. This replaces the flat dark backing panels without adding materials or textures. Current export: LOD0 **14,072 triangles / 919,556 bytes**, LOD1 **4,000 triangles / 296,696 bytes**, four material primitives each. Bounds, road height, spans, piers, lights and foam anchors remain fixed. Runtime cache version 12. Older figures below describe preceding model snapshots.

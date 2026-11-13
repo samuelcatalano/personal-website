@@ -1,21 +1,21 @@
 {
-  "generated": "2026-11-12",
+  "generated": "2026-11-13",
   "tool": "blender -b --python tools/landmarks/towerbridge/build_towerbridge.py",
   "source": "tools/landmarks/towerbridge/build_towerbridge.py (procedural, real metres scaled by K = 0.40, vertex-colour PBR)",
-  "note": "Three.js GLTFLoader asset; one mesh per LOD with one primitive per material (vertex-colour PBR atlas, night lights, two floodlit stone bands). No textures. Whole bridge: round-turreted towers with mullioned window groups, slate roofs and gilt cresting, walkways with a mid-span crest, Union Jack and St George flags, side spans with suspension chains and shore abutments. Loaded by js/world/towerbridge-asset.js; ?landmarks=procedural forces the procedural fallback. Carriageway portals remain open through stone barrel vaults in both LODs, including the shore towers; no blind dark backing planes. Face orientation uses direction vectors without the deck translation; all six unit-box directions are validated before export.",
+  "note": "Three.js GLTFLoader asset; one mesh per LOD with one primitive per material (vertex-colour PBR atlas, night lights, two floodlit stone bands). No textures. Whole bridge: round-turreted towers with mullioned window groups, slate roofs and gilt cresting, walkways with a mid-span crest, Union Jack and St George flags, side spans with suspension chains and shore abutments. Loaded by js/world/towerbridge-asset.js; ?landmarks=procedural forces the procedural fallback. Road now runs through the main-tower and shore-abutment passages (no pale pier-top floor, no road-level sill), and the pier top sits 0.3 m under the road. Carriageway portals remain open through stone barrel vaults in both LODs, including the shore towers; no blind dark backing planes. Face orientation uses direction vectors without the deck translation; all six unit-box directions are validated before export.",
   "outputs": {
     "lod0": {
       "path": "assets/processed/landmarks/towerbridge.lod0.glb",
-      "bytes": 924452,
-      "sha256": "f2cefe3f807a8f863db7a2a0e2affc04befdd5c940cf71a57fef2db5e05a6d2e",
-      "triangles": 14072,
+      "bytes": 946248,
+      "sha256": "80de720048a21e676775231b2828a45a45f6726bbc5a016e91cc390c677e9539",
+      "triangles": 14440,
       "primitives": 4
     },
     "lod1": {
       "path": "assets/processed/landmarks/towerbridge.lod1.glb",
-      "bytes": 295832,
-      "sha256": "3dbb186df16d45f4286b2ef83d4658d26eea1d481b88461c0876754592e57915",
-      "triangles": 4000,
+      "bytes": 295644,
+      "sha256": "e68ee489890bf259b9efc527da40cf6caea7407c16eb20c8e45355a2600aa182",
+      "triangles": 4064,
       "primitives": 4
     }
   }

@@ -112,7 +112,7 @@ class B:
                 for i in range(len(pts)):
                     a, b = pts[i], pts[(i + 1) % len(pts)]
                     du, dv = cu - (a[0] + b[0]) / 2, cv - (a[1] + b[1]) / 2
-                    s.poly([Q(*a, 0), Q(*b, 0), Q(*b, dp), Q(*a, dp)], m, (U[0] * du, dv, U[2] * du))
+                    if O[1] + a[1] or O[1] + b[1]: s.poly([Q(*a, 0), Q(*b, 0), Q(*b, dp), Q(*a, dp)], m, (U[0] * du, dv, U[2] * du))  # road-level sill skipped: the carriageway is the passage floor (z-fight + pale strip)
                 if pm is not None: s.poly([Q(*p, dp) for p in pts], pm, N)
             elif pm is not None:
                 s.poly([Q(*p, -.03) for p in pts], pm, N)   # LOD1: opening = flat decal
@@ -214,11 +214,11 @@ def tower(b, tz):
     L0 = b.lod == 0
     H = 42.0                                                             # body top, above road
     for k in range(3):                                                   # stepped, battered pier with course ledges
-        y0 = RIVER + 5.0 * k; ha = lambda y: (12.0 - 1.6 * (y - RIVER) / 15.0, 9.0 - 1.6 * (y - RIVER) / 15.0)
-        (a0, b0), (a1, b1) = ha(y0), ha(y0 + 5.0)
+        y0 = RIVER + 5.0 * k; y1 = min(y0 + 5.0, -.3); ha = lambda y: (12.0 - 1.6 * (y - RIVER) / 15.0, 9.0 - 1.6 * (y - RIVER) / 15.0)
+        (a0, b0), (a1, b1) = ha(y0), ha(y1)
         ins = .3 if k else 0.0
-        b.frus(0, y0, tz, a0 - ins, b0 - ins, a1, b1, 5.0, ST, top=(k < 2))
-    b.poly([(-10.4, 0, tz - 7.4), (10.4, 0, tz - 7.4), (10.4, 0, tz + 7.4), (-10.4, 0, tz + 7.4)], PS, (0, 1, 0))   # pier top
+        b.frus(0, y0, tz, a0 - ins, b0 - ins, a1, b1, y1 - y0, ST, top=(k < 2))
+    b.poly([(-10.4, -.3, tz - 7.4), (10.4, -.3, tz - 7.4), (10.4, -.3, tz + 7.4), (-10.4, -.3, tz + 7.4)], PS, (0, 1, 0))   # pier top
     inner = -1 if tz > 0 else 1                                          # the side facing the other tower (walkway docks)
     for N, U in SIDES:
         wd = 2 * TX if N[2] else 2 * TZH
@@ -292,9 +292,10 @@ def deck(b):
     # Two bascule leaves meet at a narrow centre joint; the carriageway is their top surface. Fixed side spans run from the towers to the shore.
     ZE = 29.8                                                             # leaves stop inside the piers
     for z0, z1 in ((-ZE, -.25), (.25, ZE)): slab(b, z0, z1)
+    for sg in (-1, 1): slab(b, *sorted((sg * ZE, sg * ZOUT)))            # road runs through each tower passage; with a gap, the pale pier top showed as a floor in the arch
     for sg in (-1, 1):
         b.tube([(-6.5, -.9, sg * ZE), (6.5, -.9, sg * ZE)], .45, 4, BL)  # visible bascule hinge shaft
-        slab(b, *sorted((sg * ZOUT, sg * (ZA - AD))))                    # side span, tower face to abutment face
+        slab(b, *sorted((sg * ZOUT, sg * (ZA + AD - .05))))                    # side span, tower face through the abutment passage
     if b.lod == 0:
         for sx in (-1, 1):
             for z in (-20.0, -10.0, 10.0, 20.0, -50.0, -58.0, 50.0, 58.0):
