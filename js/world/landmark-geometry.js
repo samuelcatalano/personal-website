@@ -535,7 +535,7 @@ export function createCopan({x,z,len,amp,depth,h}){
 
 // ---- Riverside Museum: sawtooth zinc roof, glazed front and gable ends ----
 export function createRiverside(x,z){
-  const {box,add,finish,lit,lbox,lbeam}=landmark('riverside',x,z,1.125),zinc=[.92,.89,.81],silver=[1.02,.97,.87],frame=[.31,.34,.35],glass=[.62,.78,.88],T=.85,F=1.35,W=7.5;
+  const {box,add,finish,lit,lbox,lbeam}=landmark('riverside',x,z,1.125),zinc=[.9,.92,.95],silver=[.98,1,1.03],frame=[.31,.34,.35],glass=[.62,.78,.88],T=.85,F=1.35,W=7.5; // cool metals keep the roof neutral next to the blue-white wash
   const top=RIVERSIDE_KNOTS.map(([u,y])=>[u-16,y]),low=top.map(([px,py])=>[px,py-T]).reverse(),glassTop=top.map(([px,py])=>[px,py-F]);
   const poly=pts=>new THREE.Shape(pts.map(([px,py])=>new THREE.Vector2(px,py)));
   add(new THREE.ExtrudeGeometry(poly([...top,...low]),{depth:2*W,bevelEnabled:false}),0,0,-W,S.trim,zinc);   // pleated roof sheet
@@ -559,9 +559,9 @@ export function createRiverside(x,z){
     box(s*15.68,.3,0,.1,he-.3,13.56,S.litGlass,glass,2);
     for(const dz of [-6.9,-3.45,0,3.45,6.9])box(s*15.745,.3,dz,.12,he-.2,.1,S.trim,frame,1);
     box(s*15.745,he*.5,0,.12,.2,13.56,S.trim,silver,1);
-    const pg=new THREE.PlaneGeometry(13.4,he-.6);pg.rotateY(s*Math.PI/2);lit(2,pg,s*15.79,.4+(he-.6)/2,0,.12,.25,[.95,1,.18]);
+    const pg=new THREE.PlaneGeometry(13.4,he-.6);pg.rotateY(s*Math.PI/2);lit(2,pg,s*15.79,.4+(he-.6)/2,0,.12,.25,[.66,.86,1]);
   }
-  // Night: subtle zinc edge light and a yellow-green wash behind the museum glazing.
+  // Night: subtle zinc edge light and a cool blue-white wash behind the museum glazing (was yellow-green, read as lime).
   for(let i=0;i<top.length-1;i++){
     const [x0,y0]=top[i],[x1,y1]=top[i+1];
     for(const zz of [-7.515,7.515])lbeam(1,v(x0,y0-.08,zz),v(x1,y1-.08,zz),.05,1,4);
@@ -569,7 +569,7 @@ export function createRiverside(x,z){
   }
   lbox(0,0,.45,7.07,28,.12,.04,.35);
   // Keep the additive interior wash just ahead of the glass so the steel grid occludes it.
-  lit(2,new THREE.ShapeGeometry(poly(under)),0,0,7.095,.08,.3,[.95,1,.18]);
+  lit(2,new THREE.ShapeGeometry(poly(under)),0,0,7.095,.08,.3,[.66,.86,1]);
   return finish();
 }
 
