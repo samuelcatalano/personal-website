@@ -2,6 +2,7 @@ import { rng } from './layout.js';
 import { PALETTE as P } from './palette.js';
 import { house } from './houses.js';
 import { draw } from './blocks.js';
+import { BRIDGE_COTTAGE_SHIFT_X } from './bridge-exits.js';
 const FLATS = [P.cream, P.sandstone, P.stone, P.terracotta, P.ochre, P.offWhite, P.redBrown, P.londonStock];
 const WALL = [P.cream, P.brick, P.redBrown, P.londonStock, P.pinkStucco, P.blueStucco, P.mintStucco, P.lemonStucco, P.offWhite], ROOF = [P.brick, P.ink, P.roof, P.slate];
 const gardenVariation = (x, z, slot = 0) => Math.abs(Math.sin(x * 12.9898 + z * 78.233 + slot * 37.719) * 43758.5453) % 1;
@@ -82,7 +83,9 @@ export function buildCountry(add, curve, tree, [c0, c1], leg = 0, onArchitecture
   let infillId = 0;
   const addInfill = (x, z, depth, archetype) => {
     const width = 5.1 + infillR() * 0.35, height = 2 * 2.8 + 1.3;
-    if (onArchitecturePlot) onArchitecturePlot({ id: `country-infill-${leg}-${infillId++}`, kind: 'terrace', archetype, x, z, width, depth, height });
+    const id = `country-infill-${leg}-${infillId++}`;
+    x += BRIDGE_COTTAGE_SHIFT_X[id] ?? 0; // keep both cottages while reopening London's rear street
+    if (onArchitecturePlot) onArchitecturePlot({ id, kind: 'terrace', archetype, x, z, width, depth, height });
     else villa(add, infillGeometryR, x, z, 1, width, depth, 2);
     add(x, -0.02, z + depth / 2 + 1.2, width, 0.12, 1.2, P.stone);
   };

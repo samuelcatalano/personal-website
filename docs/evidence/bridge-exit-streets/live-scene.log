@@ -1,0 +1,12 @@
+{'overlapSamples': 0, 'collisions': [], 'errors': [], 'gl': 0}
+{'name': 'london', 'offset': -0.08, 'checked': 32, 'shown': 0, 'misses': 0, 'details': [], 'camera': [247.43885709188442, 34.798908018194375, 68.03795736542199]}
+{'name': 'london', 'offset': 0, 'checked': 32, 'shown': 32, 'misses': 0, 'details': [], 'camera': [321.8779857556657, 35.93734013837572, 70.51886331444638]}
+{'name': 'london', 'offset': 0.08, 'checked': 32, 'shown': 32, 'misses': 0, 'details': [], 'camera': [346.71968281218386, 36.34478540660437, 71.10505929232635]}
+{'name': 'glasgow', 'offset': -0.08, 'checked': 32, 'shown': 16, 'misses': 0, 'details': [], 'camera': [542.4498701145169, 38.10089877578592, 73.16660028966176]}
+{'name': 'glasgow', 'offset': 0, 'checked': 32, 'shown': 32, 'misses': 0, 'details': [], 'camera': [559.3771566423145, 38.243586298930225, 73.47123951566678]}
+{'name': 'glasgow', 'offset': 0.08, 'checked': 32, 'shown': 32, 'misses': 0, 'details': [], 'camera': [576.1960345532752, 38.26936844671638, 73.60976292502068]}
+{'name': 'estaiada', 'offset': -0.08, 'checked': 32, 'shown': 32, 'misses': 0, 'details': [], 'camera': [2.7927325764989632, 29.67590400871253, 39.51102334548899]}
+{'name': 'estaiada', 'offset': 0, 'checked': 32, 'shown': 32, 'misses': 0, 'details': [], 'camera': [4.7953266682235345, 29.0023981495952, 38.2655153031678]}
+{'name': 'estaiada', 'offset': 0.08, 'checked': 32, 'shown': 32, 'misses': 0, 'details': [], 'camera': [10.394860906361167, 29, 37.70144657843427]}
+{'errors': [], 'gl': 0}
+TARGET F1A7628C19AA50EE41A5F130BF217C77

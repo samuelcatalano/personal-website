@@ -1,7 +1,7 @@
 import { stops, i18n, links, articles, repos, stackGroups, toolStops, credits, sectionStart, cityOf, QUICK } from './content.js';
-// Stored choice wins; first-time visitors get PT for pt-* browsers and night for dark-mode systems.
+// Stored choice wins; first-time visitors get PT for pt-* browsers and a light theme.
 export function loadPrefs(storage, env = {}) {
-  const fallback = { lang: String(env.lang || '').toLowerCase().startsWith('pt') ? 'pt' : 'en', theme: env.dark ? 'night' : 'day' };
+  const fallback = { lang: String(env.lang || '').toLowerCase().startsWith('pt') ? 'pt' : 'en', theme: 'day' };
   try {
     const lang = storage?.getItem('lang'), theme = storage?.getItem('theme');
     return { lang: lang === 'pt' || lang === 'en' ? lang : fallback.lang, theme: theme === 'night' || theme === 'day' ? theme : fallback.theme };
@@ -101,7 +101,7 @@ function sectionHTML(section, t, active, tool = null, route = { seen: new Set(),
   }
 }
 export function initUI({ onGoto, onTheme, onHold = () => {} }) {
-  const prefs = loadPrefs(store(), { lang: navigator.language, dark: matchMedia('(prefers-color-scheme: dark)').matches });
+  const prefs = loadPrefs(store(), { lang: navigator.language });
   const panel = document.getElementById('panel'), announce = document.getElementById('announce');
   let active = -1, tool = null; // tool: the stack station whose journey stops are highlighted
   const applyTheme = () => {

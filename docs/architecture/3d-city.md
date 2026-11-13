@@ -1,5 +1,9 @@
 # 3D city architecture
 
+## Bridge exit streets — 2026-11-13
+
+Owner selected streets curving behind blocks in London/Glasgow, superseding the trial portals, then extended that concept to Estaiada. Shared centerlines drive merged street geometry and traffic. Two London cottages and four São Paulo source centres were repositioned without changing IDs/counts/envelopes/RNG order. Original bridge profiles, Estaiada's 65 deck stations, main route and bus/boat apertures remain. Existing buckets/materials are reused. [Desktop validation, geometry costs and known inherited test mismatch](../audits/2026-11-13-bridge-exit-streets.md).
+
 ## Surveyed infill and rendering correctness — 2026-11-12
 
 Owner authorized further realism, density expansion and rendering-bug fixes. `urban-infill.js` appends 27 explicit real-coordinate lots after existing city/parks generation, reusing regional families and shared near/far batches. Previous lot/tree/prop data remain fixed. Shop roof plant now fits its source height, facade grain uses a world frame, and Tower Bridge face hints use a direction transform. The inherited citywide envelope guard now passes. [Design, costs and scoped validation](../audits/2026-11-12-city-density-rendering.md).

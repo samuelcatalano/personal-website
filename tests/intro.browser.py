@@ -94,10 +94,21 @@ try:
         time.sleep(.25)
     assert js("document.body.classList.contains('world-settled')")
     assert js("!document.querySelector('[data-intro-skip]').disabled"), 'Skip opens once the city has settled'
-    assert js("document.querySelector('[data-intro-skip]').textContent") == ('Começar a viagem' if mobile else 'Start the journey')
+    assert js("document.querySelector('[data-intro-skip]').textContent") == ('Embarcar' if mobile else 'Board')
     if mobile:
         js("document.querySelector('[data-intro-skip]').click()")
     else:
+        js("""(() => {
+          const intro=document.querySelector('#intro');window.__boardingFrames=[];
+          function frame(){
+            if(intro.classList.contains('opening')){
+              const shift=side=>new DOMMatrix(getComputedStyle(intro.querySelector('.door.'+side)).transform).m41;
+              __boardingFrames.push({opacity:Number(getComputedStyle(intro).opacity),left:shift('l'),right:shift('r')});
+            }
+            if(intro.open)requestAnimationFrame(frame);
+          }
+          requestAnimationFrame(frame);
+        })()""")
         js("document.querySelector('[data-intro-skip]').focus()")
         cdp('Input.dispatchKeyEvent', type='keyDown', key=' ', code='Space', windowsVirtualKeyCode=32)
         cdp('Input.dispatchKeyEvent', type='keyUp', key=' ', code='Space', windowsVirtualKeyCode=32)
@@ -112,18 +123,11 @@ try:
                 if js("document.querySelector('#intro').classList.contains('opening')"): break
                 time.sleep(.03)
             assert js("document.querySelectorAll('#intro .intro-card > .door').length === 2")
-            time.sleep(.24)
-            assert js("""(() => {
-              const intro = document.querySelector('#intro');
-              const shift = side => new DOMMatrix(getComputedStyle(intro.querySelector('.door.' + side)).transform).m41;
-              return getComputedStyle(intro).opacity === '1' && shift('l') < 0 && shift('r') > 0;
-            })()"""), 'The glass panels should slide apart before the overlay fades'
-            time.sleep(.43)
-            assert js("""(() => {
-              const intro = document.querySelector('#intro'), opacity = Number(getComputedStyle(intro).opacity);
-              return intro.open && opacity > 0 && opacity < 1;
-            })()"""), 'The intro should fade while the glass panels finish opening'
-            time.sleep(.75)
+            for _ in range(80):
+                if not js("document.querySelector('#intro').open"): break
+                time.sleep(.04)
+            assert js("__boardingFrames.some(f=>f.opacity===1&&f.left<0&&f.right>0)"), 'The glass panels should slide apart before the overlay fades'
+            assert js("__boardingFrames.some(f=>f.opacity>0&&f.opacity<1)"), 'The intro should fade while the glass panels finish opening'
     assert js("!document.querySelector('#intro').open && !document.body.classList.contains('no-webgl')")
     if not board:
         for _ in range(120):

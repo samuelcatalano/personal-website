@@ -3,6 +3,7 @@ import { house } from './houses.js';
 import { PALETTE as P } from './palette.js';
 import { PARKS } from './parks.js';
 import { walkPaths } from './crowd.js';
+import { ESTAIADA_LOT_SHIFT_X } from './bridge-exits.js';
 const { concrete: C, cream: CR, white: W, stone: S, sandstone: SS, brick: B, glass: G, terracotta: TC, ochre: OC, mint: MN, salmon: SA, skyBlue: SB, offWhite: OW, concreteDark: CD, concreteMid: CM, redBrown: RB, londonStock: LS, teal: TL, bronze: BZ } = P, AWN = [P.red, P.slate, P.sand];
 const FOREGROUND_OFFICE_FLOORS = new Map([['block-623--38', 6], ['block-672--46', 5], ['block-693--52', 6], ['block-595--80', 7]]);
 // [unit w, depth, floors lo..hi, floor h, walls, trim, kind: 0 flats 1 glass 2 shops 3 terrace]. Walls are picked with the existing r() draw.
@@ -105,7 +106,8 @@ export function buildBlocks(add, stops, pts, curve, occ, onBuildingPlot, onArchi
       }
       const cutOut = cut.some((o) => hit(R, o));
       const architecture = onArchitecturePlot && !clear && !cutOut ? onArchitecturePlot : undefined;
-      draw(pilot || clear || cutOut || architecture ? () => {} : add, x + w() / 2, z(), b, r, q, side > 0, civic, architecture, `block-${Math.round(x)}-${Math.round(z())}`);
+      const id=`block-${Math.round(x)}-${Math.round(z())}`;
+      draw(pilot || clear || cutOut || architecture ? () => {} : add, x + w() / 2 + (ESTAIADA_LOT_SHIFT_X[id]??0), z(), b, r, q, side > 0, civic, architecture, id);
       occ.push(R);
       x += w() + 2 + r() * 3;
     } else x += 6;
@@ -129,7 +131,8 @@ export function buildBlocks(add, stops, pts, curve, occ, onBuildingPlot, onArchi
     const w = 8 + rear() * 3, cx = x + w / 2, R = [x - 1, x + w + 1, -113, -103];
     if ([...hard, ...occ].some(o => hit(R, o)) || inRegion(rgs, 'ctry', cx, 30 + w / 2) || Math.abs(cx - mu.x) < (w + mu.w) / 2 + 12) continue;
     const wall = cx < mv ? [CR, OC, SS] : inRegion(rgs, 'scot', cx) ? [P.redSand, SS] : [B, LS, CR];
-    draw(add, cx, -108, [w, 8, 2 + (rear() < 0.35 ? 1 : 0), 3, wall[rear() * wall.length | 0], W, 0, 1], rear, rear, false, false, onArchitecturePlot, `rear-${Math.round(cx)}`);
+    const id=`rear-${Math.round(cx)}`;
+    draw(add, cx + (ESTAIADA_LOT_SHIFT_X[id]??0), -108, [w, 8, 2 + (rear() < 0.35 ? 1 : 0), 3, wall[rear() * wall.length | 0], W, 0, 1], rear, rear, false, false, onArchitecturePlot, id);
     occ.push(R);
   }
   // London back-lots: own rng + own footprint list, so no existing row, rear house or park shifts. Rows step up with distance:

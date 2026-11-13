@@ -173,10 +173,12 @@ test('JSON-LD Person matches the site links', () => {
   assert.ok(!JSON.stringify(ld).match(/\+?\d[\d\s().-]{8,}/), 'no phone number');
 });
 
-test('first-visit preferences follow the browser; stored choices win', async () => {
+test('first visit follows browser language and defaults to light; stored choices win', async () => {
   const { loadPrefs } = await import('../js/ui.js');
   const none = { getItem: () => null };
-  assert.deepEqual(loadPrefs(none, { lang: 'pt-BR', dark: true }), { lang: 'pt', theme: 'night' });
+  assert.deepEqual(loadPrefs(none, { lang: 'pt-BR', dark: true }), { lang: 'pt', theme: 'day' });
   assert.deepEqual(loadPrefs(none, { lang: 'en-GB', dark: false }), { lang: 'en', theme: 'day' });
   assert.deepEqual(loadPrefs({ getItem: (k) => (k === 'lang' ? 'en' : 'day') }, { lang: 'pt-BR', dark: true }), { lang: 'en', theme: 'day' });
+  assert.deepEqual(loadPrefs({ getItem: (k) => k === 'theme' ? 'night' : null }, { dark: false }), { lang: 'en', theme: 'night' });
+  assert.deepEqual(loadPrefs({ getItem() { throw new Error('denied'); } }, { dark: true }), { lang: 'en', theme: 'day' });
 });

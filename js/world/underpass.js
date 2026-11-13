@@ -5,6 +5,7 @@ import { buildLamps } from './lamp-mesh.js';
 import { createLampPools } from './lamps.js';
 import { blockMaterial } from './textures.js';
 import { underpassFrames, UNDERPASS } from './layout.js';
+import { createBridgeStreet, bridgeStreetGeometry } from './bridge-street.js';
 import { riverProfile, RIVER_RUN, RIVER_WIDTH, RIVER_CUT_HW, DECK_T, BRIDGE_H, PARAPET_H, PARAPET_T, CAP_T, CAP_OVERHANG, parapetHeight } from './underwater-profile.js';
 // Countryside embankment carrying a two-lane road over the route with a masonry arch underpass across the road at each Glasgow livery boundary (scotRange). The bus is
 // completely inside the tunnel for a moment, so scene.js swaps London <-> Glasgow there and the camera never sees the model pop.
@@ -195,6 +196,7 @@ export function createUnderpass(curve, stops, river = null) {
     const bankAz = onRiver ? Math.abs(river.z + Math.sign(c.z - river.z) * river.width / 2 - c.z) * Math.abs(tan.x) : 0;
     const sigma = onRiver ? Math.sign(river.z - c.z) * Math.sign(tan.x) : 1;
     const riverLeg = onRiver ? { bankAz, sigma, inAz: bankAz + RIVER_RUN + 2 } : null;
+    const street = onRiver ? createBridgeStreet({x:c.x,z:c.z,tx:tan.x,tz:tan.z},riverLeg,i) : null;
     const pr = parts(riverLeg);
     if (onRiver) {
       const shoulder = soup();
@@ -204,6 +206,7 @@ export function createUnderpass(curve, stops, river = null) {
       shoulder.quad(V(-HX,H+0.07,sigma*W),V(HX,H+0.07,sigma*W),V(RIVER_CUT_HW,H+0.07,sigma*(W+4)),V(-RIVER_CUT_HW,H+0.07,sigma*(W+4)),V(0,1,0));
       pr.stone.push(shoulder.geo());
       const br = riverBridge(sigma, bankAz); for (const k in br) (pr[k] ??= []).push(br[k]);
+      for (const [k,geo] of Object.entries(bridgeStreetGeometry(street))) (pr[k] ??= []).push(geo);
       const farBank = bankAz + RIVER_WIDTH, end = bankAz + RIVER_RUN;
       for (const side of [-1, 1]) {
         const x = side * RIVER_CUT_HW;
@@ -256,7 +259,7 @@ export function createUnderpass(curve, stops, river = null) {
       }
     }
     root.add(g);
-    return { t: tc, boundary: t, x: c.x, z: c.z, tx: tan.x, tz: tan.z, half: HX, river: riverLeg };
+    return { t: tc, boundary: t, x: c.x, z: c.z, tx: tan.x, tz: tan.z, half: HX, river: riverLeg, street };
   });
   const lamps = lampSpots.length ? buildLamps(lampSpots) : null;
   if (lamps) root.add(lamps);

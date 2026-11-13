@@ -121,10 +121,14 @@ body.world-loading:not(.world-ready, .no-webgl, .intro-on) #loading { display: f
 #intro[open] { display: flex; }
 #intro::backdrop { background: transparent; }
 .intro-card {
-  position: relative; width: min(540px, 100%); flex: none; display: grid; gap: 14px; margin: auto; padding: 22px 24px;
-  background: var(--ticket); border: 1px solid var(--ticket-line); border-top: 5px solid var(--ticket-red);
-  border-radius: 8px; box-shadow: 0 16px 52px #20160f32;
+  position: relative; width: min(560px, 100%); flex: none; display: grid; gap: 14px; margin: auto; padding: 22px 24px;
+  background: repeating-linear-gradient(0deg, transparent 0 3px, #917a5705 3px 4px), var(--ticket);
+  border: 1px solid var(--ticket-line); border-top: 4px solid var(--ticket-red);
+  border-radius: 3px; box-shadow: 0 12px 36px #20160f26;
 }
+.intro-ticket, .intro-stub { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; color: var(--ticket-muted); font: 600 10px/1.4 var(--sans); letter-spacing: .08em; text-transform: uppercase; }
+.intro-ticket-stamp { border: 1px solid var(--ticket-red); padding: 4px 7px; color: var(--ticket-red); font: 500 10px/1.2 ui-monospace, monospace; letter-spacing: .08em; }
+.intro-stub { padding-top: 12px; border-top: 1px dashed var(--ticket-line); font-family: ui-monospace, monospace; font-weight: 400; }
 .blind {
   display: flex; align-items: center; gap: 14px; padding: 7px 12px 7px 7px; min-width: 0;
   background: #211a15; color: #ffbd55; border-radius: 4px;
@@ -149,15 +153,14 @@ body.world-loading:not(.world-ready, .no-webgl, .intro-on) #loading { display: f
   background: repeating-linear-gradient(90deg, transparent 0 15px, #917a5710 15px 16px);
 }
 .intro-windshield {
-  position: relative; height: clamp(138px, 24vw, 174px); overflow: hidden; border-radius: 14px 14px 5px 5px;
-  border: 4px solid #322923; background: #322923;
-  box-shadow: 0 2px 0 #a82028, 0 5px 0 #322923;
+  position: relative; height: clamp(182px, 24vw, 220px); overflow: hidden; border-radius: 4px;
+  border: 1px solid var(--ticket-line); background: #322923;
 }
 /* the landscape slides with the toy bus, follows the visitor's clock, and gives way to the real city once the world has loaded */
 .intro-windshield svg { display: block; width: 100%; height: 100%; transform: translateX(calc((var(--p, 0) - .5) * -18px)) scale(1.08); transition: transform .35s linear, filter .6s; }
 #intro[data-tod="dusk"] .intro-windshield svg { filter: sepia(.4) saturate(1.35) brightness(.96) hue-rotate(-8deg); }
 #intro[data-tod="night"] .intro-windshield svg { filter: brightness(.5) saturate(.85) hue-rotate(-14deg); }
-.live-view { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 62%; opacity: 0; transition: opacity 1s ease; }
+.live-view { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 57%; opacity: 0; transition: opacity .45s ease; }
 .intro-windshield.live .live-view { opacity: 1; }
 .intro-map { cursor: grab; } .intro-map.dragging { cursor: grabbing; }
 .greet { margin: 9px 0 0; font: 700 11px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--ticket-green); }
@@ -206,12 +209,14 @@ body.world-loading:not(.world-ready, .no-webgl, .intro-on) #loading { display: f
 .intro-guide { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 10px; }
 #intro-hint { margin: 0; font-size: 14px; font-weight: 600; color: var(--ticket-ink); }
 .intro-mouse { flex: none; overflow: visible; }
-.intro-mouse .body { fill: var(--ticket); stroke: var(--ticket-ink); stroke-width: 2.5; }
-.intro-mouse .divider { fill: none; stroke: var(--ticket-ink); stroke-width: 2; stroke-linecap: round; }
-.intro-mouse .sonar { fill: none; stroke: var(--ticket-red); stroke-width: 1.5; opacity: 0; transform-box: fill-box; transform-origin: center; animation: intro-sonar 2s ease-out infinite; }
+.intro-mouse .body { fill: var(--ticket); stroke: var(--ticket-ink); stroke-width: 1.7; }
+.intro-mouse .divider { fill: none; stroke: var(--ticket-ink); stroke-width: 1.4; stroke-linecap: round; }
+.intro-mouse .sonar { display: none; }
 .intro-mouse .wheel { fill: var(--ticket-red); animation: intro-wheel 2s ease-in-out infinite; }
 #intro[data-dir="up"] .intro-mouse .wheel { animation-name: intro-wheel-up; }
-.intro-mouse .arrow { fill: none; stroke: var(--ticket-muted); stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; opacity: .7; }
+.intro-mouse .arrow { fill: none; stroke: var(--ticket-muted); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+.intro-mouse .down, #intro[data-dir="up"] .intro-mouse .up { opacity: .7; }
+#intro[data-dir="up"] .intro-mouse .down { opacity: 0; }
 #intro[data-dir="up"] .intro-mouse .up, #intro[data-dir="down"] .intro-mouse .down { stroke: var(--ticket-red); }
 .intro-mouse .touch { display: none; fill: #a8202830; stroke: var(--ticket-red); stroke-width: 3; }
 @keyframes intro-wheel { 0%, 20%, 100% { transform: translateY(0); } 50%, 65% { transform: translateY(5px); } }
@@ -223,13 +228,14 @@ body.world-loading:not(.world-ready, .no-webgl, .intro-on) #loading { display: f
   .intro-mouse .touch { display: block; animation: intro-swipe 1.6s ease-in-out infinite; }
 }
 #intro .status {
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  padding: 7px 10px; border-radius: 3px; background: #211a15; color: #ffcf83;
-  font: 600 12px/1.35 var(--sans);
+  display: grid; gap: 10px; text-align: center;
+  color: var(--ticket-muted); font: 500 12px/1.4 var(--sans); min-height: 20px;
 }
-.leds { display: inline-grid; grid-template-columns: repeat(24, 4px); gap: 2px; flex: none; }
-.leds i { width: 4px; height: 4px; border-radius: 50%; background: #65461f; }
-.leds i.on { background: #ffbd55; }
+.leds { display: flex; justify-content: space-between; width: 100%; }
+.leds i { width: 4px; height: 4px; border-radius: 50%; background: var(--ticket-line); }
+.leds i.on { background: var(--ticket-red); }
+#intro[data-ready="true"] .status { color: var(--ticket-green); }
+#intro[data-ready="true"] .leds i.on { background: var(--ticket-green); }
 #intro .actions { display: flex; justify-content: center; }
 #intro .actions button {
   min-height: 44px; padding: 0 16px; border: 1px solid transparent; border-radius: 4px;
@@ -460,7 +466,7 @@ body.theme-night .detail { background: #2a2622; color: var(--ink); } body.theme-
 @media (prefers-reduced-motion: reduce) { .detail { transform: none; transition: none; } }
 /* No selection box where focus is only placed by the page: the heading after the intro closes and the Skip button it opens on. Keyboard users still see the Skip fill red on focus. */
 #panel :is(h1, h2)[tabindex="-1"]:focus, #panel :is(h1, h2)[tabindex="-1"]:focus-visible { outline: none; }
-#intro [data-intro-skip]:focus, #intro [data-intro-skip]:focus-visible { outline: none; }
+#intro [data-intro-skip]:focus:not(:focus-visible) { outline: none; }
 /* Stop change: the ticket slides in from the heading side; a visited stop keeps a punched hole, the first visit stamps it */
 @keyframes ticket-in { from { opacity: 0; transform: translateX(var(--sx, 22px)) rotate(calc(var(--dir, 1) * 1.6deg)); } }
 @keyframes pane-in { from { opacity: 0; transform: translateX(calc(var(--sx, 22px) * .6)); } }
@@ -480,17 +486,15 @@ body.theme-night .detail .stamp { color: color-mix(in srgb, var(--city) 50%, #ff
   .controls button { min-width: 44px; }
   .panel .linkish { display: inline-flex; align-items: center; min-height: 44px; }
 }
-/* Intro v3: the button carries the progress then becomes the call to start; key caps; a windshield that drives; years on the line; compact and night variants */
+/* Boarding action opens only after the real city settles; progress is shown on its own line. */
 [data-intro-skip] { min-width: 232px; background: var(--ticket-red); color: #fff8ec; border-color: transparent !important; font-variant-numeric: tabular-nums; transition: background .4s ease, color .4s ease, border-color .4s ease; }
 [data-intro-skip]:disabled { background: transparent; color: var(--ticket-muted); border-color: var(--ticket-line) !important; cursor: progress; }
-[data-intro-skip]:not(:disabled) { animation: intro-ready .45s ease-out, cta-pulse 2.2s .45s ease-out infinite; }
+[data-intro-skip]:not(:disabled) { animation: intro-ready .45s ease-out, cta-pulse 2.2s .45s ease-out 2; }
 [data-intro-skip]:not(:disabled):hover, [data-intro-skip]:not(:disabled):focus-visible { background: #841920; color: #fff8ec; }
 #intro.bell [data-intro-skip]:disabled { background: var(--ticket-red); color: #fff8ec; border-color: transparent !important; animation: none; }
 @keyframes cta-pulse { 0% { box-shadow: 0 0 0 0 rgba(168, 32, 40, .45); } 70%, 100% { box-shadow: 0 0 0 12px rgba(168, 32, 40, 0); } }
 @keyframes intro-ready { from { transform: translateY(2px); } to { transform: translateY(0); } }
 #intro-hint kbd { display: inline-grid; place-items: center; min-width: 24px; height: 24px; margin: 0 2px; padding: 0 6px; border: 1px solid var(--ticket-line); border-bottom-width: 3px; border-radius: 5px; background: #fffaf0; font: 700 13px/1 var(--sans); color: var(--ticket-ink); vertical-align: middle; }
-.live-view { animation: drift 28s ease-in-out infinite alternate; }
-@keyframes drift { from { transform: scale(1.02) translateX(-1%); } to { transform: scale(1.08) translateX(1%); } }
 #intro[data-preview="sp"] .live-view[data-city="sp"], #intro[data-preview="london"] .live-view[data-city="london"], #intro[data-preview="glasgow"] .live-view[data-city="glasgow"] { opacity: 1; }
 .road { margin-bottom: 28px; }
 .road .node b { position: absolute; top: 13px; left: 50%; transform: translateX(-50%); font: 600 9.5px/1 var(--sans); color: var(--ticket-muted); pointer-events: none; }
@@ -499,7 +503,7 @@ body.theme-night .detail .stamp { color: color-mix(in srgb, var(--city) 50%, #ff
 @keyframes intro-year-arrive { from { transform: translateX(-50%) translateY(3px); opacity: .55; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
 @media (max-height: 820px) {
   .intro-card { gap: 10px; padding: 16px 20px; }
-  .intro-windshield { height: clamp(104px, 20vh, 140px); }
+  .intro-windshield { height: clamp(160px, 23vh, 184px); }
   .intro-mouse { width: 32px; height: 50px; }
   .intro-guide { margin-top: 2px; }
   .intro-text h2 { font-size: clamp(21px, 4vw, 27px); }
@@ -507,9 +511,11 @@ body.theme-night .detail .stamp { color: color-mix(in srgb, var(--city) 50%, #ff
 @media (max-width: 480px) { .road .node b { font-size: 8px; } .road .node:nth-child(even) b { display: none; } }
 body.theme-night #intro { --ticket: #211c17; --ticket-ink: #f1e6d3; --ticket-muted: #b9aa94; --ticket-line: #3d352c; --ticket-red: #d8383f; --ticket-green: #58b788; }
 body.theme-night .intro-card { box-shadow: 0 16px 52px rgba(0, 0, 0, .5); }
+body.theme-night .intro-ticket-stamp { color: color-mix(in srgb, var(--ticket-red) 75%, var(--ticket-ink)); }
+body.theme-night [data-intro-skip]:not(:disabled) { color: #fff; }
 body.theme-night #intro-hint kbd { background: #2c2620; }
 body.theme-night .intro-map { background: repeating-linear-gradient(90deg, transparent 0 15px, #ffffff08 15px 16px); }
-body.theme-night .intro-windshield { border-color: #0f0c09; background: #0f0c09; box-shadow: 0 2px 0 var(--ticket-red), 0 5px 0 #0f0c09; }
+body.theme-night .intro-windshield { border-color: var(--ticket-line); background: #0f0c09; }
 @media (prefers-reduced-motion: reduce) { .live-view, [data-intro-skip]:not(:disabled) { animation: none; } }
 body.theme-night .blind { background: #0c0a08; box-shadow: inset 0 0 0 1px #3d352c; }
 /* Hide the interface: panel, bar and banner fade out, one small button stays to bring them back */
@@ -565,9 +571,4 @@ body.ui-hidden #arrival { opacity: 0; }
 .next-stop:hover svg { transform: translateX(2px); color: var(--accent); }
 .nav-count { margin-left: 6px; padding: 1px 6px; border-radius: 999px; background: var(--accent); color: #fff; font: 700 10px/1.6 var(--sans); font-variant-numeric: tabular-nums; }
 .stops li.seen .node { background: var(--seg); }
-/* Skip as a progress button: red text on the light card, a red fill with white text sweeping in from the left as the city loads, solid red once it opens */
-[data-intro-skip] { position: relative; overflow: hidden; }
-[data-intro-skip]:disabled { background: transparent; color: var(--ticket-red); border-color: var(--ticket-red) !important; }
-[data-intro-skip]:disabled::before { content: attr(data-label); position: absolute; inset: 0; display: grid; place-items: center; background: var(--ticket-red); color: #fff8ec; clip-path: inset(0 calc(100% - var(--fill, 0%)) 0 0); transition: clip-path .45s ease; }
-[data-intro-skip]:not(:disabled)::before, #intro.bell [data-intro-skip]:disabled::before { display: none; }
 #ui-restore { opacity: .8; transition: opacity .2s, background .2s; } #ui-restore:hover, #ui-restore:focus-visible, body.ui-hidden #ui-restore { opacity: 1; }

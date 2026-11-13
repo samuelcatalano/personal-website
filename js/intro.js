@@ -2,7 +2,7 @@ import { ding, hiss, releaseSounds } from './sound.js';
 import { stops, i18n } from './content.js';
 import { loadState, onLoadChange } from './world/load-progress.js';
 // Intro shown on every load. A toy bus follows the scroll wheel (or swipe, or arrow keys) along a miniature of the career line while the 3D world loads;
-// the LED blind names the stop it is passing. While nobody has touched it the blind reports the real loading stage and the time in London.
+// The blind names the destination; real loading progress has its own visible line on the ticket.
 const clamp01 = (v) => Math.min(1, Math.max(0, v));
 // Scroll, touch and keys share the same 0..1 route position.
 export const practice = (p, dy) => clamp01(p + dy / 500);
@@ -11,10 +11,10 @@ export const journeyIndex = (p, n = JOURNEY.length) => Math.round(clamp01(p) * (
 // "2019 LONDON", "2003 PUC": the year plus the employer's initials, or the city where there are none (the move) or where the initials repeat (Glasgow).
 export const careerLabel = (st, t) => `${st.year} ${st.id === 'glasgow' || !st.brand ? t.stops[st.id].place : st.brand.initials}`.toUpperCase();
 const KEY_DY = { ArrowRight: 35, ArrowLeft: -35, PageDown: 240, PageUp: -240, ' ': 240 }; // right drives forward, left goes back
-const LEDS = 24;
+const LEDS = 48;
 export function createIntro(root, { onDrive = () => {} } = {}) {
   let soundsPlayed = false; // the bell and the door hiss belong to the first Skip only, never again
-  let p = 0, auto = 0, autoTarget = 0, raf = 0, previewUrls = [], greetText = '', loaded = false, active = false, interacted = false, ready = false, tick, bellTimer, unsubscribe;
+  let p = 0, auto = 0, autoTarget = 0, raf = 0, previewUrls = [], loaded = false, active = false, interacted = false, ready = false, bellTimer, unsubscribe;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const map = root.querySelector('.intro-map'), cur = root.querySelector('.dest .cur');
   const nodesEl = root.querySelector('.nodes'), ledsEl = root.querySelector('.leds');
@@ -29,16 +29,11 @@ export function createIntro(root, { onDrive = () => {} } = {}) {
   nodesEl.innerHTML = JOURNEY.map((st, i) => `<i class="node ${st.country.toLowerCase()}${i === border ? ' hub' : ''}" style="--f:${fraction(i)}"><b>${st.year}</b></i>`).join('');
   ledsEl.innerHTML = '<i></i>'.repeat(LEDS);
   const nodes = [...nodesEl.children], leds = [...ledsEl.children];
-  const londonClock = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit' });
   const paintBlind = () => {
-    const tt = t(), { stage } = loadState();
-    let label = ready ? tt.ui.intro.ready : `${tt.stops.move.place} ${londonClock.format(new Date())}`;
+    const tt = t(), city = { sp: 'sp', london: 'ldn', glasgow: 'gla' }[root.dataset.preview || 'sp'];
+    let label = tt.ui.cities[city];
     if (bellTimer) label = tt.ui.led.stop;
     else if (interacted) label = careerLabel(JOURNEY[journeyIndex(p)], tt);
-    else if (!interacted) { // the blind cycles: loading stage, London time or the greeting for the visitor's own clock
-      const slot = Math.floor(Date.now() / 2800) % 3;
-      if (slot === 2 && greetText) label = greetText; else if (!ready && stage && slot === 0) label = tt.ui.intro.stages[stage];
-    }
     const text = label.toUpperCase();
     if (cur.textContent !== text) {
       cur.textContent = text;
@@ -48,14 +43,12 @@ export function createIntro(root, { onDrive = () => {} } = {}) {
     }
   };
   const paintProgress = () => {
-    const { ratio, stage } = loadState(), value = ready ? 100 : Math.min(99, Math.round(ratio * 100)), ui = t().ui; // 100 is only shown once the whole city has settled
+    const { ratio } = loadState(), value = ready ? 100 : Math.min(99, Math.round(ratio * 100)), ui = t().ui; // 100 is only shown once the whole city has settled
+    root.dataset.ready = String(ready);
     leds.forEach((l, i) => l.classList.toggle('on', i < Math.round(value * LEDS / 100)));
     statusEl.setAttribute('aria-valuenow', String(value));
-    statusText.textContent = ready ? ui.intro.loaded : loaded ? ui.intro.finishing : `${stage ? ui.intro.stages[stage] : ui.loading} ${value}%`;
-    if (!bellTimer) { // the button fills with red as the city loads, then turns into the call to start
-      const text = ready ? ui.intro.start : ui.intro.finishing;
-      skip.textContent = text; skip.dataset.label = text; skip.style.setProperty('--fill', `${value}%`);
-    }
+    statusText.textContent = ready ? ui.intro.loaded : `${loaded ? ui.intro.finishing : ui.intro.loadingBtn} · ${value}%`;
+    if (!bellTimer) skip.textContent = ui.intro.start;
     autoTarget = ready ? 0 : ratio; // the toy bus rides the line as the world loads, then drives back to the first stop, ready to go forward
     if (!interacted && !raf) raf = requestAnimationFrame(glide);
   };
@@ -86,7 +79,6 @@ export function createIntro(root, { onDrive = () => {} } = {}) {
   const dismiss = ({ reveal = false } = {}) => {
     if (!active) return;
     active = false;
-    clearInterval(tick);
     clearTimeout(bellTimer);
     for (const u of previewUrls) setTimeout(() => URL.revokeObjectURL(u), 1500);
     unsubscribe();
@@ -156,15 +148,12 @@ export function createIntro(root, { onDrive = () => {} } = {}) {
       document.body.classList.add('intro-on');
       root.showModal();
       skip.disabled = true; // Skip opens only when the whole city has loaded
-      const hour = new Date().getHours(), tt = t(), tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const hour = new Date().getHours(), tt = t();
       root.dataset.tod = hour >= 6 && hour < 17 ? 'day' : hour >= 17 && hour < 20 ? 'dusk' : 'night'; // the windshield follows the visitor's own clock
-      const part = hour >= 5 && hour < 12 ? 'morning' : hour >= 12 && hour < 18 ? 'afternoon' : 'evening', city = { 'America/Sao_Paulo': 'sp', 'Europe/London': 'ldn' }[tz];
-      greetText = `${tt.ui.intro.greet[part]}${city ? `, ${tt.ui.cities[city]}` : ''}`;
       const touch = matchMedia('(pointer: coarse)').matches; // static copy from content.js: {x} marks a key cap
       root.querySelector('#intro-hint').innerHTML = touch ? tt.ui.intro.t_hint : tt.ui.intro.hint.replace(/\{(.+?)\}/g, '<kbd>$1</kbd>');
       document.addEventListener('keydown', onKey);
       unsubscribe = onLoadChange(() => { if (active) { paintProgress(); paintBlind(); } });
-      tick = setInterval(paintBlind, 700);
       paintProgress();
       render();
     },

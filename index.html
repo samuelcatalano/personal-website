@@ -61,6 +61,8 @@
   <link rel="modulepreload" href="js/world/blocks.js">
   <link rel="modulepreload" href="js/world/building-kit.js">
   <link rel="modulepreload" href="js/world/building-atlas.js">
+  <link rel="modulepreload" href="js/world/bridge-exits.js">
+  <link rel="modulepreload" href="js/world/bridge-street.js">
   <link rel="modulepreload" href="js/world/building-finish.js">
   <link rel="modulepreload" href="js/world/building-room.js">
   <link rel="modulepreload" href="js/world/building-slice-materials.js">
@@ -163,6 +165,10 @@
   <a class="skip" href="#panel">Skip to content</a>
   <dialog id="intro" aria-labelledby="intro-title" aria-describedby="intro-sub">
     <section class="intro-card" aria-labelledby="intro-title">
+      <div class="intro-ticket">
+        <span data-i18n="intro.owner"></span>
+        <span class="intro-ticket-stamp" data-i18n="intro.ticket"></span>
+      </div>
       <div class="blind" aria-hidden="true">
         <b class="route">83</b>
         <div class="dest"><span class="cur"></span></div>
@@ -253,9 +259,13 @@
           <p id="intro-hint"></p>
         </div>
       </div>
-      <div class="status sr-only" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-labelledby="intro-status-text"><span class="leds" aria-hidden="true"></span><span id="intro-status-text"></span></div>
+      <div class="status" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-labelledby="intro-status-text"><span class="leds" aria-hidden="true"></span><span id="intro-status-text" aria-live="polite"></span></div>
       <div class="actions">
         <button type="button" data-intro-skip autofocus></button>
+      </div>
+      <div class="intro-stub">
+        <span data-i18n="intro.passenger"></span>
+        <span data-i18n="intro.ticketNumber"></span>
       </div>
       <i class="door l" aria-hidden="true"></i><i class="door r" aria-hidden="true"></i>
     </section>

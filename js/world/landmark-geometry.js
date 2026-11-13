@@ -4,6 +4,7 @@ import { SURFACE as S, townhouseMaterials, addFloodlight } from './building-slic
 import { PALETTE as P } from './palette.js';
 import { blockMaterial } from './textures.js';
 import { RIVERSIDE_KNOTS, riversideRoofAt } from './riverside.js';
+import { createBridgeStreet, bridgeStreetGeometry } from './bridge-street.js';
 
 const v=(x,y,z)=>new THREE.Vector3(x,y,z),lathe=(pts,seg=16,a=0,l=Math.PI*2)=>new THREE.LatheGeometry(pts.map(([r,y])=>new THREE.Vector2(r,y)),seg,a,l);
 // Night lighting: two shared emissive strip materials (warm/cool) + one shared additive wash. Intensity per strip = vertex-colour brightness.
@@ -410,7 +411,12 @@ export function estaiadaRoute(ex,curve,z=-45){
     const y=Math.max(.075+(ESTAIADA_DECK.y-.075)*(s<c1?ss(s/c1):s<=c2?1:ss((len-s)/(len-c2))),.075+.125*Math.min(1,(len-s)/.3)); // lifts over the kerb
     stations.push({x:p.x,y,z:p.z,tx:tg.x/Math.hypot(tg.x,tg.z),tz:tg.z/Math.hypot(tg.x,tg.z)});
   }
-  return {stations,uj,len};
+  const street=createBridgeStreet({x:ex,z,tx:1,tz:0},{sigma:-1,inAz:35},'estaiada',{startHalf:3.6,lift:.075});
+  const farStreet=Array.from({length:65},(_,i)=>{
+    const u=i/64,p=street.curve.getPointAt(u),t=street.curve.getTangentAt(u),h=Math.hypot(t.x,t.z),lane=1.4+.35*Math.max(0,1-u*street.length/6);
+    return{x:p.x+ex,y:p.y,z:p.z+z,tx:-t.x/h,tz:-t.z/h,lane};
+  }).reverse();
+  return {stations,uj,len,street,trafficStations:farStreet.slice(0,-1).concat(stations)};
 }
 let deckMats;
 // Main-road asphalt and paint (São Paulo style: white edges, double yellow centre, no zebra); outside the landmark's three architecture buckets.
@@ -424,8 +430,10 @@ export function estaiadaDeck(x,z,route){
     if(col)g.setAttribute('color',new THREE.Float32BufferAttribute(Array.from({length:pos.length/3},()=>col.toArray()).flat(),3));
     g.computeVertexNormals();return g;
   };
-  const road=new THREE.Mesh(ribbon(-ESTAIADA_DECK.half,ESTAIADA_DECK.half,.12),deckMats.road);road.receiveShadow=true;road.name='estaiada-deck';
-  const paint=new THREE.Mesh(mergeGeometries([[-3.35,.12,white],[3.35,.12,white],[-.11,.1,yellow],[.11,.1,yellow]].map(([o,w,col])=>ribbon(o-w/2,o+w/2,.15,col))),deckMats.paint);
+  const extra=bridgeStreetGeometry(route.street);
+  const prepare=(geo,color)=>{geo.setAttribute('uv',new THREE.Float32BufferAttribute(new Float32Array(geo.attributes.position.count*2),2));if(color)geo.setAttribute('color',new THREE.Float32BufferAttribute(Array.from({length:geo.attributes.position.count},()=>color.toArray()).flat(),3));return geo};
+  const road=new THREE.Mesh(mergeGeometries([ribbon(-ESTAIADA_DECK.half,ESTAIADA_DECK.half,.12),prepare(extra.road)]),deckMats.road);road.receiveShadow=true;road.name='estaiada-deck';
+  const paint=new THREE.Mesh(mergeGeometries([...[[-3.35,.12,white],[3.35,.12,white],[-.11,.1,yellow],[.11,.1,yellow]].map(([o,w,col])=>ribbon(o-w/2,o+w/2,.15,col)),prepare(extra.line,yellow),prepare(extra.pave,new THREE.Color(P.paverWarm)),prepare(extra.light,white)]),deckMats.paint);
   paint.receiveShadow=true;paint.name='estaiada-deck-paint';
   const group=new THREE.Group();group.position.set(x,0,z);group.add(road,paint);return group;
 }

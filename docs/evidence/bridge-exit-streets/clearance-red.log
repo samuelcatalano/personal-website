@@ -1,0 +1,26 @@
+Traceback (most recent call last):
+  File "/Users/samuel.catalano/.local/bin/browser-harness", line 10, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/Users/samuel.catalano/.local/share/uv/tools/browser-harness/lib/python3.12/site-packages/browser_harness/run.py", line 255, in main
+    _run(args)
+  File "/Users/samuel.catalano/.local/share/uv/tools/browser-harness/lib/python3.12/site-packages/browser_harness/run.py", line 406, in _run
+    exec(code, globals())
+  File "<string>", line 5, in <module>
+  File "/Users/samuel.catalano/.local/share/uv/tools/browser-harness/lib/python3.12/site-packages/browser_harness/run.py", line 168, in wrapper
+    result = fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^
+  File "/Users/samuel.catalano/.local/share/uv/tools/browser-harness/lib/python3.12/site-packages/browser_harness/helpers.py", line 571, in js
+    result = _js_evaluate(expression, sid)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/samuel.catalano/.local/share/uv/tools/browser-harness/lib/python3.12/site-packages/browser_harness/helpers.py", line 587, in _js_evaluate
+    return _runtime_evaluate(expression, session_id=sid, await_promise=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/samuel.catalano/.local/share/uv/tools/browser-harness/lib/python3.12/site-packages/browser_harness/helpers.py", line 140, in _runtime_evaluate
+    return _runtime_value(r, expression)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/samuel.catalano/.local/share/uv/tools/browser-harness/lib/python3.12/site-packages/browser_harness/helpers.py", line 127, in _runtime_value
+    raise RuntimeError(f"JavaScript evaluation failed{loc}: {desc}; expression: {_js_snippet(expression)}")
+RuntimeError: JavaScript evaluation failed at line 5, column 39: Error: Street paving clips rear lot country-flat-0-5-0 at 0.17333333333333334
+    at check (<anonymous>:5:39)
+    at <anonymous>:23:6; expression: (async()=>{\n  const T=await import('three'),{stops}=await import('/js/content.js'),L=await import('/js/world/layout.js');\n  const {createUnderpass}=await i...

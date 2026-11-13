@@ -94,8 +94,8 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false,
   const laneAt = (u, o = new THREE.Vector3()) => { const p = curve.getPointAt(Math.min(1, Math.max(0, u))), t = curve.getTangentAt(Math.min(1, Math.max(0, u))); return o.set(p.x - 1.75 * t.z, p.y + 0.07, p.z + 1.75 * t.x); }; // oncoming lane
   const side = (q, o) => new THREE.Vector3(q.x - q.tz * o, q.y + 0.12, q.z + q.tx * o); // o m right of travel far -> near, on the asphalt
   const paths = {
-    in: new THREE.CatmullRomCurve3([3, 2, 1].map((k) => laneAt(er.uj + k * 3 / len)).concat(er.stations.slice().reverse().map((q) => side(q, -1.75)))),
-    out: new THREE.CatmullRomCurve3(er.stations.map((q) => side(q, 1.75)).concat([1, 2, 3].map((k) => laneAt(er.uj - k * 3 / len)))),
+    in: new THREE.CatmullRomCurve3([3, 2, 1].map((k) => laneAt(er.uj + k * 3 / len)).concat(er.trafficStations.slice().reverse().map((q) => side(q, -(q.lane??1.75))))),
+    out: new THREE.CatmullRomCurve3(er.trafficStations.map((q) => side(q, q.lane??1.75)).concat([1, 2, 3].map((k) => laneAt(er.uj - k * 3 / len)))),
   };
   for (const c of Object.values(paths)) c.plen = c.getLength();
   const atJ = (c, q) => { let best = 0; for (let k = 1; k <= 400; k++) if (c.getPointAt(k / 400).distanceTo(q) < c.getPointAt(best / 400).distanceTo(q)) best = k; return best / 400 * c.plen; };

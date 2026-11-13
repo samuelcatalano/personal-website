@@ -29,15 +29,33 @@ const bounds = p => [p.x - p.width / 2, p.x + p.width / 2, p.z - p.depth / 2, p.
 const hit = (a, b, e = 0) => a[0] < b[1] + e && b[0] - e < a[1] && a[2] < b[3] + e && b[2] - e < a[3];
 const hash = a => createHash('sha256').update(JSON.stringify(a)).digest('hex');
 
-test('surveyed infill appends deterministically without moving any previous lot, tree or prop', () => {
+test('surveyed infill preserves baseline lots/props except the six approved bridge-street relocations', () => {
   const { plots, trees, boxes } = collect(), added = plots.filter(isNew);
   assert.equal(added.length, 27);
   assert.equal(URBAN_INFILL.length, added.length);
   assert.equal(new Set(plots.map(p => p.id)).size, plots.length);
   assert.deepEqual(added, collect().plots.filter(isNew));
-  assert.equal(hash(plots.filter(p => !isNew(p))), 'ffdac02377a2b7e56b957083b2cc415c22dd57a57cd9a8caf21ff0a4acb5b90a');
+  const approvedMoves={
+    'country-infill-0-0':[291.8672036547214,264.8],
+    'country-infill-0-1':[291.8672036547214,264.8],
+    'block--43--93':[-35.75067056529224,-37.65067056529224],
+    'block--24--93':[-17.297834250843152,-23.097834250843153],
+    'rear--20':[-19.569937156280503,-21.169937156280504],
+    'rear--5':[-4.877749034785666,-2.9777490347856657],
+  };
+  // This linear-curve fixture has different front-row IDs; the real-curve browser test covers those two moves.
+  const moved=plots.filter(p=>approvedMoves[p.id]);assert.equal(moved.length,4);
+  assert.ok(!plots.some(p=>p.id==='block--43--93'||p.id==='block--24--93'));
+  for(const p of moved){
+    assert.ok(Math.abs(p.x-approvedMoves[p.id][1])<1e-9);
+    for(const other of plots)if(other!==p)assert.ok(!hit(bounds(p),bounds(other),.2),`${p.id} overlaps ${other.id}`);
+  }
+  const priorLots=plots.filter(p=>!isNew(p)).map(p=>approvedMoves[p.id]?{...p,x:approvedMoves[p.id][0]}:p);
+  assert.equal(hash(priorLots), 'ffdac02377a2b7e56b957083b2cc415c22dd57a57cd9a8caf21ff0a4acb5b90a');
   assert.equal(hash(trees), '607691e858326e6e3363f96abdbeb994a16025d5ba58997991df847caf3dc6f4');
-  assert.equal(hash(boxes), '074515fb998072f0c6fdd3ba190776307c672bc779982c879791a56eb0768ec9');
+  let patios=0;const priorBoxes=boxes.map(b=>{if(Math.abs(b[0]-264.8)<1e-9&&b[1]===-.02&&(Math.abs(b[2]+100.7)<1e-6||Math.abs(b[2]+109.3)<1e-6)){patios++;return[291.8672036547214,...b.slice(1)]}return b});
+  assert.equal(patios,2);
+  assert.equal(hash(priorBoxes), '074515fb998072f0c6fdd3ba190776307c672bc779982c879791a56eb0768ec9');
   const fallback = [];
   const backdrop = [];
   buildUrbanInfill((...b) => fallback.push(b));

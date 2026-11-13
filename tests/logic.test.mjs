@@ -285,7 +285,9 @@ test('countryside rear infill is stable, bounded, clear of existing plots, and s
   const gardenFlat = plots.find((p) => p.id === 'country-flat-0-5-0');
   assert.equal(gardenFlat?.archetype, 'country-garden-flat');
   for (const p of infill) {
-    assert.ok(ranges.some(([c0, c1]) => p.x >= c0 + 12 && p.x <= c1 - 12));
+    const moved=p.id==='country-infill-0-0'||p.id==='country-infill-0-1';
+    if(moved)assert.ok(Math.abs(p.x-264.8)<1e-9,'approved rear-street cottage relocation');
+    else assert.ok(ranges.some(([c0, c1]) => p.x >= c0 + 12 && p.x <= c1 - 12));
     assert.ok(['country-garden-pair', 'country-slate-cottage'].includes(p.archetype));
     assert.ok(p.z + p.depth / 2 <= -99.98, `infill ${p.id} clears the side-street path`);
     assert.ok(p.z + p.depth / 2 + 1.8 <= -99.98, `infill path ${p.id} clears the side-street terminus`);
