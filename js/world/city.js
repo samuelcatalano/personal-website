@@ -60,8 +60,9 @@ const broadleaf = (r) => ({ h: 2.6 + r() * 0.6, crown: 1.8 + r() * 0.5 });
 export function tree(add, x, z, { h, crown, base = 0.1 }) {
   add(x, base, z, 0.32, h - base, 0.32, TRUNK); // starts on the paving top: no coplanar sides with it
   add(x, h - 0.4, z, crown, 1.1, crown, LEAF);
-  add(x - crown * 0.22, h + 0.2, z + crown * 0.16, crown * 0.52, 1, crown * 0.52, LEAF_SHADE);
-  add(x + crown * 0.2, h + 0.15, z - crown * 0.2, crown * 0.48, 0.9, crown * 0.48, LEAF);
+  // side lobes wider, still inside the crown radius (offset + radius <= crown); same box count and heights
+  add(x - crown * 0.22, h + 0.2, z + crown * 0.16, crown * 0.6, 1, crown * 0.6, LEAF_SHADE);
+  add(x + crown * 0.2, h + 0.15, z - crown * 0.2, crown * 0.56, 0.9, crown * 0.56, LEAF);
 }
 // Samples along the curve every ~`step` m (curve param is per stop, so count follows each segment's length)
 const ticks = (pts, step) => [...pts.slice(1).flatMap((q, s) => {
