@@ -36,7 +36,7 @@ body { margin: 0; font: 15px/1.6 var(--sans); color: var(--ink); background: lin
 .controls button { min-width: 36px; min-height: 36px; padding: 0 8px; border: 0; border-radius: 10px; background: none; color: inherit; font: 600 11px var(--sans); cursor: pointer; transition: background .2s, color .2s; }
 .controls button:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); color: var(--accent); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.panel { position: fixed; top: 92px; bottom: auto; left: 24px; width: min(420px, calc(100vw - 48px)); max-height: calc(100vh - 116px); overflow: auto;
+.panel { position: fixed; top: 92px; bottom: auto; left: 24px; width: min(360px, calc(100vw - 48px)); max-height: calc(100vh - 116px); overflow: auto;
   background: var(--card); -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2); border: 1px solid var(--line); border-top: 4px solid var(--city, var(--accent)); border-radius: 18px; padding: clamp(22px, 3vw, 32px); z-index: 4;
   box-shadow: 0 1px 2px rgba(40, 30, 20, .08), 0 12px 32px rgba(40, 30, 20, .14); }
 .panel h1 { font: 400 clamp(32px, 3.6vw, 42px)/1.1 var(--display); letter-spacing: -.01em; margin: 12px 0 8px; }
