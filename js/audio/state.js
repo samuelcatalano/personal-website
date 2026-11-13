@@ -17,7 +17,7 @@ export function audioState(i, o = {}) {
   o.rain = rain > 0.02 ? 0.02 * rain ** 1.2 : 0; // a backdrop under the city beds; drizzle sits well below a storm
   o.rainCut = 3000 + 3500 * rain; // drizzle is duller; a storm opens up
   o.drops = rain > 0.05 ? 2 + 10 * rain : 0; // patter grains per second
-  o.wind = c01((i.wind ?? 0) * (0.02 + 0.04 * rain ** 1.5) + 0.03 * rg); // wind rides with the rain: light rain has little wind
+  o.wind = c01((i.wind ?? 0) * (0.01 + 0.02 * rain ** 1.5) + 0.015 * rg); // wind rides with the rain: light rain has little wind; halved 2026-11-13, too loud
   o.windFreq = 320 + 260 * c01((i.wind ?? 0) / 1.1);
   // city beds: one per region, crossfaded by the mood's region weights; quieter and darker at night
   o.bedSp = rs * (0.36 - 0.16 * night);
