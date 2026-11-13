@@ -34,7 +34,7 @@ test('postprocessing releases each pass and composer once', () => {
   class Target { dispose() { this.disposals = (this.disposals ?? 0) + 1; } }
   class Vector2 { constructor(x = 1, y = 1) { Object.assign(this, { x, y }); } }
   class Vector3 {}
-  const c = load('post', { THREE: { Vector2, Vector3, WebGLRenderTarget: Target, DepthTexture: class {}, HalfFloatType: 1 }, EffectComposer: Composer, RenderPass: Pass, AOPass: Pass, ShaderPass, UnrealBloomPass: Pass, OutputPass: Pass, URLSearchParams });
+  const c = load('post', { THREE: { Vector2, Vector3, WebGLRenderTarget: Target, DepthTexture: class {}, HalfFloatType: 1, ShaderMaterial: class {}, Color: class {} }, EffectComposer: Composer, Pass, FullScreenQuad: class { dispose() {} render() {} }, RenderPass: Pass, AOPass: Pass, ShaderPass, UnrealBloomPass: Pass, OutputPass: Pass, URLSearchParams });
   const post = c.createPost({ getSize: () => new Vector2(), getPixelRatio: () => 1 }, {}, {});
   post.dispose(); post.dispose();
   assert.equal(Composer.instance.disposals, 1);

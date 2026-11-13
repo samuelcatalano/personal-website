@@ -3,6 +3,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { AOPass } from './ao-pass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { Pass, FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 const SunRays = {
@@ -22,6 +23,43 @@ w *= 0.96;
 gl_FragColor = vec4(base.rgb + acc / 40.0 * uStrength, base.a);
 }`,
 };
+// Sun rays at half resolution: the 40-tap radial blur is low-frequency, so it runs into a half-size target and is added back at full size.
+const RAYS_ONLY = `uniform sampler2D tDiffuse; uniform vec2 uSun; uniform float uStrength; varying vec2 vUv;
+void main(){
+vec2 step = (uSun - vUv) / 40.0 * 0.6;
+vec2 p = vUv; vec3 acc = vec3(0.0); float w = 1.0;
+for (int i = 0; i < 40; i++) {
+p += step;
+vec3 c = texture2D(tDiffuse, p).rgb;
+acc += smoothstep(2.2, 3.5, dot(c, vec3(0.333))) * c * w;
+w *= 0.96;
+}
+gl_FragColor = vec4(acc / 40.0 * uStrength, 1.0);
+}`;
+const RAYS_ADD = `uniform sampler2D tDiffuse; uniform sampler2D tRays; varying vec2 vUv;
+void main(){ vec4 base = texture2D(tDiffuse, vUv); gl_FragColor = vec4(base.rgb + texture2D(tRays, vUv).rgb, base.a); }`;
+class SunRaysHalf extends Pass {
+  constructor() {
+    super();
+    this.uniforms = { tDiffuse: { value: null }, uSun: { value: new THREE.Vector2(0.5, 0.5) }, uStrength: { value: 0 } };
+    this.rays = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthBuffer: false });
+    this.raysQuad = new FullScreenQuad(new THREE.ShaderMaterial({ uniforms: this.uniforms, vertexShader: SunRays.vertexShader, fragmentShader: RAYS_ONLY }));
+    this.addQuad = new FullScreenQuad(new THREE.ShaderMaterial({ uniforms: { tDiffuse: { value: null }, tRays: { value: this.rays.texture } }, vertexShader: SunRays.vertexShader, fragmentShader: RAYS_ADD }));
+    this.clearColor = new THREE.Color(); // not `clear`: Pass uses that flag
+  }
+  render(renderer, writeBuffer, readBuffer) {
+    const w = Math.max(1, readBuffer.width >> 1), h = Math.max(1, readBuffer.height >> 1);
+    if (this.rays.width !== w || this.rays.height !== h) this.rays.setSize(w, h);
+    this.uniforms.tDiffuse.value = readBuffer.texture;
+    renderer.setRenderTarget(this.rays);
+    if (this.uniforms.uStrength.value > 0) { renderer.clear(); this.raysQuad.render(renderer); } // sun behind the camera: skip the 40 taps, add black
+    else { renderer.getClearColor(this.clearColor); const alpha = renderer.getClearAlpha(); renderer.setClearColor(0x000000, 0); renderer.clear(); renderer.setClearColor(this.clearColor, alpha); }
+    this.addQuad.material.uniforms.tDiffuse.value = readBuffer.texture;
+    renderer.setRenderTarget(this.renderToScreen ? null : writeBuffer);
+    this.addQuad.render(renderer);
+  }
+  dispose() { super.dispose(); this.rays.dispose(); this.raysQuad.dispose(); this.addQuad.dispose(); }
+}
 // Restrained display-space grade keeps facade detail without pushing the distant city forward.
 const Grade = {
   uniforms: { tDiffuse: { value: null }, uSat: { value: 1.18 }, uContrast: { value: 1.07 }, uWarm: { value: new THREE.Vector3(1.03, 1.0, 0.95) } },
@@ -44,7 +82,7 @@ export function createPost(renderer, scene, camera, { tier = 'high', sun } = {})
   const heavy = [];
   let rays = null;
   if (tier === 'high') { // ponytail: medium never builds heavy passes
-    rays = new ShaderPass(SunRays);
+    rays = new SunRaysHalf();
     if (typeof location === 'undefined' || new URLSearchParams(location.search).get('ao') !== '0') heavy.push(new AOPass(camera)); // ?ao=0 kill switch
     heavy.push(rays);
     heavy.forEach((p) => composer.addPass(p));
