@@ -91,7 +91,7 @@ function disposeRoots(roots) {
 function makeTreeMaterial(source) {
   const material = source.clone();
   if (/leaf|leaves|foliage|cluster|vine|prune|crown/i.test(source.name) || source.transparent || source.alphaTest > 0) {
-    material.transparent = false; material.depthWrite = true; material.alphaTest = Math.max(0.4, source.alphaTest || 0); material.side = THREE.DoubleSide;
+    material.transparent = false; material.depthWrite = true; material.alphaTest = Math.max(0.4, source.alphaTest || 0); material.alphaToCoverage = true; material.side = THREE.DoubleSide; // MSAA turns the hard cut-out into coverage; without MSAA this is plain alphaTest
   }
   setPaletteShader(material, /leaf|leaves|foliage/i.test(source.name) ? 'leaves' : 'trunk');
   return material;
@@ -162,7 +162,7 @@ export async function createAuthoredTrees(placements) {
     const group = new THREE.Group(); group.name = 'trees';
     const batches = [], object = new THREE.Object3D(), chunks = new Map(), CHUNK = 160;
     // The impostor atlas bakes leaves and bark together, so tint only green pixels.
-    const impostorMat = new THREE.MeshLambertMaterial({ map: atlas, alphaTest: FOLIAGE_CUTOFF, side: THREE.DoubleSide }); setPaletteShader(impostorMat, 'impostor'); materials.add(impostorMat); textures.add(atlas);
+    const impostorMat = new THREE.MeshLambertMaterial({ map: atlas, alphaTest: FOLIAGE_CUTOFF, alphaToCoverage: true, side: THREE.DoubleSide }); setPaletteShader(impostorMat, 'impostor'); materials.add(impostorMat); textures.add(atlas);
     placements.forEach((p, i) => {
       const variantIndex = Math.min(variants.length - 1, Math.floor(rnd(p.x, p.z, 43) * variants.length)), variant = variants[variantIndex], chunk = Math.floor(p.x / CHUNK), key = `${variant.name}:${chunk}`;
       if (!chunks.has(key)) chunks.set(key, { variant, trees: [] });
