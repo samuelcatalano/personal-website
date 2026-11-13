@@ -133,6 +133,13 @@ Baixo esforço, alto impacto. Itens 1–3 tocam materiais e não exigem decisão
 - **Vidro noturno do museu (item 7):** feito. A causa era um wash aditivo amarelo-limão de autoria própria, tom `[.95, 1, .18]`, em `js/world/landmark-geometry.js` (`createRiverside`, comentário "yellow-green wash"). Trocado por `[.66, .86, 1]` (azul-branco frio) nas duas peças que o usavam. O metal do zigue-zague também foi resfriado. Não era o ambiente de landmarks (`landmark-env.js`), que está azul-frio. Só o museu muda; os demais landmarks não foram recapturados. Vidro noturno pode ficar um pouco pálido; afinar depois se preciso.
 - **Rio (item 5):** testado `REFLECT_FLOOR` 0.16 → 0.28. Ficou marrom-amarelado por refletir o horizonte quente do golden hour. Revertido para 0.16. Melhoria real pede cor própria para a água, não só mais reflexo.
 
+**Status da Fase 2 (2026-11-13, aprovada pelo dono para os quatro itens):**
+- **Sombras (item 3):** parcial. `js/world/sky.js`: `DAY.hemi` 1.08 → 1.30, sol mantido em 2.35. As sombras ficam um pouco mais claras. Não medi luminância. Tentativa com sol 2.2 escureceu o céu dourado para cinza e foi revertida.
+- **Árvores (item 6):** parcial. `tree()` em `js/world/city.js`: dois lobos laterais alargados dentro do mesmo raio de copa, mesma altura. Tentativa de copa 12% maior mudava a pegada e estourava o guarda de 12.000 caixas (`tests/architecture-migration.test.mjs`). Revertida. Ganho visual modesto.
+- **Pisos (item 8):** fraco. Juntas de laje de 2,4 m, 7% mais escuras, em todo piso ascendente (`js/world/textures.js`). Não confirmado à escala das capturas.
+- **Prévia do embarque (item 4):** feito. `css/style.css`: cartão 560 → 620 px; prévia até 220 → 270 px; véu 28% → 16%; blur 14 → 9 px. No mobile, a prévia tem o mesmo mínimo.
+- **Ressalva de captura:** o clima é sorteado a cada carga. As capturas de Glasgow não são comparáveis em céu entre antes e depois.
+
 ## 8. Strategic Improvements
 
 - **S1 — Reflexo de ambiente para vidro (item 9).** Estender o PMREM dos landmarks às torres. Conflita com "no cubemaps" do North Star. Precisa de decisão do dono.
