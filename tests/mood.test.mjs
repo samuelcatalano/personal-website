@@ -15,7 +15,7 @@ test('clear-weather mood preserves warm entry cities and muted Glasgow sky', () 
   assert.ok(sp.light[2] < lon.light[2] && sp.sun > lon.sun, 'SP light is warmer and stronger');
   assert.ok(sat(gla.hor) < sat(lon.hor) && sat(gla.zen) < sat(lon.zen), 'Glasgow sky is greyer');
   assert.ok(gla.sun < lon.sun && gla.hemi >= lon.hemi && gla.fogK < lon.fogK, 'muted Glasgow light and denser fog');
-  assert.deepEqual([gla.sun, gla.hemi, gla.fogK], [1.2, 1.02, 1.05]);
+  assert.deepEqual([gla.sun, gla.hemi, gla.fogK], [1.25, 1.02, 1.15]); // Glasgow contrast pass 2026-11-13: sun below London, less fog than before
   assert.ok(lum(gla.zen) < lum(lon.zen) + 0.2 && gla.cloudOp > 0);
 });
 

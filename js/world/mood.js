@@ -6,7 +6,7 @@ const M = { // golden-hour North Star: saturated zenith, warm horizon haze, warm
   entry: { zen: 0x3d8ad6, hor: 0xe3e5df, cloud: 0xfff0dc, light: 0xffdcae, sun: 1.32, hemi: 1.0, fogK: 1.25, cloudOp: .1, rain: 0 },
   sp: { zen: 0x3a86d4, hor: 0xe7e3d8, cloud: 0xfff1de, light: 0xffd9a8, sun: 1.34, hemi: 0.98, fogK: 1.3, cloudOp: .1, rain: 0 }, // warm golden
   lon: { zen: 0x4a8fd2, hor: 0xdce3e7, cloud: 0xfff3e4, light: 0xffe0b8, sun: 1.28, hemi: 1.02, fogK: 1.3, cloudOp: .08, rain: 0 },
-  gla: { zen: 0x8a9db2, hor: 0xc9ccce, cloud: 0xb3bcc6, light: 0xe2e6ee, sun: 1.2, hemi: 1.02, fogK: 1.05, cloudOp: 0.2, rain: 0 }, // muted overcast, clear controls
+  gla: { zen: 0x8a9db2, hor: 0xc9ccce, cloud: 0xb3bcc6, light: 0xe2e6ee, sun: 1.25, hemi: 1.02, fogK: 1.15, cloudOp: 0.2, rain: 0 }, // muted overcast, clear controls; a little more sun and less fog for window and roof contrast, still below London
 };
 const RAIN = {
   sp: { zen: 0x384d62, hor: 0x87949b, cloud: 0x8798a5, light: 0xc7c9bb },
