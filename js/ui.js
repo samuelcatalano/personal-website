@@ -228,7 +228,10 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     const langButton = document.querySelector('[data-lang]');
     langButton.textContent = prefs.lang === 'en' ? 'PT' : 'EN';
     langButton.setAttribute('aria-label', `${langButton.textContent} — ${t.ui.lang}`);
-    document.querySelector('[data-theme]').setAttribute('aria-label', t.ui.theme);
+    langButton.title = `${langButton.textContent} — ${t.ui.lang}`;
+    const themeButton = document.querySelector('[data-theme]');
+    themeButton.setAttribute('aria-label', t.ui.theme);
+    themeButton.title = t.ui.theme;
     for (const [sel, key] of [['[data-auto]', 'auto'], ['[data-quick]', 'quick'], ['[data-photo]', 'photo'], ['[data-hide]', 'hide'], ['[data-sound]', 'sound']]) { const b = document.querySelector(sel); if (b) { b.setAttribute('aria-label', t.ui[key]); b.title = t.ui[key]; } }
     document.querySelector('.skip').textContent = t.ui.skip;
     const touch = matchMedia('(pointer: coarse)').matches; // phones get "swipe" copy (intro.t_*) instead of "scroll"
