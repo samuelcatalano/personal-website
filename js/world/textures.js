@@ -77,6 +77,11 @@ diffuseColor *= texture2D(map, tuv);
   diffuseColor.rgb *= (1.0 + 0.2 * n) * mix(vec3(2.9, 2.4, 1.95), vec3(1.0), uNight); // lighter warm day asphalt; albedo unchanged at night
   #else
   diffuseColor.rgb *= 1.0 + 0.10 * n;
+  if (vWN.y > 0.9) { // ponytail: faint 2.4 m slab joints on upward pavement; the street block below keeps its finer pattern
+    vec2 jd = min(fract(vWP.xz / 2.4), 1.0 - fract(vWP.xz / 2.4)) * 2.4;
+    vec2 jaa = max(fwidth(vWP.xz), vec2(0.001));
+    diffuseColor.rgb *= 1.0 - 0.07 * (1.0 - smoothstep(0.01, 0.01 + max(jaa.x, jaa.y), min(jd.x, jd.y)));
+  }
   if (vWN.y > 0.9 && vWP.y < 0.4) {
     float uk = smoothstep(uStreetRegions.x - 18.0, uStreetRegions.x + 18.0, vWP.x);
     float scot = smoothstep(uStreetRegions.y - 20.0, uStreetRegions.y + 20.0, vWP.x)
