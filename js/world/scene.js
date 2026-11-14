@@ -130,8 +130,18 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   }, stops, routePoints(n, LEGACY_GAPS), eastAdd(far.add, stretch)); // buildings retain their original footprints
   const skyline = createSkyline(far.list);
   scene.add(skyline);
-  const backdrop = buildMeshes(distant.list);
+  // Chunked in 160 m cells along x: one merged mesh per colour for the whole route was submitted in every view (2.19 M tris); cells let the frustum reject the far ones.
+  const backdrop = new THREE.Group();
   backdrop.name = 'distant-neighborhoods';
+  backdrop.userData.list = distant.list.filter((b) => !b.plant); // same box-only list buildMeshes exposed before (tests/backdrop-ground.browser.py)
+  backdrop.userData.plants = distant.list.filter((b) => b.plant);
+  const backdropCells = new Map();
+  for (const b of distant.list) { const k = Math.floor(b.x / 160); (backdropCells.get(k) ?? backdropCells.set(k, []).get(k)).push(b); }
+  for (const cell of backdropCells.values()) {
+    const part = buildMeshes(cell);
+    part.traverse((o) => { if (o.isInstancedMesh) o.computeBoundingSphere(); }); // explicit sphere per cell: frustum test needs it before the first render
+    backdrop.add(part);
+  }
   backdrop.traverse(o => { o.castShadow = o.receiveShadow = false; });
   scene.add(backdrop);
   const { add, list } = createBoxes();
