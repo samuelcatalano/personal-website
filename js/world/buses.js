@@ -270,7 +270,7 @@ function bake(P, hero) {
   }
   // mullions inside the recesses (London ribbons are continuous glass with a few slim posts)
   const mull = (xs, y0, y1) => { for (const x of xs) for (const sg of [-1, 1]) acc.add('matte', bx(x, (y0 + y1) / 2, sg * (hw - 0.08), 0.085, y1 - y0, 0.16), BLK); };
-  if (P === LONDON) { mull([-3.85, -2.7, -1.55, -0.4, 0.75, 1.9], 1.3, 2.25); mull([-3.9, -2.85, -1.8, -0.75], 3.05, 3.64); }
+  if (P === LONDON) { const pillars = [-4.6, -3.3, -2.0, -0.7, 0.6, 1.9, 3.2, 4.5]; mull(pillars.slice(1), 1.3, 2.25); mull(pillars, 3.05, 3.64); }
   else { /* bays carry their own pillars */ }
   // roof pods
   if (P === LONDON) { acc.add('trim', podGeo(-2.6, P.YT - 0.06, 0, 1.6, 1.05, 0.2, 0.2), WHT); acc.add('trim', podGeo(0.9, P.YT - 0.06, 0, 2.4, 1.1, 0.2, 0.22), WHT); }

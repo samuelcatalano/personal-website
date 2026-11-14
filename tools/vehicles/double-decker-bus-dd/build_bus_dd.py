@@ -113,9 +113,9 @@ for wx in (WHEELS['FL'][0], WHEELS['RL'][0]):
 
 # ---- 2. glazing: continuous glass bands cut into the skin by exact planes (flush glass, thin dark frame + pillars), wrapping the rounded nose and tail
 UZ = (2.80, 3.64); FW = 0.04
-UP_P = [-4.60, -3.30, -2.00, -0.70, 0.60, 1.90, 3.20, 4.50]                              # upper-deck pillars (both sides)
-LOW_X = (-3.45, 5.12)                                                                    # lower side band extent
-LOW_P_L = [-2.55, -0.30, 0.95, 2.20, 3.30]; LOW_P_R = [-2.30, -1.10, 0.10, 1.30, 2.50, 3.70, 4.55]
+UP_P = [-4.60, -3.30, -2.00, -0.70, 0.60, 1.90, 3.20, 4.50]                              # shared vertical grid for both decks
+LOW_X = (-3.30, 5.12)                                                                    # rear edge aligns with the first lower-deck pillar
+LOW_P_L = [-2.00, -0.70, 0.60, 1.90, 3.20]; LOW_P_R = [-3.30, -2.00, -0.70, 0.60, 1.90, 3.20, 4.50]
 DOORS = [(3.98, 5.04), (-1.74, -0.62)]; DOOR_P = [3.98, 4.51, 5.04, -1.74, -1.18, -0.62]  # kerb doors: glazed leaves down to the sill
 RAKE_X0, RAKE_S, RAKE_CAP = 2.60, 0.28, 2.62                                            # lower band top rises towards the front (stepped New Routemaster window line)
 def low_top(x): return 2.22 + RAKE_S * min(max(x - RAKE_X0, 0.0), (RAKE_CAP - 2.22) / RAKE_S)
@@ -126,7 +126,7 @@ def vcut(co, no, pred=lambda f: True):
 Zc = lambda z: (Vector((0, 0, z)), Vector((0, 0, 1)))
 for z in (UZ[0] - FW, UZ[0], UZ[1], UZ[1] + FW, 0.48, 0.52, 1.11, 1.15, 2.18, 2.22, 2.26, 1.28, 1.32, 2.34, 2.38, 1.51, 1.55, 2.30): vcut(*Zc(z))
 sidef = lambda f: abs(f.normal.y) > 0.5
-for xp in UP_P: 
+for xp in UP_P:
     for dx in (-0.045, 0.045): vcut(Vector((xp + dx, 0, 0)), Vector((1, 0, 0)), sidef)
 for xp in (*LOW_P_L, *LOW_P_R, *DOOR_P):
     for dx in (-0.045, 0.045): vcut(Vector((xp + dx, 0, 0)), Vector((1, 0, 0)), sidef)

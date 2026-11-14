@@ -31,7 +31,7 @@ export function loadVehicleAsset(type) {
     const model = URLS[type] ? null : (await loadFleetCatalog()).find((m) => m.id === type);
     const raw = URLS[type] ? 'assets/vehicles/' + URLS[type] : model?.path, tries = [useProcessed && PROCESSED[type] ? 'assets/' + PROCESSED[type] : FULL[type] ? `assets/processed/vehicles/${FULL[type]}.full.glb` : null, raw].filter(Boolean);
     for (const path of tries) { // processed first, raw source as fallback
-      const url = new URL('../../' + path, import.meta.url); if (type === 'bus') url.searchParams.set('v', 'w5'); else if (type === 'mini' && path !== raw) url.searchParams.set('v', PIPELINE_V); // bump when authored assets are rebuilt
+      const url = new URL('../../' + path, import.meta.url); if (type === 'bus') url.searchParams.set('v', 'w7'); else if (type === 'mini' && path !== raw) url.searchParams.set('v', PIPELINE_V); // bump when authored assets are rebuilt
       if (model?.sha256) url.searchParams.set('v', path === raw ? model.sha256 : PIPELINE_V + model.sha256.slice(0, 8));
       if (path.endsWith('.full.glb')) url.searchParams.set('v', 'full1-' + (model?.sha256?.slice(0, 8) ?? 'mini2011'));
       try { return (await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(url.href)).scene; } catch { /* next candidate */ }
