@@ -9,6 +9,7 @@ export function loadPrefs(storage, env = {}) {
 }
 export function savePref(storage, key, value) { try { storage?.setItem(key, value); } catch { /* storage blocked */ } }
 const store = () => { try { return localStorage; } catch { return undefined; } };
+import { speak, hush, voiceSupported } from './announce.js';
 const flag = (c) => (c === 'BR' ? '🇧🇷' : '🇬🇧');
 const journeyTotal = stops.filter(st => st.section === 'journey').length;
 const journeySeenCount = (seenSet) => stops.reduce((n, st, i) => n + (st.section === 'journey' && seenSet.has(i) ? 1 : 0), 0);
@@ -93,7 +94,7 @@ function sectionHTML(section, t, active, tool = null, route = { seen: new Set(),
       }).join('')}</ol>
       <p class="zones"><span class="z br">${t.ui.zones.br}</span><span class="z uk">${t.ui.zones.uk}</span></p>${journeyLine(t, seenSet)}${nextButton(t, seenSet)}`;
     }
-    case 'stack': return `<h2>${s.title}</h2><p>${s.intro}</p><div class="lines">${stackGroups.map(g => `<div class="line" style="--c:${g.color}"><h3>${s.groups[g.id]}</h3><ul>${g.items.map(x => `<li>${toolStops[x].length ? `<button type="button" class="station" data-tool="${x}" aria-pressed="${x === tool}"><span>${x}</span><small class="ticket-meta">${ticketMeta(t, x)}</small></button>` : x}</li>`).join('')}</ul></div>`).join('')}</div>`;
+    case 'stack': return `<h2>${s.title}</h2><p>${s.intro}</p><p class="svc-all"><i aria-hidden="true"></i><b>${t.ui.svcAll}</b><small>${t.ui.clock} <time data-london></time></small></p><div class="lines">${stackGroups.map(g => `<div class="line" style="--c:${g.color}"><h3>${s.groups[g.id]}</h3><span class="svc">${t.ui.svcGood}</span><ul>${g.items.map(x => `<li>${toolStops[x].length ? `<button type="button" class="station" data-tool="${x}" aria-pressed="${x === tool}"><span>${x}</span><small class="ticket-meta">${ticketMeta(t, x)}</small></button>` : x}</li>`).join('')}</ul></div>`).join('')}</div>`;
     case 'articles': return list(articles, a => `<li>${ext(a.url, `<b>${a.title}</b><small>${s.src} ↗</small>`, 'row')}</li>`, links.medium);
     case 'repos': return list(repos, r => `<li style="--c:${r.color}">${ext(r.url, `<code>${r.name}</code><span class="tags">${r.lang.split(' · ').map(x => `<i>${x}</i>`).join('')}</span><small>${s.descriptions[r.name]}</small><em aria-hidden="true">↗</em>`, 'row repo')}</li>`, links.github + '?tab=repositories');
     case 'recs': return `<h2>${s.title}</h2><p>${s.intro}</p>${t.recs.map(r => `<blockquote><span class="who" aria-hidden="true">${r.name.split(' ').filter((_, k, w) => k === 0 || k === w.length - 1).map(w => w[0]).join('')}</span><p>${r.quote}</p><footer><b>${r.name}</b><span>${r.role}</span></footer></blockquote>`).join('')}`;
@@ -106,6 +107,12 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
   const prefs = loadPrefs(store(), { lang: navigator.language });
   const panel = document.getElementById('panel'), announce = document.getElementById('announce');
   let active = -1, tool = null; // tool: the stack station whose journey stops are highlighted
+  // Spoken announcements: on unless the visitor turned them off (remembered on this device); the button hides where the browser has no speech synthesis.
+  // ponytail: browsers only let a page speak after the visitor's first click or key press, so the first stops before that stay silent.
+  let voiceOn = voiceSupported();
+  try { if (localStorage.getItem('voice') === 'off') voiceOn = false; } catch { /* storage blocked */ }
+  const voiceBtn = document.querySelector('[data-voice]');
+  if (voiceBtn) { voiceBtn.hidden = !voiceSupported(); voiceBtn.setAttribute('aria-pressed', String(voiceOn)); }
   const applyTheme = () => {
     document.body.classList.toggle('theme-night', prefs.theme === 'night');
     const b = document.querySelector('[data-theme]');
@@ -165,6 +172,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     if (document.body.classList.contains('intro-on')) return; // nothing counts while the intro is up, even a timer armed before it opened // the bus has stayed on a stop: count it, punch its ticket, stamp a new city, rebuild the counter in place
     const city = cityOf(stops[idx]), newCity = !cities.has(city), t = i18n[prefs.lang].ui;
     seen.add(idx); cities.add(city);
+    if (voiceOn && stops[idx].section === 'journey') speak(t.speak.replace('{title}', i18n[prefs.lang].stops[stops[idx].id].title), prefs.lang);
     const li = panel.querySelector(`[data-goto="${idx}"]`)?.closest('li');
     if (li) li.classList.add('seen');
     const ticket = panel.querySelector(`.current-stop[data-stop="${idx}"]`);
@@ -226,7 +234,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
       cur(a, a.dataset.nav === st.section);
     });
     paintNavCount();
-    led();
+    led(); clock();
     const nav = document.querySelector('.bar nav'), here = nav.querySelector('[aria-current]'); // on phones the menu scrolls: keep the current section in view
     if (here && nav.scrollWidth > nav.clientWidth) nav.scrollTo({ left: here.offsetLeft - (nav.clientWidth - here.offsetWidth) / 2, behavior: 'smooth' });
     const langButton = document.querySelector('[data-lang]');
@@ -236,7 +244,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     const themeButton = document.querySelector('[data-theme]');
     themeButton.setAttribute('aria-label', t.ui.theme);
     themeButton.title = t.ui.theme;
-    for (const [sel, key] of [['[data-auto]', 'auto'], ['[data-quick]', 'quick'], ['[data-photo]', 'photo'], ['[data-hide]', 'hide'], ['[data-sound]', 'sound']]) { const b = document.querySelector(sel); if (b) { b.setAttribute('aria-label', t.ui[key]); b.title = t.ui[key]; } }
+    for (const [sel, key] of [['[data-auto]', 'auto'], ['[data-quick]', 'quick'], ['[data-photo]', 'photo'], ['[data-hide]', 'hide'], ['[data-sound]', 'sound'], ['[data-voice]', 'voice']]) { const b = document.querySelector(sel); if (b) { b.setAttribute('aria-label', t.ui[key]); b.title = t.ui[key]; } }
     document.querySelector('.skip').textContent = t.ui.skip;
     const touch = matchMedia('(pointer: coarse)').matches; // phones get "swipe" copy (intro.t_*) instead of "scroll"
     const pick = (path) => path.split('.').reduce((o, k) => o[k], t.ui);
@@ -296,6 +304,11 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     if (e.target.closest('[data-nav-home]')) { e.preventDefault(); onGoto(0); }
     const nav = e.target.closest('[data-nav]');
     if (nav) { e.preventDefault(); onGoto(sectionStart(nav.dataset.nav)); }
+    if (e.target.closest('[data-voice]')) {
+      voiceOn = !voiceOn; voiceBtn.setAttribute('aria-pressed', String(voiceOn)); savePref(store(), 'voice', voiceOn ? 'on' : 'off');
+      const st = stops[Math.max(active, 0)], t = i18n[prefs.lang].ui;
+      if (!voiceOn) hush(); else speak(st.section === 'journey' ? t.speak.replace('{title}', i18n[prefs.lang].stops[st.id].title) : t.voice, prefs.lang); // the first words double as the preview
+    }
     if (e.target.closest('[data-lang]')) {
       prefs.lang = prefs.lang === 'en' ? 'pt' : 'en'; savePref(store(), 'lang', prefs.lang);
       // ponytail: a short crossfade of the copy; plain swap where View Transitions are missing or motion is reduced. The page snapshot pauses the 3D scene for the 0.25 s, as the theme reveal does.
