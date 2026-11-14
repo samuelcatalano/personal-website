@@ -259,7 +259,7 @@ body.world-loading:not(.world-ready, .no-webgl, .intro-on) #loading { display: f
 .intro-card .door.l { left: 0; border-radius: 22px 0 0 22px; }
 .intro-card .door.r { right: 0; border-radius: 0 22px 22px 0; }
 #intro.opening .intro-card { overflow: visible; background: transparent; border-color: transparent; box-shadow: none; }
-#intro.opening .intro-card > :not(.door) { opacity: 0; transition: opacity .25s; }
+#intro.opening .intro-card > :not(.door):not(.door-gap) { opacity: 0; transition: opacity .25s; }
 #intro.opening .door { opacity: 1; }
 #intro.opening .door.l { transform: translateX(-140%); }
 #intro.opening .door.r { transform: translateX(140%); }
@@ -533,7 +533,7 @@ body.theme-night .detail .stamp { color: color-mix(in srgb, var(--city) 50%, #ff
 #intro-hint kbd { display: inline-grid; place-items: center; min-width: 24px; height: 24px; margin: 0 2px; padding: 0 6px; border: 1px solid var(--ticket-line); border-bottom-width: 3px; border-radius: 5px; background: #fffaf0; font: 700 13px/1 var(--sans); color: var(--ticket-ink); vertical-align: middle; }
 #intro[data-preview="sp"] .live-view[data-city="sp"], #intro[data-preview="london"] .live-view[data-city="london"], #intro[data-preview="glasgow"] .live-view[data-city="glasgow"] { opacity: 1; }
 .road { margin-bottom: 28px; }
-.road .node b { position: absolute; top: 13px; left: 50%; transform: translateX(-50%); font: 600 11px/1 var(--sans); color: var(--ticket-muted); pointer-events: none; }
+.road .node b { position: absolute; top: 13px; left: 50%; transform: translateX(-50%); font: 600 11px/1 var(--sans); color: var(--ticket-muted); cursor: pointer; }
 .road .node.here b { color: var(--ticket-red); font-weight: 800; }
 .road .node.here b { animation: intro-year-arrive .4s ease-out; }
 @keyframes intro-year-arrive { from { transform: translateX(-50%) translateY(3px); opacity: .55; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
@@ -608,3 +608,29 @@ body.ui-hidden #arrival { opacity: 0; }
 .nav-count { margin-left: 6px; padding: 1px 6px; border-radius: 999px; background: var(--accent); color: #fff; font: 700 10px/1.6 var(--sans); font-variant-numeric: tabular-nums; }
 .stops li.seen .node { background: var(--seg); }
 #ui-restore { opacity: .8; transition: opacity .2s, background .2s; } #ui-restore:hover, #ui-restore:focus-visible, body.ui-hidden #ui-restore { opacity: 1; }
+
+/* intro ticket: language button, return stamp, validation, enquiries, loading stage, door gap, route slider */
+.intro-ticket-tools { display: flex; align-items: center; gap: 10px; }
+.intro-lang { display: grid; place-items: center; padding: 3px; border: 0; border-radius: 50%; background: none; color: var(--ticket-ink); cursor: pointer; }
+.intro-lang .flag { width: 22px; height: 22px; }
+.intro-lang:focus-visible, .road:focus-visible { outline: 2px solid var(--ticket-red); outline-offset: 3px; }
+.intro-stage { color: var(--ticket-muted); }
+.intro-stage:not(:empty)::before { content: ' · '; }
+.intro-stub { position: relative; }
+.intro-validated { display: none; transform: rotate(-4deg); padding: 2px 6px; border: 1px solid var(--ticket-green); color: var(--ticket-green); font: 600 10px/1.2 ui-monospace, monospace; letter-spacing: .08em; }
+#intro.bell .intro-validated { display: inline-block; animation: stamp-in .3s ease-out both; }
+@keyframes stamp-in { from { transform: scale(1.6) rotate(-4deg); opacity: 0; } }
+.intro-stub .punch { top: -7px; right: auto; left: 22px; background: var(--ticket); }
+.intro-card .door-gap { position: absolute; left: 50%; top: 50%; z-index: 2; translate: -50% -50%; padding: 6px 12px; border-radius: 4px; background: #0c0a08; color: #ffb21e; font: 700 13px/1 var(--sans); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; opacity: 0; pointer-events: none; }
+#intro.opening .door-gap { animation: gap-flash .8s .15s both; }
+@keyframes gap-flash { 0%, 100% { opacity: 0; } 25%, 70% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { #intro.bell .intro-validated, .intro-stub .punch.fresh, #intro.opening .door-gap { animation: none; } }
+
+/* language switch: a roundel flag (like the Underground's), showing the language a press switches to */
+.flag { display: block; width: 20px; height: 20px; border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 1.5px currentColor, inset 0 0 0 1px rgba(0, 0, 0, .14); transition: transform .25s cubic-bezier(.3, 1.6, .5, 1), box-shadow .2s; }
+.flag svg { display: block; width: 100%; height: 100%; }
+[data-lang]:hover .flag { transform: rotate(-14deg) scale(1.1); }
+[data-lang]:active .flag { transform: scale(.92); }
+.controls [data-lang] { display: grid; place-items: center; }
+.controls .flag { width: 18px; height: 18px; } /* the same visual weight as the 16 px icons beside it */
+@media (prefers-reduced-motion: reduce) { .flag { transition: none; } [data-lang]:hover .flag, [data-lang]:active .flag { transform: none; } }

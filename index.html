@@ -171,7 +171,7 @@
     <section class="intro-card" aria-labelledby="intro-title">
       <div class="intro-ticket">
         <span data-i18n="intro.owner"></span>
-        <span class="intro-ticket-stamp" data-i18n="intro.ticket"></span>
+        <span class="intro-ticket-tools"><button type="button" class="intro-lang" data-lang></button><span class="intro-ticket-stamp" data-i18n="intro.ticket"></span></span>
       </div>
       <div class="blind" aria-hidden="true">
         <b class="route">83</b>
@@ -234,7 +234,7 @@
           <li data-preview-stop="london"><span data-i18n="intro.d2"></span></li>
           <li data-preview-stop="glasgow"><span data-i18n="intro.d3"></span></li>
         </ol>
-        <div class="road" aria-hidden="true">
+        <div class="road" role="slider" tabindex="0" aria-valuemin="0" aria-valuenow="0">
           <span class="trail"></span><span class="nodes"></span>
           <svg class="route-vehicle" viewBox="0 0 48 27" width="48" height="27">
             <g class="mini">
@@ -263,15 +263,17 @@
           <p id="intro-hint"></p>
         </div>
       </div>
-      <div class="status" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-labelledby="intro-status-text"><span class="leds" aria-hidden="true"></span><span id="intro-status-text" aria-live="polite"></span></div>
+      <div class="status" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-labelledby="intro-status-text"><span class="leds" aria-hidden="true"></span><span id="intro-status-text" aria-live="polite"></span><span class="intro-stage" aria-hidden="true"></span></div>
       <div class="actions">
         <button type="button" data-intro-skip autofocus></button>
       </div>
       <div class="intro-stub">
         <span data-i18n="intro.passenger"></span>
+        <span class="intro-validated" aria-hidden="true"></span>
         <span data-i18n="intro.ticketNumber"></span>
       </div>
       <i class="door l" aria-hidden="true"></i><i class="door r" aria-hidden="true"></i>
+      <span class="door-gap" aria-hidden="true" data-i18n="led.gap"></span>
     </section>
   </dialog>
   <canvas id="world" aria-hidden="true"></canvas>
@@ -285,7 +287,7 @@
       <a href="#recs" data-nav="recs"></a>
       <a href="#contact" data-nav="contact">Contact</a>
     </nav>
-    <div class="controls"><button type="button" data-auto aria-pressed="false"><svg class="i-play" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false"><path d="M8 5v14l11-7z"/></svg><svg class="i-pause" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false"><path d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg></button><button type="button" data-quick><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false"><path d="M4 5v14l8-7zm8 0v14l8-7z"/></svg></button><button type="button" data-hide aria-pressed="false"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M12 5c-5 0-9 4.500-10 7 1 2.500 5 7 10 7s9-4.500 10-7c-1-2.500-5-7-10-7zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-2a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/></svg></button><button type="button" data-photo><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button><button type="button" data-sound aria-pressed="false"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M4 9.500v5h3.500L12 18.500v-13L7.500 9.500z"/><path class="i-on" d="M15 9a4.200 4.200 0 0 1 0 6m2.500-8.500a7.800 7.800 0 0 1 0 11"/><path class="i-off" d="m15.500 9.500 5 5m0-5-5 5"/></svg></button><button type="button" data-voice aria-pressed="false" hidden><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M4 5h16v11H11l-4 4v-4H4z"/><path class="i-off" d="M8 9h8m-8 3h5"/></svg></button><button type="button" data-lang>PT</button><button type="button" data-theme>☀︎</button></div>
+    <div class="controls"><button type="button" data-auto aria-pressed="false"><svg class="i-play" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false"><path d="M8 5v14l11-7z"/></svg><svg class="i-pause" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false"><path d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg></button><button type="button" data-quick><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false"><path d="M4 5v14l8-7zm8 0v14l8-7z"/></svg></button><button type="button" data-hide aria-pressed="false"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M12 5c-5 0-9 4.500-10 7 1 2.500 5 7 10 7s9-4.500 10-7c-1-2.500-5-7-10-7zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-2a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/></svg></button><button type="button" data-photo><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button><button type="button" data-sound aria-pressed="false"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M4 9.500v5h3.500L12 18.500v-13L7.500 9.500z"/><path class="i-on" d="M15 9a4.200 4.200 0 0 1 0 6m2.500-8.500a7.800 7.800 0 0 1 0 11"/><path class="i-off" d="m15.500 9.500 5 5m0-5-5 5"/></svg></button><button type="button" data-voice aria-pressed="false" hidden><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M4 5h16v11H11l-4 4v-4H4z"/><path class="i-off" d="M8 9h8m-8 3h5"/></svg></button><button type="button" data-theme>☀︎</button><button type="button" data-lang>PT</button></div>
     <p id="announce" class="sr-only" aria-live="polite"></p>
     <button type="button" id="ui-restore" hidden></button>
   </header>

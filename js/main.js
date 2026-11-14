@@ -71,8 +71,8 @@ const ride = createAutoRide({
   hold: () => ui.speaking(),
   onState: (on) => autoBtn.setAttribute('aria-pressed', String(on)), instant: reducedMotion,
 });
-autoBtn.addEventListener('click', () => { quick = false; lock.clear(); ride.toggle(); });
-document.querySelector('[data-quick]').addEventListener('click', () => { quick = true; scrollTo(0, 0); lock.clear(); ride.on ? ride.stop() : ride.toggle(); });
+autoBtn.addEventListener('click', () => { quick = false; lock.clear(); ride.toggle(); if (ride.on) ui.holdTight(); });
+document.querySelector('[data-quick]').addEventListener('click', () => { quick = true; scrollTo(0, 0); lock.clear(); if (ride.on) ride.stop(); else { ride.toggle(); ui.holdTight(); } });
 const photoBtn = document.querySelector('[data-photo]');
 photoBtn.addEventListener('click', async () => {
   if (!world || photoBtn.disabled) return;
@@ -141,6 +141,7 @@ const stills = async (w) => {
 const DRIVE = 0.03; // share of the route the intro lets the visitor drive (about one stop)
 const intro = createIntro(document.getElementById('intro'), {
   onDrive: (p) => world?.setProgress(p === null ? progress : p * DRIVE),
+  onBoard: () => ui.callingAt(),
 });
 const hasWebGL = () => { try { const gl = document.createElement('canvas').getContext('webgl2'); gl?.getExtension('WEBGL_lose_context')?.loseContext(); return !!gl; } catch { return false; } };
 if (hasWebGL()) {

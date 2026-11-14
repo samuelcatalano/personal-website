@@ -9,7 +9,12 @@ export function loadPrefs(storage, env = {}) {
 }
 export function savePref(storage, key, value) { try { storage?.setItem(key, value); } catch { /* storage blocked */ } }
 const store = () => { try { return localStorage; } catch { return undefined; } };
-import { speak, hush, voiceSupported, whenDone } from './announce.js';
+import { speak, hush, voiceSupported, hasVoice, whenDone } from './announce.js';
+// Roundel flags for the language switch (plain SVG: emoji flags do not draw on every system). Each fills a circle, cropped from its middle.
+const FLAGS = {
+  en: '<svg viewBox="0 0 60 30" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><rect width="60" height="30" fill="#1b2d6b"/><path d="M0 0 60 30M60 0 0 30" stroke="#fff" stroke-width="6"/><path d="M0 0 60 30M60 0 0 30" stroke="#c8102e" stroke-width="2"/><path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10"/><path d="M30 0v30M0 15h60" stroke="#c8102e" stroke-width="6"/></svg>',
+  pt: '<svg viewBox="0 0 20 14" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><rect width="20" height="14" fill="#1a9a4b"/><path d="M10 1.3 18.5 7 10 12.7 1.5 7z" fill="#f7d417"/><circle cx="10" cy="7" r="3.4" fill="#1b2d6b"/><path d="M6.7 6.4q3.4-1.2 6.8 1.1" fill="none" stroke="#fff" stroke-width=".7"/></svg>',
+};
 const flag = (c) => (c === 'BR' ? '🇧🇷' : '🇬🇧');
 const journeyTotal = stops.filter(st => st.section === 'journey').length;
 const journeySeenCount = (seenSet) => stops.reduce((n, st, i) => n + (st.section === 'journey' && seenSet.has(i) ? 1 : 0), 0);
@@ -106,6 +111,7 @@ function sectionHTML(section, t, active, tool = null, route = { seen: new Set(),
 export function initUI({ onGoto, onTheme, onHold = () => {} }) {
   const prefs = loadPrefs(store(), { lang: navigator.language });
   const panel = document.getElementById('panel'), announce = document.getElementById('announce');
+  let renderedLang = null, greeting = false; // greeting: the "calling at" line is still being read, so the first arrival waits for it
   let active = -1, tool = null; // tool: the stack station whose journey stops are highlighted
   // Spoken announcements: on unless the visitor turned them off (remembered on this device); the button hides where the browser has no speech synthesis.
   // ponytail: browsers only let a page speak after the visitor's first click or key press, so the first stops before that stay silent.
@@ -149,6 +155,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     else if (notes.gap) { text = t.ui.led.gap; alert = true; }
     else if (st.section === 'contact') text = t.ui.led.end;
     else if (notes.rain && Math.floor(Date.now() / 4000) % 2) { text = t.ui.led.rain; alert = true; }
+    else if (st.section !== 'contact' && Math.floor(Date.now() / 4000) % 3 === 1) text = t.ui.led.eta.replace('{place}', t.ui.nav.contact).replace('{min}', Math.max(1, Math.ceil(rideSeconds(stops.length - 1 - Math.max(active, 0), 3400) / 60))); // the stop board's countdown to the terminus at the auto-ride pace
     else if (st.section !== 'contact' && Math.floor(Date.now() / 4000) % 3 === 0) text = t.ui.led.count.replace('{count}', journeySeenCount(seen)).replace('{total}', journeyTotal); // rotating route counter
     if (document.hidden) document.title = waitingTitle(); // keeps the hidden tab's title on the stop the bus is at
     for (const el of document.querySelectorAll('.led .live')) {
@@ -180,10 +187,11 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     b.innerHTML = `<i class="num">${stamped ? '✓' : routeNo()}</i><span class="txt"><small>${label}</small><b>${name}</b></span>`; b.classList.toggle('stamped', stamped); b.classList.add('show');
     clearTimeout(bannerTimer); bannerTimer = setTimeout(() => b.classList.remove('show'), 2400);
   };
+  const talk = (text) => speak(text, prefs.lang, prefs.theme === 'night' ? 0.85 : 0.95); // the N83 drives slower and quieter than the day bus
   // What the bus says on a confirmed stop: the plain arrival, a change at the two moves, the terminus, or (auto-ride on) the role and dates as well.
   const announceLine = (idx) => {
     const st = stops[idx], L = i18n[prefs.lang], t = L.ui;
-    if (st.section === 'contact') return t.speakEnd;
+    if (st.section === 'contact') return prefs.theme === 'night' ? t.speakEndNight : t.speakEnd;
     if (st.section !== 'journey') return null;
     const c = L.stops[st.id], change = st.id === 'move' || st.id === 'glasgow' ? ` ${t.speakChange.replace('{place}', c.place)}` : '';
     if (document.querySelector('[data-auto]')?.getAttribute('aria-pressed') === 'true') {
@@ -196,7 +204,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     const city = cityOf(stops[idx]), newCity = !cities.has(city), t = i18n[prefs.lang].ui;
     seen.add(idx); cities.add(city);
     const spoken = voiceOn && announceLine(idx);
-    if (spoken) speak(spoken, prefs.lang);
+    if (spoken) { if (greeting) whenDone().then(() => talk(spoken)); else talk(spoken); }
     const li = panel.querySelector(`[data-goto="${idx}"]`)?.closest('li');
     if (li) li.classList.add('seen');
     const ticket = panel.querySelector(`.current-stop[data-stop="${idx}"]`);
@@ -261,10 +269,13 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     led(); clock(); paintRoute();
     const nav = document.querySelector('.bar nav'), here = nav.querySelector('[aria-current]'); // on phones the menu scrolls: keep the current section in view
     if (here && nav.scrollWidth > nav.clientWidth) nav.scrollTo({ left: here.offsetLeft - (nav.clientWidth - here.offsetWidth) / 2, behavior: 'smooth' });
-    const langButton = document.querySelector('[data-lang]');
-    langButton.textContent = prefs.lang === 'en' ? 'PT' : 'EN';
-    langButton.setAttribute('aria-label', `${langButton.textContent} — ${t.ui.lang}`);
-    langButton.title = `${langButton.textContent} — ${t.ui.lang}`;
+    const toLang = prefs.lang === 'en' ? 'pt' : 'en'; // the button shows the flag of the language a press switches to
+    for (const langButton of document.querySelectorAll('[data-lang]')) { // the header and the intro ticket each have one
+      langButton.innerHTML = `<span class="flag">${FLAGS[toLang]}</span>`;
+      langButton.setAttribute('aria-label', `${toLang.toUpperCase()} — ${t.ui.lang}`);
+      langButton.title = `${toLang.toUpperCase()} — ${t.ui.lang}`;
+    }
+    if (renderedLang !== prefs.lang) { renderedLang = prefs.lang; document.dispatchEvent(new Event('langchange')); } // the intro repaints its own copy
     const themeButton = document.querySelector('[data-theme]');
     themeButton.setAttribute('aria-label', t.ui.theme);
     themeButton.title = t.ui.theme;
@@ -297,7 +308,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     clock();
     const introTime = document.getElementById('intro-time'); // ride lengths for the intro card, in the current language
     if (introTime) introTime.textContent = t.ui.rideTime.replace('{auto}', rideSeconds(stops.length, 3400)).replace('{quick}', rideSeconds(QUICK.length, 1600));
-    if (keep) document.querySelector(`[${keep[0]}="${keep[1]}"]`)?.focus({ preventScroll: true });
+    if (keep && !prev.isConnected) document.querySelector(`[${keep[0]}="${keep[1]}"]`)?.focus({ preventScroll: true }); // only an element the render replaced needs its focus back
     else if (!sectionChanged && panelLinkIndex >= 0) panel.querySelectorAll('a[href]')[panelLinkIndex]?.focus({ preventScroll: true });
     else if (!sectionChanged && panelCredits) panel.querySelector('[data-credits]')?.focus({ preventScroll: true });
     const c = t.stops[st.id];
@@ -335,6 +346,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     }
     if (e.target.closest('[data-lang]')) {
       prefs.lang = prefs.lang === 'en' ? 'pt' : 'en'; savePref(store(), 'lang', prefs.lang);
+      if (voiceOn && hasVoice(prefs.lang)) talk(i18n[prefs.lang].ui.speakLang); // said in the new language; skipped when the browser has no voice for it
       // ponytail: a short crossfade of the copy; plain swap where View Transitions are missing or motion is reduced. The page snapshot pauses the 3D scene for the 0.25 s, as the theme reveal does.
       if (document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
         const root = document.documentElement; root.dataset.vt = 'lang';
@@ -378,6 +390,14 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     stamps: () => [...cities].map((c) => i18n[prefs.lang].ui.cities[c]),
     caption: () => `${routeNo()} · ${baseText()}`.toUpperCase(),
     speaking: whenDone,
+    callingAt() { // the first sound of the ride: "This is the 83, calling at São Paulo, London and Glasgow"
+      if (!voiceOn) return;
+      const t = i18n[prefs.lang].ui, c = t.cities;
+      greeting = true;
+      talk(t.speakCalling.replace('{route}', routeNo()).replace('{a}', c.sp).replace('{b}', c.ldn).replace('{c}', c.gla));
+      whenDone().then(() => { greeting = false; });
+    },
+    holdTight() { if (voiceOn) talk(i18n[prefs.lang].ui.speakStart); }, // the conductor's line as the ride sets off
     note(key, on) { if (notes[key] !== on) { notes[key] = on; led(); } },
   };
 }
