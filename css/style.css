@@ -61,7 +61,7 @@ body { margin: 0; font: 15px/1.6 var(--sans); color: var(--ink); background: lin
 .avatar { display: block; width: 72px; height: 72px; object-fit: cover; border-radius: 50%; border: 1px solid var(--line); background: var(--sky); }
 .profile-head { display: grid; grid-template-columns: 64px minmax(0, 1fr); align-items: center; gap: 16px; }
 .profile-head .avatar { width: 64px; height: 80px; border-radius: 12px; }
-.panel .eyebrow { margin: 0 0 8px; color: var(--ink); font-size: 10px; line-height: 1.5; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.panel .eyebrow { margin: 0 0 8px; color: var(--ink); font-size: 11px; line-height: 1.5; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
 .profile-head h1 { margin: 0 0 8px; font-size: clamp(28px, 2.7vw, 36px); line-height: 1.02; letter-spacing: -.025em; }
 .profile-head .role { font-size: 12px; line-height: 1.5; }
 .panel .profile-meta { margin: 18px 0 22px; padding-bottom: 14px; border-bottom: 1px solid var(--line); font-size: 12px; letter-spacing: .015em; }
@@ -77,7 +77,7 @@ body { margin: 0; font: 15px/1.6 var(--sans); color: var(--ink); background: lin
 .journey-finish p { margin: 0; }
 .journey-finish p + p { margin-top: 8px; color: var(--muted); font-size: 11px; }
 .recent-role { margin: 20px 0; padding: 0 0 16px; border-bottom: 1px solid var(--line); }
-.panel .recent-role .eyebrow { margin-bottom: 4px; color: var(--muted); font-size: 9px; }
+.panel .recent-role .eyebrow { margin-bottom: 4px; color: var(--muted); font-size: 11px; }
 .panel .recent-company { margin: 0 0 2px; font-size: 12px; font-weight: 600; }
 .recent-role small { display: block; font-size: 11px; font-variant-numeric: tabular-nums; }
 .hero-links, .contact { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 0; margin: 20px 0 0; }
@@ -89,7 +89,7 @@ body { margin: 0; font: 15px/1.6 var(--sans); color: var(--ink); background: lin
 .contact .btn.solid > span:not(.addr)::after { content: ':'; }
 .contact .addr { min-width: 0; margin-left: -2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 400; opacity: .85; }
 .panel a { color: var(--accent); text-underline-offset: 3px; }
-.panel a.btn { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 14px; font-size: 13px; font-weight: 500; color: var(--ink); text-decoration: none; border: 1px solid var(--ink); border-radius: 12px; background: transparent; transition: background .2s, color .2s, transform .2s; }
+.panel a.btn { white-space: nowrap; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 14px; font-size: 13px; font-weight: 500; color: var(--ink); text-decoration: none; border: 1px solid var(--ink); border-radius: 12px; background: transparent; transition: background .2s, color .2s, transform .2s; }
 .panel a.btn:active { transform: translateY(1px); }
 .panel a.btn:hover { background: var(--ink); color: var(--card); }
 .panel a.btn.solid { background: var(--accent); border-color: var(--accent); color: #fff; }
@@ -147,6 +147,7 @@ body.world-loading:not(.world-ready, .no-webgl, .intro-on) #loading { display: f
 @keyframes intro-blink { 50% { filter: drop-shadow(0 0 14px rgba(255, 60, 40, .8)); } }
 .intro-text h2 { margin: 0; font: 400 clamp(23px, 5vw, 33px)/1.12 var(--display); }
 #intro-sub { margin: 5px 0 0; font-size: 14px; line-height: 1.4; color: var(--ticket-muted); }
+#intro-title { font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; font-weight: 600; letter-spacing: -.01em; } /* ticket display face: a serif carries the travel-ticket identity, Inter stays for the rest */
 .intro-map {
   padding: 8px 10px 15px; min-width: 0; touch-action: pinch-zoom;
   border-block: 1px solid var(--ticket-line);
@@ -373,7 +374,7 @@ blockquote footer b { color: var(--ink); font-weight: 600; }
   .profile-head .avatar { width: 56px; height: 72px; border-radius: var(--control-radius); }
   .profile-head h1 { font-size: clamp(28px, 2.7vw, 36px); }
   .profile-head .role { font-size: 13px; }
-  .panel .profile-head .eyebrow { margin: 8px 0 0; color: var(--muted); font-size: 9px; letter-spacing: .08em; }
+  .panel .profile-head .eyebrow { margin: 8px 0 0; color: var(--muted); font-size: 11px; letter-spacing: .08em; }
   .panel .profile-meta { margin: 16px 0; padding: 0; border: 0; }
   .panel[data-section="hero"] .value { font-size: 17px; line-height: 1.6; letter-spacing: -.01em; }
   .hero-links { gap: 4px 16px; margin-top: 20px; }
@@ -397,7 +398,7 @@ blockquote footer b { color: var(--ink); font-weight: 600; }
   .controls { margin-left: auto; padding: 4px; }
   .bar nav { order: 2; flex: 1 0 100%; min-width: 0; overflow-x: auto; justify-content: flex-start; gap: 18px; padding: 7px 10px; scrollbar-width: thin; }
   #loading { right: auto; left: 10px; bottom: calc(45vh + 20px); }
-  .panel { top: auto; bottom: 10px; left: 10px; width: calc(100vw - 20px); max-height: 45vh; padding: 18px 20px; }
+  .panel { top: auto; bottom: 10px; left: 10px; width: calc(100vw - 20px); max-height: 45vh; padding: 18px 20px 72px; } /* 72 px: the last line scrolls clear of #ui-restore (18 px offset + 40 px tall + gap) */
   .panel h1 { font-size: 30px; margin: 8px 0 4px; }
   .panel[data-section="hero"] { max-height: 58vh; }
   .panel[data-section="hero"] p { margin-bottom: 10px; }
@@ -500,7 +501,7 @@ body.theme-night .detail .stamp { color: color-mix(in srgb, var(--city) 50%, #ff
 #intro-hint kbd { display: inline-grid; place-items: center; min-width: 24px; height: 24px; margin: 0 2px; padding: 0 6px; border: 1px solid var(--ticket-line); border-bottom-width: 3px; border-radius: 5px; background: #fffaf0; font: 700 13px/1 var(--sans); color: var(--ticket-ink); vertical-align: middle; }
 #intro[data-preview="sp"] .live-view[data-city="sp"], #intro[data-preview="london"] .live-view[data-city="london"], #intro[data-preview="glasgow"] .live-view[data-city="glasgow"] { opacity: 1; }
 .road { margin-bottom: 28px; }
-.road .node b { position: absolute; top: 13px; left: 50%; transform: translateX(-50%); font: 600 9.5px/1 var(--sans); color: var(--ticket-muted); pointer-events: none; }
+.road .node b { position: absolute; top: 13px; left: 50%; transform: translateX(-50%); font: 600 11px/1 var(--sans); color: var(--ticket-muted); pointer-events: none; }
 .road .node.here b { color: var(--ticket-red); font-weight: 800; }
 .road .node.here b { animation: intro-year-arrive .4s ease-out; }
 @keyframes intro-year-arrive { from { transform: translateX(-50%) translateY(3px); opacity: .55; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
