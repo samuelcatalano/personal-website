@@ -1,7 +1,13 @@
+
+# Software-GL pages can hold Runtime.evaluate past the default response timeout (see tools/capture.py): allow 900 s.
+def js2(expression):
+    r = cdp('Runtime.evaluate', expression=expression, returnByValue=True, awaitPromise=True, _response_timeout=900)
+    if 'exceptionDetails' in r: raise RuntimeError(str(r['exceptionDetails'])[:400])
+    return r['result'].get('value')
 # browser-harness < tests/streetscape.browser.py
 new_tab('about:blank');cdp('Network.enable');cdp('Network.setCacheDisabled',cacheDisabled=True);cdp('Network.setBypassServiceWorker',bypass=True)
 goto_url('http://localhost:8000/tests/fixtures/npc-stage.html?kit=off&kits=shop,midrise');wait_for_load()
-print(js(r'''(async()=>{
+print(js2(r'''(async()=>{
  const T=await import('three'),{createCityRollout}=await import('../../js/world/city-rollout.js'),{buildProps}=await import('../../js/world/street-props-mesh.js'),{buildMeshes}=await import('../../js/world/voxel.js'),{createShopSpill}=await import('../../js/world/shop-spill.js'),{streetEnvironment}=await import('../../js/world/streetscape-state.js'),{createAuthoredTrees}=await import('../../js/world/authored-trees.js');
  const check=(v,m)=>{if(!v)throw Error(m)},errors=[],old=console.error;console.error=(...a)=>{errors.push(a.map(String).join(' '));old(...a)};
  const plots=[{id:'test-shop',kind:'shop',archetype:'wraparound-shop',x:0,z:0,width:10,depth:10,height:7},{id:'test-midrise',kind:'midrise',x:12,z:0,width:10,depth:10,height:12}];
