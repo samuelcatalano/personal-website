@@ -9,7 +9,7 @@ export function loadPrefs(storage, env = {}) {
 }
 export function savePref(storage, key, value) { try { storage?.setItem(key, value); } catch { /* storage blocked */ } }
 const store = () => { try { return localStorage; } catch { return undefined; } };
-import { speak, hush, voiceSupported } from './announce.js';
+import { speak, hush, voiceSupported, whenDone } from './announce.js';
 const flag = (c) => (c === 'BR' ? '🇧🇷' : '🇬🇧');
 const journeyTotal = stops.filter(st => st.section === 'journey').length;
 const journeySeenCount = (seenSet) => stops.reduce((n, st, i) => n + (st.section === 'journey' && seenSet.has(i) ? 1 : 0), 0);
@@ -113,6 +113,9 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
   try { if (localStorage.getItem('voice') === 'off') voiceOn = false; } catch { /* storage blocked */ }
   const voiceBtn = document.querySelector('[data-voice]');
   if (voiceBtn) { voiceBtn.hidden = !voiceSupported(); voiceBtn.setAttribute('aria-pressed', String(voiceOn)); }
+  // After dark the 83 runs as the N83, like London's night buses: the blinds, the arrival banner and the postcard caption all follow the theme.
+  const routeNo = () => (prefs.theme === 'night' ? 'N83' : '83');
+  const paintRoute = () => { for (const b of document.querySelectorAll('.led b')) b.textContent = routeNo(); };
   const applyTheme = () => {
     document.body.classList.toggle('theme-night', prefs.theme === 'night');
     const b = document.querySelector('[data-theme]');
@@ -121,6 +124,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
       : 'M12 2v2m0 16v2m10-10h-2M4 12H2m17.07 7.07-1.42-1.42M6.35 6.35 4.93 4.93m14.14 0-1.42 1.42M6.35 17.65l-1.42 1.42M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0z';
     b.innerHTML = `<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24"><path d="${d}"/></svg>`;
     b.setAttribute('aria-pressed', String(prefs.theme === 'night'));
+    paintRoute();
     onTheme(prefs.theme);
   };
   // Header LED blind: names the current stop, with the occasional announcement (the gap, rain, the terminus, a pulled bell).
@@ -131,6 +135,13 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     const t = i18n[prefs.lang], st = stops[Math.max(active, 0)];
     return st.section === 'journey' ? `${st.year} ${t.stops[st.id].place}` : st.section === 'hero' ? t.ui.intro.d1 : t.ui.nav[st.section];
   };
+  // With the tab in the background the title becomes the blind: "83 · Waiting at Tribal Worldwide London".
+  const pageTitle = document.title;
+  const waitingTitle = () => {
+    const t = i18n[prefs.lang], st = stops[Math.max(active, 0)];
+    return t.ui.tabWaiting.replace('{route}', routeNo()).replace('{place}', st.section === 'journey' ? t.stops[st.id].title : baseText());
+  };
+  document.addEventListener('visibilitychange', () => { document.title = document.hidden ? waitingTitle() : pageTitle; });
   const led = () => {
     const t = i18n[prefs.lang], st = stops[Math.max(active, 0)]; // the header blind and the journey board show the same text
     let text = baseText(), alert = false;
@@ -139,6 +150,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     else if (st.section === 'contact') text = t.ui.led.end;
     else if (notes.rain && Math.floor(Date.now() / 4000) % 2) { text = t.ui.led.rain; alert = true; }
     else if (st.section !== 'contact' && Math.floor(Date.now() / 4000) % 3 === 0) text = t.ui.led.count.replace('{count}', journeySeenCount(seen)).replace('{total}', journeyTotal); // rotating route counter
+    if (document.hidden) document.title = waitingTitle(); // keeps the hidden tab's title on the stop the bus is at
     for (const el of document.querySelectorAll('.led .live')) {
       el.classList.toggle('alert', alert);
       if (el.textContent !== text) { el.textContent = text; el.classList.remove('roll'); void el.offsetWidth; el.classList.add('roll'); }
@@ -165,14 +177,26 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
   const seen = route.seen, cities = route.cities;
   const arrive = (label, name, stamped = false) => { // "Now arriving London": a short banner when the line crosses into another city, or a passport stamp
     const b = document.getElementById('arrival') || document.body.appendChild(Object.assign(document.createElement('p'), { id: 'arrival', role: 'presentation' }));
-    b.innerHTML = `<i class="num">${stamped ? '✓' : '83'}</i><span class="txt"><small>${label}</small><b>${name}</b></span>`; b.classList.toggle('stamped', stamped); b.classList.add('show');
+    b.innerHTML = `<i class="num">${stamped ? '✓' : routeNo()}</i><span class="txt"><small>${label}</small><b>${name}</b></span>`; b.classList.toggle('stamped', stamped); b.classList.add('show');
     clearTimeout(bannerTimer); bannerTimer = setTimeout(() => b.classList.remove('show'), 2400);
+  };
+  // What the bus says on a confirmed stop: the plain arrival, a change at the two moves, the terminus, or (auto-ride on) the role and dates as well.
+  const announceLine = (idx) => {
+    const st = stops[idx], L = i18n[prefs.lang], t = L.ui;
+    if (st.section === 'contact') return t.speakEnd;
+    if (st.section !== 'journey') return null;
+    const c = L.stops[st.id], change = st.id === 'move' || st.id === 'glasgow' ? ` ${t.speakChange.replace('{place}', c.place)}` : '';
+    if (document.querySelector('[data-auto]')?.getAttribute('aria-pressed') === 'true') {
+      return t.speakTour.replace('{title}', c.title).replace('{role}', c.role).replace('{dates}', c.dates.replace(/\s[–-]\s/, ` ${t.dateTo} `)) + change;
+    }
+    return t.speak.replace('{title}', c.title) + change;
   };
   const confirmStop = (idx) => {
     if (document.body.classList.contains('intro-on')) return; // nothing counts while the intro is up, even a timer armed before it opened // the bus has stayed on a stop: count it, punch its ticket, stamp a new city, rebuild the counter in place
     const city = cityOf(stops[idx]), newCity = !cities.has(city), t = i18n[prefs.lang].ui;
     seen.add(idx); cities.add(city);
-    if (voiceOn && stops[idx].section === 'journey') speak(t.speak.replace('{title}', i18n[prefs.lang].stops[stops[idx].id].title), prefs.lang);
+    const spoken = voiceOn && announceLine(idx);
+    if (spoken) speak(spoken, prefs.lang);
     const li = panel.querySelector(`[data-goto="${idx}"]`)?.closest('li');
     if (li) li.classList.add('seen');
     const ticket = panel.querySelector(`.current-stop[data-stop="${idx}"]`);
@@ -234,7 +258,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
       cur(a, a.dataset.nav === st.section);
     });
     paintNavCount();
-    led(); clock();
+    led(); clock(); paintRoute();
     const nav = document.querySelector('.bar nav'), here = nav.querySelector('[aria-current]'); // on phones the menu scrolls: keep the current section in view
     if (here && nav.scrollWidth > nav.clientWidth) nav.scrollTo({ left: here.offsetLeft - (nav.clientWidth - here.offsetWidth) / 2, behavior: 'smooth' });
     const langButton = document.querySelector('[data-lang]');
@@ -267,7 +291,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     }
     panel.scrollTop = top;
     panel.dataset.section = st.section;
-    led(); // fills the journey board the markup above just replaced
+    led(); paintRoute(); // fills the journey board the markup above just replaced
     const routeList = panel.querySelector('.stops'), currentRow = routeList?.querySelector('.on');
     if (currentRow && matchMedia('(min-width: 768px)').matches) routeList.scrollTop = currentRow.offsetTop - 4;
     clock();
@@ -352,7 +376,8 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     say,
     discover,
     stamps: () => [...cities].map((c) => i18n[prefs.lang].ui.cities[c]),
-    caption: () => `83 · ${baseText()}`.toUpperCase(),
+    caption: () => `${routeNo()} · ${baseText()}`.toUpperCase(),
+    speaking: whenDone,
     note(key, on) { if (notes[key] !== on) { notes[key] = on; led(); } },
   };
 }

@@ -4,7 +4,8 @@ const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
 // first stop that is still ahead of the current scroll position (0 when the ride is over, so pressing play again restarts)
 export const nextStop = (ys, y) => { const i = ys.findIndex((v) => v > y + 40); return i < 0 ? 0 : i; };
 export const travelMs = (dist) => clamp((dist / 900) * 1000, 1400, 5500); // ponytail: constant speed with a floor and a cap; per-segment timing if the route gets uneven
-export function createAutoRide({ ys, onState, dwell = 3400, instant = false }) {
+// hold: optional, returns a promise the ride awaits after each pause (the spoken announcement still being read)
+export function createAutoRide({ ys, onState, dwell = 3400, instant = false, hold = null }) {
   let token = 0, on = false;
   const stopEvents = ['wheel', 'touchstart', 'keydown', 'pointerdown'];
   const halt = (e) => { if (e?.target?.closest?.('[data-auto]')) return; stop(); };
@@ -31,7 +32,10 @@ export function createAutoRide({ ys, onState, dwell = 3400, instant = false }) {
     for (const ev of stopEvents) addEventListener(ev, halt, { passive: true });
     for (let i = nextStop(stops, scrollY); i < stops.length; i++) {
       if (!(await travel(stops[i], id))) return;
-      if (i < stops.length - 1 && !(await pause(typeof dwell === 'function' ? dwell() : dwell, id))) return;
+      if (i < stops.length - 1) {
+        if (!(await pause(typeof dwell === 'function' ? dwell() : dwell, id))) return;
+        if (hold) { await hold(); if (id !== token) return; }
+      }
     }
     if (id === token) stop();
   }

@@ -68,6 +68,7 @@ let quick = false;
 const ride = createAutoRide({
   ys: () => stops.map((_, i) => scrollYForStop(i, n, H(), innerHeight, marks)).filter((_, i) => !quick || QUICK.includes(stops[i].id)),
   dwell: () => (quick ? 1600 : 3400),
+  hold: () => ui.speaking(),
   onState: (on) => autoBtn.setAttribute('aria-pressed', String(on)), instant: reducedMotion,
 });
 autoBtn.addEventListener('click', () => { quick = false; lock.clear(); ride.toggle(); });
