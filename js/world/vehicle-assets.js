@@ -111,7 +111,7 @@ const glass = (key, color, a0, env, vc) => phys(key, () => fresnel(new THREE.Mes
 // The GLBs use closed shells behind the panes. Trace a virtual saloon in bus space
 // so ceiling lights and reflections move at different depths as the camera passes.
 const busGlass = (caio) => phys(caio ? 'caioGlass' : 'busGlass', () => {
-  const material = new THREE.MeshStandardMaterial({ color: '#263b46', roughness: 0.19, envMapIntensity: 0.32 });
+  const material = new THREE.MeshStandardMaterial({ color: caio ? '#2d4851' : '#263b46', roughness: 0.19, envMapIntensity: 0.32, side: caio ? THREE.DoubleSide : THREE.FrontSide });
   material.onBeforeCompile = shader => {
     shader.uniforms.uBusNight = lampNight;
     const varyings = 'varying vec3 vBusPane, vBusEye;\n';
@@ -138,8 +138,8 @@ const busGlass = (caio) => phys(caio ? 'caioGlass' : 'busGlass', () => {
       float overhead = smoothstep(roofY - 0.09, roofY - 0.02, hit.y);
       float floorShade = smoothstep(floorY + 0.03, floorY + 0.52, hit.y);
       float lamp = overhead * (1.0 - smoothstep(0.055, 0.16, abs(abs(hit.z) - 0.52)));
-      vec3 daylight = mix(${caio ? 'vec3(0.12, 0.14, 0.15), vec3(0.24, 0.27, 0.28)' : 'vec3(0.04, 0.045, 0.052), vec3(0.18, 0.19, 0.18)'}, floorShade);
-      vec3 lit = mix(vec3(0.05, 0.055, 0.06), vec3(0.25, 0.26, 0.27), floorShade);
+      vec3 daylight = mix(${caio ? 'vec3(0.11, 0.16, 0.18), vec3(0.24, 0.31, 0.32)' : 'vec3(0.04, 0.045, 0.052), vec3(0.18, 0.19, 0.18)'}, floorShade);
+      vec3 lit = mix(${caio ? 'vec3(0.035, 0.07, 0.09), vec3(0.16, 0.23, 0.25)' : 'vec3(0.05, 0.055, 0.06), vec3(0.25, 0.26, 0.27)'}, floorShade);
       vec3 saloon = mix(daylight, lit, uBusNight) + lamp * vec3(0.60, 0.62, 0.64) * uBusNight;
       if (cabinDetail > 0.001) {
         if (floorY < 2.0 && p.x > lengthX - 1.05) {
@@ -152,7 +152,7 @@ const busGlass = (caio) => phys(caio ? 'caioGlass' : 'busGlass', () => {
       vec3 reflected = inverseTransformDirection(reflect(-view, normal), viewMatrix);
       vec3 sky = mix(vec3(0.09, 0.12, 0.14), vec3(0.33, 0.49, 0.61), smoothstep(-0.08, 0.62, reflected.y));
       sky *= mix(1.0, 0.22, uBusNight);
-      outgoingLight = mix(saloon, sky, 0.14 + 0.57 * grazing) + outgoingLight * (0.11 + 0.16 * grazing);
+      outgoingLight = mix(saloon, sky, ${caio ? '0.10 + 0.49 * grazing' : '0.14 + 0.57 * grazing'}) + outgoingLight * (0.11 + 0.16 * grazing);
       #include <opaque_fragment>`);
   };
   material.customProgramCacheKey = () => caio ? 'caio-saloon-v1' : 'double-decker-saloon-v1';
