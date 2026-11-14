@@ -203,6 +203,10 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const world = buildMeshes(list, { glow: [P.lit, '#ffd86b', '#fff7c2', P.arch, WIN_L, RG, RB], glowK: { [P.arch]: 1.1, [WIN_L]: 1.0, [RG]: 0.55, [RB]: 0.2 }, grass: { trees: treePlacements, plots: architecturePlots, lamps: lampClearance, kiosks: kioskClearance } });
   world.traverse((o) => { const h = o.material?.color?.getHexString(); if (o.material?.userData.glow) { if (h === WIN_L.slice(1)) o.material.userData.glowColor = new THREE.Color('#ffb04a'); if (h === RG.slice(1)) o.material.userData.glowColor = new THREE.Color('#d8e86a'); if (h === RB.slice(1)) o.material.userData.glowColor = new THREE.Color('#bcd4ff'); } });
   const landmarkEnv = createLandmarkEnv(renderer);
+  // City-wide environment: the same prefiltered day/night maps at low strength, for standard materials that carry no envMap of their own (registered landmark materials keep theirs).
+  // ponytail: a single intensity knob (CITY_ENV); the rest of the scene's look is the thing to A/B against.
+  const CITY_ENV = 0.2;
+  scene.environment = landmarkEnv.day; scene.environmentIntensity = CITY_ENV; // set before compileAsync so the program change is compiled at startup, not mid-flight
   // Reuse the existing prefiltered sky for ordinary PBR: no new environment capture/target.
   for (const material of [townhouseMaterials().architecture, townhouseMaterials().glass, roomGlassMaterial(), officeFacadeMaterials().glass]) landmarkEnv.register(material, { k: material.name==='slice-architecture'?.28:.40 });
   if (lampField) for (const material of [townhouseMaterials().architecture, townhouseMaterials().glass, roomGlassMaterial(), officeFacadeMaterials().glass]) applyLampField(material, lampField.uniforms);
@@ -511,6 +515,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     water.update(clock, night, mood, post.tier, sky.colors, sky.sunDir);
     world.userData.updateLandmarkNight?.(night);
     updateVehicleEnv(night); landmarkEnv.update(night);
+    scene.environment = night > 0.5 ? landmarkEnv.night : landmarkEnv.day; scene.environmentIntensity = CITY_ENV * (1 - 0.7 * night); // swap the map, ramp the strength: no new PMREM per frame
     settle = Math.max(0, settle - dt); // ponytail: 3 s settle, then two consecutive slow 2 s windows; shader compiles and asset uploads never change the look
     if (dt > 0 && settle === 0 && post.tier === 'high') {
       fpsT += dt; fpsN++;
