@@ -8,6 +8,7 @@ import { crowdPlan } from './crowd.js'; // read only: the crowd's people and pat
 import { createIdleClip } from './npc-idle.js';
 import { animationDue } from './npc-motion-state.js';
 import { createNpcPose } from './npc-pose.js';
+import { buildNpcBodyAtlas, installBodyTint } from './npc-atlas.js';
 
 const GLB = new URL('../../assets/npc/npc_pack.glb', import.meta.url).href;
 const QUERY = new URLSearchParams(location.search), NEAR = QUERY.has('npcnear'), SHOT = Number(QUERY.get('npcshot')) || 0; // debug only
@@ -186,6 +187,7 @@ function tintTextured(inst, rng) {
   const hair = new THREE.Color(HAIRS[Math.floor(rng() * HAIRS.length)]);
   inst.traverse((o) => {
     if (!o.isMesh || !o.material.map) return;
+    if (o.userData.npcBody) { installBodyTint(o, { tee, hue, gain, chroma, hair }); return; }
     const m = o.material.name; // materials are named mh_<type>_<asset> by tools/npc/npc_mh_build.py
     const kind = /^mh_clothes_.*_plain$/.test(m) ? 'plain' : /^mh_clothes_(?!shoes)/.test(m) ? 'cloth' : /^mh_(hair|eyebrows)_/.test(m) ? 'hair' : '';
     if (!kind || (kind === 'cloth' && !hue) || (kind !== 'hair' && !o.geometry.attributes._part)) return;
@@ -304,6 +306,7 @@ export async function createNpc3d(scene, { people, pts, stops, lookTargets = [],
     }
   });
   const templates = VARIANTS.map((v) => personTemplate(gltf.scene, v));
+  buildNpcBodyAtlas(templates); // stage 1: diffuse-textured body parts become one mesh per pedestrian over a runtime atlas
   const rng = mulberry32(777);
   const kindOf = (v) => (v.rig === 'child' ? 'kid' : FEMALE.has(v.name) ? 'woman' : 'man');
   // the pool: as many of each kind as the crowd has (70% adults, half women; kids 30%: fewer here, our kids are 1.2-1.4 m)

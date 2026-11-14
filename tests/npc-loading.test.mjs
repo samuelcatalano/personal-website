@@ -43,6 +43,7 @@ function setup(load, search = '') {
   }
   const context = vm.createContext({ URL, URLSearchParams, location: { search },
     ROAD: { padIn: 1 }, crowdPlan: () => [], GLTFLoader: class { loadAsync() { return load; } }, createIdleClip: () => ({ name: 'NPC_Idle' }), animationDue, createNpcPose: () => null,
+    buildNpcBodyAtlas: () => {}, installBodyTint: () => {}, // stage 1 body merge: the stub templates have no textured parts to merge
     SkeletonUtils: { clone: (root) => root },
     THREE: { CircleGeometry: class { rotateX() { return this; } dispose() {} }, MeshBasicMaterial: class { dispose() {} },
       InstancedMesh: class { constructor(geometry, material) { Object.assign(this, { geometry, material, instanceMatrix: {} }); } traverse(fn) { fn(this); } setMatrixAt() {} }, Object3D, Vector3, Matrix4, Sphere, Frustum },
