@@ -38,3 +38,19 @@ The browser test checks that both LODs load, that the atlas is opaque vertex-col
 References and sources are recorded in `ASSET_SOURCES.md`.
 
 2026-11-12 rendering audit: polygon normal hints now rotate axes without the point translation at `DECK_TOP`. A six-face unit-box self-check runs before each export; portal crown normals are checked after GLB loading. Shape, counts and material buckets remain fixed.
+
+
+## Owner colour correction — 2026-11-14
+
+Supersedes the earlier stone-coloured main roofs: both tall main-tower roofs and the shore-tower hip roofs now use the owner-provided green swatch: central median sRGB `#64a28c` (100, 162, 140), superseding the initial estimate from the Sé palette. The builder cancels the existing bridge material tint so the resulting base colour matches this swatch before scene lighting/tone mapping. Gold, stone spires, dormers and masonry remain unchanged. No external reference/asset was needed: the requested colour reference already exists in the Sé source.
+
+`TowerBridgeRoad` is a fifth primitive that the loader replaces with the same `blockMaterial(P.road)` used by ordinary roads: shared noise texture, roughness, metalness, and day/night shader. It is excluded from the landmark metal/environment override. Both LODs share that material; the procedural fallback also reuses a cached ordinary-road material and the Sé fallback's roof tint. Cache version is 18.
+
+Triangles/bounds are unchanged: LOD0 14,440 / 947,136 bytes; LOD1 4,064 / 296,564 bytes. Five draw calls instead of four per visible authored LOD; the two GLBs add 1,808 bytes combined. No new texture or render pass. Both Blender export/reimport checks, scoped browser model/colour/LOD/fallback checks and the 264 Node tests passed. Isolated desktop day/night renders confirmed matching adjacent road material and green roofs without GL/shader errors; no full-city performance or mobile rerun for this colour-only adjustment.
+
+
+### Full-site colour validation
+
+Browser-harness inspection of the existing localhost tab found both `?v=18` models already loaded and effective roof base colour `#64a28c`: the reported mismatch was not stale GLBs. The full-world upgrade forced `metal: 1` on the shared roof/architecture atlas, unlike the isolated colour fixture. It now preserves the authored 0.08 metalness for that atlas while retaining environment maps and the existing gilt/light treatment; the asphalt remains excluded. A regression applies the environment-registration step before asserting that the authored atlas finish survives. Full-scene/compositor A/B confirms the lighter green response with the same geometry, lighting and camera. No new primitive, texture or pass for this fix.
+
+[Full-world/compositor green comparison](../../../docs/evidence/towerbridge-colors/runtime-green-comparison.jpg). A normal reload of the existing localhost tab, with service worker and cache active, confirmed `v=18` GLBs and `envMetal=0.0799999982` on both atlases. Scoped browser checks and all 264 Node tests passed after the correction.

@@ -1,5 +1,9 @@
 # 3D city art direction
 
+## Tower Bridge colour match — 2026-11-14
+
+Owner replaced the brown main roofs below the gilt with green matching the owner-provided swatch (`#64a28c`, central median sRGB), superseding the initial Sé-palette estimate and keeping stone spires and gold. Tower Bridge carriageways now use the ordinary road material, including its day/night tint, noise and finish. Both authored LODs and the procedural fallback are covered. Full-world integration preserves the atlas’s authored metalness: forcing 100% metal was darkening the approved green despite the correct asset colour. Five authored primitives instead of four; geometry remains unchanged. [Source and scoped checks](../tools/landmarks/towerbridge/README.md).
+
 ## Wellington and facade contact — 2026-11-14
 
 Owner selected a reference-led original Wellington sculpt: fuller equine anatomy, lifted far forehoof, uniform/tack detail, bronze vertex patina and original abstract pedestal reliefs. Existing placement/cone remain. Ordinary townhouse doors gain bounded raised panels, metal hardware and thresholds; valid ordinary room windows gain distance-faded frame contact in their reflection only. [Comparisons, references and limits](audits/2026-11-14-wellington-facades-performance.md).

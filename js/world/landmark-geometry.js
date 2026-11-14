@@ -254,9 +254,10 @@ export function createMasp(x,z){
 }
 
 // ---- Tower Bridge: local x across the crossing, z along it (group origin = river centreline) ----
+let towerBridgeRoadMaterial;
 export function createTowerBridge(x,z){
   const {box,add,beam,gothic,finish,lit,lbox,lbeam,pale,slate}=landmark('towerbridge',x,z);
-  const grey=[.94,.96,1],blue=[.46,.68,.95],gilt=[.86,.76,.52],dark=[.22,.25,.29],TZ=9.5;
+  const grey=[.94,.96,1],blue=[.46,.68,.95],gilt=[.86,.76,.52],verd=[2.1,2.55,2.1],TZ=9.5;
   for(const tz of [-TZ,TZ]){
     box(0,-1,tz,5.2,24,4.8,S.stone,grey);
     for(const [y,h] of [[3.2,2.6],[7.6,2.6],[11.6,2.6],[16.2,2.6],[20.3,2.2]])
@@ -272,8 +273,8 @@ export function createTowerBridge(x,z){
       add(new THREE.CylinderGeometry(.05,.8,4.6,8),cx,26.8,cz,S.roof,slate);
       box(cx,29.1,cz,.07,.9,.07,S.trim,gilt,1);
     }
-    // steep pyramidal slate roof, dormers, finial
-    add(new THREE.CylinderGeometry(.12,3.7,10,4,1,false,Math.PI/4),0,28.4,tz,S.roof,slate);
+    // Verdigris roof below the gilt finial; same tint as the procedural Se dome.
+    add(new THREE.CylinderGeometry(.12,3.7,10,4,1,false,Math.PI/4),0,28.4,tz,S.roof,verd);
     for(const [face,dx,dz] of [[0,0,1],[Math.PI,0,-1],[Math.PI/2,1,0],[-Math.PI/2,-1,0]]){
       const cx=dx*1.88,cz=tz+dz*1.88;
       box(cx,25.3,cz,dx?.7:.95,1.3,dz?.7:.95,S.stone,grey);
@@ -288,7 +289,6 @@ export function createTowerBridge(x,z){
     for(const sx of [-1,1]){box(sx*3.55,0,az+Math.sign(az)*.6,.9,10,.9,S.stone,pale);add(new THREE.ConeGeometry(.7,1.6,4,1,false,Math.PI/4),sx*3.55,10.8,az+Math.sign(az)*.6,S.roof,slate);}
   }
   box(0,4,0,6,1.2,34,S.trim,blue,1);
-  box(0,5.2,0,5.2,.08,34,S.plaster,dark);
   for(const sx of [-1,1]){
     box(sx*2.86,6.2,0,.22,.22,33.8,S.trim,pale,1);
     for(let a=-16;a<=16;a+=2)box(sx*2.86,5.28,a,.14,.95,.14,S.trim,pale,1);
@@ -336,6 +336,8 @@ export function createTowerBridge(x,z){
     }
   }
   const g=finish();
+  const road=new THREE.Mesh(new THREE.BoxGeometry(5.2,.08,34),towerBridgeRoadMaterial??=blockMaterial(P.road));
+  road.name='towerbridge-road';road.position.y=5.24;road.receiveShadow=true;g.add(road);
   g.userData.layout={towerZ:[-TZ,TZ],towerHeight:35,deckY:4,deckTop:5.2,walkwayZ:0,walkways:2,pinnacles:8};
   return g;
 }

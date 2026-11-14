@@ -10,9 +10,9 @@ from mathutils import Vector, geometry
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.abspath(os.path.join(HERE, '..', '..', '..', 'assets', 'processed', 'landmarks'))
 os.makedirs(OUT, exist_ok=True)
-ST, SL, BL, TR, GL, GD, DK, LW, WG, LS = range(10)   # authoring slots; LS = light strips (night only)
+ST, VD, BL, TR, GL, GD, DK, LW, WG, LS = range(10)   # authoring slots; LS = light strips (night only)
 FB, FR, FW, PS = 10, 11, 12, 13                       # flag cloth: blue, red, white; PS = pale Portland-stone dressings
-MATS = ['stone', 'slate', 'blue', 'trim', 'glass', 'gilt', 'deck', 'lampw', 'wglass', 'strip', 'flagblue', 'flagred', 'flagwhite', 'portland']
+MATS = ['stone', 'verd', 'blue', 'trim', 'glass', 'gilt', 'deck', 'lampw', 'wglass', 'strip', 'flagblue', 'flagred', 'flagwhite', 'portland']
 K = 0.40                     # scene metres per real metre: one factor keeps the proportions inside the frozen envelope
 DECK_TOP = 5.2               # scene height of the carriageway, unchanged
 V = lambda x, y, z: Vector((K * x, -K * z, K * y + DECK_TOP))
@@ -236,7 +236,7 @@ def tower(b, tz):
         b.box(0, y, tz, 2 * TX + .6, .9, 2 * TZH + .6, PS)               # string courses
     b.box(0, H, tz, 2 * TX + 1.0, 1.2, 2 * TZH + 1.0, PS)                # cornice
     b.box(0, H + 1.2, tz, 2 * TX + .8, 1.6, 2 * TZH + .8, ST)            # parapet
-    b.frus(0, H + 2.8, tz, 6.4, 4.4, 2.0, 1.2, 15.0, ST, top=True)       # tall steep slate roof: the dominant silhouette of the photographs
+    b.frus(0, H + 2.8, tz, 6.4, 4.4, 2.0, 1.2, 15.0, VD, top=True)       # verdigris roof beneath the gilt crest (owner colour match to Se)
     b.box(0, H + 17.8, tz, 4.6, .5, 3.0, GD)                             # gilt cresting rail
     for sx in (-1, 1):
         for sz in (-1, 1): b.cone(sx * 1.9, H + 18.3, tz + sz * 1.1, .4, 0.0, 1.8, 4, GD)
@@ -406,7 +406,7 @@ def abutment(b, s):
         if L0 and N[2]: archring(b, 0, cz, AW, AD, N, U, y0, wd / 2, 13.0, 10.0, 10.5, .9, .15)
     b.box(0, top, cz, 2 * AW + .8, .8, 2 * AD + .8, PS)
     b.box(0, top + .8, cz, 2 * AW + .6, 1.0, 2 * AD + .6, ST)
-    b.frus(0, top + 1.8, cz, AW - .8, AD - .6, 1.8, 1.0, 7.0, ST, top=True)
+    b.frus(0, top + 1.8, cz, AW - .8, AD - .6, 1.8, 1.0, 7.0, VD, top=True)
     b.box(0, top + 8.8, cz, 3.2, .4, 1.4, GD)
     ns = 8 if L0 else 6
     for sx in (-1, 1):
@@ -456,8 +456,12 @@ def linear_hex(h):
     return tuple(v / 12.92 if v <= .04045 else ((v + .055) / 1.055) ** 2.4 for v in c) + (1,)
 
 
-COLORS = tuple(map(linear_hex, ('#c2a98f', '#4a5560', '#2a8aa8', '#e9e8e2', '#303943', '#d4a63c', '#2b2d31', '#fff0d0', '#8299ad', '#f4e7c4', '#1f3a8a', '#cf1f2e', '#f4f4f0', '#ddcdb2')))
+COLORS = tuple(map(linear_hex, ('#c2a98f', '#4a5560', '#2a8aa8', '#e9e8e2', '#303943', '#d4a63c', '#353b40', '#fff0d0', '#8299ad', '#f4e7c4', '#1f3a8a', '#cf1f2e', '#f4f4f0', '#ddcdb2')))
 
+# Owner's supplied swatch (central median sRGB); cancel the existing bridge material tint.
+swatch = linear_hex('#64a28c')
+verd = tuple(c/t for c,t in zip(swatch,(1.05,1.03,1))) + (1,)
+COLORS = COLORS[:VD] + (verd,) + COLORS[VD+1:]
 
 def run(lod):
     bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -469,7 +473,8 @@ def run(lod):
         color = COLORS[poly.material_index]
         for loop in poly.loop_indices: colors.data[loop].color = color
         s = poly.material_index
-        if s in LIGHT_SLOTS: target = 1                                         # windows, glazing, lamps, gilt, strips glow at night
+        if s == DK: target = 4
+        elif s in LIGHT_SLOTS: target = 1                                         # windows, glazing, lamps, gilt, strips glow at night
         elif s in (ST, PS):
             y = (poly.center.z - DECK_TOP) / K                                  # real metres above road
             target = 2 if y < 15 else 3                                         # piers and tower base floodlit (low band), upper stone in the high band
@@ -478,7 +483,7 @@ def run(lod):
     me.color_attributes.active_color = colors
     me.materials.clear()
     for name, emit in (('TowerBridgeAtlas', None), ('TowerBridgeLights', (1.0, .85, .6)),
-                       ('TowerBridgeFloodLow', (1.0, .72, .4)), ('TowerBridgeFloodHigh', (1.0, .72, .4))):
+                       ('TowerBridgeFloodLow', (1.0, .72, .4)), ('TowerBridgeFloodHigh', (1.0, .72, .4)), ('TowerBridgeRoad', None)):
         mat = bpy.data.materials.new(name); mat.diffuse_color = (1, 1, 1, 1)
         bsdf = mat.node_tree.nodes.get('Principled BSDF')
         bsdf.inputs['Base Color'].default_value = (1, 1, 1, 1)
@@ -501,7 +506,7 @@ def run(lod):
     mn, mx, doc = bounds_of(glb)
     assert -4.95 <= mn[0] and mx[0] <= 4.95 and -29.4 <= mn[2] and mx[2] <= 29.4, (mn, mx)   # envelope released by the owner: side spans and abutments
     assert -1.05 < mn[1] and 30.9 < mx[1] <= 31.8, (mn, mx)
-    assert set(x['name'] for x in doc['materials']) <= {'TowerBridgeAtlas', 'TowerBridgeLights', 'TowerBridgeFloodLow', 'TowerBridgeFloodHigh'} and doc['materials'][0]['name'] == 'TowerBridgeAtlas', doc['materials']
+    assert set(x['name'] for x in doc['materials']) <= {'TowerBridgeAtlas', 'TowerBridgeLights', 'TowerBridgeFloodLow', 'TowerBridgeFloodHigh', 'TowerBridgeRoad'} and doc['materials'][0]['name'] == 'TowerBridgeAtlas', doc['materials']
     assert not doc.get('images') and not doc.get('textures'), 'direct PBR GLB must not contain texture assets'
     primitive = doc['meshes'][0]['primitives'][0]
     assert 'COLOR_0' in primitive['attributes'] and 'NORMAL' in primitive['attributes'] and 'indices' in primitive
