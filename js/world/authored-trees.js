@@ -182,7 +182,7 @@ export async function createAuthoredTrees(placements) {
       });
       // ponytail: one height scale for every tree; placements carry no street/park kind, so the 7–10 m and 10–14 m bands are not split yet
       trees.forEach(({ p, i }, k) => {
-        const base = p.base ?? 0.1, height = Math.min(12, (p.h + 0.65) * 1.2 * 2.1) * (0.8 + rnd(p.x, p.z, 2) * 0.25), width = Math.min(p.crown / (2 * variant.radius), height), yaw = rnd(p.x, p.z, 4) * Math.PI * 2;
+        const base = p.base ?? 0.1, height = Math.min(6.2, (p.h + 0.65) * 1.2) * (0.8 + rnd(p.x, p.z, 2) * 0.25), width = Math.min(p.crown / (2 * variant.radius), height), yaw = rnd(p.x, p.z, 4) * Math.PI * 2;
         object.position.set(p.x, base + 0.02, p.z); object.rotation.set(0, yaw, 0); object.scale.set(width, height, width); object.updateMatrix();
         lods[0].setMatrixAt(k, object.matrix); lods[1].setMatrixAt(k, object.matrix);
         const billboardFit = Math.max(1, 2 * variant.radius) * 1.16, billboardX = width * billboardFit, billboardY = height * billboardFit;
