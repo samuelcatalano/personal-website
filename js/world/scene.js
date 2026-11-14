@@ -49,6 +49,7 @@ import { SECTION_SHOT, shotFor, blendShots, spring, approach, nextTier } from '.
 import { updateBeams, addBeams, refitBeams } from './beams.js';
 import { createLampPools } from './lamps.js';
 import { createLampField, applyLampField } from './lamp-field.js';
+import { treeSun } from './authored-trees.js';
 import { createPost } from './post.js';
 import { createVehicleFx } from './vehicle-fx.js';
 import { createRoadMarks } from './roadmarks.js';
@@ -500,6 +501,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const a = Math.round(bp.dot(LU) / TEXEL_X) * TEXEL_X, b = Math.round(bp.dot(LV) / TEXEL_Y) * TEXEL_Y;
     sun.target.position.copy(LU).multiplyScalar(a).addScaledVector(LV, b).addScaledVector(LD, bp.dot(LD));
     sun.position.copy(sun.target.position).add(SUN); sun.shadow.camera.up.copy(LV);
+    treeSun.value.set(LD.x, LD.y, LD.z, Math.min(1, sun.intensity / 2.4)); // T3: canopy backlight follows the sun
     skyline.userData.update(night, scene.fog.color);
     bigBenLod?.update(camera.position);
     seLod?.update(camera.position);

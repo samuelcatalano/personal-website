@@ -15,6 +15,8 @@ const LEAF_PALETTE = [0xe4d4f1, 0xffedb5].map((hex) => {
   const color = new THREE.Color(hex);
   return color.multiplyScalar(1 / Math.max(color.r, color.g, color.b)); // Keep the original neutral instance shade on bark.
 });
+// Sun for the canopy backlight: world direction towards the sun (xyz) and day strength (w). scene.js sets it every frame.
+export const treeSun = { value: new THREE.Vector4(0.4, 0.7, 0.35, 0.8) };
 const PALETTE_FRAGMENT = {
   leaves: [
     '#ifdef USE_COLOR',
@@ -26,6 +28,7 @@ const PALETTE_FRAGMENT = {
     '#else',
     '  #include <color_fragment>',
     '#endif',
+    '  diffuseColor.rgb *= vTreeHue * vTreeAO; // T3: per-tree hue jitter and radial AO (see leafCanopy)',
   ].join('\n'),
   trunk: [
     '#ifdef USE_COLOR',
@@ -51,6 +54,28 @@ const PALETTE_FRAGMENT = {
     '#endif',
   ].join('\n'),
 };
+// T3 on leaf cut-outs: puffy normals pulled toward the crown centre, a sun backlight term (leaves glow when the sun is behind them),
+// radial AO (inner leaves dark) and per-tree hue jitter. The view-space sun direction is computed in the vertex stage; no per-frame CPU work per tree.
+function leafCanopy(shader) {
+  shader.uniforms.uTreeSun = treeSun;
+  const decl = '#include <common>\nuniform vec4 uTreeSun;\nvarying vec3 vTreeSunView;\nvarying float vTreeAO;\nvarying vec3 vTreeHue;';
+  shader.vertexShader = shader.vertexShader.replace('#include <common>', decl)
+    .replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>
+objectNormal = normalize(mix(objectNormal, normalize(position - vec3(0.0, 0.55, 0.0)), 0.5)); // puffy: crown cards shade as a volume`)
+    .replace('#include <begin_vertex>', `#include <begin_vertex>
+vTreeSunView = normalize((viewMatrix * vec4(uTreeSun.xyz, 0.0)).xyz);
+vTreeAO = mix(0.55, 1.0, smoothstep(0.0, 0.45, length(position.xz))) * mix(0.75, 1.0, smoothstep(0.0, 0.35, position.y));
+#ifdef USE_INSTANCING
+float treeHash = fract(sin(dot(instanceMatrix[3].xz, vec2(12.9898, 78.233))) * 43758.5453);
+#else
+float treeHash = 0.5;
+#endif
+vTreeHue = 1.0 + 0.05 * sin(treeHash * 6.2831 + vec3(0.0, 2.1, 4.2));`);
+  shader.fragmentShader = shader.fragmentShader.replace('#include <common>', decl)
+    .replace('#include <opaque_fragment>', `float treeBack = pow(clamp(-vTreeSunView.z, 0.0, 1.0), 4.0) * uTreeSun.w; // sun behind the canopy: light through the leaves
+outgoingLight += diffuseColor.rgb * treeBack * 0.45;
+#include <opaque_fragment>`);
+}
 function setPaletteShader(material, kind) {
   material.onBeforeCompile = (shader) => {
     // shortcut: sub-5 cm foliage sway keeps static shadow geometry; add matching depth deformation for closer cameras.
@@ -68,8 +93,9 @@ function setPaletteShader(material, kind) {
 #endif`);
     }
     shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>', PALETTE_FRAGMENT[kind]);
+    if (kind === 'leaves') leafCanopy(shader);
   };
-  material.customProgramCacheKey = () => 'authored-tree-palette-' + kind + '-wind-2';
+  material.customProgramCacheKey = () => 'authored-tree-palette-' + kind + '-wind-4';
 }
 const urls = SOURCES.map(([, file]) => new URL(`../../assets/processed/vegetation/${file}?v=${VERSION}`, import.meta.url).href);
 const atlasUrl = new URL(`../../assets/processed/vegetation/tree-impostors.png?v=${VERSION}`, import.meta.url).href;
