@@ -38,8 +38,9 @@ result = js(r'''(async()=>{
    const drop=bone('foot_'+side).getWorldPosition(new T.Vector3()).y-bone('ball_'+side).getWorldPosition(new T.Vector3()).y;
    check(drop>.02*body.scale.y,`standing toes stay below the ankles: ${side} drop=${drop}`);
   }
-  let shoes;body.traverse(o=>{if(o.isSkinnedMesh&&o.material.name.startsWith('mh_clothes_shoes'))shoes=o;});
-  const vertices=Array.from({length:shoes.geometry.attributes.position.count},(_,i)=>body.worldToLocal(shoes.localToWorld(shoes.getVertexPosition(i,new T.Vector3()))));
+  let merged;body.traverse(o=>{if(o.isSkinnedMesh&&o.userData.npcBody)merged=o;});
+  const footIndex=[];const foot=merged.geometry.attributes._foot.array;for(let i=0;i<foot.length;i++)if(foot[i]>.5)footIndex.push(i);
+  const vertices=footIndex.map(i=>body.worldToLocal(merged.localToWorld(merged.getVertexPosition(i,new T.Vector3()))));
   const mid=(Math.min(...vertices.map(v=>v.z))+Math.max(...vertices.map(v=>v.z)))/2;
   const heel=Math.min(...vertices.filter(v=>v.z<mid).map(v=>v.y)),toe=Math.min(...vertices.filter(v=>v.z>=mid).map(v=>v.y));
   check(Math.abs(toe-heel)<.025,`standing shoes must lie flat, heel/toe difference=${toe-heel}`);

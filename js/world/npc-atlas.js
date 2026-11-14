@@ -4,7 +4,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 // Diffuse maps (1024 and 512 px) and normal maps (256 px) go into texture arrays, one layer per map, so UVs stay as authored, repeats included.
 // Per vertex: layers, size class, part kind (1 plain, 2 cloth, 3 hair, 0 none), roughness, alpha cut-out and normal-map flag.
 // Eyes and brows stay separate: they are switched by distance (draw-call LOD).
-const ATTRS = ['position', 'normal', 'uv', 'skinIndex', 'skinWeight', '_layer', '_big', '_nlayer', '_nflag', '_part', '_kind', '_rough', '_cut'];
+const ATTRS = ['position', 'normal', 'uv', 'skinIndex', 'skinWeight', '_layer', '_big', '_nlayer', '_nflag', '_part', '_kind', '_rough', '_cut', '_foot'];
 const SIZES = [1024, 512], NORMAL_SIZE = 256;
 let bodyTextures = null; // { big, small, normal }: shared by every body material; read by installBodyTint
 const isFine = (name) => /^mh_(eyes|eyebrows)_/.test(name);
@@ -68,6 +68,7 @@ export function buildNpcBodyAtlas(templates) {
       g.setAttribute('_kind', new THREE.BufferAttribute(new Float32Array(n).fill(kindOf(o.material.name, !!g.attributes._part)), 1));
       g.setAttribute('_rough', new THREE.BufferAttribute(new Float32Array(n).fill(o.material.roughness), 1));
       g.setAttribute('_cut', new THREE.BufferAttribute(new Float32Array(n).fill(o.material.alphaTest), 1));
+      g.setAttribute('_foot', new THREE.BufferAttribute(new Float32Array(n).fill(/^mh_clothes_shoes/.test(o.material.name) ? 1 : 0), 1)); // shoe vertices, for the foot checks
       for (const name of Object.keys(g.attributes)) if (!ATTRS.includes(name)) g.deleteAttribute(name);
       g.clearGroups();
       return g;
