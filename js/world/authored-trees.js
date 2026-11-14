@@ -64,7 +64,7 @@ function leafCanopy(shader) {
 objectNormal = normalize(mix(objectNormal, normalize(position - vec3(0.0, 0.55, 0.0)), 0.5)); // puffy: crown cards shade as a volume`)
     .replace('#include <begin_vertex>', `#include <begin_vertex>
 vTreeSunView = normalize((viewMatrix * vec4(uTreeSun.xyz, 0.0)).xyz);
-vTreeAO = mix(0.55, 1.0, smoothstep(0.0, 0.45, length(position.xz))) * mix(0.75, 1.0, smoothstep(0.0, 0.35, position.y));
+vTreeAO = 1.0; // radial AO removed: it darkened LOD1 against the flat impostor under flat light (authored-trees.browser.py)
 #ifdef USE_INSTANCING
 float treeHash = fract(sin(dot(instanceMatrix[3].xz, vec2(12.9898, 78.233))) * 43758.5453);
 #else
@@ -117,7 +117,7 @@ function disposeRoots(roots) {
 function makeTreeMaterial(source) {
   const material = source.clone();
   if (/leaf|leaves|foliage|cluster|vine|prune|crown/i.test(source.name) || source.transparent || source.alphaTest > 0) {
-    material.transparent = false; material.depthWrite = true; material.alphaTest = Math.max(0.4, source.alphaTest || 0); material.alphaToCoverage = true; material.side = THREE.DoubleSide; // MSAA turns the hard cut-out into coverage; without MSAA this is plain alphaTest
+    material.transparent = false; material.depthWrite = true; material.alphaTest = Math.max(0.4, source.alphaTest || 0); material.side = THREE.DoubleSide;
   }
   setPaletteShader(material, /leaf|leaves|foliage/i.test(source.name) ? 'leaves' : 'trunk');
   return material;
@@ -188,7 +188,7 @@ export async function createAuthoredTrees(placements) {
     const group = new THREE.Group(); group.name = 'trees';
     const batches = [], object = new THREE.Object3D(), chunks = new Map(), CHUNK = 160;
     // The impostor atlas bakes leaves and bark together, so tint only green pixels.
-    const impostorMat = new THREE.MeshLambertMaterial({ map: atlas, alphaTest: FOLIAGE_CUTOFF, alphaToCoverage: true, side: THREE.DoubleSide }); setPaletteShader(impostorMat, 'impostor'); materials.add(impostorMat); textures.add(atlas);
+    const impostorMat = new THREE.MeshLambertMaterial({ map: atlas, alphaTest: FOLIAGE_CUTOFF, side: THREE.DoubleSide }); // no alphaToCoverage: without MSAA it changes LOD brightness (authored-trees.browser.py) setPaletteShader(impostorMat, 'impostor'); materials.add(impostorMat); textures.add(atlas);
     placements.forEach((p, i) => {
       const variantIndex = Math.min(variants.length - 1, Math.floor(rnd(p.x, p.z, 43) * variants.length)), variant = variants[variantIndex], chunk = Math.floor(p.x / CHUNK), key = `${variant.name}:${chunk}`;
       if (!chunks.has(key)) chunks.set(key, { variant, trees: [] });
