@@ -47,8 +47,9 @@ vLampWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;
     shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vLampWorld;\nuniform sampler2D uLampField;\nuniform vec2 uLampOrigin;\nuniform vec2 uLampSize;\nuniform float uLampNight;')
       .replace('#include <opaque_fragment>', `vec2 lampUv = (vLampWorld.xz - uLampOrigin) / uLampSize;
 float lampIn = step(0.0, lampUv.x) * step(lampUv.x, 1.0) * step(0.0, lampUv.y) * step(lampUv.y, 1.0);
-outgoingLight += diffuseColor.rgb * texture2D(uLampField, clamp(lampUv, 0.0, 1.0)).r * lampIn * uLampNight * 0.45;
+float lampHeight = 1.0 - smoothstep(6.0, 14.0, vLampWorld.y); // street light does not reach the upper floors
+outgoingLight += diffuseColor.rgb * texture2D(uLampField, clamp(lampUv, 0.0, 1.0)).r * lampIn * lampHeight * uLampNight * 0.45;
 #include <opaque_fragment>`);
   };
-  material.customProgramCacheKey = () => (prevKey ? prevKey.call(material) : 'std') + '-lamp-field-v1';
+  material.customProgramCacheKey = () => (prevKey ? prevKey.call(material) : 'std') + '-lamp-field-v2';
 }

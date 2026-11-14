@@ -27,7 +27,7 @@ import { resetFloodlights } from './building-slice-materials.js';
 import { onLoadChange } from './load-progress.js';
 import { polishLandmarkMaterials } from './landmark-materials.js';
 import { createLandmarkEnv } from './landmark-env.js';
-import { towerGlass } from './building-kit.js';
+import { towerGlass, towerFacades } from './building-kit.js';
 import { buildVehicle } from './vehicles.js';
 import { planePose, smooth, PLANE_IN, PLANE_OUT, TURN_AT, HAZE } from './plane-path.js';
 import { createMood } from './mood.js';
@@ -207,6 +207,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   for (const material of [townhouseMaterials().architecture, townhouseMaterials().glass, roomGlassMaterial(), officeFacadeMaterials().glass]) landmarkEnv.register(material, { k: material.name==='slice-architecture'?.28:.40 });
   if (lampField) for (const material of [townhouseMaterials().architecture, townhouseMaterials().glass, roomGlassMaterial(), officeFacadeMaterials().glass]) applyLampField(material, lampField.uniforms);
   landmarkEnv.register(towerGlass, { k: 0.22 }); // tower facades: low-weight environment reflection, same map as the glass above
+  if (lampField) for (const material of towerFacades) applyLampField(material, lampField.uniforms); // after the landmark hook above, so the chain keeps it
   polishLandmarkMaterials(world,stops,pts,landmarkEnv);
   const motion = buildMotion(); scene.add(motion.group);
   const roadMarks = createRoadMarks(curve, stops, { ...arc, pilotCrossings });

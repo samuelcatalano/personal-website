@@ -32,6 +32,7 @@ const roofs = {
 };
 const glass = material('window-glass', P.glass, 0.26);
 export const towerGlass = facade.tower[0]; // scene.js registers it with the landmark environment at low weight
+export const towerFacades = facade.tower; // both tower-family materials (glass, blue); the lamp light field reaches them too
 const recess = material('window-recess', P.ink, 0.6);
 const frames = material('window-frame', P.offWhite);
 const trim = material('architectural-trim', P.londonStock);
