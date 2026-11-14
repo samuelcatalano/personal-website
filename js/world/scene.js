@@ -516,6 +516,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     vehicleFx.update(dt, { p: busPos, h: bus.rotation.y, len: hl, halfW: hl > 6 ? 1.3 : 0.95, speed: heroSpeed, rain: mood.rain ?? 0, cold: Math.min(1, (1 - (mood.rs ?? 0)) * 0.8 + night * 0.4), night, halfH: renderer.domElement.height / 2 });
     wetSurfaces.update(clock, wet, mood.rain, night, camera.position, sky.colors, bus.position, bus.rotation.y, post.tier);
     updateBeams(night); pools.update(night, wet); shopSpill.update(night, wet); lampPosts?.userData.setNight?.(night); if (lampField) lampField.uniforms.uLampNight.value = night; underpass.group.userData.setNight(night);
+    swapTunnel?.group.userData.setNight?.(night);
     water.update(clock, night, mood, post.tier, sky.colors, sky.sunDir);
     world.userData.updateLandmarkNight?.(night);
     updateVehicleEnv(night); landmarkEnv.update(night);

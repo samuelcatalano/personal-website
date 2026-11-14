@@ -17,11 +17,23 @@ function paving(half, kerb) {
     const l = (0.6 + rnd() * 0.6) * PX; g.fillStyle = tones[(rnd() * tones.length) | 0]; g.fillRect(x + 2, y + 2, l - 4, 0.6 * PX - 4); x += l;
   }
   for (const side of [-1, 1]) {
+    const bx = W / 2 + side * (half - 1.15) * PX, by = H / 2;
+    g.fillStyle = 'rgba(125,106,81,0.10)'; g.fillRect(bx - 0.9 * PX, by - 1.6 * PX, 1.8 * PX, 3.2 * PX);
+    g.strokeStyle = '#c3b79f'; g.lineWidth = 0.055 * PX; g.strokeRect(bx - 0.9 * PX, by - 1.6 * PX, 1.8 * PX, 3.2 * PX);
+    const px = W / 2 + side * (half - 1.05) * PX, pz = H / 2 + side * (kerb - 2.4) * PX;
+    g.strokeRect(px - 0.68 * PX, pz - 1.08 * PX, 1.36 * PX, 2.16 * PX);
+  }
+  for (const side of [-1, 1]) {
     const x = W / 2 + side * 1.2 * PX, band = 0.36 * PX;
     g.fillStyle = '#91887d'; g.fillRect(x - band / 2, 0, band, H);
     g.fillStyle = '#6d675e';
     for (let y = 0.6 * PX; y < H; y += 0.6 * PX) g.fillRect(x - band / 2, y - 1, band, 2);
   }
+  const routeY = H / 2, routeH = 0.11 * PX, routeX = 0.34 * PX;
+  g.fillStyle = '#63778c'; g.fillRect(routeX, routeY - routeH / 2, W / 2 - routeX, routeH);
+  g.fillStyle = '#a66c61'; g.fillRect(W / 2, routeY - routeH / 2, W / 2 - routeX, routeH);
+  g.fillStyle = '#d8cbb5'; g.fillRect(W / 2 - 1.5, routeY - routeH / 2, 3, routeH);
+  g.strokeStyle = '#c3b79f'; g.lineWidth = 0.07 * PX; g.strokeRect(0.36 * PX, 0.36 * PX, W - 0.72 * PX, H - 0.72 * PX);
   g.strokeStyle='#6d675e';g.lineWidth=.18*PX;g.strokeRect(.22*PX,.22*PX,W-.44*PX,H-.44*PX);
   const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
   return tex;
@@ -78,7 +90,7 @@ export function buildSwapPlaza({ half, kerb, y }) {
     for(const end of [-.95,.95]){legs.push([x,.25,end,.5,.42,.08]);legs.push([x+side*.32,.70,end,.075,.55,.075]);}
     containers.push([px,.05,z,1,.1,1.8]);
     for(const end of [-1,1]){containers.push([px+end*.44,.32,z,.12,.5,1.8]);containers.push([px,.32,z+end*.84,.76,.5,.12]);}
-    soil.push([px,.52,z,.76,.04,1.56]);plants.push([px,.55,z,.9,.48,1.5]);
+    soil.push([px,.52,z,.76,.04,1.56]);plants.push([px,.55,z,1.05,.68,1.5]);
     obstacles.push({kind:'bench',rect:{x0:x-.4,x1:x+.4,z0:-1.25,z1:1.25}});
     obstacles.push({kind:'planter',rect:{x0:px-.5,x1:px+.5,z0:z-.9,z1:z+.9}});
   }
@@ -91,7 +103,7 @@ export function buildSwapPlaza({ half, kerb, y }) {
   soil.forEach((_,i)=>woodBatch.setColorAt(seats.length+i,new THREE.Color(.35,.3,.25)));
   woodBatch.instanceColor.needsUpdate=true;
   batch('swap-plaza-benches-iron',iron,legs);batch('swap-plaza-planters',stone,containers);
-  const shrub=createPlantGeometry('shrub');geos.push(shrub);batch('swap-plaza-planting',leaf,plants,shrub);
+  const grass=createPlantGeometry('grass');geos.push(grass);batch('swap-plaza-planting',leaf,plants,grass);
   group.userData.obstacles=obstacles;
   const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 3.3, 12).translate(0, 1.65, 0), iron);
   const glass = new THREE.MeshStandardMaterial({ color: '#fff1c8', roughness: 0.25 }); mats.push(glass);
@@ -117,8 +129,8 @@ export function buildSwapPlaza({ half, kerb, y }) {
     });
     const edge = new THREE.MeshStandardMaterial({ color: b.rim, roughness: 0.6 }); mats.push(edge);
     // BoxGeometry faces: +x, -x, +y, -y, +z, -z; text on +-z (across the road), the blade's +x end points at its city (turned round for the west blade)
-    const m = new THREE.Mesh(new THREE.BoxGeometry(2, 0.5, 0.05), [edge, edge, edge, edge, faces[0].mat, faces[1].mat]);
-    m.position.set(b.dir * 1.08, y + b.h, 0); if (b.dir < 0) m.rotation.y = Math.PI; m.castShadow = true; group.add(m); geos.push(m.geometry);
+    const m = new THREE.Mesh(new THREE.BoxGeometry(2.16, 0.54, 0.05), [edge, edge, edge, edge, faces[0].mat, faces[1].mat]);
+    m.position.set(b.dir * 1.17, y + b.h, 0); if (b.dir < 0) m.rotation.y = Math.PI; m.castShadow = true; group.add(m); geos.push(m.geometry);
     return { ...b, faces };
   });
   const paint = () => {
