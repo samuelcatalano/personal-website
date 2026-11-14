@@ -83,6 +83,12 @@ export function buildNpcBodyAtlas(templates) {
     parts.forEach((p) => p.removeFromParent());
   });
 }
+// Frees the shared pedestrian texture arrays. Call once when the world is disposed, after the walkers are gone.
+export function disposeNpcBodyAtlas() {
+  if (!bodyTextures) return;
+  bodyTextures.big.dispose(); bodyTextures.small.dispose(); bodyTextures.normal.dispose();
+  bodyTextures = null;
+}
 // Per-walker tint for the merged body: the colour rules of the per-mesh tint in npc3d.js, chosen per vertex by kind.
 export function installBodyTint(mesh, { tee, hue, gain, chroma, hair }) {
   mesh.material = mesh.material.clone();

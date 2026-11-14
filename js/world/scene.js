@@ -50,6 +50,7 @@ import { updateBeams, addBeams, refitBeams } from './beams.js';
 import { createLampPools } from './lamps.js';
 import { createLampField, applyLampField } from './lamp-field.js';
 import { treeSun } from './authored-trees.js';
+import { disposeNpcBodyAtlas } from './npc-atlas.js';
 import { createPost } from './post.js';
 import { createVehicleFx } from './vehicle-fx.js';
 import { createRoadMarks } from './roadmarks.js';
@@ -580,6 +581,9 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       roadMarks.userData.dispose(); propsGroup?.userData.dispose();
       eye.userData.dispose?.();
       rain.dispose?.();
+      lampField?.texture.dispose(); // night light field: one R8 texture built at startup
+      disposeNpcBodyAtlas(); // pedestrian diffuse and normal arrays
+      scene.environment = null; // city sky map: owned by landmarkEnv, which is disposed below
       wetSurfaces.dispose(); vehicleFx.dispose(); water.dispose();
       weatherCover.dispose();
       sky.dispose();
