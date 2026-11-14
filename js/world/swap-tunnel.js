@@ -32,6 +32,12 @@ function parts({ dev, dash }) {
       if (!covered) {
         const side = Math.sign(z);
         s.wall.quad(V(a, 0.065, z - side * RETAINING_CAP), V(b, 0.065, z - side * RETAINING_CAP), V(b, 0.065, z), V(a, 0.065, z), V(0, 1, 0));
+        strip(s.dark, a, b, z < 0 ? z : z - 0.12, z < 0 ? z + 0.12 : z, 0.01);
+        const phase = Math.abs(m) - HALF;
+        if (phase > 1.25 && Math.abs((phase - 1.5) % 3) < 0.26) {
+          const jointZ = z - side * 0.012, bottom = y(m) + 0.08;
+          s.dark.quad(V(m - 0.015, bottom, jointZ), V(m + 0.015, bottom, jointZ), V(m + 0.015, 0.045, jointZ), V(m - 0.015, 0.045, jointZ), V(0, 0, o));
+        }
       }
     }
     for (const o of [-EDGE, EDGE]) line(s.white, a, b, o, 0.12);

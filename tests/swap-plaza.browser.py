@@ -26,7 +26,7 @@ result = js(r'''(async () => {
     check(mesh?.isInstancedMesh, 'both guardrails must share one instanced batch');
     check(plaza.group.getObjectByName('swap-plaza-benches-wood')?.count >= 16, 'two slatted benches share one wood batch');
     check(plaza.group.getObjectByName('swap-plaza-planters')?.isInstancedMesh, 'two low containers share one stone batch');
-    check(plaza.group.getObjectByName('swap-plaza-planting')?.count === 2, 'two low shrubs reuse existing plant geometry');
+    check(plaza.group.getObjectByName('swap-plaza-planting')?.count === 4, 'four low grass tufts form paired planter clumps');
     check(plaza.group.userData.obstacles?.filter(o=>o.kind==='bench').length===2, 'two bench footprints');
     check(plaza.group.userData.obstacles?.filter(o=>o.kind==='planter').length===2, 'two planter footprints');
     const floor = plaza.group.children.find(o=>o.geometry?.type==='PlaneGeometry'), paving = floor.material.map.image.getContext('2d');

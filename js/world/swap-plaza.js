@@ -9,7 +9,7 @@ function paving(half, kerb) {
   const W = Math.round(2 * half * PX), H = Math.round(2 * kerb * PX), cv = document.createElement('canvas'); cv.width = W; cv.height = H;
   const g = cv.getContext('2d');
   // York stone flags in courses of 0.6 m, random lengths, dark joints, over the whole plaza
-  g.fillStyle = '#6d675e'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#777269'; g.fillRect(0, 0, W, H);
   const tones = ['#b5ad9e', '#a9a294', '#bdb6a8', '#9e978a', '#b0a898'];
   let seed = 7;
   const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -26,15 +26,26 @@ function paving(half, kerb) {
   for (const side of [-1, 1]) {
     const x = W / 2 + side * 1.2 * PX, band = 0.36 * PX;
     g.fillStyle = '#91887d'; g.fillRect(x - band / 2, 0, band, H);
-    g.fillStyle = '#6d675e';
+    g.fillStyle = '#777269';
     for (let y = 0.6 * PX; y < H; y += 0.6 * PX) g.fillRect(x - band / 2, y - 1, band, 2);
   }
   const routeY = H / 2, routeH = 0.11 * PX, routeX = 0.34 * PX;
   g.fillStyle = '#63778c'; g.fillRect(routeX, routeY - routeH / 2, W / 2 - routeX, routeH);
   g.fillStyle = '#a66c61'; g.fillRect(W / 2, routeY - routeH / 2, W / 2 - routeX, routeH);
   g.fillStyle = '#d8cbb5'; g.fillRect(W / 2 - 1.5, routeY - routeH / 2, 3, routeH);
+  const cx = W / 2, cy = H / 2, medallion = 0.72 * PX, inlay = 0.5 * PX;
+  g.fillStyle = '#b5ad9e'; g.beginPath(); g.arc(cx, cy, medallion, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = '#91887d'; g.lineWidth = 0.045 * PX; g.stroke();
+  for (const [start, end, color] of [[Math.PI / 2, Math.PI * 1.5, '#63778c'], [-Math.PI / 2, Math.PI / 2, '#a66c61']]) {
+    g.fillStyle = color; g.beginPath(); g.moveTo(cx, cy); g.arc(cx, cy, inlay, start, end); g.closePath(); g.fill();
+  }
+  g.strokeStyle = '#d8cbb5'; g.lineWidth = 0.025 * PX; g.beginPath(); g.arc(cx, cy, inlay, 0, Math.PI * 2); g.stroke();
+  g.fillStyle = '#e2dacb';
+  for (const direction of [-1, 1]) {
+    g.beginPath(); g.moveTo(cx + direction * 0.43 * PX, cy); g.lineTo(cx + direction * 0.29 * PX, cy - 0.09 * PX); g.lineTo(cx + direction * 0.29 * PX, cy + 0.09 * PX); g.closePath(); g.fill();
+  }
   g.strokeStyle = '#c3b79f'; g.lineWidth = 0.07 * PX; g.strokeRect(0.36 * PX, 0.36 * PX, W - 0.72 * PX, H - 0.72 * PX);
-  g.strokeStyle='#6d675e';g.lineWidth=.18*PX;g.strokeRect(.22*PX,.22*PX,W-.44*PX,H-.44*PX);
+  g.strokeStyle = '#91887d'; g.lineWidth = 0.24 * PX; g.strokeRect(0.14 * PX, 0.14 * PX, W - 0.28 * PX, H - 0.28 * PX);
   const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
   return tex;
 }
@@ -59,7 +70,7 @@ export function buildSwapPlaza({ half, kerb, y }) {
   floor.position.y = y; floor.receiveShadow = true; group.add(floor); geos.push(floor.geometry); mats.push(floor.material);
   // fingerpost in the middle: iron post crowned by a heritage lantern (its glass glows at night through sky.js's glow loop; the light pool is
   // registered by city.js), two blades (west: São Paulo, east: London)
-  const iron = new THREE.MeshStandardMaterial({ color: '#23262b', roughness: 0.5, metalness: 0.6 }); mats.push(iron);
+  const iron = new THREE.MeshStandardMaterial({ color: '#34383d', roughness: 0.58, metalness: 0.45 }); mats.push(iron);
   // One batch for both portal edges; inset onto the coping so the sidewalk approaches stay open.
   const railLength = 2 * kerb - 0.1, barGaps = Math.ceil(railLength / 0.135), postGaps = Math.ceil(railLength / 2);
   const railGeo = new THREE.BoxGeometry(1, 1, 1), railCount = 2 * (barGaps + postGaps + 2);
@@ -87,10 +98,11 @@ export function buildSwapPlaza({ half, kerb, y }) {
     const x=side*(half-1.15),z=side*(kerb-2.4),px=side*(half-1.05);
     for(let i=0;i<5;i++)seats.push([x+(i-2)*.12,.46,0,.095,.08,2.4]);
     for(let i=0;i<3;i++)seats.push([x+side*.32,.68+i*.13,0,.08,.085,2.4]);
-    for(const end of [-.95,.95]){legs.push([x,.25,end,.5,.42,.08]);legs.push([x+side*.32,.70,end,.075,.55,.075]);}
+    for(const end of [-.95,.95]){legs.push([x,.25,end,.5,.42,.08]);legs.push([x+side*.32,.70,end,.075,.55,.075]);legs.push([x+side*.16,.69,end,.32,.065,.08]);}
     containers.push([px,.05,z,1,.1,1.8]);
     for(const end of [-1,1]){containers.push([px+end*.44,.32,z,.12,.5,1.8]);containers.push([px,.32,z+end*.84,.76,.5,.12]);}
-    soil.push([px,.52,z,.76,.04,1.56]);plants.push([px,.55,z,1.05,.68,1.5]);
+    soil.push([px,.52,z,.76,.04,1.56]);
+    plants.push([px,.55,z,side<0?.84:.88,.68,side<0?1.35:1.28],[px+side*.04,.55,z-side*.38,.55,.54,.76]);
     obstacles.push({kind:'bench',rect:{x0:x-.4,x1:x+.4,z0:-1.25,z1:1.25}});
     obstacles.push({kind:'planter',rect:{x0:px-.5,x1:px+.5,z0:z-.9,z1:z+.9}});
   }
@@ -100,6 +112,8 @@ export function buildSwapPlaza({ half, kerb, y }) {
     mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingBox();mesh.computeBoundingSphere();group.add(mesh);batches.push(mesh);return mesh;
   };
   const woodBatch=batch('swap-plaza-benches-wood',wood,[...seats,...soil]);
+  const plankColors=['#fff8ef','#f8ebd9','#fffdf9'].map(color=>new THREE.Color(color));
+  seats.forEach((_,i)=>woodBatch.setColorAt(i,plankColors[i%plankColors.length]));
   soil.forEach((_,i)=>woodBatch.setColorAt(seats.length+i,new THREE.Color(.35,.3,.25)));
   woodBatch.instanceColor.needsUpdate=true;
   batch('swap-plaza-benches-iron',iron,legs);batch('swap-plaza-planters',stone,containers);
