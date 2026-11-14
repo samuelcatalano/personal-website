@@ -58,6 +58,7 @@ export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {
     const { ratio, stage } = loadState(), value = ready ? 100 : Math.min(99, Math.round(ratio * 100)), ui = t().ui; // 100 is only shown once the whole city has settled
     root.dataset.ready = String(ready);
     leds.forEach((l, i) => l.classList.toggle('on', i < Math.round(value * LEDS / 100)));
+    skip.style.setProperty('--fill', `${value}%`); // the Start button fills with the same progress
     statusEl.setAttribute('aria-valuenow', String(value));
     statusText.textContent = ready ? ui.intro.loaded : `${loaded ? ui.intro.finishing : ui.intro.loadingBtn} · ${value}%`;
     stageEl.textContent = !ready && stage ? ui.intro.stages[stage] || '' : ''; // what is arriving now; outside the live region so a screen reader is not read every change

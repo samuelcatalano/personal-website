@@ -523,9 +523,10 @@ body.theme-night .detail .stamp { color: color-mix(in srgb, var(--city) 50%, #ff
   .panel .linkish { display: inline-flex; align-items: center; min-height: 44px; }
 }
 /* Boarding action opens only after the real city settles; progress is shown on its own line. */
-[data-intro-skip] { min-width: 232px; background: var(--ticket-red); color: #fff8ec; border-color: transparent !important; font-variant-numeric: tabular-nums; transition: background .4s ease, color .4s ease, border-color .4s ease; }
-[data-intro-skip]:disabled { background: transparent; color: var(--ticket-muted); border-color: var(--ticket-line) !important; cursor: progress; }
-[data-intro-skip]:not(:disabled) { animation: intro-ready .45s ease-out, cta-pulse 2.2s .45s ease-out 2; }
+[data-intro-skip] { min-width: 232px; background: var(--ticket-red); color: #fff8ec; border-color: transparent !important; font-variant-numeric: tabular-nums; transition: background .4s ease, color .4s ease, border-color .4s ease, --fill .6s ease-out; }
+/* while the city loads the button is the progress bar: a pale red fill grows inside it, and fills solid when it opens */
+[data-intro-skip]:disabled { background: linear-gradient(90deg, color-mix(in srgb, var(--ticket-red) 22%, transparent) var(--fill), transparent var(--fill)); color: var(--ticket-muted); border-color: color-mix(in srgb, var(--ticket-red) 40%, var(--ticket-line)) !important; cursor: progress; }
+[data-intro-skip]:not(:disabled) { animation: intro-ready .45s ease-out, cta-ring 1.2s .45s ease-out 1; }
 [data-intro-skip]:not(:disabled):hover, [data-intro-skip]:not(:disabled):focus-visible { background: #841920; color: #fff8ec; }
 #intro.bell [data-intro-skip]:disabled { background: var(--ticket-red); color: #fff8ec; border-color: transparent !important; animation: none; }
 @keyframes cta-pulse { 0% { box-shadow: 0 0 0 0 rgba(168, 32, 40, .45); } 70%, 100% { box-shadow: 0 0 0 12px rgba(168, 32, 40, 0); } }
@@ -634,3 +635,13 @@ body.ui-hidden #arrival { opacity: 0; }
 .controls [data-lang] { display: grid; place-items: center; }
 .controls .flag { width: 18px; height: 18px; } /* the same visual weight as the 16 px icons beside it */
 @media (prefers-reduced-motion: reduce) { .flag { transition: none; } [data-lang]:hover .flag, [data-lang]:active .flag { transform: none; } }
+
+/* Start button: the loading fill, the door light and a single ring when the doors are ready */
+@property --fill { syntax: '<percentage>'; inherits: false; initial-value: 0%; }
+[data-intro-skip] { display: inline-flex; align-items: center; justify-content: center; gap: 10px; }
+[data-intro-skip]::before { content: ''; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--ticket-line); transition: background .4s, box-shadow .4s; }
+[data-intro-skip]:not(:disabled)::before, #intro.bell [data-intro-skip]::before { background: #55e08f; box-shadow: 0 0 0 2px rgba(85, 224, 143, .28), 0 0 10px 1px rgba(85, 224, 143, .8); }
+[data-intro-skip]:not(:disabled)::before { animation: door-led 2.4s 1.8s ease-in-out infinite; }
+@keyframes door-led { 50% { opacity: .45; } }
+@keyframes cta-ring { 0% { box-shadow: 0 0 0 0 rgba(85, 224, 143, .7); } 100% { box-shadow: 0 0 0 16px rgba(85, 224, 143, 0); } }
+@media (prefers-reduced-motion: reduce) { [data-intro-skip]::before { animation: none !important; } [data-intro-skip] { transition: none; } }
