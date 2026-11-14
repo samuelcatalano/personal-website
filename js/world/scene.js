@@ -53,7 +53,7 @@ import { treeSun } from './authored-trees.js';
 import { createPost } from './post.js';
 import { createVehicleFx } from './vehicle-fx.js';
 import { createRoadMarks } from './roadmarks.js';
-import { loadVehicleAsset, adoptVisual, upgradeBus, upgradeMini, rollWheels, initVehicleEnv, updateVehicleEnv } from './vehicle-assets.js';
+import { loadVehicleAsset, adoptVisual, upgradeBus, upgradeMini, rollWheels, initVehicleEnv, updateVehicleEnv, setVehicleSkyEnv } from './vehicle-assets.js';
 import { RIVER_RUN } from './underwater-profile.js';
 import { createUnderpass, HX as UNDERPASS_HALF, W as UNDERPASS_WIDTH, H as UNDERPASS_HEIGHT } from './underpass.js';
 import { createUnderpassTraffic } from './underpass-traffic.js';
@@ -227,6 +227,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   let disposed = false, raf = 0, landmarksReady = false, startupLandmarksCancelled = false;
   const wetReflectionHidden = [];
   initVehicleEnv(renderer);
+  setVehicleSkyEnv(landmarkEnv.day, landmarkEnv.night); // same sky maps as the city environment
   upgradeMini(mini, { isDisposed: () => disposed }).then(() => {
     refitBeams(mini);
     // Brake discs share this chrome mesh and reflect as bright circles under the car.

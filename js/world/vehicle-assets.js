@@ -61,6 +61,7 @@ export const BUS_VARIANTS = {
 // prefiltered studio environment generated in-browser (no texture download). Only these materials get it, so the rest of
 // the scene keeps its approved look; intensity follows day/night (updateVehicleEnv).
 let envTex = null; const envMats = new Set(), physCache = new Map();
+let skyEnv = null; // sky-lit day/night maps from the landmark environment, once scene.js hands them over
 const rearLights = new Map();
 const frontLights = new Map();
 const parkedLenses = new Map();
@@ -71,8 +72,14 @@ export function initVehicleEnv(renderer) {
   const pm = new THREE.PMREMGenerator(renderer); envTex = pm.fromScene(new RoomEnvironment(), 0.04).texture; pm.dispose();
   for (const m of envMats) { m.envMap = envTex; m.needsUpdate = true; }
 }
+// Vehicles reflect the same sky the city uses (day or night map), instead of a generic room; the room map stays the fallback.
+export function setVehicleSkyEnv(day, night) { skyEnv = { day, night }; }
 export function updateVehicleEnv(night) {
   lampNight.value = night;
+  if (skyEnv) {
+    const want = night > 0.5 ? skyEnv.night : skyEnv.day;
+    for (const m of envMats) if (m.envMap !== want) m.envMap = want; // materials registered later get the same map on their next frame
+  }
   for (const m of envMats) m.envMapIntensity = m.userData.envDay * (1 - 0.94 * night);
   for (const [key, floor] of CAB_ENV_NIGHT) {
     const m = physCache.get(key); if (m) m.envMapIntensity = m.userData.envDay * (1 - night) + floor * night;
