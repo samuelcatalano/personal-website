@@ -12,7 +12,8 @@ print(js(r'''(async () => {
  const b = new T.Box3().setFromObject(src), size = b.getSize(new T.Vector3());
  check(Math.abs(b.min.y) < .005 && Math.abs(size.z - 3) < .01 && Math.abs(b.min.x + 2.9) < .01 && b.max.x > 2.9 && b.max.x < 3.25 && Math.abs(b.max.y - 7.90) < .04, `preserved footprint and taller traffic cone ${size.toArray()}`);
  const triangles = meshes.reduce((n,m) => n+(m.geometry.index?.count ?? m.geometry.attributes.position.count)/3,0);
- check(triangles < 18000, `controlled silhouette budget: ${triangles}`);
+ // Owner-authorized reference-led sculpt upgrade (2026-11-14); retain the three-renderable contract.
+ check(triangles < 100000, `detailed statue geometry budget: ${triangles}`);
  for(const m of meshes) {
   const {position,normal}=m.geometry.attributes; check(normal?.count===position.count && m.material.emissive.getHex()===0,'normals and no emission');
   for(let i=0;i<normal.count;i++) check(Math.abs(Math.hypot(normal.getX(i),normal.getY(i),normal.getZ(i))-1)<.01, 'unit normals');

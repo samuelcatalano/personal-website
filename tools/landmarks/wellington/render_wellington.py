@@ -1,8 +1,12 @@
 # blender -b --factory-startup -P render_wellington.py -- asset.glb output-dir
-import bpy,sys,os,math
+import bpy,sys,os,math,json
 from mathutils import Vector
 a=sys.argv[sys.argv.index('--')+1:];os.makedirs(a[1],exist_ok=True)
 bpy.ops.wm.read_factory_settings(use_empty=True);bpy.ops.import_scene.gltf(filepath=os.path.abspath(a[0]))
+objects=[o for o in bpy.context.scene.objects if o.type=='MESH']
+points=[o.matrix_world @ v.co for o in objects for v in o.data.vertices]
+for o in objects:o.data.calc_loop_triangles()
+print(json.dumps({'bytes':os.path.getsize(a[0]),'triangles':{o.name:len(o.data.loop_triangles) for o in objects},'bounds_blender':[[round(fn(p[k] for p in points),5) for k in range(3)] for fn in [min,max]]}))
 s=bpy.context.scene;s.render.engine='BLENDER_EEVEE';s.render.resolution_x=900;s.render.resolution_y=1050;s.render.resolution_percentage=100
 w=bpy.data.worlds.new('Studio');s.world=w;w.use_nodes=True;w.node_tree.nodes['Background'].inputs[0].default_value=(.31,.36,.41,1);w.node_tree.nodes['Background'].inputs[1].default_value=.8
 for name,pos,power,size in [('Key',(4,-7,12),1800,7),('Rim',(-5,3,10),1300,6)]:

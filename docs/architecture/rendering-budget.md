@@ -1,5 +1,9 @@
 # Rendering budget
 
+## Wellington quality and lossless delivery — 2026-11-14
+
+The authorized sculpt grows from 14,680 to 90,838 triangles, retaining three meshes/materials and no textures. Lossless delivery reduces the new 2,780,048-byte authored GLB to 1,636,452 bytes (−41.14% versus the new raw source; the old delivered asset was 415,008 bytes). A five-family facade fixture adds 140 triangles / 23,520 attribute bytes solely to the townhouse, keeping three calls per building. One ready-world matrix check reduces 16,526 → 3,593 multiplications with exact matrices. Fixed-high route timings do **not** establish an FPS gain: median 17.5 → 18.6 ms, p95 33.3 → 33.4 ms in one local pair. [Evidence and measurement limits](../audits/2026-11-14-wellington-facades-performance.md).
+
 ## Property character — 2026-11-14
 
 Normalized Uint16×4 identity adds 8 bytes per ordinary vertex without new textures, materials, lights or passes. A matched five-family fixture measures 63,202 → 63,554 triangles (+0.56%) and 9,200,088 → 10,777,608 attribute bytes (+17.15%), retaining three draw calls per fixture. These are geometry/buffer costs, not physical VRAM or a full-city frame-time result; short isolated timings were near timer resolution. [Method, scope and validation](../audits/2026-11-14-building-character.md).

@@ -143,7 +143,7 @@ const facadeDetail = quality => `
   }`;
 function metricAtlas(material, cityWalls = false, quality = false) {
   if(quality)material.defaultAttributeValues={...material.defaultAttributeValues,aBuilding:[0,0,0,0]};
-  material.customProgramCacheKey=()=> material.name+(cityWalls||material.name==='slice-glass-city'?'-metric-atlas-v11':'-metric-atlas-v8')+(quality?'-construction-v4-character':'')+(material.name==='slice-architecture'?'-world-grain-v1':'');
+  material.customProgramCacheKey=()=> material.name+(cityWalls||material.name==='slice-glass-city'?'-metric-atlas-v11':'-metric-atlas-v8')+(quality?'-construction-v5-entries':'')+(material.name==='slice-architecture'?'-world-grain-v1':'');
   material.onBeforeCompile=shader=>{
     if(quality){
       shader.vertexShader='attribute vec4 aBuilding; varying vec4 vBuilding;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvBuilding = aBuilding;');
@@ -240,7 +240,14 @@ ${GLASS_REFLECTION}`);
         float reflectionWeight=(0.38+grazing*0.36)*(1.0-uGlassNight*litWindow*${cityLighting?'0.68':'0.82'})*(0.8+0.4*sliceNoise(vFloodP.xz/13.0+31.0)); // per-building glass reflectivity
         vec3 paneTint=vColor.rgb/max(dot(vColor.rgb,vec3(.3333)),.01); // per-lot glass family tints the sky reflection too
         ${rooms?ROOM_INTERIOR:''}
-        outgoingLight=mix(outgoingLight,glassReflection(reflected,uGlassNight)*mix(vec3(1.0),paneTint,.85),reflectionWeight);
+        float frameContact=1.0;
+        ${rooms&&quality?`
+        if(vRoom.w>.01&&vBuilding.w>.1){
+          float edge=min(min(vRoom.x,1.0-vRoom.x)*4.0*vRoom.w,min(vRoom.y,1.0-vRoom.y));
+          float readable=1.0-smoothstep(.04,.12,max(fwidth(vRoom.x),fwidth(vRoom.y)));
+          frameContact=1.0-.20*(1.0-smoothstep(.012,.07,edge))*readable;
+        }`:''}
+        outgoingLight=mix(outgoingLight,glassReflection(reflected,uGlassNight)*mix(vec3(1.0),paneTint,.85)*frameContact,reflectionWeight);
         ${office?OFFICE_RECESS:''}
         #include <opaque_fragment>`);
     }

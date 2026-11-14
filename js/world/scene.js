@@ -100,6 +100,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   await prepareArchitectureMaterials();
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene();
+  // The identity root must not force frozen descendants to multiply world matrices every frame.
+  scene.matrixAutoUpdate = false;
   scene.background = new THREE.Color(0xa8d0f2);
   scene.fog = new THREE.Fog(0xa8d0f2, 240, 900);
   const camera = new THREE.PerspectiveCamera(40, 1, 1, 1400);

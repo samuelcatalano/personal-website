@@ -35,7 +35,7 @@ export function finishArchitecture(geometries, plot, kind, recipe = {}, level = 
   const out={position:[],normal:[],uv:[],aSurface:[],color:[]};
   const commercial=kind==='office'||kind==='tower', templates=new Map();
   const character=buildingCharacter(plot,kind,recipe.region??regionForPlot(plot));
-  const exposure=exposedFaces(plot,neighbors),details={curtains:0,wallPatches:0,roofServices:0};
+  const exposure=exposedFaces(plot,neighbors),details={curtains:0,wallPatches:0,roofServices:0,entries:0};
   if(recipe.exposedWest===false)exposure.west=false;if(recipe.exposedEast===false)exposure.east=false;
   if(recipe.exposedBack===false)exposure.back=false;
   const up=new THREE.Vector3(0,1,0),across=new THREE.Vector3(),normal=new THREE.Vector3(),center=new THREE.Vector3(),matrix=new THREE.Matrix4();
@@ -116,6 +116,16 @@ export function finishArchitecture(geometries, plot, kind, recipe = {}, level = 
     normal.fromBufferAttribute(mn,q);
     let x0=Infinity,x1=-Infinity,y0=Infinity,y1=-Infinity,z0=Infinity,z1=-Infinity;
     for(let j=q;j<q+6;j++){x0=Math.min(x0,mp.getX(j));x1=Math.max(x1,mp.getX(j));y0=Math.min(y0,mp.getY(j));y1=Math.max(y1,mp.getY(j));z0=Math.min(z0,mp.getZ(j));z1=Math.max(z1,mp.getZ(j));}
+    // Dress the existing opaque front leaf, never a glazed opening or a shared wall.
+    if(kind==='townhouse'&&ms.getX(q)===S.door&&normal.z>.99&&exposure.front&&details.entries===0&&y0>=.02&&y0<.4&&y1-y0>1.5&&y1-y0<2.8&&x1-x0>.65&&x1-x0<1.8){
+      const w=x1-x0,h=y1-y0,cx=(x0+x1)/2;
+      const columns=character.curtain===2?2:1;
+      for(const row of [.28,.72])for(let col=0;col<columns;col++)profile(cx+(col-(columns-1)/2)*w*.38,y0+h*row,z1+.018,w*(columns===1?.70:.30),h*.32,.025,S.door,[1.10,1.08,1.04]);
+      profile(cx,y0+h*.59,z1+.043,w*.30,.038,.028,S.trim,[.54,.43,.25]);
+      profile(x1-w*.14,y0+h*.47,z1+.055,.025,.17,.055,S.trim,[.48,.40,.26]);
+      profile(cx,y0-.045,z1+.055,w+.09,.065,.22,S.stone,[.86,.84,.78]);
+      details.entries++;
+    }
     const area=(x1-x0)*(z1-z0);
     if(normal.y>.99&&ms.getX(q)===S.roof&&x1-x0>2&&z1-z0>2&&y0>plot.height*.6&&y1-y0<.002&&(!roof||area>roof.area||area===roof.area&&y0>roof.y))roof={x0,x1,z0,z1,y:y0,area};
     if(kind==='townhouse'&&normal.y>.99&&y0>(recipe.eaves??plot.height)&&y1<plot.height-.06&&x1-x0>.2&&x1-x0<1&&z1-z0>.2&&z1-z0<1)chimney={x0,x1,z0,z1,y:y0};

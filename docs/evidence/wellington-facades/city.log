@@ -1,0 +1,13 @@
+ok /tmp/wellington-facade-performance/city/5-day.png
+{'errors': [], 'failed': 0, 'gl': 0, 'plots': 739}
+ok /tmp/wellington-facade-performance/city/9.5-day.png
+{'errors': [], 'failed': 0, 'gl': 0, 'plots': 739}
+ok /tmp/wellington-facade-performance/city/11-day.png
+{'errors': [], 'failed': 0, 'gl': 0, 'plots': 739}
+ok /tmp/wellington-facade-performance/city/5-night.png
+{'errors': [], 'failed': 0, 'gl': 0, 'plots': 739}
+ok /tmp/wellington-facade-performance/city/9.5-night.png
+{'errors': [], 'failed': 0, 'gl': 0, 'plots': 739}
+ok /tmp/wellington-facade-performance/city/11-night.png
+{'errors': [], 'failed': 0, 'gl': 0, 'plots': 739}
+grid /tmp/wellington-facade-performance/city/grid.png

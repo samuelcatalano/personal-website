@@ -1,0 +1,8 @@
+wellington
+{'passed': True, 'triangles': 90838, 'renderables': 3, 'materials': 3, 'bounds': [[-2.9000000953674316, 0, -1.5], [2.931748390197754, 7.900000095367432, 1.5]]}
+facade-entries
+{'pass': True, 'entries': 1, 'trimVertices': 16404}
+building-character
+{'pass': True, 'results': [{'kind': 'townhouse', 'trimVertices': 17172, 'occupancyGroups': 3, 'details': {'curtains': 2, 'wallPatches': 0, 'roofServices': 0, 'entries': 1}}, {'kind': 'shop', 'trimVertices': 17832, 'occupancyGroups': 5, 'details': {'curtains': 0, 'wallPatches': 1, 'roofServices': 1, 'entries': 0}}, {'kind': 'midrise', 'trimVertices': 39798, 'occupancyGroups': 4, 'details': {'curtains': 0, 'wallPatches': 0, 'roofServices': 0, 'entries': 0}}, {'kind': 'office', 'trimVertices': 36348, 'occupancyGroups': 4, 'details': {'curtains': 0, 'wallPatches': 0, 'roofServices': 1, 'entries': 0}}, {'kind': 'tower', 'trimVertices': 61548, 'occupancyGroups': 4, 'details': {'curtains': 0, 'wallPatches': 0, 'roofServices': 0, 'entries': 0}}]}
+ordinary-finish
+{'pass': True, 'hashes': {'map': 1485052815, 'normalMap': 4103241495, 'roughnessMap': 3868138199}, 'ordinaryResolution': 1024, 'trimVertices': 17340}

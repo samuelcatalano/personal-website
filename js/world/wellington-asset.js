@@ -1,8 +1,9 @@
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 // The module owns the cached geometry/materials; worlds own only their cloned roots.
 let source;
 export function loadWellingtonAsset() {
-  return source ??= new GLTFLoader().loadAsync(new URL('../../assets/landmarks/wellington.glb', import.meta.url).href)
+  return source ??= new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(new URL('../../assets/landmarks/wellington.glb?v=sculpt2-lossless1', import.meta.url).href)
     .then(g => g.scene).catch(() => null);
 }
 export async function upgradeWellington(group, isDisposed, pending = loadWellingtonAsset()) {

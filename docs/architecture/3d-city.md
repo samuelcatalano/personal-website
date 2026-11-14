@@ -1,5 +1,9 @@
 # 3D city architecture
 
+## Wellington and facade finish — 2026-11-14
+
+The original three-mesh Wellington uses verified lossless Meshopt delivery and the existing Three.js decoder, cached source ownership and procedural fallback. Entry trim remains in existing architecture buckets; window contact reuses the room shader. The identity scene root no longer recomposes itself and forces frozen descendants; the explicit world-matrix pass and animated-node propagation remain. No plot, route or runtime quality-setting change. [Validation and limits](../audits/2026-11-14-wellington-facades-performance.md).
+
 ## Property character — 2026-11-14
 
 Owner authorized all seven proposed building/house refinements. The pre-merge finish carries stable packed lot metadata through ordinary procedural, legacy, kit and near/far paths. Shared materials use it for wear and coherent room/floor occupancy; bounded detail remains inside existing plots and excludes shared walls. No descriptor, map, route, landmark, principal roof, material bucket or renderer change. [Scoped implementation, costs and checks](../audits/2026-11-14-building-character.md).

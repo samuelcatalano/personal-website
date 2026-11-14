@@ -1,5 +1,9 @@
 # 3D city art direction
 
+## Wellington and facade contact — 2026-11-14
+
+Owner selected a reference-led original Wellington sculpt: fuller equine anatomy, lifted far forehoof, uniform/tack detail, bronze vertex patina and original abstract pedestal reliefs. Existing placement/cone remain. Ordinary townhouse doors gain bounded raised panels, metal hardware and thresholds; valid ordinary room windows gain distance-faded frame contact in their reflection only. [Comparisons, references and limits](audits/2026-11-14-wellington-facades-performance.md).
+
 ## Per-property character — 2026-11-14
 
 Owner approved all seven architecture refinements: stable property identity/materials, grouped night occupancy, selective household finish, distinct shop displays, supported roof details and exposed-wall repairs. Existing townhouse language, principal forms and regional composition remain. Details reuse the three existing buckets and shared atlas; canopies/railings/signs preserve their own lighting role. [Implementation, comparisons and validation limits](audits/2026-11-14-building-character.md).
