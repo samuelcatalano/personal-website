@@ -1,5 +1,9 @@
 # 3D city architecture
 
+## Property character — 2026-11-14
+
+Owner authorized all seven proposed building/house refinements. The pre-merge finish carries stable packed lot metadata through ordinary procedural, legacy, kit and near/far paths. Shared materials use it for wear and coherent room/floor occupancy; bounded detail remains inside existing plots and excludes shared walls. No descriptor, map, route, landmark, principal roof, material bucket or renderer change. [Scoped implementation, costs and checks](../audits/2026-11-14-building-character.md).
+
 ## Bridge exit streets — 2026-11-13
 
 Owner selected streets curving behind blocks in London/Glasgow, superseding the trial portals, then extended that concept to Estaiada. Shared centerlines drive merged street geometry and traffic. Two London cottages and four São Paulo source centres were repositioned without changing IDs/counts/envelopes/RNG order. Original bridge profiles, Estaiada's 65 deck stations, main route and bus/boat apertures remain. Existing buckets/materials are reused. [Desktop validation, geometry costs and known inherited test mismatch](../audits/2026-11-13-bridge-exit-streets.md).

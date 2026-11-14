@@ -77,7 +77,7 @@ export function rolloutRecipe(p,kind,neighbors=[p]){
 export function building(p,kind,neighbors,level=0){
   const recipe=rolloutRecipe(p,kind,neighbors);
   const h=kind==='townhouse'?createTownhouseSlice(p,recipe,level):kind==='shop'?createShopSlice(p,neighbors,recipe):kind==='midrise'?createMidriseSlice(p,recipe):kind==='office'?createOfficeSlice(p,recipe):createTowerSlice(p,recipe);
-  const geometries=finishArchitecture(h.children.map(m=>m.geometry),p,kind,recipe,level);
+  const geometries=finishArchitecture(h.children.map(m=>m.geometry),p,kind,recipe,level,neighbors);
   h.children.forEach((m,k)=>m.geometry=geometries[k]);
   return h;
 }
@@ -86,7 +86,7 @@ const KIT_ON=!(typeof location!=='undefined'&&/[?&]kit=off\b/.test(location.sear
 const kitLot=(p,kind)=>KIT_ON&&kind==='townhouse';
 function houseGeometries(p,kind,neighbors,cell,level,modules) {
   let geometries;
-  if(modules&&level===0&&kitLot(p,kind)){geometries=modularGeometry(p,rolloutRecipe(p,kind,neighbors),modules,true);finishArchitecture(geometries,p,kind,rolloutRecipe(p,kind,neighbors));tint({children:geometries.map(geometry=>({geometry}))},p);}
+  if(modules&&level===0&&kitLot(p,kind)){geometries=modularGeometry(p,rolloutRecipe(p,kind,neighbors),modules,true);finishArchitecture(geometries,p,kind,rolloutRecipe(p,kind,neighbors),0,neighbors);tint({children:geometries.map(geometry=>({geometry}))},p);}
   else{const h=building(p,kind,neighbors,level);tint(h,p);geometries=h.children.map(m=>m.geometry);}
   geometries.forEach(g=>{if(!g.hasAttribute('aFlutter'))g.setAttribute('aFlutter',new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count),1));g.translate(p.x-cell.x,0,p.z-cell.z);});
   return geometries;

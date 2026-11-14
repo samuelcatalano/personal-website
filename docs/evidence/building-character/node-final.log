@@ -1,0 +1,433 @@
+✔ the authored A330 cockpit glazing sits lower on the nose (2.977333ms)
+(node:80125) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/content.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ citywide architecture migration is deterministic, batched by plot, and keeps landmark fronts clear (253.978291ms)
+(node:80126) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/audio/state.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ every gain stays finite and inside 0..1 across the input corners (2.697708ms)
+✔ dry weather is silent rain; more rain is louder, brighter and denser (0.1195ms)
+✔ city beds crossfade by region and dim at night (0.070291ms)
+✔ the engine follows speed, and a tunnel dulls the outside while the engine grows (0.056291ms)
+✔ without the 3D world only the ambience and the weather play (0.075834ms)
+✔ the plane is heard only around its flyby, pans across and drops in pitch (0.065334ms)
+✔ near, fires and the voice caps (0.086792ms)
+✔ thunder arrives later, fainter and duller from farther away (0.076041ms)
+✔ the door hisses once per arrival, and bells toll once per approach (0.414125ms)
+✔ bus levels cover the engine buses, and the Sound label exists in both languages (0.272625ms)
+(node:80127) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/content.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ backdrop generation and facade modules are deterministic (102.076792ms)
+✔ all visible neighborhood bands have recessed, framed facade openings (78.549417ms)
+✔ urban masses vary and preserve the museum corridor and foreground clearance (62.142875ms)
+✔ Riverside rear corridor has varied masses across the depth bands without moving outside scenery (26.72775ms)
+✔ local foundations and neighborhood paving support the backdrop (63.047375ms)
+✔ distant walls are not steel blue (21.2565ms)
+✔ Thames boat foam uses hull-shaped bounds and a narrow band separate from pier foam (0.906ms)
+(node:80129) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/world/bridge-exits.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ both directions recycle while hidden behind the rear block (0.394417ms)
+✔ street joins the far end and curves behind the existing rear rows (0.444292ms)
+(node:80130) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/world/building-character.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ property identity is stable across world position and recipe rebuilds (0.850458ms)
+✔ occupancy groups neighbouring panes into rooms and office floors (0.84975ms)
+✔ shared walls are suppressed across chunk boundaries and neighbours order (0.1035ms)
+✔ regional material and door combinations retain deterministic local identity (0.1205ms)
+✔ residential room groups vary along one facade while offices share their floor (0.094041ms)
+(node:80131) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/content.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ en and pt have identical keys (2.214208ms)
+✔ recommendations nav label equals its panel title in both languages (0.088125ms)
+✔ hero has an availability line in both languages (0.075625ms)
+✔ no empty strings (0.141208ms)
+✔ every stop has a known section and journey stops have copy (0.072292ms)
+✔ journey is chronological and stop ids unique (0.079958ms)
+✔ sections appear in SECTIONS order (0.071042ms)
+✔ noscript fallback lists every link, article and repo from content.js (0.193541ms)
+✔ CV download is a real PDF with no address or phone, and both languages label it (99.383292ms)
+✔ no private data in served files (33.877625ms)
+✔ journey stops have a brand monogram, except the move stop (0.184209ms)
+✔ move stop sits between reclame and millimetric, UK 2019, no brand (0.060542ms)
+✔ move stop has EN and PT journey copy (0.035291ms)
+✔ OLM is split between London and Glasgow with accurate dates and residence context (0.149959ms)
+✔ no airport landmark; the UK region starts at the move stop (0.040209ms)
+✔ every clickable landmark jumps to a real stop (0.140542ms)
+✔ hero states what Samuel does and quotes a real recommendation; contact offers reasons with subjects (0.088708ms)
+✔ stack stations link to the journey stops whose copy names the tool (0.396333ms)
+✔ every credited model is recorded in ASSET_SOURCES.md with its author and licence (0.617292ms)
+✔ JSON-LD Person matches the site links (0.190292ms)
+✔ first visit follows browser language and defaults to light; stored choices win (1.253041ms)
+(node:80132) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/world/crowd.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ plan is deterministic, defaults to 1000, and preserves the 600-person plan (10.65775ms)
+✔ heights, children and hair rules (1.471584ms)
+✔ runtime crowd walking speeds fit the adult and child clip limits (2.416292ms)
+✔ at least 6 skin tones in the plan, all from SKIN (0.13025ms)
+✔ lanes: both directions on each side, offsets on the sidewalk (0.192459ms)
+✔ plaza loops stay 5.6 m clear of the road (0.807416ms)
+✔ Sé plaza has pedestrians walking both ways below the cathedral stairs (1.011417ms)
+✔ dedicated wander corridors all carry walkers in both directions (0.7905ms)
+✔ hero garden carries a busy counterflow on both paved central paths (0.858792ms)
+✔ Estaiada riverbanks carry counterflow inside the marked paving, clear of the bridge and planters (4.309375ms)
+✔ London hotspots lead the fixed overflow while existing plazas stay denser than ordinary paths (5.480541ms)
+✔ London pedestrian routes keep safe bounds and counterflow spacing across seeds (1844.93775ms)
+✔ plaza cells: the MASP plaza and George Square hold a busy crowd (MASP 25-60, George Square 13) (0.678916ms)
+✔ plaza cells stand clear of grass beds, tree trunks, the Wellington plinth and the park boxes (17.400125ms)
+✔ swap-plaza walkers are evenly spaced around the full circulation loop (0.841583ms)
+(node:80133) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/world/backdrop.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ distant backdrop combines varied mass profiles with geometric facade depth (41.861709ms)
+(node:80134) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/world/flags.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ saltire: white centre and diagonals, blue edges (0.389292ms)
+✔ union jack: red centre cross, white border, blue field (0.066417ms)
+✔ flags stay under 50 boxes (0.109833ms)
+✔ toyota-corolla: catalog axles match the tyre geometry (1 mm) (0.757083ms)
+✔ vw-t-cross: catalog axles match the tyre geometry (1 mm) (0.059917ms)
+✔ nissan-qashqai: catalog axles match the tyre geometry (1 mm) (0.061958ms)
+✔ honda-hr-v: catalog axles match the tyre geometry (1 mm) (0.045333ms)
+✔ land-rover-range-rover: catalog axles match the tyre geometry (1 mm) (0.042334ms)
+✔ mercedes-e63-amg-s-wagon: catalog axles match the tyre geometry (1 mm) (0.035875ms)
+(node:80136) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/world/country.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ country pocket gardens use deterministic low planting at their existing edges (58.095125ms)
+(node:80137) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/content.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ the three marked gaps beside the starting park have low buildings (157.423291ms)
+✔ Wembley front stays open and two towers stand to its west (108.89425ms)
+✔ Sé forecourt stays clear of city buildings on both sides of the road (107.626542ms)
+✔ Sé has a broad staircase rising continuously to its central doorway (0.673083ms)
+✔ Sé has pale verdigris spires and a rounded dome instead of square tiers (0.257083ms)
+✔ generated city buildings stay out of the Glasgow landmark footprint (97.626916ms)
+✔ the civic skyline stays below landmark silhouettes on the London stretch and around Glasgow, and only owner-marked infill occupies the former country gaps (87.116375ms)
+✔ no generic block overlaps the museum or the university hill (53.462625ms)
+✔ Riverside expansion reserves its enlarged envelope and removes only the adjacent house lot (32.938292ms)
+✔ nothing tall sits behind the Riverside Museum (countryside hills and the University plinth excepted) (72.669333ms)
+(node:80138) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/world/riverside.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Riverside Museum fits its footprint, has a zigzag with a spike peak (0.732042ms)
+✔ University main building: tower is tallest, centred, within footprint (0.363375ms)
+(node:80139) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/world/glasgow.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Glasgow builds George Square on the far side of its road anchor (1.065875ms)
+✔ Glasgow includes the Duke of Wellington horse, rider, and traffic cone (0.249583ms)
+✔ Glasgow exit keeps a varied row of houses and midrise tenements (1.236209ms)
+✔ Glasgow edge lots do not overlap country street lots (156.6265ms)
+(node:80140) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/world/mood.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ entry atmosphere fades back to the regional controls (0.924833ms)
+✔ golden-hour key dominates a cooler fill (North Star contrast) (0.167792ms)
+(node:80149) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/world/parks.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ hero replacement is opt-in, local, and preserves every tree and later RNG placement (93.123375ms)
+✔ hero realm uses shared low planting and preserves its obstacle records (0.301417ms)
+✔ hero garden retains thirteen trees and the previously open central forecourt (26.461375ms)
+(node:80150) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/world/houses.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ house roof profiles vary deterministically within the existing footprint (13.972042ms)
+✔ street windows expose glass between the sash rails instead of a solid white panel (0.578167ms)
+(node:80151) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/intro.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ the preview advances and reverses without leaving the route (0.399042ms)
+✔ the toy bus walks the 12 journey stops and the blind labels them (0.424083ms)
+✔ load progress counts finished requests and names the latest pending stage (0.1885ms)
+✔ auto-ride resumes at the next stop ahead and restarts after the last (0.060166ms)
+✔ auto-ride travel time is bounded (0.854208ms)
+✔ lamp field peaks at a lamp, fades with distance and is zero beyond its reach (1.130333ms)
+✔ no lamps means no field (0.060417ms)
+(node:80153) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/world/layout.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ furnitureSpots: one sign anchor per stop, former plaque clearance only with a brand (0.759167ms)
+(node:80154) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/scroll.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ progress clamps and handles short pages (1.127167ms)
+✔ nearestStop maps ends to first and last (0.175417ms)
+✔ routeT maps scroll continuously and uniformly onto the route (0.2915ms)
+✔ spring gives nearly the same result mid-motion at 30, 60 and 120 Hz (0.315333ms)
+✔ scrollYForStop is the inverse of nearestStop (0.398875ms)
+✔ prefs default and survive throwing storage (1.018333ms)
+✔ route has one point per stop, increasing x (0.336417ms)
+✔ every landmark is anchored to an existing stop (0.121458ms)
+✔ Glasgow landmark is anchored between the OLM and Tribal stops (0.162458ms)
+✔ scotRange starts after the OLM stop and ends where the Scottish edge ends on the way back (0.74725ms)
+✔ Tower Bridge sits after the Eye, before the lower terraces; out-leg countryside is >= 80 m; the river runs past Glasgow (0.145375ms)
+✔ rng is deterministic (0.080208ms)
+✔ every section has a shot kind (0.035209ms)
+✔ shotFor returns finite vectors for every kind (0.166542ms)
+✔ blendShots hits endpoints and arcs at the middle (0.323375ms)
+✔ blendShots eases camera framing at transition boundaries (0.297708ms)
+✔ blendShots turns the short way round (0.107458ms)
+✔ spring snaps on dt <= 0 and converges without overshoot (0.205792ms)
+✔ spring reverses an in-flight scroll and converges inside the progress range (0.337708ms)
+✔ approach moves at most rate*dt and reverses smoothly (0.129333ms)
+✔ follow shot is unchanged without lift (0.14ms)
+✔ landmark framing preserves mobile shots and gives London a separate desktop angle (0.253667ms)
+✔ lift raises the aim and pulls the camera back for tall landmarks (0.070125ms)
+✔ nextTier drops high to medium on low fps and never climbs (0.0485ms)
+✔ former Glasgow countryside is paved and urban, with no turbines or field hills (25.245459ms)
+✔ outskirts: each former-countryside stretch is built up with houses, and nothing sits on the road band (2.125834ms)
+✔ countryside rear infill is stable, bounded, clear of existing plots, and still draws without a callback (3.688709ms)
+✔ swapAt derives from the first UK stop (0.303042ms)
+(node:80155) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/content.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ clear-weather mood preserves warm entry cities and muted Glasgow sky (0.937917ms)
+✔ mood is continuous across every boundary (21.895458ms)
+✔ output object is reused (0.188125ms)
+✔ runtime climate transitions ease colour and rain while reduced motion snaps (5.812167ms)
+✔ weather data blends continuously with regional mood (8.708917ms)
+✔ rainy palettes apply at entry and in each city with darker light and shorter fog (0.282958ms)
+✔ default mood factories use the same visit weather (0.211625ms)
+(node:80156) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/world/npc-motion-state.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ failed NPC loading returns a safe unit (2.187958ms)
+✔ a loaded NPC pack returns an updatable unit and exposes no diagnostics (1.057458ms)
+✔ a stalled NPC load times out and ignores a late result (0.627666ms)
+✔ a failed NPC assembly removes partial objects (0.603292ms)
+✔ partial walker assembly removes walkers and disposes shared assets once (1.496209ms)
+✔ camera jumps use the current crowd and hide walkers with no visible candidate (2.258ms)
+✔ an in-frustum owner beyond the pool distance releases its slot to a nearby visible NPC (1.485292ms)
+✔ measured NPC clips keep scale-adjusted stride inside the playback cap for each rig (0.754334ms)
+✔ the desktop NPC pool targets thirty percent children and balances adult genders (0.534792ms)
+✔ an incompatible adult candidate does not block a later child from using its free rig slot (4.124917ms)
+✔ QA diagnostics expose crowd identity, representation, slot and ownership events only when requested (2.359667ms)
+(node:80157) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/world/npc-motion-state.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ distant animation samples time at the same rate across display frame rates (2.330625ms)
+✔ near bodies animate every frame and a new pool owner resets the deadline (0.123625ms)
+✔ slow frames do not build a backlog of extra skeletal updates after recovery (0.079541ms)
+✔ motion profiles are stable and change upper-body posture rather than leg stride (0.097084ms)
+(node:80158) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/world/palette.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ palette values are lowercase #rrggbb (0.84775ms)
+✔ landmarks and city only use palette or approved colours (0.356583ms)
+✔ palette preserves the approved city art-pass tones (0.113041ms)
+(node:80159) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/content.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ each public repository has concise descriptions in both languages (3.904834ms)
+✔ journey labels its most recent existing stop in both languages (0.125417ms)
+(node:80160) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/world/parks.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ park rects keep clear of the pedestrian plaza loops (3 m incl. railings) (0.4985ms)
+✔ park rects are big enough, do not overlap each other and stay off the road band (0.105166ms)
+✔ park colours exist in the palette (0.125083ms)
+✔ Sé plaza uses stone paving and stays aligned with its pedestrian loop (35.865125ms)
+✔ plaza ring covers the walking inset; obstacles stay >= 2.4 m inside the loop rects (58.744292ms)
+✔ tree renderer receives every park tree without changing layout (58.945083ms)
+✔ park planting records replace only their old boxes and keep stable tree and path clearances (559.9595ms)
+✔ Wembley benchmark trees stay inside the existing park and outside paths and building lots (14.885125ms)
+✔ larger lawn parks have a low paved edge outside walking loops (14.966458ms)
+✔ lawn greens: each park picks patch or hill by a stable hash, both occur, and the choice repeats (31.953916ms)
+✔ approaching walkers yield before contact and resume without leaving their paths (17.720625ms)
+✔ nearby parallel companions match pace without changing their paths (6.324542ms)
+✔ a walker watching the stopped bus really stops instead of drifting with a frozen gait (15.697125ms)
+✔ a frozen crowd (reduced motion) keeps its route positions; a moving one advances (3.157417ms)
+✔ standing pairs keep their position and facing while nearby walkers separate (9.105208ms)
+✔ rounded loop is deterministic, stays in its rectangle, and keeps position and heading continuous (1.498625ms)
+✔ lane turns cap overspeed and keep the walk pace matched to route distance (2.530416ms)
+✔ every walker stays in the simulation at any distance, so none vanishes with the camera (1.841583ms)
+✔ walkers far from the camera keep walking (2.7455ms)
+✔ separation eases out between 140 and 150 m instead of jumping at the edge (26.623125ms)
+✔ a walker squeezed under an arch is hidden inside its clear opening, not by distance (1.154208ms)
+(node:80162) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/world/plane-path.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+minimum clearance 12.2 m
+✔ the A330 never touches anything the scene renders under its footprint (12.986708ms)
+✔ the A330 flies smoothly, level and stays below the frame top while receding (6.859917ms)
+✔ index.html preloads exactly the static module graph (regenerate with node tools/preload-list.mjs) (10.236542ms)
+✔ loading status exists and the panel is not a fake interactive region (0.175459ms)
+(node:80164) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/content.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ three low west-side infill lots clear neighbors and render in both architecture modes (128.683084ms)
+✔ green-marked opening fits five more houses and two taller buildings without overlaps (100.150666ms)
+✔ confirmed foreground offices keep their capped mass, descriptor and RNG stream (0.263958ms)
+✔ pilot plots replace three procedural buildings (98.024291ms)
+✔ pilot descriptor kinds match their source building forms (38.923875ms)
+✔ pilot plots clear protected landmark and route regions (29.288208ms)
+✔ architecture callback replaces the city blocks while preserving safe plots (57.356916ms)
+✔ reference LOD keeps its state across the hysteresis bands (1.789209ms)
+✔ reference LOD handles a camera jump and returns from culling (0.470334ms)
+✔ a failed LOD load disposes the other completed resources (1.139625ms)
+✔ landmark environment releases temporary scenes and both targets once (1.479625ms)
+✔ postprocessing releases each pass and composer once (2.179542ms)
+(node:80167) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/content.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ rear infill adds varied low buildings behind every landmark and clears the museum (64.646208ms)
+✔ start-side neighborhood fills marked gaps while the park-side shop stays removed (80.169583ms)
+(node:80168) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/scroll.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ navLock passes nearest through when idle (7.056083ms)
+✔ navLock holds back intermediate stops until the target is reached (0.08575ms)
+✔ navLock keeps only the latest target (0.059292ms)
+✔ navLock.clear releases the hold (0.04975ms)
+✔ stopMarks are cumulative distance shares (0.382625ms)
+✔ routeT with marks lands stops on i/(n-1), is monotonic (0.913958ms)
+✔ metres per progress is uniform across short and long segments (0.122542ms)
+✔ nearestStop with marks picks the closest mark (0.0825ms)
+✔ scrollYForStop with marks round-trips through nearestStop (0.084667ms)
+✔ fineMarks equalises speed inside a segment and keeps stop marks (0.333083ms)
+✔ view offset eases (never snaps) when the panel resizes between sections (0.2445ms)
+✔ cached asset returns immediately and keeps the event alive through the cache write (17.197042ms)
+✔ network failure keeps the cached fallback for assets and code (0.876375ms)
+✔ slow code requests fall back to cache after four seconds (0.3565ms)
+✔ cache write failures do not break successful asset or code responses (2.257083ms)
+✔ network-first response waits for its cache write (0.9965ms)
+✔ cache open and read failures preserve successful network responses (1.271416ms)
+(node:80170) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/world/parks.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ squares stay off parks, pedestrian loops and buildings (167.629875ms)
+(node:80171) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/world/streetscape-state.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ commercial accents are deterministic, bounded to existing shop frontages and independent of input order (1.458833ms)
+✔ regional uniforms update in place so compiled materials share the route boundaries (0.145792ms)
+(node:80172) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/content.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ toolSpan: first year and stop count come from the stops that mention the tool (0.856375ms)
+✔ toolSpan: a tool the copy never names has no ticket (0.073375ms)
+✔ ticket labels use their placeholders in both languages (0.683083ms)
+✔ foliage ships as an alpha-clipped MASK at the 0.42 cutoff (1.106875ms)
+✔ normal maps ship as KTX2 (UASTC), not PNG (0.131125ms)
+✔ impostor atlas holds one 128 px tile per tree variant (2.163292ms)
+(node:80174) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/world/underwater-profile.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ the road stays at the 7.5 m arch crest through the far bank without a valley (1.420417ms)
+✔ the deck spans the whole channel level at BRIDGE_H (0.096958ms)
+✔ the soffit clears the Mercury Clippers with at least 1 m of headroom (0.085125ms)
+✔ the road comes back to ground level on the far side of the river (0.069625ms)
+✔ the profile is continuous (no step above 0.6 m per 0.5 m) (0.11275ms)
+✔ the exit is the only descent, with level tangents at both ends (0.138291ms)
+✔ the extended exit halves the former peak grade without moving the level river deck (0.161792ms)
+✔ parapets keep a constant low height over the span and taper only at the ground exit (0.192458ms)
+(node:80175) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/content.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ surveyed infill preserves baseline lots/props except the six approved bridge-street relocations (516.071ms)
+✔ infill preserves parks, pedestrian areas, reserved anchors and landmark fronts (54.448292ms)
+(node:80176) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/world/fade.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ replacement body and beams inherit an ongoing fade and restore shared materials (0.615583ms)
+✔ reskin during a fade preserves the new shared paint when the fade ends (0.103458ms)
+✔ default Mini and regional fleet use full-quality compressed assets (4.055209ms)
+✔ compressed failure falls back to the original full-quality source (2.502125ms)
+✔ concurrent requests share one decoded asset, and total failure stays safe (2.4495ms)
+✔ explicit processed opt-in and authored bus path remain compatible (5.190959ms)
+(node:80178) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/world/water-math.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ bank reflection survives a quality drop, while the full city remains high-only (0.495083ms)
+✔ detail map tiles seamlessly and is deterministic (7.122791ms)
+✔ detail slopes average to flat, so mipmaps calm the far water (6.660459ms)
+✔ Tower Bridge foam follows the active model pier footprints on both banks (1.0945ms)
+(node:80179) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/world/weather-math.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ moon is always full with symmetric limb shading and no light outside its disc (0.469875ms)
+✔ astros clear the header on desktop/mobile and dense overcast hides them (0.136958ms)
+✔ one shelter field preserves overlapping maximum roofs, oriented decks and open ground (6.735959ms)
+(node:80180) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/world/weather.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ weather makes one independent roll per region and uses the regional chance boundaries (0.934292ms)
+✔ cloudy and drizzle are distinct stable regional states (0.146375ms)
+✔ rain overrides every region; clear and unknown overrides preserve stable rolls (0.15225ms)
+✔ non-rain weather shares fall and wind per city and stays within numeric ranges (0.865833ms)
+✔ visit weather is initialized once and reused (0.154209ms)
+✔ wetness approaches target exponentially and dries slower than it wets (0.179625ms)
+✔ lightning has one smooth pulse, ends at .45s, and waits at least 20s to recur (0.285708ms)
+✔ lightning stays off when rain is absent or storm strength is zero (0.123167ms)
+✔ large time jumps schedule one current pulse without catching up missed intervals (0.097209ms)
+✔ reduced motion lightning never rolls and always returns zero (0.132875ms)
+(node:80181) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/content.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Wembley benchmark selects only complete existing lots inside its approved envelope (64.528667ms)
+(node:80182) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/samuel.catalano/Projects/samuelcatalano/personal-website/js/world/wheel-roll.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/samuel.catalano/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ a wheel turns by distance over its radius, forward travel negative, reverse unwinds (0.522917ms)
+✔ the turn is proportional to 1/radius (same distance, smaller wheel turns more) (0.084167ms)
+✔ wheels without a measured radius roll with their centre height (authored wheel nodes sit at their radius) (0.677916ms)
+✔ a measured radius wins over the centre height (0.055417ms)
+✔ rolling changes only the spin about the axle (0.078167ms)
+✔ an empty wheel list is a no-op (0.099541ms)
+ℹ tests 264
+ℹ suites 0
+ℹ pass 264
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2100.716125

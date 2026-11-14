@@ -1,0 +1,13 @@
+ok /tmp/building-character/city-final/5-day.png
+{'errors': [], 'failed': 0, 'gl': 0, 'plots': 739}
+ok /tmp/building-character/city-final/9.5-day.png
+{'errors': [], 'failed': 0, 'gl': 0, 'plots': 739}
+ok /tmp/building-character/city-final/11-day.png
+{'errors': [], 'failed': 0, 'gl': 0, 'plots': 739}
+ok /tmp/building-character/city-final/5-night.png
+{'errors': [], 'failed': 0, 'gl': 0, 'plots': 739}
+ok /tmp/building-character/city-final/9.5-night.png
+{'errors': [], 'failed': 0, 'gl': 0, 'plots': 739}
+ok /tmp/building-character/city-final/11-night.png
+{'errors': [], 'failed': 0, 'gl': 0, 'plots': 739}
+grid /tmp/building-character/city-final/grid.png

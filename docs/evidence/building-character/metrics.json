@@ -1,0 +1,262 @@
+[
+  {
+    "kind": "townhouse",
+    "version": "before",
+    "night": 0,
+    "buildMs": 3054.9,
+    "triangles": 5852,
+    "calls": 3,
+    "bytes": 843648,
+    "medianMs": 0.4,
+    "details": null
+  },
+  {
+    "kind": "townhouse",
+    "version": "after",
+    "night": 0,
+    "buildMs": 12.4,
+    "triangles": 5964,
+    "calls": 3,
+    "bytes": 1002912,
+    "medianMs": 0.1,
+    "details": {
+      "curtains": 2,
+      "wallPatches": 0,
+      "roofServices": 0
+    }
+  },
+  {
+    "kind": "shop",
+    "version": "before",
+    "night": 0,
+    "buildMs": 20.4,
+    "triangles": 6898,
+    "calls": 3,
+    "bytes": 1077432,
+    "medianMs": 0.1,
+    "details": null
+  },
+  {
+    "kind": "shop",
+    "version": "after",
+    "night": 0,
+    "buildMs": 14.3,
+    "triangles": 7026,
+    "calls": 3,
+    "bytes": 1266024,
+    "medianMs": 0.1,
+    "details": {
+      "curtains": 0,
+      "wallPatches": 1,
+      "roofServices": 1
+    }
+  },
+  {
+    "kind": "midrise",
+    "version": "before",
+    "night": 0,
+    "buildMs": 16.4,
+    "triangles": 14580,
+    "calls": 3,
+    "bytes": 2102592,
+    "medianMs": 0.1,
+    "details": null
+  },
+  {
+    "kind": "midrise",
+    "version": "after",
+    "night": 0,
+    "buildMs": 25.1,
+    "triangles": 14580,
+    "calls": 3,
+    "bytes": 2452512,
+    "medianMs": 0.1,
+    "details": {
+      "curtains": 0,
+      "wallPatches": 0,
+      "roofServices": 0
+    }
+  },
+  {
+    "kind": "office",
+    "version": "before",
+    "night": 0,
+    "buildMs": 11.3,
+    "triangles": 13120,
+    "calls": 3,
+    "bytes": 1893312,
+    "medianMs": 0.1,
+    "details": null
+  },
+  {
+    "kind": "office",
+    "version": "after",
+    "night": 0,
+    "buildMs": 11.1,
+    "triangles": 13232,
+    "calls": 3,
+    "bytes": 2227008,
+    "medianMs": 0.1,
+    "details": {
+      "curtains": 0,
+      "wallPatches": 0,
+      "roofServices": 1
+    }
+  },
+  {
+    "kind": "tower",
+    "version": "before",
+    "night": 0,
+    "buildMs": 21.3,
+    "triangles": 22752,
+    "calls": 3,
+    "bytes": 3283104,
+    "medianMs": 0.1,
+    "details": null
+  },
+  {
+    "kind": "tower",
+    "version": "after",
+    "night": 0,
+    "buildMs": 34.7,
+    "triangles": 22752,
+    "calls": 3,
+    "bytes": 3829152,
+    "medianMs": 0.1,
+    "details": {
+      "curtains": 0,
+      "wallPatches": 0,
+      "roofServices": 0
+    }
+  },
+  {
+    "kind": "townhouse",
+    "version": "before",
+    "night": 1,
+    "buildMs": 5.4,
+    "triangles": 5852,
+    "calls": 3,
+    "bytes": 843648,
+    "medianMs": 0.1,
+    "details": null
+  },
+  {
+    "kind": "townhouse",
+    "version": "after",
+    "night": 1,
+    "buildMs": 4.6,
+    "triangles": 5964,
+    "calls": 3,
+    "bytes": 1002912,
+    "medianMs": 0,
+    "details": {
+      "curtains": 2,
+      "wallPatches": 0,
+      "roofServices": 0
+    }
+  },
+  {
+    "kind": "shop",
+    "version": "before",
+    "night": 1,
+    "buildMs": 5.9,
+    "triangles": 6898,
+    "calls": 3,
+    "bytes": 1077432,
+    "medianMs": 0.1,
+    "details": null
+  },
+  {
+    "kind": "shop",
+    "version": "after",
+    "night": 1,
+    "buildMs": 7.3,
+    "triangles": 7026,
+    "calls": 3,
+    "bytes": 1266024,
+    "medianMs": 0,
+    "details": {
+      "curtains": 0,
+      "wallPatches": 1,
+      "roofServices": 1
+    }
+  },
+  {
+    "kind": "midrise",
+    "version": "before",
+    "night": 1,
+    "buildMs": 9.6,
+    "triangles": 14580,
+    "calls": 3,
+    "bytes": 2102592,
+    "medianMs": 0,
+    "details": null
+  },
+  {
+    "kind": "midrise",
+    "version": "after",
+    "night": 1,
+    "buildMs": 10.2,
+    "triangles": 14580,
+    "calls": 3,
+    "bytes": 2452512,
+    "medianMs": 0.1,
+    "details": {
+      "curtains": 0,
+      "wallPatches": 0,
+      "roofServices": 0
+    }
+  },
+  {
+    "kind": "office",
+    "version": "before",
+    "night": 1,
+    "buildMs": 7.5,
+    "triangles": 13120,
+    "calls": 3,
+    "bytes": 1893312,
+    "medianMs": 0,
+    "details": null
+  },
+  {
+    "kind": "office",
+    "version": "after",
+    "night": 1,
+    "buildMs": 12.2,
+    "triangles": 13232,
+    "calls": 3,
+    "bytes": 2227008,
+    "medianMs": 0,
+    "details": {
+      "curtains": 0,
+      "wallPatches": 0,
+      "roofServices": 1
+    }
+  },
+  {
+    "kind": "tower",
+    "version": "before",
+    "night": 1,
+    "buildMs": 12.3,
+    "triangles": 22752,
+    "calls": 3,
+    "bytes": 3283104,
+    "medianMs": 0,
+    "details": null
+  },
+  {
+    "kind": "tower",
+    "version": "after",
+    "night": 1,
+    "buildMs": 20.2,
+    "triangles": 22752,
+    "calls": 3,
+    "bytes": 3829152,
+    "medianMs": 0.1,
+    "details": {
+      "curtains": 0,
+      "wallPatches": 0,
+      "roofServices": 0
+    }
+  }
+]

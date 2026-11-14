@@ -249,7 +249,7 @@ export function createCityBuildings(plots,{rollout=true,kits=true}={}) {
     if (plot.id === MIDRISE_LOT_ID) { city.add(finishBuilding(createMidriseSlice(plot),plot,'midrise')); continue; }
     if (MIDRISE_REPLICATION_IDS.includes(plot.id)) { midrisePlots.push(plot); continue; }
     if (rollout && classifyPlot(plot)) { rolloutPlots.push(plot); continue; }
-    if(rollout){city.add(finishLegacyBuilding(createBuilding(plot, benchmark),plot));continue;}
+    if(rollout){city.add(finishLegacyBuilding(createBuilding(plot, benchmark),plot,plots));continue;}
     const building = createBuilding(plot, benchmark);
     building.updateMatrix();
     for (const child of building.children) {

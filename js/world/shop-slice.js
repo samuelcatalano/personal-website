@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { SURFACE as S, townhouseMaterials } from './building-slice-materials.js';
 import { tint, hash } from './lot-tint.js';
+import { buildingCharacter } from './building-character.js';
 
 const descriptors=[['frontage-stop-hero--255--1--9','terrace',9,7,9.7],['frontage-stop-hero--255--1-0','terrace',9,7,9.7],['corner-shop','shop',5.5,6,6],
   ['block--295--34','shop',10,10,6.8],['block--282--34','shop',10,10,6.8],
@@ -35,6 +36,7 @@ export function heroShopRecipe(plot,neighbors=[],compositionOverride){
 export function createShopSlice(plot,neighbors=[],recipe=shopRecipe(plot,neighbors)){
   const {x,z,width,depth,height}=plot;
   const commercialAccent = plot.kind === 'shop' && hash(plot.id) % 3 === 0;
+  const character=buildingCharacter(plot,'shop',recipe.region);
   if(!['shop','terrace','midrise'].includes(plot.kind)||(plot.kind==='midrise'&&height>10)||![x,z,width,depth,height].every(Number.isFinite)||width<5||depth<5||height<5.5)throw new TypeError('Invalid mixed low-rise plot');
   const w=width-.24,d=depth-.4,front=d/2,roofY=height-(recipe.roofCap==='pavilion'?.95:.55),upper=(roofY-recipe.ground)/(recipe.floors-1);
   const buckets=Array.from({length:3},()=>({position:[],normal:[],uv:[],aSurface:[],aFlutter:[],color:[]})),openings=[];
@@ -86,10 +88,19 @@ export function createShopSlice(plot,neighbors=[],recipe=shopRecipe(plot,neighbo
         panel(o.u,o.y,-r+.03,.04,o.h,S.roof);
         if (frontFace && o.type === 'storefront' && recipe.windowSeed % 3 !== 1) {
           // Display pieces remain inside the existing reveal, in front of the opaque interior pane.
-          for (const yy of [0.72, 1.22]) {
-            box(o.u, yy, front-r+.13, o.w*.82, .045, .16, S.stone, 1);
-            for (const dx of [-.26, .22]) box(o.u+dx*o.w, yy+.14, front-r+.13, .15, .23, .12, S.door, 1);
+          const previous=colors[S.trim];
+          colors[S.trim]=character.display===2?[.24,.52,.29]:character.display===1?[.72,.40,.28]:[.54,.62,.72];
+          const shelves=character.display===1?[.62]:[.72,1.22];
+          for(const yy of shelves){
+            box(o.u,yy,front-r+.13,o.w*.82,.045,.16,S.stone,1);
+            for(const dx of [-.26,.22]){
+              const x=o.u+dx*o.w;
+              if(character.display===2){box(x,yy+.09,front-r+.13,.16,.16,.14,S.brick,1);box(x,yy+.25,front-r+.13,.24,.23,.18,S.trim,1);}
+              else if(character.display===1){box(x,yy+.13,front-r+.13,.30,.20,.22,S.trim,1);box(x,yy+.26,front-r+.13,.24,.06,.18,S.stone,1);}
+              else box(x,yy+.15,front-r+.13,.12,.28,.12,S.trim,1);
+            }
           }
+          colors[S.trim]=previous;
         }
         if (frontFace && o.type === 'entry') box(o.u,.025,front-.13,o.w*.85,.035,.24,S.roof,1);
         if(o.type==='entry'){if(frontFace)box(o.u+.36,1.18,front-r+.04,.045,.25,.04,S.trim,1);else panel(o.u+.36,1.18,-r+.04,.045,.25,S.trim);}

@@ -1,5 +1,9 @@
 # Rendering budget
 
+## Property character — 2026-11-14
+
+Normalized Uint16×4 identity adds 8 bytes per ordinary vertex without new textures, materials, lights or passes. A matched five-family fixture measures 63,202 → 63,554 triangles (+0.56%) and 9,200,088 → 10,777,608 attribute bytes (+17.15%), retaining three draw calls per fixture. These are geometry/buffer costs, not physical VRAM or a full-city frame-time result; short isolated timings were near timer resolution. [Method, scope and validation](../audits/2026-11-14-building-character.md).
+
 ## Desktop edge finish — 2026-11-14
 
 Desktop medium now retains 4× MSAA (previously 2×); high stays at 4× and small-viewport medium remains unchanged. Ordinary subpixel masonry variation fades without new passes, textures or geometry. A short same-scene compositor-only comparison at 1440×900/DPR 1 measured 4.2 → 8.3ms median, with identical 504 calls / 4,830,854 submitted triangles. Added multisample storage/bandwidth is accepted for this selected visual finish; physical GPU memory and full-frame performance remain unmeasured. [Method, scoped checks and limitations](../audits/2026-11-14-desktop-controls-reading-finish.md).

@@ -77,15 +77,15 @@ const OFFICE_RECESS=`float recessTop=smoothstep(0.76,1.0,vPane.y);
 const FACADE_GRIME = 1.0;      // 0 = clean walls; scales base grime, damp tint, ledge soot and streaks together
 const FACADE_VARIATION = 0.07; // per-building value/hue spread (fraction)
 const FACADE_DETAIL_NEAR = 14.0; // metres: close-range stucco/brick grain fades out by here
-// ponytail: the per-building seed is smooth world-space value noise (~13 m period), not a true lot id: neighbours in a terrace
-// blend instead of switching at party walls. Upgrade path: bake a per-lot seed attribute at build time (city-rollout.js).
+// Ordinary lots carry stable identity; preserved landmark/public-realm surfaces keep their world-space finish.
 const FACADE_GLSL = `
   float sliceHash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
   float sliceNoise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
     return mix(mix(sliceHash(i), sliceHash(i + vec2(1.0, 0.0)), f.x), mix(sliceHash(i + vec2(0.0, 1.0)), sliceHash(i + vec2(1.0)), f.x), f.y); }`;
 const facadeWeather = (cityWalls, quality) => `
   vec3 facadeN = inverseTransformDirection(normalize(vNormal), viewMatrix);
-  float facadeSeed = sliceNoise(vFloodP.xz / 13.0), facadeSeed2 = sliceNoise(vFloodP.xz / 13.0 + 17.3);
+  float facadeSeed = ${quality?'vBuilding.w > .1 ? vBuilding.x : ':''}sliceNoise(vFloodP.xz / 13.0);
+  float facadeSeed2 = ${quality?'vBuilding.w > .1 ? fract(vBuilding.x * 17.31) : ':''}sliceNoise(vFloodP.xz / 13.0 + 17.3);
   float facadeAlong = dot(vFloodP.xz, normalize(vec2(-facadeN.z, facadeN.x) + 1e-4)); // metres along the wall
   float facadeWall = (1.0 - step(4.5, vSliceSurface)) * step(0.1, abs(vSliceSurface - 2.0)); // plaster/brick/trim/stone, not roof
   ${cityWalls ? 'float facadeMoisture = 0.0;' : ''}
@@ -103,7 +103,7 @@ const facadeWeather = (cityWalls, quality) => `
   if (facadeWall > 0.5) {
     float v = (facadeSeed - 0.5) * ${FACADE_VARIATION.toFixed(3)}, w = (facadeSeed2 - 0.5) * ${FACADE_VARIATION.toFixed(3)};
     diffuseColor.rgb *= (1.0 + v) * vec3(1.0 + w, 1.0, 1.0 - w);
-    float dirt = ${FACADE_GRIME.toFixed(2)} * (0.55 + 0.9 * facadeSeed2);
+    float dirt = ${FACADE_GRIME.toFixed(2)} * ${quality?'(vBuilding.w > .1 ? .35 + vBuilding.y * .9 : .55 + .9 * facadeSeed2)':'(0.55 + 0.9 * facadeSeed2)'};
     float base = 1.0 - smoothstep(0.0, 2.6, vFloodP.y), damp = 1.0 - smoothstep(0.0, 0.7, vFloodP.y);
     float lum = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));
     diffuseColor.rgb = mix(diffuseColor.rgb, vec3(lum) * vec3(0.93, 0.91, 0.87), 0.22 * base * dirt);
@@ -142,8 +142,13 @@ const facadeDetail = quality => `
       normal = normalize(normal + (viewMatrix * vec4(grain, 0.0)).xyz * ${quality?'0.035':'0.16'} * near); }
   }`;
 function metricAtlas(material, cityWalls = false, quality = false) {
-  material.customProgramCacheKey=()=> material.name+(cityWalls||material.name==='slice-glass-city'?'-metric-atlas-v11':'-metric-atlas-v8')+(quality?'-construction-v3':'')+(material.name==='slice-architecture'?'-world-grain-v1':'');
+  if(quality)material.defaultAttributeValues={...material.defaultAttributeValues,aBuilding:[0,0,0,0]};
+  material.customProgramCacheKey=()=> material.name+(cityWalls||material.name==='slice-glass-city'?'-metric-atlas-v11':'-metric-atlas-v8')+(quality?'-construction-v4-character':'')+(material.name==='slice-architecture'?'-world-grain-v1':'');
   material.onBeforeCompile=shader=>{
+    if(quality){
+      shader.vertexShader='attribute vec4 aBuilding; varying vec4 vBuilding;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvBuilding = aBuilding;');
+      shader.fragmentShader='varying vec4 vBuilding;\n'+shader.fragmentShader;
+    }
     shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nattribute float aSurface; varying float vSliceSurface; varying float vSliceY;').replace('#include <begin_vertex>','#include <begin_vertex>\nvSliceSurface = aSurface; vSliceY = (modelMatrix * vec4(position,1.0)).y;');
     shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
       varying float vSliceSurface; varying float vSliceY;
@@ -156,7 +161,7 @@ function metricAtlas(material, cityWalls = false, quality = false) {
       ${FACADE_GLSL}`);
     const architecture=material.name==='slice-architecture';
     if (architecture) {
-      material.defaultAttributeValues = { aFlutter: [0] };
+      material.defaultAttributeValues = { ...material.defaultAttributeValues, aFlutter: [0] };
       shader.uniforms.uStreetTime = streetEnvironment.time;
       shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nattribute float aFlutter; uniform float uStreetTime;\n' + STREET_WIND)
         .replace('#include <begin_vertex>', `#include <begin_vertex>
@@ -179,7 +184,7 @@ function metricAtlas(material, cityWalls = false, quality = false) {
         roughnessFactor=mix(roughnessFactor,.30,frameFinish);`: '');
       if (quality && cityWalls && chunk === 'metalnessmap_fragment') finish = '\nmetalnessFactor=mix(metalnessFactor,.35,spandrel);metalnessFactor=mix(metalnessFactor,.48,frameFinish);';
       if (quality && material.name.startsWith('slice-glass') && chunk === 'roughnessmap_fragment') finish = `
-        roughnessFactor*=mix(.74,1.18,sliceHash(floor(vFloodP.xz/9.0)+floor(vSliceY/3.0)));`;
+        roughnessFactor*=mix(.82,1.16,vBuilding.w>.1?vBuilding.y:sliceHash(floor(vFloodP.xz/9.0)+floor(vSliceY/3.0)));`;
       if (chunk === 'emissivemap_fragment' && material.name.startsWith('slice-glass') && material.name !== 'slice-glass-landmark') finish = `
         { vec2 cell = floor(vMapUv / vec2(1.0, 2.0));
           float h = fract(sin(dot(cell + floor(vFloodP.xz / 13.0), vec2(12.9898, 78.233))) * 43758.5453);
@@ -187,6 +192,11 @@ function metricAtlas(material, cityWalls = false, quality = false) {
           float k = fract(h * 7.13 + 0.37);
           vec3 tone = mix(vec3(1.0, 0.88, 0.76), vec3(0.89, 0.94, 1.0), smoothstep(0.76, 0.96, h));
           totalEmissiveRadiance *= tone * (k > 0.86 ? 0.1 : k > 0.7 ? 0.6 : 1.0) * smoothstep(0.12 + 0.22 * h, 0.42 + 0.22 * h, uGlassNight); }`;
+      if(quality&&material.name.startsWith('slice-glass')&&chunk==='emissivemap_fragment')finish+=`
+        if(vBuilding.w>.1){
+          vec3 propertyLight=mix(vec3(.72,.50,.27),vec3(.55,.64,.78),step(.9,vBuilding.w));
+          totalEmissiveRadiance=propertyLight*vBuilding.z*.7*smoothstep(.15,.55,uGlassNight);
+        }`;
       shader.fragmentShader=shader.fragmentShader.replace(`#include <${chunk}>`,code+finish);
     }
     // weathering + per-building variation on walls (supersedes the old uniform ground grime); doors and roofs are untouched
@@ -226,7 +236,7 @@ ${GLASS_REFLECTION}`);
         vec3 glassView=normalize(vViewPosition);
         float grazing=pow(1.0-clamp(dot(normal,glassView),0.0,1.0),2.8);
         vec3 reflected=inverseTransformDirection(reflect(-glassView,normal),viewMatrix);
-        float litWindow=1.0-step(0.25,abs(vSliceSurface-5.0));
+        float litWindow=${quality?'vBuilding.w>.1?smoothstep(.08,.3,vBuilding.z):':''}1.0-step(0.25,abs(vSliceSurface-5.0));
         float reflectionWeight=(0.38+grazing*0.36)*(1.0-uGlassNight*litWindow*${cityLighting?'0.68':'0.82'})*(0.8+0.4*sliceNoise(vFloodP.xz/13.0+31.0)); // per-building glass reflectivity
         vec3 paneTint=vColor.rgb/max(dot(vColor.rgb,vec3(.3333)),.01); // per-lot glass family tints the sky reflection too
         ${rooms?ROOM_INTERIOR:''}
@@ -259,7 +269,7 @@ export function officeFacadeMaterials() {
   if(officeGlass) return officeGlass;
   const {glass}=townhouseMaterials();
   const material=metricAtlas(new THREE.MeshStandardMaterial({name:'slice-glass-office',vertexColors:true,map:glass.map,roughness:.24,metalness:0,emissiveMap:glass.emissiveMap}),false,true);
-  material.defaultAttributeValues={aRoom:[0,0,0,0],aPane:[0,0,0]};
+  material.defaultAttributeValues={aRoom:[0,0,0,0],aPane:[0,0,0],aBuilding:[0,0,0,0]};
   material.userData={...glass.userData}; // same night glow (sky.js drives uNight and emissive from this userData)
   return officeGlass={glass:material};
 }

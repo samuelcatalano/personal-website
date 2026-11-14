@@ -1,5 +1,9 @@
 # 3D city art direction
 
+## Per-property character — 2026-11-14
+
+Owner approved all seven architecture refinements: stable property identity/materials, grouped night occupancy, selective household finish, distinct shop displays, supported roof details and exposed-wall repairs. Existing townhouse language, principal forms and regional composition remain. Details reuse the three existing buckets and shared atlas; canopies/railings/signs preserve their own lighting role. [Implementation, comparisons and validation limits](audits/2026-11-14-building-character.md).
+
 ## Always-full Moon — 2026-11-14
 
 Owner selected an always-full Moon, superseding the fixed gibbous phase below. The existing procedural maria, size, cloud occlusion and night visibility remain; symmetric gentle limb shading preserves volume without a phase shadow. No new assets or passes.

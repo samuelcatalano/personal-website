@@ -2,7 +2,8 @@ import { stops } from '../content.js';
 import { inRegion, regions as routeRegions, routePoints, ukStart } from './layout.js';
 import { SURFACE as S } from './building-slice-materials.js';
 // Per-lot colour: regional wall, brick, roof and glass families chosen from the lot id. Shared by the rollout buildings and the hero shop frontages.
-export const hash=id=>{let n=2166136261;for(const c of id)n=Math.imul(n^c.charCodeAt(0),16777619)>>>0;return n;};
+export { hash } from './building-character.js';
+import { hash } from './building-character.js';
 export const route=routePoints(stops.length),bands=routeRegions(stops,route),ukX=route[ukStart(stops)].x;
 export const REGION_SALT={paulista:0,london:1,countryside:2,glasgow:3};
 export function regionForPlot(p){

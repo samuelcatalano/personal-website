@@ -142,9 +142,11 @@ function buildChunk(chunk, byId, neighbors, kits, kitIds, buildTownhouse) {
         if (!extra) return;
         if (!m.geometry.hasAttribute('aFlutter')) m.geometry.setAttribute('aFlutter', new THREE.Float32BufferAttribute(new Float32Array(m.geometry.attributes.position.count), 1));
         const g = mergeGeometries([m.geometry, extra], false);
+        const offset=m.geometry.attributes.position.count;
+        g.userData={...m.geometry.userData,nonRoomRanges:[...(m.geometry.userData.nonRoomRanges??[]),...(extra.userData.nonRoomRanges??[]).map(([start,count])=>[start+offset,count])]};
         m.geometry.dispose(); extra.dispose(); m.geometry = g;
       });
-      const finished=finishArchitecture(h.children.map(m=>m.geometry),p,kind,r);
+      const finished=finishArchitecture(h.children.map(m=>m.geometry),p,kind,r,0,neighbors);
       h.children.forEach((m,k)=>m.geometry=finished[k]);
       tint(h, p);
     } else {

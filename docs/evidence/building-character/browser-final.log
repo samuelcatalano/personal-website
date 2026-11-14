@@ -1,0 +1,11 @@
+building-character
+{'pass': True, 'results': [{'kind': 'townhouse', 'trimVertices': 16752, 'occupancyGroups': 3, 'details': {'curtains': 2, 'wallPatches': 0, 'roofServices': 0}}, {'kind': 'shop', 'trimVertices': 17832, 'occupancyGroups': 5, 'details': {'curtains': 0, 'wallPatches': 1, 'roofServices': 1}}, {'kind': 'midrise', 'trimVertices': 39798, 'occupancyGroups': 4, 'details': {'curtains': 0, 'wallPatches': 0, 'roofServices': 0}}, {'kind': 'office', 'trimVertices': 36348, 'occupancyGroups': 4, 'details': {'curtains': 0, 'wallPatches': 0, 'roofServices': 1}}, {'kind': 'tower', 'trimVertices': 61548, 'occupancyGroups': 4, 'details': {'curtains': 0, 'wallPatches': 0, 'roofServices': 0}}]}
+ordinary-finish
+{'pass': True, 'hashes': {'map': 1485052815, 'normalMap': 4103241495, 'roughnessMap': 3868138199}, 'ordinaryResolution': 1024, 'trimVertices': 16752}
+styled-facades
+{'pass': True, 'commercialTrim': [0.2800000011920929, 0.3400000035762787, 0.4000000059604645], 'residentialTrim': [1.1799999475479126, 1.2000000476837158, 1.2200000286102295]}
+architecture-archetypes
+{'pass': True, 'catalogCount': 24, 'archetypes': {'townhouse': ['brick-terrace', 'country-garden-pair', 'country-slate-cottage', 'glasgow-sandstone-gabled-row', 'hip-roof-terrace', 'london-bay-terrace', 'side-gable-terrace'], 'shop': ['high-street-shop', 'london-corner-pub', 'paulista-arcade-shop', 'wraparound-shop'], 'midrise': ['banded-apartment', 'country-garden-flat', 'glasgow-blonde-bay-tenement', 'glasgow-red-stepped-tenement', 'london-mansion-block', 'paulista-brise-apartment', 'stone-tenement'], 'office': ['horizontal-office', 'vertical-office'], 'tower': ['asymmetric-tower', 'paulista-finned-tower', 'stepped-tower', 'straight-tower']}, 'regions': ['countryside', 'glasgow', 'london', 'paulista']}
+{'pass': True, 'webgl': False, 'reducedMotion': True, 'lang': 'en', 'text': 560, 'ready': False, 'fallback': True, 'errors': []}
+{'pass': True, 'webgl': False, 'reducedMotion': True, 'lang': 'pt-BR', 'text': 595, 'ready': False, 'fallback': True, 'errors': []}
+{'pass': True, 'webgl': True, 'reducedMotion': True, 'lang': 'pt-BR', 'text': 595, 'ready': True, 'fallback': False, 'errors': []}
