@@ -1,4 +1,4 @@
-import { stops, i18n, links, articles, repos, stackGroups, toolStops, credits, sectionStart, cityOf, QUICK } from './content.js';
+import { stops, i18n, links, articles, repos, stackGroups, toolStops, toolSpan, credits, sectionStart, cityOf, QUICK } from './content.js';
 // Stored choice wins; first-time visitors get PT for pt-* browsers and a light theme.
 export function loadPrefs(storage, env = {}) {
   const fallback = { lang: String(env.lang || '').toLowerCase().startsWith('pt') ? 'pt' : 'en', theme: 'day' };
@@ -21,6 +21,7 @@ const journeyLine = (t, seenSet) => { // the counter the journey panel shows; re
   const count = journeySeenCount(seenSet);
   return `<div class="journey-progress"><span>${count ? t.ui.progress.replace('{count}', count).replace('{total}', journeyTotal) : t.ui.progressEmpty.replace('{quick}', rideSeconds(QUICK.length, 1600))}</span><progress value="${count}" max="${journeyTotal}">${count}/${journeyTotal}</progress></div>`;
 };
+const ticketMeta = (t, tool) => { const s = toolSpan(tool); return `${t.ui.ticketSince.replace('{year}', s.since)} · ${t.ui.ticketStops.replace('{n}', s.count)}`; };
 const QUICK_MS = 1500; // ponytail: just under the quick tour's 1600 ms stop, so quick stops count on that path only
 const nextUnseen = (seenSet) => stops.findIndex((st, i) => st.section === 'journey' && !seenSet.has(i)); // -1 once every journey stop is reached
 const nextButton = (t, seenSet) => { // the pointer a returning visitor needs: the next journey stop they have not reached
@@ -76,6 +77,7 @@ function sectionHTML(section, t, active, tool = null, route = { seen: new Set(),
     case 'journey': {
       const selected = stops[active], c = t.stops[selected.id];
       return `
+      <p class="led board" aria-hidden="true"><b>83</b><span class="live"></span></p>
       <h2>${s.title}</h2><p>${s.intro}</p>
       <section id="career-detail" class="detail current-stop${seenSet.has(active) ? ' seen' : ''}" data-stop="${active}" aria-labelledby="career-title">
         <span class="punch" aria-hidden="true"></span><span class="stamp">${t.ui.cities[cityOf(selected)]} · ${selected.year}</span>
@@ -91,7 +93,7 @@ function sectionHTML(section, t, active, tool = null, route = { seen: new Set(),
       }).join('')}</ol>
       <p class="zones"><span class="z br">${t.ui.zones.br}</span><span class="z uk">${t.ui.zones.uk}</span></p>${journeyLine(t, seenSet)}${nextButton(t, seenSet)}`;
     }
-    case 'stack': return `<h2>${s.title}</h2><p>${s.intro}</p><div class="lines">${stackGroups.map(g => `<div class="line" style="--c:${g.color}"><h3>${s.groups[g.id]}</h3><ul>${g.items.map(x => `<li>${toolStops[x].length ? `<button type="button" class="station" data-tool="${x}" aria-pressed="${x === tool}">${x}</button>` : x}</li>`).join('')}</ul></div>`).join('')}</div>`;
+    case 'stack': return `<h2>${s.title}</h2><p>${s.intro}</p><div class="lines">${stackGroups.map(g => `<div class="line" style="--c:${g.color}"><h3>${s.groups[g.id]}</h3><ul>${g.items.map(x => `<li>${toolStops[x].length ? `<button type="button" class="station" data-tool="${x}" aria-pressed="${x === tool}"><span>${x}</span><small class="ticket-meta">${ticketMeta(t, x)}</small></button>` : x}</li>`).join('')}</ul></div>`).join('')}</div>`;
     case 'articles': return list(articles, a => `<li>${ext(a.url, `<b>${a.title}</b><small>${s.src} ↗</small>`, 'row')}</li>`, links.medium);
     case 'repos': return list(repos, r => `<li style="--c:${r.color}">${ext(r.url, `<code>${r.name}</code><span class="tags">${r.lang.split(' · ').map(x => `<i>${x}</i>`).join('')}</span><small>${s.descriptions[r.name]}</small><em aria-hidden="true">↗</em>`, 'row repo')}</li>`, links.github + '?tab=repositories');
     case 'recs': return `<h2>${s.title}</h2><p>${s.intro}</p>${t.recs.map(r => `<blockquote><span class="who" aria-hidden="true">${r.name.split(' ').filter((_, k, w) => k === 0 || k === w.length - 1).map(w => w[0]).join('')}</span><p>${r.quote}</p><footer><b>${r.name}</b><span>${r.role}</span></footer></blockquote>`).join('')}`;
@@ -123,15 +125,17 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     return st.section === 'journey' ? `${st.year} ${t.stops[st.id].place}` : st.section === 'hero' ? t.ui.intro.d1 : t.ui.nav[st.section];
   };
   const led = () => {
-    const el = document.querySelector('.led .live'), t = i18n[prefs.lang], st = stops[Math.max(active, 0)];
+    const t = i18n[prefs.lang], st = stops[Math.max(active, 0)]; // the header blind and the journey board show the same text
     let text = baseText(), alert = false;
     if (notes.say) { text = t.ui.led[notes.say]; alert = true; }
     else if (notes.gap) { text = t.ui.led.gap; alert = true; }
     else if (st.section === 'contact') text = t.ui.led.end;
     else if (notes.rain && Math.floor(Date.now() / 4000) % 2) { text = t.ui.led.rain; alert = true; }
     else if (st.section !== 'contact' && Math.floor(Date.now() / 4000) % 3 === 0) text = t.ui.led.count.replace('{count}', journeySeenCount(seen)).replace('{total}', journeyTotal); // rotating route counter
-    el.classList.toggle('alert', alert);
-    if (el.textContent !== text) { el.textContent = text; el.classList.remove('roll'); void el.offsetWidth; el.classList.add('roll'); }
+    for (const el of document.querySelectorAll('.led .live')) {
+      el.classList.toggle('alert', alert);
+      if (el.textContent !== text) { el.textContent = text; el.classList.remove('roll'); void el.offsetWidth; el.classList.add('roll'); }
+    }
   };
   const clock = () => { // London time for visitors elsewhere: "is he awake?"
     const el = document.querySelector('[data-london]');
@@ -255,6 +259,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     }
     panel.scrollTop = top;
     panel.dataset.section = st.section;
+    led(); // fills the journey board the markup above just replaced
     const routeList = panel.querySelector('.stops'), currentRow = routeList?.querySelector('.on');
     if (currentRow && matchMedia('(min-width: 768px)').matches) routeList.scrollTop = currentRow.offsetTop - 4;
     clock();
