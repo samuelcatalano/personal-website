@@ -1,5 +1,9 @@
 # 3D city architecture
 
+## Botanical vegetation integration — 2026-11-14
+
+The original two-material botanical GLB supplies five region-selected families via the real treeRegion callback. Existing spatial chunks, masks, shadow proxies, deterministic placement envelopes and fallback/disposal remain. Two physical levels use130/150m hysteresis; there is no active impostor request. Shared plant geometry/material reaches voxel, understory, hero and swap-plaza consumers; hero plants have a dedicated disposable material/draw. Turf-only shader detail preserves roads/paving/base. [Contract, passing checks and limitations](../audits/2026-11-14-botanical-vegetation.md).
+
 ## Wellington and facade finish — 2026-11-14
 
 The original three-mesh Wellington uses verified lossless Meshopt delivery and the existing Three.js decoder, cached source ownership and procedural fallback. Entry trim remains in existing architecture buckets; window contact reuses the room shader. The identity scene root no longer recomposes itself and forces frozen descendants; the explicit world-matrix pass and animated-node propagation remain. No plot, route or runtime quality-setting change. [Validation and limits](../audits/2026-11-14-wellington-facades-performance.md).

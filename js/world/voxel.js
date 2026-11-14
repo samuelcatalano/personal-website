@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { blockMaterial } from './textures.js';
-import { createPlantGeometry } from './plant-mesh.js';
+import { createPlantGeometry, createPlantMaterial } from './plant-mesh.js';
 import { PALETTE as P } from './palette.js';
 export function createBoxes() {
   const list = [];
@@ -43,7 +43,7 @@ function grassInstances(boxes, plants, { trees = [], plots = [], lamps = [], kio
       const blocked = (cells.get(`${Math.floor(x / GRASS_CELL)},${Math.floor(z / GRASS_CELL)}`) || []).some(o => y + GRASS_HEIGHT > o.y0 && y < o.y1 && Math.abs(x - o.x) < o.rx && Math.abs(z - o.z) < o.rz);
       if (blocked) continue;
       const v = hash(ix, iz, 2), w = 0.72 + hash(ix, iz, 3) * 0.22;
-      grass.set(key, { plant: 'grass', x, y, z, w, h: 0.24 + v * 0.15, d: w * (0.86 + hash(ix, iz, 5) * 0.28), tint: '#f4f6e9', yaw: hash(ix, iz, 4) * Math.PI * 2 });
+      grass.set(key, { plant: 'grass', x, y, z, w, h: 0.085 + v * 0.10, d: w * (0.86 + hash(ix, iz, 5) * 0.28), tint: '#e3e9d4', yaw: hash(ix, iz, 4) * Math.PI * 2 });
     }
   }
   return [...grass.values()];
@@ -66,14 +66,14 @@ export function buildMeshes(list, { glow = [], glowK = {}, grass = false } = {})
   }
   for (const [kind, records] of byPlant) {
     const geometry = PLANT_GEOS.get(kind) ?? PLANT_GEOS.set(kind, createPlantGeometry(kind)).get(kind);
-    const material = PLANT_MATS.get(kind) ?? PLANT_MATS.set(kind, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, side: kind === 'grass' ? THREE.DoubleSide : THREE.FrontSide })).get(kind);
+    const material = PLANT_MATS.get(kind) ?? PLANT_MATS.set(kind, createPlantMaterial()).get(kind);
     const mesh = new THREE.InstancedMesh(geometry, material, records.length);
     records.forEach((b, i) => {
       mesh.setMatrixAt(i, m.compose(p.set(b.x, b.y, b.z), b.yaw ? q.setFromAxisAngle(UP, b.yaw) : q.identity(), s.set(b.w, b.h, b.d)));
       mesh.setColorAt(i, new THREE.Color(b.tint));
     });
     mesh.instanceMatrix.needsUpdate = mesh.instanceColor.needsUpdate = true;
-    mesh.castShadow = kind !== 'grass'; mesh.receiveShadow = kind !== 'grass';
+    mesh.castShadow = kind !== 'grass'; mesh.receiveShadow = true;
     mesh.userData.plantKind = kind;
     group.add(mesh);
   }

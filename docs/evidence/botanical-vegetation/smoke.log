@@ -1,0 +1,3 @@
+{'pass': True, 'webgl': False, 'reducedMotion': True, 'lang': 'en', 'text': 560, 'ready': False, 'fallback': True, 'errors': []}
+{'pass': True, 'webgl': False, 'reducedMotion': True, 'lang': 'pt-BR', 'text': 595, 'ready': False, 'fallback': True, 'errors': []}
+{'pass': True, 'webgl': True, 'reducedMotion': True, 'lang': 'pt-BR', 'text': 595, 'ready': True, 'fallback': False, 'errors': []}

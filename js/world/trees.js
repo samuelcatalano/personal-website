@@ -106,7 +106,7 @@ export async function createProceduralTrees(placements, regionOf = null) {
 
 export async function createTrees(placements, regionOf = null) {
   if (isGlbLoaderReady()) {
-    try { return await createAuthoredTrees(placements); } catch { /* Existing procedural forest remains the safe fallback. */ }
+    try { return await createAuthoredTrees(placements, regionOf); } catch { /* Existing procedural forest remains the safe fallback. */ }
   }
   return createProceduralTrees(placements, regionOf);
 }

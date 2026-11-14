@@ -1,5 +1,9 @@
 # Rendering budget
 
+## Botanical vegetation quality cost — 2026-11-14
+
+Quality-first owner authorization replaces the905,592-byte single4,200/1,100-triangle tree with a19,683,804-byte original five-family GLB (311,328/176,654 total unique prototype triangles). Physical LOD1 remains at far range; the1,238,105-byte silhouette atlas is not fetched. Existing planting fixture retains10,157 grass clumps, now2,925,216 triangles; hero planting/realm has203,076 triangles/five draws/four existing maps. A shared512px turf map is added. No FPS/physical-VRAM/performance-GO claim; optimization is the next phase. [Exact costs, validation and limits](../audits/2026-11-14-botanical-vegetation.md).
+
 ## Wellington quality and lossless delivery — 2026-11-14
 
 The authorized sculpt grows from 14,680 to 90,838 triangles, retaining three meshes/materials and no textures. Lossless delivery reduces the new 2,780,048-byte authored GLB to 1,636,452 bytes (−41.14% versus the new raw source; the old delivered asset was 415,008 bytes). A five-family facade fixture adds 140 triangles / 23,520 attribute bytes solely to the townhouse, keeping three calls per building. One ready-world matrix check reduces 16,526 → 3,593 multiplications with exact matrices. Fixed-high route timings do **not** establish an FPS gain: median 17.5 → 18.6 ms, p95 33.3 → 33.4 ms in one local pair. [Evidence and measurement limits](../audits/2026-11-14-wellington-facades-performance.md).

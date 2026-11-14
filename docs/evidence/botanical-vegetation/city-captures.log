@@ -1,0 +1,9 @@
+ok /tmp/vegetation-realism/delivery/5-day.png
+{'errors': [], 'failed': 0, 'gl': 0, 'plots': 739, 'treeRenderer': 'botanical', 'trees': 317}
+ok /tmp/vegetation-realism/delivery/9.5-day.png
+{'errors': [], 'failed': 0, 'gl': 0, 'plots': 739, 'treeRenderer': 'botanical', 'trees': 317}
+ok /tmp/vegetation-realism/delivery/11-day.png
+{'errors': [], 'failed': 0, 'gl': 0, 'plots': 739, 'treeRenderer': 'botanical', 'trees': 317}
+ok /tmp/vegetation-realism/delivery/11-night.png
+{'errors': [], 'failed': 0, 'gl': 0, 'plots': 739, 'treeRenderer': 'botanical', 'trees': 317}
+grid /tmp/vegetation-realism/delivery/grid.png

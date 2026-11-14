@@ -1,5 +1,7 @@
 # Authored vegetation pipeline
 
+**Current runtime (2026-11-14):** the quality-first botanical renderer uses five original Blender families with two physical 3D LODs, including distant trees. See [BOTANICAL.md](BOTANICAL.md). The older supplied-model preparation below is retained as historical tooling; its 4,200-triangle/128px limits do not govern the current delivery.
+
 Prepare the supplied tree model that renders with an intact, full crown and regenerate the processed runtime assets:
 
 ```sh

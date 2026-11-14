@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { SURFACE as S, preservedSurfaceMaterials } from './building-slice-materials.js';
-import { createPlantGeometry } from './plant-mesh.js';
+import { createPlantGeometry, createPlantMaterial } from './plant-mesh.js';
 import { createPlazaWater } from './plaza-water.js';
 
 export const HERO_BOUNDS=Object.freeze({x0:-293,x1:-273,z0:-24,z1:24});
 
 export function createHeroRealm(){
-  const buckets=[[],[],[]],obstacles=[],group=new THREE.Group();group.name='hero-public-realm';group.position.set(-283,0,0);
+  const buckets=[[],[],[]],plantParts=[],obstacles=[],group=new THREE.Group();group.name='hero-public-realm';group.position.set(-283,0,0);
   const stone=[.97,.99,1],edge=[.90,.91,.88],wood=[.40,.22,.095],iron=[.22,.27,.30];
   function add(geometry,x,y,z,surface,tint,bucket=1){
     if(geometry.index){const source=geometry;geometry=source.toNonIndexed();source.dispose();}
@@ -26,7 +26,7 @@ export function createHeroRealm(){
   const cylinder=(x,y,z,r,h,surface,tint,bucket=1)=>add(new THREE.CylinderGeometry(r,r,h,24),x,y,z,surface,tint,bucket);
   const plant=(kind,x,y,z,w,h,d)=>{const geometry=createPlantGeometry(kind);
     if(kind==='flower'){const c=geometry.attributes.color,tone=new THREE.Color('#e5d2b3');for(let i=0;i<c.count;i++)if(c.getX(i)>c.getY(i))c.setXYZ(i,tone.r,tone.g,tone.b);}
-    geometry.scale(w,h,d);add(geometry,x,y,z,S.plaster,[1,1,1]);};
+    geometry.scale(w,h,d);geometry.translate(x,y,z);plantParts.push(geometry);};
   function seatPad(x,z,yaw){
     const shape=new THREE.Shape(),w=1.43,d=.76,r=.22;
     shape.moveTo(-w+r,-d);shape.lineTo(w-r,-d);shape.quadraticCurveTo(w,-d,w,-d+r);
@@ -119,7 +119,11 @@ export function createHeroRealm(){
     geometry.computeBoundingBox();geometry.computeBoundingSphere();
     const mesh=new THREE.Mesh(geometry,k===2?materials.glass:materials.architecture);mesh.name=['hero-ground','hero-furniture','hero-water-lamps'][k];mesh.castShadow=k===1;mesh.receiveShadow=true;group.add(mesh);
   });
+  const plantingGeometry=mergeGeometries(plantParts,false);plantParts.forEach(g=>g.dispose());
+  plantingGeometry.computeBoundingBox();plantingGeometry.computeBoundingSphere();
+  const plantingMaterial=createPlantMaterial(),planting=new THREE.Mesh(plantingGeometry,plantingMaterial);
+  planting.name='hero-planting';planting.castShadow=planting.receiveShadow=true;group.add(planting);
   const water=createPlazaWater();group.add(water);
-  let disposed=false;group.userData={obstacles,newLights:0,lampPools:[-8.7,8.7].flatMap(x=>[-14,14].map(z=>[-283+x,z,.6])),dispose(){if(disposed)return;disposed=true;group.children.filter(m=>m!==water).forEach(m=>m.geometry.dispose());water.userData.dispose();}};
+  let disposed=false;group.userData={obstacles,newLights:0,lampPools:[-8.7,8.7].flatMap(x=>[-14,14].map(z=>[-283+x,z,.6])),dispose(){if(disposed)return;disposed=true;group.children.filter(m=>m!==water).forEach(m=>m.geometry.dispose());water.userData.dispose();plantingMaterial.dispose();}};
   return group;
 }

@@ -1,0 +1,919 @@
+{
+ "theme": "night",
+ "url": "http://localhost:8000/tests/fixtures/npc-stage.html",
+ "setup": {
+  "forced": [
+   {
+    "d": 80,
+    "dist": 80,
+    "lod": 0,
+    "label": "physical-near",
+    "px": 11730,
+    "lum": 16.57
+   },
+   {
+    "d": 80,
+    "dist": 80,
+    "lod": 1,
+    "label": "physical-far",
+    "px": 11414,
+    "lum": 16.18
+   },
+   {
+    "d": 160,
+    "dist": 160,
+    "lod": 0,
+    "label": "physical-near",
+    "px": 3270,
+    "lum": 17.66
+   },
+   {
+    "d": 160,
+    "dist": 160,
+    "lod": 1,
+    "label": "physical-far",
+    "px": 3148,
+    "lum": 17.44
+   },
+   {
+    "d": 180,
+    "dist": 180,
+    "lod": 0,
+    "label": "physical-near",
+    "px": 2554,
+    "lum": 17.69
+   },
+   {
+    "d": 180,
+    "dist": 180,
+    "lod": 1,
+    "label": "physical-far",
+    "px": 2508,
+    "lum": 17.76
+   }
+  ],
+  "levels": [
+   0,
+   1
+  ],
+  "labels": [
+   "physical-near",
+   "physical-far"
+  ],
+  "hysteresis": {
+   "nearBelow": 130,
+   "farAbove": 150,
+   "initial": 140
+  },
+  "batches": 5,
+  "trees": 36
+ },
+ "forced": [
+  {
+   "d": 80,
+   "dist": 80,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 11730,
+   "lum": 16.57
+  },
+  {
+   "d": 80,
+   "dist": 80,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 11414,
+   "lum": 16.18
+  },
+  {
+   "d": 160,
+   "dist": 160,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 3270,
+   "lum": 17.66
+  },
+  {
+   "d": 160,
+   "dist": 160,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 3148,
+   "lum": 17.44
+  },
+  {
+   "d": 180,
+   "dist": 180,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 2554,
+   "lum": 17.69
+  },
+  {
+   "d": 180,
+   "dist": 180,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 2508,
+   "lum": 17.76
+  }
+ ],
+ "sweep": [
+  {
+   "d": 200,
+   "dist": 200,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 1930,
+   "lum": 17.35,
+   "pass": "approach"
+  },
+  {
+   "d": 196,
+   "dist": 196,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 2065,
+   "lum": 17.36,
+   "pass": "approach"
+  },
+  {
+   "d": 192,
+   "dist": 192,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 2131,
+   "lum": 17.72,
+   "pass": "approach"
+  },
+  {
+   "d": 188,
+   "dist": 188,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 2231,
+   "lum": 17.46,
+   "pass": "approach"
+  },
+  {
+   "d": 184,
+   "dist": 184,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 2357,
+   "lum": 17.23,
+   "pass": "approach"
+  },
+  {
+   "d": 180,
+   "dist": 180,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 2508,
+   "lum": 17.76,
+   "pass": "approach"
+  },
+  {
+   "d": 176,
+   "dist": 176,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 2576,
+   "lum": 17.41,
+   "pass": "approach"
+  },
+  {
+   "d": 172,
+   "dist": 172,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 2711,
+   "lum": 17.46,
+   "pass": "approach"
+  },
+  {
+   "d": 168,
+   "dist": 168,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 2861,
+   "lum": 17.46,
+   "pass": "approach"
+  },
+  {
+   "d": 164,
+   "dist": 164,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 2999,
+   "lum": 17.19,
+   "pass": "approach"
+  },
+  {
+   "d": 160,
+   "dist": 160,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 3148,
+   "lum": 17.44,
+   "pass": "approach"
+  },
+  {
+   "d": 156,
+   "dist": 156,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 3324,
+   "lum": 17.15,
+   "pass": "approach"
+  },
+  {
+   "d": 152,
+   "dist": 152,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 3407,
+   "lum": 17.39,
+   "pass": "approach"
+  },
+  {
+   "d": 148,
+   "dist": 148,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 3482,
+   "lum": 17.34,
+   "pass": "approach"
+  },
+  {
+   "d": 144,
+   "dist": 144,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 3785,
+   "lum": 17.3,
+   "pass": "approach"
+  },
+  {
+   "d": 140,
+   "dist": 140,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 4031,
+   "lum": 17.21,
+   "pass": "approach"
+  },
+  {
+   "d": 136,
+   "dist": 136,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 4250,
+   "lum": 17.27,
+   "pass": "approach"
+  },
+  {
+   "d": 132,
+   "dist": 132,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 4468,
+   "lum": 17.25,
+   "pass": "approach"
+  },
+  {
+   "d": 128,
+   "dist": 128,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 4883,
+   "lum": 17.27,
+   "pass": "approach"
+  },
+  {
+   "d": 124,
+   "dist": 124,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 5188,
+   "lum": 17.33,
+   "pass": "approach"
+  },
+  {
+   "d": 120,
+   "dist": 120,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 5529,
+   "lum": 17.21,
+   "pass": "approach"
+  },
+  {
+   "d": 116,
+   "dist": 116,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 5891,
+   "lum": 17.29,
+   "pass": "approach"
+  },
+  {
+   "d": 112,
+   "dist": 112,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 6293,
+   "lum": 17.05,
+   "pass": "approach"
+  },
+  {
+   "d": 108,
+   "dist": 108,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 6836,
+   "lum": 16.96,
+   "pass": "approach"
+  },
+  {
+   "d": 104,
+   "dist": 104,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 7192,
+   "lum": 16.89,
+   "pass": "approach"
+  },
+  {
+   "d": 100,
+   "dist": 100,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 7756,
+   "lum": 17.03,
+   "pass": "approach"
+  },
+  {
+   "d": 96,
+   "dist": 96,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 8338,
+   "lum": 16.81,
+   "pass": "approach"
+  },
+  {
+   "d": 92,
+   "dist": 92,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 9039,
+   "lum": 16.78,
+   "pass": "approach"
+  },
+  {
+   "d": 88,
+   "dist": 88,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 9856,
+   "lum": 16.69,
+   "pass": "approach"
+  },
+  {
+   "d": 84,
+   "dist": 84,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 10693,
+   "lum": 16.63,
+   "pass": "approach"
+  },
+  {
+   "d": 80,
+   "dist": 80,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 11730,
+   "lum": 16.57,
+   "pass": "approach"
+  },
+  {
+   "d": 76,
+   "dist": 76,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 12687,
+   "lum": 16.52,
+   "pass": "approach"
+  },
+  {
+   "d": 72,
+   "dist": 72,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 13151,
+   "lum": 16.45,
+   "pass": "approach"
+  },
+  {
+   "d": 68,
+   "dist": 68,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 14593,
+   "lum": 16.46,
+   "pass": "approach"
+  },
+  {
+   "d": 64,
+   "dist": 64,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 15896,
+   "lum": 16.5,
+   "pass": "approach"
+  },
+  {
+   "d": 60,
+   "dist": 60,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 15785,
+   "lum": 16.41,
+   "pass": "approach"
+  },
+  {
+   "d": 56,
+   "dist": 56,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 17501,
+   "lum": 16.32,
+   "pass": "approach"
+  },
+  {
+   "d": 52,
+   "dist": 52,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 18931,
+   "lum": 16.22,
+   "pass": "approach"
+  },
+  {
+   "d": 48,
+   "dist": 48,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 19856,
+   "lum": 16.09,
+   "pass": "approach"
+  },
+  {
+   "d": 44,
+   "dist": 44,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 20488,
+   "lum": 15.86,
+   "pass": "approach"
+  },
+  {
+   "d": 40,
+   "dist": 40,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 24070,
+   "lum": 15.72,
+   "pass": "approach"
+  },
+  {
+   "d": 44,
+   "dist": 44,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 20488,
+   "lum": 15.86,
+   "pass": "leave"
+  },
+  {
+   "d": 48,
+   "dist": 48,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 19856,
+   "lum": 16.09,
+   "pass": "leave"
+  },
+  {
+   "d": 52,
+   "dist": 52,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 18931,
+   "lum": 16.22,
+   "pass": "leave"
+  },
+  {
+   "d": 56,
+   "dist": 56,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 17501,
+   "lum": 16.32,
+   "pass": "leave"
+  },
+  {
+   "d": 60,
+   "dist": 60,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 15785,
+   "lum": 16.41,
+   "pass": "leave"
+  },
+  {
+   "d": 64,
+   "dist": 64,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 15896,
+   "lum": 16.5,
+   "pass": "leave"
+  },
+  {
+   "d": 68,
+   "dist": 68,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 14593,
+   "lum": 16.46,
+   "pass": "leave"
+  },
+  {
+   "d": 72,
+   "dist": 72,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 13151,
+   "lum": 16.45,
+   "pass": "leave"
+  },
+  {
+   "d": 76,
+   "dist": 76,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 12687,
+   "lum": 16.52,
+   "pass": "leave"
+  },
+  {
+   "d": 80,
+   "dist": 80,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 11730,
+   "lum": 16.57,
+   "pass": "leave"
+  },
+  {
+   "d": 84,
+   "dist": 84,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 10693,
+   "lum": 16.63,
+   "pass": "leave"
+  },
+  {
+   "d": 88,
+   "dist": 88,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 9856,
+   "lum": 16.69,
+   "pass": "leave"
+  },
+  {
+   "d": 92,
+   "dist": 92,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 9039,
+   "lum": 16.78,
+   "pass": "leave"
+  },
+  {
+   "d": 96,
+   "dist": 96,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 8338,
+   "lum": 16.81,
+   "pass": "leave"
+  },
+  {
+   "d": 100,
+   "dist": 100,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 7756,
+   "lum": 17.03,
+   "pass": "leave"
+  },
+  {
+   "d": 104,
+   "dist": 104,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 7192,
+   "lum": 16.89,
+   "pass": "leave"
+  },
+  {
+   "d": 108,
+   "dist": 108,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 6836,
+   "lum": 16.96,
+   "pass": "leave"
+  },
+  {
+   "d": 112,
+   "dist": 112,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 6293,
+   "lum": 17.05,
+   "pass": "leave"
+  },
+  {
+   "d": 116,
+   "dist": 116,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 5891,
+   "lum": 17.29,
+   "pass": "leave"
+  },
+  {
+   "d": 120,
+   "dist": 120,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 5546,
+   "lum": 17.18,
+   "pass": "leave"
+  },
+  {
+   "d": 124,
+   "dist": 124,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 5203,
+   "lum": 17.31,
+   "pass": "leave"
+  },
+  {
+   "d": 128,
+   "dist": 128,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 4914,
+   "lum": 17.36,
+   "pass": "leave"
+  },
+  {
+   "d": 132,
+   "dist": 132,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 4570,
+   "lum": 17.41,
+   "pass": "leave"
+  },
+  {
+   "d": 136,
+   "dist": 136,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 4341,
+   "lum": 17.63,
+   "pass": "leave"
+  },
+  {
+   "d": 140,
+   "dist": 140,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 4192,
+   "lum": 17.35,
+   "pass": "leave"
+  },
+  {
+   "d": 144,
+   "dist": 144,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 3901,
+   "lum": 17.35,
+   "pass": "leave"
+  },
+  {
+   "d": 148,
+   "dist": 148,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 3634,
+   "lum": 17.44,
+   "pass": "leave"
+  },
+  {
+   "d": 152,
+   "dist": 152,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 3407,
+   "lum": 17.39,
+   "pass": "leave"
+  },
+  {
+   "d": 156,
+   "dist": 156,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 3324,
+   "lum": 17.15,
+   "pass": "leave"
+  },
+  {
+   "d": 160,
+   "dist": 160,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 3148,
+   "lum": 17.44,
+   "pass": "leave"
+  },
+  {
+   "d": 164,
+   "dist": 164,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 2999,
+   "lum": 17.19,
+   "pass": "leave"
+  },
+  {
+   "d": 168,
+   "dist": 168,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 2861,
+   "lum": 17.46,
+   "pass": "leave"
+  },
+  {
+   "d": 172,
+   "dist": 172,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 2711,
+   "lum": 17.46,
+   "pass": "leave"
+  },
+  {
+   "d": 176,
+   "dist": 176,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 2576,
+   "lum": 17.41,
+   "pass": "leave"
+  },
+  {
+   "d": 180,
+   "dist": 180,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 2508,
+   "lum": 17.76,
+   "pass": "leave"
+  },
+  {
+   "d": 184,
+   "dist": 184,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 2357,
+   "lum": 17.23,
+   "pass": "leave"
+  },
+  {
+   "d": 188,
+   "dist": 188,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 2231,
+   "lum": 17.46,
+   "pass": "leave"
+  },
+  {
+   "d": 192,
+   "dist": 192,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 2131,
+   "lum": 17.72,
+   "pass": "leave"
+  },
+  {
+   "d": 196,
+   "dist": 196,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 2065,
+   "lum": 17.36,
+   "pass": "leave"
+  },
+  {
+   "d": 200,
+   "dist": 200,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 1930,
+   "lum": 17.35,
+   "pass": "leave"
+  }
+ ],
+ "transitions": [
+  {
+   "d": 128,
+   "dist": 128,
+   "lod": 0,
+   "label": "physical-near",
+   "px": 4883,
+   "lum": 17.27,
+   "pass": "approach"
+  },
+  {
+   "d": 152,
+   "dist": 152,
+   "lod": 1,
+   "label": "physical-far",
+   "px": 3407,
+   "lum": 17.39,
+   "pass": "leave"
+  }
+ ],
+ "far": {
+  "d": 1500,
+  "dist": 1500,
+  "lod": 1,
+  "label": "physical-far",
+  "px": 20,
+  "lum": 21.38
+ },
+ "largest_steps": [
+  {
+   "from": 44,
+   "to": 40,
+   "lod": "0->0",
+   "px_ratio": 1.175
+  },
+  {
+   "from": 72,
+   "to": 68,
+   "lod": "0->0",
+   "px_ratio": 1.11
+  },
+  {
+   "from": 60,
+   "to": 56,
+   "lod": "0->0",
+   "px_ratio": 1.109
+  },
+  {
+   "from": 68,
+   "to": 72,
+   "lod": "0->0",
+   "px_ratio": 0.901
+  },
+  {
+   "from": 56,
+   "to": 60,
+   "lod": "0->0",
+   "px_ratio": 0.902
+  },
+  {
+   "from": 84,
+   "to": 80,
+   "lod": "0->0",
+   "px_ratio": 1.097
+  }
+ ],
+ "console_errors": []
+}

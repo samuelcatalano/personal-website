@@ -1,70 +1,36 @@
 import * as THREE from 'three';
 import { streetEnvironment, STREET_WIND } from './streetscape-state.js';
 import { loadGlb } from './glb-loader.js';
-import { impostorGeometry } from './tree-mesh.js';
 import { addTreeUnderstory } from './tree-understory.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
-const VERSION = '5';
+const VERSION = '9';
 const FOLIAGE_CUTOFF = 0.42; // same cutoff as the exported leaf MASK (tools/vegetation/build_trees.py ALPHA_CUTOFF)
 const SOURCES = [
-  ['realistic-tree', 'realistic-tree.glb', ['realistic-tree']],
+  ['botanical', 'botanical-trees.glb', ['botanical-oak', 'botanical-plane', 'botanical-birch', 'botanical-spruce', 'botanical-ipe']],
 ];
 const rnd = (x, z, k) => { const s = Math.sin(x * 12.9898 + z * 78.233 + k * 37.719) * 43758.5453; return s - Math.floor(s); };
-const LEAF_PALETTE = [0xe4d4f1, 0xffedb5].map((hex) => {
-  const color = new THREE.Color(hex);
-  return color.multiplyScalar(1 / Math.max(color.r, color.g, color.b)); // Keep the original neutral instance shade on bark.
-});
+const REGIONAL_TREES = {
+  sp: [.20,.15,0,0,.65], london: [.35,.52,.13,0,0],
+  country: [.35,.05,.30,.30,0], glasgow: [.35,.15,.30,.20,0],
+};
+const speciesAt=(region,x,z)=>{
+  const weights=REGIONAL_TREES[region]??[.25,.25,.20,.20,.10],v=rnd(x,z,43);let sum=0;
+  for(let i=0;i<weights.length;i++){sum+=weights[i];if(v<sum)return i;}return 0;
+};
 // Sun for the canopy backlight: world direction towards the sun (xyz) and day strength (w). scene.js sets it every frame.
 export const treeSun = { value: new THREE.Vector4(0.4, 0.7, 0.35, 0.8) };
 const PALETTE_FRAGMENT = {
-  leaves: [
-    '#ifdef USE_COLOR',
-    '  float treeShade = max(vColor.r, max(vColor.g, vColor.b));',
-    '  vec3 treePalette = vColor / max(treeShade, 0.0001);',
-    '  float treeChroma = max(vColor.r, max(vColor.g, vColor.b)) - min(vColor.r, min(vColor.g, vColor.b));',
-    '  float treeTint = smoothstep(0.02, 0.18, treeChroma) * 0.62;',
-    '  diffuseColor.rgb = mix(diffuseColor.rgb, treePalette, treeTint) * treeShade;',
-    '#else',
-    '  #include <color_fragment>',
-    '#endif',
-    '  diffuseColor.rgb *= vTreeHue * vTreeAO; // T3: per-tree hue jitter and radial AO (see leafCanopy)',
-  ].join('\n'),
-  trunk: [
-    '#ifdef USE_COLOR',
-    '  diffuseColor.rgb *= max(vColor.r, max(vColor.g, vColor.b));',
-    '#else',
-    '  #include <color_fragment>',
-    '#endif',
-  ].join('\n'),
-  impostor: [
-    '#ifdef USE_COLOR',
-    '  float treeShade = max(vColor.r, max(vColor.g, vColor.b));',
-    '  vec3 treePalette = vColor / max(treeShade, 0.0001);',
-    '  float treeChroma = max(vColor.r, max(vColor.g, vColor.b)) - min(vColor.r, min(vColor.g, vColor.b));',
-    '  float treeFoliage = 0.0;',
-    '  #ifdef USE_MAP',
-    '    float treeGreen = sampledDiffuseColor.g - max(sampledDiffuseColor.r, sampledDiffuseColor.b);',
-    '    treeFoliage = smoothstep(0.003, 0.015, treeGreen);',
-    '  #endif',
-    '  float treeTint = smoothstep(0.02, 0.18, treeChroma) * 0.62 * treeFoliage;',
-    '  diffuseColor.rgb = mix(diffuseColor.rgb, treePalette, treeTint) * treeShade;',
-    '#else',
-    '  #include <color_fragment>',
-    '#endif',
-  ].join('\n'),
+  leaves: '#include <color_fragment>\n diffuseColor.rgb *= vTreeHue;',
+  trunk: '#include <color_fragment>',
 };
-// T3 on leaf cut-outs: puffy normals pulled toward the crown centre, a sun backlight term (leaves glow when the sun is behind them),
-// radial AO (inner leaves dark) and per-tree hue jitter. The view-space sun direction is computed in the vertex stage; no per-frame CPU work per tree.
+// Authored bent-leaf normals and vertex shade remain intact; add restrained sun transmission and per-tree hue variation.
 function leafCanopy(shader) {
   shader.uniforms.uTreeSun = treeSun;
-  const decl = '#include <common>\nuniform vec4 uTreeSun;\nvarying vec3 vTreeSunView;\nvarying float vTreeAO;\nvarying vec3 vTreeHue;';
+  const decl = '#include <common>\nuniform vec4 uTreeSun;\nvarying vec3 vTreeSunView;\nvarying vec3 vTreeHue;';
   shader.vertexShader = shader.vertexShader.replace('#include <common>', decl)
-    .replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>
-objectNormal = normalize(mix(objectNormal, normalize(position - vec3(0.0, 0.55, 0.0)), 0.5)); // puffy: crown cards shade as a volume`)
     .replace('#include <begin_vertex>', `#include <begin_vertex>
 vTreeSunView = normalize((viewMatrix * vec4(uTreeSun.xyz, 0.0)).xyz);
-vTreeAO = 1.0; // radial AO removed: it darkened LOD1 against the flat impostor under flat light (authored-trees.browser.py)
 #ifdef USE_INSTANCING
 float treeHash = fract(sin(dot(instanceMatrix[3].xz, vec2(12.9898, 78.233))) * 43758.5453);
 #else
@@ -95,10 +61,9 @@ function setPaletteShader(material, kind) {
     shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>', PALETTE_FRAGMENT[kind]);
     if (kind === 'leaves') leafCanopy(shader);
   };
-  material.customProgramCacheKey = () => 'authored-tree-palette-' + kind + '-wind-4';
+  material.customProgramCacheKey = () => 'authored-tree-palette-' + kind + '-botanical-physical-2';
 }
 const urls = SOURCES.map(([, file]) => new URL(`../../assets/processed/vegetation/${file}?v=${VERSION}`, import.meta.url).href);
-const atlasUrl = new URL(`../../assets/processed/vegetation/tree-impostors.png?v=${VERSION}`, import.meta.url).href;
 
 function disposeRoots(roots) {
   const geometries = new Set(), materials = new Set(), textures = new Set();
@@ -117,7 +82,10 @@ function disposeRoots(roots) {
 function makeTreeMaterial(source) {
   const material = source.clone();
   if (/leaf|leaves|foliage|cluster|vine|prune|crown/i.test(source.name) || source.transparent || source.alphaTest > 0) {
-    material.transparent = false; material.depthWrite = true; material.alphaTest = Math.max(0.4, source.alphaTest || 0); material.side = THREE.DoubleSide;
+    material.transparent = false; material.depthWrite = true; material.alphaTest = Math.max(FOLIAGE_CUTOFF, source.alphaTest || 0); material.side = THREE.DoubleSide;
+    material.alphaToCoverage = true;
+    // Tiny leaves must not disappear when averaged alpha falls below the mask cutoff.
+    if(material.map){material.map.minFilter=THREE.LinearFilter;material.map.generateMipmaps=false;material.map.anisotropy=16;material.map.needsUpdate=true;}
   }
   setPaletteShader(material, /leaf|leaves|foliage/i.test(source.name) ? 'leaves' : 'trunk');
   return material;
@@ -137,15 +105,13 @@ function mergeParts(parts, materialOrder = null) {
   return { geometry, materials };
 }
 
-export async function createAuthoredTrees(placements) {
-  const settled = await Promise.allSettled([...urls.map((url) => loadGlb(url)), new THREE.TextureLoader().loadAsync(atlasUrl)]);
+export async function createAuthoredTrees(placements, regionOf = null) {
+  const settled = await Promise.allSettled(urls.map(url=>loadGlb(url)));
   const failed = settled.find((r) => r.status === 'rejected');
-  const atlas = settled.pop().value;
   const roots = settled.filter((r) => r.status === 'fulfilled').map((r) => r.value);
-  if (failed) { atlas?.dispose(); disposeRoots(roots); throw failed.reason; }
+  if (failed) { disposeRoots(roots); throw failed.reason; }
   const geometries = new Set(), materials = new Set(), textures = new Set(), sourceGeometries = new Set(), sourceMaterials = new Set();
   try {
-    atlas.colorSpace = THREE.SRGBColorSpace; atlas.anisotropy = 4;
     const sourceMeshes = new Map();
     roots.forEach((root) => {
       root.updateMatrixWorld(true);
@@ -157,7 +123,7 @@ export async function createAuthoredTrees(placements) {
           sourceMaterials.add(m);
           for (const key of ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'emissiveMap', 'alphaMap', 'specularColorMap', 'specularIntensityMap']) if (m[key]) textures.add(m[key]);
         });
-        const match = /^(realistic-tree)-LOD([01])(?:_\d+)?$/.exec(o.name);
+        const match = /^(botanical-(?:oak|plane|birch|spruce|ipe))-LOD([01])(?:_\d+)?$/.exec(o.name);
         if (!match) return;
         const [, variant, level] = match, key = `${variant}:${level}`;
         const geometry = o.geometry.clone().applyMatrix4(o.matrixWorld); geometry.computeBoundingBox(); geometries.add(geometry);
@@ -166,7 +132,7 @@ export async function createAuthoredTrees(placements) {
       });
     });
 
-    const variants = SOURCES.flatMap(([, , names]) => names).map((name, atlasIndex) => {
+    const variants = SOURCES.flatMap(([, , names]) => names).map((name) => {
       const lod0Parts = sourceMeshes.get(`${name}:0`), lod1Parts = sourceMeshes.get(`${name}:1`);
       if (!lod0Parts?.length || !lod1Parts?.length) throw new Error(`Missing authored tree LOD: ${name}`);
       const lod0 = mergeParts(lod0Parts);
@@ -182,15 +148,13 @@ export async function createAuthoredTrees(placements) {
       for (let i = 0; i < pos.count; i++) radius = Math.max(radius, Math.hypot(pos.getX(i), pos.getZ(i)));
       if (!radius) throw new Error(`Invalid authored tree bounds: ${name}`);
       const treeMaterials = lod0.materials.map(makeTreeMaterial); treeMaterials.forEach((m) => materials.add(m));
-      return { name, atlasIndex, radius, lod0: lod0.geometry, lod1, materials: treeMaterials };
+      return { name, radius, lod0: lod0.geometry, lod1, materials: treeMaterials };
     });
     sourceGeometries.forEach((g) => { g.dispose(); geometries.delete(g); }); sourceMaterials.forEach((m) => m.dispose());
-    const group = new THREE.Group(); group.name = 'trees';
+    const group = new THREE.Group(); group.name = 'trees'; group.userData.renderer = 'botanical';
     const batches = [], object = new THREE.Object3D(), chunks = new Map(), CHUNK = 160;
-    // The impostor atlas bakes leaves and bark together, so tint only green pixels.
-    const impostorMat = new THREE.MeshLambertMaterial({ map: atlas, alphaTest: FOLIAGE_CUTOFF, side: THREE.DoubleSide }); // no alphaToCoverage: without MSAA it changes LOD brightness (authored-trees.browser.py) setPaletteShader(impostorMat, 'impostor'); materials.add(impostorMat); textures.add(atlas);
     placements.forEach((p, i) => {
-      const variantIndex = Math.min(variants.length - 1, Math.floor(rnd(p.x, p.z, 43) * variants.length)), variant = variants[variantIndex], chunk = Math.floor(p.x / CHUNK), key = `${variant.name}:${chunk}`;
+      const variantIndex = speciesAt(regionOf?.(p.x,p.z),p.x,p.z), variant = variants[variantIndex], chunk = Math.floor(p.x / CHUNK), key = `${variant.name}:${chunk}`;
       if (!chunks.has(key)) chunks.set(key, { variant, trees: [] });
       chunks.get(key).trees.push({ p, i });
     });
@@ -199,11 +163,9 @@ export async function createAuthoredTrees(placements) {
       const lods = [
         new THREE.InstancedMesh(variant.lod0, variant.materials, trees.length),
         new THREE.InstancedMesh(variant.lod1, variant.materials, trees.length),
-        new THREE.InstancedMesh(impostorGeometry(variant.atlasIndex, variants.length), impostorMat, trees.length),
-      ], bounds = new THREE.Box3(), worldTrees = [];
-      geometries.add(lods[2].geometry);
+      ], bounds = new THREE.Box3();
       lods.forEach((mesh, level) => {
-        mesh.name = `trees-canopy-${variant.name}-lod${level}`; mesh.visible = level === 0; mesh.castShadow = false; mesh.receiveShadow = level < 2; // casters: the shadow proxy below
+        mesh.name = `trees-canopy-${variant.name}-lod${level}`; mesh.visible = level === 0; mesh.castShadow = false; mesh.receiveShadow = true; // casters: the shadow proxy below
         mesh.userData.sourceIndices = trees.map((e) => e.i); group.add(mesh);
       });
       // ponytail: one height scale for every tree; placements carry no street/park kind, so the 7–10 m and 10–14 m bands are not split yet
@@ -211,41 +173,29 @@ export async function createAuthoredTrees(placements) {
         const base = p.base ?? 0.1, height = Math.min(6.2, (p.h + 0.65) * 1.2) * (0.8 + rnd(p.x, p.z, 2) * 0.25), width = Math.min(p.crown / (2 * variant.radius), height), yaw = rnd(p.x, p.z, 4) * Math.PI * 2;
         object.position.set(p.x, base + 0.02, p.z); object.rotation.set(0, yaw, 0); object.scale.set(width, height, width); object.updateMatrix();
         lods[0].setMatrixAt(k, object.matrix); lods[1].setMatrixAt(k, object.matrix);
-        const billboardFit = Math.max(1, 2 * variant.radius) * 1.16, billboardX = width * billboardFit, billboardY = height * billboardFit;
-        object.rotation.set(0, yaw, 0); object.scale.set(billboardX, billboardY, 1); object.updateMatrix(); lods[2].setMatrixAt(k, object.matrix);
-        const shade = 0.92 + rnd(p.x, p.z, 8) * 0.16, palette = rnd(p.x, p.z, 19), tint = new THREE.Color().setRGB(shade, shade, shade);
-        if (palette < 0.1) tint.copy(LEAF_PALETTE[0]).multiplyScalar(shade);
-        else if (palette >= 0.9) tint.copy(LEAF_PALETTE[1]).multiplyScalar(shade);
-        lods.forEach((mesh) => mesh.setColorAt(k, tint));
+        const shade=.92+rnd(p.x,p.z,8)*.15,tint=new THREE.Color().setRGB(shade*(.97+rnd(p.x,p.z,19)*.05),shade,shade*(.96+rnd(p.x,p.z,20)*.05));
+        lods.forEach(mesh=>mesh.setColorAt(k,tint));
         const radius = Math.min(p.crown / 2, variant.radius * width), top = base + 0.02 + height;
         bounds.expandByPoint(new THREE.Vector3(p.x - radius, base, p.z - radius)); bounds.expandByPoint(new THREE.Vector3(p.x + radius, top, p.z + radius));
-        worldTrees.push({ x: p.x, z: p.z, base, radius, billboardX, billboardY, yaw });
       });
       lods.forEach((mesh) => { mesh.instanceMatrix.needsUpdate = true; mesh.computeBoundingBox(); mesh.computeBoundingSphere(); mesh.boundingSphere.radius += 0.06; });
-      // Shadow proxy: LOD1 canopy (~1/4 of LOD0 triangles) casts whatever LOD is on screen; drawn only inside the shadow pass (see setShadowProxies).
+      // Shadow proxy: physical LOD1 (~57% of LOD0 triangles) casts for both visible detail levels; drawn only inside the shadow pass (see setShadowProxies).
       const proxy = new THREE.InstancedMesh(variant.lod1, variant.materials, trees.length);
       proxy.name = `trees-shadow-${variant.name}`; proxy.instanceMatrix = lods[1].instanceMatrix; proxy.instanceColor = lods[1].instanceColor;
       proxy.castShadow = true; proxy.visible = false; proxy.computeBoundingBox(); proxy.computeBoundingSphere(); proxy.boundingSphere.radius += 0.06; group.add(proxy);
-      batches.push({ lods, proxy, bounds, trees: worldTrees, level: null, lastCameraX: -Infinity, lastCameraZ: -Infinity });
+      batches.push({ lods, proxy, bounds, level: null });
     });
 
     const shrubs = addTreeUnderstory(group, placements);
     group.userData.batches = batches;
-    // Same casters as before (near and mid batches), but with LOD1 geometry. Hidden during the main pass, so no extra draw there.
+    // Keep actual foliage silhouettes in shadows; proxies are hidden during the colour pass.
     group.userData.setShadowProxies = (on) => { for (const b of batches) b.proxy.visible = on && (b.level === 0 || b.level === 1); };
     group.userData.update = (camera, time = 0) => {
       streetEnvironment.time.value = time;
       for (const batch of batches) {
         const d = batch.bounds.distanceToPoint(camera.position), prev = batch.level;
-        batch.level = prev === null ? (d < 70 ? 0 : d < 150 ? 1 : 2) : prev === 0 ? (d > 80 ? (d > 160 ? 2 : 1) : 0) : prev === 1 ? (d < 60 ? 0 : d > 160 ? 2 : 1) : (d < 60 ? 0 : d < 140 ? 1 : 2);
+        batch.level = prev === null ? (d < 140 ? 0 : 1) : prev === 0 ? (d > 150 ? 1 : 0) : (d < 130 ? 0 : 1);
         if (prev !== batch.level) batch.lods.forEach((mesh, i) => { mesh.visible = i === batch.level; });
-        if (batch.level === 2 && (Math.abs(camera.position.x - batch.lastCameraX) > 0.25 || Math.abs(camera.position.z - batch.lastCameraZ) > 0.25)) {
-          batch.trees.forEach((tree, i) => {
-            object.position.set(tree.x, tree.base + 0.02, tree.z); object.rotation.set(0, Math.atan2(camera.position.x - tree.x, camera.position.z - tree.z), 0); object.scale.set(tree.billboardX, tree.billboardY, 1); object.updateMatrix();
-            batch.lods[2].setMatrixAt(i, object.matrix);
-          });
-          batch.lods[2].instanceMatrix.needsUpdate = true; batch.lods[2].computeBoundingBox(); batch.lods[2].computeBoundingSphere(); batch.lods[2].boundingSphere.radius += 0.06; batch.lastCameraX = camera.position.x; batch.lastCameraZ = camera.position.z;
-        }
       }
     };
     let disposed = false;
@@ -256,6 +206,6 @@ export async function createAuthoredTrees(placements) {
     };
     return group;
   } catch (error) {
-    atlas?.dispose(); geometries.forEach((g) => g.dispose()); materials.forEach((m) => m.dispose()); disposeRoots(roots); throw error;
+    geometries.forEach((g) => g.dispose()); materials.forEach((m) => m.dispose()); disposeRoots(roots); throw error;
   }
 }

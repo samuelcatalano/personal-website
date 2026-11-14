@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { i18n } from '../content.js';
-import { createPlantGeometry } from './plant-mesh.js';
+import { createPlantGeometry, createPlantMaterial } from './plant-mesh.js';
 // The plaza on the lid of the SP -> London tunnel (swap-tunnel.js): grey York stone flags kerb to kerb, a fingerpost in the middle (São Paulo one way,
 // London the other; copy from content.js, redrawn when the language changes) and a street lamp beside it (city.js registers it with street-lamp.js).
 // Local frame as swap-tunnel.js: x along the road (+ towards London), z across, y up.
@@ -92,7 +92,7 @@ export function buildSwapPlaza({ half, kerb, y }) {
   group.add(rails); geos.push(railGeo);
   const wood=new THREE.MeshStandardMaterial({color:'#80522f',roughness:.88});
   const stone=new THREE.MeshStandardMaterial({color:'#aaa392',roughness:.95});
-  const leaf=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.95});mats.push(wood,stone,leaf);
+  const leaf=createPlantMaterial();mats.push(wood,stone,leaf);
   const seats=[],legs=[],containers=[],soil=[],plants=[],batches=[],obstacles=[];
   for(const side of [-1,1]){
     const x=side*(half-1.15),z=side*(kerb-2.4),px=side*(half-1.05);

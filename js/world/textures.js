@@ -22,17 +22,31 @@ function noiseTexture() {
   noise.colorSpace = THREE.SRGBColorSpace;
   return noise;
 }
+let turf;
+function turfTexture() {
+  if(turf)return turf;
+  const canvas=document.createElement('canvas');canvas.width=canvas.height=512;
+  const ctx=canvas.getContext('2d');ctx.fillStyle='#c0c4b7';ctx.fillRect(0,0,512,512);
+  let seed=73;const random=()=>{seed=(1664525*seed+1013904223)>>>0;return seed/4294967296;};
+  for(let i=0;i<22000;i++){
+    const x=random()*512,y=random()*512,l=2+random()*13,shade=115+Math.floor(random()*118);
+    ctx.strokeStyle=`rgb(${shade},${shade+3},${shade-5})`;ctx.lineWidth=.45+random()*.65;
+    ctx.beginPath();ctx.moveTo(x,y);ctx.quadraticCurveTo(x+(random()-.5)*7,y-l*.5,x+(random()-.5)*9,y-l);ctx.stroke();
+  }
+  turf=new THREE.CanvasTexture(canvas);turf.wrapS=turf.wrapT=THREE.RepeatWrapping;
+  turf.colorSpace=THREE.SRGBColorSpace;turf.anisotropy=16;return turf;
+}
 const EDGE_W = 0.035, EDGE_DARK = 0.02, EDGE_HI = 0.015, EDGE_MIN = 0.1, EDGE_FULL = 0.4; // metres / fractions; effect fades in for faces EDGE_MIN..EDGE_FULL m
 // Triplanar, world space: 1 tile = 1 m
 const GRASS = new Set([P.grass, P.patch]);
 export const surfaceNoiseTexture = noiseTexture;
 export function blockMaterial(color, { glow = false, k = 2.2 } = {}) {
-  const mat = new THREE.MeshStandardMaterial({ color, map: noiseTexture(), roughness: 0.9, metalness: 0 });
+  const mat = new THREE.MeshStandardMaterial({ color, map: GRASS.has(color)?turfTexture():noiseTexture(), roughness: 0.9, metalness: 0 });
   const kind = GRASS.has(color) ? 1 : color === P.road ? 2 : [P.pave, P.paverWarm].includes(color) ? 3 : 0; // world-space tint noise
   mat.userData.glow = glow;
   if (kind === 2) { mat.userData.glow = true; mat.userData.glowColor = new THREE.Color('#151412'); mat.userData.glowK = 1; } // ponytail: neutral-warm flat night lift (no blue cast) on asphalt (sky.update drives emissive); no per-lamp light
   mat.userData.glowK = k; // night emissive multiplier, see sky.update
-  mat.customProgramCacheKey = () => 'block-streetscape-1' + glow + kind; // glow/non-glow differ by define only
+  mat.customProgramCacheKey = () => 'block-streetscape-1' + glow + kind + (kind===1?'-botanical-turf-1':''); // glow/non-glow differ by define only
   mat.onBeforeCompile = (sh) => {
     sh.uniforms.uStreetRegions = streetEnvironment.regions;
     const common = '#include <common>\nvarying vec3 vWP; varying vec3 vWN; varying vec3 vLP; varying vec3 vLN; varying vec3 vSc; varying float vH;';
@@ -72,7 +86,11 @@ diffuseColor *= texture2D(map, tuv);
   vec4 h = fract(sin(vec4(dot(i, vec2(12.9898, 78.233)), dot(i + vec2(1.0, 0.0), vec2(12.9898, 78.233)), dot(i + vec2(0.0, 1.0), vec2(12.9898, 78.233)), dot(i + 1.0, vec2(12.9898, 78.233)))) * 43758.5453);
   float n = mix(mix(h.x, h.y, f.x), mix(h.z, h.w, f.x), f.y) - 0.5;
   #if GROUND == 1
-  diffuseColor.rgb *= 1.0 + 0.12 * n + vec3(0.1, 0.0, -0.1) * n;
+  float dry=smoothstep(.16,.43,n);
+  diffuseColor.rgb *= vec3(.94,1.0,.89) * (1.0+.23*n);
+  diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.28,1.08,.66),dry*.42);
+  float turfEdge=min((.5-abs(vLP.x))*vSc.x,(.5-abs(vLP.z))*vSc.z);
+  diffuseColor.rgb *= 1.0-.12*(1.0-smoothstep(.015,.20,turfEdge));
   #elif GROUND == 2
   diffuseColor.rgb *= (1.0 + 0.2 * n) * mix(vec3(2.9, 2.4, 1.95), vec3(1.0), uNight); // lighter warm day asphalt; albedo unchanged at night
   #else
@@ -117,6 +135,15 @@ diffuseColor *= texture2D(map, tuv);
   diffuseColor.rgb *= vLN.y > 0.5 ? 1.0 + ${EDGE_HI.toFixed(3)} * t : 1.0 - ${EDGE_DARK.toFixed(3)} * t;
 }
 #endif`);
+    if(kind===1)sh.fragmentShader=sh.fragmentShader.replace('#include <normal_fragment_maps>',`#include <normal_fragment_maps>
+      float turfFootprint=max(length(dFdx(vWP.xz)),length(dFdy(vWP.xz)));
+      float turfDetail=1.0-smoothstep(.012,.10,turfFootprint);
+      float turfHeight=texture2D(map,vWP.xz).g*.014;
+      vec3 turfDx=dFdx(-vViewPosition),turfDy=dFdy(-vViewPosition);
+      vec3 turfR1=cross(turfDy,normal),turfR2=cross(normal,turfDx);
+      float turfDet=dot(turfDx,turfR1);
+      normal=normalize(max(abs(turfDet),1e-8)*normal-sign(turfDet)*(dFdx(turfHeight)*turfR1+dFdy(turfHeight)*turfR2)*turfDetail);
+    `);
   };
   return mat;
 }

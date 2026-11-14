@@ -51,7 +51,7 @@ print(js(r'''(async () => {
     const bounds = geometry.boundingBox;
     check(bounds.min.x >= -0.5-1e-5 && bounds.max.x <= 0.5+1e-5 && bounds.min.z >= -0.5-1e-5 && bounds.max.z <= 0.5+1e-5 && Math.abs(bounds.min.y) < 1e-5 && bounds.max.y <= 1+1e-5, `${kind} normalized ground-origin bounds`);
     check(a.count === b.count && (kind === 'grass' || a.count === plants.filter(p => p.plant === kind).length) && a.count > 0 && a.instanceColor?.count === a.count, `${kind} uses deterministic tinted plant instances`);
-    if (kind === 'grass') check(a.geometry.getAttribute('position').count / 3 === 20 && !a.castShadow && !a.receiveShadow, 'grass uses five double-sided 3D blade clumps without shadow-pass cost');
+    if (kind === 'grass') check(a.geometry.getAttribute('position').count / 3 >= 100 && !a.castShadow && a.receiveShadow, 'fine curved grass receives architectural shadow without adding a grass shadow pass');
     check(a.geometry === b.geometry && a.material === b.material && a.geometry !== geometry, `${kind} uses cached shared geometry and material`);
     geometry.dispose();
   }
@@ -73,5 +73,5 @@ print(js(r'''(async () => {
   check(grassPoints.every(([x,z]) => plots.every(p => Math.abs(x-p.x) >= p.width/2+0.5 || Math.abs(z-p.z) >= p.depth/2+0.5)), 'grass clears real-city building footprints');
   check(grassPoints.every(([x,z]) => lamps.every(([a,b]) => Math.abs(x-a) >= 0.68 || Math.abs(z-b) >= 0.68)), 'grass clears separate streetlamp bases');
   check(grassPoints.every(([x,z]) => kiosks.every(([a,b]) => Math.abs(x-a) >= 0.95 || Math.abs(z-b) >= 0.95)), 'grass clears separate phone box footprints');
-  return { pass:true, plants:plants.length, trees:trees.length, grassTufts:grassMesh.count, grassTriangles:grassMesh.count * 20, parkPlants:parkBoxes.list.filter(b => b.plant).length, plantBatches:plantMeshes.length, boxBatches:boxMeshes.length, boxes:ordinary.length };
+  return { pass:true, plants:plants.length, trees:trees.length, grassTufts:grassMesh.count, grassTriangles:grassMesh.count * (grassMesh.geometry.attributes.position.count/3), parkPlants:parkBoxes.list.filter(b => b.plant).length, plantBatches:plantMeshes.length, boxBatches:boxMeshes.length, boxes:ordinary.length };
 })()'''))

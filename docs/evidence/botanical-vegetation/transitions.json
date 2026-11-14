@@ -1,0 +1,263 @@
+{
+  "test": {
+    "passed": true,
+    "trees": 90,
+    "variants": 5,
+    "regional": [
+      {
+        "region": "sp",
+        "names": [
+          "trees-canopy-botanical-ipe",
+          "trees-canopy-botanical-oak",
+          "trees-canopy-botanical-plane"
+        ]
+      },
+      {
+        "region": "london",
+        "names": [
+          "trees-canopy-botanical-birch",
+          "trees-canopy-botanical-plane",
+          "trees-canopy-botanical-oak"
+        ]
+      },
+      {
+        "region": "glasgow",
+        "names": [
+          "trees-canopy-botanical-birch",
+          "trees-canopy-botanical-oak",
+          "trees-canopy-botanical-plane",
+          "trees-canopy-botanical-spruce"
+        ]
+      }
+    ],
+    "transitions": [
+      {
+        "family": "trees-canopy-botanical-ipe",
+        "flat": [
+          {
+            "coverage": 5210,
+            "luminance": 40.60402717850288
+          },
+          {
+            "coverage": 5082,
+            "luminance": 40.28766241637156
+          },
+          {
+            "coverage": 5082,
+            "luminance": 40.28766241637156
+          }
+        ],
+        "day": [
+          {
+            "coverage": 5209,
+            "luminance": 43.68604837780759
+          },
+          {
+            "coverage": 5082,
+            "luminance": 43.56577819755982
+          },
+          {
+            "coverage": 5082,
+            "luminance": 43.56577819755982
+          }
+        ]
+      },
+      {
+        "family": "trees-canopy-botanical-birch",
+        "flat": [
+          {
+            "coverage": 5482,
+            "luminance": 41.63745133163054
+          },
+          {
+            "coverage": 5207,
+            "luminance": 41.4742275014401
+          },
+          {
+            "coverage": 5207,
+            "luminance": 41.4742275014401
+          }
+        ],
+        "day": [
+          {
+            "coverage": 5477,
+            "luminance": 43.92114989957992
+          },
+          {
+            "coverage": 5201,
+            "luminance": 43.76035070178793
+          },
+          {
+            "coverage": 5201,
+            "luminance": 43.76035070178793
+          }
+        ]
+      },
+      {
+        "family": "trees-canopy-botanical-plane",
+        "flat": [
+          {
+            "coverage": 5611,
+            "luminance": 49.94893049367306
+          },
+          {
+            "coverage": 5460,
+            "luminance": 49.70973805860786
+          },
+          {
+            "coverage": 5460,
+            "luminance": 49.70973805860786
+          }
+        ],
+        "day": [
+          {
+            "coverage": 5611,
+            "luminance": 52.69776941721639
+          },
+          {
+            "coverage": 5459,
+            "luminance": 52.46828290895765
+          },
+          {
+            "coverage": 5459,
+            "luminance": 52.46828290895765
+          }
+        ]
+      },
+      {
+        "family": "trees-canopy-botanical-oak",
+        "flat": [
+          {
+            "coverage": 5311,
+            "luminance": 37.3657761626817
+          },
+          {
+            "coverage": 5131,
+            "luminance": 36.43287499512822
+          },
+          {
+            "coverage": 5131,
+            "luminance": 36.43287499512822
+          }
+        ],
+        "day": [
+          {
+            "coverage": 5308,
+            "luminance": 40.173457347400166
+          },
+          {
+            "coverage": 5127,
+            "luminance": 38.48898225082873
+          },
+          {
+            "coverage": 5127,
+            "luminance": 38.48898225082873
+          }
+        ]
+      },
+      {
+        "family": "trees-canopy-botanical-spruce",
+        "flat": [
+          {
+            "coverage": 5778,
+            "luminance": 35.09935192108005
+          },
+          {
+            "coverage": 5625,
+            "luminance": 35.365803840000225
+          },
+          {
+            "coverage": 5625,
+            "luminance": 35.365803840000225
+          }
+        ],
+        "day": [
+          {
+            "coverage": 5771,
+            "luminance": 38.23477026511831
+          },
+          {
+            "coverage": 5620,
+            "luminance": 38.31595451957276
+          },
+          {
+            "coverage": 5620,
+            "luminance": 38.31595451957276
+          }
+        ]
+      }
+    ]
+  },
+  "ratios": [
+    {
+      "family": "trees-canopy-botanical-ipe",
+      "light": "flat",
+      "luminanceDelta": -0.007791462672914751,
+      "coverageRatio": 0.9754318618042227,
+      "midFarIdentical": true
+    },
+    {
+      "family": "trees-canopy-botanical-ipe",
+      "light": "day",
+      "luminanceDelta": -0.0027530569761686774,
+      "coverageRatio": 0.9756191207525436,
+      "midFarIdentical": true
+    },
+    {
+      "family": "trees-canopy-botanical-birch",
+      "light": "flat",
+      "luminanceDelta": -0.003920120587843079,
+      "coverageRatio": 0.9498358263407516,
+      "midFarIdentical": true
+    },
+    {
+      "family": "trees-canopy-botanical-birch",
+      "light": "day",
+      "luminanceDelta": -0.0036610880671303914,
+      "coverageRatio": 0.9496074493335768,
+      "midFarIdentical": true
+    },
+    {
+      "family": "trees-canopy-botanical-plane",
+      "light": "flat",
+      "luminanceDelta": -0.004788739872928716,
+      "coverageRatio": 0.9730885760114062,
+      "midFarIdentical": true
+    },
+    {
+      "family": "trees-canopy-botanical-plane",
+      "light": "day",
+      "luminanceDelta": -0.004354767019489336,
+      "coverageRatio": 0.9729103546604884,
+      "midFarIdentical": true
+    },
+    {
+      "family": "trees-canopy-botanical-oak",
+      "light": "flat",
+      "luminanceDelta": -0.02496672793552701,
+      "coverageRatio": 0.9661080775748446,
+      "midFarIdentical": true
+    },
+    {
+      "family": "trees-canopy-botanical-oak",
+      "light": "day",
+      "luminanceDelta": -0.041930050530750496,
+      "coverageRatio": 0.9659005275056518,
+      "midFarIdentical": true
+    },
+    {
+      "family": "trees-canopy-botanical-spruce",
+      "light": "flat",
+      "luminanceDelta": 0.0075913629265658145,
+      "coverageRatio": 0.9735202492211839,
+      "midFarIdentical": true
+    },
+    {
+      "family": "trees-canopy-botanical-spruce",
+      "light": "day",
+      "luminanceDelta": 0.002123309592068301,
+      "coverageRatio": 0.9738346906948536,
+      "midFarIdentical": true
+    }
+  ]
+}

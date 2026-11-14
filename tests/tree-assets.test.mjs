@@ -1,4 +1,4 @@
-// Shipped tree assets: foliage cutoff and normal-map format in the GLB, impostor atlas tile count.
+// Archived supplied tree assets (active originals: botanical-assets.test.mjs): foliage cutoff and normal-map format in the GLB, impostor atlas tile count.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

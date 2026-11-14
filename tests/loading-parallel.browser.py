@@ -61,66 +61,91 @@ try:
       const T = await import('three'), { initGlbLoader } = await import('/js/world/glb-loader.js');
       const renderer = new T.WebGLRenderer(); initGlbLoader(renderer);
       const { createAuthoredTrees } = await import('/js/world/authored-trees.js');
-      const nativeFetch = window.fetch;
-      let release, held = false;
+      const nativeFetch = window.fetch, loadTexture = T.TextureLoader.prototype.load;
+      let release, held = false, atlasLoads = 0, settled = false;
+      T.TextureLoader.prototype.load = function(url, ...args) {
+        if (/\/vegetation\/.*\.(png|jpe?g|webp)(?:[?#]|$)/i.test(String(url))) atlasLoads++;
+        return loadTexture.call(this, url, ...args);
+      };
       window.fetch = (input, ...args) => {
         const url = String(input?.url ?? input);
-        if (!url.includes('/vegetation/realistic-tree.glb')) return nativeFetch(input, ...args);
+        if (!url.includes('/vegetation/botanical-trees.glb')) return nativeFetch(input, ...args);
         held = true;
         return new Promise((resolve, reject) => { release = () => nativeFetch(input, ...args).then(resolve, reject); });
       };
       const errors = [], onReject = event => errors.push(String(event.reason));
       addEventListener('unhandledrejection', onReject);
-      const pending = createAuthoredTrees([{ x: 0, z: 0, h: 4, crown: 3, base: .1 }]);
-      pending.catch(() => {});
+      const placements = Array.from({length: 40}, (_, i) => ({x: i * 11, z: i % 3 * 8, h: 4, crown: 3, base: .1}));
+      const pending = createAuthoredTrees(placements);
+      pending.then(() => { settled = true; }, () => { settled = true; });
       let group;
       try {
         const deadline = performance.now() + 10000;
-        while (performance.now() < deadline && !performance.getEntriesByType('resource').some(e => e.name.includes('/vegetation/tree-impostors.png'))) await new Promise(r => setTimeout(r, 25));
-        check(held && performance.getEntriesByType('resource').some(e => e.name.includes('/vegetation/tree-impostors.png')), 'tree atlas finishes while GLB request is held');
+        while (!held && performance.now() < deadline) await new Promise(r => setTimeout(r, 25));
+        check(held && !settled, 'botanical GLB request gates forest assembly');
+        check(atlasLoads === 0 && !performance.getEntriesByType('resource').some(e => /\/vegetation\/.*\.(png|jpe?g|webp)(?:[?#]|$)/i.test(e.name)), 'held forest requests no external tree atlas');
         release(); release = null;
         group = await pending;
-        check(group.name === 'trees' && group.userData.batches.length > 0, 'parallel assets assemble full authored trees');
-        check(!errors.length, 'parallel loading has no unhandled rejection');
-        return { pass: true, parallelTreeAtlas: true, chunks: group.userData.batches.length };
+        check(group.name === 'trees' && group.userData.renderer === 'botanical' && group.userData.batches.length > 0, 'released GLB assembles authored forest');
+        check(group.userData.batches.every(b => b.lods.length === 2) && group.userData.batches.reduce((n,b) => n + b.lods[0].count, 0) === placements.length, 'full forest retains every placement in two physical levels');
+        check(atlasLoads === 0 && !errors.length, 'GLB-only loading has no atlas or unhandled rejection');
+        return { pass: true, glbOnly: true, externalAtlasLoads: atlasLoads, chunks: group.userData.batches.length, trees: placements.length };
       } finally {
         window.fetch = nativeFetch;
         release?.();
         if (!group) group = await pending.catch(() => null);
         group?.userData.dispose(); renderer.dispose();
+        T.TextureLoader.prototype.load = loadTexture;
         removeEventListener('unhandledrejection', onReject);
       }
     })()'''))
 
     print(evaluate(r'''(async () => {
       const check = (ok, message) => { if (!ok) throw Error(message); };
-      const T = await import('three'), { createAuthoredTrees } = await import('/js/world/authored-trees.js');
-      const nativeFetch = window.fetch, loadTexture = T.TextureLoader.prototype.loadAsync, disposeGeometry = T.BufferGeometry.prototype.dispose;
-      let atlasDisposals = 0, rootDisposals = 0, atlasLoads = 0, failAtlas = false;
-      T.TextureLoader.prototype.loadAsync = async function(url, ...args) {
-        if (!String(url).includes('/vegetation/tree-impostors.png')) return loadTexture.call(this, url, ...args);
-        atlasLoads++;
-        if (failAtlas) throw Error('atlas unavailable');
-        const texture = await loadTexture.call(this, url, ...args);
-        texture.addEventListener('dispose', () => atlasDisposals++);
-        return texture;
+      const T = await import('three'), { createAuthoredTrees } = await import('/js/world/authored-trees.js'), { createTrees } = await import('/js/world/trees.js');
+      const nativeFetch = window.fetch, loadTexture = T.TextureLoader.prototype.load;
+      let atlasLoads = 0, failedRequests = 0, fallback, group;
+      T.TextureLoader.prototype.load = function(url, ...args) {
+        if (/\/vegetation\/.*\.(png|jpe?g|webp)(?:[?#]|$)/i.test(String(url))) atlasLoads++;
+        return loadTexture.call(this, url, ...args);
       };
-      T.BufferGeometry.prototype.dispose = function() { rootDisposals++; return disposeGeometry.call(this); };
+      const errors = [], onReject = event => errors.push(String(event.reason));
+      addEventListener('unhandledrejection', onReject);
       const placements = [{ x: 0, z: 0, h: 4, crown: 3, base: .1 }];
       try {
-        window.fetch = (input, ...args) => String(input?.url ?? input).includes('/vegetation/realistic-tree.glb') ? Promise.resolve(new Response('', { status: 503 })) : nativeFetch(input, ...args);
-        let rejected = false;
-        await createAuthoredTrees(placements).catch(() => { rejected = true; });
-        check(rejected && atlasLoads === 1 && atlasDisposals === 1, 'failed GLB disposes concurrently loaded tree atlas');
-        window.fetch = nativeFetch; failAtlas = true; rootDisposals = 0;
-        rejected = false;
-        await createAuthoredTrees(placements).catch(() => { rejected = true; });
-        check(rejected && rootDisposals > 0, 'failed atlas disposes successfully decoded tree roots');
-        return { pass: true, failedGlbAtlasDisposals: atlasDisposals, failedAtlasRootDisposals: rootDisposals };
+        window.fetch = (input, ...args) => {
+          if (!String(input?.url ?? input).includes('/vegetation/botanical-trees.glb')) return nativeFetch(input, ...args);
+          failedRequests++; return Promise.resolve(new Response('', { status: 503 }));
+        };
+        let rejection;
+        await createAuthoredTrees(placements).catch(error => { rejection = error; });
+        check(rejection && /503/.test(String(rejection)), 'failed botanical GLB rejects with HTTP failure');
+        fallback = await createTrees(placements);
+        check(failedRequests === 2 && fallback.name === 'trees' && fallback.userData.renderer !== 'botanical' && fallback.userData.batches.length > 0 && fallback.userData.batches.every(b => b.lods.length === 3), 'createTrees preserves procedural fallback after GLB failure');
+        fallback.userData.dispose(); fallback = null;
+        window.fetch = nativeFetch;
+        group = await createAuthoredTrees(placements);
+        const resources = new Set();
+        group.traverse(mesh => {
+          if (!mesh.isMesh) return;
+          resources.add(mesh.geometry);
+          for (const material of (Array.isArray(mesh.material) ? mesh.material : [mesh.material])) {
+            resources.add(material);
+            for (const value of Object.values(material)) if (value?.isTexture) resources.add(value);
+          }
+        });
+        const disposals = new Map();
+        for (const resource of resources) resource.addEventListener('dispose', () => disposals.set(resource, (disposals.get(resource) || 0) + 1));
+        group.userData.dispose(); group.userData.dispose();
+        check(resources.size > 0 && [...resources].every(resource => disposals.get(resource) === 1), 'successful forest disposes shared geometry/materials/embedded maps exactly once');
+        await new Promise(r => setTimeout(r, 0));
+        check(atlasLoads === 0 && !errors.length, 'failure, fallback and disposal allocate no external atlas or unhandled rejection');
+        return { pass: true, failedRequests, proceduralFallback: true, externalAtlasLoads: atlasLoads, disposedResources: resources.size, idempotent: true };
       } finally {
         window.fetch = nativeFetch;
-        T.TextureLoader.prototype.loadAsync = loadTexture;
-        T.BufferGeometry.prototype.dispose = disposeGeometry;
+        T.TextureLoader.prototype.load = loadTexture;
+        fallback?.userData.dispose(); group?.userData.dispose();
+        removeEventListener('unhandledrejection', onReject);
       }
     })()'''))
 finally:

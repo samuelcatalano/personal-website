@@ -1,6 +1,6 @@
 # Authored tree LOD sweep (browser-harness). Fixed placement, camera and light for every run, so before/after pairs compare.
 #   OUT=<dir> THEME=day|night URL=http://localhost:8000/ browser-harness < tools/vegetation/lod_sweep.py
-# Forced pass: LOD0/1/2 at fixed distances (silhouette pixels and mean brightness of the tree pixels).
+# Forced pass: physical near/far levels at fixed distances (silhouette pixels and mean brightness of the tree pixels).
 # Sweep pass: production update() on an approach (200 -> 40 m) and a leave (40 -> 200 m); records the LOD and coverage per step.
 # Writes <OUT>/<theme>-metrics.json and PNG frames. Needs the local server (python3 -m http.server 8000).
 import os, json, time, base64
@@ -42,10 +42,15 @@ SETUP = r'''(async () => {
   ground.rotation.x = -Math.PI / 2; ground.position.set(60, 0, -15); ground.receiveShadow = true; scene.add(ground);
   const placements = Array.from({ length: 36 }, (_, k) => ({ x: 6 + (k % 12) * 9, z: -Math.floor(k / 12) * 11, h: 3.6 + (k % 5) * 0.35, crown: 2.6 + (k % 3) * 0.5, base: 0.1 }));
   const group = await createTrees(placements, null); scene.add(group);
-  const batch = group.userData.batches[0];
-  const camera = new T.PerspectiveCamera(40, 1280 / 720, 1, 1400);
-  const place = (d) => { camera.position.set(60, 1.7, d); camera.lookAt(60, 3.2, -14); camera.updateMatrixWorld(); return batch.bounds.distanceToPoint(camera.position); };
-  const setLod = (L) => batch.lods.forEach((m, i) => { m.visible = i === L; });
+  const batches = group.userData.batches, batch = batches[0];
+  if (group.userData.renderer !== 'botanical' || !batch || batches.some(b => b.lods.length !== 2)) throw Error('Sweep requires the authored two-physical-level forest; fallback is not comparable');
+  const levels = batch.lods.map((_, i) => i), labels = ['physical-near', 'physical-far'], center = batch.bounds.getCenter(new T.Vector3());
+  const camera = new T.PerspectiveCamera(40, 1280 / 720, 1, 2200);
+  const place = (d) => { camera.position.set(center.x, 1.7, batch.bounds.max.z + d); camera.lookAt(center.x, 3.2, center.z); camera.updateMatrixWorld(); return batch.bounds.distanceToPoint(camera.position); };
+  const setLod = (L) => {
+    if (!levels.includes(L)) throw Error(`Invalid physical LOD ${L}`);
+    batches.forEach(b => b.lods.forEach((m, i) => { m.visible = i === L; }));
+  };
   const coverage = () => { // trees only, transparent background: silhouette pixels and mean luminance of those pixels
     scene.background = null; ground.visible = false; renderer.setClearColor(0x000000, 0); renderer.render(scene, camera);
     const cv = document.createElement('canvas'); cv.width = 1280; cv.height = 720; const cx = cv.getContext('2d', { willReadFrequently: true }); cx.drawImage(canvas, 0, 0);
@@ -55,23 +60,23 @@ SETUP = r'''(async () => {
   };
   const picture = () => { renderer.setClearColor(sky, 1); renderer.render(scene, camera); };
   window.__vegForced = (d, L) => { place(d); setLod(L); picture(); };
-  window.__vegStep = (d) => { const dist = place(d); group.userData.update(camera); return { d, dist: +dist.toFixed(1), lod: batch.level, ...coverage() }; };
+  window.__vegStep = (d) => { const dist = place(d); group.userData.update(camera); if (batch.lods.filter(m => m.visible).length !== 1 || !batch.lods[batch.level]?.visible) throw Error('LOD update left no unique physical canopy visible'); return { d, dist: +dist.toFixed(1), lod: batch.level, label: labels[batch.level], ...coverage() }; };
   window.__vegPicture = (d) => { place(d); group.userData.update(camera); picture(); };
   const forced = [];
-  for (const d of [80, 160, 180]) for (const L of [0, 1, 2]) { const dist = place(d); setLod(L); forced.push({ d, dist: +dist.toFixed(1), lod: L, ...coverage() }); }
-  return { forced, batches: group.userData.batches.length, trees: placements.length };
+  for (const d of [80, 160, 180]) for (const L of levels) { const dist = place(d); setLod(L); forced.push({ d, dist: +dist.toFixed(1), lod: L, label: labels[L], ...coverage() }); }
+  return { forced, levels, labels, hysteresis: { nearBelow: 130, farAbove: 150, initial: 140 }, batches: batches.length, trees: placements.length };
 })()'''.replace('__THEME__', repr(THEME))
 
 setup = J(SETUP)
 forced_frames = []
 for d in (80, 160, 180):
-    for L in (0, 1, 2):
+    for L in setup['levels']:
         J(f'window.__vegForced({d},{L})')
         f = SHOT(os.path.join(OUT, f'{THEME}-forced-d{d}-lod{L}.png')); forced_frames.append((d, L, f))
 
 APPROACH = [200 - 4 * i for i in range(41)]          # 200 -> 40 m
 LEAVE = [40 + 4 * i for i in range(1, 41)]           # 44 -> 200 m
-CAPTURE = {164, 156, 140, 136, 84, 76, 60, 56}       # thresholds: 1<->2 at 160/140 m, 0<->1 at 80/60 m
+CAPTURE = {156, 152, 148, 140, 132, 128, 124}       # physical near/far hysteresis: far above 150 m, near below 130 m
 sweep = []
 for name, path in (('approach', APPROACH), ('leave', LEAVE)):
     for d in path:
@@ -79,11 +84,15 @@ for name, path in (('approach', APPROACH), ('leave', LEAVE)):
         if d in CAPTURE:
             J(f'window.__vegPicture({d})'); SHOT(os.path.join(OUT, f'{THEME}-sweep-{name}-{d}m.png'))
 
+transitions = [b for a, b in zip(sweep, sweep[1:]) if a['pass'] == b['pass'] and a['lod'] != b['lod']]
+assert len(transitions) == 2 and transitions[0]['pass'] == 'approach' and transitions[0]['lod'] == 0 and 126 <= transitions[0]['dist'] < 130 and transitions[1]['pass'] == 'leave' and transitions[1]['lod'] == 1 and 150 < transitions[1]['dist'] <= 154, transitions
+far = J('window.__vegStep(1500)')
+assert far['lod'] == 1, far
 jumps = []
 for a, b in zip(sweep, sweep[1:]):
     if a['pass'] == b['pass'] and a['px'] and b['px']:
         jumps.append({'from': a['d'], 'to': b['d'], 'lod': f"{a['lod']}->{b['lod']}", 'px_ratio': round(b['px'] / a['px'], 3)})
 errors = J('window.__vegErrors')
-result = {'theme': THEME, 'url': URL, 'setup': setup, 'forced': setup['forced'], 'sweep': sweep, 'largest_steps': sorted(jumps, key=lambda j: abs(1 - j['px_ratio']), reverse=True)[:6], 'console_errors': errors}
+result = {'theme': THEME, 'url': URL, 'setup': setup, 'forced': setup['forced'], 'sweep': sweep, 'transitions': transitions, 'far': far, 'largest_steps': sorted(jumps, key=lambda j: abs(1 - j['px_ratio']), reverse=True)[:6], 'console_errors': errors}
 with open(os.path.join(OUT, f'{THEME}-metrics.json'), 'w') as fh: json.dump(result, fh, indent=1)
-print(json.dumps({'forced': result['forced'], 'largest_steps': result['largest_steps'], 'lod_changes': [s for s in sweep if s['d'] in CAPTURE], 'console_errors': errors}))
+print(json.dumps({'forced': result['forced'], 'largest_steps': result['largest_steps'], 'lod_changes': transitions, 'far': far, 'console_errors': errors}))

@@ -1,5 +1,9 @@
 # 3D city art direction
 
+## Botanical vegetation — 2026-11-14
+
+Owner authorized quality-first vegetation realism. Original Blender oak/plane/birch/conifer/ipê families replace the generic simplified tree; connected branches, finer curved textured foliage, rooted bark and coherent fuller crowns retain original placements/envelopes. Grass/low planting use botanical geometry and rough nonmetal materials; turf has original fine detail and natural variation. Both active tree levels remain physical3D at all distances; the diagnostic atlas is offline only. [Comparisons, references, costs and limits](audits/2026-11-14-botanical-vegetation.md).
+
 ## Tower Bridge colour match — 2026-11-14
 
 Owner replaced the brown main roofs below the gilt with green matching the owner-provided swatch (`#64a28c`, central median sRGB), superseding the initial Sé-palette estimate and keeping stone spires and gold. Tower Bridge carriageways now use the ordinary road material, including its day/night tint, noise and finish. Both authored LODs and the procedural fallback are covered. Full-world integration preserves the atlas’s authored metalness: forcing 100% metal was darkening the approved green despite the correct asset colour. Five authored primitives instead of four; geometry remains unchanged. [Source and scoped checks](../tools/landmarks/towerbridge/README.md).

@@ -1,0 +1,4 @@
+{'pass': True, 'blockedWorker': True, 'workers': 0, 'tasks': 0, 'decodedBytes': 31800}
+{'pass': True, 'blockedWorker': False, 'workers': 1, 'tasks': 1, 'decodedBytes': 31800}
+{'pass': True, 'glbOnly': True, 'externalAtlasLoads': 0, 'chunks': 15, 'trees': 40}
+{'pass': True, 'failedRequests': 2, 'proceduralFallback': True, 'externalAtlasLoads': 0, 'disposedResources': 9, 'idempotent': True}

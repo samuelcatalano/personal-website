@@ -1,0 +1,7 @@
+botanical-plants
+{'passed': True, 'stats': [{'kind': 'grass', 'triangles': 288}, {'kind': 'shrub', 'triangles': 5820}, {'kind': 'hedge', 'triangles': 7372}, {'kind': 'flower', 'triangles': 1460}], 'grassInstances': 162}
+plantings
+{'pass': True, 'plants': 593, 'trees': 630, 'grassTufts': 10157, 'grassTriangles': 2925216, 'parkPlants': 561, 'plantBatches': 4, 'boxBatches': 24, 'boxes': 10070}
+hero-realm
+{'pass': True, 'renderables': 5, 'triangles': 203076, 'materials': 4, 'maps': 4, 'newLights': 0}
+{'pass': True, 'renderables': 5, 'triangles': 203076, 'materials': 4, 'maps': 4, 'newLights': 0}
