@@ -1,12 +1,11 @@
 const clamp = n => Math.max(0, Math.min(1, n));
 const smooth = (a, b, n) => { const t = clamp((n - a) / (b - a)); return t * t * (3 - 2 * t); };
 
-// Fixed artistic gibbous phase; keep the unlit limb dim instead of cutting a crescent out of the disc.
+// Always full: symmetric limb shading keeps volume without a phase shadow.
 export function moonIllumination(x, y) {
   const r2 = x * x + y * y;
   if (r2 >= 1) return 0;
-  const light = x * .72 + Math.sqrt(1 - r2) * .694;
-  return .07 + .93 * smooth(-.04, .10, light) * (.45 + .55 * Math.max(0, light));
+  return .78 + .22 * Math.sqrt(1 - r2);
 }
 
 export function celestialFrame(width, height, headerBottom = 0) {

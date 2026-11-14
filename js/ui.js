@@ -111,6 +111,8 @@ function sectionHTML(section, t, active, tool = null, route = { seen: new Set(),
 export function initUI({ onGoto, onTheme, onHold = () => {} }) {
   const prefs = loadPrefs(store(), { lang: navigator.language });
   const panel = document.getElementById('panel'), announce = document.getElementById('announce');
+  const options = document.querySelector('[data-options]');
+  const closeOptions = () => options.setAttribute('aria-expanded', 'false');
   let renderedLang = null, greeting = false; // greeting: the "calling at" line is still being read, so the first arrival waits for it
   let active = -1, tool = null; // tool: the stack station whose journey stops are highlighted
   // Spoken announcements: on unless the visitor turned them off (remembered on this device); the button hides where the browser has no speech synthesis.
@@ -324,6 +326,8 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     announce.textContent = (c ? `${st.year} ${c.title}` : t.sections[st.section].title) + `, ${t.ui.cities[city]}` + (notes.rain ? `, ${t.ui.led.rain}` : '');
   };
   document.addEventListener('click', (e) => {
+    if (e.target.closest('[data-options]')) { options.setAttribute('aria-expanded', String(options.getAttribute('aria-expanded') !== 'true')); return; }
+    if (!e.target.closest('.controls') || e.target.closest('[data-auto], [data-quick], [data-hide]')) closeOptions();
     if (e.target.closest('[data-hide], #ui-restore')) { setHidden(!document.body.classList.contains('ui-hidden')); return; }
     if (e.target.closest('[data-photo-link]')) { document.querySelector('[data-photo]').click(); return; } // the recap's postcard button
     if (e.target.closest('[data-bell]')) say('stop'); // the mail app still opens; the bell is visual only
@@ -375,6 +379,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     }
   });
   document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && options.getAttribute('aria-expanded') === 'true') { closeOptions(); options.focus(); return; }
     if (e.target.closest('input, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
     if (document.body.classList.contains('intro-on') || document.querySelector('dialog[open]')) return; // the intro and the credits own the keys while open
     if (e.key === 'h' || e.key === 'H') { setHidden(!document.body.classList.contains('ui-hidden')); return; }

@@ -398,7 +398,8 @@ function upgrade(vehicle, key, v, hero, isDisposed = () => false, axles) {
       else if (!v.parked && /^(FRONT_DRL_LIGHTS|M_2022_Honda_HR_V_eHEV_(DRLs|HeadLightsBase|HeadLightsGlass))$/i.test(name)) o.material = frontLight(o.material);
       else {
         o.material = finishSource(o.material);
-        if (!v.parked && o.material.map && /^(Index_0_[12](_SS)?|Index_1_1|BADG|qlight_tex1|Glass_light|Light)$/.test(name)) o.material = texturedRearLight(o.material);
+        // Wheel parts share the body atlas; the headlamp mask also catches upper rim pixels.
+        if (!v.parked && !wheels.includes(o.parent) && o.material.map && /^(Index_0_[12](_SS)?|Index_1_1|BADG|qlight_tex1|Glass_light|Light)$/.test(name)) o.material = texturedRearLight(o.material);
       }
       if (v.parked && /light|lamp|head|tail|drl/i.test(name)) {
         o.material = o.material.clone();

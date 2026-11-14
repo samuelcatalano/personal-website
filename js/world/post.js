@@ -75,8 +75,8 @@ gl_FragColor = vec4(clamp(g * uWarm, 0.0, 1.0), c.a);
 };
 export function createPost(renderer, scene, camera, { tier = 'high', sun } = {}) {
   const size = renderer.getSize(new THREE.Vector2());
-  // The composer bypasses canvas AA; retain two samples on desktop medium for thin wheel spokes and facade edges.
-  const pr = renderer.getPixelRatio(), msaa = t => t === 'high' ? 4 : globalThis.matchMedia?.('(min-width: 768px)').matches ? 2 : 0;
+  // Keep edge coverage when desktop drops to medium; only the heavy passes should lose detail.
+  const pr = renderer.getPixelRatio(), msaa = t => t === 'high' || globalThis.matchMedia?.('(min-width: 768px)').matches ? 4 : 0;
   const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(size.x * pr, size.y * pr, { type: THREE.HalfFloatType, samples: msaa(tier), depthTexture: tier === 'high' ? new THREE.DepthTexture(size.x * pr, size.y * pr) : null }));
   composer.addPass(new RenderPass(scene, camera));
   const heavy = [];

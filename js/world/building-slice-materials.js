@@ -95,7 +95,10 @@ const facadeWeather = (cityWalls, quality) => `
     float row=floor(masonryUV.y*(brick>0.5?12.0:4.0));
     vec2 unit=vec2(floor(masonryUV.x*(brick>0.5?4.0:2.0)+mod(row,2.0)*.5),row);
     float mineral=sliceHash(unit+vec2(facadeN.x*19.0,facadeN.z*23.0));
-    diffuseColor.rgb*=1.0+(mineral-.5)*(.10*brick+.045*stone);
+    // Subpixel masonry colour noise otherwise shimmers even when geometry has MSAA.
+    vec2 mineralFootprint=fwidth(masonryUV*vec2(brick>0.5?4.0:2.0,brick>0.5?12.0:4.0));
+    float mineralDetail=1.0-smoothstep(.35,1.0,max(mineralFootprint.x,mineralFootprint.y));
+    diffuseColor.rgb*=1.0+(mineral-.5)*(.10*brick+.045*stone)*mineralDetail;
   ` : ''}
   if (facadeWall > 0.5) {
     float v = (facadeSeed - 0.5) * ${FACADE_VARIATION.toFixed(3)}, w = (facadeSeed2 - 0.5) * ${FACADE_VARIATION.toFixed(3)};
@@ -139,7 +142,7 @@ const facadeDetail = quality => `
       normal = normalize(normal + (viewMatrix * vec4(grain, 0.0)).xyz * ${quality?'0.035':'0.16'} * near); }
   }`;
 function metricAtlas(material, cityWalls = false, quality = false) {
-  material.customProgramCacheKey=()=> material.name+(cityWalls||material.name==='slice-glass-city'?'-metric-atlas-v11':'-metric-atlas-v8')+(quality?'-construction-v2':'')+(material.name==='slice-architecture'?'-world-grain-v1':'');
+  material.customProgramCacheKey=()=> material.name+(cityWalls||material.name==='slice-glass-city'?'-metric-atlas-v11':'-metric-atlas-v8')+(quality?'-construction-v3':'')+(material.name==='slice-architecture'?'-world-grain-v1':'');
   material.onBeforeCompile=shader=>{
     shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nattribute float aSurface; varying float vSliceSurface; varying float vSliceY;').replace('#include <begin_vertex>','#include <begin_vertex>\nvSliceSurface = aSurface; vSliceY = (modelMatrix * vec4(position,1.0)).y;');
     shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>

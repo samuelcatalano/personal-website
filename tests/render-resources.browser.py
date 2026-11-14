@@ -41,7 +41,7 @@ expression = r'''(async () => {
       check(calls.size >= 2, `${tier}: render targets released`);
       check([...calls.values()].every(n => n === 1), `${tier}: targets released once`);
       const samples = [...calls.keys()].filter(target => target.samples > 0).map(target => target.samples);
-      const expected = tier === 'high' ? 4 : matchMedia('(min-width: 768px)').matches ? 2 : 0;
+      const expected = tier === 'high' || matchMedia('(min-width: 768px)').matches ? 4 : 0;
       check(expected ? samples.length >= 2 && samples.every(n => n === expected) : samples.length === 0, `${tier}: wrong multisampling for viewport`);
       tiers.push({ tier, samples: expected, targetsDisposed: calls.size });
     }

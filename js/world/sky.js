@@ -71,7 +71,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
     r.addColorStop(0,'rgba(255,255,255,.25)');r.addColorStop(.14,'rgba(255,255,255,.13)');r.addColorStop(.4,'rgba(255,255,255,.035)');r.addColorStop(1,'rgba(255,255,255,0)');
     g.fillStyle=r;g.fillRect(0,0,256,256);
   }),380);halo.material.blending=THREE.AdditiveBlending;halo.renderOrder=-8.6;
-  // Fixed gibbous phase, broad maria and a quiet dark limb; no astronomical API or repeating crater dots.
+  // Always full, with broad maria and gentle limb shading; no astronomical API or repeating crater dots.
   const moonM=sprite(disc(g=>{
     const im=g.createImageData(256,256),maria=[[-.2,.16,.46,.3],[.1,.32,.3,.2],[.32,-.06,.3,.4],[-.12,-.42,.36,.14]];
     for(let y=0;y<256;y++)for(let x=0;x<256;x++){

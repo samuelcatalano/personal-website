@@ -2,11 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { moonIllumination, celestialFrame, celestialVisibility, shelterField } from '../js/world/weather-math.js';
 
-test('fixed gibbous moon has a dim dark limb, readable centre and no light outside its disc', () => {
+test('moon is always full with symmetric limb shading and no light outside its disc', () => {
   assert.equal(moonIllumination(1.1, 0), 0);
-  assert.ok(moonIllumination(.8, 0) > moonIllumination(-.8, 0) * 3);
-  assert.ok(moonIllumination(0, 0) > .5);
-  for (let x = -1; x <= 1; x += .05) assert.ok(Number.isFinite(moonIllumination(x, .2)));
+  assert.equal(moonIllumination(0, 0), 1);
+  for (const radius of [.3, .8, .99]) {
+    const value = moonIllumination(radius, 0);
+    assert.ok(value >= .75 && value < 1);
+    assert.equal(value, moonIllumination(-radius, 0));
+    assert.equal(value, moonIllumination(0, radius));
+    assert.equal(value, moonIllumination(0, -radius));
+  }
 });
 
 test('astros clear the header on desktop/mobile and dense overcast hides them', () => {

@@ -1,5 +1,13 @@
 # 3D city art direction
 
+## Always-full Moon — 2026-11-14
+
+Owner selected an always-full Moon, superseding the fixed gibbous phase below. The existing procedural maria, size, cloud occlusion and night visibility remain; symmetric gentle limb shading preserves volume without a phase shadow. No new assets or passes.
+
+## Desktop reading and edge finish — 2026-11-14
+
+Owner selected clearer controls, readable secondary typography and localized scene finish. Desktop uses labelled rides and an Options disclosure, a 400px reading panel, and 12–13px secondary text. Medium retains 4× MSAA and ordinary subpixel masonry noise fades by pixel footprint; architecture, regional variation, map, assets and composition remain. [Scoped validation, measured MSAA cost and limits](audits/2026-11-14-desktop-controls-reading-finish.md).
+
 ## More inhabited streets and stable material relief — 2026-11-12
 
 Owner reopened further realism/density work. Selected vacant pockets receive 17 low houses, two shops, seven residential midrises and one rear office using existing regional construction and vivid pigments. Heights step from low foreground to rear buildings; parks, walking areas, water/banks, content reservations and landmark fronts remain clear. Facade grain now stays fixed as the camera turns, rooftop equipment stays within its lot, and Tower Bridge undersides use correctly oriented faces. [Comparisons and scoped visual GO](audits/2026-11-12-city-density-rendering.md).

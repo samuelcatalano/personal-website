@@ -1,5 +1,9 @@
 # Rendering budget
 
+## Desktop edge finish — 2026-11-14
+
+Desktop medium now retains 4× MSAA (previously 2×); high stays at 4× and small-viewport medium remains unchanged. Ordinary subpixel masonry variation fades without new passes, textures or geometry. A short same-scene compositor-only comparison at 1440×900/DPR 1 measured 4.2 → 8.3ms median, with identical 504 calls / 4,830,854 submitted triangles. Added multisample storage/bandwidth is accepted for this selected visual finish; physical GPU memory and full-frame performance remain unmeasured. [Method, scoped checks and limitations](../audits/2026-11-14-desktop-controls-reading-finish.md).
+
 ## Surveyed urban infill — 2026-11-12
 
 The 27 new ordinary lots increase the actual-route rollout from 194 to 200 cells / 582 to 600 stable meshes and initial unique buffers from 110.83 to 115.03 MiB (+4.20 MiB). Shared resources remain two materials/four maps; nearest-cell construction, hysteresis and eviction remain. Tower Bridge normal correction retains 14,072/4,000 triangles and adds 4,032 combined GLB bytes. One local diagnostic A/B showed no obvious slowdown, but adaptive tiers and a single pair prevent an attributable performance claim. [Methods, passing guards and limits](../audits/2026-11-12-city-density-rendering.md).
