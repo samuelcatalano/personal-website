@@ -48,6 +48,7 @@ import { createLandmarkPicker } from './landmark-pick.js';
 import { SECTION_SHOT, shotFor, blendShots, spring, approach, nextTier } from './camera.js';
 import { updateBeams, addBeams, refitBeams } from './beams.js';
 import { createLampPools } from './lamps.js';
+import { createLampField, applyLampField } from './lamp-field.js';
 import { createPost } from './post.js';
 import { createVehicleFx } from './vehicle-fx.js';
 import { createRoadMarks } from './roadmarks.js';
@@ -152,6 +153,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const onRiverRoad = (p) => { const hit = onRiverRoad0(p); if (hit) removedPlots.push([p.id, p.kind, +p.x.toFixed(1), +p.z.toFixed(1)]); return hit; };
   const onRiverRoad0 = (p) => underpassFrames(curve, stops).some((u) => u.x > riverStart(stops, pts) && u.x < riverEnd(stops, pts) && (Math.abs(p.x - u.x) < 7 && p.z > RIVER_Z - 14 && p.z < u.z - 32 || Math.abs(p.x - u.x) < 8 + (p.width || 0) / 2 && p.z < RIVER_Z && p.z > RIVER_Z + 11 - RIVER_RUN - 6 - (p.depth || 0) / 2)); // + far-bank lots in front of the exit (to 6 m past the far end of the ramp)
   const { lamps, pilotCrossings } = buildCity(cornerAdd, stops, pts, curve, (x, z, shape) => treePlacements.push({ x, z, ...shape }), plot => { if (!onRiverRoad(plot)) buildingPlots.push(plot); }, plot => { if (!onRiverRoad(plot)) architecturePlots.push(plot); }, zone => publicRealmZones.push(zone));
+  const lampField = createLampField(lamps); // night light reach on the ground; facades pick it up in their shader
   const heroRealm=publicRealmZones.length?createHeroRealm():null;
   if(heroRealm)scene.add(heroRealm);
   const realCity = buildRealCity(architecturePlots);
@@ -203,6 +205,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const landmarkEnv = createLandmarkEnv(renderer);
   // Reuse the existing prefiltered sky for ordinary PBR: no new environment capture/target.
   for (const material of [townhouseMaterials().architecture, townhouseMaterials().glass, roomGlassMaterial(), officeFacadeMaterials().glass]) landmarkEnv.register(material, { k: material.name==='slice-architecture'?.28:.40 });
+  if (lampField) for (const material of [townhouseMaterials().architecture, townhouseMaterials().glass, roomGlassMaterial(), officeFacadeMaterials().glass]) applyLampField(material, lampField.uniforms);
   landmarkEnv.register(towerGlass, { k: 0.22 }); // tower facades: low-weight environment reflection, same map as the glass above
   polishLandmarkMaterials(world,stops,pts,landmarkEnv);
   const motion = buildMotion(); scene.add(motion.group);
@@ -503,7 +506,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     post.setFocus?.(camera.position.distanceTo(bus.position)); // depth of field focuses on the hero vehicle
     vehicleFx.update(dt, { p: busPos, h: bus.rotation.y, len: hl, halfW: hl > 6 ? 1.3 : 0.95, speed: heroSpeed, rain: mood.rain ?? 0, cold: Math.min(1, (1 - (mood.rs ?? 0)) * 0.8 + night * 0.4), night, halfH: renderer.domElement.height / 2 });
     wetSurfaces.update(clock, wet, mood.rain, night, camera.position, sky.colors, bus.position, bus.rotation.y, post.tier);
-    updateBeams(night); pools.update(night, wet); shopSpill.update(night, wet); lampPosts?.userData.setNight?.(night); underpass.group.userData.setNight(night);
+    updateBeams(night); pools.update(night, wet); shopSpill.update(night, wet); lampPosts?.userData.setNight?.(night); if (lampField) lampField.uniforms.uLampNight.value = night; underpass.group.userData.setNight(night);
     water.update(clock, night, mood, post.tier, sky.colors, sky.sunDir);
     world.userData.updateLandmarkNight?.(night);
     updateVehicleEnv(night); landmarkEnv.update(night);
