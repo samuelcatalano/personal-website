@@ -645,3 +645,13 @@ body.ui-hidden #arrival { opacity: 0; }
 @keyframes door-led { 50% { opacity: .45; } }
 @keyframes cta-ring { 0% { box-shadow: 0 0 0 0 rgba(85, 224, 143, .7); } 100% { box-shadow: 0 0 0 16px rgba(85, 224, 143, 0); } }
 @media (prefers-reduced-motion: reduce) { [data-intro-skip]::before { animation: none !important; } [data-intro-skip] { transition: none; } }
+
+/* Request stop: the red sign that appears while the full auto-ride runs */
+#stop-request { position: fixed; left: 50%; bottom: 22px; z-index: 7; translate: -50% 0; display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 18px 0 20px; border: 2px solid #fff8ec; border-radius: 999px; background: #c8102e; color: #fff8ec; font: 700 13px var(--sans); letter-spacing: .04em; cursor: pointer; box-shadow: 0 6px 20px rgba(120, 10, 25, .4); transition: background .2s, transform .15s; }
+#stop-request[hidden] { display: none; }
+#stop-request:hover { background: #a60c25; }
+#stop-request:active { transform: scale(.96); }
+#stop-request kbd { display: inline-grid; place-items: center; min-width: 22px; height: 22px; border: 1px solid rgba(255, 248, 236, .6); border-bottom-width: 3px; border-radius: 5px; font: 700 11px var(--sans); }
+#stop-request[aria-pressed="true"] { background: #1b2d6b; border-color: #ffb21e; color: #ffb21e; }
+body.ui-hidden #stop-request, body.intro-on #stop-request { display: none; }
+@media (prefers-reduced-motion: reduce) { #stop-request { transition: none; } }

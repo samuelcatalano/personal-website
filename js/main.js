@@ -63,14 +63,23 @@ const goto = (i) => {
 const hash = location.hash.slice(1); // read before the UI rewrites it
 const ui = initUI({ onGoto: goto, onHold: hold, onTheme: (t) => world?.setTheme(t) });
 for (const ev of ['wheel', 'touchstart']) addEventListener(ev, () => { glideId++; holdDir = 0; holdSpeed = 0; lock.clear(); }, { passive: true });
-const autoBtn = document.querySelector('[data-auto]');
+const autoBtn = document.querySelector('[data-auto]'), stopBtn = document.getElementById('stop-request');
 let quick = false;
 const ride = createAutoRide({
   ys: () => stops.map((_, i) => scrollYForStop(i, n, H(), innerHeight, marks)).filter((_, i) => !quick || QUICK.includes(stops[i].id)),
   dwell: () => (quick ? 1600 : 3400),
   hold: () => ui.speaking(),
-  onState: (on) => autoBtn.setAttribute('aria-pressed', String(on)), instant: reducedMotion,
+  keep: (e) => !!e.target?.closest?.('#stop-request') || (e.type === 'keydown' && (e.key === 'b' || e.key === 'B')),
+  onState: (on) => { autoBtn.setAttribute('aria-pressed', String(on)); stopBtn.hidden = !on || quick; }, instant: reducedMotion,
 });
+// "Request stop" (button or B) while the full auto-ride runs: the bus lingers at the next stop, like a pulled cord
+const requestStop = () => {
+  if (!ride.on || quick) return;
+  ride.linger(8000); ui.say('stop', 3000);
+  stopBtn.setAttribute('aria-pressed', 'true'); setTimeout(() => stopBtn.setAttribute('aria-pressed', 'false'), 3000);
+};
+stopBtn.addEventListener('click', requestStop);
+document.addEventListener('keydown', (e) => { if ((e.key === 'b' || e.key === 'B') && !e.metaKey && !e.ctrlKey && !e.altKey && !e.target.closest?.('input, textarea')) requestStop(); });
 autoBtn.addEventListener('click', () => { quick = false; lock.clear(); ride.toggle(); if (ride.on) ui.holdTight(); });
 document.querySelector('[data-quick]').addEventListener('click', () => { quick = true; scrollTo(0, 0); lock.clear(); if (ride.on) ride.stop(); else { ride.toggle(); ui.holdTight(); } });
 const photoBtn = document.querySelector('[data-photo]');

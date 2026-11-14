@@ -188,6 +188,13 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     clearTimeout(bannerTimer); bannerTimer = setTimeout(() => b.classList.remove('show'), 2400);
   };
   const talk = (text) => speak(text, prefs.lang, prefs.theme === 'night' ? 0.85 : 0.95); // the N83 drives slower and quieter than the day bus
+  // When the rain starts the conductor says so once (not while the intro is up, and not more than once a minute).
+  let lastRain = 0;
+  const rainLine = () => {
+    if (!voiceOn || !introDone || document.body.classList.contains('intro-on') || Date.now() - lastRain < 60000) return;
+    lastRain = Date.now();
+    whenDone().then(() => talk(i18n[prefs.lang].ui.speakRain));
+  };
   // What the bus says on a confirmed stop: the plain arrival, a change at the two moves, the terminus, or (auto-ride on) the role and dates as well.
   const announceLine = (idx) => {
     const st = stops[idx], L = i18n[prefs.lang], t = L.ui;
@@ -280,6 +287,8 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     themeButton.setAttribute('aria-label', t.ui.theme);
     themeButton.title = t.ui.theme;
     for (const [sel, key] of [['[data-auto]', 'auto'], ['[data-quick]', 'quick'], ['[data-photo]', 'photo'], ['[data-hide]', 'hide'], ['[data-sound]', 'sound'], ['[data-voice]', 'voice']]) { const b = document.querySelector(sel); if (b) { b.setAttribute('aria-label', t.ui[key]); b.title = t.ui[key]; } }
+    const stopBtn = document.getElementById('stop-request');
+    if (stopBtn) { stopBtn.innerHTML = `${t.ui.stopRequest} <kbd>B</kbd>`; stopBtn.setAttribute('aria-label', `${t.ui.stopRequest} (B)`); }
     document.querySelector('.skip').textContent = t.ui.skip;
     const touch = matchMedia('(pointer: coarse)').matches; // phones get "swipe" copy (intro.t_*) instead of "scroll"
     const pick = (path) => path.split('.').reduce((o, k) => o[k], t.ui);
@@ -394,10 +403,11 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
       if (!voiceOn) return;
       const t = i18n[prefs.lang].ui, c = t.cities;
       greeting = true;
-      talk(t.speakCalling.replace('{route}', routeNo()).replace('{a}', c.sp).replace('{b}', c.ldn).replace('{c}', c.gla));
+      const hour = new Date().getHours(), greet = hour >= 5 && hour < 12 ? t.greetMorning : hour >= 12 && hour < 18 ? t.greetAfternoon : t.greetEvening; // the visitor's own clock
+      talk(`${greet} ` + t.speakCalling.replace('{route}', routeNo()).replace('{a}', c.sp).replace('{b}', c.ldn).replace('{c}', c.gla));
       whenDone().then(() => { greeting = false; });
     },
     holdTight() { if (voiceOn) talk(i18n[prefs.lang].ui.speakStart); }, // the conductor's line as the ride sets off
-    note(key, on) { if (notes[key] !== on) { notes[key] = on; led(); } },
+    note(key, on) { if (notes[key] !== on) { notes[key] = on; led(); if (key === 'rain' && on) rainLine(); } },
   };
 }

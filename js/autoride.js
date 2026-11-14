@@ -5,10 +5,11 @@ const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
 export const nextStop = (ys, y) => { const i = ys.findIndex((v) => v > y + 40); return i < 0 ? 0 : i; };
 export const travelMs = (dist) => clamp((dist / 900) * 1000, 1400, 5500); // ponytail: constant speed with a floor and a cap; per-segment timing if the route gets uneven
 // hold: optional, returns a promise the ride awaits after each pause (the spoken announcement still being read)
-export function createAutoRide({ ys, onState, dwell = 3400, instant = false, hold = null }) {
-  let token = 0, on = false;
+// keep: optional, true for an event that must not hand control back (the stop-request button and its key)
+export function createAutoRide({ ys, onState, dwell = 3400, instant = false, hold = null, keep = null }) {
+  let token = 0, on = false, extra = 0; // extra: ms to linger at the next stop, from a pulled stop request
   const stopEvents = ['wheel', 'touchstart', 'keydown', 'pointerdown'];
-  const halt = (e) => { if (e?.target?.closest?.('[data-auto]')) return; stop(); };
+  const halt = (e) => { if (e?.target?.closest?.('[data-auto]') || keep?.(e)) return; stop(); };
   function stop() {
     if (!on) return;
     on = false; token++;
@@ -25,10 +26,15 @@ export function createAutoRide({ ys, onState, dwell = 3400, instant = false, hol
     };
     requestAnimationFrame(tick);
   });
-  const pause = (ms, id) => new Promise((resolve) => setTimeout(() => resolve(id === token), ms));
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const pause = async (ms, id) => {
+    await wait(ms);
+    while (extra > 0 && id === token) { const e = extra; extra = 0; await wait(e); } // a request made now or while travelling holds the bus a little longer
+    return id === token;
+  };
   async function start() {
     const stops = ys(), id = ++token;
-    on = true; onState(true);
+    extra = 0; on = true; onState(true);
     for (const ev of stopEvents) addEventListener(ev, halt, { passive: true });
     for (let i = nextStop(stops, scrollY); i < stops.length; i++) {
       if (!(await travel(stops[i], id))) return;
@@ -39,5 +45,5 @@ export function createAutoRide({ ys, onState, dwell = 3400, instant = false, hol
     }
     if (id === token) stop();
   }
-  return { toggle: () => (on ? stop() : start()), stop, get on() { return on; } };
+  return { toggle: () => (on ? stop() : start()), stop, linger: (ms) => { extra = ms; }, get on() { return on; } };
 }
