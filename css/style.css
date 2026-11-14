@@ -274,6 +274,8 @@ body.world-loading:not(.world-ready, .no-webgl, .intro-on) #loading { display: f
 /* day/night: the new theme opens as a circle from the toggle button (View Transitions API) */
 ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
 ::view-transition-new(root) { animation: reveal .9s cubic-bezier(.4, 0, .2, 1) both; }
+:root[data-vt="lang"]::view-transition-new(root) { animation: vt-fade .25s ease-out both; }
+@keyframes vt-fade { from { opacity: 0; } }
 @keyframes reveal { from { clip-path: circle(0 at var(--tx, 50%) var(--ty, 0)); } to { clip-path: circle(150vmax at var(--tx, 50%) var(--ty, 0)); } }
 /* credits dialog */
 .linkish { padding: 0; border: 0; background: none; font: inherit; color: var(--accent); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }

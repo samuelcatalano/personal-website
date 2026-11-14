@@ -296,7 +296,15 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     if (e.target.closest('[data-nav-home]')) { e.preventDefault(); onGoto(0); }
     const nav = e.target.closest('[data-nav]');
     if (nav) { e.preventDefault(); onGoto(sectionStart(nav.dataset.nav)); }
-    if (e.target.closest('[data-lang]')) { prefs.lang = prefs.lang === 'en' ? 'pt' : 'en'; savePref(store(), 'lang', prefs.lang); render(); }
+    if (e.target.closest('[data-lang]')) {
+      prefs.lang = prefs.lang === 'en' ? 'pt' : 'en'; savePref(store(), 'lang', prefs.lang);
+      // ponytail: a short crossfade of the copy; plain swap where View Transitions are missing or motion is reduced. The page snapshot pauses the 3D scene for the 0.25 s, as the theme reveal does.
+      if (document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        const root = document.documentElement; root.dataset.vt = 'lang';
+        const vt = document.startViewTransition(render);
+        vt.ready.catch(() => {}); vt.finished.finally(() => delete root.dataset.vt);
+      } else render();
+    }
     const themeBtn = e.target.closest('[data-theme]');
     if (themeBtn) {
       prefs.theme = prefs.theme === 'day' ? 'night' : 'day'; savePref(store(), 'theme', prefs.theme);
