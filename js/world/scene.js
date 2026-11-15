@@ -4,7 +4,7 @@ import { streetEnvironment, setStreetRegions, shopFrontages } from './streetscap
 import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
 import { routeT, nearestStop, stopMarks, fineMarks } from '../scroll.js';
-import { regions, routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, towerX, FRAME_LIFT, swapAt, heroVehicleAt, ukStart, treeRegion, SWAP_GAP, east, eastAdd, stretch, LEGACY_GAPS, underpassFrames } from './layout.js';
+import { regions, routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, towerX, FRAME_LIFT, swapAt, heroVehicleAt, ukStart, treeRegion, SWAP_GAP, east, eastAdd, stretch, LEGACY_GAPS, underpassFrames, UNDERPASS, LANDMARKS, stopIndex, furnitureSpots } from './layout.js';
 import { createBoxes, buildMeshes } from './voxel.js';
 import { buildMotion } from './motion.js';
 import { buildCity, tree } from './city.js';
@@ -56,11 +56,18 @@ import { createVehicleFx } from './vehicle-fx.js';
 import { createRoadMarks } from './roadmarks.js';
 import { loadVehicleAsset, adoptVisual, upgradeBus, upgradeMini, rollWheels, initVehicleEnv, updateVehicleEnv, setVehicleSkyEnv } from './vehicle-assets.js';
 import { RIVER_RUN } from './underwater-profile.js';
-import { createUnderpass, HX as UNDERPASS_HALF, W as UNDERPASS_WIDTH, H as UNDERPASS_HEIGHT } from './underpass.js';
+import { createUnderpass, HX as UNDERPASS_HALF, W as UNDERPASS_WIDTH, H as UNDERPASS_HEIGHT, deckHeight, ROAD_HW, END as UNDERPASS_END } from './underpass.js';
 import { createUnderpassTraffic } from './underpass-traffic.js';
 import { createRouteTunnel } from './route-tunnel.js';
 import { createSwapTunnel } from './swap-tunnel.js';
 import { upgradeWellington } from './wellington-asset.js';
+import { bridgeStreetRoute } from './bridge-exits.js';
+import { estaiadaRoute, ESTAIADA_DECK } from './landmark-geometry.js';
+import { RIVER_WIDTH } from './underwater-profile.js';
+import { PARKS, PLAZAS, SQUARES } from './parks.js';
+import { walkPaths } from './crowd.js';
+import { planUrbanRoads } from './urban-roads.js';
+import { createUrbanRoadMeshes, roadCoverageBoxes, roadGrassPlots, sampleRoadAnchors, inscribedAnchorWidth, subtractRect, URBAN_ROAD_LEVELS } from './urban-road-mesh.js';
 const BUS_LANE = 1.75, SCROLL_SMOOTH = 0.18, ARC = 10;
 const LANDMARK_STARTUP_TIMEOUT = 5000; // ponytail: slower landmark GLBs use procedural geometry for this visit
 export const createHeroGroup = (candidates) => new THREE.Group().add(...candidates);
@@ -163,7 +170,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const realCity = buildRealCity(architecturePlots);
   if (qa) globalThis.__qaPlots = architecturePlots; // QA probe: lots, for the underwater-road house check (no visual effect)
   resetFloodlights(); // landmark builders re-register their night floodlight boxes
-  const { eye, details } = buildLandmarks(cornerAdd, stops, pts, (x, z, shape) => treePlacements.push({ x, z, ...shape }));
+  const { eye, details, backgroundPlots } = buildLandmarks(cornerAdd, stops, pts, (x, z, shape) => treePlacements.push({ x, z, ...shape }));
   let routeS = 0;
   const plane = buildVehicle('a330'), planeAt = ukStart(stops) / (n - 1), { nav, strobe, shadow } = plane.userData; // flies past the bus at the first UK stop
   plane.visible = shadow.visible = nav.visible = strobe.visible = false;
@@ -173,9 +180,129 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const t = treePlacements[i], radius = t.crown / 2;
     if (inClosingCorner(t.x, t.z) || infill.some(p => Math.abs(t.x - p.x) < p.width / 2 + radius && Math.abs(t.z - p.z) < p.depth / 2 + radius)) treePlacements.splice(i, 1);
   }
-  const lampClearance = lampSpots(), kioskClearance = kioskSpots();
+  const lampClearance = lampSpots(), kioskClearance = kioskSpots(), furnitureClearance = furnitureSpots(stops, curve);
+  const roadQuery = qa ? new URLSearchParams(location.search).get('urbanroads') : null;
+  let urbanRoads = null, urbanRoadInputs = null, urbanRoadRects = [];
+  if (roadQuery !== 'off') {
+    const plots = [...new Map([...architecturePlots, ...buildingPlots].map(p => [p.id ?? `${p.x}:${p.z}:${p.width}:${p.depth}`, p])).values()];
+    const minX = Math.min(...plots.map(p => p.x - p.width / 2)), maxX = Math.max(...plots.map(p => p.x + p.width / 2));
+    const toRect = (b) => { const c = Math.abs(Math.cos(b.ry || 0)), s = Math.abs(Math.sin(b.ry || 0)), x = (c * b.w + s * b.d) / 2, z = (s * b.w + c * b.d) / 2; return { x0: b.x - x, x1: b.x + x, z0: b.z - z, z1: b.z + z }; };
+    const obstacleSources = [...list, ...distant.list, ...far.list];
+    const boxObstacles = obstacleSources.filter(b => b.x >= minX - 30 && b.x <= maxX + 30 && b.y <= 1 && (b.plant || b.y + b.h > 0.25)).map(toRect);
+    const backgroundPlotObstacles = backgroundPlots.map(p => ({ x0: p.x - p.width / 2, x1: p.x + p.width / 2, z0: p.z - p.depth / 2, z1: p.z + p.depth / 2 }));
+    const clearanceObstacles = [
+      ...lampClearance.map(([x, z]) => ({ x0: x - 0.35, x1: x + 0.35, z0: z - 0.35, z1: z + 0.35 })),
+      ...kioskClearance.map(([x, z]) => ({ x0: x - 0.85, x1: x + 0.85, z0: z - 0.85, z1: z + 0.85 })),
+      ...furnitureClearance.map(({ xz: [x, z] }) => ({ x0: x - 0.6, x1: x + 0.6, z0: z - 0.6, z1: z + 0.6 })),
+    ];
+    const obstacles = [...boxObstacles, ...backgroundPlotObstacles, ...clearanceObstacles];
+    const estaiadaX = pts[stopIndex(stops, LANDMARKS.estaiada)].x;
+    const estaiada = estaiadaRoute(estaiadaX, curve, RIVER_Z);
+    const estaiadaDeckRects = estaiada.stations.slice(1).flatMap((b, i) => {
+      const a = estaiada.stations[i];
+      if (Math.max(a.y, b.y) <= 0.3) return [];
+      const points = [a, b].flatMap(p => [-1, 1].map(side => ({ x: p.x - p.tz * side * (ESTAIADA_DECK.half + 0.3), z: p.z + p.tx * side * (ESTAIADA_DECK.half + 0.3) })));
+      return [{ x0: Math.min(...points.map(p => p.x)), x1: Math.max(...points.map(p => p.x)), z0: Math.min(...points.map(p => p.z)), z1: Math.max(...points.map(p => p.z)) }];
+    });
+    details.updateMatrixWorld(true);
+    const landmarkRects = [];
+    const landmarkAccessRects = [];
+    const addDetailBounds = (object) => {
+      const box = new THREE.Box3().setFromObject(object), w = box.max.x - box.min.x, d = box.max.z - box.min.z;
+      if (![box.min.x, box.max.x, box.min.z, box.max.z].every(Number.isFinite)) return;
+      if (w > 180 || d > 180) { object.children.forEach(addDetailBounds); return; }
+      if (w > 0 && d > 0) landmarkRects.push({ x0: box.min.x - 5, x1: box.max.x + 5, z0: box.min.z - 5, z1: box.max.z + 5 });
+    };
+    const addAccessDetailBounds = (object) => {
+      const box = new THREE.Box3().setFromObject(object), w = box.max.x - box.min.x, d = box.max.z - box.min.z;
+      if (![box.min.x, box.max.x, box.min.z, box.max.z].every(Number.isFinite)) return;
+      if (w > 180 || d > 180) { object.children.forEach(addAccessDetailBounds); return; }
+      if (w > 0 && d > 0) landmarkAccessRects.push({ x0: box.min.x - 0.15, x1: box.max.x + 0.15, z0: box.min.z - 0.15, z1: box.max.z + 0.15 });
+    };
+    const hasEstaiadaDeck = child => child.name.toLowerCase().includes('estaiada') || !!child.getObjectByName('estaiada-deck');
+    details.children.filter(child => !['hero-background', 'paulista-architecture'].includes(child.name) && !hasEstaiadaDeck(child)).forEach(addDetailBounds);
+    details.children.filter(child => !['hero-background', 'paulista-architecture'].includes(child.name) && !hasEstaiadaDeck(child)).forEach(addAccessDetailBounds);
+    const underpassTerminalAnchors = [];
+    const underpassRects = underpassFrames(curve, stops).flatMap(u => {
+      const along = UNDERPASS.base + 2, across = UNDERPASS.end + 3;
+      const rx = Math.abs(u.tx) * along + Math.abs(u.tz) * across, rz = Math.abs(u.tz) * along + Math.abs(u.tx) * across;
+      const outer = { x0: u.x - rx, x1: u.x + rx, z0: u.z - rz, z1: u.z + rz }, c = curve.getPointAt(u.tc), t = curve.getTangentAt(u.tc);
+      const onRiver = c.x > riverStart(stops, pts) && c.x < riverEnd(stops, pts);
+      const bankAz = onRiver ? Math.abs(RIVER_Z + Math.sign(c.z - RIVER_Z) * RIVER_WIDTH / 2 - c.z) * Math.abs(t.x) : 0;
+      const sigma = onRiver ? Math.sign(RIVER_Z - c.z) * Math.sign(t.x) : 1, river = onRiver ? { bankAz, sigma } : null, ports = [];
+      for (const side of [-1, 1]) {
+        if (Math.abs(deckHeight(side * UNDERPASS_END, river)) > 0.02 || Math.abs(deckHeight(side * (UNDERPASS_END - 1.5), river)) > 0.12) continue;
+        const localZ = side * (UNDERPASS_END - 1.5), x = c.x - t.z * localZ, z = c.z + t.x * localZ;
+        const width = inscribedAnchorWidth(Math.min(2 * ROAD_HW, 3), t.x, t.z), portWidth = inscribedAnchorWidth(ROAD_HW * 1.5, t.x, t.z);
+        underpassTerminalAnchors.push({ x, z, width, portWidth, deckY: deckHeight(localZ, river), tangentX: t.x, tangentZ: t.z });
+        for (let distance = localZ; Math.sign(distance) === side && Math.abs(distance) <= UNDERPASS_END + 9; distance += side * portWidth / 2) {
+          const px = c.x - t.z * distance, pz = c.z + t.x * distance;
+          ports.push({ x0: px - portWidth / 2, x1: px + portWidth / 2, z0: pz - portWidth / 2, z1: pz + portWidth / 2 });
+        }
+      }
+      return ports.reduce((rects, port) => rects.flatMap(r => subtractRect(r, port)), [outer]);
+    });
+    const moveRect = r => { const d = east((r.x0 + r.x1) / 2) - (r.x0 + r.x1) / 2; return { x0: r.x0 + d, x1: r.x1 + d, z0: r.z0, z1: r.z1 }; };
+    const parkRects = PARKS.map(moveRect), squareRects = SQUARES.map(moveRect);
+    const plazaNames = new Set(PLAZAS.map(p => p.name));
+    const plazaRects = walkPaths(stops, pts).filter(p => p.type === 'loop' && plazaNames.has(p.name)).map(p => p.rect);
+    const protectedRects = [...publicRealmZones.map(({ x0, x1, z0, z1 }) => ({ x0, x1, z0, z1 })), ...parkRects, ...squareRects, ...plazaRects, ...landmarkRects, ...estaiadaDeckRects,
+      { x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z0: RIVER_Z - 16, z1: RIVER_Z + 16 }, ...underpassRects];
+    const accessProtectedRects = [...publicRealmZones.map(({ x0, x1, z0, z1 }) => ({ x0, x1, z0, z1 })), ...landmarkAccessRects, ...estaiadaDeckRects,
+      { x0: riverStart(stops, pts), x1: riverEnd(stops, pts), z0: RIVER_Z - RIVER_WIDTH / 2 - 0.3, z1: RIVER_Z + RIVER_WIDTH / 2 + 0.3 }, ...underpassRects];
+    const regions = [
+      { name: 'sao-paulo', x0: minX - 5, x1: -80 },
+      { name: 'london', x0: -80, x1: 300 },
+      { name: 'glasgow', x0: 300, x1: 570 },
+      { name: 'return', x0: 570, x1: maxX + 5 },
+    ];
+    const existingAsphaltRects = list.filter(b => b.color === P.road && b.x + b.w / 2 >= minX - 30 && b.x - b.w / 2 <= maxX + 30).map(toRect);
+    const anchors = [...sampleRoadAnchors(list), ...underpassTerminalAnchors];
+    const addStreetAnchors = (segments, offsetX = 0, offsetZ = 0) => {
+      for (const controls of segments) {
+        const points = controls.map(([x, a, b]) => new THREE.Vector3(x + offsetX, b === undefined ? 0 : a, (b === undefined ? a : b) + offsetZ));
+        const path = points.length === 4 ? new THREE.CubicBezierCurve3(...points) : new THREE.LineCurve3(...points);
+        const length = path.getLength();
+        if (length < 1e-4) continue;
+        for (let s = 0; s <= length; s += 5) {
+          const p = path.getPointAt(s / length);
+          if (Number.isFinite(p.x) && Number.isFinite(p.z) && p.y < 0.3 && !protectedRects.some(r => p.x >= r.x0 && p.x <= r.x1 && p.z >= r.z0 && p.z <= r.z1)) {
+            const tangent = path.getTangentAt(s / length);
+            anchors.push({ x: p.x, z: p.z, width: inscribedAnchorWidth(5.6, tangent.x, tangent.z) });
+          }
+        }
+      }
+    };
+    for (const [i, u] of underpassFrames(curve, stops).entries()) {
+      const c = curve.getPointAt(u.tc), t = curve.getTangentAt(u.tc), onRiver = c.x > riverStart(stops, pts) && c.x < riverEnd(stops, pts);
+      if (!onRiver) continue;
+      const bankAz = Math.abs(RIVER_Z + Math.sign(c.z - RIVER_Z) * RIVER_WIDTH / 2 - c.z) * Math.abs(t.x), sigma = Math.sign(RIVER_Z - c.z) * Math.sign(t.x);
+      addStreetAnchors(bridgeStreetRoute({ x: c.x, z: c.z, tx: t.x, tz: t.z }, { sigma, inAz: bankAz + RIVER_RUN + 2 }, i));
+    }
+    const estaiadaSegments = estaiada.street.curve.curves.flatMap(part => {
+      const samples = Math.max(2, Math.ceil(part.getLength() / 5));
+      const points = Array.from({ length: samples + 1 }, (_, i) => { const p = part.getPointAt(i / samples); return [p.x, p.y, p.z]; });
+      return points.slice(1).map((point, i) => [points[i], point]);
+    });
+    addStreetAnchors(estaiadaSegments, estaiadaX, RIVER_Z);
+    if (roadQuery === 'pilot') regions.splice(1);
+    const planStarted = performance.now();
+    const plan = planUrbanRoads({ plots, trees: treePlacements, obstacles, protectedRects, accessProtectedRects, anchors, existingAsphaltRects, regions, seed: 2026 });
+    const plannerGenerationMs = performance.now() - planStarted;
+    urbanRoadRects = plan.rects;
+    const meshStarted = performance.now();
+    urbanRoads = createUrbanRoadMeshes(urbanRoadRects);
+    const meshGenerationMs = performance.now() - meshStarted;
+    scene.add(urbanRoads);
+    urbanRoadInputs = { plots, treePlacements, backgroundPlots, lampClearance, kioskClearance, furnitureClearance, obstacles, protectedRects, accessProtectedRects, anchors, existingAsphaltRects, regions, underpassTerminalAnchors };
+    if (qa) {
+      globalThis.__qaUrbanRoads = { ...plan, levels: URBAN_ROAD_LEVELS, meshCount: urbanRoads.children.length, generationMs: { planner: plannerGenerationMs, mesh: meshGenerationMs } };
+      globalThis.__qaUrbanRoadInputs = urbanRoadInputs;
+    }
+  }
   const arc = parkingBays(curve, pts, stops, pilotCrossings); // shared by the street props and the road marks
-  const streetProps = placeStreetProps({ stops, pts, curve, arc, pilotCrossings, boxes: list, trees: treePlacements, lamps: lampClearance, kiosks: kioskClearance, plots: [...architecturePlots, ...buildingPlots], exclude: publicRealmZones });
+  const roadBoxes = urbanRoads ? roadCoverageBoxes(urbanRoadRects) : [];
+  const streetProps = placeStreetProps({ stops, pts, curve, arc, pilotCrossings, boxes: [...list, ...roadBoxes], trees: treePlacements, lamps: lampClearance, kiosks: kioskClearance, plots: [...architecturePlots, ...buildingPlots], exclude: publicRealmZones });
   const [forest, ...streetAssembly] = await Promise.allSettled([
     createTrees(treePlacements, treeRegion(stops, pts)), buildPhoneBoxes(), buildLampPosts(), buildStreetProps(streetProps),
   ]);
@@ -204,7 +331,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const frustum = new THREE.Frustum(), pv = new THREE.Matrix4(), sphere = new THREE.Sphere(), ray = new THREE.Raycaster();
   for (const v of candidates) addBeams(v, v.userData.front, v.userData.beamY);
   const WIN_L = '#2b2621', RG = '#27394b', RB = '#c9ccd1'; // Glasgow Uni windows, Riverside glass + band
-  const world = buildMeshes(list, { glow: [P.lit, '#ffd86b', '#fff7c2', P.arch, WIN_L, RG, RB], glowK: { [P.arch]: 1.1, [WIN_L]: 1.0, [RG]: 0.55, [RB]: 0.2 }, grass: { trees: treePlacements, plots: architecturePlots, lamps: lampClearance, kiosks: kioskClearance } });
+  const world = buildMeshes(list, { glow: [P.lit, '#ffd86b', '#fff7c2', P.arch, WIN_L, RG, RB], glowK: { [P.arch]: 1.1, [WIN_L]: 1.0, [RG]: 0.55, [RB]: 0.2 }, grass: { trees: treePlacements, plots: [...architecturePlots, ...roadGrassPlots(urbanRoadRects)], lamps: lampClearance, kiosks: kioskClearance } });
   world.traverse((o) => { const h = o.material?.color?.getHexString(); if (o.material?.userData.glow) { if (h === WIN_L.slice(1)) o.material.userData.glowColor = new THREE.Color('#ffb04a'); if (h === RG.slice(1)) o.material.userData.glowColor = new THREE.Color('#d8e86a'); if (h === RB.slice(1)) o.material.userData.glowColor = new THREE.Color('#bcd4ff'); } });
   const landmarkEnv = createLandmarkEnv(renderer);
   // City-wide environment: the same prefiltered day/night maps at low strength, for standard materials that carry no envMap of their own (registered landmark materials keep theirs).
@@ -582,6 +709,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       heroRealm?.userData.dispose();
       shopSpill.dispose();
       roadMarks.userData.dispose(); propsGroup?.userData.dispose();
+      urbanRoads?.userData.dispose?.();
       eye.userData.dispose?.();
       rain.dispose?.();
       lampField?.texture.dispose(); // night light field: one R8 texture built at startup

@@ -8,7 +8,7 @@ import { lampPost } from './street-lamp.js'; // ponytail: import cycle is fine, 
 export const PARKS = [ // stops after the Eye sit further east (OUT_GAP + LONG_GAP): the last four parks moved with them
   { x0: -235, x1: -165, z0: -27, z1: -15, fountain: 1, trees: 7, cafe: 1 }, // Sé side
   { x0: -293, x1: -273, z0: -24, z1: 24, fountain: 1, trees: 7 }, // behind the start
-  { x0: -266, x1: -246, z0: 8, z1: 18, trees: 5, late: 1 }, // hero foreground: breaks up the bare slab south of the start garden
+  { x0: -266, x1: -246, z0: 11, z1: 21, trees: 5, late: 1 }, // 3 m farther from the curved avenue edge; keeps the park coherent and off the asphalt
   { x0: -262, x1: -238, z0: 28, z1: 38, trees: 5, late: 1 }, // hero foreground, south (mobile frame)
   { x0: -314, x1: -296, z0: 10, z1: 24, trees: 5, late: 1 }, // hero foreground, left of the start garden
   { x0: -197, x1: -165, z0: -57, z1: -47, trees: 5 },

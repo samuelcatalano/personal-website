@@ -9,6 +9,7 @@ import { buildUrbanInfill } from './urban-infill.js';
 import { buildParks } from './parks.js';
 import { buildCountry } from './country.js';
 import { buildGlasgowEdges } from './glasgow.js';
+import { applyArchitectureLayoutOffset } from './layout-data.js';
 const PATCH = P.patch, ROAD = P.road, LINE = P.cream;
 const BANK = P.taupe, PATH = P.stone, CREAM = P.cream;
 const UK_WALLS = [CREAM, '#d8d0c2', P.stone, P.terracotta, P.ochre, P.mint, P.salmon, P.skyBlue, P.offWhite];
@@ -78,13 +79,14 @@ const legacyCurve = (curve, lp) => curve.points ? routeCurve({ CatmullRomCurve3:
 // The city: the road itself follows the real route; everything seeded (frontage, lamps, trees, kiosks, blocks, parks, country, Glasgow) is generated on the
 // legacy route and moved by east() (layout.js), so SWAP_GAP never changes a draw or a position id. ponytail: anything spanning the legacy border moves whole.
 export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArchitecturePlot, onPublicRealm) {
+  const emitArchitecturePlot = onArchitecturePlot && (plot => onArchitecturePlot(applyArchitectureLayoutOffset(plot)));
   const pilotCrossings = buildRoad(add, stops, pts, curve);
-  if (!SWAP_GAP) return { lamps: buildLegacy(add, stops, pts, curve, onTree, onBuildingPlot, onArchitecturePlot, onPublicRealm), pilotCrossings };
+  if (!SWAP_GAP) return { lamps: buildLegacy(add, stops, pts, curve, onTree, onBuildingPlot, emitArchitecturePlot, onPublicRealm), pilotCrossings };
   const lp = routePoints(pts.length, GAPS), mv = (p) => ({ ...p, x: east(p.x) });
   const lamps = buildLegacy(eastAdd(add), stops, lp, legacyCurve(curve, lp), onTree && ((x, ...a) => onTree(east(x), ...a)), onBuildingPlot && ((p) => onBuildingPlot(mv(p))),
-    onArchitecturePlot && ((p) => onArchitecturePlot(mv(p))), onPublicRealm && ((z) => { const d = east((z.x0 + z.x1) / 2) - (z.x0 + z.x1) / 2; onPublicRealm({ ...z, x0: z.x0 + d, x1: z.x1 + d }); }));
-  buildGapFill(add, onArchitecturePlot); // the strip SWAP_GAP opened (real coordinates, own rng)
-  buildUrbanInfill(add, onArchitecturePlot);
+    emitArchitecturePlot && ((p) => emitArchitecturePlot(mv(p))), onPublicRealm && ((z) => { const d = east((z.x0 + z.x1) / 2) - (z.x0 + z.x1) / 2; onPublicRealm({ ...z, x0: z.x0 + d, x1: z.x1 + d }); }));
+  buildGapFill(add, emitArchitecturePlot); // the strip SWAP_GAP opened (real coordinates, own rng)
+  buildUrbanInfill(add, emitArchitecturePlot);
   const f = swapTunnelFrame(curve, stops); // the plaza over the tunnel (swap-plaza.js): the fingerpost's lantern lights the whole plaza
   lampPoolAt(f.x, f.z, 1.8);
   return { lamps: lamps.map(([x, z]) => [east(x), z]), pilotCrossings };

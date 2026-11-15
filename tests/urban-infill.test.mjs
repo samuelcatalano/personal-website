@@ -8,6 +8,7 @@ import { routePoints, stopIndex, LANDMARKS, east, eastAdd, stretch, LEGACY_GAPS,
 import { PARKS, SQUARES } from '../js/world/parks.js';
 import { walkPaths } from '../js/world/crowd.js';
 import { buildBackdrop } from '../js/world/backdrop.js';
+import { ARCHITECTURE_LAYOUT_OFFSETS, applyArchitectureLayoutOffset } from '../js/world/layout-data.js';
 
 const pts = routePoints(stops.length), curve = {
   getPointAt(u) {
@@ -28,6 +29,29 @@ const isNew = p => p.id.startsWith('urban-infill-');
 const bounds = p => [p.x - p.width / 2, p.x + p.width / 2, p.z - p.depth / 2, p.z + p.depth / 2];
 const hit = (a, b, e = 0) => a[0] < b[1] + e && b[0] - e < a[1] && a[2] < b[3] + e && b[2] - e < a[3];
 const hash = a => createHash('sha256').update(JSON.stringify(a)).digest('hex');
+const layoutMoveOld = {
+  'block-713--43-3': [773.6271433031652, -43.09061256479842],
+  'block-713--43-4': [779.6271433031652, -43.09061256479842],
+  'block-746--47': [794.1684200223535, -46.823959783945206],
+  'frontage-gap-glasgow-585--1-0': [625, -6.428571428571427],
+  'gap-47--98-0': [84, -97.52750330851623],
+  'wembley-side--34--64': [801, -64],
+  'wembley-side--48--68': [787, -68],
+};
+
+test('layout data applies exact offsets without mutating plot records', () => {
+  const plot = Object.freeze({ id: 'unlisted-layout-plot', x: 12, z: -8, width: 9, depth: 7, archetype: 'terrace' });
+  assert.equal(applyArchitectureLayoutOffset(plot), plot);
+  assert.deepEqual(plot, { id: 'unlisted-layout-plot', x: 12, z: -8, width: 9, depth: 7, archetype: 'terrace' });
+  assert.equal(Object.keys(ARCHITECTURE_LAYOUT_OFFSETS).length, 7);
+  for (const [id, old] of Object.entries(layoutMoveOld)) {
+    const source = Object.freeze({ id, x: old[0], z: old[1], width: 6, depth: 9, height: 12 });
+    const moved = applyArchitectureLayoutOffset(source), offset = ARCHITECTURE_LAYOUT_OFFSETS[id];
+    assert.deepEqual([moved.x, moved.z], [old[0] + offset.dx, old[1] + offset.dz]);
+    assert.deepEqual([moved.width, moved.depth, moved.height], [6, 9, 12]);
+    assert.deepEqual([source.x, source.z], old, 'source descriptor stays unchanged');
+  }
+});
 
 test('surveyed infill preserves baseline lots/props except the six approved bridge-street relocations', () => {
   const { plots, trees, boxes } = collect(), added = plots.filter(isNew);
@@ -62,6 +86,22 @@ test('surveyed infill preserves baseline lots/props except the six approved brid
     'rear--20':[-19.569937156280503,-21.169937156280504],
     'rear--5':[-4.877749034785666,-2.9777490347856657],
   };
+  const approvedDensityMoves = {
+    'paulista-density-midrise': { current: [-287, -133.5], prior: [-289, -127] },
+    'paulista-density-terrace-1': { current: [-84.5, -134.5], prior: [-85, -127] },
+    'london-density-house': { current: [77, -134], prior: [79, -127] },
+    'glasgow-density-tenement': { current: [513, -134.5], prior: [514, -127] },
+  };
+  const movedLayout = plots.filter(p => ARCHITECTURE_LAYOUT_OFFSETS[p.id]);
+  assert.equal(movedLayout.length, 3, 'the linear-curve preservation fixture emits three of the six affected legacy records');
+  for (const p of movedLayout) {
+    const { dx, dz } = ARCHITECTURE_LAYOUT_OFFSETS[p.id], [x, z] = layoutMoveOld[p.id];
+    assert.deepEqual([p.x, p.z], [x + dx, z + dz], `${p.id} uses the approved world offset`);
+  }
+  const densityMoveId = p => Object.keys(approvedDensityMoves).find(id => p.id === id || p.id.startsWith(`${id}-`));
+  const movedDensity = plots.filter(p => densityMoveId(p));
+  assert.equal(movedDensity.length, 4);
+  for (const p of movedDensity) assert.deepEqual([p.x, p.z], approvedDensityMoves[densityMoveId(p)].current, `${p.id} uses its approved clear position`);
   // This linear-curve fixture has different front-row IDs; the real-curve browser test covers those two moves.
   const moved=plots.filter(p=>approvedMoves[p.id]);assert.equal(moved.length,4);
   assert.ok(!plots.some(p=>p.id==='block--43--93'||p.id==='block--24--93'));
@@ -69,7 +109,13 @@ test('surveyed infill preserves baseline lots/props except the six approved brid
     assert.ok(Math.abs(p.x-approvedMoves[p.id][1])<1e-9);
     for(const other of plots)if(other!==p)assert.ok(!hit(bounds(p),bounds(other),.2),`${p.id} overlaps ${other.id}`);
   }
-  const priorLots=plots.filter(p=>!isNew(p)).map(p=>approvedMoves[p.id]?{...p,x:approvedMoves[p.id][0]}:p);
+  const priorLots=plots.filter(p=>!isNew(p)).map(p=>{
+    if (approvedMoves[p.id]) return { ...p, x: approvedMoves[p.id][0] };
+    const move = approvedDensityMoves[densityMoveId(p)];
+    if (move) return { ...p, x: move.prior[0], z: move.prior[1] };
+    const prior = layoutMoveOld[p.id];
+    return prior ? { ...p, x: prior[0], z: prior[1] } : p;
+  });
   assert.equal(hash(priorLots), 'ffdac02377a2b7e56b957083b2cc415c22dd57a57cd9a8caf21ff0a4acb5b90a');
   assert.equal(hash(trees), '607691e858326e6e3363f96abdbeb994a16025d5ba58997991df847caf3dc6f4');
   let patios=0;const priorBoxes=boxes.map(b=>{if(Math.abs(b[0]-264.8)<1e-9&&b[1]===-.02&&(Math.abs(b[2]+100.7)<1e-6||Math.abs(b[2]+109.3)<1e-6)){patios++;return[291.8672036547214,...b.slice(1)]}return b});
@@ -79,9 +125,14 @@ test('surveyed infill preserves baseline lots/props except the six approved brid
   const backdrop = [];
   buildUrbanInfill((...b) => fallback.push(b));
   buildBackdrop(eastAdd((...b) => backdrop.push(b), stretch), stops, routePoints(stops.length, LEGACY_GAPS));
+  for (const p of movedDensity) {
+    for (const b of backdrop) if (b[1] + b[4] > .35) assert.ok(!hit(bounds(p), [b[0] - b[3] / 2, b[0] + b[3] / 2, b[2] - b[5] / 2, b[2] + b[5] / 2], .3), `${p.id} clears backdrop geometry`);
+  }
+  // The straight-curve unit fixture has route-dependent lot coordinates; retain its baseline occupancy for infill overlap checks.
+  const collisionPlots = plots.map(q => layoutMoveOld[q.id] ? { ...q, x: layoutMoveOld[q.id][0], z: layoutMoveOld[q.id][1] } : q);
   for (const p of added) {
     assert.ok(fallback.some(b => b[0] === p.x && b[2] === p.z && b[4] > 3), `${p.id} retains fallback geometry`);
-    for (const q of plots) if (p !== q) assert.ok(!hit(bounds(p), bounds(q), 1.5), `${p.id} overlaps ${q.id}`);
+    for (const q of collisionPlots) if (p.id !== q.id) assert.ok(!hit(bounds(p), bounds(q), 1.5), `${p.id} overlaps ${q.id}`);
     for (const t of trees) assert.ok(!hit(bounds(p), [t.x, t.x, t.z, t.z], (t.crown || 3) / 2 + .5), `${p.id} crowds an existing tree`);
     for (const b of boxes) if (b[1] + b[4] > .35) assert.ok(!hit(bounds(p), [b[0] - b[3] / 2, b[0] + b[3] / 2, b[2] - b[5] / 2, b[2] + b[5] / 2], .5), `${p.id} crowds an existing prop`);
     for (const b of backdrop) if (b[1] + b[4] > .35) assert.ok(!hit(bounds(p), [b[0] - b[3] / 2, b[0] + b[3] / 2, b[2] - b[5] / 2, b[2] + b[5] / 2], 1), `${p.id} overlaps the skyline`);

@@ -1,5 +1,9 @@
 # 3D city art direction
 
+## Connected neighbourhoods — 2026-11-15
+
+Shared local carriageways and sidewalks now organize the four-region infill; narrow mews use rooted pedestrian access. Asphalt and paving retain the existing palette, landmark setbacks and principal routes. The metre-grid surface union is intended for the city camera; tight alleys may have a one-sided walking strip. The owner authorized local pocket reorganization to complete blocked frontages without removing buildings. [Scope, exact moves and visual evidence](audits/2026-11-15-urban-road-network.md).
+
 ## Eastern stadium pocket — 2026-11-14
 
 The owner selected the remaining empty pocket east of Wembley. 93 two/three-floor additions complete this bounded area using existing regional families, preserving the stadium, arch, gardens, pedestrian circulation and production camera. [Scope, setback and checks](audits/2026-11-14-stadium-east-infill.md).

@@ -1,5 +1,9 @@
 # 3D city architecture
 
+## Procedural urban connectivity — 2026-11-15
+
+A pure footprint-aware planner now supplies shared local streets, sidewalks and street-rooted property paths across all four regions. Existing transit geometry remains the backbone; source lot offsets apply before descriptor collection and rendering. Static collision masks, anchored raster union and chunked two-material surfaces keep planning out of the frame loop. The owner authorized the necessary local pocket reorganization while preserving every building identity, dimensions, landmarks and routes. [Implementation, exact moves and validation](../audits/2026-11-15-urban-road-network.md).
+
 ## Owner-selected eastern stadium pocket — 2026-11-14
 
 93 appended low-rise plots complete the newly selected area beside Wembley, preserving its footprint/setback, gardens, paths and previous descriptors. Existing regional recipes, materials, batching, quality settings and production camera remain. [Scope, stadium clearance and checks](../audits/2026-11-14-stadium-east-infill.md).

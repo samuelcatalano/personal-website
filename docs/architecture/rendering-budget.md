@@ -1,5 +1,9 @@
 # Rendering budget
 
+## Procedural urban connectivity — 2026-11-15
+
+New road surfaces share two materials from the existing texture pipeline, merge by 160m spatial chunk and receive shadows without casting them. Static spatial hashing bounds collision queries; generation runs once. The QA-only network-off control isolates the new surfaces for matched Desktop route measurements. Final surfaces use 22 meshes, 2 materials, 6,972 triangles and 0.465MiB geometry buffers. Repeated ABBA samples show median 25.3–26.1ms ON versus 26.6–26.8ms OFF, with overlapping p95 ranges; this is no detected regression, not a speedup claim. [Counts, measured timings and measurement limits](../audits/2026-11-15-urban-road-network.md).
+
 ## Eastern stadium infill — 2026-11-14
 
 93 additional lots grow the isolated procedural infill fixture from 626 to 719 plots, 153 to 176 chunks, 3,769,786 to 4,279,102 accumulated near triangles and 106.83 to 120.37 MiB of initial far-attribute arrays. Two shared materials and existing quality/LOD settings remain. These are fixture costs, not physical VRAM or an FPS result. [Scope and validation](../audits/2026-11-14-stadium-east-infill.md).

@@ -72,5 +72,6 @@ export function buildLandmarks(add, stops, pts, onTree) {
   return {
     eye: wheel,
     details,
+    backgroundPlots,
   };
 }

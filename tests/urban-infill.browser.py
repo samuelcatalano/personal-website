@@ -5,6 +5,22 @@ result=js(r'''(async()=>{
  const {createCityBuildings}=await import('./js/world/building-kit.js'),{classifyPlot}=await import('./js/world/city-rollout.js');
  const check=(ok,m)=>{if(!ok)throw Error(m)},pts=routePoints(stops.length),curve=routeCurve(T,pts),all=[],trees=[],boxes=[];
  buildCity((...b)=>boxes.push(b),stops,pts,curve,(x,z,shape)=>trees.push({x,z,...shape}),undefined,p=>all.push(p));
+ const {ARCHITECTURE_LAYOUT_OFFSETS}=await import('./js/world/layout-data.js');
+ const pocketSources={
+  'block-713--43-3':[773.6271433031652,-43.09061256479842,6,9,9],
+  'block-713--43-4':[779.6271433031652,-43.09061256479842,6,9,9],
+  'block-746--47':[794.1684200223535,-46.823959783945206,16,11,16],
+  'frontage-gap-glasgow-585--1-0':[625,-4.619970992765651,9,7,12],
+  'gap-47--98-0':[84,-97.52750330851623,6,8,9],
+  'wembley-side--34--64':[801,-64,10,10,24],
+  'wembley-side--48--68':[787,-68,10,10,30],
+ };
+ check(Object.keys(ARCHITECTURE_LAYOUT_OFFSETS).length===7,'exactly seven authorized pocket corrections');
+ for(const [id,[x,z,w,d,h]] of Object.entries(pocketSources)){
+  const p=all.find(p=>p.id===id),o=ARCHITECTURE_LAYOUT_OFFSETS[id];
+  check(p&&o&&Math.abs(p.x-x-o.dx)<1e-9&&Math.abs(p.z-z-o.dz)<1e-9,'actual curved-route pocket pose '+id);
+  check(p.width===w&&p.depth===d&&p.height===h,'preserved pocket dimensions '+id);
+ }
  const bounds=p=>[p.x-p.width/2,p.x+p.width/2,p.z-p.depth/2,p.z+p.depth/2];
  const hit=(a,b,e=0)=>a[0]<b[1]+e&&b[0]-e<a[1]&&a[2]<b[3]+e&&b[2]-e<a[3];
  const added=all.filter(p=>p.id.startsWith('urban-infill-glasgow-front-house-')||p.id==='urban-infill-glasgow-square-house-0'||p.id.startsWith('urban-infill-glasgow-east-flat-')||p.id.startsWith('urban-infill-glasgow-lower-')||p.id.startsWith('urban-infill-glasgow-outline-')||p.id.startsWith('urban-infill-district-')||p.id.startsWith('urban-infill-gaps-')||p.id.startsWith('urban-infill-stadium-east-'));
