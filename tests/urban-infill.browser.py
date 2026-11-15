@@ -1,12 +1,23 @@
 # Actual curved route, source envelopes and bounded construction for the new lots.
 result=js(r'''(async()=>{
  const T=await import('three'),{buildCity}=await import('./js/world/city.js'),{stops}=await import('./js/content.js');
- const {routePoints,routeCurve,underpassFrames,riverStart,riverEnd}=await import('./js/world/layout.js');
+ const {routePoints,routeCurve,underpassFrames,UNDERPASS,riverStart,riverEnd}=await import('./js/world/layout.js');
  const {createCityBuildings}=await import('./js/world/building-kit.js'),{classifyPlot}=await import('./js/world/city-rollout.js');
- const check=(ok,m)=>{if(!ok)throw Error(m)},pts=routePoints(stops.length),curve=routeCurve(T,pts),all=[];
- buildCity(()=>{},stops,pts,curve,()=>{},undefined,p=>all.push(p));
+ const check=(ok,m)=>{if(!ok)throw Error(m)},pts=routePoints(stops.length),curve=routeCurve(T,pts),all=[],trees=[],boxes=[];
+ buildCity((...b)=>boxes.push(b),stops,pts,curve,(x,z,shape)=>trees.push({x,z,...shape}),undefined,p=>all.push(p));
+ const bounds=p=>[p.x-p.width/2,p.x+p.width/2,p.z-p.depth/2,p.z+p.depth/2];
+ const hit=(a,b,e=0)=>a[0]<b[1]+e&&b[0]-e<a[1]&&a[2]<b[3]+e&&b[2]-e<a[3];
+ const added=all.filter(p=>p.id.startsWith('urban-infill-glasgow-front-house-')||p.id==='urban-infill-glasgow-square-house-0'||p.id.startsWith('urban-infill-glasgow-east-flat-')||p.id.startsWith('urban-infill-glasgow-lower-')||p.id.startsWith('urban-infill-glasgow-outline-')||p.id.startsWith('urban-infill-district-')||p.id.startsWith('urban-infill-gaps-')||p.id.startsWith('urban-infill-stadium-east-'));
+ check(added.length===692,'all authorized Glasgow, neighbourhood, gap and stadium-side additions');
+ const {walkPaths}=await import('./js/world/crowd.js');
+ for(const p of added){
+  for(const q of all)if(p!==q)check(!hit(bounds(p),bounds(q),1.5),'existing lot clearance '+p.id+' / '+q.id);
+  for(const t of trees)check(!hit(bounds(p),[t.x,t.x,t.z,t.z],(t.crown||3)/2+.5),'tree clearance '+p.id);
+  for(const b of boxes)if(b[1]+b[4]>.35)check(!hit(bounds(p),[b[0]-b[3]/2,b[0]+b[3]/2,b[2]-b[5]/2,b[2]+b[5]/2],.5),'prop clearance '+p.id);
+  for(const {rect:r} of walkPaths(stops,pts))if(r)check(!hit(bounds(p),[r.x0,r.x1,r.z0,r.z1],.5),'pedestrian clearance '+p.id);
+ }
  const plots=all.filter(p=>p.id.startsWith('urban-infill-'));
- check(plots.length===27&&plots.every(p=>classifyPlot(p)),'all surveyed lots use the existing modern families');
+ check(plots.length===719&&plots.every(p=>classifyPlot(p)),'all surveyed lots use the existing modern families');
  for(const p of plots){
   for(let i=0;i<=1200;i++){
    const q=curve.getPointAt(i/1200),dx=Math.max(Math.abs(q.x-p.x)-p.width/2,0),dz=Math.max(Math.abs(q.z-p.z)-p.depth/2,0);
@@ -15,13 +26,16 @@ result=js(r'''(async()=>{
   check(!(p.x>riverStart(stops,pts)-6&&p.x<riverEnd(stops,pts)+6&&p.z+p.depth/2>-64&&p.z-p.depth/2<-26),'river corridor '+p.id);
   for(const u of underpassFrames(curve,stops)){
    const a=(p.x-u.x)*u.tx+(p.z-u.z)*u.tz,c=-(p.x-u.x)*u.tz+(p.z-u.z)*u.tx;
-   check(!(Math.abs(a)<18+p.width/2&&Math.abs(c)<80+p.depth/2),'bridge circulation '+p.id);
+   // The owner-marked bridge pockets reopen only their oversized reserve, retaining 2 m to the actual embankment.
+   const bridgeSide=p.id.startsWith('urban-infill-glasgow-outline-bridge-side-')||p.id.startsWith('urban-infill-gaps-core-');
+   const halfA=(Math.abs(u.tx)*p.width+Math.abs(u.tz)*p.depth)/2,halfC=(Math.abs(u.tz)*p.width+Math.abs(u.tx)*p.depth)/2;
+   check(bridgeSide?!(Math.abs(a)<UNDERPASS.base+2+halfA&&Math.abs(c)<UNDERPASS.end+3+halfC):!(Math.abs(a)<18+p.width/2&&Math.abs(c)<80+p.depth/2),'bridge circulation '+p.id);
   }
  }
  const cities=[true,false].map(rollout=>createCityBuildings(plots,{rollout,kits:false})),city=cities[0].getObjectByName('citywide-architecture');
  let vertices=0,nearTriangles=0,initialBytes=0,materials=new Set();
  try{
-  check(city.userData.plotIds.length===27&&city.children.every(c=>c.children.length===3),'shared chunk buckets');
+  check(city.userData.plotIds.length===719&&city.children.every(c=>c.children.length===3),'shared chunk buckets');
   for(const c of city.children)for(const g of new Set(c.userData.lods.flat()))initialBytes+=Object.values(g.attributes).reduce((n,a)=>n+a.array.byteLength,0);
   for(const cell of city.children){
    const camera={position:cell.userData.bounds.getCenter(new T.Vector3())};city.userData.update(camera);

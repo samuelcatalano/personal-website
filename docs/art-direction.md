@@ -1,5 +1,17 @@
 # 3D city art direction
 
+## Eastern stadium pocket — 2026-11-14
+
+The owner selected the remaining empty pocket east of Wembley. 93 two/three-floor additions complete this bounded area using existing regional families, preserving the stadium, arch, gardens, pedestrian circulation and production camera. [Scope, setback and checks](audits/2026-11-14-stadium-east-infill.md).
+
+## Owner-cropped remaining edges — 2026-11-14
+
+The owner selected two further outer-edge strips and the post-approach spaces at both Glasgow bridges. 147 low-rise additions reuse the approved regional language and complete those selected gaps. Keep bridge geometry, traffic extent, public paths and planting; only the named inner-pocket lots reopen the oversized old reserve, with the real embankment setback retained. [Scope and visual checks](audits/2026-11-14-cropped-gaps-completion.md).
+
+## Four-region density completion — 2026-11-14
+
+The owner approved extending existing blocks into the aerial-survey gaps across São Paulo, London/transition, Glasgow flanks and the final/return region. Reuse the approved regional architectural language; ordinary additions remain two/three floors, with selected four/five-floor volumes only in the two far foreground rows. Retain public spaces, routes, planting, landmark fronts and the production camera. [Bounded scope and validation](audits/2026-11-14-neighbourhood-completion.md).
+
 ## Botanical vegetation — 2026-11-14
 
 Owner authorized quality-first vegetation realism. Original Blender oak/plane/birch/conifer/ipê families replace the generic simplified tree; connected branches, finer curved textured foliage, rooted bark and coherent fuller crowns retain original placements/envelopes. Grass/low planting use botanical geometry and rough nonmetal materials; turf has original fine detail and natural variation. Both active tree levels remain physical3D at all distances; the diagnostic atlas is offline only. [Comparisons, references, costs and limits](audits/2026-11-14-botanical-vegetation.md).

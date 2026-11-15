@@ -40,9 +40,11 @@ test('citywide architecture migration is deterministic, batched by plot, and kee
     [x('bigben') - 10, x('bigben') + 43, -76, -48], [x('wembley') - 30, x('wembley') + 30, -49, -33],
     [x('glasgow') - 20, x('glasgow') + 20, -43, -17],
     [museum.x - museum.w / 2 - 4.5, museum.x + museum.w / 2 + 4.5, museum.z - 100, museum.z - 8],
-    [uni.x - uni.w / 2 - 16, uni.x + uni.w / 2 + 16, uni.z - 19, uni.z + 19],
   ];
   for (const p of plots) {
+    // Owner-marked infill reopens two east-flank pockets, outside the landmark's 6 m setback.
+    const margin = p.id.startsWith('urban-infill-glasgow-east-flat-') ? 6 : 16;
+    assert.ok(!overlaps(p, [uni.x - uni.w / 2 - margin, uni.x + uni.w / 2 + margin, uni.z - 19, uni.z + 19]), `plot ${p.id} crowds the university`);
     assert.ok(protectedRects.every(r => !overlaps(p, r)), `plot ${p.id} overlaps a protected landmark view`);
     for (let i = 0; i <= 120; i++) {
       const q = curve.getPointAt(i / 120), dx = Math.max(Math.abs(q.x - p.x) - p.width / 2, 0), dz = Math.max(Math.abs(q.z - p.z) - p.depth / 2, 0);

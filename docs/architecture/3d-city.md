@@ -1,5 +1,21 @@
 # 3D city architecture
 
+## Owner-selected eastern stadium pocket — 2026-11-14
+
+93 appended low-rise plots complete the newly selected area beside Wembley, preserving its footprint/setback, gardens, paths and previous descriptors. Existing regional recipes, materials, batching, quality settings and production camera remain. [Scope, stadium clearance and checks](../audits/2026-11-14-stadium-east-infill.md).
+
+## Owner-cropped remaining edges and bridge pockets — 2026-11-14
+
+147 appended low-rise plots fill the newly owner-selected west/east edges and the two post-bridge pockets. Only the fourteen named inner-pocket lots reopen the old oversized bridge reserve; the actual oriented embankment plus 2 m side/3 m end clearance remains. Previous descriptors, planting, routes, landmarks and the production camera remain. [Exact scope, preservation checks and costs](../audits/2026-11-14-cropped-gaps-completion.md).
+
+## Four-region neighbourhood completion — 2026-11-14
+
+Owner approved the aerial-survey gaps across São Paulo, London, Glasgow flanks and the final/return region. 379 appended real-coordinate lots reuse the existing regional recipes and batching. Existing plots, planting, routes, public spaces, landmarks and camera remain; 41 larger volumes are restricted to the two far foreground rows. [Scope, preservation checks, measured geometry cost and validation](../audits/2026-11-14-neighbourhood-completion.md).
+
+## Owner-marked Glasgow infill — 2026-11-14
+
+Seven appended lots occupy the three screenshot-approved pockets: five two-floor terraces and two three/four-floor residential midrises. Existing regional recipes, batching, materials, routes, planting and prior descriptors remain. Only the two university east-flank lots reopen that reserved buffer, retaining an 8 m footprint gap. The owner subsequently authorized twenty more camera-side plots: ten two-floor terraces and ten three-floor midrises in two rows behind the existing foreground neighbourhood. Prior descriptors, vegetation and the production camera stay fixed. A subsequent explicit west/lower outline authorizes 46 additional low-rise plots, completing those strips. Six narrow bridge-side houses reopen only the old oversized reserve and retain over 2 m from the actual embankment; other circulation guards remain. [Scope, tests and desktop day/night evidence](../audits/2026-11-14-glasgow-marked-infill.md).
+
 ## Botanical vegetation integration — 2026-11-14
 
 The original two-material botanical GLB supplies five region-selected families via the real treeRegion callback. Existing spatial chunks, masks, shadow proxies, deterministic placement envelopes and fallback/disposal remain. Two physical levels use130/150m hysteresis; there is no active impostor request. Shared plant geometry/material reaches voxel, understory, hero and swap-plaza consumers; hero plants have a dedicated disposable material/draw. Turf-only shader detail preserves roads/paving/base. [Contract, passing checks and limitations](../audits/2026-11-14-botanical-vegetation.md).

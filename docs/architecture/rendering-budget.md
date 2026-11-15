@@ -1,5 +1,17 @@
 # Rendering budget
 
+## Eastern stadium infill — 2026-11-14
+
+93 additional lots grow the isolated procedural infill fixture from 626 to 719 plots, 153 to 176 chunks, 3,769,786 to 4,279,102 accumulated near triangles and 106.83 to 120.37 MiB of initial far-attribute arrays. Two shared materials and existing quality/LOD settings remain. These are fixture costs, not physical VRAM or an FPS result. [Scope and validation](../audits/2026-11-14-stadium-east-infill.md).
+
+## Owner-cropped edge/gap completion — 2026-11-14
+
+147 further lots grow the isolated procedural infill fixture from 479 to 626 plots, 127 to 153 chunks, 2,973,400 to 3,769,786 accumulated near triangles and 85.51 to 106.83 MiB of initial far-attribute arrays. Two shared materials remain; no visual-quality setting or LOD threshold changes. These are fixture resource counts, not a timing or physical-VRAM result. [Scope and checks](../audits/2026-11-14-cropped-gaps-completion.md).
+
+## Four-region density expansion — 2026-11-14
+
+379 owner-authorized plots are appended without reducing visual settings or changing LOD thresholds. The isolated procedural infill fixture grows from 100 to 479 lots, 38 to 127 chunks, 593,322 to 2,973,400 accumulated near triangles and 17.41 to 85.51 MiB of initial far-attribute arrays; two shared materials remain. These are fixture geometry/CPU-array costs, not full-frame draws, physical VRAM or a timing benchmark; authored kits differ. [Scope and validation](../audits/2026-11-14-neighbourhood-completion.md).
+
 ## Botanical vegetation quality cost — 2026-11-14
 
 Quality-first owner authorization replaces the905,592-byte single4,200/1,100-triangle tree with a19,683,804-byte original five-family GLB (311,328/176,654 total unique prototype triangles). Physical LOD1 remains at far range; the1,238,105-byte silhouette atlas is not fetched. Existing planting fixture retains10,157 grass clumps, now2,925,216 triangles; hero planting/realm has203,076 triangles/five draws/four existing maps. A shared512px turf map is added. No FPS/physical-VRAM/performance-GO claim; optimization is the next phase. [Exact costs, validation and limits](../audits/2026-11-14-botanical-vegetation.md).
