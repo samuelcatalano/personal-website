@@ -145,7 +145,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {}, onFocusStop = () =>
   const say = (key, ms = 2500) => { notes.say = key; led(); clearTimeout(sayTimer); sayTimer = setTimeout(() => { notes.say = null; led(); }, ms); };
   const baseText = () => {
     const t = i18n[prefs.lang], st = stops[Math.max(active, 0)];
-    return st.section === 'journey' ? `${yearText(st, t.ui)} ${t.stops[st.id].place}` : st.section === 'hero' ? `${routeNo()} · ${t.sections.hero.role}` : t.ui.nav[st.section]; // the hero's blind reads like the bus's own: "83 · Senior Software Engineer"
+    return st.section === 'journey' ? `${yearText(st, t.ui)} ${t.stops[st.id].place}` : st.section === 'hero' ? t.sections.hero.role : t.ui.nav[st.section]; // the route badge already shows 83, so the hero's text is only the role
   };
   // With the tab in the background the title becomes the blind: "83 · Waiting at Tribal Worldwide London".
   const pageTitle = document.title;
