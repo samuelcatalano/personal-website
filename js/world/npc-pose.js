@@ -36,12 +36,13 @@ export function createNpcPose(root, idleClip) {
     state,feet,restore,
     suspend(){restore();target=null;state.lookYaw=0;state.attention=false;feet?.reset();},
     reset(identity){restore();id=identity;clock=(id*.731)%17;target=null;state.lookYaw=0;state.attention=false;state.profile=motionProfile(id).name;feet?.reset();},
-    update({dt,ground,speed,yaw,gaitWeight=0,turnRate=0,contact=false,bus,people=[],landmarks=[],greeting=false}){
+    update({dt,ground,speed,yaw,gaitWeight=0,walkPhase=0,turnRate=0,contact=false,bus,people=[],landmarks=[],greeting=false}){
       if(dt<=0)return;
       for(const s of saved){s.q.copy(s.bone.quaternion);s.p.copy(s.bone.position);}applied=true;
       clock+=dt;const profile=motionProfile(id),idle=1-gaitWeight,phase=id*2.399,cycle=10+(id%7),attending=clock%cycle<2.5;
       right.set(Math.cos(yaw),0,-Math.sin(yaw));forward.set(Math.sin(yaw),0,Math.cos(yaw));
       if(!greeting)for(const arm of arms)if(rest.has(arm)){animated.copy(arm.quaternion);arm.quaternion.slerpQuaternions(rest.get(arm),animated,1+(profile.armSwing-1)*gaitWeight);}
+      if(!greeting)for(let i=0;i<arms.length;i++)rotate(arms[i],right,Math.cos(walkPhase)*.20*profile.armSwing*gaitWeight*(i?-1:1));
       rotate(chest,right,profile.lean*gaitWeight);
       if(idle>.01){
         const restPhase=(clock+phase)%(14+id%5),shift=restPhase<5?Math.sin(Math.PI*restPhase/5)**2*(id%2?1:-1):0;

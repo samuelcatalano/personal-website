@@ -24,10 +24,18 @@ const GEOMS = {
 };
 const tilt = (g, color, ang, x, y, z) => part(g.rotateX(ang), color, x, y, z);
 GEOMS.pillar = () => [mergeGeometries([cyl(0.29, 0.27, 1.3, 0, '#b01c24', 12), cyl(0.31, 0.31, 0.07, 1.3, '#8c1219', 12), cyl(0.3, 0.1, 0.14, 1.37, '#b01c24', 12), box(0.3, 0.05, 0.02, 0, 1.0, 0.28, '#17191b'), box(0.2, 0.12, 0.012, 0, 0.62, 0.275, '#efe7d2')])];
-GEOMS.shelter = () => { // posts, roof with overhang, bench seat, back rail; the lit advert panel is the glowing part
-  const g = []; for (const x of [-1.35, 1.35]) for (const z of [-0.5, 0.5]) g.push(box(0.06, 2.35, 0.06, x, 0, z, '#2d3136'));
-  g.push(box(2.9, 0.09, 1.25, 0, 2.35, 0, '#3a4047'), box(2.7, 0.05, 0.4, 0, 0.5, 0.28, '#6b4f3a'), box(2.7, 0.04, 0.04, 0, 1.05, 0.5, '#2d3136'), box(0.04, 1.5, 0.04, -0.45, 0.5, 0.5, '#2d3136'), box(0.04, 1.5, 0.04, 0.45, 0.5, 0.5, '#2d3136'));
-  return [mergeGeometries(g), box(0.8, 1.15, 0.04, 1.0, 0.85, 0.52, '#ffe2a8')];
+GEOMS.shelter = () => { // posts, roof with overhang, bench seat, back rail; advert and glazing use separate shared materials
+  const g = [], panes = []; for (const x of [-1.35, 1.35]) for (const z of [-0.5, 0.5]) g.push(box(0.06, 2.35, 0.06, x, 0, z, '#2d3136'));
+  g.push(
+    box(2.9, 0.09, 1.25, 0, 2.35, 0, '#3a4047'),
+    box(2.7, 0.05, 0.4, 0, 0.5, 0.28, '#6b4f3a'),
+    box(2.7, 0.04, 0.04, 0, 1.05, 0.5, '#2d3136'),
+    box(0.04, 1.5, 0.04, -0.45, 0.5, 0.5, '#2d3136'),
+    box(0.04, 1.5, 0.04, 0.45, 0.5, 0.5, '#2d3136')
+  );
+  // The road-facing side at local -z stays open.
+  panes.push(box(1.75, 1.15, 0.025, -0.4, 1.12, 0.46, '#829296'), box(0.025, 1.15, 0.82, -1.32, 1.12, 0, '#829296'), box(0.025, 1.15, 0.82, 1.32, 1.12, 0, '#829296'));
+  return [mergeGeometries(g), box(0.8, 1.15, 0.04, 1.0, 0.85, 0.52, '#ffe2a8'), mergeGeometries(panes)];
 };
 GEOMS.cafe = () => { // round table with two chairs facing it
   const g = [cyl(0.4, 0.4, 0.04, 0.72, '#d8cdb6', 14), cyl(0.04, 0.04, 0.72, 0, '#26292c', 6), cyl(0.2, 0.2, 0.025, 0, '#26292c', 10)];
@@ -51,13 +59,15 @@ export function buildProps(items) {
   const glass = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.25, emissive: '#000000' });
   glass.userData.glow = true; glass.userData.glowK = 2.2; glass.userData.glowColor = new THREE.Color('#ffa21f'); // sky.js: emissive = glowColor * night * glowK
   const advert = glass.clone(); advert.userData = { glow: true, glowK: .85, glowColor: new THREE.Color('#ffe7c4') };
+  const shelterGlass = new THREE.MeshStandardMaterial({ vertexColors: true, transparent: true, opacity: 0.24, roughness: 0.2, metalness: 0.08, depthWrite: false, side: THREE.DoubleSide });
   for (const kind of Object.keys(FOOT)) {
     const list = items.filter((i) => i.kind === kind);
     if (!list.length) continue;
     counts[kind] = list.length;
     GEOMS[kind]().forEach((g, j) => {
       geoms.push(g);
-      const m = new THREE.InstancedMesh(g, j ? (kind === 'shelter' ? advert : glass) : metal, list.length); m.name = `prop-${kind}${j ? '-glass' : ''}`;
+      const material = !j ? metal : kind !== 'shelter' ? glass : j === 1 ? advert : shelterGlass;
+      const m = new THREE.InstancedMesh(g, material, list.length); m.name = `prop-${kind}${j ? j === 2 ? '-glazing' : '-glass' : ''}`;
       list.forEach(({ x, y, z, yaw }, i) => { o.position.set(x, y, z); o.rotation.y = yaw; o.updateMatrix(); m.setMatrixAt(i, o.matrix); });
       m.receiveShadow = true; m.computeBoundingSphere(); group.add(m); // no cast: tiny props, keeps the shadow pass untouched
     });
@@ -76,6 +86,6 @@ export function buildProps(items) {
   items.forEach(({ x, y, z, r }, i) => { o.position.set(x, y + 0.012, z); o.rotation.set(0, 0, 0); o.scale.setScalar(Math.min(0.7, Math.max(0.15, r * 0.65))); o.updateMatrix(); contacts.setMatrixAt(i, o.matrix); });
   contacts.computeBoundingSphere(); group.add(contacts);
   group.userData.counts = counts;
-  group.userData.dispose = () => { geoms.forEach((g) => g.dispose()); contacts.dispose(); contactGeometry.dispose(); contactMaterial.dispose(); metal.dispose(); glass.dispose(); advert.dispose(); };
+  group.userData.dispose = () => { geoms.forEach((g) => g.dispose()); contacts.dispose(); contactGeometry.dispose(); contactMaterial.dispose(); metal.dispose(); glass.dispose(); advert.dispose(); shelterGlass.dispose(); };
   return group;
 }

@@ -490,14 +490,14 @@ export async function createNpc3d(scene, { people, pts, stops, lookTargets = [],
             w.idleAction.setEffectiveWeight(1 - w.gaitWeight);
           } else w.idleAction?.stop();
         }
-        const near = Math.hypot(w.x - cp.x, w.z - cp.z) < FINE_DETAIL;
+        const near = (NEAR && w === walkers[SHOT % walkers.length]) || Math.hypot(w.x - cp.x, w.z - cp.z) < FINE_DETAIL;
         if (near !== w.near) { w.near = near; for (const o of w.fine) o.visible = near; }
         if (animationDue(w,dt,poseSlots.has(w)||Math.hypot(w.x-cp.x,w.z-cp.z)<FAR_ANIM,w.fresh,n)) { w.mixer.update(w.acc); w.acc = 0; }
         w.inst.position.set(w.x, w.y, w.z);
         w.inst.rotation.y = w.yaw;
         if(poseSlots.has(w)&&!REDUCED){
           if(!w.pose){w.idleAction??=w.mixer.clipAction(createIdleClip(w.inst));w.pose=createNpcPose(w.inst,w.idleAction.getClip());w.pose?.reset(i);}
-          w.pose?.update({dt,ground:w.y,speed:w.speed,yaw:w.yaw,gaitWeight:idle?0:w.gaitWeight,turnRate:dt>0?turn/dt:0,contact:contactSlots.has(w),bus:f.bus,people:walkers,landmarks,greeting:greeting===w});
+          w.pose?.update({dt,ground:w.y,speed:w.speed,yaw:w.yaw,gaitWeight:idle?0:w.gaitWeight,walkPhase:w.action.time/w.action.getClip().duration*Math.PI*2,turnRate:dt>0?turn/dt:0,contact:contactSlots.has(w),bus:f.bus,people:walkers,landmarks,greeting:greeting===w});
         }else w.pose?.suspend();
         w.fresh = false;
         dummy.position.set(w.x, w.y + 0.01, w.z); dummy.scale.setScalar(w.height / 1.8); dummy.updateMatrix();
