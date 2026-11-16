@@ -24,9 +24,9 @@ try:
   };
   check(innerWidth >= 1100, 'This check is desktop-only');
   document.querySelector('[data-nav-home]').click();
-  document.querySelector('[data-lang]').click();
+  document.querySelector('.controls [data-lang]').click(); await new Promise(r => setTimeout(r, 450)); // the copy crossfades through a view transition
   check(/\d{2}:\d{2}/.test(document.querySelector('[data-london]')?.textContent), 'London clock is empty after panel rebuild');
-  document.querySelector('[data-lang]').click();
+  document.querySelector('.controls [data-lang]').click(); await new Promise(r => setTimeout(r, 450)); // the copy crossfades through a view transition
   const heroLinks = panel.querySelector('.hero-links');
   check(heroLinks.compareDocumentPosition(panel.querySelector('.tagline')) & Node.DOCUMENT_POSITION_FOLLOWING, 'Hero humour competes with contact actions');
   await open('repos');
@@ -34,7 +34,7 @@ try:
   const repo = panel.querySelector('a.repo');
   repo.focus();
   const href = repo.getAttribute('href');
-  document.querySelector('[data-lang]').click();
+  document.querySelector('.controls [data-lang]').click(); await new Promise(r => setTimeout(r, 450)); // the copy crossfades through a view transition
   check(document.documentElement.lang === 'pt-BR', 'Language did not change');
   check(document.activeElement?.getAttribute('href') === href, 'Repository link lost focus on panel rebuild');
   check(panel.querySelector('a.repo small')?.textContent.includes('Exemplo'), 'Portuguese description is missing');
@@ -49,21 +49,21 @@ try:
   check(ticket.textContent.includes('xDesign') && ticket.textContent.includes('FanDuel'), 'Selected ticket has wrong company or contribution');
   check(panel.querySelector('.recent-role').textContent.includes('Tribal'), 'Compact current role is missing');
   check(!panel.querySelector('.recent-body'), 'Current role still repeats its full description');
-  check(panel.scrollTop < 8, 'Selected ticket is scrolled out of view');
+  check(ticket.getBoundingClientRect().bottom > panel.getBoundingClientRect().top + 40, 'Selected ticket is scrolled out of view'); // the panel is the only scroller (B6): the focused row may scroll the ticket's head away, never all of it
   check(document.activeElement?.dataset.goto === '9', 'Selected stop lost keyboard focus');
   const selectionBox = document.activeElement.getBoundingClientRect(), panelBox = panel.getBoundingClientRect();
   check(selectionBox.top >= panelBox.top && selectionBox.bottom <= panelBox.bottom, 'Keyboard focus is clipped below the selected ticket');
-  document.querySelector('[data-lang]').click();
+  document.querySelector('.controls [data-lang]').click(); await new Promise(r => setTimeout(r, 450)); // the copy crossfades through a view transition
   check(panel.querySelector('.current-stop').textContent.includes('Senior Java Software Engineer'), 'Selected ticket did not translate');
   check(document.activeElement?.dataset.goto === '9', 'Selected stop lost focus on translation');
-  document.querySelector('[data-lang]').click();
+  document.querySelector('.controls [data-lang]').click(); await new Promise(r => setTimeout(r, 450)); // the copy crossfades through a view transition
   await open('contact');
   const email = panel.querySelector('a[href^="mailto:"]');
   email.focus();
-  document.querySelector('[data-lang]').click();
+  document.querySelector('.controls [data-lang]').click(); await new Promise(r => setTimeout(r, 450)); // the copy crossfades through a view transition
   check(document.activeElement?.getAttribute('href')?.startsWith('mailto:'), 'Contact link lost focus on panel rebuild');
   panel.querySelector('[data-credits]').focus();
-  document.querySelector('[data-lang]').click();
+  document.querySelector('.controls [data-lang]').click(); await new Promise(r => setTimeout(r, 450)); // the copy crossfades through a view transition
   check(document.activeElement?.matches('[data-credits]'), 'Credits control lost focus on panel rebuild');
   if (document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
     const start = document.startViewTransition;

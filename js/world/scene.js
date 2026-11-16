@@ -473,7 +473,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const stopPicker = createLandmarkPicker({ canvas, camera, details, bus, onPick, scene, water });
   const landmarkLight = createLandmarkLight(details); // panel focus lights its stop's landmark
   if (qa) globalThis.__qaLandmarkLight = landmarkLight; // QA probe: twin materials per stop
-  let night = 0, nightTarget = 0, mobile = false;
+  let night = 0, nightTarget = 0, mobile = false, themeApplied = false;
   const bar = document.querySelector('.bar'), panel = document.querySelector('#panel');
   let fitKey = '';
   // panel size changes per section: ease the view offset to its new value instead of snapping the camera
@@ -700,6 +700,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     jump(p) { target = p; scroll = { value: p, velocity: 0 }; wake(); },
     setTheme(name) {
       nightTarget = name === 'night' ? 1 : 0;
+      if (!themeApplied) night = nightTarget; // the first call is the saved theme: start in it, no day-to-night fade on a night visitor's first frames
+      themeApplied = true;
       wake();
     },
     dispose() {

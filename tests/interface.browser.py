@@ -50,7 +50,7 @@ try:
   const wait = () => new Promise(resolve => setTimeout(resolve, 30));
   const { i18n, stops } = await import('./js/content.js');
   const checkLanguageLabel = lang => {
-    const button = document.querySelector('[data-lang]');
+    const button = document.querySelector('.controls [data-lang]');
     const description = i18n[lang].ui.lang;
     check(button.getAttribute('aria-label').includes(button.textContent) && button.getAttribute('aria-label').includes(description), `${lang} language button label must include its visible target and localized description`);
   };
@@ -68,7 +68,7 @@ try:
   const prevY = scrollY;
   checkLanguageLabel('en');
   checkThemeLabel('en');
-  document.querySelector('[data-lang]').focus(); document.querySelector('[data-lang]').click(); await wait();
+  document.querySelector('.controls [data-lang]').focus(); document.querySelector('.controls [data-lang]').click(); await wait();
   check(document.documentElement.lang === 'pt-BR', 'Portuguese language did not apply');
   checkLanguageLabel('pt');
   checkThemeLabel('pt');
@@ -78,7 +78,7 @@ try:
   checkThemeLabel('pt');
   check(document.activeElement.matches('[data-lang]'), 'Language control lost focus after rendering');
   check(scrollY === prevY, 'Language rendering changed page scroll');
-  document.querySelector('[data-lang]').click(); await wait();
+  document.querySelector('.controls [data-lang]').click(); await wait();
   checkLanguageLabel('en');
   document.querySelector('[data-nav-home]').click(); await wait();
   document.querySelector('[data-nav=journey]').click(); await wait();
@@ -99,13 +99,13 @@ try:
   document.querySelector('[data-nav-home]').click(); await wait();
   const en = i18n.en.sections.hero;
   check(panel.dataset.section === 'hero' && document.querySelector('h1').textContent === en.title && document.querySelector('.role').textContent === en.role && document.querySelector('.tagline').textContent === en.tagline && document.querySelector('.meta').textContent === en.meta, 'English hero copy does not match i18n');
-  document.querySelector('[data-lang]').click(); await wait();
+  document.querySelector('.controls [data-lang]').click(); await wait();
   const pt = i18n.pt.sections.hero;
   check(document.documentElement.lang === 'pt-BR' && document.querySelector('h1').textContent === pt.title && document.querySelector('.role').textContent === pt.role && document.querySelector('.tagline').textContent === pt.tagline && document.querySelector('.meta').textContent === pt.meta, 'Portuguese hero copy does not match i18n');
   document.querySelector('[data-nav=journey]').click(); await wait();
   const active = stops[Number(document.querySelector('.on button').dataset.goto)];
   check(document.querySelector('.detail').textContent.includes(i18n.pt.stops[active.id].role), 'Portuguese career role does not match i18n');
-  document.querySelector('[data-lang]').click(); await wait();
+  document.querySelector('.controls [data-lang]').click(); await wait();
   check(document.querySelector('.detail').textContent.includes(i18n.en.stops[active.id].role), 'English career role does not match i18n');
   return { pass: true, checked: ['hero title/role/tagline/meta EN/PT', 'career role EN/PT'] };
 })()"""))
@@ -139,7 +139,7 @@ screenshot('desktop-en-day-hero.png')
 js("document.querySelector('[data-nav=journey]').click()")
 time.sleep(2)
 screenshot('desktop-en-day-career.png')
-js("document.querySelector('[data-lang]').click()")
+js("document.querySelector('.controls [data-lang]').click()")
 time.sleep(.3)
 screenshot('desktop-pt-day-career.png')
 js("document.querySelector('[data-theme]').click()")
@@ -152,7 +152,7 @@ screenshot('mobile-pt-night-hero.png')
 js("document.querySelector('[data-nav=journey]').click()")
 time.sleep(2)
 screenshot('mobile-pt-night-career.png')
-js("document.querySelector('[data-theme]').click(); document.querySelector('[data-lang]').click()")
+js("document.querySelector('[data-theme]').click(); document.querySelector('.controls [data-lang]').click()")
 time.sleep(.3)
 screenshot('mobile-en-day-career.png')
 cdp('Emulation.setDeviceMetricsOverride', width=187, height=406, deviceScaleFactor=1, mobile=True)
