@@ -78,15 +78,27 @@ for side in (1, -1):                  # individual passenger windows, A330-like 
         top, bot, _ = profile(s_); zc, hz = (top + bot) / 2, (top - bot) / 2; c0, c1 = (R * 0.46 - zc) / hz, (R * 0.27 - zc) / hz   # fixed cabin-floor height: the line stays level as the tail sweeps up
         if c0 < 0.97 and all(abs(s_ - d) > 0.85 for d in DOORS): decal(s_ - 0.15, s_ + 0.15, side * math.acos(c0), side * math.acos(c1), 1, 1)   # one flat quad: straight edges; 1.2 cm chord sag < 6 cm lift
         s_ += PITCH
-def ws(phi): k = min(1.0, abs(phi) / 1.58); s0 = 2.0 + 1.2 * k ** 1.5; return s0, s0 + 1.0 - 0.3 * k   # forward on the nose slope: the glazing sits low, just above the nose tip line
-for p0, p1 in [(0.04, 0.7), (0.76, 1.17), (1.23, 1.58)]:   # continuous six-pane windscreen band; gaps = body-colour mullions
+# Windscreen: a band at a constant height wrapping the front of the nose (like the real aircraft), not an arc climbing over the crown. Each point is found by
+# height: at height z the nose surface starts at the station s_front(z) (centreline) and curves away aft; u runs along that ring from the centre to the cheek.
+Z_BAND = (0.85, 1.42)               # glazing bottom / top height above the axis (m): 0.37-0.57 R, the owner's reference photos put the band low on the nose face
+def s_front(z):                      # first station (from the nose tip) whose crown reaches height z
+    lo, hi = 0.02, 7.0
+    for _ in range(40):
+        mid = (lo + hi) / 2
+        if profile(mid)[0] < z: lo = mid
+        else: hi = mid
+    return hi
+def ring(z, u, span=2.1):            # point on the hull at height z, fraction u of the way along the ring (0 = centreline, 1 = cheek)
+    s = s_front(z) + 0.04 + u * span; top, bot, _ = profile(s); zc, hz = (top + bot) / 2, (top - bot) / 2
+    return s, math.acos(max(-1.0, min(1.0, (z - zc) / hz)))
+for u0, u1 in [(0.03, 0.34), (0.38, 0.66), (0.70, 1.0)]:   # three panes per side; gaps = body-colour mullions
     for side in (1, -1):
-        cols = [p0 + (p1 - p0) * j / 5 for j in range(6)]
-        vs = [[bm.verts.new(hull(ws(p)[0] + (ws(p)[1] - ws(p)[0]) * i / 3, side * (0.8 * p + 0.3))) for p in cols] for i in range(4)]
-        for i in range(3):
-            for j in range(5):
+        NU, NZ = 5, 3
+        def vert(i, j): s, phi = ring(Z_BAND[0] + (Z_BAND[1] - Z_BAND[0]) * i / NZ, u0 + (u1 - u0) * j / NU); return bm.verts.new(hull(s, side * phi))
+        vs = [[vert(i, j) for j in range(NU + 1)] for i in range(NZ + 1)]
+        for i in range(NZ):
+            for j in range(NU):
                 f = bm.faces.new((vs[i][j], vs[i + 1][j], vs[i + 1][j + 1], vs[i][j + 1]))
-                if f.normal.x < 0 and f.normal.z < 0.3 or (f.normal.y * side) > 0.2: pass
                 f.material_index = 2
 bm.normal_update()
 for f in bm.faces:                    # decals face outward like the hull

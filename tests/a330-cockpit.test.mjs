@@ -25,5 +25,6 @@ test('the authored A330 cockpit glazing sits lower on the nose', () => {
     }
   }
   assert.ok(heights.length, 'the A330 has forward cockpit glazing');
-  assert.ok(Math.max(...heights) < 1.95, `cockpit glazing top should sit below 1.95 m on the nose (got ${Math.max(...heights).toFixed(2)} m)`);
+  // lowered again 2026-11-16: the windscreen is a level band on the nose face (build_a330.py Z_BAND 0.85-1.42), not an arc over the crown; it was 1.91 m at the top
+  assert.ok(Math.max(...heights) < 1.6, `cockpit glazing top should sit below 1.6 m on the nose (got ${Math.max(...heights).toFixed(2)} m)`);
 });
