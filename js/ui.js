@@ -441,6 +441,18 @@ export function initUI({ onGoto, onTheme, onHold = () => {}, onFocusStop = () =>
       whenDone().then(() => { greeting = false; });
     },
     holdTight() { if (voiceOn) talk(i18n[prefs.lang].ui.speakStart); }, // the conductor's line as the ride sets off
+    // "Ready to depart." as the city has loaded. Browsers keep speech silent until the page has had a click, tap or key: a visitor who has not touched it yet hears it on their first
+    // press while the intro is still up (not on Start, which has the conductor's own line, and not on Esc).
+    readyToDepart() {
+      if (!voiceOn) return;
+      const say = () => talk(i18n[prefs.lang].ui.intro.loaded);
+      if (navigator.userActivation?.hasBeenActive !== false) return say();
+      const fire = (e) => {
+        for (const type of ['pointerdown', 'keydown']) document.removeEventListener(type, fire, true);
+        if (voiceOn && document.body.classList.contains('intro-on') && !e.target.closest?.('[data-intro-skip]') && e.key !== 'Escape') say();
+      };
+      for (const type of ['pointerdown', 'keydown']) document.addEventListener(type, fire, true);
+    },
     note(key, on) { if (notes[key] !== on) { notes[key] = on; led(); if (key === 'rain' && on) rainLine(); } },
     atRest,
   };

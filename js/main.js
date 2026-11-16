@@ -166,7 +166,7 @@ if (hasWebGL()) {
     .then((w) => { world = w; w.setProgress(progress); w.setTheme(ui.theme); document.body.classList.add('world-ready'); intro.worldLoaded();
       whenSettled().then(async () => { document.body.classList.add('world-settled');
         await stills(w).catch(() => {}); // the still tour moves the camera and streams more of the city: Board opens only after it has finished and the load has settled again, so nothing changes after the release
-        await whenSettled(); intro.ready(); }); })
+        await whenSettled(); intro.ready(); ui.readyToDepart(); }); })
     .catch((err) => { console.warn('3D world unavailable:', err); intro.dismiss(); document.body.classList.add('no-webgl'); });
 } else {
   document.body.classList.add('no-webgl');

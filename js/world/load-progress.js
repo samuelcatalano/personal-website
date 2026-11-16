@@ -3,7 +3,7 @@
 // ponytail: EXPECTED is a rough count of a full load (about 36 GLB today); once the real total passes it the ratio is exact.
 const EXPECTED = 30;
 let total = 0, done = 0;
-const pending = [], listeners = new Set();
+const pending = [], listeners = new Set(), works = new Set(); // works: promises that are not GLB requests (trackWork)
 const emit = () => listeners.forEach((f) => f());
 export const labelOf = (url) => /\/(vehicles|landmarks|npc|buildings|vegetation)\//.exec(url)?.[1] ?? 'city';
 export function trackLoad(url, promise) {
@@ -13,11 +13,10 @@ export function trackLoad(url, promise) {
   promise.then(end, end);
   return promise;
 }
-export const loadState = () => ({ ratio: Math.min(1, done / Math.max(total, EXPECTED)), stage: pending.at(-1)?.label ?? null, done, total });
+export const loadState = () => ({ ratio: Math.min(1, done / Math.max(total, EXPECTED)), stage: pending.at(-1)?.label ?? (works.size ? 'facades' : null), done, total }); // outside the GLB requests, the chunked facade upgrade is the stage that is left
 export const onLoadChange = (f) => { listeners.add(f); return () => listeners.delete(f); };
 
 // Work that is not a GLB request but still has to finish before the city looks complete (the chunked facade-kit upgrade).
-const works = new Set();
 export function trackWork(promise) {
   works.add(promise); emit();
   const end = () => { works.delete(promise); emit(); };

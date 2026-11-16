@@ -16,7 +16,7 @@ const KEY_DY = { ArrowRight: 35, ArrowLeft: -35, PageDown: 240, PageUp: -240, ' 
 const LEDS = 48;
 export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {}) {
   let soundsPlayed = false; // the bell and the door hiss belong to the first Skip only, never again
-  let p = 0, auto = 0, autoTarget = 0, raf = 0, previewUrls = [], loaded = false, active = false, interacted = false, ready = false, previewed = false, boarding = false, returning = false, bellTimer, unsubscribe;
+  let p = 0, auto = 0, autoTarget = 0, raf = 0, previewUrls = [], loaded = false, active = false, interacted = false, ready = false, previewed = false, boarding = false, returning = false, blindStep = 0, bellTimer, blindTimer, unsubscribe;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const map = root.querySelector('.intro-map'), cur = root.querySelector('.dest .cur');
   const nodesEl = root.querySelector('.nodes'), ledsEl = root.querySelector('.leds');
@@ -47,7 +47,7 @@ export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {
     let label = tt.ui.cities[city];
     if (bellTimer) label = tt.ui.led.stop;
     else if (interacted) label = careerLabel(JOURNEY[journeyIndex(p)], tt);
-    else if (!ready && !previewed) label = returning ? tt.ui.led.welcomeBack : tt.ui.led.notInService; // the city is still loading: the vehicle is not in service yet (a returning passenger is welcomed instead)
+    else if (!ready && !previewed) label = [returning ? tt.ui.led.welcomeBack : tt.ui.led.notInService, tt.ui.led.gap, tt.ui.led.warm][blindStep % 3]; // the city is still loading: the vehicle is not in service yet (a returning passenger is welcomed instead), and the blind cycles a few of the bus's own messages while it waits
     else if (boarding) label = tt.ui.led.allAboard;
     const text = label.toUpperCase();
     if (cur.textContent !== text) {
@@ -97,7 +97,7 @@ export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {
   const dismiss = ({ reveal = false } = {}) => {
     if (!active) return;
     active = false;
-    clearTimeout(bellTimer);
+    clearTimeout(bellTimer); clearInterval(blindTimer);
     for (const u of previewUrls) setTimeout(() => URL.revokeObjectURL(u), 1500);
     unsubscribe();
     document.removeEventListener('keydown', onKey); document.removeEventListener('langchange', onLang);
@@ -178,6 +178,7 @@ export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {
       root.dataset.tod = hour >= 6 && hour < 17 ? 'day' : hour >= 17 && hour < 20 ? 'dusk' : 'night'; // the windshield follows the visitor's own clock
       returning = !!navigator.serviceWorker?.controller; // a service worker already in control means the 3D assets are cached: this passenger has been here before, and nothing new is stored
       paintStatic();
+      if (!reduced) blindTimer = setInterval(() => { if (active && !ready && !previewed && !interacted && !bellTimer) { blindStep++; paintBlind(); } }, 2600); // reduced motion keeps the first message still
       document.addEventListener('keydown', onKey); document.addEventListener('langchange', onLang);
       unsubscribe = onLoadChange(() => { if (active) { paintProgress(); paintBlind(); } });
       paintProgress();

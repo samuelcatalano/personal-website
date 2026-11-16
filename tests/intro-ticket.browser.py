@@ -32,7 +32,7 @@ try:
        const progress=root.querySelector('.status'),button=root.querySelector('[data-intro-skip]');
        check(progress.getBoundingClientRect().width>100&&!progress.classList.contains('sr-only'),'Loading progress must be visible on the paper ticket');
        check(button.disabled&&root.dataset.ready==='false','CTA opens before the city is ready');
-       check([ui.led.notInService,ui.led.welcomeBack].map(x=>x.toUpperCase()).includes(root.querySelector('.dest .cur').textContent),'Destination blind must read not-in-service (or welcome-back for a returning visitor) while the city loads');
+       check([ui.led.notInService,ui.led.welcomeBack,ui.led.gap,ui.led.warm].map(x=>x.toUpperCase()).includes(root.querySelector('.dest .cur').textContent),'Destination blind must read one of the loading messages (not-in-service, welcome-back for a returning visitor) while the city loads');
        check(root.querySelector('.intro-ticket').textContent.includes('Samuel Catalano'),'Ticket owner missing');
        check(root.querySelector('.intro-stub').textContent.includes(ui.intro.passenger),'Passenger stub missing');
        check(root.querySelector('.intro-windshield').getBoundingClientRect().height>=176,'City preview remains too small');
