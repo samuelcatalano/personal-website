@@ -197,3 +197,10 @@ CLS mobile: o `#panel` pula 106 px (topo 295 → 401, depois volta 401 → 295) 
 
 A1 (isolamento): `tools/capture.py` ganhou `PRE_JS` (JS antes da captura). Com `?qa` e `__qaScene.getObjectByName('distant-skyline').visible=false`, as nuvens do 9.5 ficam suaves: os "degraus" no horizonte vêm do `skyline.js` (3 fileiras com haze fixo), não do shader de `sky.js`. Após o A2 da rodada 1 o horizonte está em tom claro e baixo contraste; **shader de nuvem não alterado** (YAGNI). Se o dono ainda quiser menos blocos, o ajuste é aumentar `uHaze`/aproximar `DAY[r]` do horizonte em `skyline.js:4,17`.
 Pendente (sem mobile): C1 (Chrome real), A18 (clipe da rota), D2 desktop.
+
+## 15. Execução — rodada 8 (2026-11-16, só desktop)
+
+C1: em Chrome real (browser-harness, localhost) o service worker registra: 1 registro `activated`, `controller` ativo. O erro do painel embutido é do ambiente. Nenhuma correção.
+A18 (numérico, sem vídeo): 240 passos de rolagem do hero ao fim, posição da câmera por passo. Salto mediano 4,5 u; maior 13,2 u (passo 78, troca de parada); sem teletransporte (nenhum salto acima de 3× a mediana). Pops de materiais/geometria não avaliados (precisam de vídeo).
+D2 desktop: carga normal EN/dia sem erros nem avisos de console; WebGL desligado + reduced motion + PT + noite: painel visível, `no-webgl`, sem erros. 
+Suítes de navegador (`tests/*.browser.py`) rodadas: `intro-scroll-cue` e `rain` passam. **Falham, e já falhavam antes desta frente:** `panel-focus` ("Language did not change"), `interface` ("Language control lost focus"), `intro-ticket` ("Destination blind is not a stable city label") e `load-fade` (luma de rampa 4–22 contra tolerância 2) já falham em `318796a`. **Regressão nova:** `desktop-polish` ("Reading surface is still too narrow", `panel.clientWidth >= 390`) passa em `7ef5469` e falha em `7417499` (hero fact sheet, fora desta frente); não corrigido.
