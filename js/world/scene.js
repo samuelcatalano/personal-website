@@ -4,7 +4,7 @@ import { streetEnvironment, setStreetRegions, shopFrontages } from './streetscap
 import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
 import { routeT, nearestStop, stopMarks, fineMarks } from '../scroll.js';
-import { ROAD, regions, routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, towerX, FRAME_LIFT, swapAt, heroVehicleAt, ukStart, treeRegion, SWAP_GAP, east, eastAdd, stretch, LEGACY_GAPS, underpassFrames, UNDERPASS, LANDMARKS, stopIndex, furnitureSpots } from './layout.js';
+import { ROAD, regions, routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, towerX, FRAME_LIFT, swapAt, swapTunnelFrame, heroVehicleAt, ukStart, treeRegion, SWAP_GAP, east, eastAdd, stretch, LEGACY_GAPS, underpassFrames, UNDERPASS, LANDMARKS, stopIndex, furnitureSpots } from './layout.js';
 import { createBoxes, buildMeshes } from './voxel.js';
 import { buildMotion } from './motion.js';
 import { buildCity, tree } from './city.js';
@@ -46,6 +46,7 @@ import { createNpc3d } from './npc3d.js';
 import { buildFigure } from './figure.js';
 import { createLandmarkPicker } from './landmark-pick.js';
 import { createLandmarkLight } from './landmark-light.js';
+import { laneSide } from './lanes.js';
 import { SECTION_SHOT, shotFor, blendShots, spring, approach, CINE, cinePose } from './camera.js';
 import { updateBeams, addBeams, refitBeams } from './beams.js';
 import { createLampPools } from './lamps.js';
@@ -323,7 +324,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const architecture = await realCity;scene.add(architecture);
   const mini = buildVehicle('mini', { hero: true }), londonBus = buildVehicle('london', { hero: true }), glasgowBus = buildVehicle('glasgow', { hero: true });
   const candidates = [mini, londonBus, glasgowBus], heroVehicles = { mini, london: londonBus, glasgow: glasgowBus };
-  const bus = createHeroGroup(candidates), swap = swapAt(stops);
+  const bus = createHeroGroup(candidates), swap = swapAt(stops), swapFrame = swapTunnelFrame(curve, stops);
   candidates.forEach((v) => { v.visible = false; });
   // Glasgow livery between the two railway underpasses (each within 7 m of its scotRange boundary); the visible swap happens inside the tunnel (see frame())
   const closeUp = qa && new URLSearchParams(location.search).get('closeup') ? (() => { const v = new URLSearchParams(location.search).get('closeup').split(',').map(Number); return v.length === 7 && v.every(Number.isFinite) ? { p: v.slice(0, 3), t: v.slice(3, 6), fov: v[6] } : null; })() : null; // QA probe: fixed close-up camera
@@ -556,7 +557,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     if (ox !== vo.x || oy !== vo.y) { vo.x = ox; vo.y = oy; applyView(); camera.updateProjectionMatrix(); }
     const p = scroll.value, t = routeT(p, n, knots); routeS = t * (n - 1);
     const bp = curve.getPointAt(t), tan = curve.getTangentAt(t);
-    lateral.set(tan.z, 0, -tan.x).normalize().multiplyScalar(BUS_LANE);
+    lateral.set(tan.z, 0, -tan.x).normalize().multiplyScalar(BUS_LANE * laneSide((t - swapFrame.t) * swapFrame.speed)); // right-hand lane in Sao Paulo, left-hand in the UK, crossing over under the tunnel cover
     applyHeroPose(bus, bp, lateral, Math.atan2(-tan.z, tan.x));
     bus.position.y += 0.07; bus.rotation.z = 0;
     swapTunnel?.place(bus, candidates.find((v) => v.visible) ?? mini); // down into the SP -> London tunnel and up again

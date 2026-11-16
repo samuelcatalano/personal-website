@@ -6,7 +6,7 @@ import { cutHole } from './holes.js';
 // Cut-and-cover tunnel behind the route start (Sao Paulo): the whole road dips down one open ramp into a concrete portal under the hero plaza, so ambient
 // cars drive out of the scene instead of vanishing on the paving. Nothing but the ramp and the portal: the ramp's edges are flush asphalt, no walls,
 // no median. The ramp starts just behind where the Mini starts (it stays put on the level road).
-// Local frame: x = metres past the route start, away from the route (into the tunnel); z across (oncoming lane at -1.75, hero lane at +1.75); y up.
+// Local frame: x = metres past the route start, away from the route (into the tunnel); z across (Sao Paulo drives on the right: oncoming lane at +1.75, hero lane at -1.75, see lanes.js); y up.
 const U0 = 3, L = 16.8, IN = 10; // ramp start (clear of the Mini's tail, u ~ 2), portal face (clear of the hero plaza), interior depth
 const W0 = -4.1, W1 = 4.1, TOP = 1.4, LID = -0.05; // ramp edges across, portal top above the road, soffit (just under the plaza paving)
 const SINK = 0.3; // m a middle axle may dip into the crest of the ramp (place())

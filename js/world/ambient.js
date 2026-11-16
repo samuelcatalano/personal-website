@@ -2,12 +2,13 @@ import * as THREE from 'three';
 import { createBoat, estaiadaRoute } from './landmark-geometry.js';
 import { buildVehicle } from './vehicles.js';
 import { upgradeBus, reskinBus, upgradeMini, upgradeCab, loadFleetCatalog, loadVehicleAsset, regionalFleetModel, upgradeFleet, rollWheels } from './vehicle-assets.js';
-import { RIVER_Z, LANDMARKS, ukStart, stopIndex, swapAt, secondaryBusAssetAt, scotRange, regions } from './layout.js';
+import { RIVER_Z, LANDMARKS, ukStart, stopIndex, swapAt, swapTunnelFrame, secondaryBusAssetAt, scotRange, regions } from './layout.js';
 import { stopMarks, fineMarks, routeT } from '../scroll.js';
 import { addBeams, refitBeams } from './beams.js';
 import { fadeVehicle, disposeFade } from './fade.js';
 import { PORTAL } from './route-tunnel.js';
 import { firstInBand } from './hero-yield.js';
+import { laneSide } from './lanes.js';
 import { loadGlb } from './glb-loader.js';
 let thamesBoat;
 const THAMES_BOAT_SCALE = 0.4; // Match the compressed landmark/river scale; never stretch individual axes.
@@ -92,7 +93,7 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false,
   // Ponte Estaiada, two cars each way: 'in' cars take the avenue's oncoming lane, turn onto the S-ramp and cross to the far-bank ground;
   // 'out' cars come back over the river, down the ramp and away along the avenue. Spawns/despawns only happen BRIDGE_FAR m from the player.
   const er = estaiadaRoute(pts[stopIndex(stops, LANDMARKS.estaiada)].x, curve, RIVER_Z), uIn = er.uj + 9 / len, uOut = er.uj - 9 / len;
-  const laneAt = (u, o = new THREE.Vector3()) => { const p = curve.getPointAt(Math.min(1, Math.max(0, u))), t = curve.getTangentAt(Math.min(1, Math.max(0, u))); return o.set(p.x - 1.75 * t.z, p.y + 0.07, p.z + 1.75 * t.x); }; // oncoming lane
+  const laneAt = (u, o = new THREE.Vector3()) => { const p = curve.getPointAt(Math.min(1, Math.max(0, u))), t = curve.getTangentAt(Math.min(1, Math.max(0, u))); return o.set(p.x + 1.75 * t.z, p.y + 0.07, p.z - 1.75 * t.x); }; // oncoming lane: Sao Paulo drives on the right, so it is on the ramp's side of the avenue and the turns never cross the hero
   const side = (q, o) => new THREE.Vector3(q.x - q.tz * o, q.y + 0.12, q.z + q.tx * o); // o m right of travel far -> near, on the asphalt
   const paths = {
     in: new THREE.CatmullRomCurve3([3, 2, 1].map((k) => laneAt(er.uj + k * 3 / len)).concat(er.trafficStations.slice().reverse().map((q) => side(q, -(q.lane??1.75))))),
@@ -101,9 +102,9 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false,
   for (const c of Object.values(paths)) c.plen = c.getLength();
   const atJ = (c, q) => { let best = 0; for (let k = 1; k <= 400; k++) if (c.getPointAt(k / 400).distanceTo(q) < c.getPointAt(best / 400).distanceTo(q)) best = k; return best / 400 * c.plen; };
   const sIn = atJ(paths.in, side(er.stations.at(-1), -1.75)), sOut = atJ(paths.out, side(er.stations.at(-1), 1.75)); // path distance where each lane meets the kerb line
-  // The hero (scroll-driven, cannot brake) drives the lane at +1.75 m from the centre line; the junction turns cross it. Offsets are on the hero's side (+nb, as in estaiadaRoute).
+  // The hero (scroll-driven, cannot brake) drives the lane at -1.75 m from the centre line (right-hand traffic); the ramp is on the +nb side, so the turns no longer cross it and the band below stays empty. Kept as a guard.
   // ponytail: a car already inside the band when the hero arrives is not undone, and the hero zone is a fixed radius (HERO_CLEAR) round the junction, not the hero's real length; per-vehicle sweep tests if that is not enough.
-  const cj = curve.getPointAt(er.uj), tj = curve.getTangentAt(er.uj), HERO_CLEAR = 7, HERO_YIELD_M = 12, HERO_BAND = [-0.1, 3.6]; // m: hero within this of the junction blocks it; lateral band (hero lane +- half a car)
+  const cj = curve.getPointAt(er.uj), tj = curve.getTangentAt(er.uj), HERO_CLEAR = 7, HERO_YIELD_M = 12, HERO_BAND = [-3.6, 0.1]; // m: hero within this of the junction blocks it; lateral band (hero lane +- half a car)
   const heroLine = Object.fromEntries(Object.entries(paths).map(([k, c]) => [k, firstInBand(Array.from({ length: 401 }, (_, i) => { const q = c.getPointAt(i / 400); return (q.x - cj.x) * tj.z - (q.z - cj.z) * tj.x; }), ...HERO_BAND) * c.plen])); // path distance where each lane first enters the hero's band (-plen if never)
   const bridge = [[3, 'in', 'road', 25], [7, 'in', 'path', 0.55], [2, 'out', 'path', 0.2], [9, 'out', 'path', 0.75]].map(([c, kind, phase, at], k) => {
     const mesh = car(CARS[c][1], CARS[c][0]); addBeams(mesh, mesh.userData.front, mesh.userData.beamY); mesh.rotation.order = 'YZX'; scene.add(mesh);
@@ -180,6 +181,7 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false,
   traffic.forEach((v) => { if (v.type === 'caio') { v.range = [0, rangeBus]; v.p = v.offset * rangeBus / 0.43; } });
   const lanePos = (t, lane) => { const p = curve.getPointAt(t), tn = curve.getTangentAt(t); return { x: p.x + tn.z * lane, z: p.z - tn.x * lane }; }; // same side convention as the frame loop
   const tOf = (v) => routeT(v.p, pts.length, knots);
+  const swapFrame = swapTunnelFrame(curve, stops), lat = (t, v) => v.lane * laneSide((t - swapFrame.t) * swapFrame.speed); // lateral offset: the lane's travel direction (sign of v.lane) is fixed, its side flips: right-hand in Sao Paulo, left-hand in the UK
   let lastRoute = null;
   const M0 = curve.getPointAt(1e-4).distanceTo(curve.getPointAt(0)) / 1e-4; // metres per curve t at the route start (tunnel cars' spacing order)
   traffic.forEach((v) => { v.mesh.rotation.order = 'YZX'; }); // yaw, then ramp pitch (route-start tunnel, SP -> London dip)
@@ -236,10 +238,10 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false,
         // Near the player a car that is already on stays on: the lane check below may only stop a car from appearing, never make a visible car vanish.
         if (v.tun == null && (jump || !inside || v.relative || v.hold || regionBus || curve.getPointAt(t).distanceTo(here) > HIDE)) { // tunnel cars stay on: their t is pinned at the route start, so this lane check would see the entrance, not them
           // never appear on top of a car already in the lane (region borders, nav jumps): stay hidden and keep driving until it is clear
-          v.active = want && (v.relative || !traffic.some((o) => o !== v && (o.active || o.fade > 0) && o.lane === v.lane && Math.hypot(o.x - lanePos(t, v.lane).x, o.z - lanePos(t, v.lane).z) < (v.len + o.len) / 2 + GAP) && !bridge.some((b) => Math.hypot(b.x - lanePos(t, v.lane).x, b.z - lanePos(t, v.lane).z) < (v.len + b.len) / 2 + GAP));
+          v.active = want && (v.relative || !traffic.some((o) => o !== v && (o.active || o.fade > 0) && o.lane === v.lane && Math.hypot(o.x - lanePos(t, lat(t, v)).x, o.z - lanePos(t, lat(t, v)).z) < (v.len + o.len) / 2 + GAP) && !bridge.some((b) => Math.hypot(b.x - lanePos(t, lat(t, v)).x, b.z - lanePos(t, lat(t, v)).z) < (v.len + b.len) / 2 + GAP));
         }
         if (v.fade !== +v.active) { // toggle instantly while off screen (its new place if appearing, its last place otherwise); fade only if it is in view
-          const lp = !v.fade && v.active ? lanePos(t, v.lane) : { x: v.x, z: v.z };
+          const lp = !v.fade && v.active ? lanePos(t, lat(t, v)) : { x: v.x, z: v.z };
           v.fade = first || reducedMotion || !dt || !inside || !seen(lp.x, lp.z, v.len) ? +v.active : v.active ? Math.min(1, v.fade + dt / FADE) : Math.max(0, v.fade - dt / FADE);
         }
         v.mesh.visible = v.fade > 0; fadeVehicle(v.mesh, v.fade);
@@ -248,7 +250,7 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false,
         if (v.livery) { const livery = v.regionBus && t < swap ? 'sao-paulo' : t >= scotIn && t < scotOut ? 'glasgow' : 'london'; if (livery !== v.livery && v.mesh.userData.wheels) { reskinBus(v.mesh, livery); v.livery = livery; } } // buses wear the livery of the region they are in, also after a respawn or past a region border
         const p = curve.getPointAt(t), tan = curve.getTangentAt(t);
         nrm.set(tan.z, 0, -tan.x).normalize();
-        v.mesh.position.copy(p).addScaledVector(nrm, v.lane).setY(0.07);
+        v.mesh.position.copy(p).addScaledVector(nrm, lat(t, v)).setY(0.07);
         v.mesh.rotation.z = 0; tunnel?.place(v.mesh, v.tun); dip?.place(v.mesh);
         const ds = (v.mesh.position.x - v.x) * Math.cos(v.mesh.rotation.y) - (v.mesh.position.z - v.z) * Math.sin(v.mesh.rotation.y); // signed travel along the heading
         if (Math.abs(ds) < 5 && !(v.regionBus && v.regionSwap?.phase === 'loading')) rollWheels(v.mesh.userData.wheels ?? [], ds); // wheels roll; skip respawn jumps and the hidden model load
