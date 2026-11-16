@@ -123,7 +123,8 @@ test('surveyed infill preserves baseline lots/props except the six approved brid
   let patios=0;const priorBoxes=boxes.map(b=>{if(Math.abs(b[0]-264.8)<1e-9&&b[1]===-.02&&(Math.abs(b[2]+100.7)<1e-6||Math.abs(b[2]+109.3)<1e-6)){patios++;return[291.8672036547214,...b.slice(1)]}return b});
   assert.equal(patios,2);
   // re-pinned 2026-11-16: the same park move (59 boxes out, 44 in) plus the 24 m carriageway run-out past the last stop (city.js ROAD_RUNOUT)
-  assert.equal(hash(priorBoxes), '0d3d319abd9111103f0a680450dd94d7846ac66c69bfc3d821e812a702d06e9a');
+  // re-pinned again 2026-11-16: square paving tiles (parks.js) are 0.055 high instead of 0.06, so their top (0.075) sits under the urban road surface (0.08) instead of z-fighting with it
+  assert.equal(hash(priorBoxes), '179ba4df8b0a766ecbe1f7e81d6e67effd6737f4b813dc2dd60e0413097152c5');
   const fallback = [];
   const backdrop = [];
   buildUrbanInfill((...b) => fallback.push(b));

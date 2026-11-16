@@ -255,8 +255,9 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
     const W = q.x1 - q.x0, D = q.z1 - q.z0, cx = (q.x0 + q.x1) / 2, cz = (q.z0 + q.z1) / 2, ix = 1.4, iz = D < 8 ? 0.6 : 1.4, L = W - 2 * ix;
     for (let u = 0; u < W; u += 4) for (let v = 0; v < D; v += 4) { // checker, 4 m tiles, last row/column trimmed; tiles that reach the road band are cut into 1 m cells and the near ones dropped
       const w = Math.min(4, W - u), d = Math.min(4, D - v), x0 = q.x0 + u, z0 = q.z0 + v, tile = TILE[Math.floor(variation(x0, z0, 5) * TILE.length)]; // one calm base tone, per-module variation from a stable position hash (terracotta checker dropped)
-      if (offRoad(x0, x0 + w, z0, z0 + d)) draw(x0 + w / 2, 0.02, z0 + d / 2, w - 0.06, 0.06, d - 0.06, tile);
-      else for (let a = 0; a < w; a++) for (let b = 0; b < d; b++) { const cw = Math.min(1, w - a), cd = Math.min(1, d - b); if (offRoad(x0 + a, x0 + a + cw, z0 + b, z0 + b + cd)) draw(x0 + a + cw / 2, 0.02, z0 + b + cd / 2, cw - 0.02, 0.06, cd - 0.02, tile); }
+      // top at 0.075: 5 mm under the urban road surface (urban-road-mesh.js LEVEL.road 0.08), which a square can overlap; at 0.08 the two were coplanar and z-fought
+      if (offRoad(x0, x0 + w, z0, z0 + d)) draw(x0 + w / 2, 0.02, z0 + d / 2, w - 0.06, 0.055, d - 0.06, tile);
+      else for (let a = 0; a < w; a++) for (let b = 0; b < d; b++) { const cw = Math.min(1, w - a), cd = Math.min(1, d - b); if (offRoad(x0 + a, x0 + a + cw, z0 + b, z0 + b + cd)) draw(x0 + a + cw / 2, 0.02, z0 + b + cd / 2, cw - 0.02, 0.055, cd - 0.02, tile); }
     }
     const n = Math.floor(L / 8), rows = D - 2 * iz >= 11 ? [-0.25, 0.25] : [0];
     rows.forEach((rf, ri) => {
