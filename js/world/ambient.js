@@ -228,7 +228,8 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false,
         const t = v.relative ? route + v.offset : routeT(v.p, pts.length, knots);
         const sameRegion = (route < swap) === (t < swap), regionBus = v.regionBus || v.type === 'london' || v.type === 'glasgow', inside = t >= 0 && t <= 1, want = inside && !v.hold && (!regionBus || sameRegion) && (v.range || v.uk === undefined || (t >= swap) === v.uk) && (v.scot === undefined || (t >= scotIn && t < scotOut) === v.scot);
         // region borders sit in view (SP and London share a frame): a vehicle only switches city once it is far from the player, so it drives off instead of popping
-        if (v.tun == null && (jump || !inside || v.relative || v.hold || regionBus || want === v.active || curve.getPointAt(t).distanceTo(here) > HIDE)) { // tunnel cars stay on: their t is pinned at the route start, so this lane check would see the entrance, not them
+        // Near the player a car that is already on stays on: the lane check below may only stop a car from appearing, never make a visible car vanish.
+        if (v.tun == null && (jump || !inside || v.relative || v.hold || regionBus || curve.getPointAt(t).distanceTo(here) > HIDE)) { // tunnel cars stay on: their t is pinned at the route start, so this lane check would see the entrance, not them
           // never appear on top of a car already in the lane (region borders, nav jumps): stay hidden and keep driving until it is clear
           v.active = want && (v.relative || !traffic.some((o) => o !== v && (o.active || o.fade > 0) && o.lane === v.lane && Math.hypot(o.x - lanePos(t, v.lane).x, o.z - lanePos(t, v.lane).z) < (v.len + o.len) / 2 + GAP) && !bridge.some((b) => Math.hypot(b.x - lanePos(t, v.lane).x, b.z - lanePos(t, v.lane).z) < (v.len + b.len) / 2 + GAP));
         }
