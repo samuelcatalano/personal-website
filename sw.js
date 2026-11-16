@@ -17,7 +17,7 @@ function staleWhileRevalidate(request, event) {
   const hit = cache.then((store) => store?.match(request).catch(() => null));
   const fresh = Promise.all([cache, hit]).then(async ([store, cached]) => {
     try {
-      const res = await fetch(request);
+      const res = await fetch(request, { cache: 'no-cache' }); // revalidate (304 when unchanged) instead of trusting the browser's heuristic HTTP cache, which could keep a rebuilt asset stale for minutes
       if (res.ok && store) await store.put(request, res.clone()).catch(() => {});
       return res;
     } catch {
@@ -30,7 +30,7 @@ function staleWhileRevalidate(request, event) {
 async function networkFirst(request) {
   const cache = await caches.open(CACHE).catch(() => null);
   try {
-    const res = await Promise.race([fetch(request), new Promise((_, reject) => setTimeout(() => reject(new Error('slow')), 4000))]);
+    const res = await Promise.race([fetch(request, { cache: 'no-cache' }), new Promise((_, reject) => setTimeout(() => reject(new Error('slow')), 4000))]);
     if (res.ok && cache) await cache.put(request, res.clone()).catch(() => {});
     return res;
   } catch {

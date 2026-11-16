@@ -13,7 +13,7 @@ const PROCESSED = { mini: 'processed/vehicles/mini-cooper-2011.lod0.glb' };
 const FULL = { mini: 'mini-cooper-2011', ...Object.fromEntries(['toyota-corolla', 'vw-t-cross', 'nissan-qashqai', 'honda-hr-v', 'land-rover-range-rover', 'mercedes-e63-amg-s-wagon'].map(id => [id, id])) };
 // Fleet models with a processed GLB (same coordinates, so catalog axles/beam anchors still apply). honda-hr-v stays raw: its triangles share no vertices, so it cannot be simplified.
 for (const id of ['toyota-corolla', 'vw-t-cross', 'nissan-qashqai', 'land-rover-range-rover', 'mercedes-e63-amg-s-wagon']) PROCESSED[id] = `processed/vehicles/${id}.glb`;
-const PIPELINE_V = '8'; // bump when processed GLBs are regenerated (cache busting)
+const PIPELINE_V = '8'; // bump when processed GLBs are regenerated (cache busting); a330 and bus carry their own ?v= in loadVehicleAsset (the service worker serves .glb from cache, so rebuild = new ?v=)
 const useProcessed = typeof location === 'undefined' || new URLSearchParams(location.search).get('glb') === 'processed';
 const cache = new Map();
 let fleetCatalog;
@@ -31,7 +31,7 @@ export function loadVehicleAsset(type) {
     const model = URLS[type] ? null : (await loadFleetCatalog()).find((m) => m.id === type);
     const raw = URLS[type] ? 'assets/vehicles/' + URLS[type] : model?.path, tries = [useProcessed && PROCESSED[type] ? 'assets/' + PROCESSED[type] : FULL[type] ? `assets/processed/vehicles/${FULL[type]}.full.glb` : null, raw].filter(Boolean);
     for (const path of tries) { // processed first, raw source as fallback
-      const url = new URL('../../' + path, import.meta.url); if (type === 'bus') url.searchParams.set('v', 'w7'); else if (type === 'mini' && path !== raw) url.searchParams.set('v', PIPELINE_V); // bump when authored assets are rebuilt
+      const url = new URL('../../' + path, import.meta.url); if (type === 'bus') url.searchParams.set('v', 'w7'); else if (type === 'a330') url.searchParams.set('v', 'w2'); else if (type === 'mini' && path !== raw) url.searchParams.set('v', PIPELINE_V); // bump when authored assets are rebuilt
       if (model?.sha256) url.searchParams.set('v', path === raw ? model.sha256 : PIPELINE_V + model.sha256.slice(0, 8));
       if (path.endsWith('.full.glb')) url.searchParams.set('v', 'full1-' + (model?.sha256?.slice(0, 8) ?? 'mini2011'));
       try { return (await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(url.href)).scene; } catch { /* next candidate */ }
