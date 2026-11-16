@@ -62,6 +62,21 @@ function prepare(root, name, { track, env }) {
         };
         m.customProgramCacheKey = () => 'wembley-glass-hue-glow';
       }
+      if (name === 'wembley' && m.name === 'Mass') {
+        // Drum cladding: vertical ~3 m bays around the bowl, +-5% hashed tone and a faint joint line.
+        // ponytail: object-space polar bays (assumes the GLB origin is the bowl centre), no textures.
+        m.onBeforeCompile = (sh) => {
+          sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vBayPos;')
+            .replace('#include <begin_vertex>', '#include <begin_vertex>\n  vBayPos = transformed;');
+          sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vBayPos;')
+            .replace('#include <color_fragment>', `#include <color_fragment>
+  float bayU = atan(vBayPos.x, vBayPos.z) * length(vBayPos.xz) / 3.0;
+  float bayH = fract(sin(floor(bayU) * 127.1) * 43758.5453);
+  float bayJ = smoothstep(0.0, 0.04, fract(bayU)) * smoothstep(1.0, 0.96, fract(bayU));
+  diffuseColor.rgb *= (0.95 + 0.1 * bayH) * (0.93 + 0.07 * bayJ);`);
+        };
+        m.customProgramCacheKey = () => 'wembley-mass-bays';
+      }
       if (name === 'wembley' && m.name === 'Trim') {
         // Night: only the arch's braided members glow (colour signature r == g, b > g set by build_wembley.py),
         // so the lattice stays crisp with dark gaps instead of a blurred light sleeve.

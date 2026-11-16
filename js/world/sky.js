@@ -18,7 +18,7 @@ export function untone(c) {
 }
 const C = (h) => new THREE.Color(h);
 export const DAY = { zen: C(0x6fb1e8), hor: C(0xb9dcf5), cloud: C(0xf4f9ff), sun: 2.35, hemi: 1.3, light: C(0xfff0d0) }; // day fill: hemi lifted so cast shadows read lighter; sun unchanged to keep the golden sky
-export const NIGHT = { zen: C(0x0b1530), hor: C(0x1d2b4f), cloud: C(0x3b4668), sun: 0.40, hemi: 0.68, light: C(0xaec4ff) };
+export const NIGHT = { zen: C(0x0b1530), hor: C(0x26386a), cloud: C(0x3b4668), sun: 0.40, hemi: 0.74, light: C(0xaec4ff) };
 export const SUN_DIR = new THREE.Vector3(110, 45, 40).normalize(); // startup fallback; runtime key shares the framed astro's azimuth
 const DIST = 1300; // just inside camera.far (1400), beyond every building
 function disc(draw) {
@@ -152,7 +152,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
   const hash=i=>{const n=Math.sin(i*127.1+311.7)*43758.5453;return n-Math.floor(n);};
   for(let i=0;i<420;i++){
     pos.push(hash(i*4)*2-1,.36+hash(i*4+1)*.64,0);
-    sizes.push(.7+hash(i*4+2)**5*2.0);phases.push(hash(i*4+3)*Math.PI*2);
+    sizes.push(1.1+hash(i*4+2)**5*2.2);phases.push(hash(i*4+3)*Math.PI*2);
     const tint=untone(C(i%13===0?0xdcb9a0:i%7===0?0xb4d0f4:0xd1d8e7));tints.push(tint.r,tint.g,tint.b);
   }
   const stars=new THREE.Points(new THREE.BufferGeometry()
@@ -165,7 +165,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
       vertexShader:`attribute float aSize,aPhase;attribute vec3 aTint;uniform float uDpr;varying float vPhase,vHeight;varying vec3 vTint;
         void main(){vPhase=aPhase;vTint=aTint;vHeight=position.y;gl_Position=vec4(position.xy,.99999,1.0);gl_PointSize=aSize*uDpr;}`,
       fragmentShader:`uniform float uTime,uOp,uTwinkle;varying float vPhase,vHeight;varying vec3 vTint;
-        void main(){float r=length(gl_PointCoord-.5)*2.0;float a=(1.0-smoothstep(.15,1.0,r))*uOp*smoothstep(.45,.88,vHeight);a*=.88+.12*sin(uTime*.65+vPhase)*uTwinkle;gl_FragColor=vec4(vTint,a);}`,
+        void main(){float r=length(gl_PointCoord-.5)*2.0;float a=(1.0-smoothstep(.15,1.0,r))*uOp*smoothstep(.36,.7,vHeight);a*=.88+.12*sin(uTime*.65+vPhase)*uTwinkle;gl_FragColor=vec4(vTint,a);}`,
     }));stars.name='weather-stars';
   stars.renderOrder=-9;stars.frustumCulled=false;scene.add(stars);
   const owned=[dome,sunM,moonM,halo,clouds,deck,stars];
@@ -236,7 +236,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
       hemi.intensity = dh + (NIGHT.hemi + (mood.rain??0)*.16 - dh) * night + (reducedMotion?0:flash);
       if(!reducedMotion)starTime+=dt;
       stars.material.uniforms.uTime.value=starTime;
-      stars.material.uniforms.uOp.value=Math.max(0,night*1.15-.4)*clear;
+      stars.material.uniforms.uOp.value=Math.max(0,night*1.3-.3)*clear;
       stars.material.uniforms.uDpr.value=Math.min(globalThis.devicePixelRatio||1,cam?.aspect>1?1.5:1);
       stars.visible=stars.material.uniforms.uOp.value>.005;
       for (const m of glow) { if (m.userData.uNight) m.userData.uNight.value = night; m.emissive.copy(m.userData.glowColor ?? m.color).multiplyScalar(night * (m.userData.glowK ?? 1.6)); } // each light glows in its own colour; default 1.6 (was 2.2) keeps lit windows under the bloom glare

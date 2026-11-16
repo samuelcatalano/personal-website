@@ -152,3 +152,11 @@ Feito: N1, N2, N3, C9 (principal); B1, B3, B4, B5, B6, B7, C4 parcial (Sonnet + 
 Verificado: `node --test tests/` 299 passam, 1 falha que já existe no HEAD (`urban-infill.test.mjs`, hash de árvores); capturas desktop 9.5 dia, 17 dia, 11 noite antes/depois; barra medida em 900 e 768 px.
 Não verificado: mobile, chuva, Chrome real para C1, Lighthouse, FPS, contexto WebGL perdido em browser, dropdown "Mais" com teclado.
 Pendente: B2, A14 (mobile); A3, A11, A1 shader, A12, A13, A10, A5, A4, C2, C3, C5, C6, C8, B8 e os OKs da seção 3.
+
+## 9. Execução — rodada 2 (2026-11-16, aguardando aprovação visual, não commitada)
+
+Feito: A3 passo 1 (`sun.shadow.intensity` 0,8; `scene.js`), A11 (horizonte noturno mais claro, `NIGHT.hemi` 0,68 → 0,74, estrelas maiores e em faixa mais baixa; `sky.js`), A12 (bloom 0,10 de dia → 0,20 à noite; `post.js`), A10 (painéis no material `Mass` do Wembley e flood 0,5 → 0,7), A13 (roughness do vidro das torres 0,38 → 0,16 e 0,34 → 0,2), C3 (breakpoints 480/768/1100 + exceções documentadas), C8 (`dvh`, safe areas, `viewport-fit=cover`).
+Achados: A4 não é defeito — os pontos brancos são o vapor de escapamento de `vehicle-fx.js` (efeito intencional no frio). Em three r169 `PCFSoftShadowMap` ignora `shadow.radius`; suavizar a borda exigiria trocar para `PCFShadowMap` (17 amostras) — não feito, pede A/B próprio.
+Verificado: `node --test tests/` 299 passam, 1 falha preexistente; capturas desktop 9.5 dia/noite, 17 dia, 11 noite. Eye e Big Ben sem estouro à noite.
+Não verificado: mobile (C8 é só aditivo), chuva, FPS, Lighthouse.
+Pendente: A5 (rua de Wembley, decisão), C2 (fontes: exige baixar arquivos), C5, C6, B2, B8, A14, A1 shader, A17, A18, D1, D2.

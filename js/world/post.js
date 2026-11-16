@@ -114,6 +114,7 @@ export function createPost(renderer, scene, camera, { tier = 'high', sun } = {})
       // ponytail: key intensity approximates time of day; no additional exposure pass.
       grade.uniforms.uContrast.value = 1.015 + 0.025 * day;
       grade.uniforms.uSat.value = 1 + 0.08 * day; grade.uniforms.uWarm.value.set(1 + 0.015 * day, 1, 1 - 0.02 * day);
+      bloom.strength = 0.10 + 0.10 * (1 - day); // night halo on lamps and lit windows; day keeps the restrained 0.10
       composer.render(dt);
     },
   };

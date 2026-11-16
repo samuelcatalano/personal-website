@@ -26,7 +26,7 @@ function getLightMats(){
   return lightMats={warm:strip('#ffc27a',2.4),cool:strip('#dfe9ff',3.2),wash};
 }
 // Night floodlight per landmark (reference photos): sodium-gold wash on the Se and Westminster, cool white on Wembley, lit windows on the Copan.
-const FLOOD={se:['#ffa63d',0,.8],bigben:['#ffb44f',0,.75],wembley:['#e8f2ff',0,.5],copan:['#ffe1b5',1,.75]};
+const FLOOD={se:['#ffa63d',0,.8],bigben:['#ffb44f',0,.75],wembley:['#e8f2ff',0,.7],copan:['#ffe1b5',1,.75]};
 function archShape(w,h){const r=w/2,sh=h-w*.85,s=new THREE.Shape();s.moveTo(-r,0);s.lineTo(r,0);s.lineTo(r,sh);s.lineTo(0,h);s.lineTo(-r,sh);s.closePath();return s;}
 // Dedicated landmarks share the city atlas; only silhouette/depth belongs in geometry.
 function landmark(name,x,z,scale=1){

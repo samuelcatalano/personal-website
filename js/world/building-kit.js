@@ -23,7 +23,7 @@ const facade = {
   shop: [material('shop-stucco', P.cream, 0.9, wallTexture), material('shop-ochre', P.ochre, 0.9, wallTexture)],
   midrise: [material('midrise-stone', P.concreteMid, 0.9, wallTexture), material('midrise-sandstone', P.londonStock, 0.9, wallTexture)],
   office: [material('office-concrete', P.steel, 0.5, wallTexture), material('office-teal', P.teal, 0.4, wallTexture)],
-  tower: [material('tower-glass', P.steel, 0.38, wallTexture), material('tower-blue', P.navy, 0.34, wallTexture)],
+  tower: [material('tower-glass', P.steel, 0.16, wallTexture), material('tower-blue', P.navy, 0.2, wallTexture)],
 };
 const roofs = {
   terrace: material('terrace-roof', P.roof), shop: material('shop-roof', P.redBrown),
