@@ -71,7 +71,8 @@ export function placeStreetProps({ stops, pts, curve, arc, pilotCrossings = [], 
     for (const sd of [-1, 1]) if (H(s, sd + 31) < 5 / PROP_DENSITY.pillarEvery) put('pillar', ...side(p, t, sd, off('pillar'), 0));
   }
   // Bus shelters on the waiting side of every stop, open towards the road (local +z points away from the road on side +1)
-  for (let i = 0; i < n; i++) {
+  // Keep the final stop's personal-character corner clear for the closing shot.
+  for (let i = 0; i < n - 1; i++) {
     const u = i / (n - 1), p = curve.getPointAt(u), t = curve.getTangentAt(u), yaw = Math.atan2(-t.z, t.x);
     for (const a of [-7.5, -9.5, 8, 10.5]) if (put('shelter', ...side(p, t, 1, off('shelter'), a), yaw)) break;
   }
