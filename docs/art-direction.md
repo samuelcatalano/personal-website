@@ -1,5 +1,9 @@
 # 3D city art direction
 
+## Full-quality rule and scene finish — 2026-11-16
+
+Graphical quality never drops: by owner rule, the automatic FPS downgrade and the reduced-motion medium tier were removed. Plaza paving, stall colours, Thames bank foam and lawns were calmed. The far skyline melts into the horizon by day and has irregular lit windows by night. Sun shadow intensity is 0.8. The night horizon is lighter, with moon fill, stars and night bloom. Wembley has drum panel bays and a stronger flood, and tower glass roughness was lowered. This was validated on desktop only; mobile, rain and FPS were not measured. Plan: [design frontend graphics plan](plans/2026-11-16-design-frontend-graphics-plan.md).
+
 ## Connected neighbourhoods — 2026-11-15
 
 Shared local carriageways and sidewalks now organize the four-region infill; narrow mews use rooted pedestrian access. Asphalt and paving retain the existing palette, landmark setbacks and principal routes. The metre-grid surface union is intended for the city camera; tight alleys may have a one-sided walking strip. The owner authorized local pocket reorganization to complete blocked frontages without removing buildings. [Scope, exact moves and visual evidence](audits/2026-11-15-urban-road-network.md).

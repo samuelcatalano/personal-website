@@ -160,3 +160,9 @@ Achados: A4 não é defeito — os pontos brancos são o vapor de escapamento de
 Verificado: `node --test tests/` 299 passam, 1 falha preexistente; capturas desktop 9.5 dia/noite, 17 dia, 11 noite. Eye e Big Ben sem estouro à noite.
 Não verificado: mobile (C8 é só aditivo), chuva, FPS, Lighthouse.
 Pendente: A5 (rua de Wembley, decisão), C2 (fontes: exige baixar arquivos), C5, C6, B2, B8, A14, A1 shader, A17, A18, D1, D2.
+
+## 10. Execução — rodada 3 (2026-11-16, só Haiku, não commitada)
+
+Feito: B8 passo 1 parcial — 6 hex repetidos 3+ vezes viraram variáveis `--c-*` em `css/style.css` (35 substituições, por script). Entradas de 2026-11-16 em `docs/art-direction.md` e `docs/architecture/rendering-budget.md`.
+Verificado: revertendo as variáveis o CSS é idêntico ao do commit `8486771` (exceto a linha nova em `:root`); nenhuma variável dentro de `url()`; `node --test tests/` 299 passam, 1 falha preexistente.
+Não verificado: captura da UI (a equivalência textual foi a prova usada).

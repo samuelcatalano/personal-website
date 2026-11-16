@@ -1,5 +1,9 @@
 # Rendering budget
 
+## No runtime quality downgrade — 2026-11-16
+
+The adaptive high-to-medium tier switch was removed by owner decision, so desktop always renders the high tier: AO, sun rays, depth texture and 4x MSAA. Reduced motion no longer selects medium. Mobile (below 768 px) still starts on medium and is tracked as open item A14 in the [design frontend graphics plan](../plans/2026-11-16-design-frontend-graphics-plan.md). No new render passes, lights or textures were added in the 2026-11-16 rounds. Frame time was not measured for these changes, so no performance claim is made.
+
 ## Procedural urban connectivity — 2026-11-15
 
 New road surfaces share two materials from the existing texture pipeline, merge by 160m spatial chunk and receive shadows without casting them. Static spatial hashing bounds collision queries; generation runs once. The QA-only network-off control isolates the new surfaces for matched Desktop route measurements. Final surfaces use 22 meshes, 2 materials, 6,972 triangles and 0.465MiB geometry buffers. Repeated ABBA samples show median 25.3–26.1ms ON versus 26.6–26.8ms OFF, with overlapping p95 ranges; this is no detected regression, not a speedup claim. [Counts, measured timings and measurement limits](../audits/2026-11-15-urban-road-network.md).
