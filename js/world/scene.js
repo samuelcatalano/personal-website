@@ -45,7 +45,7 @@ import { createPeople } from './people.js';
 import { createNpc3d } from './npc3d.js';
 import { buildFigure } from './figure.js';
 import { createLandmarkPicker } from './landmark-pick.js';
-import { SECTION_SHOT, shotFor, blendShots, spring, approach, nextTier } from './camera.js';
+import { SECTION_SHOT, shotFor, blendShots, spring, approach } from './camera.js';
 import { updateBeams, addBeams, refitBeams } from './beams.js';
 import { createLampPools } from './lamps.js';
 import { createLampField, applyLampField } from './lamp-field.js';
@@ -102,6 +102,8 @@ const freezeStatic = (root) => {
 
 export async function createWorld(canvas, stops, { reducedMotion = false, onProgress = () => {}, onPick = () => {} } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+  // ponytail: a lost GPU context falls back to the HTML-only site (the panel is the source of truth); a reload brings the city back, no scene rebuild
+  canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); document.body.classList.add('no-webgl'); });
   Object.assign(renderer, { toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: EXPOSURE, outputColorSpace: THREE.SRGBColorSpace });
   initGlbLoader(renderer);
   await prepareArchitectureMaterials();
@@ -458,11 +460,11 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   });
   if (qa) globalThis.__qaWater = water;
   let wet = 0;
-  const post = createPost(renderer, scene, camera, { sun, tier: reducedMotion || matchMedia('(max-width: 767px)').matches ? 'medium' : 'high' });
+  const post = createPost(renderer, scene, camera, { sun, tier: matchMedia('(max-width: 767px)').matches ? 'medium' : 'high' }); // owner rule: quality never drops at runtime (no FPS downgrade); reduced motion stops animation, not AO
   if (qa) globalThis.__qaPost = post;
   if (qa) globalThis.__qaFigure = { figure, camera, end, endTan, near };
   const stopPicker = createLandmarkPicker({ canvas, camera, details, bus, onPick, scene, water });
-  let fpsT = 0, fpsN = 0, settle = 3, slowWindows = 0, night = 0, nightTarget = 0, mobile = false;
+  let night = 0, nightTarget = 0, mobile = false;
   const bar = document.querySelector('.bar'), panel = document.querySelector('#panel');
   let fitKey = '';
   // panel size changes per section: ease the view offset to its new value instead of snapping the camera
@@ -536,6 +538,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   function frame(now) {
     raf = 0;
     if (document.hidden) { last = 0; return; }
+    if (!innerWidth || !innerHeight) { last = 0; wake(); return; } // a 0x0 viewport has zero-size render targets: skip the frame instead of drawing into incomplete framebuffers
     const dt = last ? Math.min(0.1, (now - last) / 1000) : 0;
     last = now;
     scroll = reducedMotion ? { value: marks[nearestStop(target, n, marks)], velocity: 0 } : spring(scroll, target, dt, SCROLL_SMOOTH);
@@ -650,16 +653,6 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     world.userData.updateLandmarkNight?.(night);
     updateVehicleEnv(night); landmarkEnv.update(night);
     scene.environment = night > 0.5 ? landmarkEnv.night : landmarkEnv.day; scene.environmentIntensity = CITY_ENV * (1 - 0.7 * night); // swap the map, ramp the strength: no new PMREM per frame
-    settle = Math.max(0, settle - dt); // ponytail: 3 s settle, then two consecutive slow 2 s windows; shader compiles and asset uploads never change the look
-    if (dt > 0 && settle === 0 && post.tier === 'high') {
-      fpsT += dt; fpsN++;
-      if (fpsT >= 2) {
-        const fps = fpsN / fpsT;
-        slowWindows = fps < 40 ? slowWindows + 1 : 0;
-        if (slowWindows >= 2) post.setTier(nextTier(post.tier, [fps]));
-        fpsT = fpsN = 0;
-      }
-    }
     // One matrix pass per frame: both mirror renders and the main render reuse these world matrices (nothing moves between them).
     scene.updateMatrixWorld(); scene.matrixWorldAutoUpdate = false;
     water.reflect(renderer, scene, camera, post.tier, sky.objects);

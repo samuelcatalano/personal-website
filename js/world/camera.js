@@ -57,6 +57,3 @@ export function spring(state, target, dt, smoothTime) {
 }
 export const approach = (current, target, dt, rate) =>
   current + Math.max(-rate * dt, Math.min(rate * dt, target - current));
-// <40 FPS: high -> medium, never back
-export const nextTier = (tier, fpsSamples) =>
-  tier === 'high' && fpsSamples.length && fpsSamples.reduce((a, b) => a + b, 0) / fpsSamples.length < 40 ? 'medium' : tier;

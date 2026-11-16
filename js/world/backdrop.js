@@ -74,7 +74,7 @@ export function buildBackdrop(add, stops, pts, addSky = add) {
         else if(family===2){body(xc-w*.25,0,z,w*.5,h*.78,depth,wall,(Math.round(xc*101)^row*809)|0,row<2,coverage);add(xc-w*.25,h*.78,z,w*.5+.1,.25,depth+.2,roof);topX=xc+w*.25;topW=w*.5;body(topX,0,z,topW,h,depth,wall,(Math.round(xc*103)^row*811)|0,row<2,coverage);}
         else if(family===3) {body(xc,0,z,w,h*.85,depth,wall,(Math.round(xc*107)^row*821)|0,row<2,coverage);topW=w*.34;body(xc,h*.85,z,topW,h*.15,depth*.65,roof,(Math.round(xc*109)^row*823)|0,false,coverage);}
         else {topX=xc-w*.21;topW=w*.43;body(xc,0,z,w,h*.78,depth,wall,(Math.round(xc*113)^row*827)|0,row<2,coverage);body(topX,h*.78,z,topW,h*.22,depth*.72,wall,(Math.round(xc*127)^row*829)|0,false,coverage);}
-        add(topX,h,z,topW+.3,.35,depth*(family===1?.82:family===3?.65:family===4?.72:1)+.4,roof);
+        {const o=z>-145?1:0; add(topX,h,z,topW+.3*o,.35,depth*(family===1?.82:family===3?.65:family===4?.72:1)+.4*o,z>-145?roof:wall);} // ponytail: far caps share the wall colour and have no overhang, so no slab floats over the box
         if (row === 0 && !rearFill) {
           if(family===0)add(xc, h + 0.35, z, w * 0.62, 0.75, depth * 0.62, roof);
           if (nearBuildings++ % 3 === 0 && family===0) add(xc, h + 1.1, z, w * 0.38, 0.28, depth * 0.45, roof);
@@ -98,7 +98,7 @@ export function buildBackdrop(add, stops, pts, addSky = add) {
       if (kind < .3) { body(xc, 0, z, w, h * .65, 11, wall, seed, row < 2, cov); body(xc + w * .1, h * .65, z, w * .7, h * .35, 9, wall, seed ^ 7, false, cov); } // setback
       else if (kind < .5) { body(xc - w * .25, 0, z, w * .5, h, 11, wall, seed, row < 2, cov); body(xc + w * .25, 0, z, w * .5, h * .7, 11, wall, seed ^ 9, false, cov); } // twin heights
       else body(xc, 0, z, w, h, 11, wall, seed, row < 2, cov);
-      add(xc, h, z, w + .3, .35, 11.4, row === 0 ? P.roof : wall);
+      add(xc, h, z, w + (z > -145 ? .3 : 0), .35, z > -145 ? 11.4 : 11, row === 0 ? P.roof : wall);
       if (kind > .85 && row > 0) add(xc, h + .35, z, .3, 6 + wc() * 8, .3, P.steel); // mast
       else if (kind > .7) add(xc, h + .35, z - 1, w * .36, 1.4, 4.5, wall); // plant room
       x += w + gap;
@@ -111,12 +111,13 @@ export function buildBackdrop(add, stops, pts, addSky = add) {
     for (let x = x0; x < x1;) {
       const w = 9 + m() * 5, gap = 2 + m() * 2.5, xc = x + w / 2, z = mz + (m() - 0.5) * 6, depth = 10;
       const skip = xc - w / 2 < museumR && xc + w / 2 > museumL;
-      const floors = lo + (m() * (hi - lo + 1) | 0), h = floors * 2.8, wall = pal[m() * pal.length | 0], roof = m() < 0.5 && mz > -190 ? P.roof : wall, kind = m(), plant = m(), crown = Math.abs(Math.round(xc * 13) + floors) % 3;
+      const floors = lo + (m() * (hi - lo + 1) | 0), h = floors * 2.8, wall = pal[m() * pal.length | 0], roof = m() < 0.5 && mz > -145 ? P.roof : wall, // ponytail: mid band (z<=-145) is far, caps match walls
+         kind = m(), plant = m(), crown = Math.abs(Math.round(xc * 13) + floors) % 3;
       if (!skip) {
         if (crown === 0) body(xc, 0, z, w, h, depth, wall, (Math.round(xc * 73) ^ Math.round(mz * 19)) | 0, true, .55);
         else if (crown === 1) { body(xc, 0, z, w, h * 0.72, depth, wall, (Math.round(xc * 73) ^ Math.round(mz * 19)) | 0, true, .55); body(xc + w * 0.1, h * 0.72, z, w * 0.72, h * 0.28, depth * 0.8, wall, (Math.round(xc * 79) ^ Math.round(mz * 23)) | 0, false, .55); }
         else { body(xc - w * 0.2, 0, z, w * 0.6, h, depth, wall, (Math.round(xc * 83) ^ Math.round(mz * 29)) | 0, true, .55); body(xc + w * 0.3 + 0.02, 0, z, w * 0.4 - 0.04, h * 0.66, depth, wall, (Math.round(xc * 89) ^ Math.round(mz * 31)) | 0, false, .55); }
-        add(xc, h, z, w + 0.3, 0.35, depth + 0.3, roof);
+        add(xc, h, z, w, 0.35, depth, roof);
         if (plant < 0.45) add(xc + (kind - 0.5) * w * 0.3, h + 0.35, z - 1, w * 0.36, 1 + plant * 2, depth * 0.4, roof);
         if (kind < 0.12 && h > 18) add(xc, h + 0.35, z, 0.3, 4 + kind * 20, 0.3, P.steel);
       }
@@ -130,7 +131,7 @@ export function buildBackdrop(add, stops, pts, addSky = add) {
       const w = 8 + f() * 5, gap = 1.5 + f() * 2, xc = x + w / 2, z = fz + (f() - 0.5) * 8, h = (2 + (f() * 7 | 0)) * 2.8, wall = distantColors[f() * distantColors.length | 0];
       if (!(xc - w / 2 < museumR && xc + w / 2 > museumL)) {
         body(xc, 0, z, w, h, 12, wall, (Math.round(xc * 53) ^ Math.round(fz * 11)) | 0, false, .2);
-        add(xc, h, z, w + 0.3, 0.35, 12.3, wall);
+        add(xc, h, z, w, 0.35, 12, wall);
       }
       x += w + gap;
     }

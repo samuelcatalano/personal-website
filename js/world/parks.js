@@ -52,7 +52,7 @@ export const SQUARES = [
   { x0: 132, x1: 189, z0: -9, z1: -2, mix: 'BTSBTUBS' }, // London riverside, east of the Eye
   { x0: 231, x1: 288, z0: -19, z1: -12, mix: 'BTBSBT' }, // in front of the Glasgow square view
 ];
-const TILE = [P.tileCream, P.tileTerra], BED = [P.red, P.tulip, P.white, P.violet, P.bloomPink], AWN = [[P.red, P.white], [P.teal, P.white], [P.tulip, P.white], [P.violet, P.white]], UMB = [P.red, P.tulip, P.violet, P.white, P.teal];
+const TILE = [P.tileCream, P.tileWarm, P.tileStone], BED = [P.red, P.tulip, P.white, P.violet, P.bloomPink], AWN = [[P.red, P.white], [P.teal, P.white], [P.redBrown, P.cream], [P.teal, P.cream]], UMB = [P.redBrown, P.cream, P.teal, P.white, P.terracotta]; // calm plaza tones; sober awning/umbrella colours (no violet/tulip slabs)
 const { patch: LAWN, gravel: GRAVEL, hedge: HEDGE, leaf: LEAF, stone: STONE, oak: OAK, iron: IRON, glass: WATER, dirt: SOIL } = P;
 const BLOOM = [P.red, P.tulip, P.violet, P.red], FRESH = P.gravel;
 const PLANT_TINTS = [P.white, P.offWhite, P.tileCream, P.gravel];
@@ -212,7 +212,7 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
     if (park.cafe && !park.quiet && S >= 8) cafe: for (const fu of [0.3, -0.3, 0.15, -0.15]) for (const f of [-1, 1]) { // news kiosk + two umbrella tables, along the long side so narrow parks fit
       const u = fu * L, v = f * (S / 2 - m - 1.3);
       if (!fits(u, v, 4, 1.2)) continue;
-      B(u, v, 0.05, 2.2, 2.2, 1.5, P.teal); B(u, v, 2.25, 2.7, 0.14, 1.9, P.red); B(u, v - f * 0.9, 1.7, 2.3, 0.1, 0.7, P.white); B(u, v - f * 0.8, 0.05, 2, 1, 0.4, OAK); // hut, roof, awning, counter (front faces the lawn side)
+      B(u, v, 0.05, 2.2, 2.2, 1.5, P.teal); B(u, v, 2.25, 2.7, 0.14, 1.9, P.redBrown); B(u, v - f * 0.75, 1.76, 2.3, 0.1, 0.35, P.white); B(u, v - f * 1.1, 1.64, 2.3, 0.1, 0.35, P.white); B(u, v - f * 0.8, 0.05, 2, 1, 0.4, OAK); // hut, roof, awning, counter (front faces the lawn side)
       for (const s of [-1, 1]) { B(u + s * 2.7, v, 0.05, 0.1, 2.1, 0.1, IRON); B(u + s * 2.7, v, 2.1, 1.9, 0.1, 1.9, s > 0 ? P.red : P.white); B(u + s * 2.7, v, 0.75, 0.9, 0.05, 0.9, P.white); }
       fur.push([u - 3.5, u + 3.5, v - 1.2, v + 1.2]); break cafe;
     }
@@ -254,7 +254,7 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
   for (const q of SQUARES) {
     const W = q.x1 - q.x0, D = q.z1 - q.z0, cx = (q.x0 + q.x1) / 2, cz = (q.z0 + q.z1) / 2, ix = 1.4, iz = D < 8 ? 0.6 : 1.4, L = W - 2 * ix;
     for (let u = 0; u < W; u += 4) for (let v = 0; v < D; v += 4) { // checker, 4 m tiles, last row/column trimmed; tiles that reach the road band are cut into 1 m cells and the near ones dropped
-      const w = Math.min(4, W - u), d = Math.min(4, D - v), tile = TILE[(u / 4 + v / 4) & 1], x0 = q.x0 + u, z0 = q.z0 + v;
+      const w = Math.min(4, W - u), d = Math.min(4, D - v), x0 = q.x0 + u, z0 = q.z0 + v, tile = TILE[Math.floor(variation(x0, z0, 5) * TILE.length)]; // one calm base tone, per-module variation from a stable position hash (terracotta checker dropped)
       if (offRoad(x0, x0 + w, z0, z0 + d)) draw(x0 + w / 2, 0.02, z0 + d / 2, w - 0.06, 0.06, d - 0.06, tile);
       else for (let a = 0; a < w; a++) for (let b = 0; b < d; b++) { const cw = Math.min(1, w - a), cd = Math.min(1, d - b); if (offRoad(x0 + a, x0 + a + cw, z0 + b, z0 + b + cd)) draw(x0 + a + cw / 2, 0.02, z0 + b + cd / 2, cw - 0.02, 0.06, cd - 0.02, tile); }
     }
@@ -282,7 +282,7 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
         } else if (c === 'S' && tall && fit(2.2, 1.6)) { // market stall: striped awning, counter, crates
           const [a, b] = AWN[k % 4];
           draw(x, 0.05, z - 0.7, 3.6, 1, 0.9, P.oak); draw(x, 0.05, z - 1.0, 3.8, 2.5, 0.12, P.cream);
-          for (let t = 0; t < 7; t++) draw(x - 1.8 + t * 0.6, 2.5, z - 0.2, 0.6, 0.1, 2.4, t & 1 ? b : a);
+          for (let t = 0; t < 7; t++) for (const [dz, dy] of [[-0.8, 2.6], [0.4, 2.42]]) draw(x - 1.8 + t * 0.6, dy, z + dz, 0.6, 0.1, 1.2, t & 1 ? b : a); // ponytail: awning fall approximated by two stepped slabs (back high, front low), no rotation in draw
           for (const s of [-1, 1]) draw(x + s * 1.85, 0.05, z + 0.85, 0.1, 2.4, 0.1, IRON);
           draw(x - 1, 0.05, z + 0.5, 0.8, 0.5, 0.6, P.terracotta); draw(x + 1, 0.05, z + 0.5, 0.8, 0.5, 0.6, LEAF);
         } else if (c === 'P' && tall && D - 2 * iz >= 4 && fit(3.2, 1.7)) { // pergola with a bench under it

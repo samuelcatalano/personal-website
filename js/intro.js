@@ -10,6 +10,8 @@ const JOURNEY = stops.filter((s) => s.section === 'journey');
 export const journeyIndex = (p, n = JOURNEY.length) => Math.round(clamp01(p) * (n - 1));
 // "2019 LONDON", "2003 PUC": the year plus the employer's initials, or the city where there are none (the move) or where the initials repeat (Glasgow).
 export const careerLabel = (st, t) => `${st.year} ${st.id === 'glasgow' || !st.brand ? t.stops[st.id].place : st.brand.initials}`.toUpperCase();
+// the year label of each node, blank when it repeats the previous node's
+export const yearLabels = (journey) => journey.map((st, i) => (i && st.year === journey[i - 1].year ? '' : st.year));
 const KEY_DY = { ArrowRight: 35, ArrowLeft: -35, PageDown: 240, PageUp: -240, ' ': 240 }; // right drives forward, left goes back
 const LEDS = 48;
 export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {}) {
@@ -28,7 +30,8 @@ export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {
   const border = JOURNEY.findIndex(st => st.id === 'move');
   const glasgow = JOURNEY.findIndex(st => st.id === 'glasgow');
   root.style.setProperty('--border-stop', `${100 * fraction(border)}%`);
-  nodesEl.innerHTML = JOURNEY.map((st, i) => `<i class="node ${st.country.toLowerCase()}${i === border ? ' hub' : ''}" style="--f:${fraction(i)}"><b>${st.year}</b></i>`).join('');
+  const years = yearLabels(JOURNEY);
+  nodesEl.innerHTML = JOURNEY.map((st, i) => `<i class="node ${st.country.toLowerCase()}${i === border ? ' hub' : ''}" style="--f:${fraction(i)}">${years[i] === '' ? '' : `<b>${years[i]}</b>`}</i>`).join('');
   ledsEl.innerHTML = '<i></i>'.repeat(LEDS);
   const nodes = [...nodesEl.children], leds = [...ledsEl.children];
   // the copy that is written once at start and again when the language changes while the intro is up

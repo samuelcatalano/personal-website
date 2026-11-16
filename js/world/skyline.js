@@ -11,20 +11,26 @@ export function createSkyline(list) {
     const horizon = mat.userData.horizon = { value: new THREE.Color() };
     mat.onBeforeCompile = shader => {
       shader.uniforms.uHorizon = horizon;
-      shader.uniforms.uSilhouette = { value: 0.68 - r * 0.15 };
-      shader.uniforms.uSkyNight = skyNight;
+      shader.uniforms.uSilhouette = { value: 0.68 - r * 0.2 };
+      shader.uniforms.uSkyNight = skyNight; shader.uniforms.uHaze = { value: r * 0.5 }; // 0, .5, 1
       shader.vertexShader = 'varying float vSkyHeight;\nvarying vec3 vSkyWorld;\nvarying float vSkyDist;\n' + shader.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvSkyHeight = position.y;\nvSkyWorld = (modelMatrix * instanceMatrix * vec4(position, 1.0)).xyz;\nvSkyDist = distance(cameraPosition, vSkyWorld);');
-      shader.fragmentShader = 'uniform vec3 uHorizon; uniform float uSilhouette; uniform float uSkyNight; varying float vSkyHeight; varying vec3 vSkyWorld; varying float vSkyDist;\n' + shader.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+      shader.fragmentShader = 'uniform vec3 uHorizon; uniform float uSilhouette; uniform float uHaze; uniform float uSkyNight; varying float vSkyHeight; varying vec3 vSkyWorld; varying float vSkyDist;\n' + shader.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+// Aerial perspective: farther rows pull base/top tones together (less contrast) and sit closer to the horizon colour.
+diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb / max(vColor, vec3(0.01)) * 0.95, uHaze * 0.7); // flatten base/top instance tones
 diffuseColor.rgb = mix(uHorizon, diffuseColor.rgb, smoothstep(0.0, 0.65, vSkyHeight) * uSilhouette);
-// Lit windows at night: 4.2 m bays and 3.4 m floors, about a third of them lit; faded out past ~200 m, where they would only shimmer.
+// Lit windows at night: 4.2 m bays and 3.4 m floors; per-building lit ratio (10-60%), dark floors and two tints from stable hashes of position; faded out past ~800 m.
 float skyU = (vSkyWorld.x + vSkyWorld.z) / 4.2, skyV = vSkyWorld.y / 3.4;
 vec2 skyCell = floor(vec2(skyU, skyV)), skyF = fract(vec2(skyU, skyV));
 float skyHash = fract(sin(dot(skyCell, vec2(127.1, 311.7))) * 43758.5453);
-float skyWin = step(0.3, skyF.x) * step(skyF.x, 0.7) * step(0.3, skyF.y) * step(skyF.y, 0.75) * step(skyHash, 0.35);
+float skyBld = fract(sin(floor((vSkyWorld.x + vSkyWorld.z) / 13.0) * 12.9898 + 4.1) * 43758.5453); // ponytail: ~13 m column approximates one building, no per-instance id
+float skyFloor = fract(sin(dot(vec2(skyBld * 91.0, skyCell.y), vec2(269.5, 183.3))) * 43758.5453);
+float skyTint = fract(skyHash * 7.13 + skyBld);
+float skyRatio = 0.1 + 0.5 * skyBld;
+float skyWin = step(0.3, skyF.x) * step(skyF.x, 0.7) * step(0.3, skyF.y) * step(skyF.y, 0.75) * step(skyHash, skyRatio) * step(0.22, skyFloor);
 float skyFade = 1.0 - smoothstep(700.0, 1100.0, vSkyDist); // at 500 m a 4.2 m bay is ~20 px, so the windows survive well past the first fade range
-diffuseColor.rgb += vec3(1.0, 0.82, 0.45) * skyWin * skyFade * uSkyNight * (0.6 + 0.4 * skyHash) * 0.6;`);
-    };
-    mat.customProgramCacheKey = () => 'skyline-haze-v2';
+vec3 skyLit = mix(vec3(1.0, 0.82, 0.45), vec3(0.8, 0.9, 1.0), step(0.7, skyTint));
+diffuseColor.rgb += skyLit * skyWin * skyFade * uSkyNight * (0.6 + 0.4 * skyHash) * 0.5;`);    };
+    mat.customProgramCacheKey = () => 'skyline-haze-v3';
     const mesh = new THREE.InstancedMesh(geo, mat, boxes.length);
     boxes.forEach((b, i) => { mesh.setMatrixAt(i, m.compose(p.set(b.x, b.y, b.z), q, s.set(b.w, b.h, b.d))); mesh.setColorAt(i, tones[b.color.endsWith('t') ? 1 : 0]); });
     mesh.frustumCulled = false; mesh.castShadow = mesh.receiveShadow = false;

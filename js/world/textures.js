@@ -87,7 +87,7 @@ diffuseColor *= texture2D(map, tuv);
   float n = mix(mix(h.x, h.y, f.x), mix(h.z, h.w, f.x), f.y) - 0.5;
   #if GROUND == 1
   float dry=smoothstep(.16,.43,n);
-  diffuseColor.rgb *= vec3(.94,1.0,.89) * (1.0+.23*n);
+  diffuseColor.rgb *= vec3(.94,1.0,.89) * (1.0+.36*n); // lawn-only low-frequency tint amplitude (was .23)
   diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.28,1.08,.66),dry*.42);
   float turfEdge=min((.5-abs(vLP.x))*vSc.x,(.5-abs(vLP.z))*vSc.z);
   diffuseColor.rgb *= 1.0-.12*(1.0-smoothstep(.015,.20,turfEdge));

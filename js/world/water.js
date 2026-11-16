@@ -6,7 +6,7 @@ import { reflectionMode, detailTexture } from './water-math.js';
 import { PALETTE as P } from './palette.js';
 const DAY_SKY = new THREE.Color(0x8fc0e4), NIGHT_SKY = new THREE.Color(0x18203a);
 // Owner tweakables: how strongly the water mirrors (stylised floor added to Fresnel), sun/moon glint strength, foam band widths (m).
-export const REFLECT_FLOOR = 0.16, GLINT = 1.0, FOAM_WIDTH = 1.4, BOAT_FOAM_WIDTH = 0.35;
+export const REFLECT_FLOOR = 0.16, GLINT = 1.0, FOAM_WIDTH = 0.6, BOAT_FOAM_WIDTH = 0.35;
 const RANGE = 420, REFLECT_LAYER = 5, MAX_PIERS = 12, MAX_BOATS = 7, MAX_TAPS = 4, TAP_LIFE = 2.4;
 const vertexShader = /* glsl */`
 #include <fog_pars_vertex>
@@ -111,7 +111,8 @@ if (uReflect > 0.0) {
   refl = mix(sky, p.rgb / max(p.a, 0.001), clamp(p.a, 0.0, 1.0) * uReflect);
 }
 float fres = 0.02 + 0.98 * pow(1.0 - clamp(dot(n, v), 0.0, 1.0), 5.0);
-vec3 c = mix(body, refl, clamp(fres * 1.1 + uFloor, 0.0, 0.9));
+float bodyShow = 1.0 - 0.12 * (1.0 - smoothstep(0.5, 1.0, abs(across))); // mid-river only: let the water's own body colour read ~12% more through the reflection (banks unchanged)
+vec3 c = mix(body, refl, clamp(fres * 1.1 + uFloor, 0.0, 0.9) * bodyShow);
 // Sun (day/sunset) or moon (night) glint toward the visible disc: broad sheen + tight sparkles on the steeper facets.
 float sd = max(dot(r, uSun), 0.0);
 c += uGlint * (pow(sd, 60.0) * 0.35 + pow(sd, 700.0) * 3.0 * fade) * uKey;
@@ -130,8 +131,7 @@ foam = mix(foam, band * 0.3, aa);
 float boatBand = 1.0 - smoothstep(-0.08, uBoatFoamW * (0.6 + 0.8 * fn), boat);
 float boatFoam = smoothstep(0.35, 0.7, boatBand * (0.55 + 0.9 * fn2));
 boatFoam = mix(boatFoam, boatBand * 0.3, smoothstep(0.15, 0.9, fwidth(boat)));
-foam = max(foam, boatFoam);
-c = mix(c, vec3(0.86, 0.9, 0.9) * (1.0 - uNight * 0.75), foam * 0.55);
+c = mix(c, vec3(0.86, 0.9, 0.9) * (1.0 - uNight * 0.75), max(foam * 0.3, boatFoam * 0.55)); // bank foam softened (0.55 -> 0.3); boat wake keeps its strength
 c += vec3(0.7, 0.8, 0.85) * tapFoam * (1.0 - uNight * 0.65);
 gl_FragColor = vec4(c, 1.0);
 #include <tonemapping_fragment>

@@ -173,7 +173,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
   let bannerTimer, dwellTimer, quickTimer, party = false, lastIdx = -1;
   const paintHide = () => { // one text button for both states: "Hide the interface (H)" while it is on, "Show the interface (H)" while it is off
     const t = i18n[prefs.lang].ui, on = document.body.classList.contains('ui-hidden'), r = document.getElementById('ui-restore'), b = document.querySelector('[data-hide]');
-    r.hidden = false; r.textContent = on ? t.show : t.hideShort; r.setAttribute('aria-pressed', String(on)); b?.setAttribute('aria-pressed', String(on));
+    r.hidden = false; r.replaceChildren(on ? t.show : t.hideShort, ' ', Object.assign(document.createElement('kbd'), { textContent: 'H' })); r.setAttribute('aria-pressed', String(on)); b?.setAttribute('aria-pressed', String(on));
   };
   const setHidden = (on) => { // hide the panel and bar to see only the city; the pill (or H / Esc) brings them back
     document.body.classList.toggle('ui-hidden', on);
@@ -270,6 +270,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     const home = document.querySelector('[data-nav-home]');
     const cur = (el, on) => (on ? el.setAttribute('aria-current', 'page') : el.removeAttribute('aria-current'));
     cur(home, st.section === 'hero');
+    const more = document.querySelector('[data-more]'); if (more) more.textContent = t.ui.more;
     document.querySelectorAll('[data-nav]').forEach(a => {
       a.textContent = t.ui.nav[a.dataset.nav];
       cur(a, a.dataset.nav === st.section);
@@ -315,7 +316,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     panel.dataset.section = st.section;
     led(); paintRoute(); // fills the journey board the markup above just replaced
     const routeList = panel.querySelector('.stops'), currentRow = routeList?.querySelector('.on');
-    if (currentRow && matchMedia('(min-width: 768px)').matches) routeList.scrollTop = currentRow.offsetTop - 4;
+    if (currentRow && matchMedia('(min-width: 768px)').matches) currentRow.scrollIntoView({ block: 'nearest' }); // the panel is the only scroller: keep the selected stop in view
     clock();
     const introTime = document.getElementById('intro-time'); // ride lengths for the intro card, in the current language
     if (introTime) introTime.textContent = t.ui.rideTime.replace('{auto}', rideSeconds(stops.length, 3400)).replace('{quick}', rideSeconds(QUICK.length, 1600));
@@ -351,7 +352,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     if (go) { e.preventDefault(); onGoto(+go.dataset.goto); }
     if (e.target.closest('[data-nav-home]')) { e.preventDefault(); onGoto(0); }
     const nav = e.target.closest('[data-nav]');
-    if (nav) { e.preventDefault(); onGoto(sectionStart(nav.dataset.nav)); }
+    if (nav) { if (dropdownMq.matches) nav.closest('details')?.removeAttribute('open'); e.preventDefault(); onGoto(sectionStart(nav.dataset.nav)); }
     if (e.target.closest('[data-voice]')) {
       voiceOn = !voiceOn; voiceBtn.setAttribute('aria-pressed', String(voiceOn)); savePref(store(), 'voice', voiceOn ? 'on' : 'off');
       const st = stops[Math.max(active, 0)], t = i18n[prefs.lang].ui;
@@ -378,7 +379,13 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
       else applyTheme();
     }
   });
+  // the nav overflow menu is a real dropdown only between 768 and 1100px; elsewhere its links sit inline, so the details stays open
+  const moreMenu0 = document.querySelector('.nav-more'), dropdownMq = matchMedia('(min-width: 768px) and (max-width: 1100px)');
+  const syncMore = () => { if (moreMenu0) moreMenu0.open = !dropdownMq.matches; };
+  syncMore(); dropdownMq.addEventListener('change', syncMore);
   document.addEventListener('keydown', (e) => {
+    const moreMenu = dropdownMq.matches && document.querySelector('.nav-more[open]');
+    if (e.key === 'Escape' && moreMenu) { moreMenu.removeAttribute('open'); moreMenu.querySelector('summary').focus(); return; }
     if (e.key === 'Escape' && options.getAttribute('aria-expanded') === 'true') { closeOptions(); options.focus(); return; }
     if (e.target.closest('input, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
     if (document.body.classList.contains('intro-on') || document.querySelector('dialog[open]')) return; // the intro and the credits own the keys while open

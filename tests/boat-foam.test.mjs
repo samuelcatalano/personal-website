@@ -13,7 +13,7 @@ test('Thames boat foam uses hull-shaped bounds and a narrow band separate from p
   assert.ok(/bounds\.push\(\{ x:.*?hz: Math\.min\(.*?1\.08/s.test(scene), 'foam bounds cap each boat to its hull beam');
   assert.ok(/piers, boats, reflectRoots/.test(scene), 'scene passes both edge sets to water');
 
-  assert.ok(/FOAM_WIDTH = 1\.4, BOAT_FOAM_WIDTH = 0\.35/.test(water), 'boat foam width is narrower while pier width is unchanged');
+  assert.ok(/FOAM_WIDTH = 0\.6, BOAT_FOAM_WIDTH = 0\.35/.test(water), 'boat foam width is narrower while pier width is unchanged');
   assert.ok(/uniform vec4 uBoats\[\$\{MAX_BOATS\}\]/.test(water), 'shader receives boat hull bounds separately');
   assert.ok(/uBoatFoamW: \{ value: BOAT_FOAM_WIDTH \}/.test(water), 'shader gets the narrower boat width');
   assert.ok(/u\.uBoatN\.value = Math\.min\(boats\.length, MAX_BOATS\)/.test(water), 'shader gets the active hull bounds');

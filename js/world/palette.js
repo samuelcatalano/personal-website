@@ -1,6 +1,6 @@
 export const PALETTE = {
   cream: '#e6dcc4', stone: '#9b9b99', taupe: '#7d7468', roof: '#5a4f4a',
-  grass: '#658545', pave: '#c2b9a8', patch: '#829467', road: '#353b40', glass: '#6fb4e0', lit: '#f0d99a', arch: '#f7f1e2', eyeRim: '#d4e8ff', eyePod: '#ffe4a8',
+  grass: '#678449', pave: '#c2b9a8', patch: '#83936a', road: '#353b40', glass: '#6fb4e0', lit: '#f0d99a', arch: '#f7f1e2', eyeRim: '#d4e8ff', eyePod: '#ffe4a8',
   leaf: '#3c8a22', trunk: '#6b4f33', red: '#d02028',
   dirt: '#86603e', oak: '#a27b4c', brick: '#a8442f', sandstone: '#e0c880', concrete: '#c4c4c2',
   gilt: '#b39a64', masp: '#c8102e', steel: '#6f8fa3', ink: '#46505b', white: '#f4f1ea',
@@ -11,6 +11,6 @@ export const PALETTE = {
   teal: '#5a9aa0', bronze: '#8a7356',
   field: '#698655', field2: '#8a9a60', crop: '#c9b550', redSand: '#b5603f', hill: '#6d9a4a',
   hedge: '#496a38', gravel: '#d8cfb8', iron: '#23262b', tulip: '#f0c030', violet: '#8e5ab8',
-  verdigris: '#a6d5c4', tileCream: '#ece1c6', tileTerra: '#b9704e', bloomPink: '#e8559a',
+  verdigris: '#a6d5c4', tileCream: '#ece1c6', tileTerra: '#b9704e', tileWarm: '#e3d7bb', tileStone: '#e9e0cb', bloomPink: '#e8559a',
   paverWarm: '#b9ad98',
 };
