@@ -1,5 +1,5 @@
 import { ding, hiss, releaseSounds } from './sound.js';
-import { stops, i18n } from './content.js';
+import { stops, i18n, yearText } from './content.js';
 import { loadState, onLoadChange } from './world/load-progress.js';
 // Intro shown on every load. A toy bus follows the scroll wheel (or swipe, or arrow keys) along a miniature of the career line while the 3D world loads;
 // The blind names the destination; real loading progress has its own visible line on the ticket.
@@ -9,9 +9,9 @@ export const practice = (p, dy) => clamp01(p + dy / 500);
 const JOURNEY = stops.filter((s) => s.section === 'journey');
 export const journeyIndex = (p, n = JOURNEY.length) => Math.round(clamp01(p) * (n - 1));
 // "2019 LONDON", "2003 PUC": the year plus the employer's initials, or the city where there are none (the move) or where the initials repeat (Glasgow).
-export const careerLabel = (st, t) => `${st.year} ${st.id === 'glasgow' || !st.brand ? t.stops[st.id].place : st.brand.initials}`.toUpperCase();
+export const careerLabel = (st, t) => `${yearText(st, t.ui)} ${st.id === 'glasgow' || !st.brand ? t.stops[st.id].place : st.brand.initials}`.toUpperCase();
 // the year label of each node, blank when it repeats the previous node's
-export const yearLabels = (journey) => journey.map((st, i) => (i && st.year === journey[i - 1].year ? '' : st.year));
+export const yearLabels = (journey, ui) => journey.map((st, i) => (i && st.year === journey[i - 1].year ? '' : yearText(st, ui)));
 const KEY_DY = { ArrowRight: 35, ArrowLeft: -35, PageDown: 240, PageUp: -240, ' ': 240 }; // right drives forward, left goes back
 const LEDS = 48;
 export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {}) {
@@ -30,7 +30,7 @@ export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {
   const border = JOURNEY.findIndex(st => st.id === 'move');
   const glasgow = JOURNEY.findIndex(st => st.id === 'glasgow');
   root.style.setProperty('--border-stop', `${100 * fraction(border)}%`);
-  const years = yearLabels(JOURNEY);
+  const years = yearLabels(JOURNEY, t().ui);
   nodesEl.innerHTML = JOURNEY.map((st, i) => `<i class="node ${st.country.toLowerCase()}${i === border ? ' hub' : ''}" style="--f:${fraction(i)}">${years[i] === '' ? '' : `<b>${years[i]}</b>`}</i>`).join('');
   ledsEl.innerHTML = '<i></i>'.repeat(LEDS);
   const nodes = [...nodesEl.children], leds = [...ledsEl.children];

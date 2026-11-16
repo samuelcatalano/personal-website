@@ -1,4 +1,4 @@
-import { stops, i18n, links, articles, repos, stackGroups, toolStops, toolSpan, credits, sectionStart, cityOf, QUICK } from './content.js';
+import { stops, i18n, links, articles, repos, stackGroups, toolStops, toolSpan, credits, sectionStart, cityOf, QUICK, yearText } from './content.js';
 // Stored choice wins; first-time visitors get PT for pt-* browsers and a light theme.
 export function loadPrefs(storage, env = {}) {
   const fallback = { lang: String(env.lang || '').toLowerCase().startsWith('pt') ? 'pt' : 'en', theme: 'day' };
@@ -90,7 +90,7 @@ function sectionHTML(section, t, active, tool = null, route = { seen: new Set(),
       <p class="led board" aria-hidden="true"><b>83</b><span class="live"></span></p>
       <h2>${s.title}</h2><p>${s.intro}</p>
       <section id="career-detail" class="detail current-stop${seenSet.has(active) ? ' seen' : ''}" data-stop="${active}" aria-labelledby="career-title">
-        <span class="punch" aria-hidden="true"></span><span class="stamp">${t.ui.cities[cityOf(selected)]} · ${selected.year}</span>
+        <span class="punch" aria-hidden="true"></span><span class="stamp">${t.ui.cities[cityOf(selected)]} · ${yearText(selected, t.ui)}</span>
         <h3 id="career-title">${c.title}</h3><p class="role">${c.role}</p><small>${c.dates} · ${c.place}</small><p>${c.body}</p>
       </section>
       <aside class="recent-role"><p class="eyebrow">${s.latest}</p><p class="recent-company">${latest.title}</p><small>${latest.role} · ${latest.dates}</small></aside>
@@ -98,7 +98,7 @@ function sectionHTML(section, t, active, tool = null, route = { seen: new Set(),
         if (st.section !== 'journey') return '';
         const c = t.stops[st.id], on = i === active, hit = tool && toolStops[tool].includes(st.id);
         return `<li class="${st.country.toLowerCase()}${st.id === 'move' ? ' hub' : ''}${on ? ' on' : ''}${seenSet.has(i) ? ' seen' : ''}${tool ? (hit ? ' hit' : ' dim') : ''}"><button data-goto="${i}" aria-controls="career-detail" aria-expanded="${on}"${on ? ' aria-current="step"' : ''}>
-          <span class="yr">${st.year}</span><span class="node" aria-hidden="true"></span>${st.brand ? `<span class="mono" style="--c:${st.brand.color}" aria-hidden="true">${st.brand.initials}</span>` : ''}<span class="name">${c.title}</span></button>
+          <span class="yr">${yearText(st, t.ui)}</span><span class="node" aria-hidden="true"></span>${st.brand ? `<span class="mono" style="--c:${st.brand.color}" aria-hidden="true">${st.brand.initials}</span>` : ''}<span class="name">${c.title}</span></button>
           </li>`;
       }).join('')}</ol>
       <p class="zones"><span class="z br">${t.ui.zones.br}</span><span class="z uk">${t.ui.zones.uk}</span></p>${journeyLine(t, seenSet)}${nextButton(t, seenSet)}`;
@@ -145,7 +145,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {}, onFocusStop = () =>
   const say = (key, ms = 2500) => { notes.say = key; led(); clearTimeout(sayTimer); sayTimer = setTimeout(() => { notes.say = null; led(); }, ms); };
   const baseText = () => {
     const t = i18n[prefs.lang], st = stops[Math.max(active, 0)];
-    return st.section === 'journey' ? `${st.year} ${t.stops[st.id].place}` : st.section === 'hero' ? `${routeNo()} · ${t.sections.hero.role}` : t.ui.nav[st.section]; // the hero's blind reads like the bus's own: "83 · Senior Software Engineer"
+    return st.section === 'journey' ? `${yearText(st, t.ui)} ${t.stops[st.id].place}` : st.section === 'hero' ? `${routeNo()} · ${t.sections.hero.role}` : t.ui.nav[st.section]; // the hero's blind reads like the bus's own: "83 · Senior Software Engineer"
   };
   // With the tab in the background the title becomes the blind: "83 · Waiting at Tribal Worldwide London".
   const pageTitle = document.title;
