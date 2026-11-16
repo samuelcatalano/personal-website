@@ -323,6 +323,7 @@ body.no-webgl #world { display: none; }
 .stops button { display: flex; align-items: center; width: 100%; min-height: 44px; padding: 0; background: none; border: 0; border-radius: 8px; font: 500 13px/1.4 var(--sans); color: inherit; cursor: pointer; text-align: left; }
 .stops .yr { width: 44px; flex: none; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .stops li.on .yr { color: var(--accent); font-weight: 600; }
+.stops .yr .yr-now { display: block; font: 600 9px/1.2 var(--sans); color: var(--accent); }
 .node { position: relative; z-index: 1; flex: none; width: 14px; height: 14px; margin: 0 7px; border-radius: 50%; background: var(--card); border: 3px solid var(--seg); transition: box-shadow .25s, background .25s; }
 .stops li.hub .node { width: 22px; height: 22px; margin: 0 3px; border-color: var(--ink); }
 .stops li.on .node { background: var(--seg); box-shadow: 0 0 0 5px color-mix(in srgb, var(--seg) 24%, transparent); }
@@ -582,7 +583,8 @@ body.theme-night .detail .stamp { color: color-mix(in srgb, var(--city) 50%, var
 #intro-hint kbd { display: inline-grid; place-items: center; min-width: 24px; height: 24px; margin: 0 2px; padding: 0 6px; border: 1px solid var(--ticket-line); border-bottom-width: 3px; border-radius: 5px; background: #fffaf0; font: 700 13px/1 var(--sans); color: var(--ticket-ink); vertical-align: middle; }
 #intro[data-preview="sp"] .live-view[data-city="sp"], #intro[data-preview="london"] .live-view[data-city="london"], #intro[data-preview="glasgow"] .live-view[data-city="glasgow"] { opacity: 1; }
 .road { margin-bottom: 28px; }
-.road .node b { position: absolute; top: 13px; left: 50%; transform: translateX(-50%); font: 600 11px/1 var(--sans); color: var(--ticket-muted); cursor: pointer; }
+.road .node b { position: absolute; top: 13px; left: 50%; transform: translateX(-50%); font: 600 11px/1 var(--sans); color: var(--ticket-muted); cursor: pointer; white-space: nowrap; }
+.road .node b .yr-now { display: block; font: 600 9px/1.2 var(--sans); color: var(--ticket-red); }
 .road .node.here b { color: var(--ticket-red); font-weight: 800; }
 .road .node.here b { animation: intro-year-arrive .4s ease-out; }
 @keyframes intro-year-arrive { from { transform: translateX(-50%) translateY(3px); opacity: .55; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }

@@ -1,5 +1,5 @@
 import { ding, hiss, releaseSounds } from './sound.js';
-import { stops, i18n, yearText } from './content.js';
+import { stops, i18n, yearText, yearStack } from './content.js';
 import { loadState, onLoadChange } from './world/load-progress.js';
 // Intro shown on every load. A toy bus follows the scroll wheel (or swipe, or arrow keys) along a miniature of the career line while the 3D world loads;
 // The blind names the destination; real loading progress has its own visible line on the ticket.
@@ -11,7 +11,7 @@ export const journeyIndex = (p, n = JOURNEY.length) => Math.round(clamp01(p) * (
 // "2019 LONDON", "2003 PUC": the year plus the employer's initials, or the city where there are none (the move) or where the initials repeat (Glasgow).
 export const careerLabel = (st, t) => `${yearText(st, t.ui)} ${st.id === 'glasgow' || !st.brand ? t.stops[st.id].place : st.brand.initials}`.toUpperCase();
 // the year label of each node, blank when it repeats the previous node's
-export const yearLabels = (journey, ui) => journey.map((st, i) => (i && st.year === journey[i - 1].year ? '' : yearText(st, ui)));
+export const yearLabels = (journey, ui) => journey.map((st, i) => (i && st.year === journey[i - 1].year ? '' : yearStack(st, ui)));
 const KEY_DY = { ArrowRight: 35, ArrowLeft: -35, PageDown: 240, PageUp: -240, ' ': 240 }; // right drives forward, left goes back
 const LEDS = 48;
 export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {}) {

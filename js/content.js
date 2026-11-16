@@ -25,6 +25,8 @@ export const stops = [
 export const sectionStart = (section) => stops.findIndex(s => s.section === section);
 // The year a stop shows. A stop that is still going (current: Tribal) reads "2024 – now/hoje"; the stored year stays a number, because it orders the route and dates the tools.
 export const yearText = (st, ui) => (st.current && ui ? `${st.year} – ${ui.ongoing}` : st.year);
+// The same year as HTML for narrow spots (journey list, intro timeline): "now" stacks under the year instead of wrapping mid-phrase.
+export const yearStack = (st, ui) => (st.current && ui ? `${st.year}<small class="yr-now">${ui.ongoing}</small>` : st.year);
 
 export const links = {
   email: 'mailto:samuel.catalano@gmail.com',

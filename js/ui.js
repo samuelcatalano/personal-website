@@ -1,4 +1,4 @@
-import { stops, i18n, links, articles, repos, stackGroups, toolStops, toolSpan, credits, sectionStart, cityOf, QUICK, yearText } from './content.js';
+import { stops, i18n, links, articles, repos, stackGroups, toolStops, toolSpan, credits, sectionStart, cityOf, QUICK, yearText, yearStack } from './content.js';
 // Stored choice wins; first-time visitors get PT for pt-* browsers and a light theme.
 export function loadPrefs(storage, env = {}) {
   const fallback = { lang: String(env.lang || '').toLowerCase().startsWith('pt') ? 'pt' : 'en', theme: 'day' };
@@ -98,7 +98,7 @@ function sectionHTML(section, t, active, tool = null, route = { seen: new Set(),
         if (st.section !== 'journey') return '';
         const c = t.stops[st.id], on = i === active, hit = tool && toolStops[tool].includes(st.id);
         return `<li class="${st.country.toLowerCase()}${st.id === 'move' ? ' hub' : ''}${on ? ' on' : ''}${seenSet.has(i) ? ' seen' : ''}${tool ? (hit ? ' hit' : ' dim') : ''}"><button data-goto="${i}" aria-controls="career-detail" aria-expanded="${on}"${on ? ' aria-current="step"' : ''}>
-          <span class="yr">${yearText(st, t.ui)}</span><span class="node" aria-hidden="true"></span>${st.brand ? `<span class="mono" style="--c:${st.brand.color}" aria-hidden="true">${st.brand.initials}</span>` : ''}<span class="name">${c.title}</span></button>
+          <span class="yr">${yearStack(st, t.ui)}</span><span class="node" aria-hidden="true"></span>${st.brand ? `<span class="mono" style="--c:${st.brand.color}" aria-hidden="true">${st.brand.initials}</span>` : ''}<span class="name">${c.title}</span></button>
           </li>`;
       }).join('')}</ol>
       <p class="zones"><span class="z br">${t.ui.zones.br}</span><span class="z uk">${t.ui.zones.uk}</span></p>${journeyLine(t, seenSet)}${nextButton(t, seenSet)}`;
