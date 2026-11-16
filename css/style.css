@@ -655,6 +655,8 @@ body.ui-hidden #arrival { opacity: 0; }
 .intro-lang .flag { width: 22px; height: 22px; }
 .intro-lang:focus-visible, .road:focus-visible { outline: 2px solid var(--ticket-red); outline-offset: 3px; }
 .intro-stage { color: var(--ticket-muted); }
+.intro-tip { min-height: 1.5em; margin: 8px 0 0; text-align: center; font-size: 12px; line-height: 1.5; font-style: italic; color: var(--ticket-muted); transition: opacity .35s ease; }
+.intro-tip.swap { opacity: 0; } /* fades out between two tips; reduced motion shows the first one still (intro.js) */
 .status-line { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } /* status text and phase stay on one line, no orphan "· Trees" */
 .intro-stage:not(:empty)::before { content: ' · '; }
 .intro-stub { position: relative; }

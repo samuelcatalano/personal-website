@@ -138,14 +138,14 @@ const stills = async (w) => {
   const wait = (ms) => new Promise((r) => setTimeout(r, ms)), frames = (k) => new Promise((r) => { const f = (i) => (i ? requestAnimationFrame(() => f(i - 1)) : r()); f(k); }), at = (i) => marks[i], out = {};
   let cover = null, coverUrl = '';
   try {
-    out.sp = await w.snapshot();
+    out.sp = await w.snapshot(); intro.phase('sp');
     // the camera tours London and Glasgow for their stills: the first still stays on screen over the canvas so nobody sees it travel
     cover = Object.assign(document.createElement('img'), { src: (coverUrl = URL.createObjectURL(out.sp)), alt: '' });
     Object.assign(cover.style, { position: 'fixed', inset: '0', width: '100%', height: '100%', objectFit: 'cover', zIndex: '1', pointerEvents: 'none' });
     document.body.append(cover); await cover.decode?.().catch(() => {});
     for (const [city, p] of [['london', (at(9) + at(10)) / 2], ['glasgow', at(stops.findIndex((s) => s.id === 'glasgow'))]]) {
       if (intro.interacted || !intro.active) return;
-      w.jump(p); await wait(450); out[city] = await w.snapshot();
+      w.jump(p); await wait(450); out[city] = await w.snapshot(); intro.phase(city);
     }
     intro.showPreviews(out);
   } finally { w.jump(progress); await frames(3); cover?.remove(); if (coverUrl) URL.revokeObjectURL(coverUrl); } // hand the camera back to the page scroll, then drop the cover once a frame is drawn
@@ -164,8 +164,9 @@ if (hasWebGL()) {
       reducedMotion, onProgress: follow, onPick: (id) => (id === 'bus' ? ui.say('horn') : goto(stops.findIndex((s) => s.id === id))),
     }))
     .then((w) => { world = w; w.setProgress(progress); w.setTheme(ui.theme); document.body.classList.add('world-ready'); intro.worldLoaded();
-      whenSettled().then(async () => { document.body.classList.add('world-settled');
+      whenSettled().then(async () => { document.body.classList.add('world-settled'); intro.phase('settled');
         await stills(w).catch(() => {}); // the still tour moves the camera and streams more of the city: Board opens only after it has finished and the load has settled again, so nothing changes after the release
+        intro.phase('glasgow'); // the photos are over (taken or skipped): the rest is the last settle
         await whenSettled(); intro.ready(); ui.readyToDepart(); }); })
     .catch((err) => { console.warn('3D world unavailable:', err); intro.dismiss(); document.body.classList.add('no-webgl'); });
 } else {

@@ -40,3 +40,22 @@ test('auto-ride travel time is bounded', () => {
   assert.equal(travelMs(10), 1400);
   assert.equal(travelMs(100000), 5500);
 });
+import { progressValue, FINAL } from '../js/intro.js';
+test('the ticket progress fills 0-70 with the files, then 70-99 in real finishing steps, never reaching 100 on its own', () => {
+  assert.equal(progressValue({ ratio: 0 }), 0);
+  assert.equal(progressValue({ ratio: 1 }), 70);
+  assert.equal(progressValue({ ratio: 0.5 }), 35);
+  assert.equal(progressValue({ ratio: 0.2, loaded: true }), 70); // the world exists: the files bar is full, the finishing steps have not started
+  const steps = ['settled', 'sp', 'london'].map((phase) => progressValue({ ratio: 0.2, loaded: true, phase }));
+  assert.deepEqual(steps, [FINAL.settled, FINAL.sp, FINAL.london]);
+  assert.ok(steps.every((v, i) => v > (steps[i - 1] ?? 70)), 'each finishing step moves the bar forward');
+  assert.equal(progressValue({ ratio: 0, loaded: true, phase: 'glasgow' }), 94);
+  assert.equal(progressValue({ ratio: 1, loaded: true, phase: 'glasgow' }), 99); // the last settle uses the file ratio, capped below 100
+});
+test('every language has the finishing-step texts and the same tips', () => {
+  const { en, pt } = { en: i18n.en.ui.intro, pt: i18n.pt.ui.intro };
+  for (const k of ['photo', 'touches']) assert.ok(en[k] && pt[k], `intro.${k} in en and pt`);
+  assert.ok(en.photo.includes('{city}') && pt.photo.includes('{city}'));
+  assert.ok(en.tips.length >= 3 && en.tips.length === pt.tips.length, 'same number of tips in en and pt');
+  assert.ok([...en.tips, ...pt.tips].every((s) => typeof s === 'string' && s.length > 10));
+});

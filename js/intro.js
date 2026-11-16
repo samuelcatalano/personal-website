@@ -12,18 +12,22 @@ export const journeyIndex = (p, n = JOURNEY.length) => Math.round(clamp01(p) * (
 export const careerLabel = (st, t) => `${yearText(st, t.ui)} ${st.id === 'glasgow' || !st.brand ? t.stops[st.id].place : st.brand.initials}`.toUpperCase();
 // the year label of each node, blank when it repeats the previous node's
 export const yearLabels = (journey, ui) => journey.map((st, i) => (i && st.year === journey[i - 1].year ? '' : yearStack(st, ui)));
+// Progress shown on the ticket. Loading the world's files fills 0-70; the finishing phase (settling, the three still photos, the last settle) fills 70-99 in real steps,
+// so the bar no longer sits on one number while the stills are taken. `phase` is the last finishing step done: 'settled', 'sp', 'london' or 'glasgow' (= photos over).
+export const FINAL = { settled: 76, sp: 82, london: 88, glasgow: 94 };
+export const progressValue = ({ ratio = 0, loaded = false, phase = null }) => Math.min(99, !loaded ? Math.round(ratio * 70) : phase === 'glasgow' ? Math.round(94 + 5 * ratio) : FINAL[phase] ?? 70);
 const KEY_DY = { ArrowRight: 35, ArrowLeft: -35, PageDown: 240, PageUp: -240, ' ': 240 }; // right drives forward, left goes back
 const LEDS = 48;
 export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {}) {
   let soundsPlayed = false; // the bell and the door hiss belong to the first Skip only, never again
-  let p = 0, auto = 0, autoTarget = 0, raf = 0, previewUrls = [], loaded = false, active = false, interacted = false, ready = false, previewed = false, boarding = false, returning = false, blindStep = 0, bellTimer, blindTimer, unsubscribe;
+  let p = 0, auto = 0, autoTarget = 0, raf = 0, previewUrls = [], loaded = false, active = false, interacted = false, ready = false, previewed = false, boarding = false, returning = false, blindStep = 0, phase = null, shown = 0, tipIndex = 0, bellTimer, blindTimer, tipTimer, unsubscribe;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const map = root.querySelector('.intro-map'), cur = root.querySelector('.dest .cur');
   const nodesEl = root.querySelector('.nodes'), ledsEl = root.querySelector('.leds');
   const statusEl = root.querySelector('.status'), statusText = root.querySelector('#intro-status-text');
   const skip = root.querySelector('[data-intro-skip]');
   const road = root.querySelector('.road'), stamp = root.querySelector('.intro-ticket-stamp'), stub = root.querySelector('.intro-stub');
-  const stageEl = root.querySelector('.intro-stage');
+  const stageEl = root.querySelector('.intro-stage'), tipEl = root.querySelector('#intro-tip');
   const previewStops = [...root.querySelectorAll('[data-preview-stop]')];
   const t = () => i18n[document.documentElement.lang.startsWith('pt') ? 'pt' : 'en'];
   const fraction = i => i / (JOURNEY.length - 1);
@@ -41,7 +45,9 @@ export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {
     stamp.textContent = returning ? tt.ui.intro.ticketReturn : tt.ui.intro.ticket; stamp.dataset.i18n = returning ? 'intro.ticketReturn' : 'intro.ticket';
     road.setAttribute('aria-label', tt.ui.intro.routeLabel);
   };
-  const onLang = () => { if (active) { paintStatic(); paintProgress(); render(); } };
+  const paintTip = () => { const tips = t().ui.intro.tips; tipEl.textContent = tips[tipIndex % tips.length]; };
+  const nextTip = () => { tipEl.classList.add('swap'); setTimeout(() => { tipIndex++; paintTip(); tipEl.classList.remove('swap'); }, 350); }; // fade out, swap the text, fade in
+  const onLang = () => { if (active) { paintStatic(); paintTip(); paintProgress(); render(); } };
   const paintBlind = () => {
     const tt = t(), city = { sp: 'sp', london: 'ldn', glasgow: 'gla' }[root.dataset.preview || 'sp'];
     let label = tt.ui.cities[city];
@@ -58,13 +64,16 @@ export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {
     }
   };
   const paintProgress = () => {
-    const { ratio, stage } = loadState(), value = ready ? 100 : Math.min(99, Math.round(ratio * 100)), ui = t().ui; // 100 is only shown once the whole city has settled
+    const { ratio, stage } = loadState(), ui = t().ui;
+    shown = Math.max(shown, progressValue({ ratio, loaded, phase })); // never moves backwards: streaming the stills can add requests and lower the file ratio
+    const value = ready ? 100 : shown; // 100 is only shown once the whole city has settled
+    const photo = { settled: 'sp', sp: 'ldn', london: 'gla' }[phase], finishing = loaded && phase && (photo ? ui.intro.photo.replace('{city}', ui.cities[photo]) : ui.intro.touches); // what the finishing phase is doing now
     root.dataset.ready = String(ready);
     leds.forEach((l, i) => l.classList.toggle('on', i < Math.round(value * LEDS / 100)));
     skip.style.setProperty('--fill', `${value}%`); // the Start button fills with the same progress
     statusEl.setAttribute('aria-valuenow', String(value));
     statusText.textContent = ready ? ui.intro.loaded : `${loaded ? ui.intro.finishing : ui.intro.loadingBtn} · ${value}%`;
-    stageEl.textContent = !ready && stage ? ui.intro.stages[stage] || '' : ''; // what is arriving now; outside the live region so a screen reader is not read every change
+    stageEl.textContent = ready ? '' : finishing || (stage ? ui.intro.stages[stage] || '' : ''); // what is arriving now; outside the live region so a screen reader is not read every change
     if (!bellTimer) skip.textContent = ui.intro.start;
     autoTarget = ready ? 0 : ratio; // the toy bus rides the line as the world loads, then drives back to the first stop, ready to go forward
     if (!interacted && !raf) raf = requestAnimationFrame(glide);
@@ -97,7 +106,7 @@ export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {
   const dismiss = ({ reveal = false } = {}) => {
     if (!active) return;
     active = false;
-    clearTimeout(bellTimer); clearInterval(blindTimer);
+    clearTimeout(bellTimer); clearInterval(blindTimer); clearInterval(tipTimer);
     for (const u of previewUrls) setTimeout(() => URL.revokeObjectURL(u), 1500);
     unsubscribe();
     document.removeEventListener('keydown', onKey); document.removeEventListener('langchange', onLang);
@@ -179,11 +188,14 @@ export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {
       returning = !!navigator.serviceWorker?.controller; // a service worker already in control means the 3D assets are cached: this passenger has been here before, and nothing new is stored
       paintStatic();
       if (!reduced) blindTimer = setInterval(() => { if (active && !ready && !previewed && !interacted && !bellTimer) { blindStep++; paintBlind(); } }, 2600); // reduced motion keeps the first message still
+      tipIndex = Math.floor(Math.random() * t().ui.intro.tips.length); paintTip(); // a different tip first on each visit
+      if (!reduced) tipTimer = setInterval(() => { if (active && !bellTimer) nextTip(); }, 6500); // reduced motion keeps the first tip still
       document.addEventListener('keydown', onKey); document.addEventListener('langchange', onLang);
       unsubscribe = onLoadChange(() => { if (active) { paintProgress(); paintBlind(); } });
       paintProgress();
       render();
     },
+    phase(name) { phase = name; if (active) paintProgress(); }, // a step of the finishing phase is done (main.js)
     worldLoaded() { loaded = true; if (active) paintProgress(); }, // the world exists, buildings and landmarks may still be arriving
     ready() {
       ready = true; skip.disabled = false;
