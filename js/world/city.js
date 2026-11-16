@@ -198,8 +198,9 @@ function buildLegacy(add, stops, pts, curve, onTree, onBuildingPlot, onArchitect
         if (show && !uk && onArchitecturePlot) onArchitecturePlot({ ...townhousePlot, id });
         if (show && uk) {
           const floors = side === 1 ? 2 : 3 + (hr() < 0.4);
-          if (onArchitecturePlot) onArchitecturePlot({ id, kind: 'terrace', x, z: hz, width: 9, depth: 7, height: floors * 3.1 + (side === 1 ? 0.6 : 2.7) });
-          house(onArchitecturePlot ? noop : add, hr, x, hz, -side, 9, 7, floors, 3.1, side === 1);
+          const removed = id === 'frontage-stop-recs-765--1-9'; // Owner-marked Wembley obstruction; keep RNG and neighbouring lots unchanged.
+          if (onArchitecturePlot && !removed) onArchitecturePlot({ id, kind: 'terrace', x, z: hz, width: 9, depth: 7, height: floors * 3.1 + (side === 1 ? 0.6 : 2.7) });
+          house(onArchitecturePlot || removed ? noop : add, hr, x, hz, -side, 9, 7, floors, 3.1, side === 1);
         }
         occ.push([p.x + dx - 5, p.x + dx + 5, hz - 4.5, hz + 4.5]);
       }

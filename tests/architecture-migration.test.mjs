@@ -22,6 +22,16 @@ const collect = () => {
 };
 const overlaps = (p, r) => p.x - p.width / 2 < r[1] && r[0] < p.x + p.width / 2 && p.z - p.depth / 2 < r[3] && r[2] < p.z + p.depth / 2;
 
+test('only the owner-marked Wembley frontage house is removed', () => {
+  const { plots } = collect();
+  assert.equal(plots.some(p => p.id === 'frontage-stop-recs-765--1-9'), false);
+  for (const dx of [-9, 0]) {
+    assert.deepEqual(plots.find(p => p.id === `frontage-stop-recs-765--1-${dx}`), {
+      id: `frontage-stop-recs-765--1-${dx}`, kind: 'terrace', x: 805 + dx, z: -29, width: 9, depth: 7, height: 15.100000000000001,
+    });
+  }
+});
+
 test('citywide architecture migration is deterministic, batched by plot, and keeps landmark fronts clear', () => {
   const { plots, boxes } = collect(), repeated = collect().plots;
   assert.ok(plots.length >= 490);
