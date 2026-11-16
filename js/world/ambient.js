@@ -7,6 +7,7 @@ import { stopMarks, fineMarks, routeT } from '../scroll.js';
 import { addBeams, refitBeams } from './beams.js';
 import { fadeVehicle, disposeFade } from './fade.js';
 import { PORTAL } from './route-tunnel.js';
+import { firstInBand } from './hero-yield.js';
 import { loadGlb } from './glb-loader.js';
 let thamesBoat;
 const THAMES_BOAT_SCALE = 0.4; // Match the compressed landmark/river scale; never stretch individual axes.
@@ -100,6 +101,10 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false,
   for (const c of Object.values(paths)) c.plen = c.getLength();
   const atJ = (c, q) => { let best = 0; for (let k = 1; k <= 400; k++) if (c.getPointAt(k / 400).distanceTo(q) < c.getPointAt(best / 400).distanceTo(q)) best = k; return best / 400 * c.plen; };
   const sIn = atJ(paths.in, side(er.stations.at(-1), -1.75)), sOut = atJ(paths.out, side(er.stations.at(-1), 1.75)); // path distance where each lane meets the kerb line
+  // The hero (scroll-driven, cannot brake) drives the lane at +1.75 m from the centre line; the junction turns cross it. Offsets are on the hero's side (+nb, as in estaiadaRoute).
+  // ponytail: a car already inside the band when the hero arrives is not undone, and the hero zone is a fixed radius (HERO_CLEAR) round the junction, not the hero's real length; per-vehicle sweep tests if that is not enough.
+  const cj = curve.getPointAt(er.uj), tj = curve.getTangentAt(er.uj), HERO_CLEAR = 7, HERO_YIELD_M = 12, HERO_BAND = [-0.1, 3.6]; // m: hero within this of the junction blocks it; lateral band (hero lane +- half a car)
+  const heroLine = Object.fromEntries(Object.entries(paths).map(([k, c]) => [k, firstInBand(Array.from({ length: 401 }, (_, i) => { const q = c.getPointAt(i / 400); return (q.x - cj.x) * tj.z - (q.z - cj.z) * tj.x; }), ...HERO_BAND) * c.plen])); // path distance where each lane first enters the hero's band (-plen if never)
   const bridge = [[3, 'in', 'road', 25], [7, 'in', 'path', 0.55], [2, 'out', 'path', 0.2], [9, 'out', 'path', 0.75]].map(([c, kind, phase, at], k) => {
     const mesh = car(CARS[c][1], CARS[c][0]); addBeams(mesh, mesh.userData.front, mesh.userData.beamY); mesh.rotation.order = 'YZX'; scene.add(mesh);
     const tail = mesh.children[mesh.children.length - 1], base = kind === 'in' ? 11.5 : 12.5;
@@ -253,6 +258,7 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false,
         v.mesh.rotation.y = v.yaw;
         v.tail.userData.swell?.(1 + 1.4 * v.brake); // brake lights: the tail glow pool (night only) swells while slowing
       }
+      const heroNear = here.distanceTo(cj) < HERO_CLEAR;
       const lane = auto.filter((v) => v.active || v.fade > 0).concat(bridge.filter((b) => b.phase === 'road')), merge = [uOut - 8 / len, er.uj + 35 / len];
       for (const kind of ['in', 'out']) { // ramp/deck: same-direction cars keep their gap (a car held at the junction queues the next)
         const onPath = bridge.filter((b) => b.kind === kind && b.phase === 'path').sort((a, b) => b.s - a.s);
@@ -260,6 +266,7 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false,
           if (!move) return;
           b.v += Math.max(-DEC * dt, Math.min(ACC * dt, b.base - b.v));
           let s1 = b.s + b.v * dt;
+          if (heroNear && heroLine[kind] >= 0 && b.s <= heroLine[kind] - b.len / 2 - 0.5 && s1 > heroLine[kind] - b.len / 2 - 0.5) { s1 = b.s; b.v = 0; } // give way to the hero: wait at the band's edge until it has passed
           if (kind === 'out' && b.s <= sOut - b.len / 2 - 0.5 && s1 > sOut - b.len / 2 - 0.5 && (lane.some((v) => { const t = tOf(v); return t > merge[0] && t < merge[1]; }) || bridge.some((o) => o.kind === 'in' && o.phase === 'path' && o.s < sIn + 6))) { s1 = b.s; b.v = 0; } // give way to the avenue (and to a car turning in) before pulling out
           const at = paths[kind].getPointAt(Math.min(1, Math.max(0, s1 / paths[kind].plen))), clear = (v) => at.distanceTo(v.mesh.position) >= (v.len + b.len) / 2 + GAP; // real distance: path s shortens nothing on the bend
           if (i) { const lead = onPath[i - 1]; if (lead.s - s1 < (lead.len + b.len) / 2 + GAP || !clear(lead)) { s1 = b.s; b.v = Math.min(b.v, lead.v); } }
@@ -279,6 +286,12 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false,
           b.phase = 'road';
           if (b.kind === 'out') b.p = invP(uOut - (b.s - path.plen) / len);
           else { let D = 25; const busy = (t) => lane.some((v) => v !== b && laneAt(t, tmp).distanceTo(v.mesh.position) < (v.len + b.len) / 2 + GAP + 4); while (D < 400 && (curve.getPointAt(Math.min(1, uIn + D / len)).distanceTo(here) < BRIDGE_FAR || busy(uIn + D / len))) D += 5; b.p = invP(uIn + D / len); b.v = b.base; } // next 'in' car starts out of sight, in a free gap
+        }
+        if (b.phase === 'road') { // the avenue car runs through the hero's lane at the junction and cannot be stopped in time: it drives off (fades out) while the hero is just ahead of it, and fades back in once the hero has passed
+          const headOn = (here.x - b.x) * tj.x + (here.z - b.z) * tj.z < 0 && Math.hypot(here.x - b.x, here.z - b.z) < HERO_YIELD_M;
+          const yielding = here.distanceTo(cj) < HERO_CLEAR && headOn;
+          b.fade = reducedMotion || !dt ? +!yielding : Math.min(1, Math.max(0, (b.fade ?? 1) + (yielding ? -dt : dt) / FADE));
+          b.mesh.visible = b.fade > 0; fadeVehicle(b.mesh, b.fade);
         }
         const m = b.mesh, x0 = m.position.x, z0 = m.position.z;
         if (b.phase === 'road') { const t = tOf(b), tg = curve.getTangentAt(Math.min(1, Math.max(0, t))); laneAt(t, m.position); m.rotation.set(0, Math.atan2(-tg.z, tg.x) + Math.PI, 0); dip?.place(m); }
