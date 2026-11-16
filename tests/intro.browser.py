@@ -37,8 +37,9 @@ try:
     assert js("getComputedStyle(document.querySelector('#intro')).backdropFilter.includes('blur(14px)')")
     assert js("document.querySelector('.intro-stations').children.length === 3"), 'Expected three illustrated stops'
     assert js("document.querySelector('.intro-stations [aria-current]').dataset.previewStop === 'sp'")
-    cue = '.touch' if mobile else '.wheel'
-    assert js(f"document.querySelector('.intro-guide {cue}')?.getBoundingClientRect().height > 0")
+    assert js("document.querySelector('.intro-mouse-reference').getBoundingClientRect().height > 0")
+    assert js("document.querySelector('.intro-mouse-reference').complete && document.querySelector('.intro-mouse-reference').naturalWidth > 0"), 'Mouse reference image must load'
+    assert js("!document.querySelector('.intro-scroll-arrows') && getComputedStyle(document.querySelector('.intro-mouse-reference')).animationName === 'none'"), 'The mouse hint uses the supplied artwork without CSS animation or added arrows'
     assert js("getComputedStyle(document.querySelector('.route-vehicle .mini')).display !== 'none'")
     assert js("getComputedStyle(document.querySelector('.route-vehicle .bus')).display === 'none'")
     assert js("document.querySelectorAll('#intro button').length === 1")

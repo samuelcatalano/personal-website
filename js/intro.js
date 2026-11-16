@@ -37,7 +37,7 @@ export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {
   // the copy that is written once at start and again when the language changes while the intro is up
   const paintStatic = () => {
     const tt = t(), touch = matchMedia('(pointer: coarse)').matches; // {x} in the hint marks a key cap
-    root.querySelector('#intro-hint').innerHTML = touch ? tt.ui.intro.t_hint : tt.ui.intro.hint.replace(/\{(.+?)\}/g, '<kbd>$1</kbd>');
+    root.querySelector('#intro-hint').innerHTML = touch ? tt.ui.intro.t_hint : `${tt.ui.intro.hint}<span class="intro-keyboard">${tt.ui.intro.keyboardHint.replace(/\{(.+?)\}/g, '<kbd>$1</kbd>')}</span>`;
     stamp.textContent = returning ? tt.ui.intro.ticketReturn : tt.ui.intro.ticket; stamp.dataset.i18n = returning ? 'intro.ticketReturn' : 'intro.ticket';
     road.setAttribute('aria-label', tt.ui.intro.routeLabel);
   };
