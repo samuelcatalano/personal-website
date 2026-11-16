@@ -507,7 +507,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   if (panel) observer?.observe(panel);
   const busPos = { x: 0, y: 0, z: 0 }, prevBus = { x: null, z: 0, h: 0 }, MINI_WHEELBASE = 2.5, MAX_STEER = 0.5;
   if (qa) globalThis.__qaBus = busPos; // QA probe: projects the bus onto screen for framing checks (no visual effect)
-  let heroSpeed = 0, steer = 0;
+  let heroSpeed = 0, steer = 0, rest = 0; // rest: 0..1, how long the bus has stood still at a journey stop (camera breathing)
   // Flyover at the first UK stop: the path, the pull-in that keeps it clear of the buildings and the timing live in plane-path.js.
   // Atmospheric perspective instead of transparency: the plane stays opaque and solid, and is tinted toward the horizon colour with distance
   // (diffuse darkened, emissive raised to the haze), then dwindles to a speck at the very end. Originals are kept so the tint can be undone.
@@ -577,6 +577,10 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const la = FRAME_LIFT[stops[i].id] ?? 0, lb = FRAME_LIFT[stops[i + 1].id] ?? 0;
     const lift = la + (lb - la) * (s - i);
     const shot = blendShots(shotFor(ka, busPos, { mobile, lift, stop: stops[i].id }), shotFor(kb, busPos, { mobile, lift, stop: stops[i + 1].id }), s - i, ka === kb ? 0 : ARC);
+    // Rest breathing: after about 3 s standing still on a journey stop the camera eases 2% toward the bus; moving eases it back fast. Reduced motion never breathes.
+    const journeyShot = ka === 'follow' && kb === 'follow';
+    rest = reducedMotion || heroSpeed !== 0 || !journeyShot ? Math.max(0, rest - dt * 4) : Math.min(1, rest + dt / 3);
+    if (rest > 0) { const k = 1 - 0.02 * rest * rest * (3 - 2 * rest), bp = [busPos.x, busPos.y, busPos.z]; shot.position = shot.position.map((v, j) => bp[j] + (v - bp[j]) * k); }
     camera.position.fromArray(shot.position);
     camera.lookAt(shot.target[0], shot.target[1], shot.target[2]);
     if (closeUp) { camera.position.set(...closeUp.p); camera.lookAt(...closeUp.t); camera.fov = closeUp.fov; camera.updateProjectionMatrix(); } // QA only: ?qa=1&closeup=px,py,pz,tx,ty,tz,fov
@@ -652,7 +656,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     maspLod?.update(camera.position);
     authoredLods.forEach((lod) => lod.update(camera.position));
     const hl = (candidates.find((v) => v.visible) ?? mini).userData.length ?? 4;
-    if (qa) globalThis.__qaHero = { speed: heroSpeed, rain: mood.rain, len: hl }; // QA probe for the vehicle particles
+    if (qa) globalThis.__qaHero = { speed: heroSpeed, rest, rain: mood.rain, len: hl }; // QA probe for the vehicle particles
     post.setFocus?.(camera.position.distanceTo(bus.position)); // depth of field focuses on the hero vehicle
     vehicleFx.update(dt, { p: busPos, h: bus.rotation.y, len: hl, halfW: hl > 6 ? 1.3 : 0.95, speed: heroSpeed, rain: mood.rain ?? 0, cold: Math.min(1, (1 - (mood.rs ?? 0)) * 0.8 + night * 0.4), night, halfH: renderer.domElement.height / 2 });
     wetSurfaces.update(clock, wet, mood.rain, night, camera.position, sky.colors, bus.position, bus.rotation.y, post.tier, mood.wind);
@@ -692,7 +696,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     get flash() { return flash; }, // lightning brightness this frame: the sound driver times thunder from it
     snapshot() { return new Promise((res, rej) => { shotResolve = res; wake(); setTimeout(() => rej(new Error('snapshot timeout')), 3000); }); },
     setProgress(p) { target = p; wake(); },
-    highlight(id) { landmarkLight.set(id); wake(); }, // panel focus or hover: the stop's landmark glows (null clears it)
+    highlight(ids) { landmarkLight.set(ids); wake(); }, // panel focus or hover: the landmarks of these stops glow (empty clears them)
     jump(p) { target = p; scroll = { value: p, velocity: 0 }; wake(); },
     setTheme(name) {
       nightTarget = name === 'night' ? 1 : 0;

@@ -242,13 +242,16 @@ export function initUI({ onGoto, onTheme, onHold = () => {}, onFocusStop = () =>
     a.querySelector('.nav-count')?.remove();
     a.insertAdjacentHTML('beforeend', ` <small class="nav-count" aria-hidden="true">${journeySeenCount(seen)}/${journeyTotal}</small>`);
   };
-  // Focus or hover on a stop in the panel list lights its landmark. Touch taps only focus, so they light nothing.
+  // Focus or hover on a stop in the panel list lights its landmark; on a Stack tool it lights every stop that uses the tool.
+  // onFocusStop gets a list of stop indices (empty clears). Touch taps only focus, so they light nothing.
   const stopOf = (node) => node?.closest?.('[data-goto]') ?? null;
-  const stopIdx = (node) => (stopOf(node) ? +stopOf(node).dataset.goto : null);
-  document.addEventListener('pointerover', (e) => { if (e.pointerType !== 'touch' && stopOf(e.target)) onFocusStop(stopIdx(e.target)); });
-  document.addEventListener('pointerout', (e) => { if (e.pointerType !== 'touch' && stopOf(e.target) !== stopOf(e.relatedTarget)) onFocusStop(stopIdx(e.relatedTarget)); });
-  document.addEventListener('focusin', (e) => { if (stopOf(e.target)) onFocusStop(stopIdx(e.target)); });
-  document.addEventListener('focusout', (e) => { if (stopOf(e.target) !== stopOf(e.relatedTarget)) onFocusStop(stopIdx(e.relatedTarget)); });
+  const toolOf = (node) => node?.closest?.('[data-tool]') ?? null;
+  const stopsOfTool = (tool) => (toolStops[tool] || []).map((id) => stops.findIndex((st) => st.id === id)).filter((i) => i >= 0);
+  const litFor = (node) => (stopOf(node) ? [+stopOf(node).dataset.goto] : toolOf(node) ? stopsOfTool(toolOf(node).dataset.tool) : []);
+  document.addEventListener('pointerover', (e) => { if (e.pointerType !== 'touch' && litFor(e.target).length) onFocusStop(litFor(e.target)); });
+  document.addEventListener('pointerout', (e) => { if (e.pointerType !== 'touch' && String(litFor(e.target)) !== String(litFor(e.relatedTarget))) onFocusStop(litFor(e.relatedTarget)); });
+  document.addEventListener('focusin', (e) => { if (litFor(e.target).length) onFocusStop(litFor(e.target)); });
+  document.addEventListener('focusout', (e) => { if (String(litFor(e.target)) !== String(litFor(e.relatedTarget))) onFocusStop(litFor(e.relatedTarget)); });
   // The bus has come to rest after a scroll (main.js calls this once scrolling pauses): the LED board blinks and the bell rings, if sound is on. Nothing during the intro.
   let restIdx = -1;
   const atRest = () => {
@@ -340,7 +343,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {}, onFocusStop = () =>
     if (keep && !prev.isConnected) document.querySelector(`[${keep[0]}="${keep[1]}"]`)?.focus({ preventScroll: true }); // only an element the render replaced needs its focus back
     else if (!sectionChanged && panelLinkIndex >= 0) panel.querySelectorAll('a[href]')[panelLinkIndex]?.focus({ preventScroll: true });
     else if (!sectionChanged && panelCredits) panel.querySelector('[data-credits]')?.focus({ preventScroll: true });
-    const focusedStop = stopIdx(document.activeElement); onFocusStop(focusedStop); // a re-rendered list loses its hover: only a focused stop stays lit
+    onFocusStop(litFor(document.activeElement)); // a re-rendered list loses its hover: only a focused stop or tool stays lit
     const c = t.stops[st.id];
     announce.textContent =(c ? `${st.year} ${c.title}` : t.sections[st.section].title) + `, ${t.ui.cities[city]}` + (notes.rain ? `, ${t.ui.led.rain}` : '');
   };

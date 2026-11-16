@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { PICK_STOP } from './layout.js';
-// A panel stop that has a landmark lights it: each landmark mesh is drawn with a twin of its material whose emissive is lifted toward warm amber.
+// Stops that have a landmark light it: each landmark mesh is drawn with a twin of its material whose emissive is lifted toward warm amber.
 // The twin is made the first time that stop is lit. Shared materials are never edited, so the rest of the city stays as it is; the twin copies the
 // original's shader patch and follows its values every frame, so it renders the same apart from the lift.
+// A Stack tool lights every stop that uses it, so the set of lit stops can hold several ids at once.
 // ponytail: twins are built once per stop and kept; swap in a single shared twin per material if many stops start to be lit.
 const LIGHT = new THREE.Color('#ffb21e'), STRENGTH = 0.6, EASE = 7;
 const SYNC = ['roughness', 'metalness', 'opacity', 'envMapIntensity', 'emissiveIntensity'];
@@ -25,19 +26,19 @@ export function createLandmarkLight(details) {
     }
     return twins.get(id);
   };
-  let stop = null, shown = null, level = 0, lit = [], probe = { shown: null, level: 0, n: 0 };
-  // Called from the panel list on focus and hover; null clears it.
-  const set = (id) => { stop = id && Object.values(PICK_STOP).includes(id) ? id : null; };
-  // Before the frame renders (after sky.update, which sets emissive each frame): draw the lit stop's meshes with their lifted twins.
+  let wanted = [], shown = [], level = 0, lit = [], probe = { shown: '', level: 0, n: 0 };
+  // Called from the panel list or the Stack on focus and hover; an empty list clears it.
+  const set = (ids) => { wanted = (ids || []).filter((id) => Object.values(PICK_STOP).includes(id)); };
+  // Before the frame renders (after sky.update, which sets emissive each frame): draw the lit stops' meshes with their lifted twins.
   const apply = (dt, instant) => {
     restore();
-    const goal = stop ? 1 : 0;
+    const goal = wanted.length ? 1 : 0;
     level = instant || !dt ? goal : level + (goal - level) * Math.min(1, dt * EASE);
     if (Math.abs(goal - level) < 0.01) level = goal;
-    if (stop) shown = stop; else if (!level) shown = null; // a fading light keeps its landmark until it is gone
-    probe = { shown, level, n: 0 };
-    if (!shown || !level) return;
-    lit = listFor(shown);
+    if (wanted.length) shown = wanted; else if (!level) shown = []; // a fading light keeps its landmarks until it is gone
+    probe = { shown: shown.join(','), level, n: 0 };
+    if (!shown.length || !level) return;
+    lit = shown.flatMap((id) => listFor(id));
     probe.n = lit.length;
     for (const e of lit) {
       for (const k of SYNC) if (e.orig[k] !== undefined) e.twin[k] = e.orig[k];
@@ -48,5 +49,5 @@ export function createLandmarkLight(details) {
   };
   // After the render: every mesh goes back to its own material.
   const restore = () => { for (const e of lit) e.mesh.material = e.orig; lit = []; };
-  return { set, apply, restore, twinCount: (id) => listFor(id).length, litCount: () => probe }; // QA probes: the last frame's lit stop and mesh count
+  return { set, apply, restore, twinCount: (id) => listFor(id).length, litCount: () => probe }; // QA probes: the last frame's lit stops and mesh count
 }
