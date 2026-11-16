@@ -5,6 +5,7 @@ import { HX as UNDERPASS_HALF_LENGTH, ARCH_HALF_WIDTH } from './underpass.js';
 // Pedestrian simulation (no rendering): every person's route position, heading and walk pace; npc3d.js draws the 3D walkers from it. Paths come from crowd.js (pure data).
 const SEP_NEAR = 140, SEP_FAR = 150, INSET = 0.6, SEED = 1017;
 const TURN_DISTANCE = 1.2;
+const GLANCE_RANGE = 9, GLANCE_TURN = 0.5; // m within which walkers glance at a moving bus; fraction of the full turn towards it
 const CROWD_CELL = 0.9, CROWD_GAP = 0.82, CROWD_PUSH = 0.55; // shortcut: plaza sidesteps cap at 0.55 m, raise only if visual review still shows overlaps
 const KIOSK_CLEARANCE = 1.3; // Kiosk half-diagonal, walker radius and one maximum lane crowd push
 const PORTAL_MARGIN = 0.2, PORTAL_BLEND = 6, FRAME_MARGIN = 2; // keep the whole walker inside the masonry opening
@@ -119,6 +120,7 @@ export function createPeople({ curve, pts, stops, obstacles = [], reducedMotion 
   };
   plan.forEach((p, i) => { place(p.path, st[i].s, p.look); st[i].pace = out.speed; px[i] = out.x; pz[i] = out.z; if (p.path.type === 'lane') { rememberLane(i); avoidKiosks(i); out.x = px[i]; out.z = pz[i]; } fx[i] = out.fx; fz[i] = out.fz; walkPace[i] = Math.min(1, out.speed); visible[i] = 1; });
   const react = new Float32Array(N); // 0..1 how much each walker is watching the hero vehicle
+  const glance = new Float32Array(N); // 0..1 passing glance at a moving hero (heading only, pace untouched)
   const yieldPace = new Float32Array(N).fill(1), travelX = fx.slice(), travelZ = fz.slice(), encounterCells = new Map();
   const anticipate = (dt, cam) => {
     const blend=1-Math.exp(-4*dt);
@@ -162,8 +164,10 @@ export function createPeople({ curve, pts, stops, obstacles = [], reducedMotion 
         s.pace = out.speed; walkPace[i] = Math.min(1, out.speed) * (1 - react[i]) * yieldPace[i];
         px[i] = out.x; pz[i] = out.z; fx[i] = out.fx; fz[i] = out.fz;
         travelX[i]=out.fx;travelZ[i]=out.fz;
-        if (react[i] > 0.25 && hero) { // turn towards the vehicle
-          const tx = hero.x - px[i], tz = hero.z - pz[i], tl = Math.hypot(tx, tz) || 1, m = (react[i] - 0.25) / 0.75;
+        const near = hero && hero.speed >= 1.5 && path.type !== 'idle' ? Math.max(0, Math.min(1, (GLANCE_RANGE - Math.hypot(px[i] - hero.x, pz[i] - hero.z)) / 5)) : 0;
+        glance[i] += (near - glance[i]) * Math.min(1, dt * 3); // passers-by keep walking but turn up to half-way to follow a moving bus
+        if ((react[i] > 0.25 || glance[i] > 0.02) && hero) { // turn towards the vehicle
+          const tx = hero.x - px[i], tz = hero.z - pz[i], tl = Math.hypot(tx, tz) || 1, m = Math.max((react[i] - 0.25) / 0.75, GLANCE_TURN * glance[i]);
           const bx = fx[i] + (tx / tl - fx[i]) * m, bz = fz[i] + (tz / tl - fz[i]) * m, bl = Math.hypot(bx, bz) || 1;
           fx[i] = bx / bl; fz[i] = bz / bl;
         }

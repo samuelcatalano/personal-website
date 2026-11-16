@@ -46,7 +46,7 @@ import { createNpc3d } from './npc3d.js';
 import { buildFigure } from './figure.js';
 import { createLandmarkPicker } from './landmark-pick.js';
 import { createLandmarkLight } from './landmark-light.js';
-import { SECTION_SHOT, shotFor, blendShots, spring, approach } from './camera.js';
+import { SECTION_SHOT, shotFor, blendShots, spring, approach, CINE, cinePose } from './camera.js';
 import { updateBeams, addBeams, refitBeams } from './beams.js';
 import { createLampPools } from './lamps.js';
 import { createLampField, applyLampField } from './lamp-field.js';
@@ -507,7 +507,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   if (panel) observer?.observe(panel);
   const busPos = { x: 0, y: 0, z: 0 }, prevBus = { x: null, z: 0, h: 0 }, MINI_WHEELBASE = 2.5, MAX_STEER = 0.5;
   if (qa) globalThis.__qaBus = busPos; // QA probe: projects the bus onto screen for framing checks (no visual effect)
-  let heroSpeed = 0, steer = 0, rest = 0; // rest: 0..1, how long the bus has stood still at a journey stop (camera breathing)
+  let heroSpeed = 0, steer = 0, rest = 0, cine = 0; // rest: 0..1, how long the bus has stood still at a journey stop (camera breathing)
   // Flyover at the first UK stop: the path, the pull-in that keeps it clear of the buildings and the timing live in plane-path.js.
   // Atmospheric perspective instead of transparency: the plane stays opaque and solid, and is tinted toward the horizon colour with distance
   // (diffuse darkened, emissive raised to the haze), then dwindles to a speck at the very end. Originals are kept so the tint can be undone.
@@ -581,6 +581,9 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const journeyShot = ka === 'follow' && kb === 'follow';
     rest = reducedMotion || heroSpeed !== 0 || !journeyShot ? Math.max(0, rest - dt * 4) : Math.min(1, rest + dt / 3);
     if (rest > 0) { const k = 1 - 0.02 * rest * rest * (3 - 2 * rest), bp = [busPos.x, busPos.y, busPos.z]; shot.position = shot.position.map((v, j) => bp[j] + (v - bp[j]) * k); }
+    const cineStop = CINE[stops[Math.round(s)].id], atStop = Math.abs(s - Math.round(s)) < 0.05;
+    cine = reducedMotion || heroSpeed !== 0 || !cineStop || !atStop ? Math.max(0, cine - dt / 1.5) : Math.min(1, cine + dt / 5); // ~5 s push-in once stopped, ~1.5 s ease-back when the bus moves on
+    if (cine > 0 && cineStop) shot.position = cinePose(shot.position, [busPos.x, busPos.y, busPos.z], cine, cineStop);
     camera.position.fromArray(shot.position);
     camera.lookAt(shot.target[0], shot.target[1], shot.target[2]);
     if (closeUp) { camera.position.set(...closeUp.p); camera.lookAt(...closeUp.t); camera.fov = closeUp.fov; camera.updateProjectionMatrix(); } // QA only: ?qa=1&closeup=px,py,pz,tx,ty,tz,fov

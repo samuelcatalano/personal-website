@@ -25,6 +25,13 @@ export function shotFor(kind, bus, { mobile = false, lift = 0, stop } = {}) {
     default: throw new Error(`unknown shot ${kind}`);
   }
 }
+// Landmark dolly: once the bus has stood still at one of these stops the camera slowly pushes in (pull, fraction of its distance to the bus) while arcing round it (orbit, radians); the aim is untouched, so the landmark stays framed.
+export const CINE = { olm: { pull: 0.15, orbit: 0.1 }, reclame: { pull: 0.15, orbit: -0.1 }, contact: { pull: 0.05, orbit: -0.05 } }; // ponytail: eyeballed; the aim is fixed, so a wider orbit pushes the landmark out of frame
+export function cinePose(position, bus, e, { pull, orbit }) {
+  const u = e * e * (3 - 2 * e), a = orbit * u, c = Math.cos(a), s = Math.sin(a), k = 1 - pull * u;
+  const dx = position[0] - bus[0], dz = position[2] - bus[2];
+  return [bus[0] + (dx * c - dz * s) * k, bus[1] + (position[1] - bus[1]) * k, bus[2] + (dx * s + dz * c) * k];
+}
 const lerp = (a, b, t) => a + (b - a) * t;
 function aim({ position: p, target: q }) {
   const d = [q[0] - p[0], q[1] - p[1], q[2] - p[2]];
