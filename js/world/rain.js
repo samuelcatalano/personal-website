@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createLightning } from './weather.js';
+import { createLightning, weatherGust } from './weather.js';
 import { coverShader, coverUniforms } from './weather-cover.js';
 // Three interleaved depth layers in one draw. Ribbons provide stable subpixel width on every GPU.
 export function createRain(scene, { reducedMotion = false, lamps = [], cover } = {}) {
@@ -18,28 +18,29 @@ export function createRain(scene, { reducedMotion = false, lamps = [], cover } =
   const uniforms = {
     ...coverUniforms(cover),
     uTime:{value:0},uTravel:{value:new THREE.Vector3()},uCenter:{value:new THREE.Vector3()},uForward:{value:new THREE.Vector3()},uRain:{value:0},
-    uFall:{value:1},uWind:{value:1},uNight:{value:0},uBus:{value:new THREE.Vector3()},uHeading:{value:new THREE.Vector2(1,0)},
+    uFall:{value:1},uWindVector:{value:new THREE.Vector2()},uNight:{value:0},uBus:{value:new THREE.Vector3()},uHeading:{value:new THREE.Vector2(1,0)},
     uLamps:{value:Array.from({length:4},()=>new THREE.Vector3(0,-1000,0))},uResolution:{value:900},
   };
   const material = new THREE.ShaderMaterial({
     transparent:true,depthWrite:false,fog:false,side:THREE.DoubleSide,forceSinglePass:true,
     uniforms,
     vertexShader: `${coverShader}
-      attribute vec2 aCorner,aSeed;uniform float uTime,uFall,uWind,uResolution,uRain;uniform vec3 uTravel,uCenter,uForward;varying vec3 vWorld;varying vec2 vCorner;varying float vSeed,vDepth,vNear,vRoof;
+      attribute vec2 aCorner,aSeed;uniform float uTime,uFall,uResolution,uRain;uniform vec2 uWindVector;uniform vec3 uTravel,uCenter,uForward;varying vec3 vWorld;varying vec2 vCorner;varying float vSeed,vDepth,vNear,vRoof;
       void main(){
         float layer=aSeed.y;vec3 box=vec3(36.0+layer*34.0,42.0+layer*8.0,36.0+layer*34.0);
         vec3 center=uCenter+uForward*layer*16.0;
         float baseSpeed=11.0+layer*2.0+aSeed.x*7.0,speed=baseSpeed*uFall;
-        vec3 velocity=vec3((2.0+sin(uTime*.31)*1.5)*uWind,-speed,sin(uTime*.17)*uWind);
+        vec3 velocity=vec3(uWindVector.x,-speed,uWindVector.y);
         vec3 drift=vec3(uTravel.x,-baseSpeed*uTravel.y,uTravel.z);
         vec3 p=mod(position+drift-center+box*.5,box)-box*.5+center;
         // Near drops get shorter tails and fade in with distance so they do not smear across the frame.
         float near=clamp(-(viewMatrix*vec4(p,1.0)).z/14.0,.3,1.0);
-        float tail=mix(.22,.95,smoothstep(.15,1.0,uRain))*(.55+aSeed.x*.45)*(1.3-layer*.35);
+        float variation=fract(aSeed.x*17.31);
+        float tail=mix(.16,.72,smoothstep(.15,1.0,uRain))*(.35+variation*.85)*(1.2-layer*.32);
         p-=normalize(velocity)*tail*uFall*aCorner.y*near;
         vWorld=p;vCorner=aCorner;vSeed=aSeed.x;vNear=near;vRoof=weatherRoof(p.xz);
         vec4 mv=viewMatrix*vec4(p,1.0);vDepth=-mv.z;
-        float width=(.006+aSeed.x*.004)*(1.3-layer*.3);
+        float width=(.003+fract(aSeed.x*31.7)*.004)*(1.25-layer*.28);
         mv.x+=aCorner.x*max(width,-mv.z/uResolution*.35);
         gl_Position=projectionMatrix*mv;
       }`,
@@ -49,14 +50,14 @@ export function createRain(scene, { reducedMotion = false, lamps = [], cover } =
         float lamp=0.0;for(int i=0;i<4;i++){vec3 d=vWorld-uLamps[i];lamp+=exp(-dot(d.xz,d.xz)*.065)*exp(-abs(d.y)*.35);}
         vec2 toDrop=vWorld.xz-uBus.xz;float beam=pow(max(dot(normalize(toDrop+vec2(.001)),uHeading),0.0),16.0)*exp(-length(toDrop)*.10);
         float light=uNight*(lamp*.7+beam*.7);
-        float a=(.14+vSeed*.18+light*.38)*sqrt(uRain);
+        float a=(mix(.045,.17,fract(vSeed*23.7))*(1.0-uNight*.6)+light*.30)*sqrt(uRain);
         // MSAA can extrapolate varyings past the covered samples: negative fractional powers poison bloom.
         a*=pow(clamp(1.0-vCorner.y,0.0,1.0),1.2)*(1.0-smoothstep(.4,1.0,abs(vCorner.x)));
-        a*=mix(.45,1.0,vNear)*smoothstep(.1,1.8,vWorld.y)*(1.0-smoothstep(70.0,135.0,vDepth));
+        a*=mix(.18,1.0,vNear)*smoothstep(.1,1.8,vWorld.y)*(1.0-smoothstep(55.0,120.0,vDepth));
         a*=smoothstep(vRoof+.1,vRoof+.5,vWorld.y);
         // ponytail: background brightness is approximated by drop elevation, upgrade only with an already available depth/colour buffer.
         a*=mix(1.0,.25,smoothstep(uCenter.y+4.0,uCenter.y+20.0,vWorld.y));
-        gl_FragColor=vec4(mix(vec3(.34,.46,.58),vec3(.95,.79,.52),clamp(light,0.0,1.0)),clamp(a,0.0,1.0));
+        gl_FragColor=vec4(mix(vec3(.61,.64,.66),vec3(.95,.84,.65),clamp(light,0.0,1.0)),clamp(a,0.0,1.0));
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }`,
@@ -76,10 +77,11 @@ export function createRain(scene, { reducedMotion = false, lamps = [], cover } =
       camera.getWorldDirection(direction);
       uniforms.uCenter.value.copy(camera.position).addScaledVector(direction,18);
       uniforms.uForward.value.copy(direction);uniforms.uTime.value=time;uniforms.uRain.value=amount;
-      uniforms.uFall.value=mood.fall??1;uniforms.uWind.value=mood.wind??1;uniforms.uNight.value=night;
-      uniforms.uTravel.value.x+=(2+Math.sin(time*.31)*1.5)*uniforms.uWind.value*dt;
+      const gust=weatherGust(time,mood.wind??1);
+      uniforms.uFall.value=mood.fall??1;uniforms.uWindVector.value.set(gust.x,gust.z);uniforms.uNight.value=night;
+      uniforms.uTravel.value.x+=gust.x*dt;
       uniforms.uTravel.value.y+=uniforms.uFall.value*dt;
-      uniforms.uTravel.value.z+=Math.sin(time*.17)*uniforms.uWind.value*dt;
+      uniforms.uTravel.value.z+=gust.z*dt;
       uniforms.uResolution.value=innerHeight;uniforms.uBus.value.copy(bus);uniforms.uHeading.value.set(Math.cos(heading),-Math.sin(heading));
       nearest.fill(Infinity);for(const p of uniforms.uLamps.value)p.set(0,-1000,0);
       for(const [x,z] of lamps){

@@ -1,5 +1,9 @@
 # 3D city architecture
 
+## Everyday rain refinement — 2026-11-16
+
+Owner-authorized rain refinements reuse existing rain, wet-ground and river shaders. A shared deterministic gust coordinates drops and water; the main route supplies sampled kerbs for bounded nearest-four pooling. Shelter, clear/dry state, disposal and reduced motion remain. No map, camera, content, dependency or pass changes. [Implementation, validation and limits](../plans/2026-11-16-discreet-rain.md).
+
 ## Procedural urban connectivity — 2026-11-15
 
 A pure footprint-aware planner now supplies shared local streets, sidewalks and street-rooted property paths across all four regions. Existing transit geometry remains the backbone; source lot offsets apply before descriptor collection and rendering. Static collision masks, anchored raster union and chunked two-material surfaces keep planning out of the frame loop. The owner authorized the necessary local pocket reorganization while preserving every building identity, dimensions, landmarks and routes. [Implementation, exact moves and validation](../audits/2026-11-15-urban-road-network.md).

@@ -4,7 +4,7 @@ import { streetEnvironment, setStreetRegions, shopFrontages } from './streetscap
 import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
 import { routeT, nearestStop, stopMarks, fineMarks } from '../scroll.js';
-import { regions, routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, towerX, FRAME_LIFT, swapAt, heroVehicleAt, ukStart, treeRegion, SWAP_GAP, east, eastAdd, stretch, LEGACY_GAPS, underpassFrames, UNDERPASS, LANDMARKS, stopIndex, furnitureSpots } from './layout.js';
+import { ROAD, regions, routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, towerX, FRAME_LIFT, swapAt, heroVehicleAt, ukStart, treeRegion, SWAP_GAP, east, eastAdd, stretch, LEGACY_GAPS, underpassFrames, UNDERPASS, LANDMARKS, stopIndex, furnitureSpots } from './layout.js';
 import { createBoxes, buildMeshes } from './voxel.js';
 import { buildMotion } from './motion.js';
 import { buildCity, tree } from './city.js';
@@ -421,7 +421,13 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const weatherCover = createWeatherCover(footprints);
   if (qa) globalThis.__qaWeatherCover = weatherCover;
   const sky = createSky(scene, { hemi, sun, reducedMotion }), moodAt = createMood(stops, { reducedMotion }), rain = createRain(scene, { reducedMotion, lamps, cover: weatherCover });
-  const wetSurfaces = createWetSurfaces(scene, { lamps, reducedMotion, cover: weatherCover }), vehicleFx = createVehicleFx(scene, { reducedMotion });
+  const kerbs = [], roadSamples = Math.ceil(curve.getLength() / 20);
+  for (let i = 0; i < roadSamples; i++) {
+    const a = curve.getPointAt(i / roadSamples), b = curve.getPointAt((i + 1) / roadSamples);
+    const ta = curve.getTangentAt(i / roadSamples), tb = curve.getTangentAt((i + 1) / roadSamples);
+    for (const side of [-1, 1]) kerbs.push([a.x - ta.z * ROAD.half * side, a.z + ta.x * ROAD.half * side, b.x - tb.z * ROAD.half * side, b.z + tb.x * ROAD.half * side]);
+  }
+  const wetSurfaces = createWetSurfaces(scene, { lamps, reducedMotion, cover: weatherCover, kerbs }), vehicleFx = createVehicleFx(scene, { reducedMotion });
   wetReflectionHidden.push(...sky.objects);
   if (vehicleFx.points) wetReflectionHidden.push(vehicleFx.points);
   // Foam rings Tower Bridge's piers and moored boats. The river reflects landmarks and bank-side lots.
@@ -646,7 +652,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     if (qa) globalThis.__qaHero = { speed: heroSpeed, rain: mood.rain, len: hl }; // QA probe for the vehicle particles
     post.setFocus?.(camera.position.distanceTo(bus.position)); // depth of field focuses on the hero vehicle
     vehicleFx.update(dt, { p: busPos, h: bus.rotation.y, len: hl, halfW: hl > 6 ? 1.3 : 0.95, speed: heroSpeed, rain: mood.rain ?? 0, cold: Math.min(1, (1 - (mood.rs ?? 0)) * 0.8 + night * 0.4), night, halfH: renderer.domElement.height / 2 });
-    wetSurfaces.update(clock, wet, mood.rain, night, camera.position, sky.colors, bus.position, bus.rotation.y, post.tier);
+    wetSurfaces.update(clock, wet, mood.rain, night, camera.position, sky.colors, bus.position, bus.rotation.y, post.tier, mood.wind);
     updateBeams(night); pools.update(night, wet); shopSpill.update(night, wet); lampPosts?.userData.setNight?.(night); if (lampField) lampField.uniforms.uLampNight.value = night; underpass.group.userData.setNight(night);
     swapTunnel?.group.userData.setNight?.(night);
     water.update(clock, night, mood, post.tier, sky.colors, sky.sunDir);

@@ -1,5 +1,9 @@
 # 3D city art direction
 
+## Everyday discreet rain — 2026-11-16
+
+Drops are shorter, finer and neutral by day, revealed locally by lamps at night. Exposed ground has sparse impacts and small off-grid rings; damp asphalt has broad subdued sheen while pools retain sharper reflections. Main-route kerbs bias irregular accumulation. A mild distant veil preserves nearby landmark readability; gentle shared gusts avoid storm-like swings. [Implementation, validation and limits](plans/2026-11-16-discreet-rain.md).
+
 ## Full-quality rule and scene finish — 2026-11-16
 
 Graphical quality never drops: by owner rule, the automatic FPS downgrade and the reduced-motion medium tier were removed. Plaza paving, stall colours, Thames bank foam and lawns were calmed. The far skyline melts into the horizon by day and has irregular lit windows by night. Sun shadow intensity is 0.8. The night horizon is lighter, with moon fill, stars and night bloom. Wembley has drum panel bays and a stronger flood, and tower glass roughness was lowered. This was validated on desktop only; mobile, rain and FPS were not measured. Plan: [design frontend graphics plan](plans/2026-11-16-design-frontend-graphics-plan.md).

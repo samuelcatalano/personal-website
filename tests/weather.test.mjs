@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createLightning, createWeather, lagWetness, visitWeather } from '../js/world/weather.js';
+import { createLightning, createWeather, lagWetness, visitWeather, weatherGust } from '../js/world/weather.js';
 
 const regions = ['sp', 'lon', 'gla'];
 
@@ -115,4 +115,17 @@ test('reduced motion lightning never rolls and always returns zero', () => {
   const lightning = createLightning({ random: () => { calls++; return 0; }, reducedMotion: true });
   assert.deepEqual([lightning(20, 1, 1), lightning(100, 1, 1), lightning(1000, 0, 0)], [0, 0, 0]);
   assert.equal(calls, 0);
+});
+
+test('everyday wind gusts stay bounded, continuous and deterministic', () => {
+  const calm = weatherGust(42, 0);
+  assert.equal(calm.x, 0); assert.equal(calm.z, 0);
+  for (const time of [0, 1, 12, 100, 1000]) {
+    const a = weatherGust(time, .8), b = weatherGust(time + .016, .8);
+    assert.deepEqual(a, weatherGust(time, .8));
+    assert.ok(Object.values(a).every(Number.isFinite));
+    assert.ok(a.strength >= .67 && a.strength <= 1.03);
+    assert.ok(Math.hypot(a.x, a.z) <= 1.7);
+    assert.ok(Math.hypot(b.x - a.x, b.z - a.z) < .02);
+  }
 });

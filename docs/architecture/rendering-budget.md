@@ -1,5 +1,9 @@
 # Rendering budget
 
+## Everyday rain cost — 2026-11-16
+
+Rain retains one draw and its 1,080/450/210 ribbon tier maxima. Four nearby kerb segments add bounded arithmetic to exposed wet-ground shaders; impacts reuse existing surfaces. No new texture, render pass or dependency. Browser shader/HDR checks pass; no full-scene frame-time or physical-VRAM measurement was made. [Implementation, validation and limits](../plans/2026-11-16-discreet-rain.md).
+
 ## No runtime quality downgrade — 2026-11-16
 
 The adaptive high-to-medium tier switch was removed by owner decision, so desktop always renders the high tier: AO, sun rays, depth texture and 4x MSAA. Reduced motion no longer selects medium. Mobile (below 768 px) still starts on medium and is tracked as open item A14 in the [design frontend graphics plan](../plans/2026-11-16-design-frontend-graphics-plan.md). No new render passes, lights or textures were added in the 2026-11-16 rounds. Frame time was not measured for these changes, so no performance claim is made.

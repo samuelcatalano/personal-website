@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { coverShader, coverUniforms } from './weather-cover.js';
 import { celestialVisibility } from './weather-math.js';
+import { weatherGust } from './weather.js';
 import { SUN_DIR, untone } from './sky.js';
 import { reflectionMode, detailTexture } from './water-math.js';
 import { PALETTE as P } from './palette.js';
@@ -30,7 +31,7 @@ uniform vec4 uPiers[${MAX_PIERS}];
 uniform vec4 uBoats[${MAX_BOATS}];
 uniform vec4 uTaps[${MAX_TAPS}];
 uniform sampler2D tDetail, tRefl;
-uniform vec2 uReflTexel;
+uniform vec2 uReflTexel, uRainWind;
 varying vec3 vPos;
 varying vec4 vRefl;
 #include <fog_pars_fragment>
@@ -72,11 +73,15 @@ for (int i = 0; i < ${MAX_TAPS}; i++) {
   tapFoam += max(0.0, ring) * 0.06;
 }
 if(uRainMotion>0.001 && weatherRoof(vPos.xz) < vPos.y + .6){ // exposed rain rings; bridge decks shelter the river below
-  vec2 cell=floor(vPos.xz*.65),local=fract(vPos.xz*.65)-.5;
+  vec2 cell=floor(vPos.xz*.65);
   float seed=fract(sin(dot(cell,vec2(127.1,311.7)))*43758.5453);
-  float age=fract(uTime*.9+seed),radius=length(local);
-  float delta=(radius-age*.6)*38.0;
-  float ring=exp(-delta*delta)*(1.0-age)*(1.0-smoothstep(.36,.5,radius));
+  float event=floor(uTime*.9+seed),age=fract(uTime*.9+seed);
+  vec2 center=.3+.4*fract(sin(cell+vec2(event,event+7.0))*43758.5453);
+  vec2 local=fract(vPos.xz*.65)-center-uRainWind*age*.025;
+  float radius=length(local);
+  float delta=(radius-age*.24)*65.0;
+  float cellEdge=min(min(fract(vPos.x*.65),1.0-fract(vPos.x*.65)),min(fract(vPos.z*.65),1.0-fract(vPos.z*.65)));
+  float ring=exp(-delta*delta)*(1.0-age)*(1.0-smoothstep(.20,.27,radius))*smoothstep(0.0,.05,cellEdge);
   g+=local/max(radius,.02)*sin(radius*54.0-age*32.0)*ring*uRainMotion*.09*fade;
 }
 vec3 n = normalize(vec3(-g.x, 1.0, -g.y));
@@ -157,7 +162,7 @@ export function createWater({ x0, x1, z, width, reducedMotion = false, piers = [
   const mat = new THREE.ShaderMaterial({
     uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
       uTime: { value: 0 }, uRiverCenter:{value:z},uHalfWidth:{value:width/2}, uSun: { value: SUN_DIR.clone() }, uNight: { value: 0 },
-      uRainMotion: { value: 0 }, uKey: { value: 1 }, uReflect: { value: 0 }, uFloor: { value: REFLECT_FLOOR }, uFoamW: { value: FOAM_WIDTH }, uBoatFoamW: { value: BOAT_FOAM_WIDTH },
+      uRainMotion: { value: 0 }, uRainWind: { value: new THREE.Vector2() }, uKey: { value: 1 }, uReflect: { value: 0 }, uFloor: { value: REFLECT_FLOOR }, uFoamW: { value: FOAM_WIDTH }, uBoatFoamW: { value: BOAT_FOAM_WIDTH },
       uPierN: { value: 0 }, uPiers: { value: Array.from({ length: MAX_PIERS }, () => new THREE.Vector4()) },
       uBoatN: { value: 0 }, uBoats: { value: Array.from({ length: MAX_BOATS }, () => new THREE.Vector4()) },
       uTaps: { value: Array.from({ length: MAX_TAPS }, () => new THREE.Vector4()) },
@@ -240,6 +245,8 @@ export function createWater({ x0, x1, z, width, reducedMotion = false, piers = [
       u.uKey.value = GLINT * clearSky * (night > 0.7 ? 0.16 : 1);
       if (sunDir) u.uSun.value.copy(sunDir);
       u.uRainMotion.value=reducedMotion||tier!=='high'?0:mood?.rain??0;
+      const gust=weatherGust(reducedMotion?0:time,mood?.wind??1);
+      u.uRainWind.value.set(gust.x,gust.z);
       untone(u.uSky.value);
       u.uZen.value.copy(u.uSky.value).multiplyScalar(.65);
       if(skyColors){u.uSky.value.copy(skyColors.hor);u.uZen.value.copy(skyColors.zen);}

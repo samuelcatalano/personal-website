@@ -6,7 +6,9 @@ print(js("""(async()=>{
  cam.position.set(10,20,30);cam.lookAt(0,0,0);cam.updateMatrixWorld();scene.add(hemi,sun);
  const sky=createSky(scene,{hemi,sun,reducedMotion:true});
  const mood=createMood(stops)(.3);const rainy={...mood,rain:1,cover:1,storm:1};
+ sky.update(0,0,cam.position,cam,{...rainy,rain:0});const clearFar=scene.fog.far;
  sky.update(0,0,cam.position,cam,rainy);
+ if(!(scene.fog.far < clearFar && scene.fog.far > clearFar*.7 && scene.fog.near>100))throw Error('Rain veil missing or hides near landmarks');
  const dome=scene.children.find(o=>o.material?.uniforms?.uZen);
  if(!dome.material.uniforms.uHor.value.equals(scene.fog.color))throw Error('Sky/fog seam colour mismatch');
  const sunDisc=scene.getObjectByName('weather-sun'),moon=scene.getObjectByName('weather-moon');

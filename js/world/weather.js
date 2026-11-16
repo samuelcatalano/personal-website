@@ -45,6 +45,12 @@ let visitSeed = globalThis.crypto?.getRandomValues(new Uint32Array(1))[0] || Dat
 const visitRandom = () => { visitSeed ^= visitSeed << 13; visitSeed ^= visitSeed >>> 17; visitSeed ^= visitSeed << 5; return (visitSeed >>> 0) / 4294967296; };
 export const visitWeather = createWeather({ random: visitRandom, override: weatherOverride });
 
+// One smooth field keeps falling drops and exposed water in the same gentle wind.
+export function weatherGust(time, wind = 1) {
+  const strength = .85 + .12 * Math.sin(time * .19) + .06 * Math.sin(time * .47);
+  return { x: (1.3 + .35 * Math.sin(time * .11)) * wind * strength, z: Math.sin(time * .17) * .45 * wind * strength, strength };
+}
+
 export function lagWetness(current, target, dt) {
   if (dt === 0) return target;
   const tau = target > current ? 1.2 : 7;

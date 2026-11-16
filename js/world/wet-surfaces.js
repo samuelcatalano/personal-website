@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
 import { untone } from './sky.js';
 import { coverShader, coverUniforms } from './weather-cover.js';
+import { weatherGust } from './weather.js';
 
 const registrations = new WeakMap();
 const sceneRegistrations = new WeakMap();
@@ -13,9 +14,11 @@ function uniforms() {
   return {
     ...coverUniforms(),
     uWet: { value: 0 }, uWeatherTime: { value: 0 }, uWetRain: { value: 0 }, uWetNight: { value: 0 },
-    uWetAnimate: { value: 1 }, uWetHigh: { value: 1 },
+    uWetAnimate: { value: 1 }, uWetHigh: { value: 1 }, uWetWind: { value: new THREE.Vector2() },
     uWetSky: { value: new THREE.Color('#6fb1e8') }, uWetHorizon: { value: new THREE.Color('#b9dcf5') },
     uWetLamps: { value: Array.from({ length: 4 }, () => new THREE.Vector3(0, -10000, 0)) },
+    uWetKerbs: { value: Array.from({ length: 4 }, () => new THREE.Vector4(1e6, 1e6, 1e6, 1e6)) },
+    uWetKerbWeights: { value: new THREE.Vector4() },
     uWetBus: { value: new THREE.Vector3(0, -10000, 0) }, uWetHeading: { value: new THREE.Vector2(1, 0) },
     uWetReflection: { value: null }, uWetProjection: { value: new THREE.Matrix4() }, uWetReflect: { value: 0 },
   };
@@ -25,7 +28,9 @@ const fragment = `
 ${coverShader}
 uniform float uWet, uWeatherTime, uWetRain, uWetNight, uWetAnimate, uWetHigh;
 uniform vec3 uWetSky, uWetHorizon, uWetLamps[4], uWetBus;
-uniform vec2 uWetHeading;
+uniform vec2 uWetHeading, uWetWind;
+uniform vec4 uWetKerbs[4];
+uniform vec4 uWetKerbWeights;
 uniform sampler2D uWetReflection;
 uniform mat4 uWetProjection;
 uniform float uWetReflect;
@@ -57,23 +62,41 @@ if (wetMask > 0.001 && vWetWorld.y < 0.4) {
   // Dark base colour = asphalt; light = pavement. Pools cluster in low-frequency basins and stay small with feathered edges.
   wetRoad = 1.0 - smoothstep(0.16, 0.30, dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11)));
   float basin = wetNoise(vWetWorld.xz * 0.09 + 7.0);
-  float pool = wetNoise(vWetWorld.xz * 0.42) * 0.8 + wetNoise(vWetWorld.xz * 1.1) * 0.2;
+  // shortcut: procedural basins approximate uneven paving; authored drainage masks are needed for exact water flow.
+  vec2 basinWarp = vec2(basin, wetNoise(vWetWorld.zx * .13 + 19.0)) - .5;
+  vec2 poolPosition = vWetWorld.xz + basinWarp * 1.4;
+  float pool = wetNoise(poolPosition * .42) * .72 + wetNoise(poolPosition * 1.1) * .20 + wetNoise(poolPosition * 3.7) * .08;
   float edge = mix(.86, .74, wetRoad) + .10 * (1.0 - uWet) - .08 * smoothstep(.45, .8, basin);
+  float kerbInfluence = 0.0;
+  for (int i = 0; i < 4; i++) {
+    vec2 segment = uWetKerbs[i].zw - uWetKerbs[i].xy, delta = vWetWorld.xz - uWetKerbs[i].xy;
+    float along = clamp(dot(delta, segment) / max(dot(segment, segment), .001), 0.0, 1.0);
+    kerbInfluence = max(kerbInfluence, (1.0 - smoothstep(.12, .65, length(delta - segment * along))) * uWetKerbWeights[i]);
+  }
+  edge -= .10 * kerbInfluence * (.35 + .65 * wetNoise(poolPosition * .9));
   wetPuddle = wetMask * smoothstep(edge, edge + .16, pool) * (.3 + .7 * wetRoad) * wetExposed;
 }
 diffuseColor.rgb *= 1.0 - 0.30 * wetMask * (0.5 + 0.5 * mix(0.4, 1.0, wetNoise(vWetWorld.xz * 0.3)));
-float wetRoughness = mix(max(.38, roughnessFactor * .7), max(.24, roughnessFactor * .48), wetRoad);
+float wetRoughness = mix(max(.42, roughnessFactor * .75), max(.34, roughnessFactor * .58), wetRoad);
 roughnessFactor = mix(roughnessFactor, wetRoughness, wetMask);
 roughnessFactor = mix(roughnessFactor, .16, wetPuddle);
 float wetGlint = 0.0;
-if (uWetHigh > 0.5 && uWetAnimate > 0.5 && uWetRain > 0.01 && wetPuddle > 0.001) {
-  vec2 cell = floor(vWetWorld.xz * 1.3), local = fract(vWetWorld.xz * 1.3) - 0.5;
-  float seed = wetHash(cell), age = fract(uWeatherTime * 0.72 + seed);
-  float radius = length(local), ring = exp(-abs(radius - age * 0.62) * 38.0) * (1.0 - age);
-  float wave = sin(radius * 56.0 - age * 34.0) * ring;
-  vec2 ripple = local / max(radius, 0.02) * wave * 0.035 * wetPuddle * uWetRain;
+vec2 wetRipple = vec2(0.0);
+if (uWetHigh > 0.5 && uWetAnimate > 0.5 && uWetRain > 0.01 && wetMask > 0.001 && vWetWorld.y < .4 && wetExposed > .5) {
+  vec2 cell = floor(vWetWorld.xz * 1.3);
+  float seed = wetHash(cell), clock = uWeatherTime * (.65 + seed * .55) + seed, eventIndex = floor(clock), age = fract(clock);
+  vec2 center = .25 + .5 * vec2(wetHash(cell + eventIndex * 7.1), wetHash(cell.yx + eventIndex * 3.7 + 21.0));
+  vec2 cellUv = fract(vWetWorld.xz * 1.3);
+  float cellFade = smoothstep(0.0, .05, min(min(cellUv.x, 1.0 - cellUv.x), min(cellUv.y, 1.0 - cellUv.y)));
+  vec2 local = cellUv - center - uWetWind * age * .025;
+  float radius = length(local), impactActive = step(1.0 - uWetRain * .65, wetHash(cell + eventIndex + 43.0));
+  float ring = exp(-abs(radius - age * .24) * 75.0) * (1.0 - age) * impactActive * cellFade;
+  float wave = sin(radius * 70.0 - age * 24.0) * ring;
+  vec2 ripple = local / max(radius, .02) * wave * .025 * wetPuddle;
   normal = normalize(normal + mat3(viewMatrix) * vec3(ripple.x, 0.0, ripple.y));
-  wetGlint = ring * pow(max(0.0, wave), 6.0) * step(0.78, seed) * uWetRain * 0.08;
+  wetRipple = ripple;
+  float contact = exp(-radius * radius * 380.0) * exp(-age * 24.0) * impactActive * cellFade;
+  wetGlint = (contact * .035 + ring * wetPuddle * .016) * wetMask * uWetRain;
 }
 `;
 const reflection = `
@@ -83,10 +106,10 @@ if (wetMask > 0.001 && (wetPuddle > 0.001 || wetRoad > 0.001)) {
   float wetFresnel = pow(1.0 - clamp(dot(normal, wetView), 0.0, 1.0), 3.0);
   vec3 wetSky = mix(uWetHorizon, uWetSky, smoothstep(0.0, 0.7, wetRay.y));
   vec4 wetCoord = uWetProjection * vec4(vWetWorld, 1.0);
-  vec2 wetUv = wetCoord.xy / max(wetCoord.w, 0.001);
+  vec2 wetUv = wetCoord.xy / max(wetCoord.w, 0.001) + wetRipple * .025;
   if (uWetReflect > 0.5 && wetCoord.w > 0.0 && all(greaterThanEqual(wetUv, vec2(0.0))) && all(lessThanEqual(wetUv, vec2(1.0)))) {
     vec4 reflected = texture2D(uWetReflection, wetUv);
-    wetSky = mix(wetSky, reflected.rgb, reflected.a);
+    wetSky = mix(wetSky, reflected.rgb, reflected.a * smoothstep(.08, .65, wetPuddle));
   }
   float reflectionAmount = wetMask * wetRoad * (.02 + .08 * wetFresnel) + wetPuddle * (.12 + .30 * wetFresnel);
   outgoingLight = mix(outgoingLight, wetSky, clamp(reflectionAmount, 0.0, 0.65));
@@ -95,9 +118,9 @@ if (wetMask > 0.001 && (wetPuddle > 0.001 || wetRoad > 0.001)) {
     // ponytail: four nearby lamps (two below high) bound fragment cost; expand only after measured reflection gaps.
     for (int i = 0; i < 4; i++) {
       if (uWetHigh < 0.5 && i >= 2) break;
-      if (uWetLamps[i].y > 0.0) wetLights += wetStreak(uWetLamps[i], 0.17, 3.2);
+      if (uWetLamps[i].y > 0.0) wetLights += wetStreak(uWetLamps[i], mix(.42, .17, wetPuddle), 3.2);
     }
-    outgoingLight += vec3(1.0, 0.54, 0.2) * min(wetLights, 1.5) * wetPuddle * uWetNight * 0.38;
+    outgoingLight += vec3(1.0, 0.64, 0.35) * min(wetLights, 1.5) * (wetPuddle + wetMask * wetRoad * .06) * uWetNight * .30;
     if (uWetBus.y > -1000.0) {
       vec2 side = vec2(-uWetHeading.y, uWetHeading.x) * 0.66;
       vec3 front = uWetBus + vec3(uWetHeading.x, 0.0, uWetHeading.y) * 4.0;
@@ -105,8 +128,8 @@ if (wetMask > 0.001 && (wetPuddle > 0.001 || wetRoad > 0.001)) {
       outgoingLight += vec3(1.0, 0.89, 0.66) * headlights * wetPuddle * uWetNight * 0.22;
     }
   }
-  outgoingLight += wetGlint * wetPuddle;
 }
+outgoingLight += wetGlint;
 `;
 
 function register(material) {
@@ -129,13 +152,13 @@ function register(material) {
       .replace('#include <lights_physical_fragment>', surface + '\n#include <lights_physical_fragment>')
       .replace('#include <opaque_fragment>', reflection + '\n#include <opaque_fragment>');
   };
-  material.customProgramCacheKey = function() { return (defaultKey ?? key.call(this)) + '-wet-surfaces-v4'; };
+  material.customProgramCacheKey = function() { return (defaultKey ?? key.call(this)) + '-wet-surfaces-v5'; };
   material.needsUpdate = true;
   registrations.set(material, entry);
   return entry;
 }
 
-export function createWetSurfaces(scene, { lamps = [], reducedMotion = false, cover } = {}) {
+export function createWetSurfaces(scene, { lamps = [], kerbs = [], reducedMotion = false, cover } = {}) {
   const state = uniforms(), materials = new Set(), entries = [];
   Object.assign(state, coverUniforms(cover));
   const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
@@ -209,10 +232,12 @@ export function createWetSurfaces(scene, { lamps = [], reducedMotion = false, co
       }
       state.uWetReflect.value = 1; activate();
     },
-    update(time, wet, rain, night, cameraPosition, mood, busPosition, heading, tier = 'high') {
+    update(time, wet, rain, night, cameraPosition, mood, busPosition, heading, tier = 'high', wind = 1) {
       if (disposed) return;
       state.uWet.value = clamp(wet); state.uWetRain.value = clamp(rain); state.uWetNight.value = clamp(night);
       state.uWeatherTime.value = reducedMotion ? 0 : time; state.uWetHigh.value = tier === 'high' ? 1 : 0;
+      const gust = weatherGust(time, wind);
+      state.uWetWind.value.set(reducedMotion ? 0 : gust.x, reducedMotion ? 0 : gust.z);
       const zen = mood?.zen, hor = mood?.hor;
       // Live sky colours are final HDR values; arrays are the standalone authored fallback.
       if(zen?.isColor&&hor?.isColor){
@@ -236,6 +261,24 @@ export function createWetSurfaces(scene, { lamps = [], reducedMotion = false, co
         if (d >= distance[i]) continue;
         while (i > 0 && d < distance[i - 1]) { distance[i] = distance[i - 1]; nearest[i].copy(nearest[i - 1]); i--; }
         distance[i] = d; nearest[i].set(x, y, z);
+      }
+      distance.fill(Infinity);
+      const nearestKerbs = state.uWetKerbs.value;
+      for (const segment of nearestKerbs) segment.set(1e6, 1e6, 1e6, 1e6);
+      for (const [x0, z0, x1, z1] of kerbs) {
+        const dx = x1 - x0, dz = z1 - z0;
+        const along = clamp(((cx - x0) * dx + (cz - z0) * dz) / Math.max(dx * dx + dz * dz, .001));
+        const d = (x0 + along * dx - cx) ** 2 + (z0 + along * dz - cz) ** 2;
+        let i = 3;
+        if (d >= distance[i]) continue;
+        while (i > 0 && d < distance[i - 1]) { distance[i] = distance[i - 1]; nearestKerbs[i].copy(nearestKerbs[i - 1]); i--; }
+        distance[i] = d; nearestKerbs[i].set(x0, z0, x1, z1);
+      }
+      // Fade the outer candidate to zero so replacing it cannot pop distant pools.
+      const cutoff = Math.max(.001, Math.sqrt(distance[3]));
+      for (let i = 0; i < 4; i++) {
+        const fade = kerbs.length > 4 ? clamp((Math.sqrt(distance[i]) - .85 * cutoff) / (.15 * cutoff)) : 0;
+        state.uWetKerbWeights.value.setComponent(i, Number.isFinite(distance[i]) ? 1 - fade * fade * (3 - 2 * fade) : 0);
       }
       activate();
     },

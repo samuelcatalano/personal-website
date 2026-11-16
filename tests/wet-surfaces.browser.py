@@ -7,6 +7,7 @@ result = js(r'''(async () => {
   const T = await import('three');
   const { untone } = await import('./js/world/sky.js');
   const { createWetSurfaces } = await import('./js/world/wet-surfaces.js');
+  const { weatherGust } = await import('./js/world/weather.js');
   const { createVehicleFx } = await import('./js/world/vehicle-fx.js');
   const { blockMaterial } = await import('./js/world/textures.js');
   const { townhouseMaterials } = await import('./js/world/building-slice-materials.js');
@@ -36,11 +37,12 @@ result = js(r'''(async () => {
   const glowingRoadMesh = new T.Mesh(geometry, glowingRoad); glowingRoadMesh.position.z = -30; scene.add(glowingRoadMesh);
   const originalSceneHook = scene.onBeforeRender;
   const lamps = [[9,0],[1,0],[8,0],[2,0],[7,0],[3,0],[6,0],[4,0],[5,0],[10,0]];
+  const kerbs = [[20,-2,20,2],[1,-3,1,3],[8,-3,8,3],[2,-3,2,3],[7,-3,7,3],[3,-3,3,3],[6,-3,6,3],[4,-3,4,3],[5,-3,5,3],[-100,-.5,100,-.5]];
   const mood = {zen:[.435,.694,.91],hor:[.725,.863,.961]}, bus = new T.Vector3(2, 0, 2);
   const vehicleFx = createVehicleFx(scene);
   let wet, other;
   try {
-    wet = createWetSurfaces(scene, {lamps});
+    wet = createWetSurfaces(scene, {lamps,kerbs});
     check(glowingRoad.onBeforeCompile!==roadHook, 'glowing road must retain wet reflections');
     check(excluded.every((m,i)=>m.onBeforeCompile===excludedHooks[i]), 'glass/vegetation/emissive/transparent/basic material must stay untouched');
     wet.update(3, 1, 1, .8, new T.Vector3(), mood, bus, 0, 'high');
@@ -55,6 +57,13 @@ result = js(r'''(async () => {
     check(shaders.has(floor) && shaders.has(architecture) && shaders.has(roof), 'standard and atlas shaders must really compile');
     check(renderer.info.programs.every(p=>p.diagnostics?.runnable !== false), 'wet shader failed WebGL linking');
     const shader = shaders.get(floor), atlasShader = shaders.get(architecture), u = shader.uniforms;
+    check(u.uWetKerbs.value.map(v=>v.x).join(',')==='-100,1,2,3','puddles must use the nearest four kerb segments, including a long nearby segment');
+    check(u.uWetKerbWeights.value.w===0 && u.uWetKerbWeights.value.x>0,'the outer selected kerb must fade out before candidate swaps');
+    const gust = weatherGust(3, 1);
+    check(u.uWetWind.value.equals(new T.Vector2(gust.x, gust.z)), 'surface ripples must share the rain gust');
+    wet.update(3,1,1,.8,camera.position,mood,bus,0,'high',.55);
+    const regionalGust=weatherGust(3,.55);
+    check(u.uWetWind.value.equals(new T.Vector2(regionalGust.x,regionalGust.z)),'surface gust must preserve regional wind strength');
     const perspective=new T.PerspectiveCamera(60,1,.1,100);perspective.position.set(10,8,12);perspective.lookAt(3,1,0);perspective.updateMatrixWorld();
     wet.reflect(renderer,perspective,'medium',[vehicleFx.points]);wet.reflect(renderer,perspective,'medium',[vehicleFx.points]);
     check(renderer.getContext().getError()===0,'Wet reflection samples its own render target');
@@ -79,6 +88,20 @@ result = js(r'''(async () => {
     const dryTop=sample(0,true), wetTop=sample(1,true), dryWall=sample(0,false), wetWall=sample(1,false);
     check(dryTop.slice(0,3).some((v,i)=>Math.abs(v-wetTop[i])>0.0001), 'rendered upward floor must respond to wetness: '+JSON.stringify({dryTop,wetTop}));
     check(dryWall.join()===wetWall.join(), 'rendered vertical face must remain dry');
+    camera.position.set(0,8,0);camera.up.set(0,0,-1);camera.lookAt(0,0,0);camera.updateMatrixWorld();
+    const frame = (time, wetness, rain, position=camera.position) => {
+      wet.update(time,wetness,rain,0,position,mood,bus,0,'high');
+      renderer.render(scene,camera);
+      const pixels=new Float32Array(64*64*4);renderer.readRenderTargetPixels(target,0,0,64,64,pixels);
+      check(pixels.every(Number.isFinite),'rain impacts must keep every HDR pixel finite');return pixels;
+    };
+    const rainA=frame(4,1,.4),rainB=frame(4.3,1,.4),dryA=frame(4,0,.4),dryB=frame(4.3,0,.4);
+    check(rainA.some((v,i)=>Math.abs(v-rainB[i])>1e-6),'exposed wet ground must show subtle moving impacts');
+    check(dryA.every((v,i)=>v===dryB[i]),'dry ground must not animate rain impacts');
+    const nearKerb=frame(4,1,0),savedKerbs=kerbs.splice(0),withoutKerbs=frame(4,1,0);kerbs.push(...savedKerbs);
+    check(nearKerb.some((v,i)=>Math.abs(v-withoutKerbs[i])>1e-6),'real kerbs must influence rendered puddle accumulation');
+    const swapA=frame(4,1,0,new T.Vector3(3.5-1e-5,8,0)),swapB=frame(4,1,0,new T.Vector3(3.5+1e-5,8,0));
+    check(swapA.every((v,i)=>Math.abs(v-swapB[i])<1e-4),'swapping the fourth nearest kerb must not pop rendered puddles');
     wet.update(9,0,1,1,camera.position,mood,bus,Math.PI/2,'low');
     check(u.uWet.value===0 && u.uWetHigh.value===0 && u.uWeatherTime.value===9, 'dry amount and tier downgrade must update without recompiling');
     const sharedMesh = new T.Mesh(geometry,floor); otherScene.add(sharedMesh);
@@ -88,6 +111,7 @@ result = js(r'''(async () => {
     other.update(100, .4, 1, .2, camera.position, mood, bus,0,'medium');
     otherScene.onBeforeRender(renderer,otherScene,camera,target);
     check(u.uWet.value===.4 && u.uWeatherTime.value===0 && u.uWetAnimate.value===0 && u.uWetHigh.value===0, 'reduced motion must freeze rain normals and splash animation');
+    check(u.uWetWind.value.lengthSq()===0,'reduced motion must freeze surface gusts');
     scene.onBeforeRender(renderer,scene,camera,target);
     check(u.uWet.value===0 && u.uWeatherTime.value===9 && u.uWetAnimate.value===1, 'rendering another world must activate that world uniforms');
     wet.dispose(); wet.dispose();

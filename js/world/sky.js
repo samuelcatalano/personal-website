@@ -195,7 +195,8 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
       u.uClear.value = clear; u.uNight.value = night; u.uCover.value=cover;
       scene.fog.color.copy(u.uHor.value); // already tone-inverted
       scene.background?.copy(scene.fog.color);
-      scene.fog.near = (150 - 10 * night) * mood.fogK; scene.fog.far = (740 - 100 * night) * mood.fogK;
+      scene.fog.near = (150 - 10 * night) * mood.fogK;
+      scene.fog.far = (740 - 100 * night) * mood.fogK * (1 - .14 * (mood.rain ?? 0));
       for(const mat of [cloudMat,cirrusMat,deckMat]){
         const cu=mat.uniforms;
         cu.uTop.value.lerpColors(day(mood.cloud,d1),NIGHT.cloud,night);untone(cu.uTop.value);

@@ -2,6 +2,8 @@ print(js("""(async()=>{
  const THREE=await import('three'),{createWater}=await import('./js/world/water.js');
  const rainy={hor:[.53,.58,.62],rain:1,cover:1};const water=createWater({x0:0,x1:20,z:0,width:10});
  const exactSky={zen:new THREE.Color(.1,.2,.3),hor:new THREE.Color(.3,.2,.1)};water.update(3,0,rainy,'high',exactSky);const u=water.mesh.material.uniforms;
+ const gust=(await import('./js/world/weather.js')).weatherGust(3,1);
+ if(!u.uRainWind?.value || Math.abs(u.uRainWind.value.x-gust.x)>1e-6)throw Error('River ignores shared wind');
  if(!u.uSky.value.equals(exactSky.hor)||!u.uZen.value.equals(exactSky.zen))throw Error('River and dome palette mismatch');
  if(u.uRainMotion.value!==1||u.uKey.value!==0)throw Error('Rain must ripple water and hide sun sparkle');
  water.update(4,1,rainy,'medium');if(u.uRainMotion.value!==0)throw Error('Medium water rain animation not disabled');
