@@ -363,6 +363,16 @@ body.no-webgl #world { display: none; }
 /* the journey board: the header blind's twin inside the panel, so phones and narrow windows keep the destination too */
 .led.board { display: flex; width: 100%; margin: 0 0 14px; }
 .led.board .live { flex: 1; width: auto; min-width: 0; }
+@media (min-width: 1101px) and (max-width: 1600px) { .panel[data-section="hero"] .led.board { display: flex; } } /* between 1101 and 1600 px the header blind is hidden, so the hero keeps its own */
+/* Hero: a 30-second fact sheet and one call to action. */
+.fact-sheet { margin: 14px 0 0; display: grid; }
+.fact-sheet div { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); }
+.fact-sheet dt { margin: 0; font: 600 12px/1.45 var(--sans); color: var(--muted); }
+.fact-sheet dd { margin: 0; font: 500 13px/1.45 var(--sans); color: var(--ink); }
+/* The blind blinks once when the bus comes to rest at a stop (ui.js atRest). */
+.led .live.arrive { animation: arrive-blink 1s steps(1, end) 1; }
+@keyframes arrive-blink { 0%, 100% { opacity: 1; } 20%, 60% { opacity: .15; } 40%, 80% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .led .live.arrive { animation: none; } }
 @media (min-width: 1101px) { .led.board { display: none; } } /* the header blind shows the same text here, so the panel keeps the room for the Next stop button */
 /* the route list takes the height the panel has left, between 3 and 4 rows, so Next stop stays in view without scrolling the panel */
 /* stack tickets: the tool, then since-when and how many stops mention it */
@@ -606,7 +616,6 @@ body.ui-hidden #arrival { opacity: 0; }
 .controls [data-hide] svg { fill: currentColor; }
 @media (prefers-reduced-motion: reduce) { .bar, #panel, #arrival { transition: none; } }
 /* Route gamification: ride-time line, recap tiles, passport stamp on the arrival banner */
-.intro-time { margin: 10px 0 0; font: 600 12px/1.4 var(--sans); color: var(--muted); }
 .ticket { display: grid; margin: 16px 0 0; border: 1px solid var(--line); border-radius: 12px; background: var(--card); overflow: hidden; }
 .ticket-body, .ticket-stub { padding: 16px; }
 .ticket-stub { border-top: 2px dashed var(--line); } /* the perforation: where the stub tears off */

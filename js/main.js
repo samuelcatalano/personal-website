@@ -1,4 +1,4 @@
-import { stops, SECTIONS, sectionStart, QUICK } from './content.js';
+import { stops, SECTIONS, sectionStart } from './content.js';
 import { watchScroll, stopMarks, nearestStop, scrollYForStop, progressFromScroll, navLock } from './scroll.js';
 import { routePoints, STOP_SPACING } from './world/layout.js';
 import { initUI } from './ui.js';
@@ -61,13 +61,14 @@ const goto = (i) => {
   unlock = setTimeout(lock.clear, 8000); // ponytail: 8 s covers the slowest observed jump (~6 s); make it distance-based if routes grow
 };
 const hash = location.hash.slice(1); // read before the UI rewrites it
-const ui = initUI({ onGoto: goto, onHold: hold, onTheme: (t) => world?.setTheme(t) });
+const ui = initUI({ onGoto: goto, onHold: hold, onTheme: (t) => world?.setTheme(t), onFocusStop: (i) => world?.highlight(i === null ? null : stops[i].id) });
 for (const ev of ['wheel', 'touchstart']) addEventListener(ev, () => { glideId++; holdDir = 0; holdSpeed = 0; lock.clear(); }, { passive: true });
 const autoBtn = document.querySelector('[data-auto]'), quickBtn = document.querySelector('[data-quick]'), stopBtn = document.getElementById('stop-request');
 let quick = false;
 const ride = createAutoRide({
-  ys: () => stops.map((_, i) => scrollYForStop(i, n, H(), innerHeight, marks)).filter((_, i) => !quick || QUICK.includes(stops[i].id)),
-  dwell: () => (quick ? 1600 : 3400),
+  ys: () => stops.map((_, i) => scrollYForStop(i, n, H(), innerHeight, marks)),
+  dwell: () => (quick ? 1600 : 3400), // quick tour with reduced motion: every stop, snapped, 1.6 s each
+  cruise: () => quick && !reducedMotion, // quick tour: one steady pass over the whole route (no stops)
   hold: () => ui.speaking(),
   keep: (e) => !!e.target?.closest?.('#stop-request') || (e.type === 'keydown' && (e.key === 'b' || e.key === 'B')),
   onState: (on) => { autoBtn.setAttribute('aria-pressed', String(on && !quick)); quickBtn.setAttribute('aria-pressed', String(on && quick)); stopBtn.hidden = !on || quick; }, instant: reducedMotion,
@@ -81,7 +82,7 @@ const requestStop = () => {
 stopBtn.addEventListener('click', requestStop);
 document.addEventListener('keydown', (e) => { if ((e.key === 'b' || e.key === 'B') && !e.metaKey && !e.ctrlKey && !e.altKey && !e.target.closest?.('input, textarea')) requestStop(); });
 autoBtn.addEventListener('click', () => { quick = false; lock.clear(); ride.toggle(); if (ride.on) ui.holdTight(); });
-quickBtn.addEventListener('click', () => { quick = true; scrollTo(0, 0); lock.clear(); if (ride.on) ride.stop(); else { ride.toggle(); ui.holdTight(); } });
+quickBtn.addEventListener('click', () => { quick = true; lock.clear(); if (ride.on) ride.stop(); else { scrollTo(0, 0); ride.toggle(); ui.holdTight(); } }); // stopping keeps the place; starting goes back to the top
 const photoBtn = document.querySelector('[data-photo]');
 photoBtn.addEventListener('click', async () => {
   if (!world || photoBtn.disabled) return;
@@ -124,8 +125,10 @@ if (target > 0 || SECTIONS.includes(hash)) addEventListener('load', () => reques
   }
 }), { once: true });
 if (hash) addEventListener('load', () => requestAnimationFrame(() => history.replaceState(null, '', location.pathname + location.search)), { once: true }); // a typed #stop link is used once, then the address goes back to the plain URL
+let restTimer = 0; // the bus is at rest once scrolling has paused for a moment: the stop it reached rings its bell (ui.atRest)
 watchScroll((p) => {
   progress = p;
+  clearTimeout(restTimer); restTimer = setTimeout(() => ui.atRest(), 450);
   if (!world) follow(p);
   world?.setProgress(p);
 });

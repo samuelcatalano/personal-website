@@ -10,6 +10,8 @@ export function loadPrefs(storage, env = {}) {
 export function savePref(storage, key, value) { try { storage?.setItem(key, value); } catch { /* storage blocked */ } }
 const store = () => { try { return localStorage; } catch { return undefined; } };
 import { speak, hush, voiceSupported, hasVoice, whenDone } from './announce.js';
+import { arrivalDing } from './sound.js';
+import { QUICK_TOUR_S } from './autoride.js';
 // Roundel flags for the language switch (plain SVG: emoji flags do not draw on every system). Each fills a circle, cropped from its middle.
 const FLAGS = {
   en: '<svg viewBox="0 0 60 30" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><rect width="60" height="30" fill="#1b2d6b"/><path d="M0 0 60 30M60 0 0 30" stroke="#fff" stroke-width="6"/><path d="M0 0 60 30M60 0 0 30" stroke="#c8102e" stroke-width="2"/><path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10"/><path d="M30 0v30M0 15h60" stroke="#c8102e" stroke-width="6"/></svg>',
@@ -21,11 +23,12 @@ const journeySeenCount = (seenSet) => stops.reduce((n, st, i) => n + (st.section
 const FOUND = ['hide', 'postcard']; // small finds: hiding the interface, saving a postcard
 // ponytail: 2 s of travel per stop; dwell values mirror main.js (3400 ms full auto-ride, 1600 ms quick tour)
 const rideSeconds = (n, dwellMs) => Math.round(n * (dwellMs + 2000) / 1000);
-// ponytail: 3 s on a stop counts as seen. The full auto-ride (3400 ms per stop) counts; the quick tour (1600 ms) does not, by choice. Lower this if the quick tour should count.
+const quickSeconds = () => (matchMedia('(prefers-reduced-motion: reduce)').matches ? rideSeconds(stops.length, 1600) : QUICK_TOUR_S); // the steady pass, or every stop snapped when motion is reduced
+// ponytail: 3 s on a stop counts as seen. Auto-ride stops (3400 ms) and the steady quick tour (about 13 s per stop) both count; the snapped quick tour under reduced motion (1600 ms) does not.
 function visitAfterMs() { return 3000; }
 const journeyLine = (t, seenSet) => { // the counter the journey panel shows; rebuilt in place when a stop is confirmed
   const count = journeySeenCount(seenSet);
-  return `<div class="journey-progress"><span>${count ? t.ui.progress.replace('{count}', count).replace('{total}', journeyTotal) : t.ui.progressEmpty.replace('{quick}', rideSeconds(QUICK.length, 1600))}</span><progress value="${count}" max="${journeyTotal}">${count}/${journeyTotal}</progress></div>`;
+  return `<div class="journey-progress"><span>${count ? t.ui.progress.replace('{count}', count).replace('{total}', journeyTotal) : t.ui.progressEmpty.replace('{quick}', quickSeconds())}</span><progress value="${count}" max="${journeyTotal}">${count}/${journeyTotal}</progress></div>`;
 };
 const ticketMeta = (t, tool) => { const s = toolSpan(tool); return `${t.ui.ticketSince.replace('{year}', s.since)} · ${t.ui.ticketStops.replace('{n}', s.count)}`; };
 const QUICK_MS = 1500; // ponytail: just under the quick tour's 1600 ms stop, so quick stops count on that path only
@@ -74,9 +77,10 @@ function sectionHTML(section, t, active, tool = null, route = { seen: new Set(),
   const list = (items, f, url) => `<h2>${s.title}</h2><p>${s.intro}</p><ul class="rows">${items.map(f).join('')}</ul><p>${ext(url, s.more + ' ↗', 'btn more')}</p>`;
   switch (section) {
     case 'hero': return `
+      <p class="led board" aria-hidden="true"><b>83</b><span class="live"></span></p>
       <div class="profile-head"><img class="avatar" src="assets/avatar.png" alt="" width="96" height="96">
         <div><h1>${s.title}</h1><p class="role">${s.role}</p><p class="eyebrow">${s.kicker}</p></div></div><p class="meta profile-meta">${s.meta}</p>
-      <p class="value">${s.value}</p><ul class="hero-links contact">
+      <p class="value">${s.value}</p><dl class="fact-sheet">${s.facts.map(f => `<div><dt>${f.label}</dt><dd>${f.value}</dd></div>`).join('')}</dl><ul class="hero-links contact">
         ${contact(t.sections.contact)}</ul>
       <div class="profile-status"><p class="avail">${s.availability}</p><p class="clock">${t.ui.clock} <time data-london></time></p></div>
         <p class="proof">“${s.proof}” <span>${t.recs[0].name}, ${t.recs[0].role}</span></p><p class="tagline">${s.tagline}</p><p class="hint">${matchMedia('(pointer: coarse)').matches ? t.ui.scrollTouch : t.ui.scroll} ↓</p>`;
@@ -108,7 +112,7 @@ function sectionHTML(section, t, active, tool = null, route = { seen: new Set(),
       <p class="footer">${t.ui.footer} <button type="button" class="linkish" data-credits>${t.ui.credits.link}</button></p>`;
   }
 }
-export function initUI({ onGoto, onTheme, onHold = () => {} }) {
+export function initUI({ onGoto, onTheme, onHold = () => {}, onFocusStop = () => {} }) {
   const prefs = loadPrefs(store(), { lang: navigator.language });
   const panel = document.getElementById('panel'), announce = document.getElementById('announce');
   const options = document.querySelector('[data-options]');
@@ -141,13 +145,13 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
   const say = (key, ms = 2500) => { notes.say = key; led(); clearTimeout(sayTimer); sayTimer = setTimeout(() => { notes.say = null; led(); }, ms); };
   const baseText = () => {
     const t = i18n[prefs.lang], st = stops[Math.max(active, 0)];
-    return st.section === 'journey' ? `${st.year} ${t.stops[st.id].place}` : st.section === 'hero' ? t.ui.intro.d1 : t.ui.nav[st.section];
+    return st.section === 'journey' ? `${st.year} ${t.stops[st.id].place}` : st.section === 'hero' ? `${routeNo()} · ${t.sections.hero.role}` : t.ui.nav[st.section]; // the hero's blind reads like the bus's own: "83 · Senior Software Engineer"
   };
   // With the tab in the background the title becomes the blind: "83 · Waiting at Tribal Worldwide London".
   const pageTitle = document.title;
   const waitingTitle = () => {
     const t = i18n[prefs.lang], st = stops[Math.max(active, 0)];
-    return t.ui.tabWaiting.replace('{route}', routeNo()).replace('{place}', st.section === 'journey' ? t.stops[st.id].title : baseText());
+    return t.ui.tabWaiting.replace('{route}', routeNo()).replace('{place}', st.section === 'journey' ? t.stops[st.id].title : st.section === 'hero' ? t.ui.intro.d1 : baseText());
   };
   document.addEventListener('visibilitychange', () => { document.title = document.hidden ? waitingTitle() : pageTitle; });
   const led = () => {
@@ -157,8 +161,8 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     else if (notes.gap) { text = t.ui.led.gap; alert = true; }
     else if (st.section === 'contact') text = t.ui.led.end;
     else if (notes.rain && Math.floor(Date.now() / 4000) % 2) { text = t.ui.led.rain; alert = true; }
-    else if (st.section !== 'contact' && Math.floor(Date.now() / 4000) % 3 === 1) text = t.ui.led.eta.replace('{place}', t.ui.nav.contact).replace('{min}', Math.max(1, Math.ceil(rideSeconds(stops.length - 1 - Math.max(active, 0), 3400) / 60))); // the stop board's countdown to the terminus at the auto-ride pace
-    else if (st.section !== 'contact' && Math.floor(Date.now() / 4000) % 3 === 0) text = t.ui.led.count.replace('{count}', journeySeenCount(seen)).replace('{total}', journeyTotal); // rotating route counter
+    else if (st.section !== 'contact' && st.section !== 'hero' && Math.floor(Date.now() / 4000) % 3 === 1) text = t.ui.led.eta.replace('{place}', t.ui.nav.contact).replace('{min}', Math.max(1, Math.ceil(rideSeconds(stops.length - 1 - Math.max(active, 0), 3400) / 60))); // the stop board's countdown to the terminus at the auto-ride pace
+    else if (st.section !== 'contact' && st.section !== 'hero' && Math.floor(Date.now() / 4000) % 3 === 0) text = t.ui.led.count.replace('{count}', journeySeenCount(seen)).replace('{total}', journeyTotal); // rotating route counter
     if (document.hidden) document.title = waitingTitle(); // keeps the hidden tab's title on the stop the bus is at
     for (const el of document.querySelectorAll('.led .live')) {
       el.classList.toggle('alert', alert);
@@ -237,6 +241,21 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     if (!a) return;
     a.querySelector('.nav-count')?.remove();
     a.insertAdjacentHTML('beforeend', ` <small class="nav-count" aria-hidden="true">${journeySeenCount(seen)}/${journeyTotal}</small>`);
+  };
+  // Focus or hover on a stop in the panel list lights its landmark. Touch taps only focus, so they light nothing.
+  const stopOf = (node) => node?.closest?.('[data-goto]') ?? null;
+  const stopIdx = (node) => (stopOf(node) ? +stopOf(node).dataset.goto : null);
+  document.addEventListener('pointerover', (e) => { if (e.pointerType !== 'touch' && stopOf(e.target)) onFocusStop(stopIdx(e.target)); });
+  document.addEventListener('pointerout', (e) => { if (e.pointerType !== 'touch' && stopOf(e.target) !== stopOf(e.relatedTarget)) onFocusStop(stopIdx(e.relatedTarget)); });
+  document.addEventListener('focusin', (e) => { if (stopOf(e.target)) onFocusStop(stopIdx(e.target)); });
+  document.addEventListener('focusout', (e) => { if (stopOf(e.target) !== stopOf(e.relatedTarget)) onFocusStop(stopIdx(e.relatedTarget)); });
+  // The bus has come to rest after a scroll (main.js calls this once scrolling pauses): the LED board blinks and the bell rings, if sound is on. Nothing during the intro.
+  let restIdx = -1;
+  const atRest = () => {
+    if (!introDone || document.body.classList.contains('intro-on') || active < 0 || active === restIdx) return;
+    restIdx = active;
+    for (const el of document.querySelectorAll('.led .live')) { el.classList.remove('arrive'); void el.offsetWidth; el.classList.add('arrive'); }
+    arrivalDing();
   };
   const resetRoute = () => { // "Start the route again": clears progress on this device, then redraws
     seen.clear(); cities.clear(); route.found.clear(); route.quick.clear();
@@ -318,13 +337,12 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     const routeList = panel.querySelector('.stops'), currentRow = routeList?.querySelector('.on');
     if (currentRow && matchMedia('(min-width: 768px)').matches) currentRow.scrollIntoView({ block: 'nearest' }); // the panel is the only scroller: keep the selected stop in view
     clock();
-    const introTime = document.getElementById('intro-time'); // ride lengths for the intro card, in the current language
-    if (introTime) introTime.textContent = t.ui.rideTime.replace('{auto}', rideSeconds(stops.length, 3400)).replace('{quick}', rideSeconds(QUICK.length, 1600));
     if (keep && !prev.isConnected) document.querySelector(`[${keep[0]}="${keep[1]}"]`)?.focus({ preventScroll: true }); // only an element the render replaced needs its focus back
     else if (!sectionChanged && panelLinkIndex >= 0) panel.querySelectorAll('a[href]')[panelLinkIndex]?.focus({ preventScroll: true });
     else if (!sectionChanged && panelCredits) panel.querySelector('[data-credits]')?.focus({ preventScroll: true });
+    const focusedStop = stopIdx(document.activeElement); onFocusStop(focusedStop); // a re-rendered list loses its hover: only a focused stop stays lit
     const c = t.stops[st.id];
-    announce.textContent = (c ? `${st.year} ${c.title}` : t.sections[st.section].title) + `, ${t.ui.cities[city]}` + (notes.rain ? `, ${t.ui.led.rain}` : '');
+    announce.textContent =(c ? `${st.year} ${c.title}` : t.sections[st.section].title) + `, ${t.ui.cities[city]}` + (notes.rain ? `, ${t.ui.led.rain}` : '');
   };
   document.addEventListener('click', (e) => {
     if (e.target.closest('[data-options]')) { options.setAttribute('aria-expanded', String(options.getAttribute('aria-expanded') !== 'true')); return; }
@@ -421,5 +439,6 @@ export function initUI({ onGoto, onTheme, onHold = () => {} }) {
     },
     holdTight() { if (voiceOn) talk(i18n[prefs.lang].ui.speakStart); }, // the conductor's line as the ride sets off
     note(key, on) { if (notes[key] !== on) { notes[key] = on; led(); if (key === 'rain' && on) rainLine(); } },
+    atRest,
   };
 }

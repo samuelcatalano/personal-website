@@ -1,12 +1,18 @@
 // The intro's two synthesized sounds (no audio files). Only ever called from a click or tap, so autoplay rules allow them.
 // They play on the shared engine's direct output (js/audio/engine.js) whatever the Sound toggle says, and stop for good when the intro closes.
-import { audio, release, tone } from './audio/engine.js';
+import { audio, enabled, release, tone } from './audio/engine.js';
 let released = false;
 export const releaseSounds = () => { released = true; release(); };
 // London bell: two sine partials with a fast decay.
+const BELL = [[1568, 1], [2352, 0.33]];
 export const ding = () => {
   if (released) return;
-  try { const a = audio(); if (a) tone(a.c, a.direct, [[1568, 1], [2352, 0.33]], { decay: 1.1 }); } catch { /* no audio available */ }
+  try { const a = audio(); if (a) tone(a.c, a.direct, BELL, { decay: 1.1 }); } catch { /* no audio available */ }
+};
+// The same bell when the bus comes to rest at a stop. It runs through the UI bus, so the Sound toggle governs it; `ding` stays intro-only.
+export const arrivalDing = () => {
+  if (!enabled()) return;
+  try { const a = audio(); if (a) tone(a.c, a.bus.ui, BELL, { decay: 1.1 }); } catch { /* no audio available */ }
 };
 // Pneumatic door hiss: a burst of high-passed noise with a quick attack and a long decay.
 export const hiss = () => {

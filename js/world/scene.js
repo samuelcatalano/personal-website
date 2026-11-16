@@ -45,6 +45,7 @@ import { createPeople } from './people.js';
 import { createNpc3d } from './npc3d.js';
 import { buildFigure } from './figure.js';
 import { createLandmarkPicker } from './landmark-pick.js';
+import { createLandmarkLight } from './landmark-light.js';
 import { SECTION_SHOT, shotFor, blendShots, spring, approach } from './camera.js';
 import { updateBeams, addBeams, refitBeams } from './beams.js';
 import { createLampPools } from './lamps.js';
@@ -470,6 +471,8 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   if (qa) globalThis.__qaPost = post;
   if (qa) globalThis.__qaFigure = { figure, camera, end, endTan, near };
   const stopPicker = createLandmarkPicker({ canvas, camera, details, bus, onPick, scene, water });
+  const landmarkLight = createLandmarkLight(details); // panel focus lights its stop's landmark
+  if (qa) globalThis.__qaLandmarkLight = landmarkLight; // QA probe: twin materials per stop
   let night = 0, nightTarget = 0, mobile = false;
   const bar = document.querySelector('.bar'), panel = document.querySelector('#panel');
   let fitKey = '';
@@ -663,7 +666,9 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     scene.updateMatrixWorld(); scene.matrixWorldAutoUpdate = false;
     water.reflect(renderer, scene, camera, post.tier, sky.objects);
     wetSurfaces.reflect(renderer, camera, post.tier, wetReflectionHidden);
+    landmarkLight.apply(dt, reducedMotion);
     post.render(dt);
+    landmarkLight.restore();
     scene.matrixWorldAutoUpdate = true;
     if (shotResolve) { const done = shotResolve; shotResolve = null; canvas.toBlob(done, 'image/png'); } // same task as the render: the drawing buffer is still valid
     if (qa) globalThis.__qaWorldFrames++;
@@ -687,6 +692,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     get flash() { return flash; }, // lightning brightness this frame: the sound driver times thunder from it
     snapshot() { return new Promise((res, rej) => { shotResolve = res; wake(); setTimeout(() => rej(new Error('snapshot timeout')), 3000); }); },
     setProgress(p) { target = p; wake(); },
+    highlight(id) { landmarkLight.set(id); wake(); }, // panel focus or hover: the stop's landmark glows (null clears it)
     jump(p) { target = p; scroll = { value: p, velocity: 0 }; wake(); },
     setTheme(name) {
       nightTarget = name === 'night' ? 1 : 0;
