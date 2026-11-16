@@ -213,3 +213,11 @@ Suítes de navegador (`tests/*.browser.py`) rodadas: `intro-scroll-cue` e `rain`
 - `panel-focus` ("scrolled out of view"): o teste pedia o topo do painel em 0, mas desde o B6 o painel é o único rolador e o foco na linha da parada 9 rola o bilhete 66 px para cima. A expectativa virou "o bilhete não some inteiro". `ui.js` não mudou (mantém `scrollIntoView` na linha atual, foco visível).
 - `intro-ticket`: a faixa de destino mostra "Fora de serviço" (ou "Bem-vindo de volta" para quem já visitou) enquanto a cidade carrega, de propósito desde 2026-11-13; o teste agora aceita esses dois rótulos.
 - `load-fade` (noite): defeito real. `scene.js` começava com `night = 0` e só levava o `nightTarget` até 1 a 1,4/s, então quem tinha o tema noite via 1-2 s de dia antes de escurecer (luma 64-73 → 50). A primeira chamada de `setTheme` agora fixa `night` no valor salvo. Delta noite 13-22 → 0,1-3,0; dia 1,7. A tolerância de 2,0 oscila com o tráfego em movimento (uma corrida passou, outra deu 3,0).
+
+## 17. Execução — rodada 10: `urban-infill.test.mjs` (2026-11-16)
+
+A falha vinha de três hashes de regressão desatualizados, não de defeito no mapa. Bisseção por commit: passava em `de72fa5`, falhava a partir de `4f492cf`.
+- Lotes antigos: único diff contra o estado que passava é `frontage-stop-recs-765--1-9`, a casa de Wembley que o dono mandou remover (`002f864`, também pinada em `architecture-migration.test.mjs`). Hash novo `e089dc76…`.
+- Árvores: `4f492cf` moveu o parque do primeiro plano 3 m em z (mensagem do commit: "clear the foreground park from the curved avenue"), saem 3 árvores e entram 4. Hash novo `526ee3e9…`.
+- Caixas: o mesmo movimento do parque (59 fora, 44 dentro) mais os 24 m de asfalto de Wembley desta frente. Hash novo `0d3d319a…`.
+Os três recálculos têm comentário no teste com a causa. Suíte Node completa passa.
