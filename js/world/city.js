@@ -65,6 +65,7 @@ export function tree(add, x, z, { h, crown, base = 0.1 }) {
   add(x - crown * 0.22, h + 0.2, z + crown * 0.16, crown * 0.6, 1, crown * 0.6, LEAF_SHADE);
   add(x + crown * 0.2, h + 0.15, z - crown * 0.2, crown * 0.56, 0.9, crown * 0.56, LEAF);
 }
+const ROAD_RUNOUT = 24; // metres of carriageway past the last stop
 // Samples along the curve every ~`step` m (curve param is per stop, so count follows each segment's length)
 const ticks = (pts, step) => [...pts.slice(1).flatMap((q, s) => {
   const m = Math.ceil(Math.hypot(q.x - pts[s].x, q.z - pts[s].z) / step);
@@ -134,6 +135,18 @@ function buildRoad(add, stops, pts, curve) {
       const mid = (RD.padIn + RD.padOut) / 2, px = p.x + nx * side * mid, pz = p.z + nz * side * mid;
       add(px, -0.02, pz, len, 0.12, RD.padOut - RD.padIn, P.paverWarm, ry);
       if (pilot && i % 9 === 0) add(px, 0.12, pz, 0.55, 0.004, 0.55, P.gravel);
+    }
+  }
+  // The carriageway used to stop dead at the last stop (Wembley): run it on past the end along the final tangent, with its kerbs.
+  // ponytail: plain asphalt, no paint and no junction; connect it to urban-roads.js if the street is ever extended for real.
+  const tEnd = curve.getTangentAt(1), pEnd = curve.getPointAt(1), ryEnd = Math.atan2(-tEnd.z, tEnd.x);
+  for (let d = 2; d <= ROAD_RUNOUT; d += 2) {
+    const x = pEnd.x + tEnd.x * d, z = pEnd.z + tEnd.z * d;
+    add(x, -0.18, z, 2 * RD.half, 0.24, 2 * RD.half, ROAD);
+    for (const side of [-1, 1]) {
+      const nx = -tEnd.z * side, nz = tEnd.x * side, mid = (RD.padIn + RD.padOut) / 2;
+      add(x + nx * RD.curb, 0.07, z + nz * RD.curb, 2.3, 0.1, RD.padIn - RD.half, P.pave, ryEnd);
+      add(x + nx * mid, -0.02, z + nz * mid, 2.3, 0.12, RD.padOut - RD.padIn, P.paverWarm, ryEnd);
     }
   }
   return pilotCrossings;
