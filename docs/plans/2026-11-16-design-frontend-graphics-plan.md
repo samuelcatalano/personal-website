@@ -166,3 +166,34 @@ Pendente: A5 (rua de Wembley, decisão), C2 (fontes: exige baixar arquivos), C5,
 Feito: B8 passo 1 parcial — 6 hex repetidos 3+ vezes viraram variáveis `--c-*` em `css/style.css` (35 substituições, por script). Entradas de 2026-11-16 em `docs/art-direction.md` e `docs/architecture/rendering-budget.md`.
 Verificado: revertendo as variáveis o CSS é idêntico ao do commit `8486771` (exceto a linha nova em `:root`); nenhuma variável dentro de `url()`; `node --test tests/` 299 passam, 1 falha preexistente.
 Não verificado: captura da UI (a equivalência textual foi a prova usada).
+
+## 11. Execução — rodada 4 (2026-11-16, nada alterado)
+
+Estado: rodadas 1-3 já commitadas (`6c790e9`, `8486771`, `43bd823`). Árvore limpa.
+Tentado: C5 (remover blur do `.panel`, `style.css:59`). Revertido: as capturas não eram comparáveis (clima diferente entre as duas, painel fora do enquadramento). Refazer com `weather=clear` fixo e painel aberto (stop de tela com painel) antes de remover.
+C6: `Sammy.png` apagado (dono aprovou; sem referências no código).
+Pendente (precisa decisão ou ambiente): A5 (OK), C2 (baixar fontes, OFL), B2/A14 (mobile), A1 shader, A17, A18, D1, D2.
+
+## 12. Execução — rodada 5 (2026-11-16, não commitada)
+
+Feito (dono autorizou A5, C2, C6):
+- A5: o asfalto e as calçadas de Wembley agora seguem 24 m além da última parada (`js/world/city.js`, `ROAD_RUNOUT`), sem pintura nem cruzamento (`ponytail:` no código). Parada e rota intactas. Captura 17 dia antes/depois conferida.
+- C2: Inter (variável, latin) e Hammersmith One (latin) em `assets/fonts/`, `@font-face` com `font-display: swap` no topo de `css/style.css`, preload da Inter, CSS do Google removido de `index.html`, OFL registrada em `ASSET_SOURCES.md`. Carga limpa: zero pedidos a `googleapis`.
+- C6: `Sammy.png` apagado.
+Verificado: `node --test tests/` 302 passam, 1 falha preexistente (hash em `urban-infill.test.mjs`).
+Não feito: C5 (blur do painel; falta captura com a cena visível atrás do painel), B2/A14/C1 (mobile e Chrome real), A1 shader, A17, A18, D1, D2.
+
+C5 feito só no `.panel` (`style.css`): `tools/capture.py` ganhou `PANEL=1` (mantém painel e barra) e `NOBLUR=1` (segunda captura sem `backdrop-filter`). Captura 9.5 dia, clima limpo, mesma sessão: painel sem diferença visível (fundo 97% opaco). Barra, intro, créditos e `#ui-restore` mantêm o blur (não medidos).
+
+## 13. Execução — rodada 6 (2026-11-16)
+
+A17: capturas `weather=rain` em 5 dia, 9.5 dia e 11 noite sem defeito novo visível (poças e reflexos ok; janelas do fundo noturno discretas na névoa). Só olhei os frames, sem movimento.
+D1: Lighthouse (localhost, navegação): desktop 100/100/100/100; mobile 100 a11y, 100 boas práticas, 100 SEO, agentic-browsing 63 por CLS 0,389.
+CLS mobile: o `#panel` pula 106 px (topo 295 → 401, depois volta 401 → 295) aos ~11 s e ~14,8 s, em 375 px, medido via PerformanceObserver (0,083 por pulo; o Lighthouse soma 0,389). Tentei fixar a altura do hero (`min-height` 58dvh) e não mudou nada, então revertido. Causa provável: troca de seção/altura do painel ancorado embaixo durante a animação de intro; investigar junto com B2 (sheet em 2 estados).
+
+**Regra do dono (2026-11-16): nada de mobile.** B2, A14, o CLS mobile da seção 13 e qualquer teste em 375 px estão fora de escopo. As medições mobile da rodada 6 foram um erro e não devem ser repetidas.
+
+## 14. Execução — rodada 7 (2026-11-16)
+
+A1 (isolamento): `tools/capture.py` ganhou `PRE_JS` (JS antes da captura). Com `?qa` e `__qaScene.getObjectByName('distant-skyline').visible=false`, as nuvens do 9.5 ficam suaves: os "degraus" no horizonte vêm do `skyline.js` (3 fileiras com haze fixo), não do shader de `sky.js`. Após o A2 da rodada 1 o horizonte está em tom claro e baixo contraste; **shader de nuvem não alterado** (YAGNI). Se o dono ainda quiser menos blocos, o ajuste é aumentar `uHaze`/aproximar `DAY[r]` do horizonte em `skyline.js:4,17`.
+Pendente (sem mobile): C1 (Chrome real), A18 (clipe da rota), D2 desktop.

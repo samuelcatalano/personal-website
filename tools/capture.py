@@ -34,10 +34,15 @@ for stop, theme in shots:
         time.sleep(.5)
     else: raise AssertionError('3D world did not settle; refusing a loading-screen capture')
     time.sleep(6)
-    js("{const st=document.createElement('style');st.textContent='#panel,.bar,header,nav,#route,#arrival,#ui-restore{visibility:hidden!important}#intro{display:none!important}';document.head.append(st)}")
+    hide = '#route,#arrival,#ui-restore' if os.environ.get('PANEL') == '1' else '#panel,.bar,header,nav,#route,#arrival,#ui-restore'  # PANEL=1 keeps the panel and bar in frame
+    js("{const st=document.createElement('style');st.textContent='%s{visibility:hidden!important}#intro{display:none!important}';document.head.append(st)}" % hide)
     js("(async()=>{const s=await import('/js/scroll.js'),c=await import('/js/content.js'),L=await import('/js/world/layout.js');const n=c.stops.length,m=s.stopMarks(L.routePoints(n)),H=document.documentElement.scrollHeight,p=%s,i=Math.floor(p),f=p-i,a=s.scrollYForStop(i,n,H,innerHeight,m),b=s.scrollYForStop(Math.min(n-1,i+1),n,H,innerHeight,m);scrollTo({top:a+(b-a)*f,behavior:'instant'})})()" % float(stop))
+    if os.environ.get('PRE_JS'): js(os.environ['PRE_JS'])  # e.g. hide a node through the ?qa probes before the shot
     activate_tab(TAB); time.sleep(WAIT)  # re-front: another window/agent can hide the tab, and hidden tabs screenshot blank
     f = os.path.join(OUT, '%s-%s%s.png' % (stop, theme, '-m' if MOBILE else '')); capture_screenshot(f); files.append(f); print('ok', f)
+    if os.environ.get('NOBLUR') == '1':  # same frame again with every backdrop-filter off: A/B for blur removals
+        js("{const st=document.createElement('style');st.textContent='*{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}';document.head.append(st)}"); time.sleep(1)
+        capture_screenshot(f.replace('.png', '-noblur.png')); print('ok', f.replace('.png', '-noblur.png'))
 if MOBILE: cdp('Emulation.clearDeviceMetricsOverride')
 if os.environ.get('GRID') == '1' and len(files) > 1:
     from PIL import Image
