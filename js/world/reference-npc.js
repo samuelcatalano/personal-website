@@ -53,18 +53,24 @@ function disposeMaterials(root) {
   textures.forEach(t => { t.dispose(); t.source?.data?.close?.(); });
 }
 
-// The atlas has dark and mid-dark texels on the forearms and hands (photo-bake leftovers: ~25% of forearm and ~38%
-// of hand texels sit below skin luminance). The blackness lift treats dark texels as clothing, so they read as black
-// stripes and a hand darker than the face. Repaint every forearm/hand texel below skin luminance with the lit skin tone.
-// Elbow triangles shared with the sleeve (upperarm_*) split per texel at the sleeve hem's rest height: skin below,
-// untouched sleeve above, so the T-shirt stays black. The atlas packs the arms in many small charts and the free space
-// between them is dark; the ~16-32 texel mip blocks the minified figure samples pulled it in as a dark line along the
-// forearm's UV seams. Every free texel nearest to a forearm chart is padded with that chart's edge colour (never over
-// another chart). The raised hand catches the cool night sky light, so its texels get a slight warm tint (HAND_TINT).
-const FOREARM_SKIN_MIN = 110, DARK_TEXEL_MAX = 110, UV_SEAM_SPAN = 64;
-const SLEEVE_HEM = 1.19; // rest height (m) where elbow texels turn ~100% black; the T-shirt hem (LOOK.Body.hem) is .83
+// The photographed pose baked directional shadows into separate arm UV charts.
+const FOREARM_SKIN_MIN = 110, UV_SEAM_SPAN = 64;
+const SLEEVE_HEM = 1.19;
 const HAND_TINT = [1, .995, .96];
 const FOREARM_BONE = /^(lowerarm|hand|thumb|index|middle|ring|pinky)_/, HAND_BONE = /^(hand|thumb|index|middle|ring|pinky)_/;
+const luminance = (r, g, b) => .2126 * r + .7152 * g + .0722 * b;
+
+function balanceSkinTexel(data, i, skin, weight, hand) {
+  const original = luminance(data[i], data[i + 1], data[i + 2]);
+  const base = luminance(skin[0], skin[1], skin[2]);
+  const detail = Math.min(48, Math.max(-42, original - base)) * .22;
+  for (let k = 0; k < 3; k++) {
+    const chroma = data[i + k] - original - (skin[k] - base);
+    const target = (skin[k] + detail + chroma * .08) * (1 + (HAND_TINT[k] - 1) * hand);
+    data[i + k] += (target - data[i + k]) * weight;
+  }
+}
+
 function repaintForearmSkin(mesh) {
   const map = mesh.material.map, image = map?.image;
   const { geometry, skeleton } = mesh;
@@ -86,6 +92,7 @@ function repaintForearmSkin(mesh) {
   const pixels = ctx.getImageData(0, 0, W, H), data = pixels.data;
   const mask = new Uint8Array(W * H); // 0 free, 1 other chart, 2 forearm/hand skin
   const handWeight = new Uint8Array(W * H);
+  const skinWeightByPixel = new Uint8Array(W * H);
   const index = geometry.index?.array ?? null, triangles = (index ? index.length : uv.count) / 3;
   for (let t = 0; t < triangles; t++) {
     const a = index ? index[3 * t] : 3 * t, b = index ? index[3 * t + 1] : 3 * t + 1, c = index ? index[3 * t + 2] : 3 * t + 2;
@@ -103,21 +110,23 @@ function repaintForearmSkin(mesh) {
       const l2 = ((cy - ay) * (px - cx) + (ax - cx) * (py - cy)) / det, l3 = 1 - l1 - l2;
       if (l1 < -1e-4 || l2 < -1e-4 || l3 < -1e-4) continue;
       const i = y * W + x;
-      const skin = some && l1 * ya + l2 * yb + l3 * yc < SLEEVE_HEM;
-      mask[i] = Math.max(mask[i], skin ? 2 : 1);
-      if (skin) handWeight[i] = Math.max(handWeight[i], Math.round(255 * Math.min(1, Math.max(0, l1 * hand[a] + l2 * hand[b] + l3 * hand[c]))));
+      const rise = (SLEEVE_HEM - (l1 * ya + l2 * yb + l3 * yc)) / .014;
+      const amount = some ? Math.max(0, Math.min(1, rise)) : 0;
+      mask[i] = Math.max(mask[i], amount > 0 ? 2 : 1);
+      if (amount > 0) {
+        skinWeightByPixel[i] = Math.max(skinWeightByPixel[i], Math.round(255 * amount * amount * (3 - 2 * amount)));
+        handWeight[i] = Math.max(handWeight[i], Math.round(255 * Math.min(1, Math.max(0, l1 * hand[a] + l2 * hand[b] + l3 * hand[c]))));
+      }
     }
   }
-  const lum = i => .2126 * data[i] + .7152 * data[i + 1] + .0722 * data[i + 2];
+  const lum = i => luminance(data[i], data[i + 1], data[i + 2]);
   let r = 0, g = 0, bl = 0, n = 0;
-  for (let i = 0; i < mask.length; i++) if (mask[i] === 2 && lum(4 * i) >= FOREARM_SKIN_MIN) { r += data[4 * i]; g += data[4 * i + 1]; bl += data[4 * i + 2]; n++; }
+  for (let i = 0; i < mask.length; i++) if (skinWeightByPixel[i] === 255 && lum(4 * i) >= FOREARM_SKIN_MIN) { r += data[4 * i]; g += data[4 * i + 1]; bl += data[4 * i + 2]; n++; }
   if (!n) return;
   const skin = [r / n, g / n, bl / n];
   for (let i = 0; i < mask.length; i++) {
     if (mask[i] !== 2) continue;
-    if (lum(4 * i) < DARK_TEXEL_MAX) for (let k = 0; k < 3; k++) data[4 * i + k] = skin[k];
-    const w = handWeight[i] / 255;
-    if (w) for (let k = 0; k < 3; k++) data[4 * i + k] *= 1 + (HAND_TINT[k] - 1) * w;
+    balanceSkinTexel(data, 4 * i, skin, skinWeightByPixel[i] / 255, handWeight[i] / 255);
   }
   // Edge padding: breadth-first from every chart texel; a free texel copies its nearest chart texel when that is skin.
   const source = new Int32Array(W * H).fill(-1), queue = new Int32Array(W * H);

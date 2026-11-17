@@ -32,6 +32,17 @@ test('reference LOD handles a camera jump and returns from culling', () => {
   assert.equal(lod(0, 3), 0);
 });
 
+test('forearm color leveling suppresses baked stripes without flattening skin', () => {
+  const { balanceSkinTexel } = setup();
+  const tone = [157, 125, 104], pixels = new Uint8ClampedArray([67, 53, 41, 255, 177, 148, 126, 255, 23, 21, 20, 255]);
+  balanceSkinTexel(pixels, 0, tone, 1, 0);
+  balanceSkinTexel(pixels, 4, tone, 1, 0);
+  balanceSkinTexel(pixels, 8, tone, 0, 0);
+  assert.ok(pixels[4] - pixels[0] >= 8 && pixels[4] - pixels[0] < 26);
+  assert.deepEqual([...pixels.slice(8)], [23, 21, 20, 255]);
+  assert.equal(pixels[3], 255);
+});
+
 test('a failed LOD load disposes the other completed resources', async () => {
   const disposed = [];
   const asset = level => ({ scene: { traverse(fn) {
