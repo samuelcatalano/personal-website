@@ -12,8 +12,10 @@ print(js(r'''(async () => {
   const pts = routePoints(stops.length);
   const curve = routeCurve(THREE, pts);
   const world = [], add = (x, y, z, w, h, d, color, ry) => world.push({ x, y, z, w, h, d, color, ry });
-  buildCity(add, stops, pts, curve);
-  const lm = buildLandmarks(add, stops, pts);
+  // Match the runtime's authored trees, architecture and plazas.
+  const collect = () => {};
+  buildCity(add, stops, pts, curve, collect, collect, collect, collect);
+  const lm = buildLandmarks(add, stops, pts, collect);
   const lists = [['world', world]];
   // buildMeshes keeps its box list on group.userData.list; each list shares one local space
   const walk = (name, o) => o.traverse(c => { if (c.userData.list) lists.push([name, c.userData.list]); });

@@ -5,6 +5,23 @@ result = js(r'''(async()=>{
  const T=await import('three'),va=await import('./js/world/vehicle-assets.js'),{buildBus}=await import('./js/world/bus.js');
  const rt=await import('./js/world/route-tunnel.js');
  const check=(ok,msg)=>{if(!ok)throw Error(msg)};
+ const {group}=rt.createRouteTunnel({
+  getPointAt:()=>new T.Vector3(),
+  getTangentAt:()=>new T.Vector3(-1,0,0),
+ });
+ group.updateMatrixWorld(true);
+ const hits=(origin,direction)=>new T.Raycaster(new T.Vector3(...origin),new T.Vector3(...direction))
+  .intersectObjects(group.children);
+ for(const side of [-1,1]){
+  const parapet=hits([19,.025,0],[0,0,side]);
+  check(parapet.length===1,`parapet ${side} has ${parapet.length} inward faces`);
+  const portal=hits([20,1.1,side*4.3],[1,0,0]);
+  check(portal.length===1,`portal ${side} has ${portal.length} front faces`);
+ }
+ for(const u of [rt.PORTAL+.12,rt.PORTAL+.8]){
+  const ceiling=hits([u,-2,.7],[0,1,0])[0];
+  check(ceiling&&Math.abs(ceiling.point.y-rt.soffit(u))<1e-5,`ceiling differs from soffit at ${u} m`);
+ }
  const bus=buildBus();bus.rotation.order='YZX';
  await va.upgradeBus(bus,'sao-paulo',{hero:false,asset:'sao-paulo'});
  check(bus.userData.visualAsset==='sao-paulo','Caio asset did not load');

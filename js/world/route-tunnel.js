@@ -11,14 +11,15 @@ const U0 = 3, L = 21.5, IN = 10; // ramp start (clear of the Mini's tail, u ~ 2)
 const W0 = -4.1, W1 = 4.1, TOP = 1.4, LID = -0.05; // ramp edges across, portal top above the road, soffit (just under the plaza paving)
 // The mouth opens MOUTH m above the street: the lintel rides higher than the plaza and a dark plate MOUTH_D m behind it drops back to the soffit, so the
 // portal reads tall while the tunnel itself stays under the paving.
-const MOUTH = 0.8, MOUTH_D = 0.55, PLAZA_U = 17.5; // PLAZA_U: the hero plaza's paving starts here along the ramp
+const MOUTH = 0.8, STEP = L + 0.55, PLAZA_U = 17.5; // PLAZA_U: the hero plaza's paving starts here along the ramp
+const FRONT = L - 0.2, PARAPET_BASE = -0.4;
 const SINK = 0.3; // m a middle axle may dip into the crest of the ramp (place())
 // An 8 m crest curve (was 3) into a 26% grade (was ~33%) over a ramp 4.7 m longer: the 16.8 m articulated Caio pitches in gradually instead of
 // kinking over the crest, and its roof still clears the soffit behind the mouth by 0.2 m (tests/caio-ramp.browser.py).
 const R = 8, K = 0.26, D = K * (L - U0 - R / 2); // ramp depth at the portal
 export const TUNNEL_HEADROOM = D + MOUTH; // open mouth above the ramp floor at the portal face
 export const PORTAL = L; // metres past the route start of the portal face: a vehicle hides once its tail is past it
-export const soffit = (u) => u < L + MOUTH_D ? MOUTH : LID; // ceiling height over the road at u, from the lintel face inwards
+export const soffit = (u) => u < STEP ? MOUTH : LID; // ceiling height over the road at u, from the lintel face inwards
 // Ramp depth (m below the road) at u metres past the route start: a vertical curve, R m of parabola (grade 0 -> K) easing into a constant grade K
 // that reaches D at the portal. Levels off at the back of the interior.
 export const depth = (u) => { const x = Math.min(u, L + IN) - U0; return x <= 0 ? 0 : x < R ? K * x * x / (2 * R) : K * (x - R / 2); };
@@ -32,17 +33,18 @@ export function soup() { // as underpass.js: wound so the face normal agrees wit
 }
 function parts() {
   const road = soup(), dark = soup(), e = L + IN, y = (u) => 0.06 - depth(u);
-  const us = [...Array.from({ length: Math.ceil((L - U0) / 0.5) }, (_, k) => U0 + k * 0.5), ...Array.from({ length: IN + 1 }, (_, k) => L + k)];
+  const us = [...Array.from({ length: Math.ceil((L - U0) / 0.5) }, (_, k) => U0 + k * 0.5), FRONT, ...Array.from({ length: IN + 1 }, (_, k) => L + k)];
   for (let i = 0; i < us.length - 1; i++) {
     const a = us[i], b = us[i + 1], g = a >= L ? dark : road; // asphalt in the open, dark inside
     road.quad(V(a, y(a), W0), V(b, y(b), W0), V(b, y(b), W1), V(a, y(a), W1), V(0, 1, 0));
-    // edges: the sides of the cut, from the ramp up to the road (open) or the soffit (inside); asphalt-coloured, flush, so they read as the ramp, not as walls
-    for (const [z, o] of [[W0, 1], [W1, -1]]) g.quad(V(a, y(a) - 0.1, z), V(b, y(b) - 0.1, z), V(b, a >= L ? LID : 0.06, z), V(a, a >= L ? LID : 0.06, z), V(0, 0, o));
+    // The stone parapets continue the inner face of the cut from their base up.
+    const edgeTop = a >= L ? LID : a >= PLAZA_U && b <= FRONT ? PARAPET_BASE : 0.06;
+    for (const [z, o] of [[W0, 1], [W1, -1]]) g.quad(V(a, y(a) - 0.1, z), V(b, y(b) - 0.1, z), V(b, edgeTop, z), V(a, edgeTop, z), V(0, 0, o));
   }
   // lip under the seam, straddling U0 just below both the cut road (0.06) and the ramp's first metres: the clip test and the floor's edge rasterise
   // differently, so pixels on the line would otherwise show the void
   road.quad(V(U0 - 0.3, 0.045, W0), V(U0 + 0.4, 0.045, W0), V(U0 + 0.4, 0.045, W1), V(U0 - 0.3, 0.045, W1), V(0, 1, 0));
-  dark.quad(V(L, LID, W0), V(e, LID, W0), V(e, LID, W1), V(L, LID, W1), V(0, -1, 0)); // ceiling
+  dark.quad(V(STEP, LID, W0), V(e, LID, W0), V(e, LID, W1), V(STEP, LID, W1), V(0, -1, 0)); // ceiling
   dark.quad(V(e, y(e), W0), V(e, y(e), W1), V(e, LID, W1), V(e, LID, W0), V(-1, 0, 0)); // back wall
   const paint = soup(); // double yellow centre line (roadmarks.js: +-0.11 m, 0.1 m wide) carried on from the route start down the ramp and inside
   for (let i = 0; i < us.length - 1; i++) {
@@ -50,15 +52,15 @@ function parts() {
     for (const o of [-0.11, 0.11]) paint.quad(V(a, y(a) + 0.014, o - 0.05), V(b, y(b) + 0.014, o - 0.05), V(b, y(b) + 0.014, o + 0.05), V(a, y(a) + 0.014, o + 0.05), V(0, 1, 0));
   }
   for (const o of [-0.11, 0.11]) paint.quad(V(0, 0.074, o - 0.05), V(U0, 0.074, o - 0.05), V(U0, 0.074, o + 0.05), V(0, 0.074, o + 0.05), V(0, 1, 0)); // level stretch behind the Mini
-  dark.quad(V(L + MOUTH_D, LID, W0), V(L + MOUTH_D, LID, W1), V(L + MOUTH_D, MOUTH, W1), V(L + MOUTH_D, MOUTH, W0), V(-1, 0, 0)); // mouth back: drop to the soffit
+  dark.quad(V(STEP, LID, W0), V(STEP, LID, W1), V(STEP, MOUTH, W1), V(STEP, MOUTH, W0), V(-1, 0, 0)); // mouth back: drop to the soffit
   const portal = [ // lintel over the opening, its back plate (the plaza side stays a solid headwall) and the two jambs down the sides of the cut
-    box(L - 0.2, L + 0.6, MOUTH, TOP, W0 - 0.5, W1 + 0.5), box(L + MOUTH_D + 0.005, L + 0.6, LID, MOUTH, W0 - 0.5, W1 + 0.5),
-    box(L - 0.2, L + 0.6, -D - 0.2, TOP, W0 - 0.5, W0 + 0.15), box(L - 0.2, L + 0.6, -D - 0.2, TOP, W1 - 0.15, W1 + 0.5),
+    box(FRONT, L + 0.6, MOUTH, TOP, W0 - 0.5, W1 + 0.5), box(STEP + 0.005, L + 0.6, LID, MOUTH, W0 + 0.15, W1 - 0.15),
+    box(FRONT, L + 0.6, -D - 0.2, MOUTH, W0 - 0.5, W0 + 0.15), box(FRONT, L + 0.6, -D - 0.2, MOUTH, W1 - 0.15, W1 + 0.5),
     // Coping and a narrow plinth articulate the existing lintel; all detail stays outside the opening.
     box(L-.24,L+.64,TOP,TOP+.10,W0-.54,W1+.54),
     box(L-.24,L-.201,MOUTH,MOUTH+.12,W0-.5,W1+.5), // soffit band along the raised lintel
     // Where the ramp crosses the hero plaza it gets parapets (the street stretch before it stays flush): down below the paving so no seam shows.
-    box(PLAZA_U, L - 0.2, -0.4, 0.95, W1, W1 + 0.25), box(PLAZA_U, L - 0.2, -0.4, 0.95, W0 - 0.25, W0),
+    box(PLAZA_U, FRONT, PARAPET_BASE, 0.95, W1, W1 + 0.25), box(PLAZA_U, FRONT, PARAPET_BASE, 0.95, W0 - 0.25, W0),
   ];
   return { road: [road.geo()], dark: [dark.geo()], wall: portal, paint: [paint.geo()] };
 }
@@ -129,8 +131,8 @@ export function createRouteTunnel(curve) {
   return {
     group,
     cut(scene) { // hole in the street over the ramp (holes.js); the lip and the ramp floor fill it
-      const end = L + MOUTH_D, uc = (U0 + end) / 2; // through the paving under the raised lintel too
-      return cutHole(scene, { cx: p0.x + back.x * uc, cz: p0.z + back.z * uc, ax: back.x, az: back.z, hl: (end - U0) / 2, hw: W1 }, group.children);
+      const uc = (U0 + STEP) / 2; // through the paving under the raised lintel too
+      return cutHole(scene, { cx: p0.x + back.x * uc, cz: p0.z + back.z * uc, ax: back.x, az: back.z, hl: (STEP - U0) / 2, hw: W1 }, group.children);
     },
     // Drop a vehicle on the ramp: `tun` metres past the route start (null = still on the road, already placed on its lane), then height and pitch from the
     // ramp if it is over it. Needs rotation.order 'YZX' (yaw, then pitch about the car's own z).
