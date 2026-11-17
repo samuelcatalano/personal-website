@@ -62,7 +62,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
   const authoredZen = new THREE.Color(), authoredHor = new THREE.Color(), authoredMid = new THREE.Color();
   const sunM = sprite(disc((g) => {
     const r=g.createRadialGradient(128,128,0,128,128,128);
-    r.addColorStop(0,'#fff');r.addColorStop(.45,'#fff');r.addColorStop(.55,'rgba(255,255,255,.18)');r.addColorStop(1,'rgba(255,255,255,0)');
+    r.addColorStop(0,'#fff');r.addColorStop(.2,'#fff');r.addColorStop(.3,'rgba(255,255,255,.6)');r.addColorStop(.5,'rgba(255,255,255,.14)');r.addColorStop(1,'rgba(255,255,255,0)');
     g.fillStyle=r;g.fillRect(0,0,256,256);
   }),100);
   sunM.name='weather-sun';
@@ -79,7 +79,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
       let shade=0;for(const [mx,my,rx,ry] of maria)shade+=Math.exp(-((px-mx)**2/rx**2+(py-my)**2/ry**2)*2)*.26;
       const grain=(Math.sin(px*27+Math.sin(py*19))*Math.sin(py*31+px*9))*.016;
       const v=Math.max(0,(1-shade+grain)*moonIllumination(px,py));
-      im.data[k]=im.data[k+1]=im.data[k+2]=Math.round(v*255);im.data[k+3]=Math.round(Math.min(1,Math.max(0,(1-r)*90))*255);
+      im.data[k]=im.data[k+1]=im.data[k+2]=Math.round(v*255);im.data[k+3]=Math.round(Math.min(1,Math.max(0,(1-r)*40))*255);
     }g.putImageData(im,0,0);
   }),64);
   moonM.name='weather-moon';

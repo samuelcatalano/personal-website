@@ -35,8 +35,8 @@ void main(){
   gl_FragColor = vec4(vec3(1.0 - occ / 10.0), 1.0);
 }`;
 const COMP_FRAG = `${LIN} uniform sampler2D tDiffuse, tAO; uniform vec2 uTexel, uTexelFull; uniform float uStrength, uFocus, uMaxPx; varying vec2 vUv;
-// depth of field: sharp around the focus distance (the hero vehicle), soft far background and very near foreground; 12 golden-angle taps, only where the blur is visible
-float cocAt(float z){ return max(smoothstep(uFocus * 3.0, uFocus * 8.0, z), 0.8 * (1.0 - smoothstep(uFocus * 0.25, uFocus * 0.5, z))); }
+// depth of field: sharp around the focus distance (the hero vehicle) and across the far background; softens only what is very near the camera; 12 golden-angle taps, only where the blur is visible
+float cocAt(float z){ return 0.8 * (1.0 - smoothstep(uFocus * 0.25, uFocus * 0.5, z)); }
 void main(){
   vec4 c = texture2D(tDiffuse, vUv); float zc = lz(vUv);
   float s = texture2D(tAO, vUv).r, w = 1.0;

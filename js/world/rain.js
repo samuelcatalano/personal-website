@@ -19,13 +19,13 @@ export function createRain(scene, { reducedMotion = false, lamps = [], cover } =
     ...coverUniforms(cover),
     uTime:{value:0},uTravel:{value:new THREE.Vector3()},uCenter:{value:new THREE.Vector3()},uForward:{value:new THREE.Vector3()},uRain:{value:0},
     uFall:{value:1},uWindVector:{value:new THREE.Vector2()},uNight:{value:0},uBus:{value:new THREE.Vector3()},uHeading:{value:new THREE.Vector2(1,0)},
-    uLamps:{value:Array.from({length:4},()=>new THREE.Vector3(0,-1000,0))},uResolution:{value:900},
+    uLamps:{value:Array.from({length:4},()=>new THREE.Vector3(0,-1000,0))},uResolution:{value:900},uDrops:{value:1},
   };
   const material = new THREE.ShaderMaterial({
     transparent:true,depthWrite:false,fog:false,side:THREE.DoubleSide,forceSinglePass:true,
     uniforms,
     vertexShader: `${coverShader}
-      attribute vec2 aCorner,aSeed;uniform float uTime,uFall,uResolution,uRain;uniform vec2 uWindVector;uniform vec3 uTravel,uCenter,uForward;varying vec3 vWorld;varying vec2 vCorner;varying float vSeed,vDepth,vNear,vRoof;
+      attribute vec2 aCorner,aSeed;uniform float uTime,uFall,uResolution,uRain;varying float vEdge;uniform vec2 uWindVector;uniform vec3 uTravel,uCenter,uForward;varying vec3 vWorld;varying vec2 vCorner;varying float vSeed,vDepth,vNear,vRoof;
       void main(){
         float layer=aSeed.y;vec3 box=vec3(36.0+layer*34.0,42.0+layer*8.0,36.0+layer*34.0);
         vec3 center=uCenter+uForward*layer*16.0;
@@ -33,28 +33,33 @@ export function createRain(scene, { reducedMotion = false, lamps = [], cover } =
         vec3 velocity=vec3(uWindVector.x,-speed,uWindVector.y);
         vec3 drift=vec3(uTravel.x,-baseSpeed*uTravel.y,uTravel.z);
         vec3 p=mod(position+drift-center+box*.5,box)-box*.5+center;
+        // Drizzle drifts and sways; heavy rain keeps its straight fall. The sway is small enough not to read as jitter.
+        p.xz+=vec2(sin(uTime*(.6+aSeed.x*.4)+aSeed.x*40.0),cos(uTime*(.45+aSeed.y*.15)+aSeed.x*27.0))*mix(.2,.02,smoothstep(.2,.9,uRain));
+        // Drops wrap at the box walls; fade them out there so the wrap never shows as a pop.
+        vec2 edgeUv=abs(p.xz-center.xz)/(box.xz*.5);
         // Near drops get shorter tails and fade in with distance so they do not smear across the frame.
         float near=clamp(-(viewMatrix*vec4(p,1.0)).z/14.0,.3,1.0);
         float variation=fract(aSeed.x*17.31);
         float tail=mix(.16,.72,smoothstep(.15,1.0,uRain))*(.35+variation*.85)*(1.2-layer*.32);
         p-=normalize(velocity)*tail*uFall*aCorner.y*near;
-        vWorld=p;vCorner=aCorner;vSeed=aSeed.x;vNear=near;vRoof=weatherRoof(p.xz);
+        vWorld=p;vCorner=aCorner;vSeed=aSeed.x;vNear=near;vRoof=weatherRoof(p.xz);vEdge=1.0-smoothstep(.9,1.0,max(edgeUv.x,edgeUv.y));
         vec4 mv=viewMatrix*vec4(p,1.0);vDepth=-mv.z;
         float width=(.003+fract(aSeed.x*31.7)*.004)*(1.25-layer*.28);
         mv.x+=aCorner.x*max(width,-mv.z/uResolution*.35);
         gl_Position=projectionMatrix*mv;
       }`,
-    fragmentShader: `uniform float uRain,uNight;uniform vec3 uCenter,uLamps[4],uBus;uniform vec2 uHeading;
-      varying vec3 vWorld;varying vec2 vCorner;varying float vSeed,vDepth,vNear,vRoof;
+    fragmentShader: `uniform float uRain,uNight,uDrops;uniform vec3 uCenter,uLamps[4],uBus;uniform vec2 uHeading;
+      varying vec3 vWorld;varying vec2 vCorner;varying float vSeed,vDepth,vNear,vRoof,vEdge;
       void main(){
         float lamp=0.0;for(int i=0;i<4;i++){vec3 d=vWorld-uLamps[i];lamp+=exp(-dot(d.xz,d.xz)*.065)*exp(-abs(d.y)*.35);}
         vec2 toDrop=vWorld.xz-uBus.xz;float beam=pow(max(dot(normalize(toDrop+vec2(.001)),uHeading),0.0),16.0)*exp(-length(toDrop)*.10);
         float light=uNight*(lamp*.7+beam*.7);
-        float a=(mix(.045,.17,fract(vSeed*23.7))*(1.0-uNight*.6)+light*.30)*sqrt(uRain);
+        float a=(mix(.045,.17,fract(vSeed*23.7))*(1.0-uNight*.6)+light*.30)*sqrt(uRain)*uDrops;
         // MSAA can extrapolate varyings past the covered samples: negative fractional powers poison bloom.
         a*=pow(clamp(1.0-vCorner.y,0.0,1.0),1.2)*(1.0-smoothstep(.4,1.0,abs(vCorner.x)));
         a*=mix(.18,1.0,vNear)*smoothstep(.1,1.8,vWorld.y)*(1.0-smoothstep(55.0,120.0,vDepth));
         a*=smoothstep(vRoof+.1,vRoof+.5,vWorld.y);
+        a*=vEdge;
         // ponytail: background brightness is approximated by drop elevation, upgrade only with an already available depth/colour buffer.
         a*=mix(1.0,.25,smoothstep(uCenter.y+4.0,uCenter.y+20.0,vWorld.y));
         gl_FragColor=vec4(mix(vec3(.61,.64,.66),vec3(.95,.84,.65),clamp(light,0.0,1.0)),clamp(a,0.0,1.0));
@@ -78,7 +83,7 @@ export function createRain(scene, { reducedMotion = false, lamps = [], cover } =
       uniforms.uCenter.value.copy(camera.position).addScaledVector(direction,18);
       uniforms.uForward.value.copy(direction);uniforms.uTime.value=time;uniforms.uRain.value=amount;
       const gust=weatherGust(time,mood.wind??1);
-      uniforms.uFall.value=mood.fall??1;uniforms.uWindVector.value.set(gust.x,gust.z);uniforms.uNight.value=night;
+      uniforms.uFall.value=mood.fall??1;uniforms.uDrops.value=mood.drops??1;uniforms.uWindVector.value.set(gust.x,gust.z);uniforms.uNight.value=night;
       uniforms.uTravel.value.x+=gust.x*dt;
       uniforms.uTravel.value.y+=uniforms.uFall.value*dt;
       uniforms.uTravel.value.z+=gust.z*dt;

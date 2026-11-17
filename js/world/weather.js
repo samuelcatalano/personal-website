@@ -8,9 +8,9 @@ const rainFields = {
 };
 
 const drizzleFields = {
-  sp: { rain: .34, wet: .60, storm: 0, cover: .80, fall: .80, wind: .65 },
-  lon: { rain: .24, wet: .48, storm: 0, cover: .82, fall: .52, wind: .55 },
-  gla: { rain: .30, wet: .65, storm: 0, cover: .88, fall: .48, wind: .80 },
+  sp: { rain: .34, wet: .60, storm: 0, cover: .80, fall: .80, wind: .65, drops: 3 },
+  lon: { rain: .24, wet: .48, storm: 0, cover: .82, fall: .52, wind: .55, drops: 3 },
+  gla: { rain: .30, wet: .65, storm: 0, cover: .88, fall: .48, wind: .80, drops: 3 },
 };
 const heavyShare = { sp: .70, lon: .18, gla: .22 };
 // One independent regional roll chooses stable artwork for this visit; it does not consume the city's RNG.
@@ -25,6 +25,7 @@ export function createWeather({ random = Math.random, override } = {}) {
       : minCover + roll * (maxCover - minCover) > .5 ? 'cloudy' : 'clear';
     weather[region] = {
           rain: 0,
+          drops: 1,
           wet: 0,
           storm: 0,
           cover: override === 'clear' ? clearCover[region] : override === 'cloudy' ? .78 + (region === 'gla' ? .12 : 0) : minCover + roll * (maxCover - minCover),

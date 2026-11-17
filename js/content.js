@@ -84,7 +84,7 @@ export const i18n = {
     },
     sections: {
       hero: { title: 'Samuel Catalano', kicker: 'Backend & platform engineering', role: 'Senior Software Engineer', value: 'Backend engineer for systems that keep working after launch.', proof: 'Samuel is a committed, serious and extremely responsible professional.', tagline: 'Ranked #1 Software Engineer in the world according to my parents.', availability: 'Now boarding: backend and platform conversations. Plenty of seats upstairs.', meta: '17+ years · Java · Backend · London', facts: [{ label: 'Experience', value: '17+ years building software' }, { label: 'Stack', value: 'Java · Spring Boot · Quarkus · Kafka · AWS' }, { label: 'London', value: 'Moved in 2019 · Glasgow 2023–24' }] },
-      journey: { title: 'Journey', intro: 'Every stop is a chapter. Hop on the vehicle through my career.', latest: 'Current role' },
+      journey: { title: 'Journey', intro: 'Every stop is a chapter. Hop on the vehicle through my career.' },
       stack: { title: 'Stack', intro: 'The tools I reach for when a system has to keep working after launch.', groups: { core: 'Core', messaging: 'Messaging', cloud: 'Cloud', data: 'Data' } },
       articles: { title: 'Writing', intro: 'Practical engineering notes on Medium.', more: 'All articles', src: 'Medium' },
       repos: { title: 'Code', intro: 'A few public repositories worth a look.', more: 'All repositories', descriptions: {
@@ -126,7 +126,7 @@ export const i18n = {
     },
     sections: {
       hero: { title: 'Samuel Catalano', kicker: 'Engenharia backend e plataforma', role: 'Engenheiro de Software Sênior', value: 'Engenheiro backend para sistemas que continuam funcionando depois do lançamento.', proof: 'Samuel é um profissional comprometido, sério e extremamente responsável.', tagline: 'Engenheiro de software nº 1 do mundo, segundo meus pais.', availability: 'Embarque aberto: conversas sobre backend e plataforma. Ainda tem lugar no andar de cima.', meta: '17+ anos · Java · Backend · Londres', facts: [{ label: 'Experiência', value: '17+ anos construindo software' }, { label: 'Stack', value: 'Java · Spring Boot · Quarkus · Kafka · AWS' }, { label: 'Londres', value: 'Mudou em 2019 · Glasgow 2023–24' }] },
-      journey: { title: 'Trajetória', intro: 'Cada parada, um capítulo. Embarque no veículo pela minha carreira.', latest: 'Cargo atual' },
+      journey: { title: 'Trajetória', intro: 'Cada parada, um capítulo. Embarque no veículo pela minha carreira.' },
       stack: { title: 'Stack', intro: 'As ferramentas que uso quando um sistema precisa continuar funcionando depois do lançamento.', groups: { core: 'Base', messaging: 'Mensageria', cloud: 'Nuvem', data: 'Dados' } },
       articles: { title: 'Artigos', intro: 'Notas práticas de engenharia no Medium.', more: 'Todos os artigos', src: 'Medium' },
       repos: { title: 'Código', intro: 'Alguns repositórios públicos que valem a visita.', more: 'Todos os repositórios', descriptions: {

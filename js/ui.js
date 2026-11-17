@@ -82,10 +82,10 @@ function sectionHTML(section, t, active, tool = null, route = { seen: new Set(),
       <p class="led board" aria-hidden="true"><b>83</b><span class="live"></span></p>
       <h2>${s.title}</h2><p>${s.intro}</p>
       <section id="career-detail" class="detail current-stop${seenSet.has(active) ? ' seen' : ''}" data-stop="${active}" aria-labelledby="career-title">
-        <span class="punch" aria-hidden="true"></span><span class="stamp">${t.ui.cities[cityOf(selected)]} · ${yearText(selected, t.ui)}</span>
+        <span class="punch" aria-hidden="true"></span>
         <h3 id="career-title">${c.title}</h3><p class="role">${c.role}</p><small>${c.dates} · ${c.place}</small><p>${c.body}</p>
       </section>
-      <aside class="recent-role"><p class="eyebrow">${s.latest}</p><p class="recent-company">${latest.title}</p><small>${latest.role} · ${latest.dates}</small></aside>
+      <aside class="recent-role"><p class="recent-company">${latest.title}</p><small>${latest.role} · ${latest.dates}</small></aside>
       ${tool ? `<p class="filter">${t.ui.usedAt} <b>${tool}</b><button type="button" data-tool-clear aria-label="${t.ui.clearFilter}">&times;</button></p>` : ''}<ol class="stops">${stops.map((st, i) => {
         if (st.section !== 'journey') return '';
         const c = t.stops[st.id], on = i === active, hit = tool && toolStops[tool].includes(st.id);

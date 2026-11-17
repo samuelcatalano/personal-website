@@ -12,6 +12,10 @@
 body.theme-night { --sky: #252b31; --sky2: #41464a; --ink: #f4f0e9; --muted: #c2b9ac; --card: rgba(35, 39, 42, .97); --line: #5b5d5b; --accent: #ef7772; }
 * { box-sizing: border-box; }
 html { scroll-behavior: auto; }
+/* browser surfaces carry the palette: selection, scrollbar, balanced headings */
+::selection { background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--ink); }
+.panel { scrollbar-color: color-mix(in srgb, var(--muted) 45%, transparent) transparent; }
+h1, h2, h3 { text-wrap: balance; }
 body { margin: 0; font: 15px/1.6 var(--sans); color: var(--ink); background: linear-gradient(var(--sky), var(--sky2)); min-height: 100vh; min-height: 100dvh; }
 #world { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; display: block; }
 #track { width: 1px; }
@@ -77,7 +81,7 @@ body { margin: 0; font: 15px/1.6 var(--sans); color: var(--ink); background: lin
 .panel .avail { margin: -6px 0 0; font-size: 13px; color: var(--muted); }
 .panel .clock { margin: -2px 0 0; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .panel .clock time { color: var(--ink); font-weight: 600; }
-.panel .avail::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: var(--accent); animation: live 2.4s ease-in-out infinite; }
+.panel .avail::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: var(--accent); animation: live 2.4s ease-in-out 3; } /* three pulses, then still: a decorative loop does not run for the whole visit */
 @keyframes live { 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 22%, transparent); } }
 .panel .hint { color: var(--muted); font-size: 11px; letter-spacing: .04em; margin: 18px 0 0; }
 .avatar { display: block; width: 72px; height: 72px; object-fit: cover; border-radius: 50%; border: 1px solid var(--line); background: var(--sky); }
@@ -96,7 +100,6 @@ body { margin: 0; font: 15px/1.6 var(--sans); color: var(--ink); background: lin
 .journey-progress { display: grid; gap: 6px; margin: 18px 0 0; color: var(--muted); font-size: 11px; }
 .journey-progress progress { width: 100%; height: 6px; accent-color: var(--accent); }
 .recent-role { margin: 14px 0; padding: 0 0 12px; border-bottom: 1px solid var(--line); }
-.panel .recent-role .eyebrow { margin-bottom: 4px; color: var(--muted); font-size: 11px; }
 .panel .recent-company { margin: 0 0 2px; font-size: 12px; font-weight: 600; }
 .recent-role small { display: block; font-size: 11px; font-variant-numeric: tabular-nums; }
 .hero-links, .contact { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 0; margin: 20px 0 0; }
@@ -316,6 +319,7 @@ body.no-webgl #world { display: none; }
 .stops .mono + .name { margin-left: 8px; }
 .stops .node + .name { margin-left: 44px; font-weight: 600; } /* rows without a monogram (the move) line up with the others */
 .stops button:hover .name { color: var(--accent); }
+.stops .yr, .stops .name { transition: color .25s ease; } /* the current stop's year and name fade in as the bus arrives, not snap */
 .detail { padding: 0 0 14px 82px; font-size: 13px; }
 .detail small { display: block; margin: 2px 0 6px; }
 .detail p { margin: 0; }
@@ -426,6 +430,7 @@ blockquote footer b { color: var(--ink); font-weight: 600; }
   [data-quick][aria-pressed="true"] { color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
   .brand, .bar nav, .controls, .panel { border-radius: var(--surface-radius); box-shadow: var(--surface-shadow); }
   .bar nav a, .controls button, .panel a.btn, .postcard-btn { border-radius: var(--control-radius); }
+  .panel { border-top-left-radius: 0; border-top-right-radius: 0; } /* the accent bar is a flat tab: square top corners under it */
   .panel { width: min(404px, calc(100vw - 48px)); padding: 24px; border-top-color: var(--accent); }
   .profile-head { grid-template-columns: 56px minmax(0, 1fr); }
   .profile-head .avatar { width: 56px; height: 72px; border-radius: var(--control-radius); }
@@ -502,13 +507,11 @@ body[data-city="gla"] { --city: #2a5da8; }
 .detail { position: relative; margin: 2px 0 12px 56px; padding: 12px 14px 14px; border-radius: 10px; background: var(--ticket, #f7f1e5); color: var(--ticket-ink, #2d2822); border-left: 4px solid var(--city);
   -webkit-mask: radial-gradient(circle 6px at 0 50%, transparent 98%, var(--c-000)) , linear-gradient(var(--c-000), var(--c-000)); -webkit-mask-composite: source-in; mask-composite: intersect; }
 .detail::before { content: ''; position: absolute; left: 14px; right: 14px; top: 34px; border-top: 1px dashed var(--ticket-line, #d9cbb7); }
-.detail .stamp { display: block; margin-bottom: 16px; font: 700 10px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--city); }
 .detail small { color: var(--ticket-muted, #665a4c); }
 body.theme-night .detail { background: #2a2622; color: var(--ink); } body.theme-night .detail small { color: var(--muted); }
 .detail.current-stop { margin: 14px 0 0; padding: 14px 20px 16px; border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: var(--surface-radius); transform: none; }
 .current-stop::before { display: none; }
-.current-stop .stamp { margin: 0 0 12px; padding: 0 20px 10px 0; border-bottom: 1px dashed var(--line); line-height: 1.5; }
-.current-stop h3 { margin: 0 0 4px; font: 400 24px/1.2 var(--display); letter-spacing: -.02em; }
+.current-stop h3 { margin: 0 0 4px; padding-right: 24px; /* keeps the passport mark clear of the title */ font: 400 24px/1.2 var(--display); letter-spacing: -.02em; }
 .panel .current-stop .role { margin: 0 0 8px; font-size: 14px; line-height: 1.5; }
 .current-stop small { margin: 0 0 10px; font-size: 11px; line-height: 1.6; }
 .panel .current-stop > p:last-child { margin: 0; font-size: 13px; line-height: 1.7; }
@@ -516,7 +519,7 @@ body.theme-night .detail { background: #2a2622; color: var(--ink); } body.theme-
 .current-stop.seen .punch { display: block; }
 /* "Now arriving" banner when the line crosses into another city */
 #arrival { position: fixed; top: 84px; left: 50%; z-index: 6; display: flex; align-items: center; gap: 14px; margin: 0; padding: 10px 24px 10px 10px; transform: translate(-50%, -14px) scale(.96); opacity: 0; pointer-events: none;
-  transition: opacity .4s, transform .5s cubic-bezier(.2, .9, .3, 1.2); border-radius: 14px; background: linear-gradient(#17130f, #0a0807); border: 1px solid var(--c-2c2620); border-bottom: 3px solid var(--city);
+  transition: opacity .4s, transform .5s cubic-bezier(.16, 1, .3, 1); border-radius: 14px; background: linear-gradient(#17130f, #0a0807); border: 1px solid var(--c-2c2620); border-bottom: 3px solid var(--city);
   box-shadow: 0 14px 36px rgba(20, 12, 4, .35), inset 0 1px 0 rgba(255, 255, 255, .06); }
 #arrival .num { display: grid; place-items: center; min-width: 46px; height: 46px; border-radius: 10px; background: var(--red); color: var(--c-fff); font: 400 28px/1 var(--display); font-style: normal; box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .22); }
 #arrival .txt { display: block; filter: drop-shadow(0 0 6px rgba(255, 170, 0, .45)); }
@@ -546,8 +549,6 @@ body.theme-night .detail { background: #2a2622; color: var(--ink); } body.theme-
 .stops li.seen::after { content: ''; position: absolute; right: 6px; top: 17px; width: 9px; height: 9px; border-radius: 50%; background: var(--card); box-shadow: inset 0 1px 2px rgba(40, 30, 20, .55); pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { #panel.swap-ticket .detail, #panel.swap-pane > *, .punch.fresh { animation: none; } }
 /* Accessibility pass: the city stamp meets 4.5:1 on the ticket in both themes, and touch screens get 44 px targets */
-.detail .stamp { color: color-mix(in srgb, var(--city) 78%, var(--c-000)); }
-body.theme-night .detail .stamp { color: color-mix(in srgb, var(--city) 50%, var(--c-fff)); }
 @media (pointer: coarse) {
   .bar nav a, .bar nav button, .controls button, .panel a.chip { min-height: 44px; }
   .controls button { min-width: 44px; min-height: 44px; }
@@ -563,7 +564,6 @@ body.theme-night .detail .stamp { color: color-mix(in srgb, var(--city) 50%, var
 [data-intro-skip]:not(:disabled):hover, [data-intro-skip]:not(:disabled):focus-visible { background: #841920; color: var(--c-fff8ec); }
 #intro.bell [data-intro-skip]:disabled { background: var(--ticket-red); color: var(--c-fff8ec); border-style: solid; animation: none; }
 #intro.bell .actions [data-intro-skip]:disabled { border-color: transparent; }
-@keyframes cta-pulse { 0% { box-shadow: 0 0 0 0 rgba(168, 32, 40, .45); } 70%, 100% { box-shadow: 0 0 0 12px rgba(168, 32, 40, 0); } }
 @keyframes intro-ready { from { transform: translateY(2px); } to { transform: translateY(0); } }
 #intro-hint kbd { display: inline-grid; place-items: center; min-width: 24px; height: 24px; margin: 0 2px; padding: 0 6px; border: 1px solid var(--ticket-line); border-bottom-width: 3px; border-radius: 5px; background: #fffaf0; font: 700 13px/1 var(--sans); color: var(--ticket-ink); vertical-align: middle; }
 #intro[data-preview="sp"] .live-view[data-city="sp"], #intro[data-preview="london"] .live-view[data-city="london"], #intro[data-preview="glasgow"] .live-view[data-city="glasgow"] { opacity: 1; }
@@ -664,7 +664,7 @@ body.ui-hidden #arrival { opacity: 0; }
 [data-intro-skip] { display: inline-flex; align-items: center; justify-content: center; gap: 10px; }
 [data-intro-skip]::before { content: ''; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--ticket-line); transition: background .4s, box-shadow .4s; }
 [data-intro-skip]:not(:disabled)::before, #intro.bell [data-intro-skip]::before { background: #55e08f; box-shadow: 0 0 0 2px rgba(85, 224, 143, .28), 0 0 10px 1px rgba(85, 224, 143, .8); }
-[data-intro-skip]:not(:disabled)::before { animation: door-led 2.4s 1.8s ease-in-out infinite; }
+[data-intro-skip]:not(:disabled)::before { animation: door-led 2.4s 1.8s ease-in-out 3; }
 @keyframes door-led { 50% { opacity: .45; } }
 @keyframes cta-ring { 0% { box-shadow: 0 0 0 0 rgba(85, 224, 143, .7); } 100% { box-shadow: 0 0 0 16px rgba(85, 224, 143, 0); } }
 @media (prefers-reduced-motion: reduce) { [data-intro-skip]::before { animation: none !important; } [data-intro-skip] { transition: none; } }

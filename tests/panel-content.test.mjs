@@ -13,10 +13,9 @@ test('each public repository has concise descriptions in both languages', () => 
   }
 });
 
-test('journey labels its most recent existing stop in both languages', () => {
+test('journey most recent existing stop has role and body in both languages', () => {
   const latest = stops.findLast(stop => stop.section === 'journey');
   for (const lang of ['en', 'pt']) {
-    assert.ok(i18n[lang].sections.journey.latest.trim());
     assert.ok(i18n[lang].stops[latest.id].role.trim());
     assert.ok(i18n[lang].stops[latest.id].body.trim());
   }

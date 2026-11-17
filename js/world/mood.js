@@ -17,7 +17,7 @@ const rgb = (h) => [(h >> 16) / 255, ((h >> 8) & 255) / 255, (h & 255) / 255];
 const P = Object.fromEntries(Object.entries(M).map(([k, m]) => [k, { ...m, zen: rgb(m.zen), hor: rgb(m.hor), cloud: rgb(m.cloud), light: rgb(m.light) }]));
 const RP = Object.fromEntries(Object.entries(RAIN).map(([region, palette]) => [region, Object.fromEntries(Object.entries(palette).map(([k, hex]) => [k, rgb(hex)]))]));
 const ss = (a, b, x) => { x = Math.min(1, Math.max(0, (x - a) / (b - a))); return x * x * (3 - 2 * x); };
-const COLS = ['zen', 'hor', 'cloud', 'light'], NUM = ['sun', 'hemi', 'fogK', 'cloudOp', 'rain', 'cover', 'wet', 'storm', 'fall', 'wind'];
+const COLS = ['zen', 'hor', 'cloud', 'light'], NUM = ['sun', 'hemi', 'fogK', 'cloudOp', 'rain', 'cover', 'wet', 'storm', 'fall', 'wind', 'drops'];
 const FIELDS = [...NUM, 'rs', 'rl', 'rg'];
 // Factory: ranges are computed once; the returned (t) => mood reuses one output object (no per-frame allocation).
 export function createMood(stops, { weather = visitWeather, reducedMotion = false } = {}) {
@@ -29,7 +29,7 @@ export function createMood(stops, { weather = visitWeather, reducedMotion = fals
     palette.hemi = base.hemi + 0.25 * amount;
     palette.fogK = base.fogK * (1 - 0.48 * amount);
     palette.cloudOp = base.cloudOp + climate.cover * 0.25;
-    for (const k of ['rain', 'cover', 'wet', 'storm', 'fall', 'wind']) palette[k] = climate[k];
+    for (const k of ['rain', 'cover', 'wet', 'storm', 'fall', 'wind', 'drops']) palette[k] = climate[k];
     return palette;
   };
   const weatherMood = {

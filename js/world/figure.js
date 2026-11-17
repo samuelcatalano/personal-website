@@ -25,19 +25,21 @@ function lightCharacter(root, figure) {
   });
   const canvas = Object.assign(document.createElement('canvas'), { width: 64, height: 64 });
   const paint = canvas.getContext('2d'), gradient = paint.createRadialGradient(32, 32, 0, 32, 32, 32);
-  gradient.addColorStop(0, '#fff');
+  // Even wash: flat brightness across the pool, with a long feather so the rim fades out instead of reading as a hard ellipse.
+  gradient.addColorStop(0, '#5a5a5a');
+  gradient.addColorStop(0.4, '#5a5a5a');
   gradient.addColorStop(1, '#000');
   paint.fillStyle = gradient;
   paint.fillRect(0, 0, 64, 64);
   const pool = new THREE.Mesh(new THREE.CircleGeometry(2.6, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({
     map: new THREE.CanvasTexture(canvas), color: '#ffc98a', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending,
   }));
-  pool.position.y = 0.03;
+  pool.position.y = 0.08; // just above the highest ground (road paint 0.074, pavements 0.07, city.js/roadmarks.js); the feet sink into the ground, so only a sliver of shoe sits under the disc
   figure.add(pool);
   return {
     set(night) {
       materials.forEach((material) => { material.emissiveIntensity = .04 + night * .18; });
-      pool.material.opacity = night * .4;
+      pool.material.opacity = night * .25;
       pool.visible = night > .01;
     },
     dispose() {
