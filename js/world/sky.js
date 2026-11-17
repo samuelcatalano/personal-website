@@ -58,7 +58,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
   );
   dome.renderOrder = -10; dome.frustumCulled = false;
   const u = dome.material.uniforms;
-  const sunsetZen = C(0x67558b), sunsetHor = C(0xe6a68e), warmGlow = C(0xf7dfbd), coolGlow = C(0x7c9ddc), cityHaze = C(0x584247);
+  const sunsetZen = C(0x67558b), sunsetHor = C(0xe6a68e), warmGlow = C(0xfdeec2), coolGlow = C(0x7c9ddc), cityHaze = C(0x584247);
   const authoredZen = new THREE.Color(), authoredHor = new THREE.Color(), authoredMid = new THREE.Color();
   const sunM = sprite(disc((g) => {
     const r=g.createRadialGradient(128,128,0,128,128,128);
@@ -132,7 +132,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
   const cloudGeo=new THREE.PlaneGeometry(1,1), clouds=new THREE.Group();clouds.name='weather-clouds';
   // Seeded per-cloud layouts, one per region (SP scattered, London broken, Glasgow packed); the update blends them so clouds glide between stops.
   const rnd=(i,k)=>{const n=Math.sin(i*91.7+k*47.3+1.3)*43758.5453;return n-Math.floor(n);};
-  const LAYOUT=[[0,.5],[0,.85],[0,1.2]]; // cloud density per region sp/lon/gla
+  const LAYOUT=[[0,.8],[0,.85],[0,1.2]]; // cloud density per region sp/lon/gla (SP: fair-weather cumulus field)
   for(let i=0;i<20;i++){
     const high=i>=14, m=high?cirrusMat:Object.assign(cloudMat.clone(),{uniforms:{...cloudMat.uniforms,uSeed:{value:rnd(i,0)},uFade:{value:1},uLight:{value:new THREE.Vector2()}}});
     const c=new THREE.Mesh(cloudGeo,m);
@@ -181,9 +181,10 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
       cam?.updateMatrixWorld();
       const cover=mood.cover ?? Math.min(1,.18+mood.cloudOp+(mood.rain??0)*.8);
       const clear=celestialVisibility(cover,mood.rain??0);
-      const golden = (mood.rs ?? 0) * 0.32 * (1 - night), sunset = Math.max(Math.sin(Math.PI * night) ** 3, golden); // São Paulo sits in late-afternoon light
-      authoredZen.lerpColors(day(mood.zen, d1), NIGHT.zen, night).lerp(sunsetZen, sunset * .65 * clear);
-      authoredHor.lerpColors(day(mood.hor, d1), NIGHT.hor, night).lerp(sunsetHor, sunset * .75 * clear);
+      const dusk = Math.sin(Math.PI * night) ** 3, golden = (mood.rs ?? 0) * 0.32 * (1 - night), sunset = Math.max(dusk, golden); // São Paulo sits in late-afternoon light
+      // Golden hour warms only the horizon and sun; the zenith stays saturated blue (only real dusk turns it violet).
+      authoredZen.lerpColors(day(mood.zen, d1), NIGHT.zen, night).lerp(sunsetZen, dusk * .65 * clear);
+      authoredHor.lerpColors(day(mood.hor, d1), NIGHT.hor, night).lerp(sunsetHor, Math.max(dusk * .75, golden * .3) * clear); // a salmon horizon under a blue zenith blends to lilac; golden warmth lives in the sun glow
       authoredHor.lerp(cityHaze,night*Math.max(0,mood.light[0]-mood.light[2])*(1-cover)*.5);
       authoredZen.multiplyScalar(1-night*(mood.rain??0)*.22);
       authoredHor.multiplyScalar(1-night*(mood.rain??0)*.18);

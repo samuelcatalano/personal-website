@@ -34,7 +34,7 @@ export function tint(g,p,{walls:wallStrength=1}={}) { // walls: 0 = leave wall c
   const regionalBrick=region==='glasgow'?bricks[[2,5,7][Math.floor(seed/3)%3]]:region==='london'?bricks[[0,5,7][Math.floor(seed/3)%3]]:region==='countryside'?bricks[[2,3,7][Math.floor(seed/3)%3]]:bricks[Math.floor(seed/3)%bricks.length];
   const pitched=p.kind==='terrace'||p.kind==='shop',gt=glassTints[glassPick[region||'none'][Math.floor(seed/7)%6]];
   const roofTop=roofFor(pitched?roofs.pitched[region||'none'][Math.floor(seed/13)%4]:roofs.flat[Math.floor(seed/13)%8]);
-  const metalTrim=(p.kind==='office'||p.kind==='tower'||p.height>=40)?[[.36,.44,.51],[.28,.34,.40],[.66,.50,.30]][seed%3]:[1.18,1.20,1.22];
+  const metalTrim=(p.kind==='office'||p.kind==='tower'||p.height>=40)?[[.36,.44,.51],[.28,.34,.40],[.86,.89,.92]][seed%3]:[1.18,1.20,1.22];
   const wallValue = 0.86 + (Math.floor(seed / 223) % 15) * 0.02;
   for(const m of g.children){const a=m.geometry.attributes;
     for(let i=0;i<a.position.count;i++){

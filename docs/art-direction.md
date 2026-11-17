@@ -190,3 +190,7 @@ Both livery-change bridges gain restrained ashlar joints and shallow approach pi
 ## Bridge proportions and integration — 2026-11-11 follow-up
 
 Owner authorised slimmer lower parapets and caps, a visibly deeper river slab, quieter stone texture, short masonry shoulders between arch and retaining wall, tapered ground-level parapet ends and subtle London/Glasgow masonry tints. Continuous alignment and the 7.5 m level deck remain; the slab leaves 4.19 m calculated boat headroom. [Updated evidence and dimensions](audits/2026-11-11-bridge-finish.md#owner-follow-up-on-proportions-and-integration).
+
+## Sky, distant skyline and glass (2026-11-17)
+
+Toward the North Star golden-hour reference: golden hour warms only the horizon (×0.3) and the sun glow (golden `0xfdeec2`, not peach), so the zenith stays saturated blue instead of blending to lilac; real dusk keeps the violet zenith. The distant skyline fades to the horizon by world height (0–16 m), not per stacked box, so tiers and crowns no longer stripe into pale cloud-like blocks; rows are hazy blue-grey and always darker than the sky. São Paulo carries a fuller fair-weather cumulus field. The analytic glass reflection maps below-horizon directions (most of them, from the elevated camera) to deep reflected blue with a bright horizon band instead of near-black ground; tower trim swaps the bronze family for light aluminium. Evidence: `weather=clear` captures at stops 5, 9.5 and 11, day and night.
