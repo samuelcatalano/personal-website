@@ -3,6 +3,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { SURFACE as S, townhouseMaterials, roomGlassMaterial, addRoomCoordinates } from './building-slice-materials.js';
 import { buildingCharacter, exposedFaces, windowOccupation } from './building-character.js';
 import { regionForPlot } from './lot-tint.js';
+import { articulateFacades } from './facade-articulation.js';
 
 function identifyBuilding(geometries,plot,kind,recipe) {
   const c=buildingCharacter(plot,kind,recipe.region??regionForPlot(plot));
@@ -31,7 +32,7 @@ function identifyBuilding(geometries,plot,kind,recipe) {
 // Construction is attached before chunking, so it follows both procedural and loaded-kit rebuilds.
 export function finishArchitecture(geometries, plot, kind, recipe = {}, level = 0, neighbors = []) {
   const base=geometries[1];
-  if(level || base.userData.constructionFinish) return identifyBuilding(geometries,plot,kind,recipe);
+  if(base.userData.constructionFinish) return identifyBuilding(geometries,plot,kind,recipe);
   const out={position:[],normal:[],uv:[],aSurface:[],color:[]};
   const commercial=kind==='office'||kind==='tower', templates=new Map();
   const character=buildingCharacter(plot,kind,recipe.region??regionForPlot(plot));
@@ -41,10 +42,12 @@ export function finishArchitecture(geometries, plot, kind, recipe = {}, level = 
   const up=new THREE.Vector3(0,1,0),across=new THREE.Vector3(),normal=new THREE.Vector3(),center=new THREE.Vector3(),matrix=new THREE.Matrix4();
   const frameColor=commercial?[.28,.32,.34]:recipe.region==='glasgow'?[.76,.70,.60]:[.80,.79,.74];
   const v=new THREE.Vector3(),n=new THREE.Vector3();
-  function profile(cx,cy,cz,w,h,d,surface,color,basis=null) {
+  // plain: a 12-triangle box for small repeated near-LOD pieces (quoins, dentils, rustication), where the 28-triangle bevel costs build time.
+  function profile(cx,cy,cz,w,h,d,surface,color,basis=null,plain=false) {
     if(Math.min(w,h,d)<=.002) return;
-    const r=Math.min(.014,w*.22,h*.22,d*.22),key=[w,h,d,r].map(x=>x.toFixed(5)).join(':');
+    const r=Math.min(.014,w*.22,h*.22,d*.22),key=[w,h,d,r].map(x=>x.toFixed(5)).join(':')+(plain?':box':'');
     let g=templates.get(key);
+    if(!g&&plain){g=new THREE.BoxGeometry(w,h,d).toNonIndexed();templates.set(key,g);}
     if(!g){
       const shape=new THREE.Shape();shape.moveTo(-w/2+r,-h/2+r);shape.lineTo(w/2-r,-h/2+r);shape.lineTo(w/2-r,h/2-r);shape.lineTo(-w/2+r,h/2-r);shape.closePath();
       g=new THREE.ExtrudeGeometry(shape,{depth:d-2*r,steps:1,bevelEnabled:true,bevelSize:r,bevelThickness:r,bevelSegments:1,curveSegments:1});
@@ -68,7 +71,7 @@ export function finishArchitecture(geometries, plot, kind, recipe = {}, level = 
     return true;
   }
   const glass=geometries[2],p=glass.attributes.position,nor=glass.attributes.normal,seen=new Set();
-  for(let q=0;!glass.index&&q+5<p.count;q+=6){
+  for(let q=0;!level&&!glass.index&&q+5<p.count;q+=6){
     normal.fromBufferAttribute(nor,q);
     if(Math.abs(normal.y)>.025)continue;
     across.set(normal.z,0,-normal.x).normalize();
@@ -112,7 +115,7 @@ export function finishArchitecture(geometries, plot, kind, recipe = {}, level = 
   // Repairs belong only to sizeable blank wall panels on verified exposed faces.
   const mass=geometries[0].attributes,mp=mass.position,mn=mass.normal,ms=mass.aSurface;
   const patched=new Set();let roof=null,chimney=null;
-  for(let q=0;!geometries[0].index&&q+5<mp.count;q+=6){
+  for(let q=0;!level&&!geometries[0].index&&q+5<mp.count;q+=6){
     normal.fromBufferAttribute(mn,q);
     let x0=Infinity,x1=-Infinity,y0=Infinity,y1=-Infinity,z0=Infinity,z1=-Infinity;
     for(let j=q;j<q+6;j++){x0=Math.min(x0,mp.getX(j));x1=Math.max(x1,mp.getX(j));y0=Math.min(y0,mp.getY(j));y1=Math.max(y1,mp.getY(j));z0=Math.min(z0,mp.getZ(j));z1=Math.max(z1,mp.getZ(j));}
@@ -161,7 +164,7 @@ export function finishArchitecture(geometries, plot, kind, recipe = {}, level = 
       details.roofServices++;
     }
   }
-  if(kind==='townhouse'&&recipe.eaves&&recipe.ridge){
+  if(!level&&kind==='townhouse'&&recipe.eaves&&recipe.ridge){
     const half=plot.width/2-.02,rz=(recipe.bayWindows?plot.depth-.5:plot.depth)/2-.02,rise=recipe.ridge-recipe.eaves;
     const gable=recipe.roof!=='side'&&recipe.roof!=='hip';
     const run=gable?half:rz,length=gable?2*rz:plot.width-.10,slant=Math.hypot(run,rise),rows=Math.floor(slant/[.30,.33,.36][character.roofVariant]);
@@ -178,6 +181,9 @@ export function finishArchitecture(geometries, plot, kind, recipe = {}, level = 
       }
     }
   }
+  // Far LODs get only the articulation that reads at distance; near-only finish above is skipped for them.
+  details.articulationStart=base.attributes.position.count+out.position.length/3;
+  articulateFacades({geometries,plot,kind,recipe,level,exposure,place:profile,details});
   const extra=new THREE.BufferGeometry();
   for(const [name,a] of Object.entries(base.attributes)){
     const values=out[name]??new Float32Array(out.position.length/3*a.itemSize);
