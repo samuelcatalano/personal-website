@@ -86,8 +86,18 @@ const requestStop = () => {
 };
 stopBtn.addEventListener('click', requestStop);
 document.addEventListener('keydown', (e) => { if ((e.key === 'b' || e.key === 'B') && !e.metaKey && !e.ctrlKey && !e.altKey && !e.target.closest?.('input, textarea')) requestStop(); });
-autoBtn.addEventListener('click', () => { quick = false; lock.clear(); ride.toggle(); if (ride.on) ui.holdTight(); });
-quickBtn.addEventListener('click', () => { quick = true; lock.clear(); if (ride.on) ride.stop(); else { scrollTo(0, 0); ride.toggle(); ui.holdTight(); } }); // stopping keeps the place; starting goes back to the top
+function toggleRide(nextQuick) {
+  const stopping = ride.on && quick === nextQuick;
+  ride.stop();
+  lock.clear();
+  if (stopping) return;
+  quick = nextQuick;
+  if (quick) scrollTo(0, 0);
+  ride.toggle();
+  ui.holdTight();
+}
+autoBtn.addEventListener('click', () => toggleRide(false));
+quickBtn.addEventListener('click', () => toggleRide(true));
 const photoBtn = document.querySelector('[data-photo]');
 photoBtn.addEventListener('click', async () => {
   if (!world || photoBtn.disabled) return;

@@ -12,7 +12,7 @@ export const travelMs = (dist) => clamp((dist / 900) * 1000, 1400, 5500); // pon
 export function createAutoRide({ ys, onState, dwell = 3400, instant = false, hold = null, keep = null, cruise = null }) {
   let token = 0, on = false, extra = 0; // extra: ms to linger at the next stop, from a pulled stop request
   const stopEvents = ['wheel', 'touchstart', 'keydown', 'pointerdown'];
-  const halt = (e) => { if (e?.target?.closest?.('[data-auto]') || keep?.(e)) return; stop(); };
+  const halt = (e) => { if (e?.target?.closest?.('[data-auto], [data-quick]') || keep?.(e)) return; stop(); };
   function stop() {
     if (!on) return;
     on = false; token++;

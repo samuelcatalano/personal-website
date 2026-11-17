@@ -300,6 +300,7 @@ body.world-loading:not(.world-ready, .no-webgl, .intro-on) #loading { display: f
 @media (hover: hover) { #credits .close:hover { background: var(--ink); color: var(--card); } }
 body.no-webgl { background: linear-gradient(var(--sky), var(--sky2) 70%, #829078 70%); }
 body.no-webgl #world { display: none; }
+body:is(:not(.world-ready), .no-webgl) :is([data-photo], .postcard-card) { display: none; }
 /* Journey as a line diagram: one node per stop, green line in Brazil, red in the UK, an interchange where the line changes (the move to London) */
 .stops { list-style: none; margin: 20px 0 0; padding: 0; }
 .stops li { position: relative; --seg: var(--uk); }

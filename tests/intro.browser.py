@@ -34,6 +34,18 @@ try:
         if js("!!document.querySelector('#intro[open]') || document.body?.classList.contains('no-webgl')"): break
         time.sleep(.25)
     assert js("document.querySelector('#intro').matches(':modal')"), js("[document.querySelector('#intro')?.outerHTML.slice(0, 130), document.body.className, window.__introErrors]")
+    assert js("""(() => {
+      const slider = document.querySelector('#intro [role=slider]');
+      const max = Number(slider.getAttribute('aria-valuemax'));
+      slider.focus();
+      for (const [key, expected] of [['End', max], ['ArrowDown', max - 1], ['ArrowUp', max], ['Home', 0]]) {
+        slider.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+        const actual = Number(slider.getAttribute('aria-valuenow'));
+        if (actual !== expected) throw Error(`${key}: slider value ${actual}, expected ${expected}`);
+      }
+      slider.blur();
+      return true;
+    })()""")
     assert js("getComputedStyle(document.querySelector('#intro')).backdropFilter.includes('blur(14px)')")
     assert js("document.querySelector('.intro-stations').children.length === 3"), 'Expected three illustrated stops'
     assert js("document.querySelector('.intro-stations [aria-current]').dataset.previewStop === 'sp'")

@@ -138,8 +138,18 @@ export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {
     step(e.deltaY);
   }, { passive: false });
   const onKey = e => {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.target === road) {
+      const at = journeyIndex(interacted ? p : auto), last = JOURNEY.length - 1;
+      const stopsByKey = { Home: 0, End: last, ArrowLeft: at - 1, ArrowDown: at - 1, ArrowRight: at + 1, ArrowUp: at + 1 };
+      if (Object.hasOwn(stopsByKey, e.key)) {
+        e.preventDefault();
+        jumpTo(Math.max(0, Math.min(last, stopsByKey[e.key])));
+        return;
+      }
+    }
     const dy = KEY_DY[e.key];
-    if (!dy || e.altKey || e.ctrlKey || e.metaKey || (e.key === ' ' && e.target.closest?.('button, a'))) return;
+    if (!dy || (e.key === ' ' && e.target.closest?.('button, a'))) return;
     e.preventDefault();
     step(e.repeat ? dy / 2 : dy); // a held key eases: half a step per repeat
   };

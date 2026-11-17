@@ -43,6 +43,20 @@ try:
     check(link.getAttribute('aria-current') === 'page', `${section} is not marked current`);
   }
   check(document.documentElement.scrollWidth <= innerWidth, 'Document has horizontal overflow');
+  document.querySelector('[data-options]').click();
+  check(!document.querySelector('[data-photo]').getClientRects().length, 'Postcard action is visible without WebGL');
+  check(!document.querySelector('[data-photo-link]').getClientRects().length, 'Recap postcard action is visible without WebGL');
+  document.querySelector('[data-options]').click();
+  const quick = document.querySelector('[data-quick]'), auto = document.querySelector('[data-auto]');
+  const tap = button => {
+    button.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    button.click();
+  };
+  const pressed = button => button.getAttribute('aria-pressed') === 'true';
+  tap(quick); check(pressed(quick), 'Quick Tour did not start');
+  tap(quick); check(!pressed(quick), 'Quick Tour restarted instead of stopping');
+  tap(quick); tap(auto); check(pressed(auto) && !pressed(quick), 'Auto ride did not replace Quick Tour');
+  tap(auto); check(!pressed(auto), 'Auto ride did not stop');
   return { pass: true, mobileWidth: innerWidth, pageOverflow: document.documentElement.scrollWidth - innerWidth };
 })()"""))
     print(js("""(async () => {
