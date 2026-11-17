@@ -9,7 +9,7 @@ export function createBoxes() {
   return { list, add }; // ry: optional yaw (rad) about the box centre axis; kerbs and pavement slabs follow the route tangent
 }
 const MATS = new Map(), PLANT_MATS = new Map(), PLANT_GEOS = new Map(), UP = new THREE.Vector3(0, 1, 0);
-const LAWN = new Set([P.patch, P.grass]), GRASS_STEP = 0.58, GRASS_HEIGHT = 0.36, GRASS_CELL = 2;
+const LAWN = new Set([P.patch, P.grass, P.hill]), GRASS_STEP = 0.58, GRASS_HEIGHT = 0.36, GRASS_CELL = 2;
 const hash = (x, z, k = 0) => { const n = Math.sin(x * 127.1 + z * 311.7 + k * 74.7) * 43758.5453; return n - Math.floor(n); };
 function grassInstances(boxes, plants, { trees = [], plots = [], lamps = [], kiosks = [] }) {
   const grounds = boxes.filter(b => LAWN.has(b.color) && b.h <= 0.24 && b.w >= 1.5 && b.d >= 1.3 && !b.ry);

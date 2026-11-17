@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { articulateCaio } from './caio-joint.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -370,6 +371,7 @@ function upgrade(vehicle, key, v, hero, isDisposed = () => false, axles) {
         for (const [name, g, shared] of parts) { const m = new THREE.Mesh(g, split.materials.get(name) ?? { name }); if (shared) m.position.set(-x, -y, 0); w.add(m); } // shared: indexes the car-space buffer
         glb.add(w); return w;
       });
+      if (key === 'sao-paulo') vehicle.userData.joint = articulateCaio(glb, wheels); // ambient Caios bend at the bellows on the tunnel ramps (rest())
     }
     const paintMaterials = new Set(v.paintMaterials ?? []);
     if (key === 'mini') {

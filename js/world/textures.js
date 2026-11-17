@@ -38,7 +38,7 @@ function turfTexture() {
 }
 const EDGE_W = 0.035, EDGE_DARK = 0.02, EDGE_HI = 0.015, EDGE_MIN = 0.1, EDGE_FULL = 0.4; // metres / fractions; effect fades in for faces EDGE_MIN..EDGE_FULL m
 // Triplanar, world space: 1 tile = 1 m
-const GRASS = new Set([P.grass, P.patch]);
+const GRASS = new Set([P.grass, P.patch, P.hill]); // hill: the second park-lawn green (parks.js)
 export const surfaceNoiseTexture = noiseTexture;
 export function blockMaterial(color, { glow = false, k = 2.2 } = {}) {
   const mat = new THREE.MeshStandardMaterial({ color, map: GRASS.has(color)?turfTexture():noiseTexture(), roughness: 0.9, metalness: 0 });
@@ -46,10 +46,16 @@ export function blockMaterial(color, { glow = false, k = 2.2 } = {}) {
   mat.userData.glow = glow;
   if (kind === 2) { mat.userData.glow = true; mat.userData.glowColor = new THREE.Color('#151412'); mat.userData.glowK = 1; } // ponytail: neutral-warm flat night lift (no blue cast) on asphalt (sky.update drives emissive); no per-lamp light
   mat.userData.glowK = k; // night emissive multiplier, see sky.update
-  mat.customProgramCacheKey = () => 'block-streetscape-1' + glow + kind + (kind===1?'-botanical-turf-1':''); // glow/non-glow differ by define only
+  mat.customProgramCacheKey = () => 'block-streetscape-1' + glow + kind + (kind===1?'-botanical-turf-2':''); // glow/non-glow differ by define only
   mat.onBeforeCompile = (sh) => {
     sh.uniforms.uStreetRegions = streetEnvironment.regions;
     const common = '#include <common>\nvarying vec3 vWP; varying vec3 vWN; varying vec3 vLP; varying vec3 vLN; varying vec3 vSc; varying float vH;';
+    // Lawn value noise / fBm, world space (fragment only; the vertex stage ignores unused functions).
+    const lawnNoise = kind === 1 ? `
+float lawnHash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float lawnNoise(vec2 p){ vec2 i = floor(p), f = fract(p); f *= f * (3.0 - 2.0 * f);
+  return mix(mix(lawnHash(i), lawnHash(i + vec2(1.0, 0.0)), f.x), mix(lawnHash(i + vec2(0.0, 1.0)), lawnHash(i + 1.0), f.x), f.y); }
+float lawnFbm(vec2 p){ return lawnNoise(p) * .5 + lawnNoise(p * 2.03 + 11.7) * .3 + lawnNoise(p * 4.11 + 27.3) * .2; }` : '';
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', common)
       .replace('#include <begin_vertex>', `#include <begin_vertex>
@@ -71,7 +77,7 @@ vLP = position; vLN = normal; vSc = vec3(length(bm[0].xyz), length(bm[1].xyz), l
     if (glow) sh.fragmentShader = '#define STAGGER\n' + sh.fragmentShader;
     if (!glow) sh.fragmentShader = '#define VOXEL_EDGE\n' + sh.fragmentShader;
     sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', common + '\nuniform vec3 uStreetRegions;')
+      .replace('#include <common>', common + '\nuniform vec3 uStreetRegions;' + lawnNoise)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
 #ifdef STAGGER
 totalEmissiveRadiance *= smoothstep(0.0, 0.1, uNight - (0.1 + 0.8 * vH) + 0.05); // each instance switches on at its own night level
@@ -79,18 +85,35 @@ totalEmissiveRadiance *= smoothstep(0.0, 0.1, uNight - (0.1 + 0.8 * vH) + 0.05);
       .replace('#include <map_fragment>', `
 vec3 an = abs(vWN);
 vec2 tuv = an.x > an.y && an.x > an.z ? vWP.zy : (an.y > an.z ? vWP.xz : vWP.xy);
+#if defined(GROUND) && GROUND == 1
+// two rotated scales of the 1 m turf tile: its repeat no longer prints a grid across a lawn
+diffuseColor *= mix(texture2D(map, tuv), texture2D(map, mat2(.8, -.6, .6, .8) * tuv * .43 + .37), .5) * 1.06;
+#else
 diffuseColor *= texture2D(map, tuv);
+#endif
 #ifdef GROUND
   { // low-frequency variation breaks up large lawn/asphalt surfaces
   vec2 g = vWP.xz / 6.0, i = floor(g), f = fract(g); f *= f * (3.0 - 2.0 * f);
   vec4 h = fract(sin(vec4(dot(i, vec2(12.9898, 78.233)), dot(i + vec2(1.0, 0.0), vec2(12.9898, 78.233)), dot(i + vec2(0.0, 1.0), vec2(12.9898, 78.233)), dot(i + 1.0, vec2(12.9898, 78.233)))) * 43758.5453);
   float n = mix(mix(h.x, h.y, f.x), mix(h.z, h.w, f.x), f.y) - 0.5;
   #if GROUND == 1
-  float dry=smoothstep(.16,.43,n);
-  diffuseColor.rgb *= vec3(.94,1.0,.89) * (1.0+.36*n); // lawn-only low-frequency tint amplitude (was .23)
-  diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.28,1.08,.66),dry*.42);
-  float turfEdge=min((.5-abs(vLP.x))*vSc.x,(.5-abs(vLP.z))*vSc.z);
-  diffuseColor.rgb *= 1.0-.12*(1.0-smoothstep(.015,.20,turfEdge));
+  // Real turf, seen from the follow camera: olive (not lime), clumped hue at ~2 m, sun-dried patches at ~11 m, clover/tuft speckle that fades
+  // with the pixel footprint (no shimmer), mowing stripes along the bed, and thinned, worn margins with a kerb shadow line.
+  float lawnFoot = max(length(dFdx(vWP.xz)), length(dFdy(vWP.xz))), lawnFine = 1.0 - smoothstep(.02, .14, lawnFoot);
+  float clump = lawnFbm(vWP.xz * .45), field = lawnFbm(vWP.xz * .09 + 7.3), speck = lawnNoise(vWP.xz * 6.3);
+  diffuseColor.rgb = mix(vec3(dot(diffuseColor.rgb, vec3(.30, .59, .11))), diffuseColor.rgb, .80); // turf is far less saturated than paint
+  vec3 tint = mix(vec3(.88, 1.0, .70), vec3(.70, .87, .74), smoothstep(.38, .72, clump)); // olive -> deep blue-green clumps
+  tint = mix(tint, vec3(1.14, 1.04, .62), smoothstep(.52, .82, field) * .55 + smoothstep(.25, .55, n) * .25); // dry, yellowed patches
+  diffuseColor.rgb *= tint * (.86 + .30 * clump) * (1.0 + (speck - .5) * .26 * lawnFine);
+  float turfEdge = min((.5 - abs(vLP.x)) * vSc.x, (.5 - abs(vLP.z)) * vSc.z);
+  if (vWN.y > .5) {
+    float acrossBed = vSc.x >= vSc.z ? vLP.z * vSc.z : vLP.x * vSc.x; // stripes run along the bed's long side
+    float stripe = smoothstep(-.35, .35, sin(acrossBed * 2.86 + (lawnNoise(vWP.xz * .5) - .5) * .9)); // ~1.1 m mower passes, slightly wavering
+    diffuseColor.rgb *= mix(.91, 1.07, stripe);
+  }
+  float wear = 1.0 - smoothstep(.05, .55, turfEdge + (lawnNoise(vWP.xz * 2.2) - .5) * .35); // irregular, not a ruled border
+  diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.06, .93, .70), wear * .55);
+  diffuseColor.rgb *= 1.0 - .20 * (1.0 - smoothstep(.0, .07, turfEdge));
   #elif GROUND == 2
   diffuseColor.rgb *= (1.0 + 0.2 * n) * mix(vec3(2.9, 2.4, 1.95), vec3(1.0), uNight); // lighter warm day asphalt; albedo unchanged at night
   #else

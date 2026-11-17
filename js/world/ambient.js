@@ -6,7 +6,7 @@ import { RIVER_Z, LANDMARKS, ukStart, stopIndex, swapAt, swapTunnelFrame, second
 import { stopMarks, fineMarks, routeT } from '../scroll.js';
 import { addBeams, refitBeams } from './beams.js';
 import { fadeVehicle, disposeFade } from './fade.js';
-import { PORTAL } from './route-tunnel.js';
+import { PORTAL, straighten } from './route-tunnel.js';
 import { firstInBand } from './hero-yield.js';
 import { laneSide } from './lanes.js';
 import { loadGlb } from './glb-loader.js';
@@ -251,7 +251,7 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false,
         const p = curve.getPointAt(t), tan = curve.getTangentAt(t);
         nrm.set(tan.z, 0, -tan.x).normalize();
         v.mesh.position.copy(p).addScaledVector(nrm, lat(t, v)).setY(0.07);
-        v.mesh.rotation.z = 0; tunnel?.place(v.mesh, v.tun); dip?.place(v.mesh);
+        straighten(v.mesh); tunnel?.place(v.mesh, v.tun); dip?.place(v.mesh);
         const ds = (v.mesh.position.x - v.x) * Math.cos(v.mesh.rotation.y) - (v.mesh.position.z - v.z) * Math.sin(v.mesh.rotation.y); // signed travel along the heading
         if (Math.abs(ds) < 5 && !(v.regionBus && v.regionSwap?.phase === 'loading')) rollWheels(v.mesh.userData.wheels ?? [], ds); // wheels roll; skip respawn jumps and the hidden model load
         v.x = v.mesh.position.x; v.z = v.mesh.position.z;

@@ -22,7 +22,7 @@ test('hero realm uses shared low planting and preserves its obstacle records',()
   'for(const x of [-5.6,5.6])for(const z of [-18.5,18.5])',
   "obstacle('planting',x,z,2.6,1);",
   "obstacle('fountain',0,0,6.5,6.5);",
-  'for(const side of [-1,1]){bench(side*5.9,-3.7,-1,side*-.28);bench(side*7.6,3.8,1,side*.52);}',
+  'for(const side of [-1,1]){bench(side*4.4,-4.2,-1,side*-.28);bench(side*7.6,3.8,1,side*.52);}', // moved in for the route tunnel ramp (owner-approved 2026-11-17)
   "obstacle('bench',x,z,2.5*c+.8*sn,.8*c+2.5*sn);",
   'for(const x of [-8.6,8.6])for(const z of [-19,19])',
   "obstacle('planter',x,z,1.9,1.9);",

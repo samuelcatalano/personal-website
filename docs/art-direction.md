@@ -194,3 +194,11 @@ Owner authorised slimmer lower parapets and caps, a visibly deeper river slab, q
 ## Sky, distant skyline and glass (2026-11-17)
 
 Toward the North Star golden-hour reference: golden hour warms only the horizon (×0.3) and the sun glow (golden `0xfdeec2`, not peach), so the zenith stays saturated blue instead of blending to lilac; real dusk keeps the violet zenith. The distant skyline fades to the horizon by world height (0–16 m), not per stacked box, so tiers and crowns no longer stripe into pale cloud-like blocks; rows are hazy blue-grey and always darker than the sky. São Paulo carries a fuller fair-weather cumulus field. The analytic glass reflection maps below-horizon directions (most of them, from the elevated camera) to deep reflected blue with a bright horizon band instead of near-black ground; tower trim swaps the bronze family for light aluminium. Evidence: `weather=clear` captures at stops 5, 9.5 and 11, day and night.
+
+## Lawns (2026-11-17)
+
+Every lawn green (`P.grass`, `P.patch` and the park `P.hill`, which previously skipped the turf shader and rendered as flat lime) shares one world-space turf look in `blockMaterial`: desaturated olive base, ~2 m clump hue (olive to blue-green), ~11 m sun-dried patches, clover/tuft speckle that fades with the pixel footprint, ~1.1 m mowing stripes along each bed's long side, and irregular worn margins with a kerb shadow line; the 1 m turf tile is sampled at two rotated scales so its repeat no longer reads. No new texture, pass or geometry.
+
+## Route-start tunnel and the articulated Caio (2026-11-17)
+
+Owner-approved: the portal moves from 16.8 m to 21.5 m past the route start, into the hero plaza's south-east corner (lawn shortened to z −10.55, east edge trim ends at z −10.1, the bench pair moves to x ±4.4 / z −4.2 and the portal planters to z ±11.6), with parapets where the ramp crosses the plaza. The ramp is an 8 m crest curve into a 26% grade (was 3 m into ~33%) and the mouth opens 0.8 m above the street (visible opening 4.6 m, was 3.35) while the tunnel stays under the paving. The Caio is skinned on two bones at its bellows and its wheels have 0.18 m of suspension travel, so the front body and trailing section pitch separately (max bend 15°, was a rigid 16.8 m body). `tests/caio-ramp.browser.py` guards tyre contact, bend and roof clearance.

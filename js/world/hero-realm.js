@@ -41,17 +41,22 @@ export function createHeroRealm(){
   box(0,.077,0,20,.014,3,S.stone,[1,.98,.92],0);
   for(const x of [-1.80,1.80])box(x,.072,0,.055,.008,48,S.stone,edge,0);
   for(const z of [-23.7,23.7])box(0,.095,z,20,.06,.40,S.trim,stone,0);
-  for(const x of [-9.8,9.8])for(const z of [-12.8,12.8])box(x,.095,z,.4,.06,22.4,S.trim,stone,0);
+  // TUNNEL_CORNER: the route-start tunnel ramp (route-tunnel.js, portal at 21.5 m) crosses this plaza's south-east corner diagonally, so that lawn
+  // stops short of it, the east edge trim ends before it and the corner furniture sits clear of it.
+  // ponytail: plaza-local numbers fitted to the ramp's footprint; tests/hero-plaza.browser.py and tests/caio-ramp.browser.py guard the fit.
+  const TUNNEL_CORNER={lawnEnd:-10.55,trimEnd:-10.1};
+  for(const x of [-9.8,9.8])for(const z of [-12.8,12.8]){const a=z-11.2,b=x>0&&z<0?TUNNEL_CORNER.trimEnd:z+11.2;box(x,.095,(a+b)/2,.4,.06,b-a,S.trim,stone,0);}
   // Fine expansion joints belong to the ground batch, not individual paving blocks.
   for(let z=-21;z<=21;z+=3)box(0,.064,z,19.4,.006,.018,S.stone,[.91,.91,.88],0);
   for(const x of [-5.6,5.6])for(const z of [-13,13]){
-    box(x,.085,z,5.3,.045,13.6,S.plaster,[.44,.58,.30],0);
-    for(const dz of [-6.9,6.9])box(x,.12,z+dz,5.6,.11,.20,S.stone,stone,0);
+    const z0=z-6.8,z1=x>0&&z<0?TUNNEL_CORNER.lawnEnd:z+6.8,zc=(z0+z1)/2,len=z1-z0;
+    box(x,.085,zc,5.3,.045,len,S.plaster,[.44,.58,.30],0);
+    for(const zz of [z0-.1,z1+.1])box(x,.12,zz,5.6,.11,.20,S.stone,stone,0);
     for(const dx of [-2.75,2.75]){
       if(Math.sign(dx)!==Math.sign(x)&&Math.sign(x)===Math.sign(z)){
         const centre=Math.sign(z)*14,gap=1.65;
         for(const [a,b] of [[z-6.8,centre-gap],[centre+gap,z+6.8]])box(x+dx,.12,(a+b)/2,.20,.11,b-a,S.stone,stone,0);
-      }else box(x+dx,.12,z,.20,.11,13.6,S.stone,stone,0);
+      }else box(x+dx,.12,zc,.20,.11,len,S.stone,stone,0);
     }
   }
   // Low planting at the lawn ends enriches the existing beds, away from both walking axes.
@@ -85,7 +90,7 @@ export function createHeroRealm(){
     obstacle('bench',x,z,2.5*c+.8*sn,.8*c+2.5*sn);
   }
   // Paired seats face the fountain, with a shaded pair along the existing central promenade.
-  for(const side of [-1,1]){bench(side*5.9,-3.7,-1,side*-.28);bench(side*7.6,3.8,1,side*.52);}
+  for(const side of [-1,1]){bench(side*4.4,-4.2,-1,side*-.28);bench(side*7.6,3.8,1,side*.52);} // pair moved in from x 5.9 / z -3.7 (TUNNEL_CORNER)
   for(const side of [-1,1])bench(side*2.9,side*14,side,side*Math.PI/2);
   for(const x of [-5.6,5.6])for(const z of [-14.9,14.9]){
     for(let i=0;i<3;i++)plant('shrub',x+(i-1)*.60,.11,z+(i%2)*.3,.85,.32+(i%2)*.12,.74);
@@ -106,8 +111,8 @@ export function createHeroRealm(){
     cylinder(x,3.31,z,.22,.15,S.litGlass,[1,1,1],2);
     obstacle('lamp',x,z,.8,.8);
   }
-  // Low planting softens the plaza-side portal corners, outside the transverse walkway.
-  for(const z of [-5.8,5.8]){
+  // Low planting softens the plaza-side portal corners, outside the transverse walkway (pair moved out from z 5.8, TUNNEL_CORNER).
+  for(const z of [-11.6,11.6]){
     box(9.15,.22,z,1,.30,1.10,S.stone,stone);
     plant('shrub',9.15,.38,z,.78,.32,.88);
     obstacle('portal-planter',9.15,z,1.05,1.15);
