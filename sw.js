@@ -29,12 +29,26 @@ function staleWhileRevalidate(request, event) {
 }
 async function networkFirst(request) {
   const cache = await caches.open(CACHE).catch(() => null);
+  const network = fetch(request, { cache: 'no-cache' });
+  let timer;
   try {
-    const res = await Promise.race([fetch(request, { cache: 'no-cache' }), new Promise((_, reject) => setTimeout(() => reject(new Error('slow')), 4000))]);
-    if (res.ok && cache) await cache.put(request, res.clone()).catch(() => {});
-    return res;
-  } catch {
-    return (await cache?.match(request).catch(() => null)) || fetch(request);
+    const res = await Promise.race([network, new Promise(resolve => { timer = setTimeout(resolve, 4000); })]).catch(() => null);
+    if (!res || res.status >= 500) {
+      let cached = await cache?.match(request).catch(() => null);
+      if (!cached && request.mode === 'navigate') {
+        const url = new URL(request.url);
+        if (url.search) {
+          url.search = '';
+          cached = await cache?.match(url.href).catch(() => null);
+        }
+      }
+      if (cached) return cached;
+    }
+    const fresh = res || await network;
+    if (fresh.ok && cache) await cache.put(request, fresh.clone()).catch(() => {});
+    return fresh;
+  } finally {
+    clearTimeout(timer);
   }
 }
 self.addEventListener('fetch', (event) => {

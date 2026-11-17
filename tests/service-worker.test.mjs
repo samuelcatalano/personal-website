@@ -11,20 +11,49 @@ const deferred = () => {
   return { promise, resolve };
 };
 
-function dispatch({ path, hit, fetch, put, open, match, setTimeout = () => {} }) {
+function dispatch({ path, hit, fetch, put, open, match, mode = 'cors', setTimeout = () => {} }) {
   const listeners = {};
   const cache = { match: match ?? (async () => hit), put };
   const self = { location: { origin: 'https://example.com' }, addEventListener: (name, fn) => { listeners[name] = fn; } };
-  runInNewContext(source, { self, caches: { open: open ?? (async () => cache) }, fetch, URL, setTimeout });
+  runInNewContext(source, { self, caches: { open: open ?? (async () => cache) }, fetch, URL, setTimeout, clearTimeout });
   const lifetime = [];
   let result;
   listeners.fetch({
-    request: { url: `https://example.com/${path}`, method: 'GET', headers: new Headers(), mode: 'cors' },
+    request: { url: `https://example.com/${path}`, method: 'GET', headers: new Headers(), mode },
     respondWith: (promise) => { result = promise; },
     waitUntil: (promise) => lifetime.push(promise),
   });
   return { result, lifetime };
 }
+
+test('a server error falls back to the cached response', async () => {
+  const hit = response('cached');
+  const event = dispatch({ path: 'app.js', hit, fetch: async () => ({ status: 503, ok: false }) });
+  assert.equal(await event.result, hit);
+});
+
+test('an offline navigation can use the same page cached without a query', async () => {
+  const hit = response('cached');
+  const event = dispatch({
+    path: '?nosw', mode: 'navigate',
+    match: async request => String(request.url ?? request) === 'https://example.com/' ? hit : undefined,
+    fetch: async () => { throw new Error('offline'); },
+  });
+  assert.equal(await event.result, hit);
+});
+
+test('a slow uncached navigation waits for its original request', async () => {
+  const fresh = response('fresh'), network = deferred();
+  let calls = 0;
+  const event = dispatch({
+    path: '', mode: 'navigate', fetch: () => { calls++; return network.promise; },
+    put: async () => {}, setTimeout: callback => callback(),
+  });
+  await new Promise(setImmediate);
+  assert.equal(calls, 1);
+  network.resolve(fresh);
+  assert.equal(await event.result, fresh);
+});
 
 test('cached asset returns immediately and keeps the event alive through the cache write', async () => {
   const write = deferred();
