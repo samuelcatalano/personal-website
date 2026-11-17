@@ -27,6 +27,7 @@ function setup(load, search = '') {
   class Vector3 {
     constructor(x = 0, y = 0, z = 0) { Object.assign(this, { x, y, z }); }
     set(x, y, z) { Object.assign(this, { x, y, z }); return this; }
+    setScalar(v) { return this.set(v, v, v); }
     copy(v) { Object.assign(this, v); return this; }
   }
   class Matrix4 {
@@ -38,7 +39,7 @@ function setup(load, search = '') {
     intersectsSphere(sphere) { return Math.hypot(sphere.center.x - this.cameraX, sphere.center.z - this.cameraZ) <= this.viewRadius + sphere.radius; }
   }
   class Object3D {
-    constructor() { this.position = new Vector3(); this.scale = { setScalar() {} }; this.rotation = {}; this.matrix = {}; }
+    constructor() { this.position = new Vector3(); this.scale = new Vector3(); this.rotation = {}; this.matrix = {}; }
     updateMatrix() {}
   }
   const context = vm.createContext({ URL, URLSearchParams, location: { search },
@@ -146,7 +147,7 @@ test('camera jumps use the current crowd and hide walkers with no visible candid
   s.context.SkeletonUtils.clone = root;
   s.context.THREE.Color = class {};
   s.context.THREE.AnimationMixer = class { clipAction() { return actionStub(); } update() {} };
-  s.context.THREE.Object3D = class { constructor() { this.scale = { setScalar() {} }; this.position = { set() {} }; this.matrix = {}; } updateMatrix() {} };
+  s.context.THREE.Object3D = class { constructor() { this.scale = { set() {}, setScalar() {} }; this.rotation = {}; this.position = { set() {} }; this.matrix = {}; } updateMatrix() {} };
   s.context.THREE.InstancedMesh = class { constructor() { this.instanceMatrix = {}; } setMatrixAt() {} };
   const added = []; s.scene.add = (o) => added.push(o);
   const unit = await s.create(s.scene, { stops: [], pts: [], count: 1 });

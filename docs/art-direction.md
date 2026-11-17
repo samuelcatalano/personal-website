@@ -202,3 +202,9 @@ Every lawn green (`P.grass`, `P.patch` and the park `P.hill`, which previously s
 ## Route-start tunnel and the articulated Caio (2026-11-17)
 
 Owner-approved: the portal moves from 16.8 m to 21.5 m past the route start, into the hero plaza's south-east corner (lawn shortened to z −10.55, east edge trim ends at z −10.1, the bench pair moves to x ±4.4 / z −4.2 and the portal planters to z ±11.6), with parapets where the ramp crosses the plaza. The ramp is an 8 m crest curve into a 26% grade (was 3 m into ~33%) and the mouth opens 0.8 m above the street (visible opening 4.6 m, was 3.35) while the tunnel stays under the paving. The Caio is skinned on two bones at its bellows and its wheels have 0.18 m of suspension travel, so the front body and trailing section pitch separately (max bend 15°, was a rigid 16.8 m body). `tests/caio-ramp.browser.py` guards tyre contact, bend and roof clearance.
+
+## Pedestrian movement and materials (2026-11-17)
+
+Nearby walkers retain the authored stride and gain small chest counter-rotation, alternating elbow flexion and relaxed fingers. The additions use the existing pose budget. Contact shadows follow each walker's heading and stretch with stride weight. The shared body atlas uses anisotropic filtering, plain clothing uses less saturated colors, and skin and eyes use softer highlights. The character meshes, street lighting and navigation stay as authored.
+
+The three MakeHuman plain suits use the original CC0 denim pixels around the waist. Their opaque textures store a shirt tint mask in alpha, so thigh weights no longer decide where shirt color ends. To regenerate the shipped textures from the original pack and an extracted MakeHuman system-asset archive, use `tools/npc/repair_suit_atlas.py`. Walking counter-swing reads the animated thigh positions, retains some of the authored upper-arm pose, and relaxes the elbows and fingers without changing foot placement or navigation.

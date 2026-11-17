@@ -23,7 +23,10 @@ export function createNpcPose(root, idleClip) {
   });
   for(const s of saved){s.bone.quaternion.copy(s.q);s.bone.position.copy(s.p);}root.updateMatrixWorld(true);
   const parent=new THREE.Quaternion(),delta=new THREE.Quaternion(),animated=new THREE.Quaternion(),axis=new THREE.Vector3(),point=new THREE.Vector3(),right=new THREE.Vector3(),forward=new THREE.Vector3(),up=new THREE.Vector3(0,1,0),localX=new THREE.Vector3(1,0,0);
-  const arms=[find('upperarm_l'),find('upperarm_r')].filter(Boolean),hands=[find('hand_l'),find('hand_r')].filter(Boolean);
+  const arms=[find('upperarm_l'),find('upperarm_r')],hands=[find('hand_l'),find('hand_r')].filter(Boolean);
+  const elbows=[find('lowerarm_l'),find('lowerarm_r')];
+  const knees=[find('calf_l'),find('calf_r')], kneePosition=[new THREE.Vector3(),new THREE.Vector3()];
+  const hip=new THREE.Vector3(),kneeDirection=new THREE.Vector3();
   const state={profile:'relaxed',lookYaw:0,attention:false};
   let id=0,clock=0,applied=false,target=null;
   const rotate=(bone,worldAxis,angle)=>{
@@ -41,9 +44,33 @@ export function createNpcPose(root, idleClip) {
       for(const s of saved){s.q.copy(s.bone.quaternion);s.p.copy(s.bone.position);}applied=true;
       clock+=dt;const profile=motionProfile(id),idle=1-gaitWeight,phase=id*2.399,cycle=10+(id%7),attending=clock%cycle<2.5;
       right.set(Math.cos(yaw),0,-Math.sin(yaw));forward.set(Math.sin(yaw),0,Math.cos(yaw));
-      if(!greeting)for(const arm of arms)if(rest.has(arm)){animated.copy(arm.quaternion);arm.quaternion.slerpQuaternions(rest.get(arm),animated,1+(profile.armSwing-1)*gaitWeight);}
-      if(!greeting)for(let i=0;i<arms.length;i++)rotate(arms[i],right,Math.cos(walkPhase)*.20*profile.armSwing*gaitWeight*(i?-1:1));
       rotate(chest,right,profile.lean*gaitWeight);
+      if(!greeting&&gaitWeight>.01){
+        // The clips start on different feet. Drive the counter-swing from the actual thighs.
+        for(let i=0;i<2;i++){
+          const knee=knees[i];
+          if(!knee)continue;
+          knee.getWorldPosition(kneePosition[i]);knee.parent.getWorldPosition(hip);
+          kneePosition[i].sub(hip).normalize();
+        }
+        const swing=knees.every(Boolean)
+          ? THREE.MathUtils.clamp(kneeDirection.subVectors(kneePosition[0],kneePosition[1]).dot(forward)*1.6,-1,1)
+          : Math.cos(walkPhase);
+        const follow=Math.sin(walkPhase);
+        rotate(chest,up,-(.045*swing+.032*follow)*gaitWeight);
+        for(let i=0;i<2;i++){
+          const side=i?-1:1;
+          const arm=arms[i];
+          if(rest.has(arm)){
+            animated.copy(arm.quaternion);
+            arm.quaternion.slerpQuaternions(rest.get(arm),animated,1-(1-.42*profile.armSwing)*gaitWeight);
+          }
+          rotate(arm,right,swing*.34*profile.armSwing*gaitWeight*side);
+          rotate(arm,forward,-.055*gaitWeight*side);
+          rotate(elbows[i],right,-(.075+(.58*swing+.42*follow)*.06*side)*gaitWeight);
+        }
+        for(const {bone,sign} of fingers)bone.quaternion.multiply(delta.setFromAxisAngle(localX,sign*.15*gaitWeight));
+      }
       if(idle>.01){
         const restPhase=(clock+phase)%(14+id%5),shift=restPhase<5?Math.sin(Math.PI*restPhase/5)**2*(id%2?1:-1):0;
         pelvis.parent.updateWorldMatrix(true,false);pelvis.getWorldPosition(point);point.addScaledVector(right,profile.shift*idle*shift);

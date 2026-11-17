@@ -7,6 +7,13 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 const ATTRS = ['position', 'normal', 'uv', 'skinIndex', 'skinWeight', '_layer', '_big', '_nlayer', '_nflag', '_part', '_kind', '_rough', '_cut', '_foot'];
 const SIZES = [1024, 512], NORMAL_SIZE = 256;
 let bodyTextures = null; // { big, small, normal }: shared by every body material; read by installBodyTint
+// The opaque suit textures encode the shirt/denim boundary in alpha, independent of skin weights.
+export const PLAIN_SUIT_TINT = `float shirt = clamp((npcSuitAlpha * 255.0 - 224.0) / 31.0, 0.0, 1.0);
+  vec3 suit = diffuseColor.rgb;
+  float high = max(suit.r, max(suit.g, suit.b)), low = min(suit.r, min(suit.g, suit.b));
+  // Saturated texels on the shirt side are padding from the source garment UVs.
+  float value = mix(suit.g, 0.56, smoothstep(0.08, 0.26, (high - low) / max(high, 1e-4)));
+  diffuseColor.rgb = mix(suit, npcTee * clamp(value / 0.6, 0.55, 1.25), shirt);`;
 const isFine = (name) => /^mh_(eyes|eyebrows)_/.test(name);
 const kindOf = (name, hasPart) => /^mh_clothes_.*_plain$/.test(name) ? (hasPart ? 1 : 0) : /^mh_clothes_(?!shoes)/.test(name) ? (hasPart ? 2 : 0) : /^mh_(hair|eyebrows)_/.test(name) ? 3 : 0;
 const sizeOf = (map) => (map.image.width === map.image.height && SIZES.includes(map.image.width) ? map.image.width : 0);
@@ -26,7 +33,7 @@ function layersOf(maps, size, colorSpace) {
     data.set(ctx.getImageData(0, 0, size, size).data, layer * size * size * 4);
   });
   const tex = new THREE.DataArrayTexture(data, size, size, maps.length);
-  Object.assign(tex, { colorSpace, wrapS: THREE.RepeatWrapping, wrapT: THREE.RepeatWrapping, generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter, magFilter: THREE.LinearFilter, needsUpdate: true });
+  Object.assign(tex, { colorSpace, wrapS: THREE.RepeatWrapping, wrapT: THREE.RepeatWrapping, generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter, magFilter: THREE.LinearFilter, anisotropy: 4, needsUpdate: true });
   return tex;
 }
 // Merges the mergeable skinned parts of every template into one body mesh per variant. Mutates the templates in place.
@@ -118,9 +125,7 @@ export function installBodyTint(mesh, { tee, hue, gain, chroma, hair }) {
       .replace('#include <map_fragment>', `vec4 npcTex = mix(texture(uTexSmall, vec3(vNpcUv, vLayer)), texture(uTexBig, vec3(vNpcUv, vLayer)), vBig);
     diffuseColor *= npcTex;
     { int kd = int(floor(vKind + 0.5));
-      if (kd == 1) { vec3 c = diffuseColor.rgb; float mx = max(c.r, max(c.g, c.b)), sat = (mx - min(c.r, min(c.g, c.b))) / max(mx, 1e-4);
-        float grey = (1.0 - smoothstep(0.05, 0.12, sat)) * smoothstep(0.35, 0.5, mx);
-        diffuseColor.rgb = mix(c, npcTee * clamp(c.g / 0.6, 0.3, 1.25), max(vTop, grey)); }
+      if (kd == 1) { float npcSuitAlpha = npcTex.a; ${PLAIN_SUIT_TINT} }
       else if (kd == 2 && npcClothOn > 0.5) { vec3 c = diffuseColor.rgb; float mx = max(c.r, max(c.g, c.b)), mn = min(c.r, min(c.g, c.b)), sat = (mx - mn) / max(mx, 1e-4);
         vec3 yiq = mat3(0.299, 0.596, 0.211, 0.587, -0.274, -0.523, 0.114, -0.322, 0.312) * c;
         float h = atan(yiq.z, yiq.y) + npcHue, ch = length(yiq.yz) * npcChroma;
@@ -128,5 +133,5 @@ export function installBodyTint(mesh, { tee, hue, gain, chroma, hair }) {
         diffuseColor.rgb = mix(c, max(r, 0.0), vTop * smoothstep(0.12, 0.30, sat)); }
       else if (kd == 3) { diffuseColor.rgb = npcHair * clamp(dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722)) / 0.30, 0.25, 2.2); } }`);
   };
-  mesh.material.customProgramCacheKey = () => 'npc-body-v3';
+  mesh.material.customProgramCacheKey = () => 'npc-body-v4';
 }

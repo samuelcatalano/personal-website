@@ -5,6 +5,19 @@ cdp('Network.enable');cdp('Network.setCacheDisabled',cacheDisabled=True)
 print(js(r'''(async()=>{
  const T=await import('three'),{GLTFLoader}=await import('three/addons/loaders/GLTFLoader.js'),{personTemplate,NPC_VARIANTS}=await import('../../js/world/npc3d.js'),{createIdleClip}=await import('../../js/world/npc-idle.js'),{createNpcPose}=await import('../../js/world/npc-pose.js');
  const check=(ok,message)=>{if(!ok)throw Error(message);},asset=await new GLTFLoader().loadAsync('../../assets/npc/npc_pack.glb'),results=[];
+ const plainMaps=new Set();
+ asset.scene.traverse(o=>{if(o.isMesh&&o.material.name.endsWith('_plain'))plainMaps.add(o.material.map);});
+ check(plainMaps.size===3,'expected the three plain suit maps');
+ const pixel=document.createElement('canvas');pixel.width=pixel.height=1;
+ const ctx=pixel.getContext('2d',{willReadFrequently:true});
+ const alphaAt=(image,x,y)=>{
+   ctx.clearRect(0,0,1,1);ctx.drawImage(image,Math.floor(x*image.width),Math.floor(y*image.height),1,1,0,0,1,1);
+   return ctx.getImageData(0,0,1,1).data[3];
+ };
+ for(const {image} of plainMaps){
+   check(alphaAt(image,.14,.20)===255,'shirt should accept its color tint');
+   check(alphaAt(image,.14,.49)===224&&alphaAt(image,.54,.49)===224,'both sides of the denim waistband must keep their original color');
+ }
  for(const variant of [NPC_VARIANTS[0],NPC_VARIANTS[6]]){
   const root=personTemplate(asset.scene,variant),clip=createIdleClip(root),mixer=new T.AnimationMixer(root),action=mixer.clipAction(clip);action.play();mixer.update(0);
   const pose=createNpcPose(root,clip),bones=[];root.traverse(o=>{if(o.isBone)bones.push(o);});
@@ -27,9 +40,19 @@ print(js(r'''(async()=>{
     check(Math.abs(pose.state.lookYaw)<.01,'attention ends and the head returns forward');
   }
   const armAngles=[];
-  for(const id of [0,1,2]){pose.restore();pose.reset(id);action.reset().play();mixer.update(.3);const arm=bone('upperarm_l');arm.quaternion.fromArray(clip.tracks.find(t=>t.name===arm.name+'.quaternion').values).multiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(1,0,0),.3));const before=arm.quaternion.clone();pose.update({dt:1/60,ground:0,speed:.6,yaw:0,gaitWeight:1,turnRate:0,contact:false,people:[],landmarks:[]});armAngles.push(before.angleTo(arm.quaternion));}
+  for(const id of [0,1,2]){pose.restore();pose.reset(id);action.reset().play();mixer.update(.3);const arm=bone('upperarm_l');arm.quaternion.fromArray(clip.tracks.find(t=>t.name===arm.name+'.quaternion').values).multiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(1,0,0),.3));const before=arm.quaternion.clone();pose.update({dt:1/60,ground:0,speed:.6,yaw:0,gaitWeight:1,walkPhase:Math.PI/2,turnRate:0,contact:false,people:[],landmarks:[]});armAngles.push(before.angleTo(arm.quaternion));}
   check(new Set(armAngles.map(a=>a.toFixed(3))).size===3,'profiles produce distinct upper-body movement');
-  check(armAngles.every(a=>a>.02&&a<.13),'profiles preserve the walking swing instead of replacing it with the standing pose');
+  check(armAngles.every(a=>a>.08&&a<.28),'profiles preserve the walking swing instead of replacing it with the standing pose');
+  const elbow=bone('lowerarm_l'),chest=bone('spine_03'),elbowAngles=[],chestAngles=[];
+  for(const walkPhase of [Math.PI/2,3*Math.PI/2]){
+    pose.restore();pose.reset(0);mixer.update(0);
+    const e=elbow.quaternion.clone(),c=chest.quaternion.clone();
+    frame({speed:.6,gaitWeight:1,walkPhase,contact:false,bus:null});
+    elbowAngles.push(e.angleTo(elbow.quaternion));
+    chestAngles.push(c.angleTo(chest.quaternion));
+  }
+  check(elbowAngles.every(a=>a>.015&&a<.14)&&Math.abs(elbowAngles[0]-elbowAngles[1])>.015,'the elbow flexes differently on forward and rearward steps');
+  check(chestAngles.every(a=>a>.02&&a<.09),'walking has restrained torso rotation');
   pose.restore();pose.reset(0);action.reset().play();mixer.update(0);
   for(let i=0;i<20;i++)frame({bus:null});
   const foot=bone('foot_l'),planted=foot.getWorldPosition(new T.Vector3());

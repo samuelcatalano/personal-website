@@ -8,9 +8,9 @@ import { crowdPlan } from './crowd.js'; // read only: the crowd's people and pat
 import { createIdleClip } from './npc-idle.js';
 import { animationDue } from './npc-motion-state.js';
 import { createNpcPose } from './npc-pose.js';
-import { buildNpcBodyAtlas, installBodyTint } from './npc-atlas.js';
+import { buildNpcBodyAtlas, installBodyTint, PLAIN_SUIT_TINT } from './npc-atlas.js';
 
-const GLB = new URL('../../assets/npc/npc_pack.glb', import.meta.url).href;
+const GLB = new URL('../../assets/npc/npc_pack.glb?v=waist-1', import.meta.url).href;
 const QUERY = new URLSearchParams(location.search), NEAR = QUERY.has('npcnear'), SHOT = Number(QUERY.get('npcshot')) || 0; // debug only
 const QA = QUERY.get('qa') === '1', POOL_MAX_DISTANCE = +QUERY.get('npcfar') || (globalThis.innerWidth < 700 ? 160 : 260), FAR_ANIM = 60, FINE_DETAIL = 35, VIEW_MARGIN = 0.65, QA_EVENT_LIMIT = 256;
 const REDUCED = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches; // read once at load
@@ -179,8 +179,8 @@ function partMeans(geo) {
 // give every mesh of `inst` its own tinted material; rng picks the palette entries
 // textured pack (MakeHuman assets, one mesh NPC_X per person, materials mh_<type>_<asset>): per walker, the saturated cloth (tees, jackets, shirts)
 // turns to another hue while the dull denim keeps its own; hair takes a natural colour by its luminance; skin and shoes stay
-const TEE = ['#141416', '#f2f1ec', '#b3221d', '#e2b41e', '#2453a6', '#2f6b3a', '#e07a1f', '#c86b8a', '#5b6470', '#1d2b44',
-  '#7a1f2b', '#6b4a2f', '#3aa0c8', '#8a3fa0', '#d9d2c0', '#3b3b3b']; // plain tees: black, white, red, yellow, blue, green, orange, pink...
+const TEE = ['#202024', '#e4e1d9', '#98483b', '#b99643', '#385d89', '#3f6948', '#b67142', '#a5687d', '#5b6470', '#1d2b44',
+  '#7a3946', '#6b4a2f', '#4c8195', '#764e83', '#d9d2c0', '#3b3b3b'];
 function tintTextured(inst, rng) {
   const tee = new THREE.Color(TEE[Math.floor(rng() * TEE.length)]);
   const hue = rng() < 0.25 ? 0 : (rng() * 2 - 1) * Math.PI, gain = 0.7 + 0.35 * rng(), chroma = 0.25 + 0.6 * rng(); // muted street colours
@@ -202,9 +202,7 @@ function tintTextured(inst, rng) {
         .replace('#include <uv_vertex>', '#include <uv_vertex>\nvTop = step(_part, 0.3);');
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float npcHue;\nuniform float npcGain;\nuniform float npcChroma;\nuniform vec3 npcHair;\nuniform vec3 npcTee;' + (kind !== 'hair' ? '\nvarying float vTop;' : ''))
         .replace('#include <map_fragment>', kind === 'plain' ? `#include <map_fragment>
-        { vec3 c = diffuseColor.rgb; float mx = max(c.r, max(c.g, c.b)), sat = (mx - min(c.r, min(c.g, c.b))) / max(mx, 1e-4);
-          float grey = (1.0 - smoothstep(0.05, 0.12, sat)) * smoothstep(0.35, 0.5, mx); // the build's plain grey (denim is bluer)
-          diffuseColor.rgb = mix(c, npcTee * clamp(c.g / 0.6, 0.3, 1.25), max(vTop, grey)); } // plain grey tee -> colour` : kind === 'cloth' ? `#include <map_fragment>
+        { float npcSuitAlpha = diffuseColor.a; ${PLAIN_SUIT_TINT} }` : kind === 'cloth' ? `#include <map_fragment>
         { vec3 c = diffuseColor.rgb; float mx = max(c.r, max(c.g, c.b)), mn = min(c.r, min(c.g, c.b)), sat = (mx - mn) / max(mx, 1e-4);
           vec3 yiq = mat3(0.299, 0.596, 0.211, 0.587, -0.274, -0.523, 0.114, -0.322, 0.312) * c;
           float h = atan(yiq.z, yiq.y) + npcHue, ch = length(yiq.yz) * npcChroma;
@@ -292,13 +290,19 @@ export async function createNpc3d(scene, { people, pts, stops, lookTargets = [],
   const clips = gltf.animations.filter((a) => a.name in CLIP_SPEED);
   // hair and brow cards: alpha-tested, not blended (blending sorted the cards against each other and against the sky/glass,
   // so strands flickered and showed the head through the hair); opaque cards also write depth and take shadows correctly
+  const preparedMaterials = new Set();
   gltf.scene.traverse((o) => {
     if (!o.isMesh) return;
     for (const m of [o.material].flat()) {
+      if (preparedMaterials.has(m)) continue;
+      preparedMaterials.add(m);
       if (m.transparent && m.map) Object.assign(m, { transparent: false, alphaTest: 0.45, depthWrite: true });
       if (m.isMeshStandardMaterial) {
-        if (m.name.startsWith('mh_skin_')) m.roughness = .65;
-        else if (m.name.startsWith('mh_eyes_')) m.roughness = .35;
+        if (m.name.startsWith('mh_skin_')) m.roughness = .72;
+        else if (m.name.startsWith('mh_eyes_')) {
+          m.roughness = .48;
+          m.color.multiplyScalar(.86); // tame the sclera highlight at miniature scale
+        }
         else if (m.name.startsWith('mh_clothes_shoes')) m.roughness = .72;
         else if (m.name.startsWith('mh_clothes_')) m.roughness = .94;
       }
@@ -336,7 +340,7 @@ export async function createNpc3d(scene, { people, pts, stops, lookTargets = [],
   const shadowMaterial = new THREE.MeshBasicMaterial({ color: '#2a2622', transparent: true, opacity: 0.3, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 });
   shadowMaterial.onBeforeCompile = (shader) => {
     shader.vertexShader = 'varying vec2 shadowUv;\n' + shader.vertexShader.replace('#include <uv_vertex>', '#include <uv_vertex>\nshadowUv = uv;');
-    shader.fragmentShader = 'varying vec2 shadowUv;\n' + shader.fragmentShader.replace('#include <opaque_fragment>', 'diffuseColor.a *= 1.0 - smoothstep(0.15, 0.5, length(shadowUv - 0.5));\n#include <opaque_fragment>');
+    shader.fragmentShader = 'varying vec2 shadowUv;\n' + shader.fragmentShader.replace('#include <opaque_fragment>', 'diffuseColor.a *= 1.0 - smoothstep(0.08, 0.5, length(shadowUv - 0.5));\n#include <opaque_fragment>');
   };
   shadow = new THREE.InstancedMesh(new THREE.CircleGeometry(0.3, 24).rotateX(-Math.PI / 2), shadowMaterial, count);
   Object.assign(shadow, { name: 'npc3d-shadow', frustumCulled: false, renderOrder: 0 });
@@ -500,7 +504,11 @@ export async function createNpc3d(scene, { people, pts, stops, lookTargets = [],
           w.pose?.update({dt,ground:w.y,speed:w.speed,yaw:w.yaw,gaitWeight:idle?0:w.gaitWeight,walkPhase:w.action.time/w.action.getClip().duration*Math.PI*2,turnRate:dt>0?turn/dt:0,contact:contactSlots.has(w),bus:f.bus,people:walkers,landmarks,greeting:greeting===w});
         }else w.pose?.suspend();
         w.fresh = false;
-        dummy.position.set(w.x, w.y + 0.01, w.z); dummy.scale.setScalar(w.height / 1.8); dummy.updateMatrix();
+        const shadowScale = w.height / 1.8;
+        dummy.position.set(w.x, w.y + 0.01, w.z);
+        dummy.rotation.y = w.yaw;
+        dummy.scale.set(.85 * shadowScale, 1, (1.10 + .26 * (idle ? 0 : w.gaitWeight)) * shadowScale);
+        dummy.updateMatrix();
         shadow.setMatrixAt(n, dummy.matrix);
       });
       shadow.instanceMatrix.needsUpdate = true;
