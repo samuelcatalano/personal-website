@@ -53,6 +53,88 @@ function disposeMaterials(root) {
   textures.forEach(t => { t.dispose(); t.source?.data?.close?.(); });
 }
 
+// The atlas has dark and mid-dark texels on the forearms and hands (photo-bake leftovers: ~25% of forearm and ~38%
+// of hand texels sit below skin luminance). The blackness lift treats dark texels as clothing, so they read as black
+// stripes and a hand darker than the face. Repaint every forearm/hand texel below skin luminance with the lit skin tone.
+// Elbow triangles shared with the sleeve (upperarm_*) split per texel at the sleeve hem's rest height: skin below,
+// untouched sleeve above, so the T-shirt stays black. The atlas packs the arms in many small charts and the free space
+// between them is dark; the ~16-32 texel mip blocks the minified figure samples pulled it in as a dark line along the
+// forearm's UV seams. Every free texel nearest to a forearm chart is padded with that chart's edge colour (never over
+// another chart). The raised hand catches the cool night sky light, so its texels get a slight warm tint (HAND_TINT).
+const FOREARM_SKIN_MIN = 110, DARK_TEXEL_MAX = 110, UV_SEAM_SPAN = 64;
+const SLEEVE_HEM = 1.19; // rest height (m) where elbow texels turn ~100% black; the T-shirt hem (LOOK.Body.hem) is .83
+const HAND_TINT = [1, .995, .96];
+const FOREARM_BONE = /^(lowerarm|hand|thumb|index|middle|ring|pinky)_/, HAND_BONE = /^(hand|thumb|index|middle|ring|pinky)_/;
+function repaintForearmSkin(mesh) {
+  const map = mesh.material.map, image = map?.image;
+  const { geometry, skeleton } = mesh;
+  if (!image?.width || !geometry.attributes.skinIndex) return;
+  const uv = geometry.attributes.uv, position = geometry.attributes.position;
+  const skinIndex = geometry.attributes.skinIndex, skinWeight = geometry.attributes.skinWeight;
+  const forearm = new Uint8Array(uv.count), hand = new Uint8Array(uv.count);
+  for (let v = 0; v < uv.count; v++) {
+    let best = 0;
+    for (let k = 1; k < 4; k++) if (skinWeight.getComponent(v, k) > skinWeight.getComponent(v, best)) best = k;
+    const name = skeleton.bones[skinIndex.getComponent(v, best)]?.name ?? '';
+    forearm[v] = FOREARM_BONE.test(name) ? 1 : 0;
+    hand[v] = HAND_BONE.test(name) ? 1 : 0;
+  }
+  const W = image.width, H = image.height;
+  const canvas = Object.assign(document.createElement('canvas'), { width: W, height: H });
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(image, 0, 0);
+  const pixels = ctx.getImageData(0, 0, W, H), data = pixels.data;
+  const mask = new Uint8Array(W * H); // 0 free, 1 other chart, 2 forearm/hand skin
+  const handWeight = new Uint8Array(W * H);
+  const index = geometry.index?.array ?? null, triangles = (index ? index.length : uv.count) / 3;
+  for (let t = 0; t < triangles; t++) {
+    const a = index ? index[3 * t] : 3 * t, b = index ? index[3 * t + 1] : 3 * t + 1, c = index ? index[3 * t + 2] : 3 * t + 2;
+    const some = forearm[a] || forearm[b] || forearm[c];
+    const ax = uv.getX(a) * W, ay = uv.getY(a) * H, bx = uv.getX(b) * W, by = uv.getY(b) * H, cx = uv.getX(c) * W, cy = uv.getY(c) * H;
+    const x0 = Math.max(0, Math.floor(Math.min(ax, bx, cx))), x1 = Math.min(W - 1, Math.ceil(Math.max(ax, bx, cx)));
+    const y0 = Math.max(0, Math.floor(Math.min(ay, by, cy))), y1 = Math.min(H - 1, Math.ceil(Math.max(ay, by, cy)));
+    if (x1 - x0 > UV_SEAM_SPAN || y1 - y0 > UV_SEAM_SPAN) continue; // triangles across a UV seam span the atlas: skip them
+    const det = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy);
+    if (Math.abs(det) < 1e-9) continue;
+    const ya = position.getY(a), yb = position.getY(b), yc = position.getY(c);
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      const px = x + .5, py = y + .5;
+      const l1 = ((by - cy) * (px - cx) + (cx - bx) * (py - cy)) / det;
+      const l2 = ((cy - ay) * (px - cx) + (ax - cx) * (py - cy)) / det, l3 = 1 - l1 - l2;
+      if (l1 < -1e-4 || l2 < -1e-4 || l3 < -1e-4) continue;
+      const i = y * W + x;
+      const skin = some && l1 * ya + l2 * yb + l3 * yc < SLEEVE_HEM;
+      mask[i] = Math.max(mask[i], skin ? 2 : 1);
+      if (skin) handWeight[i] = Math.max(handWeight[i], Math.round(255 * Math.min(1, Math.max(0, l1 * hand[a] + l2 * hand[b] + l3 * hand[c]))));
+    }
+  }
+  const lum = i => .2126 * data[i] + .7152 * data[i + 1] + .0722 * data[i + 2];
+  let r = 0, g = 0, bl = 0, n = 0;
+  for (let i = 0; i < mask.length; i++) if (mask[i] === 2 && lum(4 * i) >= FOREARM_SKIN_MIN) { r += data[4 * i]; g += data[4 * i + 1]; bl += data[4 * i + 2]; n++; }
+  if (!n) return;
+  const skin = [r / n, g / n, bl / n];
+  for (let i = 0; i < mask.length; i++) {
+    if (mask[i] !== 2) continue;
+    if (lum(4 * i) < DARK_TEXEL_MAX) for (let k = 0; k < 3; k++) data[4 * i + k] = skin[k];
+    const w = handWeight[i] / 255;
+    if (w) for (let k = 0; k < 3; k++) data[4 * i + k] *= 1 + (HAND_TINT[k] - 1) * w;
+  }
+  // Edge padding: breadth-first from every chart texel; a free texel copies its nearest chart texel when that is skin.
+  const source = new Int32Array(W * H).fill(-1), queue = new Int32Array(W * H);
+  let head = 0, tail = 0;
+  for (let i = 0; i < mask.length; i++) if (mask[i]) { source[i] = i; queue[tail++] = i; }
+  while (head < tail) {
+    const i = queue[head++], x = i % W;
+    for (const j of [x > 0 ? i - 1 : -1, x < W - 1 ? i + 1 : -1, i - W, i + W]) {
+      if (j < 0 || j >= mask.length || source[j] >= 0) continue;
+      source[j] = source[i]; queue[tail++] = j;
+      if (mask[source[i]] === 2) for (let k = 0; k < 3; k++) data[4 * j + k] = data[4 * source[i] + k];
+    }
+  }
+  ctx.putImageData(pixels, 0, 0);
+  map.image = canvas;
+  map.needsUpdate = true;
+}
 export async function loadReferenceNpcAssets({ levels = [0] } = {}) {
   const loader = new GLTFLoader();
   const assets = [];
@@ -87,6 +169,7 @@ export async function loadReferenceNpcAssets({ levels = [0] } = {}) {
     // Lower LODs retain the same UV atlases; use LOD0's three materials in every level.
     assets.slice(1).forEach(asset => disposeMaterials(asset.scene));
     meshes[0].forEach(tuneMaterial);
+    meshes[0].forEach(mesh => { if (mesh.name === 'Body') repaintForearmSkin(mesh); });
     let disposed = false;
     return {
       stride, height,
