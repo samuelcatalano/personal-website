@@ -11,11 +11,17 @@ let shared, landmarkSet, surfaceSet, legacyMaps, atlasPixels, atlasPreparation;
 export function prepareArchitectureMaterials() {
   return atlasPreparation ??= new Promise(resolve => {
     let worker;
-    const finish=()=>{worker?.terminate();resolve();};
+    const finish = () => {
+      clearTimeout(timeout);
+      worker?.terminate();
+      resolve();
+    };
+    const timeout = setTimeout(finish, 5000);
     try {
       worker=new Worker(new URL('./building-atlas.worker.js',import.meta.url),{type:'module'});
       worker.onmessage=event=>{atlasPixels=event.data;finish();};
       worker.onerror=event=>{event.preventDefault();finish();};
+      worker.onmessageerror=finish;
     } catch { finish(); }
   });
 }

@@ -97,7 +97,11 @@ function landmark(name,x,z,scale=1){
     const lm=getLightMats();
     L.forEach((parts,i)=>{if(!parts.length)return;const g=mergeGeometries(parts,false);parts.forEach(p=>p.dispose());g.computeBoundingBox();g.computeBoundingSphere();const mesh=new THREE.Mesh(g,[lm.warm,lm.cool,lm.wash][i]);mesh.name=name+'-'+['lightsWarm','lightsCool','wash'][i];mesh.castShadow=false;mesh.receiveShadow=false;group.add(mesh);});
     if(FLOOD[name]){const b=new THREE.Box3();group.children.forEach(m=>{if(!m.name.endsWith('wash'))b.union(m.geometry.boundingBox)});b.min.multiply(group.scale);b.max.multiply(group.scale);b.translate(group.position);addFloodlight(b,...FLOOD[name]);}
-    group.userData.dispose=()=>group.children.forEach(m=>m.geometry.dispose());return group;
+    group.userData.dispose=()=>{
+      const geometries = new Set();
+      group.traverse(o=>{if(o.geometry)geometries.add(o.geometry);});
+      geometries.forEach(g=>g.dispose());
+    };return group;
   }
   return {group,box,add,beam,ring,gothic,sweep,finish,lit,lbox,lbeam,stone,pale,slate};
 }

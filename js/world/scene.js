@@ -543,7 +543,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     nav.visible = plane.visible && night > 0.35; strobe.visible = nav.visible && clock % 1.3 < 0.12; // red left / green right steady, white strobe blinks
     if (shadow.visible) { shadow.position.set(plane.position.x, 0.14, plane.position.z); shadow.scale.set(34, 1, 15); shadow.scale.multiplyScalar(k); shadow.material.opacity = 0.3 * (1 - night) * present * k * Math.max(0.15, 1 - (plane.position.y - 24) / 70); } // smaller and fainter as it recedes and climbs
   };
-  let scroll = { value: 0, velocity: 0 }, target = 0, clock = 0, last = 0, raining = false, flash = 0, shotResolve = null;
+  let scroll = { value: 0, velocity: 0 }, target = 0, clock = 0, last = 0, raining = false, flash = 0, pendingSnapshot = null;
   const lateral = new THREE.Vector3();
   function frame(now) {
     raf = 0;
@@ -678,7 +678,15 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     post.render(dt);
     landmarkLight.restore();
     scene.matrixWorldAutoUpdate = true;
-    if (shotResolve) { const done = shotResolve; shotResolve = null; canvas.toBlob(done, 'image/png'); } // same task as the render: the drawing buffer is still valid
+    if (pendingSnapshot && !pendingSnapshot.started) {
+      const capture = pendingSnapshot;
+      capture.started = true;
+      try {
+        canvas.toBlob(blob => capture.finish(blob ? null : new Error('snapshot encoding failed'), blob), 'image/png');
+      } catch (error) {
+        capture.finish(error);
+      }
+    }
     if (qa) globalThis.__qaWorldFrames++;
     if (!reducedMotion || architecturePending || paulistaPending) wake();
   }
@@ -698,7 +706,25 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     get raining() { return raining; },
     get routeS() { return routeS; }, // where the bus is on the route, in stops, on the same fine knots as the picture: the sound driver times the plane from it
     get flash() { return flash; }, // lightning brightness this frame: the sound driver times thunder from it
-    snapshot() { return new Promise((res, rej) => { shotResolve = res; wake(); setTimeout(() => rej(new Error('snapshot timeout')), 3000); }); },
+    snapshot() {
+      if (disposed) return Promise.reject(new Error('world disposed'));
+      if (!pendingSnapshot) {
+        const capture = { started: false };
+        capture.promise = new Promise((resolve, reject) => {
+          const timer = setTimeout(() => capture.finish(new Error('snapshot timeout')), 3000);
+          capture.finish = (error, blob) => {
+            if (pendingSnapshot !== capture) return;
+            pendingSnapshot = null;
+            clearTimeout(timer);
+            if (error) reject(error);
+            else resolve(blob);
+          };
+        });
+        pendingSnapshot = capture;
+      }
+      wake();
+      return pendingSnapshot.promise;
+    },
     setProgress(p) { target = p; wake(); },
     highlight(ids) { landmarkLight.set(ids); wake(); }, // panel focus or hover: the landmarks of these stops glow (empty clears them)
     jump(p) { target = p; scroll = { value: p, velocity: 0 }; wake(); },
@@ -711,6 +737,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     dispose() {
       if (disposed) return;
       disposed = true;
+      pendingSnapshot?.finish(new Error('world disposed'));
       figure.userData.dispose();
       for (const u of units) u.dispose?.();
       cancelAnimationFrame(raf); raf = 0;
