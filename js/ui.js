@@ -20,6 +20,7 @@ const FLAGS = {
 const flag = (c) => (c === 'BR' ? '🇧🇷' : '🇬🇧');
 const journeyTotal = stops.filter(st => st.section === 'journey').length;
 const journeySeenCount = (seenSet) => stops.reduce((n, st, i) => n + (st.section === 'journey' && seenSet.has(i) ? 1 : 0), 0);
+let postcardUrl = ''; // the thumbnail of the last stop's view, set by main.js once the bus has arrived
 const FOUND = ['hide', 'postcard']; // small finds: hiding the interface, saving a postcard
 // ponytail: 2 s of travel per stop; dwell values mirror main.js (3400 ms full auto-ride, 1600 ms quick tour)
 const rideSeconds = (n, dwellMs) => Math.round(n * (dwellMs + 2000) / 1000);
@@ -37,36 +38,27 @@ const nextButton = (t, seenSet) => { // the pointer a returning visitor needs: t
   const i = nextUnseen(seenSet);
   return i < 0 ? '' : `<button type="button" class="next-stop" data-next="${i}"><span class="next-node" aria-hidden="true"></span><span class="next-text"><small>${t.ui.nextStop}</small><b>${stops[i].year} ${t.stops[stops[i].id].title}</b></span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"/></svg></button>`;
 };
-const recap = (t, route) => { // the route ticket: figures and progress on the body, passport and finds on the stub, then the actions
-  const r = t.ui.recap, toolNames = Object.keys(toolStops).filter(k => toolStops[k].length);
-  const toolsSeen = toolNames.filter(k => toolStops[k].some(id => route.seen.has(stops.findIndex(st => st.id === id)))).length;
-  const quickCount = QUICK.filter(id => route.quick.has(stops.findIndex(st => st.id === id))).length;
-  const cityKeys = Object.keys(t.ui.cities), reached = journeySeenCount(route.seen);
-  const figure = (label, n, total) => `<div class="figure" style="--p:${total ? Math.round(n / total * 100) : 0}%"><dt>${label}</dt><dd>${n}<small>/${total}</small></dd></div>`;
-  return `<section class="ticket" aria-label="${r.title}">
-    <div class="ticket-body">
-      <p class="ticket-title">${r.title}</p>
-      <dl class="figures">${figure(r.stops, reached, journeyTotal)}${figure(r.tools, toolsSeen, toolNames.length)}</dl>
-      <p class="quick-line">${t.ui.quickProgress.replace('{count}', quickCount).replace('{total}', QUICK.length)}</p>
-    </div>
+const routeStrip = (t, route) => `<ol class="route-strip" aria-label="${t.ui.recap.route}">${stops.map((st, i) => (st.section === 'journey' ? `<li class="${st.country.toLowerCase()}${route.seen.has(i) ? ' seen' : ''}"><span class="sr-only">${t.stops[st.id].title}</span></li>` : '')).join('')}</ol>`;
+const camera = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 7h3l1.5-2h7L17 7h3v12H4z"/><circle cx="12" cy="12.5" r="3.5"/></svg>';
+const recap = (t, route) => { // the return ticket: the route as a strip of stops, the passport stamps on the stub, then the postcard of the last view
+  const r = t.ui.recap, cityKeys = Object.keys(t.ui.cities), reached = journeySeenCount(route.seen);
+  const line = !reached ? r.skipped.replace('{total}', journeyTotal) : reached === journeyTotal ? t.ui.finishComplete.replace('{total}', journeyTotal) : t.ui.finishContinue.replace('{count}', reached).replace('{total}', journeyTotal);
+  return `<section class="ticket return" aria-label="${r.title}">
+    <div class="ticket-head"><p class="ticket-title">${r.title}</p><p class="ticket-blind" aria-hidden="true">${t.ui.led.end}</p></div>
+    <div class="ticket-body">${routeStrip(t, route)}<p class="route-line">${line}</p>${reached ? '' : `<p class="recap-reset"><button type="button" class="btn-lite" data-reset>${t.ui.reset}</button></p>`}</div>
     <div class="ticket-stub">
-      <p class="ticket-label">${t.ui.passport} <b>${route.cities.size}/${cityKeys.length}</b></p>
-      <div class="passport">${cityKeys.map(c => `<span class="${route.cities.has(c) ? 'got' : ''}">${t.ui.cities[c]}</span>`).join('')}</div>
-      <p class="ticket-label">${r.found} <b>${route.found.size}/${FOUND.length}</b></p>
-      <ul class="finds">${FOUND.map(k => (route.found.has(k) ? `<li class="got">${t.ui.found[k]}</li>` : `<li><b>???</b> ${t.ui.foundHint[k]}</li>`)).join('')}</ul>
+      <div class="passport" aria-label="${t.ui.passport} ${route.cities.size}/${cityKeys.length}">${cityKeys.map(c => `<span class="${route.cities.has(c) ? 'got' : ''}">${t.ui.cities[c]}</span>`).join('')}</div>
+      <p class="ticket-label found-line">${r.found} <b>${route.found.size}/${FOUND.length}</b></p>
     </div>
   </section>
-  <p class="recap-cta"><button type="button" class="postcard-btn" data-photo-link><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 7h3l1.5-2h7L17 7h3v12H4z"/><circle cx="12" cy="12.5" r="3.5"/></svg>${t.ui.photo}</button></p>
-  <p class="recap-reset"><button type="button" class="linkish" data-reset>${t.ui.reset}</button></p>`;
+  <div class="postcard-card"><figure class="postcard-preview" data-postcard-preview${postcardUrl ? '' : ' hidden'}><img src="${postcardUrl}" alt="" width="320" height="200" decoding="async" draggable="false"></figure>
+    <button type="button" class="postcard-btn" data-photo-link>${camera}${t.ui.photo}</button></div>
+  ${reached ? `<p class="recap-reset"><button type="button" class="linkish" data-reset>${t.ui.reset}</button></p>` : ''}`;
 };
 // ponytail: innerHTML from static content.js only
 function sectionHTML(section, t, active, tool = null, route = { seen: new Set(), cities: new Set(), found: new Set() }) {
   const seenSet = route.seen;
   const s = t.sections[section], latest = t.stops[stops.findLast(st => st.section === 'journey').id];
-  const journeySeen = journeySeenCount(seenSet);
-  const finish = journeySeen === journeyTotal
-    ? t.ui.finishComplete.replace('{total}', journeyTotal)
-    : t.ui.finishContinue.replace('{count}', journeySeen).replace('{total}', journeyTotal);
   const ext = (href, text, cls = '') => `<a${cls ? ` class="${cls}"` : ''} href="${href}" target="_blank" rel="noopener">${text}</a>`;
   const ic = (d) => `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true" focusable="false"><path d="${d}"/></svg>`;
   const mail = ic('M3 5h18v14H3zm2 2v.5l7 5 7-5V7zm14 3-7 5-7-5V17h14z');
@@ -107,8 +99,9 @@ function sectionHTML(section, t, active, tool = null, route = { seen: new Set(),
     case 'articles': return list(articles, a => `<li>${ext(a.url, `<b>${a.title}</b><small>${s.src} ↗</small>`, 'row')}</li>`, links.medium);
     case 'repos': return list(repos, r => `<li style="--c:${r.color}">${ext(r.url, `<code>${r.name}</code><span class="tags">${r.lang.split(' · ').map(x => `<i>${x}</i>`).join('')}</span><small>${s.descriptions[r.name]}</small><em aria-hidden="true">↗</em>`, 'row repo')}</li>`, links.github + '?tab=repositories');
     case 'recs': return `<h2>${s.title}</h2><p>${s.intro}</p>${t.recs.map(r => `<blockquote><span class="who" aria-hidden="true">${r.name.split(' ').filter((_, k, w) => k === 0 || k === w.length - 1).map(w => w[0]).join('')}</span><p>${r.quote}</p><footer><b>${r.name}</b><span>${r.role}</span></footer></blockquote>`).join('')}`;
-    case 'contact': return `<h2>${s.title}</h2><p>${s.intro}</p><div class="journey-finish"><p>${s.summary}</p><p>${finish}</p>${recap(t, route)}</div><ul class="contact">${contact(s)}</ul>
-      <p class="why">${s.why}</p><ul class="reasons">${s.reasons.map(r => `<li><a class="chip" data-bell href="${links.email}?subject=${encodeURIComponent(r.subject)}">${r.label}</a></li>`).join('')}</ul>
+    case 'contact': return `<h2>${s.title}</h2><p>${s.intro}</p>
+      <p class="why" id="reach-why">${s.why}</p><ul class="reasons" aria-labelledby="reach-why">${s.reasons.map(r => `<li><a class="chip" data-bell href="${links.email}?subject=${encodeURIComponent(r.subject)}&body=${encodeURIComponent(r.body)}">${r.label}</a></li>`).join('')}</ul>
+      <ul class="contact">${contact(s)}</ul>${recap(t, route)}
       <p class="footer">${t.ui.footer} <button type="button" class="linkish" data-credits>${t.ui.credits.link}</button></p>`;
   }
 }
@@ -233,14 +226,15 @@ export function initUI({ onGoto, onTheme, onHold = () => {}, onFocusStop = () =>
   };
   const discover = (key) => { // small finds go in the recap, once each
     if (route.found.has(key)) return;
-    route.found.add(key);
+    route.found.add(key); paintNavCount();
+    const foundNow = document.querySelector('.found-line b'); if (foundNow) foundNow.textContent = `${route.found.size}/${FOUND.length}`; // the return ticket, if it is on screen
     say('found', 3000); announce.textContent = i18n[prefs.lang].ui.found[key];
   };
   const paintNavCount = () => { // "Journey 2/12" in the bar, visible at every width (the LED hides below 1100 px)
     const a = document.querySelector('[data-nav="journey"]');
     if (!a) return;
-    a.querySelector('.nav-count')?.remove();
-    a.insertAdjacentHTML('beforeend', ` <small class="nav-count" aria-hidden="true">${journeySeenCount(seen)}/${journeyTotal}</small>`);
+    a.querySelectorAll('.nav-count').forEach((el) => el.remove());
+    a.insertAdjacentHTML('beforeend', ` <small class="nav-count" aria-hidden="true">${journeySeenCount(seen)}/${journeyTotal}</small>${route.found.size ? ` <small class="nav-count nav-found" aria-hidden="true">★ ${route.found.size}/${FOUND.length}</small>` : ''}`);
   };
   // Focus or hover on a stop in the panel list lights its landmark; on a Stack tool it lights every stop that uses the tool.
   // onFocusStop gets a list of stop indices (empty clears). Touch taps only focus, so they light nothing.
@@ -439,6 +433,10 @@ export function initUI({ onGoto, onTheme, onHold = () => {}, onFocusStop = () =>
       const hour = new Date().getHours(), greet = hour >= 5 && hour < 12 ? t.greetMorning : hour >= 12 && hour < 18 ? t.greetAfternoon : t.greetEvening; // the visitor's own clock
       talk(`${greet} ` + t.speakCalling.replace('{route}', routeNo()).replace('{a}', c.sp).replace('{b}', c.ldn).replace('{c}', c.gla));
       whenDone().then(() => { greeting = false; });
+    },
+    setPostcardPreview(url) { // the view of the last stop, shown on the return ticket (main.js takes it once the bus has arrived)
+      postcardUrl = url; const fig = document.querySelector('[data-postcard-preview]'); if (!fig) return;
+      fig.hidden = !url; const img = fig.querySelector('img'); if (img) img.src = url;
     },
     holdTight() { if (voiceOn) talk(i18n[prefs.lang].ui.speakStart); }, // the conductor's line as the ride sets off
     // "Ready to depart." as the city has loaded. Browsers keep speech silent until the page has had a click, tap or key: a visitor who has not touched it yet hears it on their first

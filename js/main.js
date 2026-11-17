@@ -18,8 +18,13 @@ let world = null, progress = 0;
 const lock = navLock();
 let unlock;
 const gapFrom = marks[stops.findIndex((s) => s.id === 'reclame')], gapTo = marks[stops.findIndex((s) => s.id === 'move')];
+let previewed = false;
+const previewPostcard = async () => { // the thumbnail on the return ticket: one frame of Wembley, a moment after the bus has arrived
+  if (previewed || !world?.snapshot) return; previewed = true;
+  try { await new Promise((r) => setTimeout(r, 1800)); ui.setPostcardPreview(URL.createObjectURL(await world.snapshot())); } catch { previewed = false; } // a failed frame is tried again on the next arrival
+};
 const follow = (p) => {
-  const a = lock.filter(nearestStop(p, n, marks)); if (a !== null) ui.setActive(a);
+  const a = lock.filter(nearestStop(p, n, marks)); if (a !== null) { ui.setActive(a); if (a === n - 1) previewPostcard(); }
   const m = (gapTo - gapFrom) * 0.15; // the long São Paulo to London stretch with the tunnel
   ui.note('gap', p > gapFrom + m && p < gapTo - m);
   ui.note('rain', !!world?.raining);
