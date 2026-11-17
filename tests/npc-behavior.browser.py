@@ -53,6 +53,11 @@ print(js(r'''(async()=>{
   }
   check(elbowAngles.every(a=>a>.015&&a<.14)&&Math.abs(elbowAngles[0]-elbowAngles[1])>.015,'the elbow flexes differently on forward and rearward steps');
   check(chestAngles.every(a=>a>.02&&a<.09),'walking has restrained torso rotation');
+  pose.restore();pose.reset(0);mixer.update(0);
+  const hips=bone('pelvis'),neutralY=hips.getWorldPosition(new T.Vector3()).y;
+  frame({speed:.6,gaitWeight:1,walkPhase:0,contact:false,bus:null});
+  const midstanceRise=hips.getWorldPosition(new T.Vector3()).y-neutralY;
+  check(midstanceRise>.008&&midstanceRise<.025,'the centre of mass rises subtly as the thighs pass each other');
   pose.restore();pose.reset(0);action.reset().play();mixer.update(0);
   for(let i=0;i<20;i++)frame({bus:null});
   const foot=bone('foot_l'),planted=foot.getWorldPosition(new T.Vector3());

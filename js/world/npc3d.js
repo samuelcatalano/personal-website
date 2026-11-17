@@ -46,7 +46,8 @@ const IN = ROAD.padIn + 0.4, OUT = ROAD.padIn + 1.05, LANES = [[IN, 1], [OUT, -1
 const CLIP_SPEED = { NPC_Walk: 0.621, NPC_Walk2: 0.628, NPC_Walk3: 0.592, NPC_Walk_C: 0.402, NPC_Walk2_C: 0.407, NPC_Walk3_C: 0.418 };
 function clipsForRig(clips, rig) { return clips.filter((clip) => clip.name.endsWith('_C') === (rig === 'child') && clip.name !== (rig === 'child' ? 'NPC_Walk2_C' : 'NPC_Walk2') && clip.name !== (rig === 'child' ? 'NPC_Walk_C' : '')); } // the formal cycle is stiff; the short child stride exceeds the playback cap
 function clipStride(name, scale, wide) { return CLIP_SPEED[name] * scale * wide; }
-function clipTimeScale(speed, stride) { return Math.min(1.76, Math.max(.8, speed / stride)); }
+const MIN_CADENCE = .68;
+function clipTimeScale(speed, stride) { return Math.min(1.76, Math.max(MIN_CADENCE, speed / stride)); }
 function poolKinds(count) {
   const children = Math.round(count * 0.3);
   let adults = 0;
@@ -270,7 +271,7 @@ function disposeNpcObjects(roots) {
 const FEMALE = new Set(['NPC_F', 'NPC_G', 'NPC_H', 'NPC_K', 'NPC_L', 'NPC_P', 'NPC_R', 'NPC_T', 'NPC_KA', 'NPC_KC']);
 const CASTERS = 16; // walkers nearest the camera that cast sun shadows (desktop)
 const PAVE_TOP = 0.1; // pavement slab top (city.js: bottom -0.02, 0.12 thick); the crowd's lanes run on it
-export async function createNpc3d(scene, { people, pts, stops, lookTargets = [], count = +QUERY.get('npccount') || (globalThis.innerWidth < 700 ? 48 : 200) }) { // ~7 draw calls per walker
+export async function createNpc3d(scene, { people, pts, stops, lookTargets = [], pavementHeight, count = +QUERY.get('npccount') || (globalThis.innerWidth < 700 ? 48 : 200) }) { // ~7 draw calls per walker
   const plan = crowdPlan(stops, pts, 1017); // people.js seed: index i here is person i there
   let timer, expired = false;
   const gltf = await Promise.race([
@@ -332,7 +333,7 @@ export async function createNpc3d(scene, { people, pts, stops, lookTargets = [],
     inst.visible = false;
     inst.traverse((o) => { if (o.isMesh) { o.receiveShadow = true; o.frustumCulled = false; } });
     tintNpc(inst, mulberry32(1000 + i));
-    Object.assign(w, { mixer, action, kind, height: v.height, stride: clipStride(clip.name, sc, wide), who: -1, x: 0, y: 0, z: 0, yaw: 0 });
+    Object.assign(w, { mixer, action, duration: clip.duration, kind, height: v.height, stride: clipStride(clip.name, sc, wide), who: -1, x: 0, y: 0, z: 0, yaw: 0 });
     w.fine = []; inst.traverse((o) => { if (o.isMesh && /^mh_(eyes|eyebrows)_/.test(o.material.name)) w.fine.push(o); }); // draw-call LOD: eyes and brows only near the camera
     setLive(w, false); // parked until assign() spawns it: no matrix composes for hidden bones
     scene.add(inst);
@@ -347,7 +348,10 @@ export async function createNpc3d(scene, { people, pts, stops, lookTargets = [],
   scene.add(shadow);
   const dummy = new THREE.Object3D(), fwd = new THREE.Vector3();
   const vis = people.visible, route = people.route, N = plan.length;
-  const groundOf = (i) => plan[i].path.y ?? (plan[i].path.type === 'lane' ? PAVE_TOP : FEET);
+  const groundOf = (i) => {
+    const base = plan[i].path.y ?? (plan[i].path.type === 'lane' ? PAVE_TOP : FEET);
+    return pavementHeight?.(route.x[i], route.z[i], base) ?? base;
+  };
   const owner = new Int32Array(N).fill(-1), score = new Float32Array(N), order = Array.from({ length: N }, (_, i) => i);
   const frustum = new THREE.Frustum(), viewProjection = new THREE.Matrix4(), bodySphere = new THREE.Sphere(new THREE.Vector3(), 0);
   const updateFrustum = (camera) => {
@@ -473,7 +477,13 @@ export async function createNpc3d(scene, { people, pts, stops, lookTargets = [],
           w.mixer.update(0); // install the pose immediately, including a single reduced-motion frame
         }
         const dx = route.x[i] - w.x, dz = route.z[i] - w.z;
-        const speed = w.fresh || dt === 0 ? sp * (walkPace?.[i] ?? 1) : Math.hypot(dx, dz) / dt;
+        const displacement = Math.hypot(dx, dz);
+        if (!w.fresh && displacement > 2) {
+          w.fresh = true; // a wrapped path must not inject a stride or a backwards turn
+          w.yaw = Math.atan2(fx, fz);
+          w.pose?.reset(i);
+        }
+        const speed = w.fresh || dt === 0 ? sp * (walkPace?.[i] ?? 1) : displacement / dt;
         w.speed = w.fresh ? speed : w.speed + (speed - w.speed) * (1 - Math.exp(-10 * dt));
         w.x = route.x[i]; w.z = route.z[i];
         // Travel steers the body; only a stopped person turns fully toward the bus.
@@ -483,11 +493,12 @@ export async function createNpc3d(scene, { people, pts, stops, lookTargets = [],
         w.y = groundOf(i);
         if (!idle) {
           // Shorten the step into a standing pose instead of playing a full stride in slow motion.
-          const target = Math.min(1, w.speed / (w.stride * .8));
+          if (w.fresh) w.action.time = ((i * .61803398875) % 1) * w.duration;
+          const target = Math.min(1, w.speed / (w.stride * MIN_CADENCE));
           w.gaitWeight = w.fresh ? target : w.gaitWeight + (target - w.gaitWeight) * (1 - Math.exp(-10 * dt));
           if (w.gaitWeight > .999) w.gaitWeight = 1;
           w.action.setEffectiveWeight(w.gaitWeight);
-          w.action.timeScale = clipTimeScale(w.speed, w.stride);
+          w.action.timeScale = w.gaitWeight > .001 ? clipTimeScale(w.speed, w.stride) : 0;
           if (w.gaitWeight < 1) {
             w.idleAction ??= w.mixer.clipAction(createIdleClip(w.inst));
             if (!w.idleAction.isRunning()) w.idleAction.reset().play();

@@ -28,7 +28,7 @@ export function createNpcPose(root, idleClip) {
   const knees=[find('calf_l'),find('calf_r')], kneePosition=[new THREE.Vector3(),new THREE.Vector3()];
   const hip=new THREE.Vector3(),kneeDirection=new THREE.Vector3();
   const state={profile:'relaxed',lookYaw:0,attention:false};
-  let id=0,clock=0,applied=false,target=null;
+  let id=0,clock=0,applied=false,target=null,weightTransfer=0;
   const rotate=(bone,worldAxis,angle)=>{
     if(!bone||Math.abs(angle)<1e-6)return;
     bone.parent.updateWorldMatrix(true,false);bone.parent.getWorldQuaternion(parent);
@@ -37,8 +37,8 @@ export function createNpcPose(root, idleClip) {
   const restore=()=>{if(applied){for(const s of saved){s.bone.quaternion.copy(s.q);s.bone.position.copy(s.p);}applied=false;}};
   return {
     state,feet,restore,
-    suspend(){restore();target=null;state.lookYaw=0;state.attention=false;feet?.reset();},
-    reset(identity){restore();id=identity;clock=(id*.731)%17;target=null;state.lookYaw=0;state.attention=false;state.profile=motionProfile(id).name;feet?.reset();},
+    suspend(){restore();target=null;weightTransfer=0;state.lookYaw=0;state.attention=false;feet?.reset();},
+    reset(identity){restore();id=identity;clock=(id*.731)%17;target=null;weightTransfer=0;state.lookYaw=0;state.attention=false;state.profile=motionProfile(id).name;feet?.reset();},
     update({dt,ground,speed,yaw,gaitWeight=0,walkPhase=0,turnRate=0,contact=false,bus,people=[],landmarks=[],greeting=false}){
       if(dt<=0)return;
       for(const s of saved){s.q.copy(s.bone.quaternion);s.p.copy(s.bone.position);}applied=true;
@@ -57,7 +57,18 @@ export function createNpcPose(root, idleClip) {
           ? THREE.MathUtils.clamp(kneeDirection.subVectors(kneePosition[0],kneePosition[1]).dot(forward)*1.6,-1,1)
           : Math.cos(walkPhase);
         const follow=Math.sin(walkPhase);
-        rotate(chest,up,-(.045*swing+.032*follow)*gaitWeight);
+        // The trailing leg is taking the weight until the leading leg accepts it.
+        weightTransfer+=(swing-weightTransfer)*(1-Math.exp(-8*dt));
+        const scale=root.scale.y,transfer=weightTransfer*gaitWeight;
+        pelvis.getWorldPosition(point);
+        point.addScaledVector(right,transfer*.021*scale);
+        point.y+=(.015-.032*swing*swing)*gaitWeight*scale;
+        pelvis.position.copy(pelvis.parent.worldToLocal(point));
+        rotate(pelvis,up,.042*swing*gaitWeight);
+        rotate(pelvis,forward,-.036*transfer);
+        rotate(chest,up,-(.082*swing+.023*follow)*gaitWeight);
+        rotate(chest,forward,.052*transfer);
+        rotate(head,forward,-.016*transfer);
         for(let i=0;i<2;i++){
           const side=i?-1:1;
           const arm=arms[i];

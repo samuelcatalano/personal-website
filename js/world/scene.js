@@ -38,6 +38,7 @@ import { createWetSurfaces } from './wet-surfaces.js';
 import { createSky, EXPOSURE, SUN_DIR } from './sky.js';
 import { createWater } from './water.js';
 import { towerPierBounds } from './water-math.js';
+import { createPavementHeight } from './spatial-mask.js';
 import { createAmbient } from './ambient.js';
 import { createParked } from './parked.js';
 import { parkingBays } from './bays.js';
@@ -357,7 +358,13 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   if (swapTunnel) { scene.add(swapTunnel.group); swapTunnel.cut(scene); }
   bus.rotation.order = 'YZX'; // yaw, then the dip's pitch
   const people = createPeople({ curve, pts, stops, obstacles: kioskClearance, reducedMotion });
-  const units = [await createNpc3d(scene, { people, pts, stops, lookTargets: details.children.filter(o=>o.name.endsWith('-geometry')) })]; // finish startup NPCs before the bulk fleet can occupy the download queue
+  const pedestrianSurfaces = new Set([P.pave, P.paverWarm, P.stone, P.gravel, P.concrete, P.road]);
+  const pavement = list.filter(box => pedestrianSurfaces.has(box.color));
+  if (urbanRoads) for (const rect of urbanRoadRects) {
+    pavement.push({ ...rect, y: 0, h: URBAN_ROAD_LEVELS[rect.kind] });
+  }
+  const pavementHeight = createPavementHeight(pavement);
+  const units = [await createNpc3d(scene, { people, pts, stops, pavementHeight, lookTargets: details.children.filter(o=>o.name.endsWith('-geometry')) })]; // finish startup NPCs before the bulk fleet can occupy the download queue
   let disposed = false, raf = 0, landmarksReady = false, startupLandmarksCancelled = false;
   const wetReflectionHidden = [];
   initVehicleEnv(renderer);

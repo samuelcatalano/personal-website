@@ -19,7 +19,20 @@ result = js(r'''(async()=>{
   const chosen=actions.find(a=>a.root.visible&&a.clip.startsWith('NPC_Walk')),walk=chosen.action,body=chosen.root;
   // Simulation heading can look toward the bus; the moving body must follow its travel direction.
   people.route.fx[id]=1;people.route.fz[id]=0;
-  for(let i=0;i<120;i++){people.route.z[id]+=.55*dt;frame();}
+  let merged;body.traverse(o=>{if(o.isSkinnedMesh&&o.userData.npcBody)merged=o;});
+  const footIndex=[];const foot=merged.geometry.attributes._foot.array;for(let i=0;i<foot.length;i++)if(foot[i]>.5)footIndex.push(i);
+  const soleHeights=[],vertex=new T.Vector3();
+  for(let i=0;i<6/dt;i++){
+   people.route.z[id]+=.55*dt;frame();
+   if(i<1/dt||i%3)continue;
+   body.updateMatrixWorld(true);
+   let sole=Infinity;
+   for(const v of footIndex)sole=Math.min(sole,merged.getVertexPosition(v,vertex).applyMatrix4(merged.matrixWorld).y-body.position.y);
+   soleHeights.push(sole);
+  }
+  soleHeights.sort((a,b)=>a-b);
+  const deepestSole=soleHeights[0],highSupport=soleHeights[Math.floor(soleHeights.length*.9)];
+  check(deepestSole>-.015&&highSupport<.012,`walking soles should stay close to the pavement: ${deepestSole}, ${highSupport}`);
   const movingYaw=body.rotation.y;
   check(Math.abs(movingYaw)<.1,'moving pedestrian must not walk sideways while watching the bus');
   const stride={NPC_Walk:.621,NPC_Walk3:.592,NPC_Walk3_C:.418}[chosen.clip]*body.scale.z;
@@ -38,8 +51,6 @@ result = js(r'''(async()=>{
    const drop=bone('foot_'+side).getWorldPosition(new T.Vector3()).y-bone('ball_'+side).getWorldPosition(new T.Vector3()).y;
    check(drop>.02*body.scale.y,`standing toes stay below the ankles: ${side} drop=${drop}`);
   }
-  let merged;body.traverse(o=>{if(o.isSkinnedMesh&&o.userData.npcBody)merged=o;});
-  const footIndex=[];const foot=merged.geometry.attributes._foot.array;for(let i=0;i<foot.length;i++)if(foot[i]>.5)footIndex.push(i);
   const vertices=footIndex.map(i=>body.worldToLocal(merged.localToWorld(merged.getVertexPosition(i,new T.Vector3()))));
   const mid=(Math.min(...vertices.map(v=>v.z))+Math.max(...vertices.map(v=>v.z)))/2;
   const heel=Math.min(...vertices.filter(v=>v.z<mid).map(v=>v.y)),toe=Math.min(...vertices.filter(v=>v.z>=mid).map(v=>v.y));
@@ -60,7 +71,7 @@ result = js(r'''(async()=>{
   for(let i=0;i<12;i++){people.route.z[id]+=.55*dt;frame();expected+=dt*walk.getEffectiveTimeScale();}
   const duration=walk.getClip().duration,advanced=(walk.time-startTime+duration)%duration;
   check(Math.abs(advanced-expected)<3*dt,'distant skeletal throttling preserves accumulated animation time');
-  const result={rig:child?'child':'adult',fps:1/dt,movingYaw,maxTurnRadiansPerFrame:maxTurn,maxWeightStep,measuredStride:stride,standingHeelToeDifference:toe-heel};
+  const result={rig:child?'child':'adult',fps:1/dt,movingYaw,maxTurnRadiansPerFrame:maxTurn,maxWeightStep,measuredStride:stride,deepestSole,highSupport,standingHeelToeDifference:toe-heel};
   npc.dispose();return result;
  }finally{T.AnimationMixer.prototype.clipAction=original;}
 })()'''.replace('CHILD','true' if os.environ.get('RIG')=='child' else 'false').replace('FRAME_DT',str(1/float(os.environ.get('FPS','60')))))

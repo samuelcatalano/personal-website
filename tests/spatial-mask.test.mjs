@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createRectMask } from '../js/world/spatial-mask.js';
+import { createRectMask, createPavementHeight } from '../js/world/spatial-mask.js';
 
 const overlaps = (a, b) => a.x1 - a.x0 > 1e-6 && a.z1 - a.z0 > 1e-6 && b.x1 - b.x0 > 1e-6 && b.z1 - b.z0 > 1e-6 && a.x0 < b.x1 - 1e-6 && a.x1 > b.x0 + 1e-6 && a.z0 < b.z1 - 1e-6 && a.z1 > b.z0 + 1e-6;
 
@@ -26,4 +26,16 @@ test('matches brute-force strict rectangle overlap across negative, boundary, an
   ];
   const intersects = createRectMask(rectangles).intersects;
   for (const query of queries) assert.equal(intersects(query), rectangles.some(r => overlaps(query, r)), JSON.stringify(query));
+});
+
+test('pedestrians use the highest pavement under their position, including rotated slabs', () => {
+  const height = createPavementHeight([
+    { x: 0, z: 0, w: 30, d: 30, y: 0, h: .07 },
+    { x: 0, z: 0, w: 9, d: 1, y: .07, h: .10, ry: Math.PI / 4 },
+    { x: 0, z: 0, w: 1, d: 1, y: 0, h: 3 },
+  ]);
+  assert.ok(Math.abs(height(2, -2, .02) - .17) < 1e-8);
+  assert.equal(height(2, 2, .02), .07);
+  assert.equal(height(2, 2, .16), .16);
+  assert.equal(height(30, 30, .02), .02);
 });
