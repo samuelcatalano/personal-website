@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { loadReferenceNpcAssets } from './reference-npc.js';
 const HEIGHT = 2.2, WIDTH = HEIGHT * 204 / 512;
+// The plaza under the closing spot reads 0.06 m (raycast in the page). The GLB's soles sit at y = 0, so the character is lifted onto it; the pool stays at its world height.
+const GROUND_Y = .06;
 const LOAD_WITHIN = 400; // metres: far enough that the swap from the Memoji happens out of sight.
 const RENDER_WITHIN = 200;
 const WORLD_UP = new THREE.Vector3(0, 1, 0);
@@ -19,9 +21,12 @@ function lightCharacter(root, figure) {
       return;
     }
     if (!mesh.isMesh) return;
-    Object.assign(mesh.material, { emissiveMap: mesh.material.map, needsUpdate: true });
-    mesh.material.emissive.set(0xffffff);
-    materials.push(mesh.material);
+    for (const material of [mesh.material].flat()) {
+      if (material.userData.sole) continue; // white midsole: no night self-fill, so the shoes do not glow
+      Object.assign(material, { emissiveMap: material.map, needsUpdate: true });
+      material.emissive.set(0xffffff);
+      materials.push(material);
+    }
   });
   const canvas = Object.assign(document.createElement('canvas'), { width: 64, height: 64 });
   const paint = canvas.getContext('2d'), gradient = paint.createRadialGradient(32, 32, 0, 32, 32, 32);
@@ -101,6 +106,7 @@ export function buildFigure(onReady = () => {}, { reducedMotion = false } = {}) 
         actor.wave();
         actor.mixer.update(reducedMotion ? 1.3 : .3); // Reduced motion holds the raised hand; otherwise just ends the blend.
         actor.root.scale.setScalar(HEIGHT / actor.height); // Same presence as the Memoji it replaces.
+        actor.root.position.y = GROUND_Y;
         actor.root.rotation.y = figure.userData.facing ?? Math.atan2(dx, dz);
         // A real sun shadow follows the silhouette and the wave; phones render no shadow maps, so they keep the disc.
         actor.root.traverse((mesh) => { if (mesh.isMesh) mesh.castShadow = mesh.name !== 'ReferenceEyes'; });
