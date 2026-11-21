@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
+import { createHelperBones } from './npc-helper-bones.js';
 
 const PARTS = ['Body', 'Head', 'ReferenceEyes'];
 const DISTANCES = [14, 32, 100];
@@ -414,7 +415,8 @@ export async function loadReferenceNpcAssets({ levels = [0] } = {}) {
   try {
     // Keep completed loads available for cleanup if another LOD fails.
     const results = await Promise.allSettled(levels.map(async level => {
-      const gltf = await loader.loadAsync(new URL(`../../assets/npc/reference/npc_lod${level}.glb?v=shirt-fit-07cc2b5a`, import.meta.url).href);
+      // Only LOD0 ships: samuel_hero_lod0.glb is the closing character (Idle, Walk, Wave clips; helper bones driven by npc-helper-bones.js).
+      const gltf = await loader.loadAsync(new URL(`../../assets/npc/reference/samuel_hero_lod${level}.glb?v=samuel-hero-58574ddb`, import.meta.url).href);
       assets[level] = gltf;
       return gltf;
     }));
@@ -454,6 +456,8 @@ export async function loadReferenceNpcAssets({ levels = [0] } = {}) {
       create() {
         if (disposed) throw new Error('Reference NPC assets were disposed');
         const root = SkeletonUtils.clone(assets[0].scene);
+        // Bind pose: captured before the mixer below poses the clone (its setTime(0) already applies the Walk clip).
+        const helpers = createHelperBones(root);
         const parts = PARTS.map(name => root.getObjectByName(name));
         const shared = parts[0].skeleton;
         // The body does not take its own shadows: the raised arm otherwise casts a hard black wedge onto the shirt.
@@ -463,7 +467,7 @@ export async function loadReferenceNpcAssets({ levels = [0] } = {}) {
         mixer.setTime(0);
         let level = -1, moving = true;
         const instance = {
-          root, mixer, action, stride, height,
+          root, mixer, action, stride, height, helpers,
           setDistance(distance) {
             const next = referenceLod(distance, Math.max(0, level));
             root.visible = next < 3;

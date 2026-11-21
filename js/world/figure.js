@@ -155,6 +155,7 @@ export function buildFigure(onReady = () => {}, { reducedMotion = false } = {}) 
       turn.setFromAxisAngle(WORLD_UP, lookYaw * share).multiply(tilt.setFromAxisAngle(side, -lookUp * share));
       bone.quaternion.premultiply(parentTurn.clone().invert().multiply(turn).multiply(parentTurn));
     }
+    actor.helpers.update(); // last: the helper bones follow their parents after the mixer and the look chain
   };
   figure.userData.dispose = () => {
     closed = true;

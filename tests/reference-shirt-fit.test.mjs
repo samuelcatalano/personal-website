@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 
-const bytes = readFileSync(process.env.NPC_SHIRT_ASSET || new URL('../assets/npc/reference/npc_lod0.glb', import.meta.url));
+const bytes = readFileSync(process.env.NPC_SHIRT_ASSET || new URL('../assets/npc/reference/samuel_hero_lod0.glb', import.meta.url));
 const jsonLength = bytes.readUInt32LE(12), model = JSON.parse(bytes.subarray(20, 20 + jsonLength)), binary = bytes.subarray(28 + jsonLength);
 function attribute(node, name) {
   const primitive = model.meshes[node.mesh].primitives[0], a = model.accessors[primitive.attributes[name]], v = model.bufferViews[a.bufferView];
@@ -13,7 +13,8 @@ function attribute(node, name) {
 }
 
 test('shirt fit keeps a valid normalized four-influence skin on the original rig', () => {
-  assert.equal(model.skins[0].joints.length, 53);
+  // 53 authored bones + 18 helper bones (twist, spine midpoints, metacarpals) that npc-helper-bones.js drives at runtime.
+  assert.equal(model.skins[0].joints.length, 71);
   assert.deepEqual(model.animations.map(a => a.name).sort(), ['Idle', 'Walk', 'Wave']);
   for (const node of model.nodes.filter(n => n.mesh !== undefined)) {
     const joints = attribute(node, 'JOINTS_0'), weights = attribute(node, 'WEIGHTS_0');
