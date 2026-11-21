@@ -4,6 +4,7 @@ import { audio, enabled, hold, BUSES } from './engine.js';
 import { audioState, near, fires, thunder, createDoor, createToll, BUS, VOICE_CAP as CAP } from './state.js';
 import { createBeds } from './voices/beds.js';
 import { createShots } from './voices/shots.js';
+import { createStadium } from './voices/stadium.js';
 import { createMood } from '../world/mood.js';
 import { routeT } from '../scroll.js';
 import { LANDMARKS, stopIndex, ukStart, scotRange } from '../world/layout.js';
@@ -14,9 +15,9 @@ export function createSound({ stops, marks, progress, night, world }) {
   if (!a) return null;
   hold();
   for (const k of BUSES) a.bus[k].gain.value = BUS[k];
-  const beds = createBeds(a), shots = createShots(a), moodAt = createMood(stops), st = {}, door = createDoor(), tollBen = createToll(), tollGla = createToll();
+  const beds = createBeds(a), shots = createShots(a), stadium = createStadium(a), moodAt = createMood(stops), st = {}, door = createDoor(), tollBen = createToll(), tollGla = createToll();
   const n = stops.length, uk = ukStart(stops), [g0, g1] = scotRange(stops).map((t) => t * (n - 1));
-  const ben = stopIndex(stops, LANDMARKS.bigben), gla = stopIndex(stops, LANDMARKS.glasgow);
+  const ben = stopIndex(stops, LANDMARKS.bigben), gla = stopIndex(stops, LANDMARKS.glasgow), wembley = stopIndex(stops, LANDMARKS.wembley);
   // ponytail: crowd density comes from the stops the crowd plan gathers people at (crowd.js walkPaths), not from the live figures; read the plan if the murmur must follow them exactly
   const busy = ['se', 'masp', 'estaiada', 'bigben', 'eye', 'glasgow', 'wembley'].map((k) => stopIndex(stops, LANDMARKS[k])).concat(stopIndex(stops, 'mira'));
   // ponytail: tunnels are placed by route position (the swap tunnel half a stop before the first UK stop, the two Glasgow underpass arches at the scotRange ends), not by the bus's world position
@@ -33,9 +34,9 @@ export function createSound({ stops, marks, progress, night, world }) {
       const m = moodAt(s / (n - 1), dt);
       audioState({
         s, speed, night: nightK, rain: m.rain, storm: m.storm, wind: m.wind, rs: m.rs, rl: m.rl, rg: m.rg, world: !!w,
-        tunnel: tunnelAt(s), planeD: uk >= 0 ? s - uk : null, crowd: Math.max(0.25, ...busy.map((i) => near(s, i, 0.8))), bigben: near(s, ben), glasgow: near(s, gla),
+        tunnel: tunnelAt(s), planeD: uk >= 0 ? s - uk : null, crowd: Math.max(0.25, ...busy.map((i) => near(s, i, 0.8))), bigben: near(s, ben), glasgow: near(s, gla), wembley: near(s, wembley, 0.75),
       }, st);
-      beds(st);
+      beds(st); stadium.update(st.stadium);
       const t = a.c.currentTime;
       a.outside.frequency.setTargetAtTime(st.outsideCut, t, 0.15);
       a.bus.landmarks.gain.setTargetAtTime(BUS.landmarks * Math.max(st.bigben, st.glasgow), t, 0.3); // bells fade with distance

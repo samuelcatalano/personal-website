@@ -9,13 +9,15 @@ offline = js(r'''(async () => {
   const { audioState, thunder, BUS } = await import('./js/audio/state.js');
   const { createBeds } = await import('./js/audio/voices/beds.js');
   const { createShots } = await import('./js/audio/voices/shots.js');
+  const { createStadium } = await import('./js/audio/voices/stadium.js');
   const render = async (input, events, only) => {
     const c = new OfflineAudioContext(2, 44100 * 8, 44100); let comp; const mk = c.createDynamicsCompressor.bind(c); c.createDynamicsCompressor = () => (comp = mk());
     const g = buildGraph(c);
     for (const k of BUSES) g.bus[k].gain.value = BUS[k];
     const st = audioState(input);
     if (only) for (const k of Object.keys(st)) if (typeof st[k] === 'number' && !only.includes(k) && !/(Cut|Freq|Rate|Pan)$/.test(k)) st[k] = 0; // solo some voices
-    const beds = createBeds(g), shots = createShots(g);
+    const beds = createBeds(g), shots = createShots(g), stadium = createStadium(g);
+    await stadium.ready; stadium.update(st.stadium);
     beds(st); g.outside.frequency.value = st.outsideCut;
     events(shots);
     const buf = await c.startRendering();
@@ -24,7 +26,7 @@ offline = js(r'''(async () => {
     return { peak: +peak.toFixed(4), rms: +Math.sqrt(sum / count).toFixed(4), peakDb: +(20 * Math.log10(peak)).toFixed(2), duck: +comp.reduction.toFixed(1) };
   };
   // loudest: São Paulo storm, flat out, plane overhead, crowd, every one-shot at once
-  const loud = await render({ s: 7, speed: 5, night: 0, rain: 1, storm: 1, wind: 1.1, rs: 0.6, rl: 0.4, rg: 0, world: true, tunnel: 0, planeD: -0.5, crowd: 1, bigben: 1, glasgow: 1 }, (x) => {
+  const loud = await render({ s: 7, speed: 5, night: 0, rain: 1, storm: 1, wind: 1.1, rs: 0.6, rl: 0.4, rg: 0, world: true, tunnel: 0, planeD: -0.5, crowd: 1, wembley: 1, bigben: 1, glasgow: 1 }, (x) => {
     x.thunder({ ...thunder(0.4), delay: 1.5 }); x.thunder({ ...thunder(0.4), delay: 3 }); x.bell(164.8, 1, 2, 2, 5); x.bell(261.6, 0.7, 2, 1.5, 4);
     for (let i = 0; i < 3; i++) x.pass(); for (let i = 0; i < 8; i++) { x.drop(); x.step(); }
     x.horn(); x.boat(); x.chirp(); x.gull(); x.door(); x.tick(); x.shutter();
@@ -47,7 +49,7 @@ assert offline['loud']['rms'] > 0.02 and offline['quiet']['rms'] > 0.001, f"a sc
 
 # live toggle
 for _ in range(240):  # Board opens only once the city has settled (and the still tour is over)
-    if js("document.querySelector('[data-intro-skip]')?.disabled === false"): break
+    if js("!document.body.classList.contains('intro-on') || document.querySelector('[data-intro-skip]')?.disabled === false"): break
     time.sleep(0.25)
 js("document.querySelector('[data-intro-skip]')?.click()")
 for _ in range(80):
@@ -57,6 +59,9 @@ assert js("!document.body.classList.contains('intro-on')"), 'the intro did not c
 time.sleep(0.5)
 before = js("document.querySelector('[data-sound]').getAttribute('aria-pressed')")
 def click_sound():
+    if js("document.querySelector('[data-sound]').getBoundingClientRect().width === 0"):
+        menu = js("(r => ({x:r.left+r.width/2,y:r.top+r.height/2}))(document.querySelector('[data-options]').getBoundingClientRect())")
+        click_at_xy(menu['x'], menu['y']); time.sleep(0.2)
     r = json.loads(js("JSON.stringify((r => ({x: r.left + r.width / 2, y: r.top + r.height / 2}))(document.querySelector('[data-sound]').getBoundingClientRect()))"))
     click_at_xy(r['x'], r['y'])
 if before == 'true': click_sound(); time.sleep(0.3)
@@ -78,7 +83,7 @@ js(r"""window.__ride = (async () => {
   const { stops } = await import('./js/content.js'), { stopMarks } = await import('./js/scroll.js'), { routePoints } = await import('./js/world/layout.js');
   let p = 0, flash = 0;
   const snd = createSound({ stops, marks: stopMarks(routePoints(stops.length)), progress: () => p, night: () => false, world: () => ({ get flash() { return flash; } }) });
-  const seen = {}, t0 = performance.now(), keys = ['rain', 'wind', 'bedSp', 'bedLon', 'bedGla', 'engine', 'road', 'plane', 'crowd', 'bigben', 'glasgow', 'drops', 'passes'];
+  const seen = {}, t0 = performance.now(), keys = ['rain', 'wind', 'bedSp', 'bedLon', 'bedGla', 'engine', 'road', 'plane', 'crowd', 'stadium', 'bigben', 'glasgow', 'drops', 'passes'];
   let dull = false, bells = 0, passes = 0, thunders = 0;
   while (performance.now() - t0 < 9000) {
     const k = (performance.now() - t0) / 9000; p = k; flash = k > 0.3 && k < 0.33 ? 0.04 : 0;

@@ -149,7 +149,7 @@ Owner authorized removing solid black portal backgrounds on Tower Bridge and Cat
 
 ## Sound system — 2026-11-13
 
-No audio asset is used. Every sound (rain, wind, thunder, city beds, bus engine, passing cars, horns, boat horn, plane, crowd murmur, footsteps, birds, gulls, crickets, Big Ben and Glasgow bells, UI clicks, camera shutter) is synthesized at runtime with native Web Audio in `js/audio/`. Nothing to license or attribute. If a CC0 sample ever replaces a synthesized voice, record it here with its licence.
+The original sound system is procedural. Most sounds (rain, wind, thunder, city beds, bus engine, passing cars, horns, boat horn, plane, crowd murmur, footsteps, birds, gulls, crickets, Big Ben and Glasgow bells, UI clicks, camera shutter) are synthesized at runtime with native Web Audio in `js/audio/`. Those synthesized voices require no external attribution. The recorded Wembley ambience added below is the exception.
 
 
 ### Original botanical vegetation — 2026-11-14
@@ -166,3 +166,12 @@ The older supplied CC-BY Realistic Tree files/attribution remain archived above;
 ## Self-hosted fonts — 2026-11-16
 
 `assets/fonts/inter-latin-var.woff2` (Inter, variable 400-700, latin subset) and `assets/fonts/hammersmith-one-latin.woff2` (Hammersmith One, latin subset). Both SIL Open Font License 1.1, downloaded from Google Fonts' own gstatic files; owner approved on 2026-11-16. They replace the render-blocking Google Fonts stylesheet (plan item C2).
+
+### Wembley crowd ambience — 2026-11-21
+
+- Shipped: `assets/audio/wembley-crowd.mp3` (30-second mono MP3, 32 kHz, 64 kbps).
+- Source: **Large crowd applause.wav**, **Bansemer**, Freesound #160493, published 2012-07-04. Real applause/cheering, described by its author as containing no music. This is generic audience sound, not a recording of Wembley.
+- Source page: https://freesound.org/people/Bansemer/sounds/160493/
+- Download used: public high-quality MP3 preview, https://cdn.freesound.org/previews/160/160493_341440-hq.mp3
+- Licence verified 2026-11-21 on the source page: **CC0 1.0**, https://creativecommons.org/publicdomain/zero/1.0/ . Copying, editing and redistribution permitted; attribution not required, retained here for provenance.
+- Processing: source seconds 10–42; 160 Hz high-pass and 2800 Hz low-pass; loudness normalization (-18 LUFS target, -2 dBTP ceiling); 2-second tail/head crossfade for a 30-second loop; downmix to mono and MP3 encode. Runtime applies an additional 1800 Hz low-pass and route-proximity gain for an exterior stadium perspective.

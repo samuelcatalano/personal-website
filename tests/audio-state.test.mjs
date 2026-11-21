@@ -6,16 +6,16 @@ import { BUSES } from '../js/audio/engine.js';
 import { i18n } from '../js/content.js';
 
 const base = { s: 3, speed: 0, night: 0, rain: 0, storm: 0, wind: 0.8, rs: 1, rl: 0, rg: 0, world: true, tunnel: 0, planeD: null, crowd: 0.5, bigben: 0, glasgow: 0 };
-const GAINS = ['rain', 'wind', 'bedSp', 'bedLon', 'bedGla', 'crickets', 'engine', 'road', 'plane', 'crowd'];
+const GAINS = ['rain', 'wind', 'bedSp', 'bedLon', 'bedGla', 'crickets', 'engine', 'road', 'plane', 'crowd', 'stadium'];
 
 test('every gain stays finite and inside 0..1 across the input corners', () => {
   for (const night of [0, 1]) for (const rain of [0, 0.3, 1]) for (const speed of [0, 0.6, 5]) for (const tunnel of [0, 1]) for (const planeD of [null, -1, -0.5, 0.5]) {
-    const st = audioState({ ...base, night, rain, speed, tunnel, planeD, storm: 1, wind: 1.1, crowd: 1, rs: 0.4, rl: 0.3, rg: 0.3 });
+    const st = audioState({ ...base, night, rain, speed, tunnel, planeD, storm: 1, wind: 1.1, crowd: 1, wembley: 1, rs: 0.4, rl: 0.3, rg: 0.3 });
     for (const k of GAINS) assert.ok(Number.isFinite(st[k]) && st[k] >= 0 && st[k] <= 1, `${k}=${st[k]}`);
     for (const [k, v] of Object.entries(st)) assert.ok(Number.isFinite(v), `${k} is not finite`);
     // the voices are uncorrelated noise and tones, so their levels add as power; the measured peak is checked in tests/audio.browser.py.
     // 0.4 (was 0.6) sits just above today's worst corner (0.35), so a voice made much louder fails here; the real loudness bound is the -1 dBFS peak there
-    const power = Math.hypot(st.rain * BUS.weather, st.wind * BUS.weather, st.bedSp * BUS.ambience, st.bedLon * BUS.ambience, st.bedGla * BUS.ambience, st.crickets * BUS.ambience, st.engine * BUS.vehicles, st.road * BUS.vehicles, st.plane * BUS.traffic, st.crowd * BUS.people);
+    const power = Math.hypot(st.rain * BUS.weather, st.wind * BUS.weather, st.bedSp * BUS.ambience, st.bedLon * BUS.ambience, st.bedGla * BUS.ambience, st.crickets * BUS.ambience, st.engine * BUS.vehicles, st.road * BUS.vehicles, st.plane * BUS.traffic, st.crowd * BUS.people, st.stadium * BUS.people);
     assert.ok(power < 0.4, `continuous power sum ${power}`);
   }
 });
@@ -89,4 +89,15 @@ test('bus levels cover the engine buses, and the Sound label exists in both lang
   assert.deepEqual(Object.keys(BUS).sort(), [...BUSES].sort());
   assert.ok(i18n.en.ui.sound && i18n.pt.ui.sound && i18n.en.ui.sound !== i18n.pt.ui.sound);
   assert.match(readFileSync(new URL('../index.html', import.meta.url), 'utf8'), /data-sound aria-pressed="false"/);
+});
+
+test('Wembley crowd follows stadium proximity and is silent outside the 3D scene or inside a tunnel', () => {
+  const outside = audioState({ ...base, wembley: 0 });
+  const nearStadium = audioState({ ...base, wembley: 0.5 });
+  const atStadium = audioState({ ...base, wembley: 1 });
+  assert.equal(outside.stadium, 0);
+  assert.ok(nearStadium.stadium > 0 && atStadium.stadium === nearStadium.stadium * 2);
+  assert.equal(audioState({ ...base, wembley: 1, world: false }).stadium, 0);
+  assert.equal(audioState({ ...base, wembley: 1, tunnel: 1 }).stadium, 0);
+  assert.equal(audioState({ ...base, wembley: 2 }).stadium, atStadium.stadium);
 });
