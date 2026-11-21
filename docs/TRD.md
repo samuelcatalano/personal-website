@@ -1,9 +1,5 @@
 # TRD — London Bus Portfolio
 
-## Historical reference analysis (REA, 2026-10-15)
-
-The recorded REA of bridglabs.com described a Vite + React 19 shell, a lazy Three.js world bundle, procedural voxel scenery, an InstancedMesh-based renderer, scroll-driven travel, an HTML content panel, year signs and a day/night theme. The archived note cites evidence ID `ev_d6b53060938d1609e04d1323e36b0121cd24fab8cb54fab3edf6a245fc19cf40` (static bundle and runtime screenshots). That evidence artifact is not in this repository, so these are retained as historical notes rather than independently re-verified claims. This project's implementation below is separate and does not reuse the reference code or assets.
-
 ## Stack and runtime
 
 - Static HTML, CSS and native ES modules; no build step or npm.
@@ -74,6 +70,7 @@ Add a stop to `content.js` in chronological order, with matching English and Por
 Glasgow follows the London OLM stop and precedes Tribal. `LANDMARKS.glasgow` anchors George Square at that route point; its builder receives the point and places the square/civic frontage on the far side of the road. `city.js` suppresses far-side houses whose footprints intersect the square's x/z bounds, while `blocks.js` includes its clearance rectangle among protected regions. Existing stop furniture is derived from the curve, and parks/plazas are checked against pedestrian loops and their clearances. This keeps the new landmark footprint free as the route is regenerated.
 
 The camera continues to use the same section shots and smooth blend at the new stop. Glasgow has no special `FRAME_LIFT`, so it uses the normal follow framing. Geometry joins the existing color batches where possible; adding a stop does not add a new render pass. Keep the landmark modest and preserve instancing/clearance checks so route growth does not needlessly increase draw calls or crowd the camera.
+
 `building-kit.js` integrates the approved archetype builders, exact controls and compatible citywide chunks. Deterministic vertex data provides variation without per-building materials. Legacy renderer paths remain for genuine special lots and baseline tests; they are not disposable benchmark instrumentation. There are no new external assets. Existing road/path clearances remain; ambient traffic maps elapsed time through refined route-distance marks so speed stays consistent across short and long segments.
 
 The city includes road and sidewalk surfaces, plaza details, landmarks, bridge/water, vehicles and streetscape geometry. Their dated implementation and validation records live in the architecture and rendering-budget documents. The bus and people intentionally remain stylized.

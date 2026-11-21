@@ -1,95 +1,90 @@
 # CLAUDE.md
 
-Gamified portfolio for Samuel Catalano: a 3D city where a red double-decker bus drives through his career as the visitor scrolls. Hosted on GitHub Pages (`main` branch, repo root). `AGENTS.md` is a symlink to this file.
+Portfolio for Samuel Catalano: a voxel London where a red double-decker bus drives through his career as the visitor scrolls. Static site on GitHub Pages, served from `main` (repo root). `AGENTS.md` is the Codex counterpart; keep both aligned.
 
-For city work, start with the three current references below; consult other documents only when relevant:
+## Source of truth
 
+- `docs/PRD.md`: original product brief. Its content, privacy and accessibility requirements still apply.
+- `docs/product/3d-city-north-star-prd.md`: current 3D city direction and release gate.
+- `docs/TRD.md`: runtime, interfaces and file layout.
 - `docs/architecture/3d-city.md`: validated architecture and rollout boundary.
 - `docs/architecture/rendering-budget.md`: budgets, measured evidence and measurement limits.
-- `docs/art-direction.md`: approved visual language.
-
-Asset-pipeline plan (Phases 0-2 implemented 2026-10-29; later phases need owner approval per phase): `docs/architecture/blender-asset-pipeline.md` and `docs/plans/3d-asset-pipeline-roadmap.md`.
-
-`docs/PRD.md` covers product goals; `docs/TRD.md` covers interfaces/runtime. Dated specs/plans under `docs/superpowers/` are historical context. The current references supersede their older city art, model, budget and rollout proposals; historical plans do not authorize further implementation.
-
-## Tooling and token economy
-
-- **Serena** is the preferred tool for code navigation (symbols, references, targeted reads); avoid opening whole large files when it can locate the part.
-- **RTK** wraps commands with large output (tests, find/grep, listings, builds); keep only errors, warnings, metrics and file names.
-- **token-saviour** is an operating rule: no redundant reads, summarise large outputs, write detail into repo docs and keep chat short.
-- **Subagents are OFF by default** (see 3D City rules); never spawn one just because a skill exists.
-
-## Model orchestration
-
-Model selection follows **Model Usage** below. The primary agent owns planning, scope, architecture, integration, review and final verification; do not delegate scope or architectural decisions.
-
-If independent subagent work is selected, give each agent one self-contained module, named files, the relevant TRD interface and a clear completion contract. Two agents must not edit the same file concurrently. The primary agent reviews every subagent diff before integration.
+- `docs/art-direction.md`: approved visual language. `docs/art/asset-quality-spec.md`: asset budgets.
+- `ASSET_SOURCES.md`: every shipped asset, with its source, licence and approval.
+- `docs/handoff/` and `docs/handoffs/`: status log and agent handoffs. Read the latest one before changing an area.
+- Plans under `docs/plans/` and older records are history. They do not authorize new work.
 
 ## Rules
 
-- **No build step; no npm in the shipped site.** Plain HTML/CSS/ES modules. `tools/pipeline/` is a dev-only npm package and is not shipped. `three` comes from jsDelivr via the importmap in `index.html` with an exact pinned version. Push to `main` = deploy.
-- All copy lives in `js/content.js` with `en` and `pt` for every user-facing string. No copy hardcoded in other modules.
-- The HTML panel is the source of truth for content; the 3D world is decoration. Site must be fully usable with WebGL off and with `prefers-reduced-motion`.
-- **Privacy:** never publish the home address or phone number from the CV. Contact = email, LinkedIn, GitHub.
-- Use relative URLs only (site is served under `/personal-website/`).
-- Keep modules small and single-purpose; the TRD lists them. Ask before adding a new dependency.
-- Prefer the simplest thing that works; mark deliberate shortcuts with a `ponytail:` comment naming the ceiling.
+- No build step and no npm in the shipped site. Plain HTML/CSS/ES modules; Three.js is pinned in the import map in `index.html`. `tools/pipeline/` is a dev-only npm package and is not shipped.
+- All user-facing copy lives in `js/content.js`, in `en` and `pt`. No copy hardcoded in other modules.
+- The HTML panel is the source of truth; the 3D world is decoration. The site must work with WebGL off and with `prefers-reduced-motion`.
+- Privacy: never publish a home address or phone number. Contact = email, LinkedIn, GitHub. Any shipped CV is redacted.
+- Relative URLs only (the site is served under `/personal-website/`).
+- Small, single-purpose modules. Ask before adding a dependency or framework.
+- Prefer the simplest thing that works. Mark deliberate shortcuts with a `ponytail:` comment naming the ceiling.
+- Graphics quality never drops at runtime. Do not propose quality selectors or adaptive downgrades.
+- Mobile work is paused by the owner (2026-11-16): no mobile tests or checks. Shipped mobile behaviour is unchanged.
+- Push to `main` deploys. Work on feature branches; do not merge into `main` until the owner releases it.
 
 ## Commands
 
 ```bash
-python3 -m http.server 8000      # local preview at http://localhost:8000
-node --test tests/               # content integrity check (CI runs it on every push)
+python3 -m http.server 8000      # local preview at http://localhost:8000; reuse the owner's server if it is running
+node --test tests/               # content, route/camera, geometry and audio checks (CI runs it on every push)
 node tools/preload-list.mjs      # modulepreload tags for index.html; tests/preload.test.mjs fails when they drift
-OUT=<dir> SHOTS="5:day,11:night" GRID=1 browser-harness < tools/capture.py   # scene capture (QUERY=weather=rain)
+OUT=<dir> SHOTS="5:day,11:night" GRID=1 browser-harness < tools/capture.py   # scene capture (QUERY=weather=rain optional)
 ```
 
-Capture stops: 5 São Paulo, 9.5 London, 11 Glasgow (ids in `js/content.js`). The global `/capture` skill defers to `tools/capture.py` here.
+Capture stops: 5 São Paulo, 9.5 London, 11 Glasgow (ids in `js/content.js`).
 
-## Verify before claiming done
+## Verification
 
-Use **Validation Strategy** below; claim only checks actually run. At milestones/before expansion, preserve the product matrix: desktop, day/night, EN/PT, WebGL disabled, reduced motion, no console errors, Lighthouse a11y ≥ 95 when applicable. This is not a requirement to run the full matrix for each small edit.
+- Claim only checks that actually ran. Say what was skipped.
+- Small edits: directly related tests, plus one visual capture when the change is visible.
+- Milestones: full Node regression, relevant browser suites, desktop checks, and Lighthouse accessibility at least 95 when applicable.
+- Matrix: desktop, day/night, EN/PT, WebGL disabled, reduced motion, no console errors. Mobile is excluded while it is paused.
+- Do not repeat full benchmarks for small adjustments.
 
-## 3D City Development Rules
+## 3D city rules
 
-- The 2026-10-21 visual freeze was reopened by the user on 2026-10-21 for the North Star full-scene upgrade (`docs/plans/north-star-full-scene-upgrade.md`). Work inside that plan's scope; anything outside it still needs explicit authorization. Visual state per system lives in `docs/audits/full-scene-visual-atlas.md`; asset budgets in `docs/art/asset-quality-spec.md`.
-- External assets: CC0/public domain first, then clearly permissive free licences; Sketchfab and NC/SA licences are allowed when the owner approves the specific asset (owner decision 2026-10-27); honour their attribution/share-alike terms. Record every asset, its licence and the approval in `ASSET_SOURCES.md`. Ambiguous licence = do not use; model procedurally from reference instead.
-- Subagents are OFF by default. Use them only for clearly independent tasks; a smaller task alone does not justify delegation.
-- Preserve the map, lot footprints/heights, routes, landmark sightlines, pedestrians and existing logic unless explicitly in scope. Keep paths clear.
-- Keep architecture data-driven: lot data remains the source of truth. No new engine/framework without concrete need and authorization.
-- Reuse materials, textures and geometries; batch by spatial chunk, with at most three conceptual architecture buckets: mass / trim / glass.
-- Townhouse visual language, batching, LOD0/LOD1, hysteresis and standard culling are approved. Do not redesign townhouses or repeat resolved discovery/architecture without an explicit request.
-- The approved archetypes' citywide rollout is complete (see `docs/handoff/status-log.md`). Other archetypes and regions need explicit owner approval; architectural validation alone is not rollout approval. Work only on explicitly authorized lots/regions.
-- Do not repeat full benchmarks for small adjustments. Use the validation level matching the change.
-- Edit only in-scope files. Preserve all preexisting working-tree changes; do not infer authorship from Git status. Never use destructive git reset/restore/clean to discard them.
+- The 2026-10-21 visual freeze was reopened for the North Star full-scene upgrade (`docs/plans/north-star-full-scene-upgrade.md`). Work outside that scope needs explicit authorization.
+- The townhouse visual language, batching, LOD0/LOD1, hysteresis and culling are approved. Do not redesign townhouses without an explicit request.
+- Citywide rollout of the approved archetypes is complete (`docs/handoff/status-log.md`). Other archetypes and regions need explicit owner approval. Architectural validation alone is not rollout approval.
+- Preserve the map, lot footprints and heights, routes, landmark sightlines, pedestrians and existing logic unless explicitly in scope.
+- Lot data stays the source of truth. No new engine or framework without concrete need and authorization.
+- Reuse materials and geometries; batch by spatial chunk into mass / trim / glass.
+- External assets: CC0 or public domain first, then clearly permissive licences. Sketchfab and NC/SA assets only with the owner's approval of the specific asset. Record every asset in `ASSET_SOURCES.md`. An ambiguous licence means do not use it.
 
-## Response Budget
+## Working in the tree
 
-- Be concise by default. Do not repeat complete documented specifications or generate large reports unless requested.
-- Default final response: what changed, files changed, checks run, key metrics when relevant, GO/NO-GO, and a known issue if any.
-- Prefer maintaining project documentation and linking to it over repeating its contents in chat.
+- Edit only files in scope. Preserve working-tree changes you did not make; never use destructive git commands (`reset`, `restore`, `clean`) to discard them.
+- Do not commit or push unless asked.
+- Keep responses concise: what changed, files changed, checks run, GO/NO-GO, known issues.
 
-## Validation Strategy
+## Model routing (Claude)
 
-### During implementation
+Default is Haiku. Move up only when the tier below cannot do the task, and say which tier you used and why.
 
-Run directly related tests, the relevant check/build if one exists, and one visual capture when applicable. This repository has no build step. Documentation-only work needs documentation checks. Do not run full regression automatically.
+- **Fable**: not the default. Use only when the user asks for it.
+- **Opus**: orchestrator, or complex tasks Sonnet cannot handle.
+- **Sonnet**: complex tasks Haiku cannot handle.
+- **Haiku**: conventional tasks, and every task it can perform.
 
-### Vertical slice ready
+Subagents are off by default. Use them only for clearly independent work the user has authorized, never because a skill exists. Respect any model the user has set.
 
-Run directly related tests, visual validation and a simple A/B when performance is relevant.
+## Codex
 
-### Milestone / before expansion
+- Codex follows the ladder in `AGENTS.md` (Luna, Terra, Sol, Astra). Its configuration is `.codex/config.toml`.
+- Coordinate through handoffs in `docs/handoff/`. Read Codex-owned work before changing its area, and do not overwrite it.
 
-Run full Node regression, relevant browser suites, desktop checks, repeated A/B when performance is relevant, Lighthouse when applicable, and broader review. Apply the product matrix above to affected behavior.
+## Skills and tools
 
-Avoid Lighthouse, 20+ measurements and every browser suite for small edits. Broaden checks only for changed behavior, failures or a specific unresolved concern; report what was skipped without implying it passed.
+Check that a skill or plugin is installed before relying on it. Use only what is available and relevant.
 
-## Model Usage
-
-Choose by function, not by model marketing.
-
-- **Default: Claude Sonnet** — implementation, investigation, debugging, refactoring, browser/rendering work, integration, tests, tactical planning and task coordination. Sonnet does most of the work.
-- **Claude Haiku** — only cheap, independent work: file inventories, mechanical search, reference/licence tables, locating usages, renames, boilerplate, simple tests, small docs, repetitive asset classification. Never for important visual decisions.
-- **Claude Opus** — reserved for genuinely new architectural decisions, subsystem conflicts, major renderer redesign, high-risk art-direction decisions, structural problems risking significant rework, or critical review of a complex strategy. Not routine implementation.
-- If Opus seems necessary and the decision is not destructive, log `OPUS REVIEW RECOMMENDED` in the plan/ledger, use Opus only for that analysis/review, then return to Sonnet to implement. Avoid long Opus sessions. Respect any model lock the user has set; do not auto-switch to satisfy this list.
+- `superpowers:using-superpowers` at the start of a session; `superpowers:brainstorming` before new features or unclear scope.
+- `superpowers:test-driven-development` and `superpowers:verification-before-completion` for code changes and before any "done" claim.
+- `superpowers:subagent-driven-development` and `superpowers:dispatching-parallel-agents`: only when subagents are authorized.
+- `ponytail:ponytail` for minimal code; `caveman:caveman` for terse prose.
+- `frontend-design:frontend-design` and `product-frontend-design` for UI work.
+- `ctx_execute` for large command output and data analysis.
