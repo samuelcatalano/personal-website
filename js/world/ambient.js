@@ -62,7 +62,7 @@ function updateRegionalBus(v, target, dt, isDisposed) {
   }
 }
 export function createAmbient(scene, { curve, pts, stops, reducedMotion = false, tunnel = null, dip = null }) {
-  const knots = fineMarks(stopMarks(pts), curve), len = curve.getLength();
+  const knots = fineMarks(stopMarks(pts), curve), len = curve.getLength(), swapFrame = swapTunnelFrame(curve, stops);
   let disposed = false, miniIndex = 0;
   const MINI_PAINT = [{ body: '#285b8f', roof: '#f4f1ea' }, { body: '#1f4a35', roof: '#f4f1ea' }, { body: '#b3161f', roof: '#f4f1ea' }];
   const D = (type, offset, extra = {}) => {
@@ -93,7 +93,7 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false,
   // Ponte Estaiada, two cars each way: 'in' cars take the avenue's oncoming lane, turn onto the S-ramp and cross to the far-bank ground;
   // 'out' cars come back over the river, down the ramp and away along the avenue. Spawns/despawns only happen BRIDGE_FAR m from the player.
   const er = estaiadaRoute(pts[stopIndex(stops, LANDMARKS.estaiada)].x, curve, RIVER_Z), uIn = er.uj + 9 / len, uOut = er.uj - 9 / len;
-  const laneAt = (u, o = new THREE.Vector3()) => { const p = curve.getPointAt(Math.min(1, Math.max(0, u))), t = curve.getTangentAt(Math.min(1, Math.max(0, u))); return o.set(p.x + 1.75 * t.z, p.y + 0.07, p.z - 1.75 * t.x); }; // oncoming lane: Sao Paulo drives on the right, so it is on the ramp's side of the avenue and the turns never cross the hero
+  const laneAt = (u, o = new THREE.Vector3()) => { const p = curve.getPointAt(Math.min(1, Math.max(0, u))), t = curve.getTangentAt(Math.min(1, Math.max(0, u))), lane = -1.75 * laneSide((u - swapFrame.t) * swapFrame.speed); return o.set(p.x + lane * t.z, p.y + 0.07, p.z - lane * t.x); }; // same regional oncoming lane for bridge cars and traffic spacing
   const side = (q, o) => new THREE.Vector3(q.x - q.tz * o, q.y + 0.12, q.z + q.tx * o); // o m right of travel far -> near, on the asphalt
   const paths = {
     in: new THREE.CatmullRomCurve3([3, 2, 1].map((k) => laneAt(er.uj + k * 3 / len)).concat(er.trafficStations.slice().reverse().map((q) => side(q, -(q.lane??1.75))))),
@@ -181,7 +181,7 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false,
   traffic.forEach((v) => { if (v.type === 'caio') { v.range = [0, rangeBus]; v.p = v.offset * rangeBus / 0.43; } });
   const lanePos = (t, lane) => { const p = curve.getPointAt(t), tn = curve.getTangentAt(t); return { x: p.x + tn.z * lane, z: p.z - tn.x * lane }; }; // same side convention as the frame loop
   const tOf = (v) => routeT(v.p, pts.length, knots);
-  const swapFrame = swapTunnelFrame(curve, stops), lat = (t, v) => v.lane * laneSide((t - swapFrame.t) * swapFrame.speed); // lateral offset: the lane's travel direction (sign of v.lane) is fixed, its side flips: right-hand in Sao Paulo, left-hand in the UK
+  const lat = (t, v) => v.lane * laneSide((t - swapFrame.t) * swapFrame.speed); // lateral offset: the lane's travel direction (sign of v.lane) is fixed, its side flips: right-hand in Sao Paulo, left-hand in the UK
   let lastRoute = null;
   const M0 = curve.getPointAt(1e-4).distanceTo(curve.getPointAt(0)) / 1e-4; // metres per curve t at the route start (tunnel cars' spacing order)
   traffic.forEach((v) => { v.mesh.rotation.order = 'YZX'; }); // yaw, then ramp pitch (route-start tunnel, SP -> London dip)
