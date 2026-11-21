@@ -183,3 +183,11 @@ The older supplied CC-BY Realistic Tree files/attribution remain archived above;
 - Processing: metadata removed; loudness normalization (-16 LUFS target, -2 dBTP ceiling, LRA 9), mono downmix/resample and MP3 encode. No trimming or synthesized speech.
 - Runtime: one playback per visible Wave cycle through the existing people bus, with a short attack and departure fade; no overlapping speech. Owner-auditioned playback-gain reductions of 15%, 15%, then 20% (0.75 to 0.6375 to 0.541875 to 0.4335; 42.2% below the initial gain).
 - SHA-256: `426b6c7d73ec258ca8fcf049288fc1d85574c7afd3c3eaa06ad5d2c0886f8ad6`.
+
+### Samuel NPC collar and sleeve fit — 2026-11-21
+
+- Updated existing `assets/npc/reference/npc_lod0.glb`; derived from the existing owner-reference character, with the same original mesh/texture/motion provenance documented above. No external assets added.
+- Corrected collar, neck-base and sleeve skinning; tucked the neck into the collar by at most 4 mm and smoothed cuff geometry by at most 6.45 mm. UV duplicates share the repair. Refreshed local normals.
+- All original animation and embedded texture payloads are byte-identical; 28,149 triangles, 53 joints, three clips, three materials and file length unchanged. The existing runtime shirt material correction is retained.
+- Source original SHA-256: `bcd279bec82a781710d6baf64656c253a9e110902441f73710820a6929427e4a`. Updated runtime SHA-256: `07cc2b5a7cc25a1eea6842c3ca310736123c28834f3067defab7cea7491abbe4`.
+- Local editable source, original backup and reproducible repair scripts: `assets/models/source/realistic-npc-20261104/shirt-fit-20261121/` (excluded by the existing source-asset gitignore rule). Broader original Blender source preserved.

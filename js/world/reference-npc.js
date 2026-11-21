@@ -40,7 +40,14 @@ function tuneMaterial(mesh) {
       .replace('#include <roughnessmap_fragment>', `float roughnessFactor = mix(${f(look.skin)}, mix(${f(lowRough)}, ${f(upRough)}, upper), blackness);`);
     // Dark cloth never reads brighter than a dim grey: the warm sunset glints on the trousers and shirt become beige patches.
     // Skin (blackness 0) is untouched.
-    if (mesh.name === 'Body') shader.fragmentShader = shader.fragmentShader.replace('#include <dithering_fragment>', `gl_FragColor.rgb = mix(gl_FragColor.rgb, min(gl_FragColor.rgb, vec3(.2)), blackness * .85);\n#include <dithering_fragment>`);
+    if (mesh.name === 'Body') shader.fragmentShader = shader.fragmentShader
+      // Atlas islands carry incompatible baked lighting; even their cloth tone while retaining the print and normal-map folds.
+      .replace('#include <alphamap_fragment>', `
+        float shirt = smoothstep(.82, .87, vRestY) * (1. - smoothstep(1.50, 1.53, vRestY)) * blackness;
+        float clothLuma = dot(diffuseColor.rgb, vec3(.2126, .7152, .0722));
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(.018) * (1. + clamp((clothLuma - .018) * 5., -.18, .18)), shirt);
+        #include <alphamap_fragment>`)
+      .replace('#include <dithering_fragment>', `gl_FragColor.rgb = mix(gl_FragColor.rgb, min(gl_FragColor.rgb, vec3(.2)), blackness * .85);\n#include <dithering_fragment>`);
   };
 }
 
@@ -407,7 +414,7 @@ export async function loadReferenceNpcAssets({ levels = [0] } = {}) {
   try {
     // Keep completed loads available for cleanup if another LOD fails.
     const results = await Promise.allSettled(levels.map(async level => {
-      const gltf = await loader.loadAsync(new URL(`../../assets/npc/reference/npc_lod${level}.glb`, import.meta.url).href);
+      const gltf = await loader.loadAsync(new URL(`../../assets/npc/reference/npc_lod${level}.glb?v=shirt-fit-07cc2b5a`, import.meta.url).href);
       assets[level] = gltf;
       return gltf;
     }));
