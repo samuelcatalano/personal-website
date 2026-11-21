@@ -6,6 +6,7 @@ import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { Pass, FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { createLensDrops } from './lens-drops.js';
 const SunRays = {
   uniforms: { tDiffuse: { value: null }, uSun: { value: new THREE.Vector2(0.5, 0.5) }, uStrength: { value: 0 } },
   vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
@@ -89,15 +90,19 @@ export function createPost(renderer, scene, camera, { tier = 'high', sun } = {})
   }
   const bloom = new UnrealBloomPass(size, 0.10, 0.2, 0.95); // strength 0.10 (was 0.15): threshold 0.95 kept, so only emissive above it blooms
   composer.addPass(bloom);
+  const lens = createLensDrops(renderer); // water beads on the lens, only while it rains
+  lens.setSize(size.x * pr, size.y * pr);
+  composer.addPass(lens.pass);
   composer.addPass(new OutputPass());
   const grade = new ShaderPass(Grade); composer.addPass(grade);
   const v = new THREE.Vector3();
   let disposed = false;
   const post = {
     tier,
-    dispose() { if (disposed) return; disposed = true; composer.passes.forEach((pass) => pass.dispose()); composer.dispose(); },
+    dispose() { if (disposed) return; disposed = true; lens.dispose(); composer.passes.forEach((pass) => pass.dispose()); composer.dispose(); },
     passes: { ao: heavy.find((p) => p instanceof AOPass) ?? null, rays, bloom, grade }, // read by the QA probes (?qa)
-    setSize(w, h) { post.setTier(post.tier); composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h); },
+    setSize(w, h) { post.setTier(post.tier); composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h); const r = renderer.getPixelRatio(); lens.setSize(w * r, h * r); },
+    setRain(v) { lens.update(v); },
     setFocus(d) { post.passes.ao?.setFocus(d); },
     setTier(t) {
       post.tier = t;

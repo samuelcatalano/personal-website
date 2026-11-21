@@ -667,6 +667,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const mood = moodAt(t, dt);
     if (qa) globalThis.__qaWeather = mood;
     raining = mood.rain > 0.05;
+    post.setRain?.(mood.rain);
     onProgress(p);
     wet = lagWetness(wet, mood.wet, dt);
     flash = rain.update(clock, camera, mood, night, post.tier, busPos, bus.rotation.y);
