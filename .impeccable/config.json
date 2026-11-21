@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "createdAt": "2026-11-21T19:47:03.921Z",
+        "reason": "Sanctioned by docs/art-direction.md (line 158: panels keep the Hammersmith One/Inter typography); Inter is the UI sans by design, css/style.css:7"
+      }
+    ]
+  }
+}
