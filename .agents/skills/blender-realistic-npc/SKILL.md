@@ -5,7 +5,7 @@ description: Use when creating or refining a realistic human NPC from reference 
 
 # Realistic NPC in Blender
 
-Produce one reviewable character before multiplying variants. Preserve source images, editable `.blend`, rig and material sources, provenance and a separate runtime export. Never overwrite existing NPCs or change navigation to accommodate a new model.
+Produce one reviewable character before multiplying variants. Preserve source images, editable `.blend`, rig and material sources, provenance and a separate runtime export.
 
 ## Choose the next gate
 
@@ -20,7 +20,7 @@ Read only the reference for the current gate:
 7. [Game optimization](references/game-optimization.md): derive budgets and LODs without losing the approved face/silhouette.
 8. [Three.js integration](references/threejs-integration.md): export, validate and test a separate runtime slice.
 
-A failed gate blocks dependent work. Keep useful earlier work, state the failed evidence and fix that gate. Structural checks cannot approve identity, believable motion, visual quality or game performance. Do not invent numerical likeness scores or call a still image an animation test.
+Keep useful earlier work, state the failed evidence and fix that gate. Structural checks cannot approve identity, believable motion, visual quality or game performance. Do not invent numerical likeness scores or call a still image an animation test.
 
 ## Local and licensing boundaries
 

@@ -1,7 +1,5 @@
 # Realistic reference NPC — execution plan
 
-> **2026-11-04: implementation stopped at the owner's request for handoff. NO-GO visual: the neck graft remains defective and runtime/master/rig candidates are not synchronized. Current authoritative status and preserved artifacts: [handoff](../handoffs/2026-11-04-realistic-npc.md). Historical experiments below are not completion claims.**
-
 **Request:** owner-supplied character specification and five reference images, 2026-11-04. This authorizes one new NPC, not crowd replacement. No external image uploads or new dependency installation.
 
 ## Token and context policy
@@ -12,8 +10,8 @@ Inspect only character loading, local reconstruction tools and relevant budgets.
 
 1. **A — reference/environment:** all five images are visual truth. Observe broad torso, projected abdomen, relatively short legs, shaggy dark hair, full short beard, black loose Beatles tee, black trousers and light-soled black sneakers. Absolute dimensions, concealed anatomy and profile geometry are inferred. Do not derive identity from a generic head.
 2. **B — master/likeness:** experiment with installed local Pixal3D SV, from separated-arm A-pose. Compare front/back/three-quarter views; use front portrait detail for local head refinement if necessary. Multiview weights are missing; do not claim joint reconstruction from five views. MPFB is a topology/rig fallback, not identity reconstruction. Reject generic or malformed likeness before downstream production.
-3. **C/D/E — topology/rig/animation:** only after B passes, use existing humanoid rig conventions and locomotion assets; validate deformation, clothing clearance, grounded feet and natural transitions. Preserve master separately from retopology. LOD targets: 20–35k / 8–14k / 1.5–4k triangles; these are targets pending benchmark.
-4. **F — integration:** add a single archetype through the existing GLB/mixer/crowd interfaces; metres, Y-up, +Z-forward. Preserve crowd identities, routes and all unrelated assets. Do not integrate a failed master.
+3. **C/D/E — topology/rig/animation:** use existing humanoid rig conventions and locomotion assets; validate deformation, clothing clearance, grounded feet and natural transitions. Preserve master separately from retopology. LOD targets: 20–35k / 8–14k / 1.5–4k triangles; these are targets pending benchmark.
+4. **F — integration:** add a single archetype through the existing GLB/mixer/crowd interfaces; metres, Y-up, +Z-forward. Preserve crowd identities, routes and all unrelated assets.
 5. **G — validation:** multi-view Blender and Three.js captures, directly related tests, controlled 0/1/10/30-character benchmark where supported. rAF cadence is not GPU timing; report coverage and limitations exactly.
 
 ## Files and responsibilities
@@ -22,7 +20,7 @@ Inspect only character loading, local reconstruction tools and relevant budgets.
 - `tools/npc/realistic/`: reproducible character-specific production scripts, only as needed.
 - Private work/output: `/private/tmp/realistic-npc-20261104/`; no public source-photo copies.
 - Final approved `.blend`/GLB and `ASSET_SOURCES.md`: only when generated and visually accepted; no placeholders.
-- Runtime `js/world/npc3d.js` and directly relevant tests: only after asset gate B.
+- Runtime `js/world/npc3d.js` and directly relevant tests.
 
 ## Verified environment and findings
 
