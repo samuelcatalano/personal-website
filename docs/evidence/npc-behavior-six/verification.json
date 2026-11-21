@@ -1,0 +1,77 @@
+{
+  "node": {
+    "command": "node --test tests/",
+    "tests": 348,
+    "pass": 348,
+    "fail": 0
+  },
+  "behavior": [
+    {
+      "rig": "adult",
+      "maxLook": 0.3013692905450872,
+      "weightShift": 0.014,
+      "footSlip": 8.487558960056857e-05,
+      "turnLift": 0.0428513846350605,
+      "profiles": [
+        0.21083697131104262,
+        0.1719136621944659,
+        0.23509695525209037
+      ]
+    },
+    {
+      "rig": "child",
+      "maxLook": 0.30136984954533047,
+      "weightShift": 0.014,
+      "footSlip": 0.00013100567424918587,
+      "turnLift": 0.042807929057716354,
+      "profiles": [
+        0.20827377794334567,
+        0.16939983291659108,
+        0.23250659572323296
+      ]
+    }
+  ],
+  "motion": {
+    "rig": "adult",
+    "fps": 60,
+    "movingYaw": 0,
+    "maxTurnRadiansPerFrame": 0.050000000000000044,
+    "maxWeightStep": 0.09011132373687614,
+    "measuredStride": 0.5516151217670473,
+    "deepestSole": -0.006969656355239093,
+    "highSupport": 0.002936403829078213,
+    "standingHeelToeDifference": -0.0048126437149045576
+  },
+  "garden": {
+    "pass": true,
+    "walkers": 36,
+    "trees": 13,
+    "seconds": 120,
+    "reducedMotion": "checked",
+    "minimumGap": 0.6213900350073668
+  },
+  "underpass": {
+    "pass": true,
+    "tris": 1.3333333333333333,
+    "underpasses": 2,
+    "laneDirections": 4,
+    "laneSamples": 8
+  },
+  "capture": {
+    "desktop": {
+      "width": 1728,
+      "height": 907,
+      "dpr": 2
+    },
+    "files": [
+      "11-day.png",
+      "11-night.png"
+    ],
+    "runtimeErrors": []
+  },
+  "notRun": [
+    "mobile",
+    "full browser suite",
+    "cross-browser performance benchmark"
+  ]
+}

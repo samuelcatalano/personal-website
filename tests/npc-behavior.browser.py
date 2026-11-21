@@ -39,6 +39,11 @@ print(js(r'''(async()=>{
     for(let i=0;i<240;i++)frame(extra);
     check(Math.abs(pose.state.lookYaw)<.01,'attention ends and the head returns forward');
   }
+  pose.restore();pose.reset(0);
+  for(let i=0;i<90;i++)frame({busInterest:false});
+  check(Math.abs(pose.state.lookYaw)<.01,'uninterested simulation profile must not look at the bus');
+  for(let i=0;i<90;i++)frame({busInterest:true});
+  check(Math.abs(pose.state.lookYaw)>.05,'simulation attention must drive the rendered head');
   const armAngles=[];
   for(const id of [0,1,2]){pose.restore();pose.reset(id);action.reset().play();mixer.update(.3);const arm=bone('upperarm_l');arm.quaternion.fromArray(clip.tracks.find(t=>t.name===arm.name+'.quaternion').values).multiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(1,0,0),.3));const before=arm.quaternion.clone();pose.update({dt:1/60,ground:0,speed:.6,yaw:0,gaitWeight:1,walkPhase:Math.PI/2,turnRate:0,contact:false,people:[],landmarks:[]});armAngles.push(before.angleTo(arm.quaternion));}
   check(new Set(armAngles.map(a=>a.toFixed(3))).size===3,'profiles produce distinct upper-body movement');

@@ -2,11 +2,12 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
+import {findPedestrianPath} from '../js/world/pedestrian-path.js';
 
 // people.js is pure simulation (no three, no rendering): load it in a vm with stubbed imports.
 function load(plan, passages = [], extra = {}) {
-  const context = vm.createContext({ crowdPlan: () => plan,
-    estaiadaRoute: () => ({ stations: [{ x: 0, z: 0 }] }), LANDMARKS: { estaiada: 0 }, ROAD: { padIn: 0.5, furniture: [] }, RIVER_Z: 0, stopIndex: () => 0,
+  const context = vm.createContext({ findPedestrianPath, crowdPlan: () => plan,
+    estaiadaRoute: () => ({ stations: [{ x: 0, z: 0 }] }), LANDMARKS: { estaiada: 0 }, ROAD: { padIn: 7, padOut: 8.9, furniture: [] }, RIVER_Z: 0, stopIndex: () => 0,
     underpassFrames: () => passages, UNDERPASS_HALF_LENGTH: 7.5, ARCH_HALF_WIDTH: 5.5, ...extra });
   const source = readFileSync(new URL('../js/world/people.js', import.meta.url), 'utf8').replace(/^import .*;.*$/gm, '').replace(/^export /gm, '');
   vm.runInContext(source, context);
@@ -29,6 +30,67 @@ test('approaching walkers yield before contact and resume without leaving their 
   assert.ok(people.route.x[1]<initial,'yielding keeps forward progress instead of deadlocking');
   for(let i=0;i<300;i++)people.update(dt,{x:0,z:0});
   assert.ok(people.walkPace[1]>.95,'normal pace returns after passing');
+});
+
+const straightWalker = (x, z, dir = 1, speed = 1) => ({
+  s0: (x + 20 - .75) / (2 * (220 + 10) - 8 * .75 + 2 * Math.PI * .75),
+  look: { height: 1.8, speed },
+  path: { type: 'loop', dir, inset: 0, rect: { x0: -20, x1: 200, z0: z, z1: z + 10 } },
+});
+
+test('head-on walkers pass with body clearance instead of stacking on their route', () => {
+  for (const dt of [1 / 30, 1 / 60, 1 / 144]) {
+    const a = straightWalker(0, 0), b = straightWalker(3, 0, -1);
+    const people = loadPeople([a, b]);
+    let minimumGap = Infinity, maximumStep = 0;
+    for (let t = 0; t < 6; t += dt) {
+      const before = [people.route.x.slice(), people.route.z.slice()];
+      people.update(dt, { x: 0, z: 0 });
+      for (let i = 0; i < 2; i++) maximumStep = Math.max(maximumStep, Math.hypot(people.route.x[i] - before[0][i], people.route.z[i] - before[1][i]));
+      minimumGap = Math.min(minimumGap, Math.hypot(people.route.x[0] - people.route.x[1], people.route.z[0] - people.route.z[1]));
+    }
+    assert.ok(maximumStep <= 1.5 * dt, `head-on teleport at ${1 / dt} FPS: ${maximumStep} m/frame`);
+    assert.ok(minimumGap >= .7, `head-on clearance at ${1 / dt} FPS: ${minimumGap}`);
+    assert.ok(people.route.x[0] > people.route.x[1] + 1, 'both walkers pass rather than deadlock');
+  }
+});
+
+test('a faster follower leaves room behind a slower walker for a sustained encounter', () => {
+  const a = straightWalker(0, 0), b = straightWalker(1.2, 0, 1, .45);
+  const people = loadPeople([a, b]), dt = 1 / 60;
+  let minimumGap = Infinity;
+  for (let k = 0; k < 1200; k++) {
+    people.update(dt, { x: 0, z: 0 });
+    minimumGap = Math.min(minimumGap, Math.hypot(people.route.x[0] - people.route.x[1], people.route.z[0] - people.route.z[1]));
+  }
+  assert.ok(people.route.x[0] < people.route.x[1], 'follower must queue instead of passing through the leader');
+  assert.ok(minimumGap >= .7, `following clearance: ${minimumGap}`);
+  assert.ok(people.route.x[1] > 9, 'the leader keeps walking');
+});
+
+test('a queue on a sidewalk keeps body clearance without passing through its leader', () => {
+  const plan = [20, 21, 22].map((x, i) => ({ s0: x / 200,
+    look: { height: 1.8, speed: i === 2 ? .4 : .8 }, path: { type: 'lane', dir: 1, offset: 8 },
+  }));
+  const people = loadPeople(plan);
+  let minimumGap = Infinity;
+  for (let k = 0; k < 1800; k++) {
+    people.update(1 / 60, { x: 30, z: 8 });
+    for (let i = 1; i < plan.length; i++) {
+      minimumGap = Math.min(minimumGap, people.route.x[i] - people.route.x[i - 1]);
+      assert.ok(Math.abs(people.route.z[i] - 8) <= .21, 'queue stays on its sidewalk');
+    }
+  }
+  assert.ok(minimumGap >= .7, `sidewalk queue clearance: ${minimumGap}`);
+  assert.ok(people.route.x[0] > 30, 'the queue keeps making progress');
+});
+
+test('an established encounter freezes with zero simulation time', () => {
+  const people = loadPeople([straightWalker(0, 0), straightWalker(3, 0, -1)]);
+  for (let i = 0; i < 150; i++) people.update(1 / 60, { x: 0, z: 0 });
+  const before = [...people.route.x, ...people.route.z];
+  for (let i = 0; i < 60; i++) people.update(0, { x: 0, z: 0 });
+  assert.deepEqual([...people.route.x, ...people.route.z], before, 'paused avoidance must not creep');
 });
 
 test('nearby parallel companions match pace without changing their paths', () => {
@@ -158,3 +220,212 @@ test('a walker squeezed under an arch is hidden inside its clear opening, not by
   assert.equal(people.visible[0], 0, 'the walker under the arch is hidden');
   assert.equal(people.visible[1], 1, 'the walker 30 m past the arch in the open street stays');
 });
+
+test('open sidewalk endpoints and both sides of the bridge mouth turn without wrapping across the map', () => {
+  for (const offset of [8, -8]) for (const s0 of [.1, .49, .6, .9]) {
+    const plan = [{ s0, look: { height: 1.8, speed: 1 }, path: { type: 'lane', dir: 1, offset } }];
+    const context = load(plan, [], { estaiadaRoute: () => ({ stations: [{ x: 50, z: 0 }] }) });
+    const people = context.createPeople({ curve, pts: [{ x: 0 }], stops: [] });
+    let maxStep = 0;
+    for (let k = 0; k < 2400; k++) {
+      const x = people.route.x[0], z = people.route.z[0];
+      people.update(.1, { x: 50, z: 0 });
+      maxStep = Math.max(maxStep, Math.hypot(people.route.x[0] - x, people.route.z[0] - z));
+      if (offset < 0) assert.ok(people.route.x[0] <= 44.5 || people.route.x[0] >= 55.5, 'bridge-side walker does not cross the ramp mouth');
+    }
+    assert.ok(maxStep < .14, `sidewalk wrap at offset ${offset}, phase ${s0}: ${maxStep} m`);
+  }
+});
+
+test('counterflow keeps its encounter partner and passing side until the pair has passed', () => {
+  const people = loadPeople([straightWalker(0, 0), straightWalker(3, 0, -1)]);
+  let acquired = false, side;
+  for (let k = 0; k < 180; k++) {
+    people.update(1 / 60, { x: 0, z: 0 });
+    const state = people.behavior[0];
+    if (state.partner === 1) {
+      if (!acquired) { acquired = true; side = state.passSide; }
+      assert.equal(state.passSide, side, 'do not alternate passing side during the encounter');
+    }
+  }
+  assert.ok(acquired, 'the encounter has an explicit partner');
+  for (let k = 0; k < 240; k++) people.update(1 / 60, { x: 0, z: 0 });
+  assert.equal(people.behavior[0].partner, -1, 'release the partner after passing');
+});
+
+test('blocked sidewalk counterflow recovers by giving way along the same safe route', () => {
+  const plan = [20, 23].map((x, i) => ({ s0: x / 200,
+    look: { height: 1.8, speed: .8 }, path: { type: 'lane', dir: i ? -1 : 1, offset: 8 },
+  }));
+  const people = loadPeople(plan);
+  for (let k = 0; k < 1200; k++) people.update(1 / 60, { x: 20, z: 8 });
+  assert.ok(people.behavior.some(p => p.recoveries > 0), 'an obstructed encounter triggers recovery');
+  assert.ok(people.route.x[0] > 26 && people.route.x[1] > 26, `the pair escapes the deadlock: ${[...people.route.x]}, ${JSON.stringify(people.behavior)}`);
+  assert.ok(people.behavior.every(p => p.blocked < 2.1), 'nobody remains stuck indefinitely');
+  assert.ok([...people.route.z].every(z => z >= 7.3 && z <= 8.6), 'the whole body remains on the sidewalk while merging into the return track');
+});
+
+test('a legitimate following queue does not trigger stuck recovery', () => {
+  const people = loadPeople([straightWalker(0, 0), straightWalker(1, 0, 1, .3)]);
+  for (let k = 0; k < 1200; k++) people.update(1 / 60, { x: 0, z: 0 });
+  assert.ok(people.behavior.every(p => p.recoveries === 0));
+});
+
+test('obstacle avoidance chooses the free side and keeps the whole body on paving', async () => {
+  const { createPedestrianSpace } = await import('../js/world/spatial-mask.js');
+  const space = createPedestrianSpace({
+    solids: [{ x0: 1.7, x1: 2.3, z0: -.08, z1: .08 }, { x0: 1, x1: 4, z0: .4, z1: 1.5 }],
+    walkable: [{ x: 8, z: 0, y: 0, h: .1, w: 30, d: 3 }],
+  });
+  const people = loadPeople([straightWalker(0, 0)], [], { space });
+  for (let k = 0; k < 600; k++) {
+    people.update(1 / 60, { x: 0, z: 0 });
+    assert.ok(space.allows(people.route.x[0], people.route.z[0], .288), 'body penetrated an obstacle or left paving');
+  }
+  assert.ok(people.route.x[0] > 5, `walker must pass the obstacle: ${people.route.x[0]}`);
+});
+
+test('a fully blocked corridor stops or reverses without entering the obstacle', async () => {
+  const { createPedestrianSpace } = await import('../js/world/spatial-mask.js');
+  const space = createPedestrianSpace({ solids: [{ x0: 2, x1: 3, z0: -2, z1: 2 }] });
+  const people = loadPeople([straightWalker(0, 0)], [], { space });
+  for (let k = 0; k < 900; k++) {
+    people.update(1 / 60, { x: 0, z: 0 });
+    assert.ok(space.allows(people.route.x[0], people.route.z[0], .288));
+  }
+  assert.ok(people.behavior[0].recoveries > 0, 'blocked terrain activates recovery');
+});
+
+test('bus attention has individual delays, stopping, slowing and glance-only profiles', () => {
+  const people = loadPeople([-3, -1, 1, 3].map(z => straightWalker(0, z)));
+  const hero = { x: 0, z: 0, speed: 0 }, cam = { x: 0, z: 0 };
+  people.update(.1, cam, hero);
+  assert.ok([...people.walkPace].every(p => p > .95), 'people do not react before their reaction delay');
+  for (let k = 0; k < 240; k++) people.update(1 / 60, cam, hero);
+  assert.ok(people.walkPace[0] < .05, 'interested pedestrian stops');
+  assert.ok(people.walkPace[1] > .35 && people.walkPace[1] < .8, 'another slows down');
+  assert.ok(people.walkPace[2] > .95 && people.walkPace[3] > .95, 'glance-only and uninterested pedestrians keep walking');
+  assert.ok(people.behavior.every(p => p.recoveries === 0), 'attention is not mistaken for a blocked route');
+  for (let k = 0; k < 960; k++) people.update(1 / 60, cam, hero);
+  assert.ok(people.walkPace[0] > .95, 'attention ends even if the bus remains parked');
+  assert.equal(people.behavior[0].busPhase, 'cooldown');
+});
+
+test('bus departure releases attention and zero-time updates do not consume its timers', () => {
+  const people = loadPeople([straightWalker(0, 0)]), cam = { x: 0, z: 0 };
+  for (let k = 0; k < 240; k++) people.update(1 / 60, cam, { x: 0, z: 0, speed: 0 });
+  const timer = people.behavior[0].busTime;
+  assert.ok(Number.isFinite(timer) && timer > 0, 'active attention has a finite timer');
+  for (let k = 0; k < 60; k++) people.update(0, cam, { x: 0, z: 0, speed: 0 });
+  assert.equal(people.behavior[0].busTime, timer);
+  for (let k = 0; k < 240; k++) people.update(1 / 60, cam, { x: 0, z: 0, speed: 4 });
+  assert.ok(people.walkPace[0] > .95, 'pedestrian resumes after departure');
+});
+
+test('compatible companions keep a stable group, yield in single file and regroup after an encounter', () => {
+  const plan = [straightWalker(0, 0, 1, .8), straightWalker(1.1, 0, 1, .75), straightWalker(4, 0, -1, .8)];
+  const people = loadPeople(plan), repeat = loadPeople(plan);
+  assert.ok(people.behavior[0].group >= 0, 'nearby compatible walkers form a companion group');
+  assert.equal(people.behavior[0].group, people.behavior[1].group);
+  assert.notEqual(people.behavior[0].group, people.behavior[2].group, 'counterflow is not a companion');
+  assert.deepEqual(people.behavior.map(p => p.group), repeat.behavior.map(p => p.group));
+  let singleFile = false, minGap = Infinity;
+  for (let k = 0; k < 1200; k++) {
+    people.update(1 / 60, { x: 0, z: 0 });
+    singleFile ||= people.behavior[0].formation === 'single-file';
+    for (let i = 0; i < 3; i++) for (let j = 0; j < i; j++) minGap = Math.min(minGap, Math.hypot(people.route.x[i] - people.route.x[j], people.route.z[i] - people.route.z[j]));
+  }
+  assert.ok(singleFile, 'companions give way together during external encounters');
+  assert.ok(minGap >= .6, `grouping must retain body clearance: ${minGap}`);
+  assert.ok(Math.hypot(people.route.x[1] - people.route.x[0], people.route.z[1] - people.route.z[0]) < 2, 'companions reunite');
+  assert.equal(people.behavior[0].formation, 'together');
+});
+
+test('companions recover together at a dead end instead of abandoning a group member', async () => {
+  const { createPedestrianSpace } = await import('../js/world/spatial-mask.js');
+  const space = createPedestrianSpace({ solids: [{x0:4,x1:5,z0:-2,z1:2}] });
+  const people=loadPeople([straightWalker(0,0,1,.8),straightWalker(1.1,0,1,.75)],[],{space});
+  for(let k=0;k<1800;k++)people.update(1/60,{x:0,z:0});
+  assert.ok([...people.route.x].every(x=>x<0)||[...people.route.x].every(x=>x>6),`both companions must leave the dead end: ${[...people.route.x]}`);
+  assert.ok(Math.hypot(people.route.x[0]-people.route.x[1],people.route.z[0]-people.route.z[1])<2,'group remains together');
+});
+
+test('terrain lookahead follows rounded route corners without inventing a dead end', async () => {
+  const {createPedestrianSpace}=await import('../js/world/spatial-mask.js');
+  const space=createPedestrianSpace({walkable:[{x:10,z:6,w:20,d:12,y:0,h:.1}]});
+  const people=loadPeople([{s0:.1,look:{height:1.8,speed:.8},path:{type:'loop',dir:1,inset:.35,rect:{x0:0,x1:20,z0:0,z1:12}}}],[],{space});
+  for(let k=0;k<7200;k++)people.update(1/60,{x:10,z:6});
+  assert.equal(people.behavior[0].recoveries,0,'a clear authored corner is not a blocked corridor');
+});
+
+test('terrain detours use additional free paving when the ordinary sidestep cannot clear an obstacle', async () => {
+  const {createPedestrianSpace}=await import('../js/world/spatial-mask.js');
+  const space=createPedestrianSpace({solids:[{x0:2,x1:3,z0:-.35,z1:.35}],walkable:[{x:5,z:0,w:30,d:3,y:0,h:.1}]});
+  const people=loadPeople([straightWalker(0,0)],[],{space});
+  for(let k=0;k<900;k++){
+    people.update(1/60,{x:0,z:0});
+    assert.ok(space.allows(people.route.x[0],people.route.z[0],.288));
+    assert.ok(Math.abs(people.route.z[0])<=.751,'detour remains bounded');
+  }
+  assert.ok(people.route.x[0]>5,'use the free paving to pass rather than bouncing at a passable obstacle');
+});
+
+test('the legacy kiosk correction cannot push a terrain-validated walker into adjacent furniture', async () => {
+  const {createPedestrianSpace}=await import('../js/world/spatial-mask.js');
+  const space=createPedestrianSpace({solids:[{x0:29,x1:31,z0:8.7,z1:9},{x0:29,x1:31,z0:7.1,z1:7.4}]});
+  const people=loadPeople([{s0:.15,look:{height:1.8,speed:.8},path:{type:'lane',dir:1,offset:8}}],[],{space,obstacles:[[30,8.8]]});
+  for(let k=0;k<120;k++){
+    people.update(1/60,{x:30,z:8});
+    assert.ok(space.allows(people.route.x[0],people.route.z[0],.288),'kiosk correction bypassed the common obstacle query');
+  }
+});
+
+test('a rounded promenade can clear a square lawn corner without repeated recovery', async () => {
+  const {createPedestrianSpace}=await import('../js/world/spatial-mask.js');
+  const space=createPedestrianSpace({walkable:[{x:10,z:6,w:20,d:12,y:0,h:.1}],lawns:[{x:10,z:6,w:16.2,d:8.2,y:0,h:.15}]});
+  const people=loadPeople([{s0:.1,look:{height:1.8,speed:.8},path:{type:'loop',dir:1,inset:2.21,rect:{x0:0,x1:20,z0:0,z1:12}}}],[],{space});
+  let maximumStep=0;
+  for(let k=0;k<7200;k++){
+    const x=people.route.x[0],z=people.route.z[0];
+    people.update(1/60,{x:10,z:6});
+    if(k>120)maximumStep=Math.max(maximumStep,Math.hypot(people.route.x[0]-x,people.route.z[0]-z));
+    assert.ok(space.allows(people.route.x[0],people.route.z[0],.288));
+  }
+  assert.ok(maximumStep<=1.5/60,`a wider detour must not accelerate walking at a corner: ${maximumStep*60} m/s`);
+  assert.equal(people.behavior[0].recoveries,0,'free promenade corners must not cause endless turnarounds');
+});
+
+test('sidewalk return traffic occupies the opposite track and passes without deadlocking', () => {
+  const people=loadPeople([.05,.935].map(s0=>({s0,look:{height:1.8,speed:.8},path:{type:'lane',dir:1,offset:7.35}})));
+  assert.ok(Math.abs(people.route.z[0]-people.route.z[1])>=.8,'return traffic needs its own track');
+  let maximumStep=0;
+  for(let k=0;k<1200;k++){
+    const x=people.route.x.slice(),z=people.route.z.slice();people.update(1/60,{x:20,z:8});
+    for(let i=0;i<2;i++)maximumStep=Math.max(maximumStep,Math.hypot(people.route.x[i]-x[i],people.route.z[i]-z[i]));
+  }
+  assert.ok(people.behavior.every(s=>s.recoveries===0),'clear opposing tracks do not need recovery');
+  assert.ok(maximumStep<.025,'the U-turn must remain continuous');
+});
+
+test('queued sidewalk turnarounds preserve body clearance and continuous motion while merging', () => {
+  const plan=[20,21,24,25].map((x,i)=>({s0:x/200,look:{height:1.8,speed:.8},path:{type:'lane',dir:i<2?1:-1,offset:8}}));
+  const people=loadPeople(plan);let minimum=Infinity,maximumStep=0;
+  for(let k=0;k<1800;k++){
+    const x=people.route.x.slice(),z=people.route.z.slice();people.update(1/60,{x:22,z:8});
+    for(let i=0;i<4;i++){
+      maximumStep=Math.max(maximumStep,Math.hypot(people.route.x[i]-x[i],people.route.z[i]-z[i]));
+      for(let j=0;j<i;j++)minimum=Math.min(minimum,Math.hypot(people.route.x[i]-people.route.x[j],people.route.z[i]-people.route.z[j]));
+    }
+  }
+  assert.ok(minimum>=.6,`merging clearance ${minimum}`);
+  assert.ok(maximumStep<.03,`merging jump ${maximumStep}`);
+});
+
+ test('local recovery walks around an obstacle wider than the ordinary steering envelope', async()=>{
+  const {createPedestrianSpace}=await import('../js/world/spatial-mask.js');
+  const space=createPedestrianSpace({solids:[{x0:2,x1:4,z0:-2,z1:2}],walkable:[{x:5,z:0,w:30,d:10,y:0,h:.1}]});
+  const people=loadPeople([straightWalker(0,0)],[],{space});let usedPath=false;
+  for(let k=0;k<1800;k++){people.update(1/60,{x:0,z:0});usedPath||=!!people.behavior[0].detour;assert.ok(space.allows(people.route.x[0],people.route.z[0],.288));}
+  assert.ok(usedPath,'a local path is used when sidestepping is insufficient');
+  assert.ok(people.route.x[0]>5,'the pedestrian resumes beyond the obstacle');
+ });

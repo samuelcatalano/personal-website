@@ -38,7 +38,7 @@ import { createWetSurfaces } from './wet-surfaces.js';
 import { createSky, EXPOSURE, SUN_DIR } from './sky.js';
 import { createWater } from './water.js';
 import { towerPierBounds } from './water-math.js';
-import { createPavementHeight } from './spatial-mask.js';
+import { createPavementHeight, createPedestrianSpace } from './spatial-mask.js';
 import { createAmbient } from './ambient.js';
 import { createParked } from './parked.js';
 import { parkingBays } from './bays.js';
@@ -357,12 +357,30 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const swapTunnel = SWAP_GAP ? createSwapTunnel(curve, stops) : null; // SP -> London: the hero turns Mini <-> bus inside it (needs SWAP_GAP of road; off while 0)
   if (swapTunnel) { scene.add(swapTunnel.group); swapTunnel.cut(scene); }
   bus.rotation.order = 'YZX'; // yaw, then the dip's pitch
-  const people = createPeople({ curve, pts, stops, obstacles: kioskClearance, reducedMotion });
   const pedestrianSurfaces = new Set([P.pave, P.paverWarm, P.stone, P.gravel, P.concrete, P.road]);
   const pavement = list.filter(box => pedestrianSurfaces.has(box.color));
   if (urbanRoads) for (const rect of urbanRoadRects) {
     pavement.push({ ...rect, y: 0, h: URBAN_ROAD_LEVELS[rect.kind] });
   }
+  const pedestrianCorridors = walkPaths(stops, pts).filter(p=>p.rect).map(({rect:r})=>({x0:r.x0-.55,x1:r.x1+.55,z0:r.z0-.55,z1:r.z1+.55}));
+  // Authored sidewalk corridors also cover paving supplied by landmark meshes rather than low boxes.
+  for (let d=0; d<=arc.L; d+=2) {
+    const {p,t}=arc.sample(d);
+    for (const side of [-1,1]) { const x=p.x-t.z*side*((ROAD.padIn+ROAD.padOut)/2),z=p.z+t.x*side*((ROAD.padIn+ROAD.padOut)/2); pedestrianCorridors.push({x0:x-1.6,x1:x+1.6,z0:z-1.6,z1:z+1.6}); }
+  }
+  const pedestrianSpaceInputs = {
+    boxes: list.filter(b => b.y < 2.1 && (b.plant || b.y + b.h > .25)),
+    circles: [...treePlacements.map(({x,z}) => ({x,z,r:.25})), ...streetProps,
+      ...lampClearance.map(([x,z]) => ({x,z,r:.35})), ...kioskClearance.map(([x,z]) => ({x,z,r:.85})),
+      ...furnitureClearance.map(({xz:[x,z]}) => ({x,z,r:.6}))],
+    solids: (heroRealm?.userData.obstacles ?? []).map(({rect:r}) => ({x0:r.x0+heroRealm.position.x,x1:r.x1+heroRealm.position.x,z0:r.z0,z1:r.z1})),
+    walkable: [...pavement, ...(heroRealm ? [{x:heroRealm.position.x,z:0,y:0,h:.1,w:20,d:48}] : [])],
+    fallback: pedestrianCorridors,
+    lawns: list.filter(b => [P.grass,P.patch,P.hill,P.dirt].includes(b.color)),
+  };
+  const pedestrianSpace = createPedestrianSpace(pedestrianSpaceInputs);
+  const people = createPeople({ curve, pts, stops, obstacles: kioskClearance, space: pedestrianSpace, reducedMotion });
+  if (qa) globalThis.__qaPedestrians = { people, space: pedestrianSpace, inputs: pedestrianSpaceInputs };
   const pavementHeight = createPavementHeight(pavement);
   const units = [await createNpc3d(scene, { people, pts, stops, pavementHeight, lookTargets: details.children.filter(o=>o.name.endsWith('-geometry')) })]; // finish startup NPCs before the bulk fleet can occupy the download queue
   let disposed = false, raf = 0, landmarksReady = false, startupLandmarksCancelled = false;

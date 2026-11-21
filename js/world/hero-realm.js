@@ -51,6 +51,7 @@ export function createHeroRealm(){
   for(const x of [-5.6,5.6])for(const z of [-13,13]){
     const z0=z-6.8,z1=x>0&&z<0?TUNNEL_CORNER.lawnEnd:z+6.8,zc=(z0+z1)/2,len=z1-z0;
     box(x,.085,zc,5.3,.045,len,S.plaster,[.44,.58,.30],0);
+    obstacle('lawn',x,zc,5.3,len);
     for(const zz of [z0-.1,z1+.1])box(x,.12,zz,5.6,.11,.20,S.stone,stone,0);
     for(const dx of [-2.75,2.75]){
       if(Math.sign(dx)!==Math.sign(x)&&Math.sign(x)===Math.sign(z)){

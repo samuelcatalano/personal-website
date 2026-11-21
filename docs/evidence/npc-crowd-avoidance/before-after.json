@@ -1,0 +1,199 @@
+[
+  {
+    "version": "before",
+    "cam": {
+      "x": 460,
+      "z": -20
+    },
+    "min": 0.3852413862004651,
+    "bodyOverlaps": 304,
+    "maxStep": 1.1700305495256453,
+    "worst": {
+      "i": 361,
+      "j": 151,
+      "names": [
+        "lane",
+        "lane"
+      ],
+      "second": 73.8
+    },
+    "jump": {
+      "id": 686,
+      "name": "glasgow-cross",
+      "type": "wander",
+      "second": 19.9
+    }
+  },
+  {
+    "version": "before",
+    "cam": {
+      "x": -125,
+      "z": -38
+    },
+    "min": 0.4046491962461454,
+    "bodyOverlaps": 304,
+    "maxStep": 1.1518427112197993,
+    "worst": {
+      "i": 341,
+      "j": 283,
+      "names": [
+        "lane",
+        "lane"
+      ],
+      "second": 72.4
+    },
+    "jump": {
+      "id": 27,
+      "name": "masp",
+      "type": "loop",
+      "second": 83.3
+    }
+  },
+  {
+    "version": "before",
+    "cam": {
+      "x": 110,
+      "z": -18
+    },
+    "min": 0.40689687254875884,
+    "bodyOverlaps": 299,
+    "maxStep": 1.1719320443249808,
+    "worst": {
+      "i": 583,
+      "j": 36,
+      "names": [
+        "lane",
+        "lane"
+      ],
+      "second": 25.2
+    },
+    "jump": {
+      "id": 643,
+      "name": "estaiada-far",
+      "type": "wander",
+      "second": 65.1
+    }
+  },
+  {
+    "version": "before",
+    "cam": {
+      "x": -283,
+      "z": 0
+    },
+    "min": 0.3690384120442204,
+    "bodyOverlaps": 125,
+    "maxStep": 1089.317291481918,
+    "worst": {
+      "i": 350,
+      "j": 280,
+      "names": [
+        "lane",
+        "lane"
+      ],
+      "second": 69.8
+    },
+    "jump": {
+      "id": 350,
+      "type": "lane",
+      "second": 43.9
+    }
+  },
+  {
+    "version": "after",
+    "cam": {
+      "x": 460,
+      "z": -20
+    },
+    "min": 0.6573173518190583,
+    "bodyOverlaps": 0,
+    "maxStep": 0.18526569656627892,
+    "worst": {
+      "i": 987,
+      "j": 927,
+      "names": [
+        "glasgow-west",
+        "glasgow-west"
+      ],
+      "second": 27.8
+    },
+    "jump": {
+      "id": 751,
+      "name": "glasgow-front",
+      "type": "wander",
+      "second": 53.6
+    }
+  },
+  {
+    "version": "after",
+    "cam": {
+      "x": -125,
+      "z": -38
+    },
+    "min": 0.6142449271750041,
+    "bodyOverlaps": 0,
+    "maxStep": 0.18296663297838203,
+    "worst": {
+      "i": 973,
+      "j": 794,
+      "names": [
+        "masp-east",
+        "masp-east"
+      ],
+      "second": 65.8
+    },
+    "jump": {
+      "id": 109,
+      "name": "se",
+      "type": "loop",
+      "second": 34.8
+    }
+  },
+  {
+    "version": "after",
+    "cam": {
+      "x": 110,
+      "z": -18
+    },
+    "min": 0.711881162625485,
+    "bodyOverlaps": 0,
+    "maxStep": 0.17724138459210492,
+    "worst": {
+      "i": 992,
+      "j": 991,
+      "names": [
+        "swap-plaza",
+        "swap-plaza"
+      ],
+      "second": 12.4
+    },
+    "jump": {
+      "id": 95,
+      "type": "lane",
+      "second": 7.1
+    }
+  },
+  {
+    "version": "after",
+    "cam": {
+      "x": -283,
+      "z": 0
+    },
+    "min": 0.6255834008436227,
+    "bodyOverlaps": 0,
+    "maxStep": 1089.317291481918,
+    "worst": {
+      "i": 197,
+      "j": 109,
+      "names": [
+        "se",
+        "se"
+      ],
+      "second": 34.7
+    },
+    "jump": {
+      "id": 350,
+      "type": "lane",
+      "second": 43.9
+    }
+  }
+]

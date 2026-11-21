@@ -39,10 +39,10 @@ export function createNpcPose(root, idleClip) {
     state,feet,restore,
     suspend(){restore();target=null;weightTransfer=0;state.lookYaw=0;state.attention=false;feet?.reset();},
     reset(identity){restore();id=identity;clock=(id*.731)%17;target=null;weightTransfer=0;state.lookYaw=0;state.attention=false;state.profile=motionProfile(id).name;feet?.reset();},
-    update({dt,ground,speed,yaw,gaitWeight=0,walkPhase=0,turnRate=0,contact=false,bus,people=[],landmarks=[],greeting=false}){
+    update({dt,ground,speed,yaw,gaitWeight=0,walkPhase=0,turnRate=0,contact=false,bus,busInterest,people=[],landmarks=[],greeting=false}){
       if(dt<=0)return;
       for(const s of saved){s.q.copy(s.bone.quaternion);s.p.copy(s.bone.position);}applied=true;
-      clock+=dt;const profile=motionProfile(id),idle=1-gaitWeight,phase=id*2.399,cycle=10+(id%7),attending=clock%cycle<2.5;
+      clock+=dt;const profile=motionProfile(id),idle=1-gaitWeight,phase=id*2.399,cycle=10+(id%7),attending=busInterest===true||clock%cycle<2.5;
       right.set(Math.cos(yaw),0,-Math.sin(yaw));forward.set(Math.sin(yaw),0,Math.cos(yaw));
       rotate(chest,right,profile.lean*gaitWeight);
       if(!greeting&&gaitWeight>.01){
@@ -90,14 +90,14 @@ export function createNpcPose(root, idleClip) {
         if(!greeting)for(let i=0;i<hands.length;i++)rotate(hands[i],forward,.025*idle*shift*(i?1:-1));
         if(!greeting)for(const {bone,sign}of fingers)bone.quaternion.multiply(delta.setFromAxisAngle(localX,sign*.035*idle*shift));
       }
-      if(attending&&!state.attention){
-        target=null;
-        const kind=id%3;
+      if(attending&&(!state.attention||state.busAttention!==(busInterest===true))){
+        target=busInterest===true?bus:null;
+        const kind=busInterest===true?-1:id%3;
         if(kind===1){let nearest=18;for(const w of people){if(w.inst===root||w.who<0)continue;const d=Math.hypot(w.x-root.position.x,w.z-root.position.z);if(d<nearest){nearest=d;target=w.inst.position;}}}
         if(kind===2){let nearest=55;for(const p of landmarks){const d=Math.hypot(p.x-root.position.x,p.z-root.position.z);if(d<nearest){nearest=d;target=p;}}}
-        target??=bus??null;
+        if(busInterest!==false)target??=bus??null;
       }
-      state.attention=attending;
+      state.attention=attending;state.busAttention=busInterest===true;
       let look=0;
       if(attending&&target&&Math.hypot(target.x-root.position.x,target.z-root.position.z)<55){
         look=Math.atan2(target.x-root.position.x,target.z-root.position.z)-yaw;look=Math.atan2(Math.sin(look),Math.cos(look));

@@ -1,0 +1,378 @@
+{
+  "pass": true,
+  "count": 1000,
+  "secondsPerRegion": 90,
+  "regions": [
+    {
+      "cam": {
+        "x": 460,
+        "z": -20
+      },
+      "min": 0.6201604705334354,
+      "bodyOverlaps": 0,
+      "maxStep": 0.23979410959527644,
+      "unsafe": 0,
+      "recoveries": 1603,
+      "worst": {
+        "i": 960,
+        "j": 840,
+        "names": [
+          "glasgow-square-1",
+          "glasgow-square-1"
+        ],
+        "second": 38.3,
+        "positions": [
+          459.7196960449219,
+          -16.1946964263916,
+          459.21014404296875,
+          -16.548187255859375
+        ],
+        "states": [
+          {
+            "s": 13.50197291417135,
+            "pace": 1,
+            "direction": -1,
+            "partner": 924,
+            "passSide": 1,
+            "clearance": 0.55,
+            "curvature": 0,
+            "trackFlip": 1,
+            "progressAge": 0.9999999999999999,
+            "anchorX": 459.7579650878906,
+            "anchorZ": -16.328550338745117,
+            "mode": "yield",
+            "blocked": 0.9999999999999999,
+            "recoveries": 3,
+            "recoveryTime": 0,
+            "busPhase": "idle",
+            "busTime": 0,
+            "busInterest": false,
+            "group": -1,
+            "formation": "solo",
+            "groupWaiting": false,
+            "detour": null,
+            "detourIndex": 2,
+            "retryAt": 26.20000000000006,
+            "reachedWaypoint": false,
+            "wantsPath": false,
+            "obstacle": false
+          },
+          {
+            "s": 4.917074171537436,
+            "pace": 1,
+            "direction": -1,
+            "partner": 925,
+            "passSide": -1,
+            "clearance": 0.55,
+            "curvature": 0,
+            "trackFlip": 1,
+            "progressAge": 0.7,
+            "anchorX": 459.33673095703125,
+            "anchorZ": -16.692729949951172,
+            "mode": "yield",
+            "blocked": 0.7,
+            "recoveries": 3,
+            "recoveryTime": 0,
+            "busPhase": "idle",
+            "busTime": 0,
+            "busInterest": false,
+            "group": -1,
+            "formation": "solo",
+            "groupWaiting": false,
+            "detour": null,
+            "detourIndex": 1,
+            "retryAt": 39.300000000000246,
+            "reachedWaypoint": false,
+            "wantsPath": false,
+            "obstacle": false
+          }
+        ]
+      },
+      "jump": {
+        "id": 840,
+        "name": "glasgow-square-1",
+        "type": "wander",
+        "second": 37.4
+      },
+      "stalled": []
+    },
+    {
+      "cam": {
+        "x": -125,
+        "z": -38
+      },
+      "min": 0.6201226245109558,
+      "bodyOverlaps": 0,
+      "maxStep": 0.22638533097318295,
+      "unsafe": 0,
+      "recoveries": 1832,
+      "worst": {
+        "i": 439,
+        "j": 427,
+        "names": [
+          "paulista",
+          "paulista"
+        ],
+        "second": 62.6,
+        "positions": [
+          -63.057308197021484,
+          -27.806665420532227,
+          -62.82722473144531,
+          -28.382524490356445
+        ],
+        "states": [
+          {
+            "s": 62.92883135651135,
+            "pace": 1,
+            "direction": 1,
+            "partner": 488,
+            "passSide": 1,
+            "clearance": 0.55,
+            "curvature": 0,
+            "trackFlip": 1,
+            "progressAge": 1.7000000000000004,
+            "anchorX": -62.9898796081543,
+            "anchorZ": -27.821006774902344,
+            "mode": "yield",
+            "blocked": 1.7000000000000004,
+            "recoveries": 4,
+            "recoveryTime": 0,
+            "busPhase": "idle",
+            "busTime": 0,
+            "busInterest": false,
+            "group": -1,
+            "formation": "solo",
+            "groupWaiting": false,
+            "detour": null,
+            "detourIndex": 1,
+            "retryAt": 59.20000000000052,
+            "reachedWaypoint": false,
+            "wantsPath": false,
+            "obstacle": false
+          },
+          {
+            "s": 63.13621189335822,
+            "pace": 1,
+            "direction": -1,
+            "partner": 159,
+            "passSide": 1,
+            "clearance": 0.55,
+            "curvature": 0,
+            "trackFlip": 0,
+            "progressAge": 0.9999999999999999,
+            "anchorX": -62.96746826171875,
+            "anchorZ": -28.497142791748047,
+            "mode": "yield",
+            "blocked": 0.9999999999999999,
+            "recoveries": 3,
+            "recoveryTime": 0,
+            "busPhase": "idle",
+            "busTime": 0,
+            "busInterest": false,
+            "group": -1,
+            "formation": "solo",
+            "groupWaiting": false,
+            "detour": null,
+            "detourIndex": 0,
+            "retryAt": 55.20000000000047,
+            "reachedWaypoint": false,
+            "wantsPath": false,
+            "obstacle": false
+          }
+        ]
+      },
+      "jump": {
+        "id": 790,
+        "name": "masp-west",
+        "type": "wander",
+        "second": 50.2
+      },
+      "stalled": []
+    },
+    {
+      "cam": {
+        "x": 110,
+        "z": -18
+      },
+      "min": 0.6200069104891961,
+      "bodyOverlaps": 0,
+      "maxStep": 0.23350044649036744,
+      "unsafe": 0,
+      "recoveries": 1400,
+      "worst": {
+        "i": 357,
+        "j": 337,
+        "names": [
+          "thames",
+          "thames"
+        ],
+        "second": 14.4,
+        "positions": [
+          134.6566619873047,
+          -24.859434127807617,
+          134.9689178466797,
+          -24.32379913330078
+        ],
+        "states": [
+          {
+            "s": 27.21666922637349,
+            "pace": 1,
+            "direction": 1,
+            "partner": 337,
+            "passSide": 1,
+            "clearance": 0.55,
+            "curvature": 0,
+            "trackFlip": 0,
+            "progressAge": 1.4000000000000001,
+            "anchorX": 134.6730499267578,
+            "anchorZ": -24.85997772216797,
+            "mode": "yield",
+            "blocked": 1.4000000000000001,
+            "recoveries": 5,
+            "recoveryTime": 0,
+            "busPhase": "idle",
+            "busTime": 0,
+            "busInterest": false,
+            "group": -1,
+            "formation": "solo",
+            "groupWaiting": false,
+            "detour": null,
+            "detourIndex": 0,
+            "retryAt": 16.29999999999997,
+            "reachedWaypoint": false,
+            "wantsPath": true,
+            "obstacle": true
+          },
+          {
+            "s": 27.00893020737438,
+            "pace": 1,
+            "direction": 1,
+            "partner": 357,
+            "passSide": 1,
+            "clearance": 0.55,
+            "curvature": 0,
+            "trackFlip": 0,
+            "progressAge": 2.3000000000000007,
+            "anchorX": 135.16546630859375,
+            "anchorZ": -24.338640213012695,
+            "mode": "yield",
+            "blocked": 2.3000000000000007,
+            "recoveries": 0,
+            "recoveryTime": 0,
+            "busPhase": "idle",
+            "busTime": 0,
+            "busInterest": false,
+            "group": -1,
+            "formation": "solo",
+            "groupWaiting": false,
+            "detour": null,
+            "detourIndex": 0,
+            "retryAt": 0,
+            "reachedWaypoint": false,
+            "wantsPath": false,
+            "obstacle": true
+          }
+        ]
+      },
+      "jump": {
+        "id": 881,
+        "name": "estaiada-near",
+        "type": "wander",
+        "second": 86.2
+      },
+      "stalled": []
+    },
+    {
+      "cam": {
+        "x": -283,
+        "z": 0
+      },
+      "min": 0.6209580192926233,
+      "bodyOverlaps": 0,
+      "maxStep": 0.20593764214753177,
+      "unsafe": 0,
+      "recoveries": 1668,
+      "worst": {
+        "i": 163,
+        "j": 2,
+        "names": [
+          "lane",
+          "lane"
+        ],
+        "second": 88.6,
+        "positions": [
+          -251.4745635986328,
+          -6.651381969451904,
+          -251.95506286621094,
+          -7.044713020324707
+        ],
+        "states": [
+          {
+            "s": 460.6510789505684,
+            "pace": 0.9999999999999999,
+            "direction": -1,
+            "partner": 0,
+            "passSide": 1,
+            "clearance": 0.55,
+            "curvature": 0,
+            "trackFlip": 0.20000000149011612,
+            "progressAge": 1.7000000000000004,
+            "anchorX": -251.58975219726562,
+            "anchorZ": -6.4368815422058105,
+            "mode": "yield",
+            "blocked": 1.7000000000000004,
+            "recoveries": 18,
+            "recoveryTime": 0,
+            "busPhase": "idle",
+            "busTime": 0,
+            "busInterest": false,
+            "group": -1,
+            "formation": "solo",
+            "groupWaiting": false,
+            "detour": null,
+            "detourIndex": 3,
+            "retryAt": 90.59999999999931,
+            "reachedWaypoint": false,
+            "wantsPath": true,
+            "obstacle": false
+          },
+          {
+            "s": -1.0648904819361467,
+            "pace": 1.2608729180784077,
+            "direction": -1,
+            "partner": 161,
+            "passSide": -1,
+            "clearance": 0.55,
+            "curvature": 0,
+            "trackFlip": 1,
+            "progressAge": 3.800000000000002,
+            "anchorX": -252.02725219726562,
+            "anchorZ": -6.955844402313232,
+            "mode": "yield",
+            "blocked": 3.800000000000002,
+            "recoveries": 4,
+            "recoveryTime": 0,
+            "busPhase": "idle",
+            "busTime": 0,
+            "busInterest": false,
+            "group": -1,
+            "formation": "solo",
+            "groupWaiting": false,
+            "detour": null,
+            "detourIndex": 1,
+            "retryAt": 81.49999999999983,
+            "reachedWaypoint": false,
+            "wantsPath": false,
+            "obstacle": false
+          }
+        ]
+      },
+      "jump": {
+        "id": 13,
+        "type": "lane",
+        "second": 75.5
+      },
+      "stalled": []
+    }
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "pass": true,
+  "count": 1000,
+  "secondsPerRegion": 90,
+  "regions": [
+    {
+      "cam": {
+        "x": 460,
+        "z": -20
+      },
+      "min": 0.6573173518190583,
+      "bodyOverlaps": 0,
+      "maxStep": 0.18526569656627892,
+      "worst": {
+        "i": 987,
+        "j": 927,
+        "names": [
+          "glasgow-west",
+          "glasgow-west"
+        ],
+        "second": 27.8
+      },
+      "jump": {
+        "id": 751,
+        "name": "glasgow-front",
+        "type": "wander",
+        "second": 53.6
+      }
+    },
+    {
+      "cam": {
+        "x": -125,
+        "z": -38
+      },
+      "min": 0.6142449271750041,
+      "bodyOverlaps": 0,
+      "maxStep": 0.18296663297838203,
+      "worst": {
+        "i": 973,
+        "j": 794,
+        "names": [
+          "masp-east",
+          "masp-east"
+        ],
+        "second": 65.8
+      },
+      "jump": {
+        "id": 109,
+        "name": "se",
+        "type": "loop",
+        "second": 34.8
+      }
+    },
+    {
+      "cam": {
+        "x": 110,
+        "z": -18
+      },
+      "min": 0.711881162625485,
+      "bodyOverlaps": 0,
+      "maxStep": 0.17724138459210492,
+      "worst": {
+        "i": 992,
+        "j": 991,
+        "names": [
+          "swap-plaza",
+          "swap-plaza"
+        ],
+        "second": 12.4
+      },
+      "jump": {
+        "id": 95,
+        "type": "lane",
+        "second": 7.1
+      }
+    },
+    {
+      "cam": {
+        "x": -283,
+        "z": 0
+      },
+      "min": 0.6255834008436227,
+      "bodyOverlaps": 0,
+      "maxStep": 0.18296663297838203,
+      "worst": {
+        "i": 197,
+        "j": 109,
+        "names": [
+          "se",
+          "se"
+        ],
+        "second": 34.7
+      },
+      "jump": {
+        "id": 109,
+        "name": "se",
+        "type": "loop",
+        "second": 34.8
+      }
+    }
+  ]
+}

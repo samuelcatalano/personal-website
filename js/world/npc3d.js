@@ -435,7 +435,7 @@ export async function createNpc3d(scene, { people, pts, stops, lookTargets = [],
         const x = walker ? walker.x : route.x[id], y = walker ? walker.y : groundOf(id), z = walker ? walker.z : route.z[id], h = walker?.height ?? plan[id].look.height;
         const distance = viewCamera ? Math.hypot(x - viewCamera.position.x, z - viewCamera.position.z) : null;
         const onScreen = !!viewCamera && isVisibleAt(x, y, z, h), representation = walker ? 'npc3d-full' : !vis[id] ? 'hidden-in-arch' : 'hidden-no-pool-slot';
-        return { id, position: { x, y, z }, region: regionOf(path, x), path: { name: path.name || 'sidewalk-lane', type: path.type, dir: path.dir, offset: path.offset ?? null }, distanceMeters: distance, visibility: { inCameraFrustum: onScreen, rendered: !!walker?.inst.visible && onScreen }, renderRepresentation: representation, poolSlot: slot >= 0 ? slot : null, motion: walker?.pose ? {...walker.pose.state,active:poseSlots.has(walker),contact:contactSlots.has(walker),feet:walker.pose.feet?.state} : null };
+        return { id, behavior: people.behavior ? { mode: people.behavior[id].mode, partner: people.behavior[id].partner, recoveries: people.behavior[id].recoveries, blocked: people.behavior[id].blocked, group: people.behavior[id].group, formation: people.behavior[id].formation, busPhase: people.behavior[id].busPhase } : null, position: { x, y, z }, region: regionOf(path, x), path: { name: path.name || 'sidewalk-lane', type: path.type, dir: path.dir, offset: path.offset ?? null }, distanceMeters: distance, visibility: { inCameraFrustum: onScreen, rendered: !!walker?.inst.visible && onScreen }, renderRepresentation: representation, poolSlot: slot >= 0 ? slot : null, motion: walker?.pose ? {...walker.pose.state,active:poseSlots.has(walker),contact:contactSlots.has(walker),feet:walker.pose.feet?.state} : null };
       });
     },
     events: () => eventHistory.slice(),
@@ -512,7 +512,7 @@ export async function createNpc3d(scene, { people, pts, stops, lookTargets = [],
         w.inst.rotation.y = w.yaw;
         if(poseSlots.has(w)&&!REDUCED){
           if(!w.pose){w.idleAction??=w.mixer.clipAction(createIdleClip(w.inst));w.pose=createNpcPose(w.inst,w.idleAction.getClip());w.pose?.reset(i);}
-          w.pose?.update({dt,ground:w.y,speed:w.speed,yaw:w.yaw,gaitWeight:idle?0:w.gaitWeight,walkPhase:w.action.time/w.action.getClip().duration*Math.PI*2,turnRate:dt>0?turn/dt:0,contact:contactSlots.has(w),bus:f.bus,people:walkers,landmarks,greeting:greeting===w});
+          w.pose?.update({dt,ground:w.y,speed:w.speed,yaw:w.yaw,gaitWeight:idle?0:w.gaitWeight,walkPhase:w.action.time/w.action.getClip().duration*Math.PI*2,turnRate:dt>0?turn/dt:0,contact:contactSlots.has(w),bus:f.bus,busInterest:idle?undefined:people.behavior?.[i].busInterest,people:walkers,landmarks,greeting:greeting===w});
         }else w.pose?.suspend();
         w.fresh = false;
         const shadowScale = w.height / 1.8;

@@ -4,6 +4,7 @@ import { makeLook, walkPaths, crowdPlan, SKIN } from '../js/world/crowd.js';
 import { routePoints, LEGACY_GAPS, rng, stopIndex, LANDMARKS } from '../js/world/layout.js';
 import { buildParks } from '../js/world/parks.js';
 import { stops } from '../js/content.js';
+import { PALETTE as P } from '../js/world/palette.js';
 
 const pts = routePoints(stops.length), plan = crowdPlan(stops, pts, 42), looks = plan.map((p) => p.look);
 
@@ -248,12 +249,12 @@ test('plaza cells stand clear of grass beds, tree trunks, the Wellington plinth 
   assert.equal(cells.length, 8);
   const boxes = [];
   const curve = { getPointAt(u) { const f = u * (pts.length - 1), i = Math.min(Math.floor(f), pts.length - 2), t = f - i; return { x: pts[i].x + (pts[i + 1].x - pts[i].x) * t, y: 0, z: pts[i].z + (pts[i + 1].z - pts[i].z) * t }; }, getTangentAt() { return { x: 1, y: 0, z: 0 }; } };
-  buildParks((x, y, z, w, h, d) => boxes.push({ x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2, y0: y, y1: y + h }), stops, pts, curve, []);
+  buildParks((x, y, z, w, h, d, color) => boxes.push({ color, x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2, y0: y, y1: y + h }), stops, pts, curve, []);
   const g = pts[stopIndex(stops, LANDMARKS.glasgow)], sq = g.z - 28, flat = (x0, x1, z0, z1) => ({ x0, x1, z0, z1, y0: 0, y1: 2 }); // glasgow.js: beds, trunks, plinth at roadZ - 20
   boxes.push(...[[-14, -6], [14, -6], [-14, 6], [14, 6]].map(([dx, dz]) => flat(g.x + dx - 4, g.x + dx + 4, sq + dz - 2, sq + dz + 2)));
   boxes.push(...[-17, -11, 11, 17].flatMap((dx) => [-8, 8].map((dz) => flat(g.x + dx - 0.35, g.x + dx + 0.35, sq + dz - 0.35, sq + dz + 0.35))));
   boxes.push(flat(g.x - 3, g.x + 3, g.z - 22, g.z - 18));
-  const solid = boxes.filter((b) => b.y1 > 0.25 && b.y0 < 2);
+  const solid = boxes.filter((b) => b.y1 > 0.25 && b.y0 < 2 || [P.patch,P.hill].includes(b.color));
   for (const { name, rect: r } of cells) {
     const hit = solid.find((b) => r.x0 < b.x1 + 0.5 && r.x1 > b.x0 - 0.5 && r.z0 < b.z1 + 0.5 && r.z1 > b.z0 - 0.5);
     assert.equal(hit, undefined, `${name} overlaps an obstacle near (${hit?.x0.toFixed(1)}, ${hit?.z0.toFixed(1)})`);

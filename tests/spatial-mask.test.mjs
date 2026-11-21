@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createRectMask, createPavementHeight } from '../js/world/spatial-mask.js';
+import { createRectMask, createPavementHeight, createPedestrianSpace } from '../js/world/spatial-mask.js';
 
 const overlaps = (a, b) => a.x1 - a.x0 > 1e-6 && a.z1 - a.z0 > 1e-6 && b.x1 - b.x0 > 1e-6 && b.z1 - b.z0 > 1e-6 && a.x0 < b.x1 - 1e-6 && a.x1 > b.x0 + 1e-6 && a.z0 < b.z1 - 1e-6 && a.z1 > b.z0 + 1e-6;
 
@@ -38,4 +38,46 @@ test('pedestrians use the highest pavement under their position, including rotat
   assert.equal(height(2, 2, .02), .07);
   assert.equal(height(2, 2, .16), .16);
   assert.equal(height(30, 30, .02), .02);
+});
+
+test('pedestrian space keeps the body off solids, lawns and unsupported paving edges', async () => {
+  const { createPedestrianSpace } = await import('../js/world/spatial-mask.js');
+  const space = createPedestrianSpace({
+    solids: [{ x0: 2, x1: 3, z0: -1, z1: 1 }],
+    walkable: [{ x: 0, z: 0, w: 10, d: 2, y: 0, h: .1 }],
+    lawns: [{ x: 0, z: 0, w: 10, d: 10, y: 0, h: .07 }],
+  });
+  assert.equal(space.allows(0, 0, .25), true, 'paving over lawn is walkable');
+  assert.equal(space.allows(1.8, 0, .25), false, 'body must clear a bench footprint');
+  assert.equal(space.allows(0, .9, .25), false, 'body cannot overhang the paving onto lawn');
+  assert.equal(space.allows(0, 2, .25), false, 'do not cross the lawn');
+  assert.equal(space.allows(-6, 0, .25), false, 'do not leave mapped paving');
+});
+
+test('authored corridors fill mesh-paving gaps without overriding a real lawn or solid obstacle', () => {
+  const space=createPedestrianSpace({
+    fallback:[{x0:-5,x1:5,z0:-2,z1:2}],
+    walkable:[{x:0,z:0,w:1,d:1,y:0,h:.1}],
+    lawns:[{x:3,z:0,w:1,d:1,y:0,h:.07}],
+    circles:[{x:-3,z:0,r:.25}],
+  });
+  assert.ok(space.allows(1.5,0,.25),'authored mesh paving remains walkable');
+  assert.equal(space.reason(3,0,.25),'lawn');
+  assert.equal(space.reason(-3,0,.25),'solid');
+  assert.equal(space.reason(6,0,.25),'edge');
+});
+
+test('body support cannot bridge an unsampled lawn strip between paving slabs', () => {
+  const space=createPedestrianSpace({
+    lawns:[{x:0,z:0,w:2,d:2,y:0,h:.07}],
+    walkable:[{x:-.45,z:0,w:1.1,d:2,y:0,h:.1},{x:.56,z:0,w:.88,d:2,y:0,h:.1}],
+  });
+  assert.equal(space.allows(0,0,.3),false,'the entire body footprint must clear the 2 cm lawn strip');
+  assert.equal(space.allows(0,0,.15),false,'support must remain conservative for smaller bodies');
+});
+
+test('adjacent rotated paving slabs jointly support the whole body footprint',()=>{
+  const angle=.3,c=Math.cos(angle),s=Math.sin(angle);
+  const space=createPedestrianSpace({lawns:[{x:0,z:0,w:3,d:3,y:0,h:.07}],walkable:[-.4,.4].map(d=>({x:d*c,z:-d*s,w:.9,d:2,y:0,h:.1,ry:angle}))});
+  for(const r of [.2,.25,.3,.35,.4])assert.ok(space.allows(0,0,r),`joined rotated paving must cover radius ${r}`);
 });
