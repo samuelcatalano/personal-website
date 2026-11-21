@@ -5,6 +5,7 @@ import { audioState, near, fires, thunder, createDoor, createToll, BUS, VOICE_CA
 import { createBeds } from './voices/beds.js';
 import { createShots } from './voices/shots.js';
 import { createStadium } from './voices/stadium.js';
+import { createSamuelVoice } from './voices/samuel.js';
 import { createMood } from '../world/mood.js';
 import { routeT } from '../scroll.js';
 import { LANDMARKS, stopIndex, ukStart, scotRange } from '../world/layout.js';
@@ -16,6 +17,7 @@ export function createSound({ stops, marks, progress, night, world }) {
   hold();
   for (const k of BUSES) a.bus[k].gain.value = BUS[k];
   const beds = createBeds(a), shots = createShots(a), stadium = createStadium(a), moodAt = createMood(stops), st = {}, door = createDoor(), tollBen = createToll(), tollGla = createToll();
+  const samuel = createSamuelVoice(a);
   const n = stops.length, uk = ukStart(stops), [g0, g1] = scotRange(stops).map((t) => t * (n - 1));
   const ben = stopIndex(stops, LANDMARKS.bigben), gla = stopIndex(stops, LANDMARKS.glasgow), wembley = stopIndex(stops, LANDMARKS.wembley);
   // ponytail: crowd density comes from the stops the crowd plan gathers people at (crowd.js walkPaths), not from the live figures; read the plan if the murmur must follow them exactly
@@ -25,9 +27,11 @@ export function createSound({ stops, marks, progress, night, world }) {
   let lastS = null, lastT = 0, speed = 0, flashing = false, nightK = night() ? 1 : 0;
   const many = (rate, dt, family, play) => { for (let k = Math.floor(rate * dt + Math.random()); k > 0 && shots.live[family] < CAP[family]; k--) play(); };
   const tick = () => {
-    if (!enabled() || a.c.state !== 'running') { lastS = null; return; }
     try {
-      const now = performance.now() / 1000, dt = lastS === null ? 0 : Math.min(0.5, now - lastT), w = world(), s = w?.routeS ?? routeT(progress(), n, marks) * (n - 1);
+      const w = world(), active = enabled() && a.c.state === 'running' && !document.hidden;
+      samuel.update(w?.samuelGreeting, active);
+      if (!active) { lastS = null; return; }
+      const now = performance.now() / 1000, dt = lastS === null ? 0 : Math.min(0.5, now - lastT), s = w?.routeS ?? routeT(progress(), n, marks) * (n - 1);
       if (dt) speed += (Math.abs(s - lastS) / dt - speed) * 0.5;
       lastS = s; lastT = now;
       nightK += ((night() ? 1 : 0) - nightK) * Math.min(1, dt / 1.4); // the scene eases day and night the same way

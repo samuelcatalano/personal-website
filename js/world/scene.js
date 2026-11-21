@@ -713,6 +713,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     get raining() { return raining; },
     get routeS() { return routeS; }, // where the bus is on the route, in stops, on the same fine knots as the picture: the sound driver times the plane from it
     get flash() { return flash; }, // lightning brightness this frame: the sound driver times thunder from it
+    get samuelGreeting() { return figure.userData.greeting; },
     snapshot() {
       if (disposed) return Promise.reject(new Error('world disposed'));
       if (!pendingSnapshot) {

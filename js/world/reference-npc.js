@@ -476,8 +476,9 @@ export async function loadReferenceNpcAssets({ levels = [0] } = {}) {
           },
           wave() {
             if (!wave) return;
-            mixer.clipAction(wave).reset().play();
-            (moving ? action : idleAction).crossFadeTo(mixer.clipAction(wave), .25, false);
+            const greeting = mixer.clipAction(wave).reset().play();
+            (moving ? action : idleAction).crossFadeTo(greeting, .25, false);
+            return greeting;
           },
           dispose() {
             mixer.stopAllAction();

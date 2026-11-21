@@ -149,7 +149,7 @@ Owner authorized removing solid black portal backgrounds on Tower Bridge and Cat
 
 ## Sound system — 2026-11-13
 
-The original sound system is procedural. Most sounds (rain, wind, thunder, city beds, bus engine, passing cars, horns, boat horn, plane, crowd murmur, footsteps, birds, gulls, crickets, Big Ben and Glasgow bells, UI clicks, camera shutter) are synthesized at runtime with native Web Audio in `js/audio/`. Those synthesized voices require no external attribution. The recorded Wembley ambience added below is the exception.
+The original sound system is procedural. Most sounds (rain, wind, thunder, city beds, bus engine, passing cars, horns, boat horn, plane, crowd murmur, footsteps, birds, gulls, crickets, Big Ben and Glasgow bells, UI clicks, camera shutter) are synthesized at runtime with native Web Audio in `js/audio/`. Those synthesized voices require no external attribution. Recorded assets are listed below.
 
 
 ### Original botanical vegetation — 2026-11-14
@@ -175,3 +175,11 @@ The older supplied CC-BY Realistic Tree files/attribution remain archived above;
 - Download used: public high-quality MP3 preview, https://cdn.freesound.org/previews/160/160493_341440-hq.mp3
 - Licence verified 2026-11-21 on the source page: **CC0 1.0**, https://creativecommons.org/publicdomain/zero/1.0/ . Copying, editing and redistribution permitted; attribution not required, retained here for provenance.
 - Processing: source seconds 10–42; 160 Hz high-pass and 2800 Hz low-pass; loudness normalization (-18 LUFS target, -2 dBTP ceiling); 2-second tail/head crossfade for a 30-second loop; downmix to mono and MP3 encode. Runtime applies an additional 1800 Hz low-pass and route-proximity gain for an exterior stadium perspective.
+
+### Samuel's wave greeting — 2026-11-21
+
+- Shipped: `assets/audio/samuel-wave.mp3` (4.33068 seconds, mono, 44.1 kHz, 80 kbps, 43,930 bytes).
+- Source: `sam_here.m4a`, supplied by Samuel Catalano, who explicitly requested playback with his portfolio NPC's wave. Owner-provided voice recording; no third-party licence is asserted. The source file was preserved.
+- Processing: metadata removed; loudness normalization (-16 LUFS target, -2 dBTP ceiling, LRA 9), mono downmix/resample and MP3 encode. No trimming or synthesized speech.
+- Runtime: one playback per visible Wave cycle through the existing people bus, with a short attack and departure fade; no overlapping speech. Owner-auditioned playback-gain reductions of 15%, 15%, then 20% (0.75 to 0.6375 to 0.541875 to 0.4335; 42.2% below the initial gain).
+- SHA-256: `426b6c7d73ec258ca8fcf049288fc1d85574c7afd3c3eaa06ad5d2c0886f8ad6`.

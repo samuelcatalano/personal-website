@@ -90,6 +90,10 @@ export function buildFigure(onReady = () => {}, { reducedMotion = false } = {}) 
   };
   figure.userData.showMemoji = showMemoji;
 
+  const greeting = figure.userData.greeting = { sequence: 0, visible: false, elapsed: 0 };
+  const frustum = new THREE.Frustum(), projection = new THREE.Matrix4(), bounds = new THREE.Sphere(new THREE.Vector3(), HEIGHT * .7);
+  let waveAction = null;
+  const onLoop = (event) => { if (event.action === waveAction && greeting.visible) greeting.sequence++; };
   let requested = false, closed = false, library = null, actor = null, light = null, lookChain = [], lookYaw = 0, lookUp = 0;
   const parentTurn = new THREE.Quaternion(), turn = new THREE.Quaternion(), tilt = new THREE.Quaternion(), side = new THREE.Vector3();
   figure.userData.update = (dt, camera, night = 0) => {
@@ -103,8 +107,9 @@ export function buildFigure(onReady = () => {}, { reducedMotion = false } = {}) 
         library = assets;
         actor = assets.create();
         actor.setSpeed(0);
-        actor.wave();
+        waveAction = actor.wave();
         actor.mixer.update(reducedMotion ? 1.3 : .3); // Reduced motion holds the raised hand; otherwise just ends the blend.
+        actor.mixer.addEventListener('loop', onLoop);
         actor.root.scale.setScalar(HEIGHT / actor.height); // Same presence as the Memoji it replaces.
         actor.root.position.y = GROUND_Y;
         actor.root.rotation.y = figure.userData.facing ?? Math.atan2(dx, dz);
@@ -126,9 +131,20 @@ export function buildFigure(onReady = () => {}, { reducedMotion = false } = {}) 
     if (!actor) return;
     light.set(night);
     actor.root.visible = distance < RENDER_WITHIN;
+    camera.updateMatrixWorld();
+    frustum.setFromProjectionMatrix(projection.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+    bounds.center.copy(at).y += HEIGHT / 2;
+    const visible = !!waveAction && distance < 60 && frustum.intersectsSphere(bounds), entering = visible && !greeting.visible;
+    greeting.visible = visible;
+    if (entering) {
+      if (!reducedMotion) { waveAction.reset().play(); actor.mixer.update(0); }
+      greeting.sequence++;
+      greeting.elapsed = 0;
+    }
     if (!actor.root.visible) return;
     if (reducedMotion) lookChain.forEach(({ bone, rest }) => bone.quaternion.copy(rest));
-    else actor.mixer.update(dt);
+    else if (!entering) actor.mixer.update(dt);
+    if (visible && !entering) greeting.elapsed = reducedMotion ? greeting.elapsed + dt : waveAction.time;
     // Eye contact with the viewer: the look is rebuilt after each mixer update, on top of the animation.
     const yaw = actor.root.rotation.y, away = Math.atan2(dx, dz) - yaw, ease = reducedMotion ? 1 : Math.min(1, 4 * dt);
     lookYaw += (THREE.MathUtils.clamp(Math.atan2(Math.sin(away), Math.cos(away)), -.9, .9) - lookYaw) * ease;
@@ -142,6 +158,8 @@ export function buildFigure(onReady = () => {}, { reducedMotion = false } = {}) 
   };
   figure.userData.dispose = () => {
     closed = true;
+    greeting.visible = false;
+    actor?.mixer.removeEventListener('loop', onLoop);
     actor?.dispose();
     library?.dispose();
     light?.dispose();
