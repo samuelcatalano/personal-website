@@ -80,7 +80,7 @@ Subagents are off by default. Use them only for clearly independent work the use
 
 ## Skills and tools
 
-Check that a skill or plugin is installed before relying on it. Use only what is available and relevant.
+Check that a skill, plugin or MCP server is installed before relying on it. Use only what is available and relevant. These are the default for Claude and Codex, when installed:
 
 - `superpowers:using-superpowers` at the start of a session; `superpowers:brainstorming` before new features or unclear scope.
 - `superpowers:test-driven-development` and `superpowers:verification-before-completion` for code changes and before any "done" claim.
@@ -88,3 +88,6 @@ Check that a skill or plugin is installed before relying on it. Use only what is
 - `ponytail:ponytail` for minimal code; `caveman:caveman` for terse prose.
 - `frontend-design:frontend-design` and `product-frontend-design` for UI work.
 - `ctx_execute` for large command output and data analysis.
+- `find-skills` (skill): discover and install a skill when a task needs a capability that is not installed yet.
+- `serena` (MCP server): symbol-level code navigation and edits. Prefer it over reading whole files.
+- `rea` (MCP server): reverse engineering of shipped artifacts, native binaries and browser targets. Analysis only; do not use it for ordinary source-repository architecture.
