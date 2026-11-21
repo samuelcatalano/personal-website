@@ -39,7 +39,7 @@ Content lives in `js/content.js` (`stops` and `i18n`, in `en` and `pt`). This PR
 
 - EN (default) and PT toggle; day and night toggle.
 - Works on mobile: the panel becomes a bottom sheet. Mobile checks are paused.
-- Works without WebGL and with reduced motion: static background, panel intact.
+- Works with reduced motion. WebGL is on in the shipped site; a WebGL-off run is a test scenario only.
 - Hosted on GitHub Pages, with no backend and no build.
 - Must not expose a home address or phone number.
 - Keep the existing favicons, social preview and sitemap.

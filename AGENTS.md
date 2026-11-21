@@ -10,7 +10,7 @@ Portfolio for Samuel Catalano: a voxel London where a red double-decker bus driv
 
 - No build step and no npm in the shipped site. Plain HTML/CSS/ES modules; Three.js is pinned in the import map. `tools/pipeline/` is a dev-only npm package.
 - All user-facing copy lives in `js/content.js`, in `en` and `pt`.
-- The HTML panel is the source of truth. The site must work with WebGL off and with `prefers-reduced-motion`.
+- The HTML panel is the source of truth. WebGL stays on in the shipped site; WebGL off is a test scenario only. The site must work with `prefers-reduced-motion`.
 - Never publish a home address or phone number. Use relative URLs only.
 - Graphics quality never drops at runtime. Do not propose quality selectors or adaptive downgrades.
 - Mobile work is paused by the owner: no mobile tests or checks.

@@ -18,7 +18,7 @@ Portfolio for Samuel Catalano: a voxel London where a red double-decker bus driv
 
 - No build step and no npm in the shipped site. Plain HTML/CSS/ES modules; Three.js is pinned in the import map in `index.html`. `tools/pipeline/` is a dev-only npm package and is not shipped.
 - All user-facing copy lives in `js/content.js`, in `en` and `pt`. No copy hardcoded in other modules.
-- The HTML panel is the source of truth; the 3D world is decoration. The site must work with WebGL off and with `prefers-reduced-motion`.
+- The HTML panel is the source of truth; the 3D world is decoration. WebGL stays on in the shipped site; WebGL off is a test scenario only. The site must work with `prefers-reduced-motion`.
 - Privacy: never publish a home address or phone number. Contact = email, LinkedIn, GitHub. Any shipped CV is redacted.
 - Relative URLs only (the site is served under `/personal-website/`).
 - Small, single-purpose modules. Ask before adding a dependency or framework.
@@ -43,7 +43,7 @@ Capture stops: 5 São Paulo, 9.5 London, 11 Glasgow (ids in `js/content.js`).
 - Claim only checks that actually ran. Say what was skipped.
 - Small edits: directly related tests, plus one visual capture when the change is visible.
 - Milestones: full Node regression, relevant browser suites, desktop checks, and Lighthouse accessibility at least 95 when applicable.
-- Matrix: desktop, day/night, EN/PT, WebGL disabled, reduced motion, no console errors. Mobile is excluded while it is paused.
+- Matrix: desktop, day/night, EN/PT, WebGL disabled (test scenario only), reduced motion, no console errors. Mobile is excluded while it is paused.
 - Do not repeat full benchmarks for small adjustments.
 
 ## 3D city rules

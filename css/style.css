@@ -99,6 +99,7 @@ body { margin: 0; font: 15px/1.6 var(--sans); color: var(--ink); background: lin
 .panel > h2 + p { color: var(--muted); font-size: 14px; line-height: 1.6; }
 .journey-progress { display: grid; gap: 6px; margin: 18px 0 0; color: var(--muted); font-size: 11px; }
 .journey-progress progress { width: 100%; height: 6px; accent-color: var(--accent); }
+.jp-passport, .validated-stamp { display: none; } /* shown on desktop only, see the end of this file */
 .recent-role { margin: 14px 0; padding: 0 0 12px; border-bottom: 1px solid var(--line); }
 .panel .recent-company { margin: 0 0 2px; font-size: 12px; font-weight: 600; }
 .recent-role small { display: block; font-size: 11px; font-variant-numeric: tabular-nums; }
@@ -224,8 +225,8 @@ body.world-loading:not(.world-ready, .no-webgl, .intro-on) #loading { display: f
 .road .node.here { box-shadow: 0 0 0 3px #a8202830; }
 .trail {
   position: absolute; left: calc(var(--bus-width) / 2); bottom: 0; height: 3px;
-  width: calc(var(--p, 0) * (100% - var(--bus-width))); background: var(--ticket-ink); opacity: .24;
-  transition: width 100ms linear;
+  width: calc(100% - var(--bus-width)); transform: scaleX(var(--p, 0)); transform-origin: left; background: var(--ticket-ink); opacity: .24;
+  transition: transform 100ms linear; /* scaleX, not width: same bar, no layout on each scroll tick */
 }
 .route-vehicle { position: absolute; left: calc(var(--p, 0) * (100% - var(--bus-width))); bottom: 5px; transition: left 100ms linear; }
 .route-vehicle .mini, #intro[data-preview="sp"] .route-vehicle .bus { display: none; }
@@ -288,7 +289,7 @@ body.world-loading:not(.world-ready, .no-webgl, .intro-on) #loading { display: f
 @keyframes reveal { from { clip-path: circle(0 at var(--tx, 50%) var(--ty, 0)); } to { clip-path: circle(150vmax at var(--tx, 50%) var(--ty, 0)); } }
 /* credits dialog */
 .linkish { padding: 0; border: 0; background: none; font: inherit; color: var(--accent); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
-#credits { width: min(540px, calc(100vw - 32px)); max-height: calc(100vh - 48px); max-height: calc(100dvh - 48px); padding: 28px; color: var(--ink); border: 1px solid var(--line); border-radius: 18px; overflow: auto;
+#credits { width: min(540px, calc(100vw - 32px)); max-height: calc(100vh - 48px); max-height: calc(100dvh - 48px); overscroll-behavior: contain; padding: 28px; color: var(--ink); border: 1px solid var(--line); border-radius: 18px; overflow: auto;
   background: color-mix(in srgb, var(--card) 94%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: 0 30px 80px rgba(0, 0, 0, .35); }
 #credits::backdrop { background: rgba(20, 16, 12, .4); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
 #credits h2 { margin: 0 0 8px; font: 400 26px/1.2 var(--display); }
@@ -536,7 +537,7 @@ body.theme-night .detail { background: #2a2622; color: var(--ink); } body.theme-
 .controls [data-quick] svg { fill: currentColor; }
 @media (prefers-reduced-motion: reduce) { .detail { transform: none; transition: none; } }
 /* No selection box where focus is only placed by the page: the heading after the intro closes and the Skip button it opens on. Keyboard users still see the Skip fill red on focus. */
-#panel :is(h1, h2)[tabindex="-1"]:focus, #panel :is(h1, h2)[tabindex="-1"]:focus-visible { outline: none; }
+#panel :is(h1, h2)[tabindex="-1"]:focus:not(:focus-visible) { outline: none; } /* a mouse click shows no ring; keyboard focus keeps the default one */
 #intro [data-intro-skip]:focus:not(:focus-visible) { outline: none; }
 /* Stop change: the ticket slides in from the heading side; a visited stop keeps a punched hole, the first visit stamps it */
 @keyframes ticket-in { from { opacity: 0; transform: translateX(var(--sx, 22px)) rotate(calc(var(--dir, 1) * 1.6deg)); } }
@@ -711,3 +712,16 @@ body.ui-hidden #stop-request, body.intro-on #stop-request { display: none; }
 .postcard-preview img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .postcard-card .postcard-btn { border-radius: 0; }
 .nav-found { background: transparent; color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+
+/* Desktop only: passport stamps, the validated stamp and 14px panel copy. Mobile is paused and its shipped rules are unchanged. */
+@media (min-width: 768px) {
+  .journey-progress { font-size: 12px; }
+  .jp-passport { display: grid; gap: 6px; margin-top: 4px; }
+  .jp-city { display: flex; align-items: center; gap: 10px; }
+  .jp-city b { flex: none; width: 72px; font-weight: 600; color: var(--ink); }
+  .jp-stamps { display: flex; flex-wrap: wrap; gap: 5px; }
+  .jp-stamps i { width: 12px; height: 12px; border: 1.5px solid var(--accent); border-radius: 50%; }
+  .jp-stamps i.on { background: var(--accent); }
+  .validated-stamp { display: inline-block; justify-self: start; margin: 6px 0 0; padding: 2px 8px; border: 1px solid var(--ticket-green); color: var(--ticket-green); font: 600 12px/1.2 ui-monospace, monospace; letter-spacing: .08em; transform: rotate(-4deg); }
+  .panel .why, .panel .avail, .panel .clock, .panel .profile-status p, .profile-head .role, .panel[data-section="hero"] .tagline, .panel .current-stop > p:last-child, .panel a.repo small, .detail, .line li, .route-line { font-size: 14px; }
+}

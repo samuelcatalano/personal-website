@@ -27,9 +27,14 @@ const rideSeconds = (n, dwellMs) => Math.round(n * (dwellMs + 2000) / 1000);
 const quickSeconds = () => (matchMedia('(prefers-reduced-motion: reduce)').matches ? rideSeconds(stops.length, 1600) : QUICK_TOUR_S); // the steady pass, or every stop snapped when motion is reduced
 // ponytail: 3 s on a stop counts as seen. Auto-ride stops (3400 ms) and the steady quick tour (about 13 s per stop) both count; the snapped quick tour under reduced motion (1600 ms) does not.
 function visitAfterMs() { return 3000; }
+const cityStops = (c) => stops.flatMap((st, i) => (st.section === 'journey' && cityOf(st) === c ? [i] : [])); // the journey stop indices in one city
+const clockNow = () => new Intl.DateTimeFormat(document.documentElement.lang.startsWith('pt') ? 'pt-BR' : 'en-GB', { hour: '2-digit', minute: '2-digit' }).format(new Date());
 const journeyLine = (t, seenSet) => { // the counter the journey panel shows; rebuilt in place when a stop is confirmed
   const count = journeySeenCount(seenSet);
-  return `<div class="journey-progress"><span>${count ? t.ui.progress.replace('{count}', count).replace('{total}', journeyTotal) : t.ui.progressEmpty.replace('{quick}', quickSeconds())}</span><progress value="${count}" max="${journeyTotal}">${count}/${journeyTotal}</progress></div>`;
+  // one stamp per stop, grouped by city; decorative, the count and the bar already say it
+  const passport = Object.keys(t.ui.cities).map((c) => `<div class="jp-city"><b>${t.ui.cities[c]}</b><span class="jp-stamps">${cityStops(c).map((i) => `<i class="${seenSet.has(i) ? 'on' : ''}"></i>`).join('')}</span></div>`).join('');
+  const validated = count === journeyTotal ? `<p class="validated-stamp">${t.ui.intro.validated.replace('{time}', clockNow())}</p>` : ''; // all 12 stops: the same stamp the intro ticket gets
+  return `<div class="journey-progress"><span>${count ? t.ui.progress.replace('{count}', count).replace('{total}', journeyTotal) : t.ui.progressEmpty.replace('{quick}', quickSeconds())}</span><progress value="${count}" max="${journeyTotal}">${count}/${journeyTotal}</progress><div class="jp-passport" aria-hidden="true">${passport}</div>${validated}</div>`;
 };
 const ticketMeta = (t, tool) => { const s = toolSpan(tool); return `${t.ui.ticketSince.replace('{year}', s.since)} · ${t.ui.ticketStops.replace('{n}', s.count)}`; };
 const QUICK_MS = 1500; // ponytail: just under the quick tour's 1600 ms stop, so quick stops count on that path only
