@@ -229,6 +229,11 @@ body.world-loading:not(.world-ready, .no-webgl, .intro-on) #loading { display: f
   transition: transform 100ms linear; /* scaleX, not width: same bar, no layout on each scroll tick */
 }
 .route-vehicle { position: absolute; left: calc(var(--p, 0) * (100% - var(--bus-width))); bottom: 5px; transition: left 100ms linear; }
+/* translate, not left: the bus moves on the compositor, no layout per scroll tick. Container units give the road width. */
+@supports (width: 1cqw) {
+  .road { container-type: inline-size; }
+  .route-vehicle { left: 0; translate: calc(var(--p, 0) * (100cqw - var(--bus-width))); transition: translate 100ms linear; }
+}
 .route-vehicle .mini, #intro[data-preview="sp"] .route-vehicle .bus { display: none; }
 #intro[data-preview="sp"] .route-vehicle .mini { display: inline; }
 .intro-guide { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 14px; }
