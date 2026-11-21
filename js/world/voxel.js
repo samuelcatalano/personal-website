@@ -53,7 +53,11 @@ export function buildMeshes(list, { glow = [], glowK = {}, grass = false } = {})
   const sourcePlants = list.filter(b => b.plant), boxes = sourcePlants.length ? list.filter(b => !b.plant) : list;
   const plants = grass ? [...sourcePlants, ...grassInstances(boxes, sourcePlants, typeof grass === 'object' ? grass : {})] : sourcePlants, byColor = new Map(), byPlant = new Map();
   for (const b of boxes) (byColor.get(b.color) ?? byColor.set(b.color, []).get(b.color)).push(b);
-  for (const b of plants) (byPlant.get(b.plant) ?? byPlant.set(b.plant, []).get(b.plant)).push(b);
+  // Spatial batches let each render camera reject off-screen plants without changing their detail.
+  for (const b of plants) {
+    const key = `${b.plant}:${Math.floor(b.x / 40)}:${Math.floor(b.z / 40)}`;
+    (byPlant.get(key) ?? byPlant.set(key, []).get(key)).push(b);
+  }
   const group = new THREE.Group();
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), s = new THREE.Vector3();
   for (const [color, boxes] of byColor) {
@@ -64,7 +68,8 @@ export function buildMeshes(list, { glow = [], glowK = {}, grass = false } = {})
     mesh.castShadow = mesh.receiveShadow = true;
     group.add(mesh);
   }
-  for (const [kind, records] of byPlant) {
+  for (const records of byPlant.values()) {
+    const kind = records[0].plant;
     const geometry = PLANT_GEOS.get(kind) ?? PLANT_GEOS.set(kind, createPlantGeometry(kind)).get(kind);
     const material = PLANT_MATS.get(kind) ?? PLANT_MATS.set(kind, createPlantMaterial()).get(kind);
     const mesh = new THREE.InstancedMesh(geometry, material, records.length);
@@ -75,6 +80,7 @@ export function buildMeshes(list, { glow = [], glowK = {}, grass = false } = {})
     mesh.instanceMatrix.needsUpdate = mesh.instanceColor.needsUpdate = true;
     mesh.castShadow = kind !== 'grass'; mesh.receiveShadow = true;
     mesh.userData.plantKind = kind;
+    mesh.computeBoundingSphere();
     group.add(mesh);
   }
   group.userData.list = boxes; // box-only list for tests/zfight.browser.py

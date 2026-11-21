@@ -1,9 +1,9 @@
 # Scripted route-scroll profile. Run: BU_NAME=perf BU_CDP_URL=http://127.0.0.1:9431 CONFIG="kit=off" SEG=8.5:11.5 browser-harness < tools/perf/route-profile.py
-# Env: CONFIG, SEG "S0:S1", STEPS, DUR seconds, URL. WIDTH/HEIGHT/DPR fix the viewport; TIER pins the QA postprocessing tier.
+# Env: CONFIG, WEATHER (clear/rain), SEG "S0:S1", STEPS, DUR seconds, URL. WIDTH/HEIGHT/DPR fix the viewport; TIER pins the QA postprocessing tier.
 # Draw calls/triangles come from a WebGL2 prototype hook (all passes incl. shadows); the scene graph is not reachable
 # without code changes, so "visible meshes" is approximated by draw calls. Prints one JSON line.
 import os, time, json
-URL = os.environ.get('URL', 'http://localhost:8000/') + '?weather=clear&' + os.environ.get('CONFIG', '')
+URL = os.environ.get('URL', 'http://localhost:8000/') + '?weather=' + os.environ.get('WEATHER', 'clear') + '&' + os.environ.get('CONFIG', '')
 S0, S1 = [float(x) for x in os.environ.get('SEG', '8.5:11.5').split(':')]
 STEPS, DUR = int(os.environ.get('STEPS', 600)), float(os.environ.get('DUR', 25))
 HOOK = """(()=>{const P=WebGL2RenderingContext.prototype;window.__c={calls:0,tris:0};
@@ -25,6 +25,14 @@ for _ in range(240):
 if os.environ.get('TIER'):
     js("window.__qaPost.setTier(%s);window.__qaPost.setTier=()=>{}" % json.dumps(os.environ['TIER']))
 time.sleep(4)  # let lazy kits / GLBs settle
+for _ in range(120):
+    if js("!document.body.classList.contains('intro-on') || document.querySelector('[data-intro-skip]')?.disabled === false"): break
+    time.sleep(.5)
+js("document.querySelector('[data-intro-skip]')?.click()")
+time.sleep(2.5)  # finish boarding before profiling the normal journey
+if js("document.body.classList.contains('intro-on')"):
+    cdp('Target.closeTarget', targetId=TAB)
+    raise RuntimeError('Intro must be dismissed before profiling the journey')
 js("""(async()=>{const s=await import('/js/scroll.js'),c=await import('/js/content.js'),L=await import('/js/world/layout.js');
 const n=c.stops.length,m=s.stopMarks(L.routePoints(n)),H=document.documentElement.scrollHeight;
 const Y=p=>{const i=Math.floor(p),f=p-i,a=s.scrollYForStop(i,n,H,innerHeight,m),b=s.scrollYForStop(Math.min(n-1,i+1),n,H,innerHeight,m);return a+(b-a)*f};
@@ -33,19 +41,23 @@ time.sleep(3)
 activate_tab(TAB)
 js("""(()=>{const S=window.__S,F=[];let long=[];
 try{new PerformanceObserver(l=>l.getEntries().forEach(e=>long.push(e.duration))).observe({entryTypes:['longtask']})}catch(e){}
+let hidden=document.hidden;const visibility=()=>{hidden ||= document.hidden};document.addEventListener('visibilitychange',visibility);
 const h0=performance.memory.usedJSHeapSize;let hp=h0,last=performance.now(),t0=last,done=false;
 const tick=now=>{const dt=now-last;last=now;const c=window.__c;F.push([dt,c.calls,c.tris]);c.calls=0;c.tris=0;
 const f=Math.min(1,(now-t0)/(S.dur*1000));const p=S.p0+(S.p1-S.p0)*f;scrollTo({top:S.y0+(S.y1-S.y0)*Math.round(f*S.steps)/S.steps,behavior:'instant'});
 hp=Math.max(hp,performance.memory.usedJSHeapSize);
-if(f<1)requestAnimationFrame(tick);else{window.__R={F,long,h0,h1:performance.memory.usedJSHeapSize,hp,p0:S.p0,p1:S.p1};}};
+if(f<1)requestAnimationFrame(tick);else{document.removeEventListener('visibilitychange',visibility);window.__R={F,long,hidden,h0,h1:performance.memory.usedJSHeapSize,hp,p0:S.p0,p1:S.p1};}};
 requestAnimationFrame(tick)})()""")
 for _ in range(int(DUR * 8) + 60):
     time.sleep(1)
     if js("!!window.__R"): break
 R = json.loads(js("JSON.stringify(window.__R)"))
-context = js("({width:innerWidth,height:innerHeight,dpr:devicePixelRatio,tier:window.__qaPost?.tier})")
+context = js("({width:innerWidth,height:innerHeight,dpr:devicePixelRatio,tier:window.__qaPost?.tier,weather:new URLSearchParams(location.search).get('weather'),introOpen:document.body.classList.contains('intro-on'),drawingBuffer:window.__qaRenderer?[__qaRenderer.domElement.width,__qaRenderer.domElement.height]:null})")
 if os.environ.get('OUT'):
     with open(os.environ['OUT'], 'w') as output: json.dump({'context':context, **R}, output)
+if R.get('hidden'):
+    cdp('Target.closeTarget', targetId=TAB)
+    raise RuntimeError('Invalid profile: tab became hidden; repeat with the preview visible')
 F = R['F'][2:]
 def q(a, p):
     a = sorted(a); return a[min(len(a) - 1, int(len(a) * p))]
@@ -58,7 +70,7 @@ for i in range(1, len(F)):
     if d > th: pops.append((d, round(S0 + (S1 - S0) * i / len(F), 2), ca[i - 1], ca[i]))
 pops.sort(reverse=True)
 MB = 1048576
-print(json.dumps(dict(config=os.environ.get('CONFIG', ''), context=context, seg=[S0, S1], frames=len(F), median=round(med(dt), 2), p95=round(q(dt, .95), 2),
+print(json.dumps(dict(config=os.environ.get('CONFIG', ''), context=context, seg=[S0, S1], frames=len(F), fps=round(1000 * len(dt) / sum(dt), 2), median=round(med(dt), 2), p95=round(q(dt, .95), 2),
   p99=round(q(dt, .99), 2), max=round(max(dt), 1), longtasks=len(R['long']), longtask_max=round(max(R['long'] or [0]), 1),
   calls_med=med(ca), calls_p95=q(ca, .95), tris_med=round(med(tr)), tris_p95=round(q(tr, .95)),
   heap_start_mb=round(R['h0'] / MB), heap_end_mb=round(R['h1'] / MB), heap_peak_mb=round(R['hp'] / MB), pops=pops[:10])))

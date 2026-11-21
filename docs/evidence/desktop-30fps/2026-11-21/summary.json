@@ -1,0 +1,106 @@
+{
+  "baseline_commit": "bfd2f77",
+  "hardware": "Apple M3 Max / ANGLE Metal / Chrome",
+  "viewport_css": [
+    1728,
+    963
+  ],
+  "device_pixel_ratio": 2,
+  "drawing_buffer": [
+    2592,
+    1444
+  ],
+  "tier": "high",
+  "theme": "day",
+  "route_stops": [
+    7,
+    9
+  ],
+  "duration_seconds": 12,
+  "intro_dismissed": true,
+  "runs": [
+    {
+      "name": "baseline-rain-1",
+      "version": "before",
+      "weather": "rain",
+      "frames": 324,
+      "fps": 27.018687925815364,
+      "median_ms": 33.400000000001455,
+      "p95_ms": 49.89999999999782,
+      "p99_ms": 75,
+      "max_ms": 108.29999999999927,
+      "median_triangles": 36803084.0,
+      "median_draw_calls": 1683.0
+    },
+    {
+      "name": "baseline-rain-2",
+      "version": "before",
+      "weather": "rain",
+      "frames": 324,
+      "fps": 27.09392560877709,
+      "median_ms": 33.400000000001455,
+      "p95_ms": 42.60000000000218,
+      "p99_ms": 75,
+      "max_ms": 101,
+      "median_triangles": 36803165.5,
+      "median_draw_calls": 1676.0
+    },
+    {
+      "name": "optimized-rain-1",
+      "version": "after",
+      "weather": "rain",
+      "frames": 362,
+      "fps": 30.250359327472687,
+      "median_ms": 33.29999999999927,
+      "p95_ms": 41.80000000000291,
+      "p99_ms": 75,
+      "max_ms": 91.79999999999927,
+      "median_triangles": 25623736.5,
+      "median_draw_calls": 1727.0
+    },
+    {
+      "name": "optimized-rain-2",
+      "version": "after",
+      "weather": "rain",
+      "frames": 364,
+      "fps": 30.34370076442785,
+      "median_ms": 33.29999999999927,
+      "p95_ms": 41.70000000000073,
+      "p99_ms": 75,
+      "max_ms": 100,
+      "median_triangles": 25678609.0,
+      "median_draw_calls": 1720.0
+    },
+    {
+      "name": "baseline-clear",
+      "version": "before",
+      "weather": "clear",
+      "frames": 406,
+      "fps": 33.88698773057341,
+      "median_ms": 31.299999999999272,
+      "p95_ms": 34,
+      "p99_ms": 66.70000000000073,
+      "max_ms": 75,
+      "median_triangles": 21168294.0,
+      "median_draw_calls": 973.0
+    },
+    {
+      "name": "optimized-clear",
+      "version": "after",
+      "weather": "clear",
+      "frames": 436,
+      "fps": 36.39672429481346,
+      "median_ms": 25,
+      "p95_ms": 34.10000000000218,
+      "p99_ms": 66.70000000000073,
+      "max_ms": 75,
+      "median_triangles": 14182177.0,
+      "median_draw_calls": 974.5
+    }
+  ],
+  "visual_fixture": {
+    "png_byte_identical": true,
+    "sha256": "d5296c2a9a2990fd80d7876cbd82c536da0e26a4bf26f234463571d4d130300d"
+  },
+  "runtime_sha256": "a86684fd48cd2eeb9ae00ce1b736e655bd5fbc765a29d5941036d4140ce93d60"
+}

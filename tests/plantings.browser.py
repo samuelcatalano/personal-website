@@ -43,14 +43,16 @@ print(js(r'''(async () => {
   const grassOptions = { trees, plots, lamps, kiosks };
   const group = buildMeshes(boxes.list, { grass: grassOptions }), repeated = buildMeshes(boxes.list, { grass: grassOptions }), plantMeshes = group.children.filter(m => m.userData.plantKind), boxMeshes = group.children.filter(m => !m.userData.plantKind);
   check(group.userData.list.length === ordinary.length && group.userData.list.every(b => !b.plant), 'box test list remains box-only');
-  check(plantMeshes.length === kinds.length + 1 && new Set(plantMeshes.map(m => m.userData.plantKind)).size === kinds.length + 1 && plantMeshes.some(m => m.userData.plantKind === 'grass'), 'one instanced batch per plant kind, including grass');
+  check(plantMeshes.length > kinds.length + 1 && new Set(plantMeshes.map(m => m.userData.plantKind)).size === kinds.length + 1 && plantMeshes.some(m => m.userData.plantKind === 'grass'), 'spatial batches retain every plant kind, including grass');
   check(new Set(plantMeshes.map(m => m.geometry)).size === kinds.length + 1 && new Set(plantMeshes.map(m => m.material)).size === kinds.length + 1, 'one shared geometry and material per plant kind');
   check(boxMeshes.length === new Set(expected.map(b => b[6])).size && boxMeshes.reduce((n,m) => n + m.count, 0) === ordinary.length, 'ordinary box batches retain their color counts');
   for (const kind of [...kinds, 'grass']) {
-    const a = plantMeshes.find(m => m.userData.plantKind === kind), b = repeated.children.find(m => m.userData.plantKind === kind), geometry = createPlantGeometry(kind);
+    const cells = plantMeshes.filter(m => m.userData.plantKind === kind), repeats = repeated.children.filter(m => m.userData.plantKind === kind), a = cells[0], b = repeats[0], geometry = createPlantGeometry(kind);
+    check(cells.length === repeats.length && cells.every((m,i) => m.count === repeats[i].count && m.instanceMatrix.array.every((v,j) => v === repeats[i].instanceMatrix.array[j]) && m.instanceColor.array.every((v,j) => v === repeats[i].instanceColor.array[j])), `${kind} spatial batches preserve deterministic matrices and tints`);
+    const count = cells.reduce((n,m) => n + m.count, 0);
     const bounds = geometry.boundingBox;
     check(bounds.min.x >= -0.5-1e-5 && bounds.max.x <= 0.5+1e-5 && bounds.min.z >= -0.5-1e-5 && bounds.max.z <= 0.5+1e-5 && Math.abs(bounds.min.y) < 1e-5 && bounds.max.y <= 1+1e-5, `${kind} normalized ground-origin bounds`);
-    check(a.count === b.count && (kind === 'grass' || a.count === plants.filter(p => p.plant === kind).length) && a.count > 0 && a.instanceColor?.count === a.count, `${kind} uses deterministic tinted plant instances`);
+    check(count > 0 && (kind === 'grass' || count === plants.filter(p => p.plant === kind).length) && a.count > 0 && a.instanceColor?.count === a.count, `${kind} uses deterministic tinted plant instances`);
     if (kind === 'grass') check(a.geometry.getAttribute('position').count / 3 >= 100 && !a.castShadow && a.receiveShadow, 'fine curved grass receives architectural shadow without adding a grass shadow pass');
     check(a.geometry === b.geometry && a.material === b.material && a.geometry !== geometry, `${kind} uses cached shared geometry and material`);
     geometry.dispose();
@@ -68,10 +70,10 @@ print(js(r'''(async () => {
       check(m.elements.every((v,j) => Math.abs(v-want.elements[j]) < 1e-4), `box batch transform/yaw remains unchanged for ${color}`);
     });
   }
-  const grassMesh = plantMeshes.find(m => m.userData.plantKind === 'grass');
-  const grassPoints = Array.from({ length: grassMesh.count }, (_, i) => { grassMesh.getMatrixAt(i, m); return [m.elements[12], m.elements[14]]; });
+  const grassMeshes = plantMeshes.filter(m => m.userData.plantKind === 'grass'), grassMesh = grassMeshes[0], grassCount = grassMeshes.reduce((n,m) => n+m.count,0);
+  const grassPoints = grassMeshes.flatMap(mesh => Array.from({ length: mesh.count }, (_, i) => { mesh.getMatrixAt(i, m); return [m.elements[12], m.elements[14]]; }));
   check(grassPoints.every(([x,z]) => plots.every(p => Math.abs(x-p.x) >= p.width/2+0.5 || Math.abs(z-p.z) >= p.depth/2+0.5)), 'grass clears real-city building footprints');
   check(grassPoints.every(([x,z]) => lamps.every(([a,b]) => Math.abs(x-a) >= 0.68 || Math.abs(z-b) >= 0.68)), 'grass clears separate streetlamp bases');
   check(grassPoints.every(([x,z]) => kiosks.every(([a,b]) => Math.abs(x-a) >= 0.95 || Math.abs(z-b) >= 0.95)), 'grass clears separate phone box footprints');
-  return { pass:true, plants:plants.length, trees:trees.length, grassTufts:grassMesh.count, grassTriangles:grassMesh.count * (grassMesh.geometry.attributes.position.count/3), parkPlants:parkBoxes.list.filter(b => b.plant).length, plantBatches:plantMeshes.length, boxBatches:boxMeshes.length, boxes:ordinary.length };
+  return { pass:true, plants:plants.length, trees:trees.length, grassTufts:grassCount, grassTriangles:grassCount * (grassMesh.geometry.attributes.position.count/3), parkPlants:parkBoxes.list.filter(b => b.plant).length, plantBatches:plantMeshes.length, boxBatches:boxMeshes.length, boxes:ordinary.length };
 })()'''))
