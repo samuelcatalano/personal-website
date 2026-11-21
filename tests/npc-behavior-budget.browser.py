@@ -1,7 +1,7 @@
-# MOBILE=1 browser-harness < tests/npc-behavior-budget.browser.py
+# browser-harness < tests/npc-behavior-budget.browser.py
 import os
 new_tab('http://localhost:8000/tests/fixtures/npc-stage.html?qa=1');wait_for_load()
-mobile=os.environ.get('MOBILE')=='1'
+mobile=False
 cdp('Emulation.setDeviceMetricsOverride',width=375 if mobile else 1280,height=812 if mobile else 800,deviceScaleFactor=1,mobile=mobile)
 cdp('Network.enable');cdp('Network.setCacheDisabled',cacheDisabled=True)
 try:

@@ -52,8 +52,8 @@ expression = r'''(async () => {
   }
 })()'''
 try:
-    for width in [1280, 375]:
-        cdp('Emulation.setDeviceMetricsOverride', width=width, height=800, deviceScaleFactor=1, mobile=width == 375)
+    for width in [1280]:
+        cdp('Emulation.setDeviceMetricsOverride', width=width, height=800, deviceScaleFactor=1, mobile=False)
         reply = cdp('Runtime.evaluate', expression=expression, returnByValue=True, awaitPromise=True, _response_timeout=60)
         assert 'exceptionDetails' not in reply, reply.get('exceptionDetails')
         result = reply['result'].get('value')

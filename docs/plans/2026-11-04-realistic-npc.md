@@ -1,5 +1,7 @@
 # Realistic reference NPC — execution plan
 
+> **Status:** see the [handoff](../handoffs/2026-11-04-realistic-npc.md). The handoff prevails over this plan: the neck graft is NO-GO, and nothing here is a completion claim.
+
 **Request:** owner-supplied character specification and five reference images, 2026-11-04. This authorizes one new NPC, not crowd replacement. No external image uploads or new dependency installation.
 
 ## Token and context policy

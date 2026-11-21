@@ -18,7 +18,7 @@ reply = cdp('Runtime.evaluate', expression=r'''(async () => {
   check(sunDisc.geometry.parameters.width === 100 && moon.geometry.parameters.width === 64, 'Astros lost their intended scale');
   const pixels = moon.material.map.image.getContext('2d').getImageData(0, 0, 256, 256).data;
   check(pixels[(128 * 256 + 208) * 4] > 150 && pixels[(128 * 256 + 48) * 4] > 150, 'Full Moon must illuminate both limbs');
-  for (const [width, height, bar, fov] of [[1280, 800, 68, 40], [375, 812, 174, 65]]) {
+  for (const [width, height, bar, fov] of [[1280, 800, 68, 40]]) {
     camera.aspect = width / height; camera.fov = fov; camera.updateProjectionMatrix(); sky.setViewport(width, height, bar); sky.update(0, 0, camera.position, camera, mood);
     for (const object of [sunDisc, moon]) {
       const top = new T.Vector3(0, object.geometry.parameters.height / 2, 0).applyQuaternion(object.quaternion).add(object.position).project(camera);

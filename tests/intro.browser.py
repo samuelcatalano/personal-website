@@ -1,8 +1,8 @@
-"""Run with browser-harness. MOBILE=1 tests touch and early Skip; BOARD=1 waits for the world with reduced motion."""
+"""Run with browser-harness. Desktop only: the mobile path is paused."""
 import os
 import time
 
-mobile = os.environ.get('MOBILE') == '1'
+mobile = False  # mobile path paused; see CLAUDE.md
 board = not mobile or os.environ.get('BOARD') == '1'
 out = os.environ.get('OUT')
 

@@ -33,8 +33,8 @@ print(js("""(async () => {
   // Sé is the westernmost named landmark; Paulista's generic skyline is decoration.
   const seX = pts[stops.findIndex(s => s.id === 'puc')].x;
   const cathedral = landmarks.filter(b => Math.abs(b.x-seX) <= 16 && b.z >= -74 && b.z <= -50);
-  const minViewX = Math.min(...cathedral.map(b => b.x - b.w/2), ...pts.flatMap((p,i) => [false,true].map(mobile => shotFor(SECTION_SHOT[stops[i].section], {...p,y:0}, {mobile}).position[0])));
-  for (const mobile of [false, true]) {
+  const minViewX = Math.min(...cathedral.map(b => b.x - b.w/2), ...pts.flatMap((p,i) => [false].map(mobile => shotFor(SECTION_SHOT[stops[i].section], {...p,y:0}, {mobile}).position[0])));
+  for (const mobile of [false]) {
     const viewX = Math.min(...cathedral.map(c => c.x - c.w/2), ...pts.map((p,i) => shotFor(SECTION_SHOT[stops[i].section], {...p,y:0}, {mobile}).position[0]));
     for (const b of tiers) if (b.z + b.d/2 >= minLandmarkZ && b.x + b.w/2 >= viewX) throw Error('Backdrop roof tier enters landmark view '+JSON.stringify({mobile,b,viewX,minLandmarkZ}));
   }

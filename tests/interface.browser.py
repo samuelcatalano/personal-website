@@ -16,7 +16,7 @@ cdp('Emulation.setEmulatedMedia', features=[{'name': 'prefers-reduced-motion', '
 cdp('Runtime.evaluate', expression="history.replaceState(null, '', location.pathname); localStorage.setItem('lang', 'en'); localStorage.setItem('theme', 'day')")
 cdp('Page.reload', ignoreCache=True)
 wait_for_load()
-cdp('Emulation.setDeviceMetricsOverride', width=375, height=812, deviceScaleFactor=1, mobile=True)
+cdp('Emulation.setDeviceMetricsOverride', width=1280, height=800, deviceScaleFactor=1, mobile=False)
 try:
     print(js("""(async () => {
   const check = (ok, message) => { if (!ok) throw Error(message); };
@@ -37,7 +37,7 @@ try:
     link.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     if (section !== 'hero') {
       const navBox = nav.getBoundingClientRect(), linkBox = link.getBoundingClientRect();
-      check(linkBox.left >= navBox.left && linkBox.right <= navBox.right, `${section} link did not reveal in mobile navigation`);
+      check(linkBox.left >= navBox.left && linkBox.right <= navBox.right, `${section} link did not reveal in navigation`);
     }
     link.click(); await waitForSection(section);
     check(link.getAttribute('aria-current') === 'page', `${section} is not marked current`);
@@ -101,7 +101,7 @@ try:
   check(document.querySelectorAll('.detail').length === 1, 'Career selection must keep one detail open');
   document.querySelector('[data-nav=contact]').click(); await wait();
   const email = document.querySelector('.contact a[href^=\"mailto:\"]');
-  check(email && email.getBoundingClientRect().width > 0, 'Contact email is inaccessible at 375px');
+  check(email && email.getBoundingClientRect().width > 0, 'Contact email is inaccessible');
   check(document.querySelector('[data-theme]'), 'Theme control is unreachable');
   return { pass: true, careerRows: rows.length };
 })()"""))
@@ -123,7 +123,7 @@ try:
   check(document.querySelector('.detail').textContent.includes(i18n.en.stops[active.id].role), 'English career role does not match i18n');
   return { pass: true, checked: ['hero title/role/tagline/meta EN/PT', 'career role EN/PT'] };
 })()"""))
-    screenshot('mobile-en-day.png')
+    screenshot('panel-en-day.png')
 finally:
     js("if (HTMLCanvasElement.prototype.__originalGetContext) HTMLCanvasElement.prototype.getContext = HTMLCanvasElement.prototype.__originalGetContext; delete HTMLCanvasElement.prototype.__originalGetContext")
     cdp('Page.removeScriptToEvaluateOnNewDocument', identifier=fallback_script)
@@ -141,7 +141,7 @@ print(js("""(() => {
 screenshot('tablet-800-en-day.png')
 cdp('Emulation.clearDeviceMetricsOverride')
 
-# Capture real scene states at desktop and mobile sizes after the fallback-only UI checks.
+# Capture real scene states at desktop size after the fallback-only UI checks.
 cdp('Runtime.evaluate', expression="history.replaceState(null, '', location.pathname); localStorage.setItem('lang', 'en'); localStorage.setItem('theme', 'day')")
 cdp('Emulation.setDeviceMetricsOverride', width=1440, height=900, deviceScaleFactor=1.25, mobile=False)
 cdp('Page.reload', ignoreCache=True)
@@ -159,16 +159,4 @@ screenshot('desktop-pt-day-career.png')
 js("document.querySelector('[data-theme]').click()")
 time.sleep(.3)
 screenshot('desktop-pt-night-career.png')
-cdp('Emulation.setDeviceMetricsOverride', width=375, height=812, deviceScaleFactor=1, mobile=True)
-js("document.querySelector('[data-nav-home]').click()")
-time.sleep(2)
-screenshot('mobile-pt-night-hero.png')
-js("document.querySelector('[data-nav=journey]').click()")
-time.sleep(2)
-screenshot('mobile-pt-night-career.png')
-js("document.querySelector('[data-theme]').click(); document.querySelector('.controls [data-lang]').click()")
-time.sleep(.3)
-screenshot('mobile-en-day-career.png')
-cdp('Emulation.setDeviceMetricsOverride', width=187, height=406, deviceScaleFactor=1, mobile=True)
-screenshot('mobile-200pct-zoom-career.png')
 cdp('Emulation.clearDeviceMetricsOverride')

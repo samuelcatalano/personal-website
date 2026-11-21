@@ -8,7 +8,7 @@ For city work, start with the three current references below; consult other docu
 - `docs/architecture/rendering-budget.md`: budgets, measured evidence and measurement limits.
 - `docs/art-direction.md`: approved visual language.
 
-Asset-pipeline plan (not implemented, needs owner approval per phase): `docs/architecture/blender-asset-pipeline.md` and `docs/plans/3d-asset-pipeline-roadmap.md`.
+Asset-pipeline plan (Phases 0-2 implemented 2026-10-29; later phases need owner approval per phase): `docs/architecture/blender-asset-pipeline.md` and `docs/plans/3d-asset-pipeline-roadmap.md`.
 
 `docs/PRD.md` covers product goals; `docs/TRD.md` covers interfaces/runtime. Dated specs/plans under `docs/superpowers/` are historical context. The current references supersede their older city art, model, budget and rollout proposals; historical plans do not authorize further implementation.
 
@@ -27,7 +27,7 @@ If independent subagent work is selected, give each agent one self-contained mod
 
 ## Rules
 
-- **No build step, no npm.** Plain HTML/CSS/ES modules. `three` comes from jsDelivr via the importmap in `index.html` with an exact pinned version. Push to `main` = deploy.
+- **No build step; no npm in the shipped site.** Plain HTML/CSS/ES modules. `tools/pipeline/` is a dev-only npm package and is not shipped. `three` comes from jsDelivr via the importmap in `index.html` with an exact pinned version. Push to `main` = deploy.
 - All copy lives in `js/content.js` with `en` and `pt` for every user-facing string. No copy hardcoded in other modules.
 - The HTML panel is the source of truth for content; the 3D world is decoration. Site must be fully usable with WebGL off and with `prefers-reduced-motion`.
 - **Privacy:** never publish the home address or phone number from the CV. Contact = email, LinkedIn, GitHub.
@@ -41,14 +41,14 @@ If independent subagent work is selected, give each agent one self-contained mod
 python3 -m http.server 8000      # local preview at http://localhost:8000
 node --test tests/               # content integrity check (CI runs it on every push)
 node tools/preload-list.mjs      # modulepreload tags for index.html; tests/preload.test.mjs fails when they drift
-OUT=<dir> SHOTS="5:day,11:night" GRID=1 browser-harness < tools/capture.py   # scene capture (MOBILE=1, QUERY=weather=rain)
+OUT=<dir> SHOTS="5:day,11:night" GRID=1 browser-harness < tools/capture.py   # scene capture (QUERY=weather=rain)
 ```
 
 Capture stops: 5 São Paulo, 9.5 London, 11 Glasgow (ids in `js/content.js`). The global `/capture` skill defers to `tools/capture.py` here.
 
 ## Verify before claiming done
 
-Use **Validation Strategy** below; claim only checks actually run. At milestones/before expansion, preserve the product matrix: desktop + mobile (375px), day/night, EN/PT, WebGL disabled, reduced motion, no console errors, Lighthouse a11y ≥ 95 when applicable. This is not a requirement to run the full matrix for each small edit.
+Use **Validation Strategy** below; claim only checks actually run. At milestones/before expansion, preserve the product matrix: desktop, day/night, EN/PT, WebGL disabled, reduced motion, no console errors, Lighthouse a11y ≥ 95 when applicable. This is not a requirement to run the full matrix for each small edit.
 
 ## 3D City Development Rules
 
@@ -59,7 +59,7 @@ Use **Validation Strategy** below; claim only checks actually run. At milestones
 - Keep architecture data-driven: lot data remains the source of truth. No new engine/framework without concrete need and authorization.
 - Reuse materials, textures and geometries; batch by spatial chunk, with at most three conceptual architecture buckets: mass / trim / glass.
 - Townhouse visual language, batching, LOD0/LOD1, hysteresis and standard culling are approved. Do not redesign townhouses or repeat resolved discovery/architecture without an explicit request.
-- Architectural validation is not citywide rollout approval. Work only on explicitly authorized lots/regions; other archetypes and expansion require approval.
+- The approved archetypes' citywide rollout is complete (see `docs/handoff/status-log.md`). Other archetypes and regions need explicit owner approval; architectural validation alone is not rollout approval. Work only on explicitly authorized lots/regions.
 - Do not repeat full benchmarks for small adjustments. Use the validation level matching the change.
 - Edit only in-scope files. Preserve all preexisting working-tree changes; do not infer authorship from Git status. Never use destructive git reset/restore/clean to discard them.
 
@@ -81,7 +81,7 @@ Run directly related tests, visual validation and a simple A/B when performance 
 
 ### Milestone / before expansion
 
-Run full Node regression, relevant browser suites, desktop/mobile checks, repeated A/B when performance is relevant, Lighthouse when applicable, and broader review. Apply the product matrix above to affected behavior.
+Run full Node regression, relevant browser suites, desktop checks, repeated A/B when performance is relevant, Lighthouse when applicable, and broader review. Apply the product matrix above to affected behavior.
 
 Avoid Lighthouse, 20+ measurements and every browser suite for small edits. Broaden checks only for changed behavior, failures or a specific unresolved concern; report what was skipped without implying it passed.
 

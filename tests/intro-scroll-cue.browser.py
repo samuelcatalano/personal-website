@@ -26,7 +26,7 @@ try:
       const loaded = new Promise((resolve,reject) => { sheet.onload=resolve; sheet.onerror=reject; });
       document.head.append(sheet); await loaded;
     })()''')
-    for name, width, height in [('desktop', 1280, 1000), ('compact', 1280, 720), ('mobile', 375, 812), ('touch', 375, 812)]:
+    for name, width, height in [('desktop', 1280, 1000), ('compact', 1280, 720)]:
         cdp('Emulation.setDeviceMetricsOverride', width=width, height=height,
             deviceScaleFactor=1, mobile=name in ['mobile', 'touch'])
         cdp('Emulation.setTouchEmulationEnabled', enabled=name == 'touch')

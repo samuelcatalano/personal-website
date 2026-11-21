@@ -28,7 +28,7 @@ js/audio/voices/{beds,shots}.js continuous voices (rain, wind, city beds, engine
 js/scroll.js               scroll progress, nearest stop, stop navigation positions and passive scroll listener
 js/world/scene.js          renderer, route, scene assembly, camera framing, animation, resize and lifecycle
 js/world/layout.js         route point spacing, landmark anchors, camera lifts, furniture anchors and seeded RNG
-js/world/camera.js         shot definitions, eased shot blending, spring, approach and quality-tier selection
+js/world/camera.js         shot definitions, eased shot blending, spring, approach
 js/world/voxel.js          group box data into InstancedMesh batches by material/color
 js/world/city.js           road, paving, Thames banks, street furniture, houses/trees and generation orchestration
 js/world/blocks.js         procedural city blocks, skyline and protected building regions
@@ -65,7 +65,7 @@ The rear infill street stays behind z=-100 and clears the university, museum bac
 
 The scroll target is smoothed with a spring and the bus follows the resulting route parameter. Camera shots vary by content section; `blendShots` eases framing between adjacent stops, while `FRAME_LIFT` gives selected journey stops extra headroom. Desktop and mobile use different framing to account for the panel. Resize handling updates DPR (capped at 1.5 desktop and 1 mobile), viewport, shadow-map enablement and camera view offset. The renderer configures a 2048² directional shadow map and disables shadow rendering on mobile.
 
-Postprocessing uses a render pass, bloom and output pass. Desktop starts at the high tier with GTAO and sun rays; mobile and reduced-motion start at medium, without those heavier passes. On desktop, an average below 40 FPS over a two-second sampling window lowers high to medium; the tier does not rise again. This is a quality fallback, not a guaranteed FPS target.
+Postprocessing uses a render pass, bloom and output pass. Desktop starts at the high tier with GTAO and sun rays; viewports up to 767 px start at medium, without those heavier passes. The tier is set at load and never downgrades at runtime (owner rule: no FPS fallback). Reduced motion keeps the high tier and stops animation, not AO.
 
 ## Extending the route: Glasgow example
 
@@ -73,15 +73,14 @@ Add a stop to `content.js` in chronological order, with matching English and Por
 
 Glasgow follows the London OLM stop and precedes Tribal. `LANDMARKS.glasgow` anchors George Square at that route point; its builder receives the point and places the square/civic frontage on the far side of the road. `city.js` suppresses far-side houses whose footprints intersect the square's x/z bounds, while `blocks.js` includes its clearance rectangle among protected regions. Existing stop furniture is derived from the curve, and parks/plazas are checked against pedestrian loops and their clearances. This keeps the new landmark footprint free as the route is regenerated.
 
-The camera continues to use the same section shots and smooth blend at the new stop. Glasgow has no special `FRAME_LIFT`, so it uses the normal follow framing. Geometry joins the existing color batches where possible; adding a stop does not add a new render pass. Keep the landmark modest and preserve instancing/clearance checks so route growth does not needlessly increase draw calls or crowd the camera. The current FPS tier mechanism can drop desktop postprocessing quality if measured performance falls below its threshold.
-
+The camera continues to use the same section shots and smooth blend at the new stop. Glasgow has no special `FRAME_LIFT`, so it uses the normal follow framing. Geometry joins the existing color batches where possible; adding a stop does not add a new render pass. Keep the landmark modest and preserve instancing/clearance checks so route growth does not needlessly increase draw calls or crowd the camera.
 `building-kit.js` integrates the approved archetype builders, exact controls and compatible citywide chunks. Deterministic vertex data provides variation without per-building materials. Legacy renderer paths remain for genuine special lots and baseline tests; they are not disposable benchmark instrumentation. There are no new external assets. Existing road/path clearances remain; ambient traffic maps elapsed time through refined route-distance marks so speed stays consistent across short and long segments.
 
 The city includes road and sidewalk surfaces, plaza details, landmarks, bridge/water, vehicles and streetscape geometry. Their dated implementation and validation records live in the architecture and rendering-budget documents. The bus and people intentionally remain stylized.
 
 ## Motion and accessibility behavior
 
-- With `prefers-reduced-motion`, route progress snaps to the nearest stop, ambient time and pedestrian movement are paused, and the world starts on the medium postprocessing tier. The HTML panel and its navigation remain available.
+- With `prefers-reduced-motion`, route progress snaps to the nearest stop, ambient time and pedestrian movement are paused. The HTML panel and its navigation remain available.
 - Without WebGL, or if dynamic world loading fails, the panel remains usable over a CSS gradient background. Sound then plays only the city bed and the weather (no vehicles, plane, crowd or bells).
 - Sound is not motion: it stays available with `prefers-reduced-motion`. The audio context is suspended while the tab is hidden and while sound is off; any audio failure is silence, never a console error.
 - The canvas is `aria-hidden`; content, links, controls and announcements are HTML. The panel is the source of truth; the 3D world is decorative.
@@ -93,7 +92,7 @@ The city includes road and sidewalk surfaces, plaza details, landmarks, bridge/w
 - `tests/*.browser.py` exercise real WebGL rendering and browser behavior, including fallback, world assembly, camera, vehicles, people and visual regressions.
 - `tests/building-kit.browser.py` checks five procedural archetypes, lot bounds and instancing; `tests/real-city.browser.py` checks ordinary plot integration, shared batches, road/path continuity and Tower Bridge clearance; `tests/citywide.browser.py` covers the production rollout and controls; `tests/vehicles.browser.py` checks consistent distance-mapped traffic speed.
 - `tests/audio-state.test.mjs` checks the pure mix (gain bounds, region crossfade, day/night, tunnel, voice caps, thunder delay, door and bell cues). `tests/audio.browser.py` renders two reference scenes through the real graph on an `OfflineAudioContext` (not silent, peak below -1 dBFS), drives the Sound button with a real click, and rides the whole route to hear every family.
-- The manual verification matrix is in `CLAUDE.md`: desktop and 375px mobile, day/night, EN/PT, WebGL disabled, reduced motion, no console errors and Lighthouse accessibility at least 95.
+- The manual verification matrix is in `CLAUDE.md`: desktop, day/night, EN/PT, WebGL disabled, reduced motion, no console errors and Lighthouse accessibility at least 95.
 
 ## Privacy
 

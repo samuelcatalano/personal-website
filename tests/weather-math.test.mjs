@@ -14,8 +14,8 @@ test('moon is always full with symmetric limb shading and no light outside its d
   }
 });
 
-test('astros clear the header on desktop/mobile and dense overcast hides them', () => {
-  for (const [w, h, bar] of [[1280, 800, 68], [375, 812, 174], [800, 500, 80]]) {
+test('astros clear the header on desktop and dense overcast hides them', () => {
+  for (const [w, h, bar] of [[1280, 800, 68], [800, 500, 80]]) {
     const [x, y] = celestialFrame(w, h, bar);
     assert.ok(Math.abs(x) < 1 && Math.abs(y) < 1);
     assert.ok((1 - y) * h / 2 > bar + 16);

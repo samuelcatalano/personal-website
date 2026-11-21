@@ -6,7 +6,7 @@ activate_tab(target)
 cdp('Network.enable')
 cdp('Network.setCacheDisabled', cacheDisabled=True)
 cdp('Network.setBypassServiceWorker', bypass=True)
-cdp('Emulation.setDeviceMetricsOverride', width=375, height=812, deviceScaleFactor=1, mobile=True)
+cdp('Emulation.setDeviceMetricsOverride', width=1280, height=800, deviceScaleFactor=1, mobile=False)
 cdp('Emulation.setEmulatedMedia', features=[{'name': 'prefers-reduced-motion', 'value': 'reduce'}])
 def evaluate(expression):
     r=cdp('Runtime.evaluate', expression=expression, returnByValue=True, awaitPromise=True, _response_timeout=120)

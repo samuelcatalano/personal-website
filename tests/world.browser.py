@@ -22,8 +22,6 @@ try:
   window.__waitForBuffer = waitForBuffer;
   return { desktopBuffer: await waitForBuffer(1440, 900, 2160, 1350) };
 })()"""))
-    cdp('Emulation.setDeviceMetricsOverride', width=375, height=812, deviceScaleFactor=3, mobile=True)
-    print(js("""(async () => ({ mobileBuffer: await __waitForBuffer(375, 812, 375, 812) }))()"""))
     print(js("""(async () => {
       const [first, second] = await Promise.all([__renderWorld.snapshot(), __renderWorld.snapshot()]);
       if (!first.size || first.type !== 'image/png' || first !== second) throw Error('Concurrent snapshots did not receive the same PNG');
@@ -34,7 +32,7 @@ try:
 finally:
     js("window.__renderWorld?.dispose(); delete window.__renderWorld; delete window.__renderCanvas; delete window.__waitForBuffer")
     cdp('Emulation.clearDeviceMetricsOverride')
-cdp('Emulation.setDeviceMetricsOverride', width=375, height=812, deviceScaleFactor=1, mobile=True)
+cdp('Emulation.setDeviceMetricsOverride', width=1440, height=900, deviceScaleFactor=1, mobile=False)
 try:
     print(js("""(async () => {
   const previous = scrollY;
