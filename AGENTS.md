@@ -44,6 +44,7 @@ Check that a skill, plugin or MCP server is installed before relying on it. Use 
 - `frontend-design:frontend-design` and `product-frontend-design` for UI work.
 - `ctx_execute` for large command output and data analysis.
 - `find-skills` (skill): discover and install a skill when a task needs a capability that is not installed yet.
+- `browser-harness` (skill): direct browser control over CDP for interaction, logged-in sessions, JS-rendered or bot-protected pages. Plain fetch first for public pages.
 - `serena` (MCP server): symbol-level code navigation and edits. Prefer it over reading whole files.
 - `rea` (MCP server): reverse engineering of shipped artifacts, native binaries and browser targets. Analysis only; do not use it for ordinary source-repository architecture.
 
