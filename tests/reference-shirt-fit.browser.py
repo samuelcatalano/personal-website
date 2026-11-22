@@ -1,7 +1,7 @@
 # Desktop NPC fixture: measure deformation across the complete Wave, and load every existing clip.
 print(js(r'''(async()=>{
  const T=await import('three'),{GLTFLoader}=await import('three/addons/loaders/GLTFLoader.js');
- const gltf=await new GLTFLoader().loadAsync('/assets/npc/reference/samuel_hero_lod0.glb?v=samuel-hero-58574ddb');
+ const gltf=await new GLTFLoader().loadAsync('/assets/npc/reference/samuel_hero_lod0.glb?v=samuel-hero-25887454');
  const body=gltf.scene.getObjectByName('Body'),p=body.geometry.attributes.position,index=body.geometry.index;
  const mixer=new T.AnimationMixer(gltf.scene),positions=Array.from({length:p.count},()=>new T.Vector3()),edges={collar:[],sleeve:[]},seen=new Set(),a=new T.Vector3(),b=new T.Vector3();
  const region=i=>{const x=Math.abs(p.getX(i)),y=p.getY(i);return x<.14&&y>1.42&&y<1.54?'collar':x>.17&&x<.44&&y>1.08&&y<1.48?'sleeve':null;};

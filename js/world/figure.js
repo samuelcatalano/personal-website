@@ -14,10 +14,11 @@ function lightCharacter(root, figure) {
   const materials = [];
   root.traverse((mesh) => {
     if (mesh.name === 'ReferenceEyes') {
-      // At this distance an eye covers about one pixel: white sclera and dark iris fight for it and flicker.
-      // ponytail: always the steady dark eye; bring the detailed colours back if the camera ever gets close.
-      Object.assign(mesh.material, { vertexColors: false, clearcoat: 0, roughness: .85, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2, needsUpdate: true });
-      mesh.material.color.set('#1c1411');
+      // Steady eye: at the closing distance (~26 m) the eye covers 1 to 2 px, and high-contrast iris or sclera shimmers as the head moves.
+      // One flat tone keeps it still. The baked eye colours stay in the GLB and are not used here.
+      // It stays out of the night fill below, so it does not glow.
+      Object.assign(mesh.material, { vertexColors: false, clearcoat: 0, roughness: .85, polygonOffset: false, needsUpdate: true });
+      mesh.material.color.set('#3e312b');
       return;
     }
     if (!mesh.isMesh) return;

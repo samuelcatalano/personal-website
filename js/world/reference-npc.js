@@ -155,10 +155,77 @@ function repaintForearmSkin(mesh) {
   map.image = canvas;
   map.needsUpdate = true;
 }
+// Short sleeves: the photos put the sleeve's dark cloth onto the arm just below the hem. Dark arm texels in a band around the
+// hem take the skin tone, fading in from the hem so the edge has no line. The cloth above the hem is untouched.
+const SLEEVE_DARK_LUMA = 105, BLEND_HEM = 1.20, HEM_BELOW = .015, HEM_ABOVE = .02, ARM_BONE = /^(upperarm|lowerarm|hand)_/; // BLEND_HEM is local: the forearm repaint keeps SLEEVE_HEM
+const BLEND_PAD = 2;
+function blendSleeveHem(mesh) {
+  const map = mesh.material.map, image = map?.image;
+  const { geometry, skeleton } = mesh;
+  if (!image?.width || !geometry.attributes.skinIndex) return;
+  const uv = geometry.attributes.uv, position = geometry.attributes.position;
+  const skinIndex = geometry.attributes.skinIndex, skinWeight = geometry.attributes.skinWeight;
+  const strength = new Float32Array(uv.count); // 1 at HEM_BELOW under the hem, 0 at HEM_ABOVE over it, smooth between; arm vertices only
+  for (let v = 0; v < uv.count; v++) {
+    let best = 0;
+    for (let k = 1; k < 4; k++) if (skinWeight.getComponent(v, k) > skinWeight.getComponent(v, best)) best = k;
+    if (!ARM_BONE.test(skeleton.bones[skinIndex.getComponent(v, best)]?.name ?? '')) continue;
+    const u = Math.min(1, Math.max(0, (BLEND_HEM + HEM_ABOVE - position.getY(v)) / (HEM_BELOW + HEM_ABOVE)));
+    strength[v] = u * u * (3 - 2 * u);
+  }
+  const W = image.width, H = image.height;
+  const canvas = Object.assign(document.createElement('canvas'), { width: W, height: H });
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(image, 0, 0);
+  const pixels = ctx.getImageData(0, 0, W, H), data = pixels.data;
+  let sr = 0, sg = 0, sb = 0, count = 0; // skin tone: mean of the atlas's skin-like texels
+  for (let i = 0; i < data.length; i += 4) if (isSkinLike(data[i], data[i + 1], data[i + 2])) { sr += data[i]; sg += data[i + 1]; sb += data[i + 2]; count++; }
+  if (!count) return;
+  const skin = [sr / count, sg / count, sb / count], skinLuma = luminance(skin[0], skin[1], skin[2]);
+  const covered = new Uint8Array(W * H), painted = []; // covered: texel centre inside any triangle; painted: texels this pass recoloured
+  const index = geometry.index?.array ?? null, triangles = (index ? index.length : uv.count) / 3;
+  for (let t = 0; t < triangles; t++) {
+    const a = index ? index[3 * t] : 3 * t, b = index ? index[3 * t + 1] : 3 * t + 1, c = index ? index[3 * t + 2] : 3 * t + 2;
+    const ax = uv.getX(a) * W, ay = uv.getY(a) * H, bx = uv.getX(b) * W, by = uv.getY(b) * H, cx = uv.getX(c) * W, cy = uv.getY(c) * H;
+    const x0 = Math.max(0, Math.floor(Math.min(ax, bx, cx))), x1 = Math.min(W - 1, Math.ceil(Math.max(ax, bx, cx)));
+    const y0 = Math.max(0, Math.floor(Math.min(ay, by, cy))), y1 = Math.min(H - 1, Math.ceil(Math.max(ay, by, cy)));
+    if (x1 - x0 > COLLAR_SPAN || y1 - y0 > COLLAR_SPAN) continue; // triangles across a UV seam span the atlas: skip them
+    const det = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy);
+    if (Math.abs(det) < 1e-9) continue;
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      const px = x + .5, py = y + .5;
+      const l1 = ((by - cy) * (px - cx) + (cx - bx) * (py - cy)) / det;
+      const l2 = ((cy - ay) * (px - cx) + (ax - cx) * (py - cy)) / det, l3 = 1 - l1 - l2;
+      if (l1 < -1e-4 || l2 < -1e-4 || l3 < -1e-4) continue;
+      const amount = l1 * strength[a] + l2 * strength[b] + l3 * strength[c];
+      covered[y * W + x] = 1;
+      if (amount <= 0) continue;
+      const i = 4 * (y * W + x), lum = luminance(data[i], data[i + 1], data[i + 2]);
+      if (lum >= SLEEVE_DARK_LUMA) continue; // skin and lit texels stay
+      const shade = Math.min(1, Math.max(.85, lum / skinLuma)); // the cloth's darkness, relative to skin, is the fold shading to keep
+      for (let k = 0; k < 3; k++) data[i + k] += (skin[k] * shade - data[i + k]) * amount;
+      painted.push(y * W + x);
+    }
+  }
+  // Island padding: bilinear and mip reads at a chart edge also take the uncovered texels beside it, which still hold the photo's
+  // dark cloth (a thin dark line along the skin). Copy each painted texel into the free dark texels within BLEND_PAD texels.
+  for (let pass = 0, front = painted; pass < BLEND_PAD; pass++) {
+    const next = [];
+    for (const i of front) for (const j of [i % W ? i - 1 : -1, (i + 1) % W ? i + 1 : -1, i - W, i + W]) {
+      if (j < 0 || j >= covered.length || covered[j] || luminance(data[4 * j], data[4 * j + 1], data[4 * j + 2]) >= SLEEVE_DARK_LUMA) continue;
+      covered[j] = 1; next.push(j);
+      for (let k = 0; k < 3; k++) data[4 * j + k] = data[4 * i + k];
+    }
+    front = next;
+  }
+  ctx.putImageData(pixels, 0, 0);
+  map.image = canvas;
+  map.needsUpdate = true;
+}
 // Reference sneakers: the foot triangles at the bottom of the shoe become a plain white midsole material,
 // a second index group on the same Body geometry. Feet sink about 2 cm into the ground (figure.js pool note),
 // so the band is cut at rest y < SOLE_TOP. ponytail: sole only; the orange heel tab (2-3 px) is skipped.
-const SOLE_TOP = .05, FOOT_BONE = /^(foot|ball)_/;
+const SOLE_TOP = .05, SOLE_SMOOTH_PASSES = 4, FOOT_BONE = /^(foot|ball)_/;
 function splitSoles(geometry, skeleton) {
   const index = geometry.index.array, position = geometry.attributes.position;
   const skinIndex = geometry.attributes.skinIndex, skinWeight = geometry.attributes.skinWeight;
@@ -168,10 +235,25 @@ function splitSoles(geometry, skeleton) {
     for (let k = 1; k < 4; k++) if (skinWeight.getComponent(v, k) > skinWeight.getComponent(v, best)) best = k;
     foot[v] = FOOT_BONE.test(skeleton.bones[skinIndex.getComponent(v, best)]?.name ?? '') ? 1 : 0;
   }
+  // The cut follows triangle edges, so it reads as a sawtooth. Average each foot vertex's height over its neighbours a few
+  // times first: the cut becomes a gentle curve, and the sole stays where it was.
+  const height = Float32Array.from({ length: position.count }, (_, v) => position.getY(v));
+  const neighbours = Array.from({ length: position.count }, () => new Set());
+  for (let t = 0; t < index.length; t += 3) for (let k = 0; k < 3; k++) for (let m = 0; m < 3; m++) if (k !== m) neighbours[index[t + k]].add(index[t + m]);
+  for (let pass = 0; pass < SOLE_SMOOTH_PASSES; pass++) {
+    const next = Float32Array.from(height);
+    for (let v = 0; v < position.count; v++) {
+      if (!foot[v] || !neighbours[v].size) continue;
+      let sum = height[v];
+      for (const n of neighbours[v]) sum += height[n];
+      next[v] = sum / (neighbours[v].size + 1);
+    }
+    height.set(next);
+  }
   const body = [], sole = [];
   for (let t = 0; t < index.length; t += 3) {
     const a = index[t], b = index[t + 1], c = index[t + 2];
-    const low = foot[a] && foot[b] && foot[c] && position.getY(a) + position.getY(b) + position.getY(c) < 3 * SOLE_TOP;
+    const low = foot[a] && foot[b] && foot[c] && height[a] + height[b] + height[c] < 3 * SOLE_TOP;
     (low ? sole : body).push(a, b, c);
   }
   geometry.setIndex([...body, ...sole]);
@@ -363,9 +445,45 @@ function paintCollarSkin(mesh) {
   map.needsUpdate = true;
 }
 
-// The beard covers the neck front and reads as black. Dark texels in the neck band take the atlas's skin tone, keeping their baked
-// shading. Runs after paintCollarSkin, which only touches skin-like texels, so the two never undo each other.
-const NECK_LO = 1.40, NECK_HI = 1.50, BEARD_LUMA = 95;
+// Beard repair: the front-photo projection leaves the jaw's side texels (old atlas, no photo coverage) as neutral dark grey, which reads
+// as black spots on the brown beard. Cool-neutral dark texels in the jaw band take the beard's warm hue, keeping their own value.
+const BEARD_LO = 1.47, BEARD_HI = 1.60;
+function paintBeardSpots(mesh) {
+  const map = mesh.material.map, image = map?.image, { geometry } = mesh;
+  if (!image?.width) return;
+  const uv = geometry.attributes.uv, position = geometry.attributes.position, W = image.width, H = image.height;
+  const canvas = Object.assign(document.createElement('canvas'), { width: W, height: H });
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(image, 0, 0);
+  const pixels = ctx.getImageData(0, 0, W, H), data = pixels.data, index = geometry.index.array;
+  const inBand = v => position.getY(v) > BEARD_LO && position.getY(v) < BEARD_HI;
+  const done = new Uint8Array(W * H);
+  for (let t = 0; t < index.length / 3; t++) {
+    const a = index[3 * t], b = index[3 * t + 1], c = index[3 * t + 2];
+    if (!(inBand(a) && inBand(b) && inBand(c))) continue;
+    const ax = uv.getX(a) * W, ay = uv.getY(a) * H, bx = uv.getX(b) * W, by = uv.getY(b) * H, cx = uv.getX(c) * W, cy = uv.getY(c) * H;
+    const x0 = Math.max(0, Math.floor(Math.min(ax, bx, cx)) - 2), x1 = Math.min(W - 1, Math.ceil(Math.max(ax, bx, cx)) + 2);
+    const y0 = Math.max(0, Math.floor(Math.min(ay, by, cy)) - 2), y1 = Math.min(H - 1, Math.ceil(Math.max(ay, by, cy)) + 2);
+    if (x1 - x0 > COLLAR_SPAN || y1 - y0 > COLLAR_SPAN) continue;
+    const det = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy);
+    if (Math.abs(det) < 1e-9) continue;
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      if (done[y * W + x]) continue;
+      const px = x + .5, py = y + .5, l1 = ((by - cy) * (px - cx) + (cx - bx) * (py - cy)) / det, l2 = ((cy - ay) * (px - cx) + (ax - cx) * (py - cy)) / det;
+      if (l1 < -.15 || l2 < -.15 || 1 - l1 - l2 < -.15) continue;
+      const i = 4 * (y * W + x), r = data[i], g = data[i + 1], bl = data[i + 2], lum = luminance(r, g, bl);
+      if (lum < 70 && bl >= r - 4) { done[y * W + x] = 1; data[i] = lum * 1.22; data[i + 1] = lum * .93; data[i + 2] = lum * .8; } // ponytail: fixed beard hue (r:g:b 1.22:.93:.8 of the value)
+    }
+  }
+  ctx.putImageData(pixels, 0, 0);
+  map.image = canvas;
+  map.needsUpdate = true;
+}
+
+// The beard covers the neck front and reads as black; the photos also leave grey and light texels on the neck back. Every texel in
+// the band that is not skin takes the skin tone, keeping its baked shading. Runs after paintCollarSkin, so the collar's shirt paint
+// inside this band is replaced too; the shirt collar itself is the Body mesh, below the band.
+const NECK_LO = 1.47, NECK_HI = 1.53;
 function paintNeckSkin(mesh) {
   const map = mesh.material.map, image = map?.image;
   const { geometry } = mesh;
@@ -390,8 +508,8 @@ function paintNeckSkin(mesh) {
     const a = index ? index[3 * t] : 3 * t, b = index ? index[3 * t + 1] : 3 * t + 1, c = index ? index[3 * t + 2] : 3 * t + 2;
     if (!strength[a] && !strength[b] && !strength[c]) continue;
     const ax = uv.getX(a) * W, ay = uv.getY(a) * H, bx = uv.getX(b) * W, by = uv.getY(b) * H, cx = uv.getX(c) * W, cy = uv.getY(c) * H;
-    const x0 = Math.max(0, Math.floor(Math.min(ax, bx, cx))), x1 = Math.min(W - 1, Math.ceil(Math.max(ax, bx, cx)));
-    const y0 = Math.max(0, Math.floor(Math.min(ay, by, cy))), y1 = Math.min(H - 1, Math.ceil(Math.max(ay, by, cy)));
+    const x0 = Math.max(0, Math.floor(Math.min(ax, bx, cx)) - 3), x1 = Math.min(W - 1, Math.ceil(Math.max(ax, bx, cx)) + 3); // 3 px gutter: texels between islands are filtered in with them
+    const y0 = Math.max(0, Math.floor(Math.min(ay, by, cy)) - 3), y1 = Math.min(H - 1, Math.ceil(Math.max(ay, by, cy)) + 3);
     if (x1 - x0 > COLLAR_SPAN || y1 - y0 > COLLAR_SPAN) continue; // triangles across a UV seam span the atlas: skip them
     const det = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy);
     if (Math.abs(det) < 1e-9) continue;
@@ -399,11 +517,16 @@ function paintNeckSkin(mesh) {
       const px = x + .5, py = y + .5;
       const l1 = ((by - cy) * (px - cx) + (cx - bx) * (py - cy)) / det;
       const l2 = ((cy - ay) * (px - cx) + (ax - cx) * (py - cy)) / det, l3 = 1 - l1 - l2;
-      if (l1 < -1e-4 || l2 < -1e-4 || l3 < -1e-4) continue;
+      if (l1 < -.15 || l2 < -.15 || l3 < -.15) continue; // a little outside the triangle too, for the gutter
       const amount = l1 * strength[a] + l2 * strength[b] + l3 * strength[c];
       if (amount <= 0) continue;
       const i = 4 * (y * W + x), lum = luminance(data[i], data[i + 1], data[i + 2]);
-      if (lum >= BEARD_LUMA) continue; // skin, lit fabric and beard highlights stay
+      if (isSkinLike(data[i], data[i + 1], data[i + 2])) {
+        if (lum <= 150) continue; // the neck's own pale skin stays as it is
+        const cap = 150 / lum; // only the highlights above 150 come down, keeping their hue
+        for (let k = 0; k < 3; k++) data[i + k] += (data[i + k] * cap - data[i + k]) * amount;
+        continue;
+      }
       const shade = Math.min(1, Math.max(.6, lum / 70)); // the beard's own darkness is the fold shading to keep
       for (let k = 0; k < 3; k++) data[i + k] += (skin[k] * shade - data[i + k]) * amount;
     }
@@ -466,7 +589,7 @@ export async function loadReferenceNpcAssets({ levels = [0] } = {}) {
     // Keep completed loads available for cleanup if another LOD fails.
     const results = await Promise.allSettled(levels.map(async level => {
       // Only LOD0 ships: samuel_hero_lod0.glb is the closing character (Idle, Walk, Wave clips; helper bones driven by npc-helper-bones.js).
-      const gltf = await loader.loadAsync(new URL(`../../assets/npc/reference/samuel_hero_lod${level}.glb?v=samuel-hero-58574ddb`, import.meta.url).href);
+      const gltf = await loader.loadAsync(new URL(`../../assets/npc/reference/samuel_hero_lod${level}.glb?v=samuel-hero-25887454`, import.meta.url).href);
       assets[level] = gltf;
       return gltf;
     }));
@@ -494,7 +617,7 @@ export async function loadReferenceNpcAssets({ levels = [0] } = {}) {
     // Lower LODs retain the same UV atlases; use LOD0's three materials in every level.
     assets.slice(1).forEach(asset => disposeMaterials(asset.scene));
     meshes[0].forEach(tuneMaterial);
-    meshes[0].forEach(mesh => { if (mesh.name === 'Body') { taperJeans(mesh); repaintForearmSkin(mesh); retextureLegsAndShoes(mesh); clearSkinFromClothes(mesh); } if (mesh.name === 'Head') { paintCollarSkin(mesh); paintNeckSkin(mesh); } });
+    meshes[0].forEach(mesh => { if (mesh.name === 'Body') { taperJeans(mesh); repaintForearmSkin(mesh); blendSleeveHem(mesh); retextureLegsAndShoes(mesh); clearSkinFromClothes(mesh); } if (mesh.name === 'Head') { paintCollarSkin(mesh); paintNeckSkin(mesh); paintBeardSpots(mesh); } });
     // Every LOD gets the sole split (the geometry is swapped per LOD); only LOD0's mesh carries the two materials.
     const soleMaterial = new THREE.MeshStandardMaterial({ color: 0xece9e2, roughness: .6, metalness: 0 });
     soleMaterial.userData.sole = true; // figure.js lightCharacter skips it: the midsole must not get the night self-fill

@@ -47,5 +47,6 @@ test('shirt fit preserves every original animation and texture payload', () => {
     const view = model.bufferViews[index], start = view.byteOffset || 0;
     hash.update(binary.subarray(start, start + view.byteLength));
   }
-  assert.equal(hash.digest('hex'), '9fb3b8f415af5a3e883c79ffb9f7b1f5d7ac19685f2a2c83effc7d00bd13c63d');
+  // The head albedo was re-baked on 2026-11-22 from the owner's new front photo (JPEG). Every animation accessor is unchanged.
+  assert.equal(hash.digest('hex'), '2fe12f56a5886e8ac6be36e8758cb0b110394b807ab45e8c1ce41a06c24c6705');
 });
