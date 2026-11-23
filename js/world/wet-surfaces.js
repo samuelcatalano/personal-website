@@ -111,8 +111,8 @@ if (wetMask > 0.001 && (wetPuddle > 0.001 || wetRoad > 0.001)) {
     vec4 reflected = texture2D(uWetReflection, wetUv);
     wetSky = mix(wetSky, reflected.rgb, reflected.a * smoothstep(.08, .65, wetPuddle));
   }
-  float reflectionAmount = wetMask * wetRoad * (.02 + .08 * wetFresnel) + wetPuddle * (.12 + .30 * wetFresnel);
-  outgoingLight = mix(outgoingLight, wetSky, clamp(reflectionAmount, 0.0, 0.65));
+  float reflectionAmount = wetMask * wetRoad * (.015 + .035 * wetFresnel) + wetPuddle * (.10 + .18 * wetFresnel); // broad sheen subdued (doc 2026-11-16); pools keep their sharper reflection
+  outgoingLight = mix(outgoingLight, wetSky, clamp(reflectionAmount, 0.0, 0.5));
   if (uWetNight > 0.01) {
     float wetLights = 0.0;
     // ponytail: four nearby lamps (two below high) bound fragment cost; expand only after measured reflection gaps.

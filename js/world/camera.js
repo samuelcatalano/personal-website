@@ -20,7 +20,7 @@ export function shotFor(kind, bus, { mobile = false, lift = 0, stop } = {}) {
     case 'closing': {
       // Desktop dollies in 15% so the waving character gains ~1.2x pixels; any closer crops Wembley's arch legs and stadium.
       const c = mobile ? 1 : 0.85;
-      return { position: [x - 7 * k * c, y + 13 * k * c, z + 32 * k * c], target: [x + 1, y + 2.5 + 2 * up, z] };
+      return { position: [x - 7 * k * c, y + 13 * k * c, z + 32 * k * c], target: [x + 1, y + 4.5 + 2 * up, z] }; // aim raised so the arch crown stays inside 1440x900 (audit W-04)
     }
     default: throw new Error(`unknown shot ${kind}`);
   }

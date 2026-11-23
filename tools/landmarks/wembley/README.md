@@ -6,4 +6,4 @@ References: the owner's supplied Wembley photos and [SQUIR3D's Sketchfab viewer]
 
 Run blender --background --factory-startup --python tools/landmarks/wembley/build_wembley.py from the repository root to regenerate the .blend and both GLBs. GLBs use the existing pre-scaled local frame and retain the placement envelope. Three PBR buckets (Mass, Trim, Glass), vertex colours only, no external textures or baked lighting.
 
-Current LOD0/LOD1 budgets: 7,744 / 3,948 triangles, three draws each. Desktop day/night captures: /tmp/wembley-one-arch-correction-2026-11-05/.
+Current LOD0/LOD1 budgets: 7,964 / 3,876 triangles (2026-11-23 W-05: glazed upper facade, rim lattice ring, stepped podium, arch mark on the side screens; plus a 12-triangle central LED band above the main entrance), three draws each. The central band is a blank cyan screen (same colour as the side screens): no sponsor name, text or logo. Desktop day/night captures: /tmp/wembley-one-arch-correction-2026-11-05/.

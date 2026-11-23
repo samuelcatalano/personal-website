@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
 import { loadGlb } from './glb-loader.js';
 
-const VERSION = '12', NEAR = 140, FAR = 170;
+const VERSION = '18', NEAR = 140, FAR = 170;
 const ASSETS = {
   copan: ['copan.lod0.glb', 'copan.lod1.glb'],
   'london-eye': ['london-eye.lod0.glb', 'london-eye.lod1.glb'],
@@ -73,7 +73,7 @@ function prepare(root, name, { track, env }) {
   float bayU = atan(vBayPos.x, vBayPos.z) * length(vBayPos.xz) / 3.0;
   float bayH = fract(sin(floor(bayU) * 127.1) * 43758.5453);
   float bayJ = smoothstep(0.0, 0.04, fract(bayU)) * smoothstep(1.0, 0.96, fract(bayU));
-  diffuseColor.rgb *= (0.95 + 0.1 * bayH) * (0.93 + 0.07 * bayJ);`);
+  diffuseColor.rgb *= (0.92 + 0.16 * bayH) * (0.88 + 0.12 * bayJ); // stronger drum-panel contrast (audit W-01)`);
         };
         m.customProgramCacheKey = () => 'wembley-mass-bays';
       }

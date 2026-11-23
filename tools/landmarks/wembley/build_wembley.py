@@ -34,9 +34,13 @@ COLORS = {
     "panel": (0.46, 0.48, 0.50, 1.0),
     "band": (0.52, 0.45, 0.30, 1.0),
     "line": (0.88, 0.88, 0.82, 1.0),
-    "glass": (0.03, 0.055, 0.08, 1.0),
+    # Facade curtain wall only (linear vertex colours): light cyan glazing with pale silver mullion bays,
+    # after the owner's reference photo. Screens, portals and stair cores keep their own colours.
+    "facade_glass": (0.11, 0.30, 0.42, 1.0),        # ~sRGB (93, 149, 172), lower concourse band
+    "facade_glass_upper": (0.15, 0.37, 0.50, 1.0),  # ~sRGB (108, 163, 188), upper curtain wall
+    "facade_mullion": (0.19, 0.33, 0.42, 1.0),      # ~sRGB (121, 155, 172): subtle tone step, the steel fins carry the ribs
     "mullion_glass": (0.07, 0.10, 0.13, 1.0),
-    "screen": (0.0, 0.17, 0.15, 1.0),
+    "screen": (0.02, 0.36, 0.52, 1.0),  # cyan LED band as in the reference photo; no sponsor text
     "walk": (0.30, 0.30, 0.29, 1.0),
     "lamp": (0.95, 0.80, 0.55, 1.0),
     "core_glass": (0.05, 0.085, 0.115, 1.0),
@@ -251,6 +255,17 @@ def oriented_box(bucket, a, r, y, width, height, depth, color, rx=20.55, rz=13.2
     bucket.add(vertices, faces, color)
 
 
+LETTERS = {  # polylines in a unit box (u right, v up)
+    "W": [[(0, 1), (.2, 0), (.5, .7), (.8, 0), (1, 1)]],
+    "E": [[(1, 1), (0, 1), (0, 0), (1, 0)], [(0, .5), (.8, .5)]],
+    "M": [[(0, 0), (0, 1), (.5, .4), (1, 1), (1, 0)]],
+    "B": [[(0, 0), (0, 1), (.85, 1), (.9, .75), (.8, .52), (0, .52)],
+          [(.8, .52), (1, .27), (.85, 0), (0, 0)]],
+    "L": [[(0, 1), (0, 0), (.9, 0)]],
+    "Y": [[(0, 1), (.5, .5), (1, 1)], [(.5, .5), (.5, 0)]],
+}
+
+
 def build_lod(level, mats):
     lod0 = level == 0
     segment = 48 if lod0 else 24
@@ -262,14 +277,19 @@ def build_lod(level, mats):
                (19.9, 12.65, 2.6)], segment, COLORS["concrete"])
     glass.ring([(20.54, 13.24, 2.58), (20.54, 13.24, 4.2),
                 (20.3, 13.0, 4.2)], segment,
-               lambda f: COLORS["mullion_glass"] if (f % segment) % 4 == 0 else COLORS["glass"])
+               lambda f: COLORS["facade_mullion"] if (f % segment) % 4 == 0 else COLORS["facade_glass"])
     mass.ring([(20.56, 13.26, 4.18), (20.56, 13.26, 4.55),
                (20.2, 12.9, 4.55)], segment, COLORS["clad_b"])
-    mass.ring([(20.49, 13.19, 4.53), (20.49, 13.19, 6.95),
-               (20.25, 12.95, 6.95)], segment,
-              lambda f: COLORS["clad_a"] if (f % segment) % 2 else COLORS["clad_b"])
+    # W-05: the upper facade is a glazed curtain wall (mullion every 4th bay), not opaque cladding.
+    glass.ring([(20.49, 13.19, 4.53), (20.49, 13.19, 6.95),
+                (20.25, 12.95, 6.95)], segment,
+               lambda f: COLORS["facade_mullion"] if (f % segment) % 4 == 0 else COLORS["facade_glass_upper"])
     mass.ring([(20.42, 13.12, 6.93), (20.42, 13.12, 7.72),
                (20.1, 12.8, 7.72)], segment, COLORS["concrete"])
+
+    # W-05: stepped podium at the foot of the drum (two low concrete treads over the walkway).
+    mass.ring([(21.3, 13.95, 0), (21.3, 13.95, .2), (20.9, 13.55, .2), (20.9, 13.55, .42), (20.4, 13.1, .42)],
+              32 if lod0 else 16, COLORS["walk"])
 
     # Vertical steel fins give the cladding its rhythm; glazed entrance portals and two
     # big screens (south, camera side) break the plinth like the real concourse.
@@ -282,12 +302,15 @@ def build_lod(level, mats):
         oriented_box(trim, a, 20.62, 2.62, 2.1, .14, .35, COLORS["steel"])
     for a in (1.3, 1.85):
         oriented_box(glass, a, 20.62, 5.6, 3.4, 1.9, .14, COLORS["screen"])
-        # Screen content without textures: a white arch mark over a wordmark bar.
+        # Screen content without textures: the white arch mark from the logo (no lettering: the real screens carry changing content, not a fixed wordmark).
         x, z, tx, tz, nx, nz = facade_frame(a, 20.72)
         at = lambda u, y: (x + u * tx, y, z + u * tz)
         trim.tube([at(u, 5.05 + 1.05 * (1 - (u / 1.1) ** 2)) for u in (-1.1, -.73, -.37, 0, .37, .73, 1.1)],
                   .06, COLORS["line"], 3)
         trim.beam(at(-1.25, 4.92), at(1.25, 4.92), .07, COLORS["line"], 3)
+    # Central LED band above the main entrance, between the two side screens: top flush with them,
+    # ~70% of their height, filling most of the gap. Blank on purpose (no sponsor text or logo).
+    oriented_box(glass, math.pi / 2, 20.62, 5.88, 7.2, 1.34, .14, COLORS["screen"])
     # Three red seating tiers form the bowl; dark hospitality band closes the back under the roof.
     tiers = ((7.35, 4.7, 9.1, 5.85, .65, 2.65),
              (9.15, 5.9, 11.25, 7.25, 2.65, 4.9),
@@ -309,7 +332,7 @@ def build_lod(level, mats):
         faces = [(i, n + i, n + (i + 1) % n, (i + 1) % n) for i in range(n)]
         mass.add(vertices, faces, color)
     ring_angles = [math.tau * i / segment for i in range(segment)]
-    bays = 56 if lod0 else 0
+    bays = 40 if lod0 else 0
     apron((20.3, 13.05), (21.4, 14.0), ring_angles, COLORS["walk"])
     if bays:
         line = .012  # radians (~.27 m model): thin painted line, then a bay of asphalt
@@ -323,8 +346,8 @@ def build_lod(level, mats):
     mass.ring([(24.0, 16.4, 0), (24.0, 16.4, .16), (23.86, 16.26, .16)], 40 if lod0 else 20, COLORS["walk"])
     # Light masts ring the apron (none at the arch feet); their lamp heads sit in Glass so they glow at night.
     if lod0:
-        for i in range(14):
-            a = math.tau * (i + .5) / 14
+        for i in range(12):
+            a = math.tau * (i + .5) / 12
             x, z = ellipse(23.5, 15.9, a)
             trim.beam((x, .03, z), (x, 2.3, z), .05, COLORS["brace"], 3)
             glass.box((x, 2.38, z), (.34, .16, .34), COLORS["lamp"])
@@ -376,21 +399,25 @@ def build_lod(level, mats):
         top = ellipse(11.75, 7.75, a)
         bottom = ellipse(11.6, 7.6, b)
         trim.flat((top[0], 8.97, top[1]), (bottom[0], 8.57, bottom[1]), .06, (top[0], 0, top[1]), COLORS["brace"])
-    # Radial roof trusses and the V-truss under the overhanging roof edge.
+    # W-05: lattice ring along the outer roof edge: top and bottom chords with a zig-zag web.
+    chord_top, chord_bot = 8.5, 7.98
+    r = .06
+    trim.ring([(20.55, 13.25, chord_top), (20.55 + r, 13.25 + r, chord_top - r), (20.55 - r, 13.25 - r, chord_top - r)],
+              24 if lod0 else 12, COLORS["steel"])
+    rim = 32 if lod0 else 16
+    for i in range(rim):
+        a, b = math.tau * i / rim, math.tau * (i + .5) / rim
+        lo, hi = ellipse(20.55, 13.25, a), ellipse(20.55, 13.25, b)
+        nxt = ellipse(20.55, 13.25, math.tau * (i + 1) / rim)
+        trim.flat((lo[0], chord_bot, lo[1]), (hi[0], chord_top, hi[1]), .07, (lo[0], 0, lo[1]), COLORS["brace"])
+        trim.flat((hi[0], chord_top, hi[1]), (nxt[0], chord_bot, nxt[1]), .07, (hi[0], 0, hi[1]), COLORS["brace"])
+    # Radial roof trusses (the old V-truss under the edge is replaced by the rim lattice above).
     radials = 12 if lod0 else 6
     for i in range(radials):
         a = math.tau * (i + .5) / radials
         ix, iz = ellipse(13.2, 8.9, a)
         ox, oz = ellipse(20.3, 13.1, a)
         trim.flat((ix, 8.5, iz), (ox, 8.03, oz), .08, (0, 1, 0), COLORS["steel"])
-    vees = 30 if lod0 else 15
-    for i in range(vees):
-        a, b = math.tau * i / vees, math.tau * (i + .5) / vees
-        top = ellipse(20.5, 13.2, a)
-        bottom = ellipse(20.47, 13.17, b)
-        nxt = ellipse(20.5, 13.2, math.tau * (i + 1) / vees)
-        trim.flat((top[0], 7.72, top[1]), (bottom[0], 7.12, bottom[1]), .07, (top[0], 0, top[1]), COLORS["steel"])
-        trim.flat((bottom[0], 7.12, bottom[1]), (nxt[0], 7.72, nxt[1]), .07, (bottom[0], 0, bottom[1]), COLORS["steel"])
 
     # The arch: a leaning circular-section lattice girder on concrete feet beyond the bowl ends.
     if lod0:

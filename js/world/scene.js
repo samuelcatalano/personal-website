@@ -688,7 +688,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const hl = (candidates.find((v) => v.visible) ?? mini).userData.length ?? 4;
     if (qa) globalThis.__qaHero = { speed: heroSpeed, rest, rain: mood.rain, len: hl }; // QA probe for the vehicle particles
     post.setFocus?.(camera.position.distanceTo(bus.position)); // depth of field focuses on the hero vehicle
-    vehicleFx.update(dt, { p: busPos, h: bus.rotation.y, len: hl, halfW: hl > 6 ? 1.3 : 0.95, speed: heroSpeed, rain: mood.rain ?? 0, cold: Math.min(1, (1 - (mood.rs ?? 0)) * 0.8 + night * 0.4), night, halfH: renderer.domElement.height / 2 });
+    vehicleFx.update(dt, { p: busPos, h: bus.rotation.y, len: hl, halfW: hl > 6 ? 1.3 : 0.95, speed: heroSpeed, rain: mood.rain ?? 0, cold: Math.min(1, (1 - (mood.rs ?? 0)) * 0.3 + night * 0.4) /* exhaust steam: far less in the day, so it stops reading as stray dots (audit W-02) */, night, halfH: renderer.domElement.height / 2 });
     wetSurfaces.update(clock, wet, mood.rain, night, camera.position, sky.colors, bus.position, bus.rotation.y, post.tier, mood.wind);
     updateBeams(night); pools.update(night, wet); shopSpill.update(night, wet); lampPosts?.userData.setNight?.(night); if (lampField) lampField.uniforms.uLampNight.value = night; underpass.group.userData.setNight(night);
     swapTunnel?.group.userData.setNight?.(night);
