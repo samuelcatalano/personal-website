@@ -23,14 +23,14 @@ const glassPick={london:[0,3,4,0,3,2],paulista:[1,2,3,1,0,4],countryside:[0,3,4,
 const roofBase=[68,80,94],lin=(t,b)=>Math.pow(t/b,2.2);
 const roofFor=t=>t.map((c,i)=>lin(c,roofBase[i]));
 const roofs={
-  pitched:{london:[[88,94,104],[168,92,66],[120,118,116],[110,82,66]],countryside:[[120,118,116],[110,112,116],[145,112,82],[88,94,104]],glasgow:[[88,94,104],[110,112,116],[88,94,104],[120,100,90]],paulista:[[168,92,66],[184,110,80],[130,128,124],[168,92,66]],none:[[88,94,104],[168,92,66],[120,118,116],[110,82,66]]},
+  pitched:{london:[[88,94,104],[88,94,104],[120,118,116],[110,82,66]],countryside:[[120,118,116],[110,112,116],[145,112,82],[88,94,104]],glasgow:[[88,94,104],[110,112,116],[88,94,104],[120,100,90]],paulista:[[168,92,66],[184,110,80],[130,128,124],[168,92,66]],none:[[88,94,104],[168,92,66],[120,118,116],[110,82,66]]},
   flat:[[176,178,176],[168,156,132],[128,136,142],[176,178,176],[168,156,132],[96,120,72],[128,136,142],[88,94,104]]
 };
 const bricks=[[1.05,.70,.50],[.58,.64,.74],[1.12,1.06,.86],[.72,.85,.74],[1.20,.66,.55],[.68,.54,.47],[.92,.48,.40],[1.0,.92,.70]];
 export function tint(g,p,{walls:wallStrength=1}={}) { // walls: 0 = leave wall colours alone, 1 = full regional colour, between = a lighter touch
   const wallK=wallStrength===true?1:wallStrength===false?0:wallStrength,wallsOn=wallK>0;
   const region=regionForPlot(p),seed=hash(p.id)+REGION_SALT[region],wall=walls[seed%walls.length],roof=[[1,1,1],[.72,.82,.93],[1.08,.76,.62],[.58,.58,.64],[1.2,.62,.45]][Math.floor(seed/5)%5];
-  const pickWall=list=>walls[list[seed%list.length]],regionalWall=region==='glasgow'?pickWall([6,8,12,17]):region==='paulista'?pickWall([0,6,12,3,9,10,19,14]):region==='london'?pickWall([6,7,12,14,15,16,17,18]):region==='countryside'?pickWall([1,5,9,16]):wall;
+  const pickWall=list=>walls[list[seed%list.length]],regionalWall=region==='glasgow'?pickWall([6,8,12,17]):region==='paulista'?pickWall([0,6,12,3,9,10,19,14]):region==='london'?pickWall([6,7,12,7,6,17,12,7,14,15]):region==='countryside'?pickWall([1,5,9,16]):wall;
   const regionalBrick=region==='glasgow'?bricks[[2,5,7][Math.floor(seed/3)%3]]:region==='london'?bricks[[0,5,7][Math.floor(seed/3)%3]]:region==='countryside'?bricks[[2,3,7][Math.floor(seed/3)%3]]:bricks[Math.floor(seed/3)%bricks.length];
   const pitched=p.kind==='terrace'||p.kind==='shop',gt=glassTints[glassPick[region||'none'][Math.floor(seed/7)%6]];
   const roofTop=roofFor(pitched?roofs.pitched[region||'none'][Math.floor(seed/13)%4]:roofs.flat[Math.floor(seed/13)%8]);

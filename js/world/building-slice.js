@@ -87,7 +87,7 @@ function townhouseGeometry(plot,recipe,level=0,storage=null,modular=false) {
         if(useModules)return;
         quad([pt(o.u-.0275,lo,-recipe.reveal+.045),pt(o.u+.0275,lo,-recipe.reveal+.045),pt(o.u+.0275,hi,-recipe.reveal+.045),pt(o.u-.0275,hi,-recipe.reveal+.045)],normal,S.trim,1);
         quad([pt(a,o.y+.09,-recipe.reveal+.05),pt(b,o.y+.09,-recipe.reveal+.05),pt(b,o.y+.145,-recipe.reveal+.05),pt(a,o.y+.145,-recipe.reveal+.05)],normal,S.trim,1);
-        const lit=(index+(frontFace?1:0)+recipe.windowSeed)%3===0;
+        const lit=((index*5+(frontFace?1:0)+recipe.windowSeed)%7)<3; // ~3 in 7 panes lit, scattered rather than every third bay
         const u0=index*.137+(frontFace?0:.19)+recipe.windowSeed*.07,v0=index*.271;
         quad([pt(a,lo,-recipe.reveal),pt(b,lo,-recipe.reveal),pt(b,hi,-recipe.reveal),pt(a,hi,-recipe.reveal)],normal,lit?S.litGlass:S.glass,2,[[u0,v0],[u0+.78,v0],[u0+.78,v0+1.65],[u0,v0+1.65]]);
       }
@@ -220,7 +220,7 @@ export function modularGeometry(plot,recipe,modules,variety=false) {
       // variety: per-house hash picks the window family; ground floor and side faces shift it so a facade never repeats one sash.
       const wi=sp?SP[face?o.y<recipe.ground?'ground':'upper':'side'][(hash>>>3)%(face?o.y<recipe.ground?4:6:4)]:variety?((hash>>>3)+(o.y<recipe.ground?2:0)+(face?0:3))%7:(recipe.windowSeed+index+(face?0:3))%7,name=moduleNames.window[wi],dims=[[.92,1.48],[1.05,1.48],[.88,1.72],[1.34,1.55],[.76,1.44],[1.28,1.12],[1.48,1.58],[.92,1.48],[1.2,1.5]][moduleNames.window.indexOf(name)];
       scale.set(o.w/dims[0],o.h/dims[1],1);
-      const lit=(faceIndex+(face?1:0)+recipe.windowSeed)%3===0;
+      const lit=((faceIndex*5+(face?1:0)+recipe.windowSeed)%7)<3;
       moduleGeometry('window',wi,new THREE.Vector3(x, o.y-o.h/2, face?z-.06:z),rotation,scale,{mass:S.stone,trim:S.trim,glass:lit?S.litGlass:S.glass});
     }else{
       const doorIndex=sp?SP.door[(hash>>>5)%5]:variety?(hash>>>5)%4:(recipe.windowSeed+(recipe.structural==='B'?3:0))%6,dims=[[1.02,2.24],[1.02,2.32],[1.34,2.35],[1.48,2.42],[2.05,2.62],[2.32,2.72],[1.02,2.3],[1.02,2.3]][doorIndex];

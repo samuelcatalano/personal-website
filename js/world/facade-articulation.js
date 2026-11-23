@@ -9,7 +9,7 @@ const SIDES = { front: ['west', 'east'], back: ['east', 'west'], east: ['front',
 const NORMALS = { front: [0, 1], back: [0, -1], east: [1, 0], west: [-1, 0] };
 const WALLS = new Set([S.plaster, S.brick, S.stone]);
 const EMBED = .04; // every piece starts this far inside its wall/glass plane
-const CORNICE_STONE = [1.12, 1.10, 1.06], QUOIN_STONE = [1.08, 1.06, 1.01], RUSTIC_STONE = [.97, .96, .93];
+const CORNICE_STONE = [1.22, 1.19, 1.12], QUOIN_STONE = [1.14, 1.11, 1.04], RUSTIC_STONE = [.9, .89, .86];
 const FIN_METAL = [.88, .96, 1.10], PLATE_STONE = [.96, .97, .98];
 
 const dirOf = (nx, nz) => nx > .99 ? 'east' : nx < -.99 ? 'west' : nz > .99 ? 'front' : nz < -.99 ? 'back' : null;

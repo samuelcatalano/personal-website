@@ -11,7 +11,7 @@ export function buildBackdrop(add, stops, pts, addSky = add) {
   const facade = (x, y, z, w, h, depth, seed, coverage, wall) => {
     // ponytail: distance bands approximate atmospheric contrast, not true scattering.
     const near = z > -145, far = z < -200;
-    const recess = near ? P.ink : far ? wall : P.steel, frame = near ? P.offWhite : wall, window = far ? P.steel : P.glass;
+    const recess = near ? P.ink : far ? wall : P.steel, frame = near ? P.offWhite : wall, window = far ? '#9db7c6' : near ? P.glass : '#86adc6'; // ponytail: mid and far glass are hazed toward grey-blue, not P.glass, so the towers step down in chroma with distance
     const detail = rng(seed), floors = Math.max(1, Math.floor(h / 2.8));
     const face = (span, center, axis, surface, outward) => {
       const bays = Math.max(1, Math.min(5, Math.floor(span / 2.1))), cell = span / bays;
@@ -139,7 +139,7 @@ export function buildBackdrop(add, stops, pts, addSky = add) {
   // Distant skyline: three silhouette rows behind the far infill, emitted through `addSky` as colour keys 'sky<row>b|t' (darker base, lighter top).
   // skyline.js gives them an unfogged material with authored on-screen colours (fog would wash them to the horizon); the default addSky keeps them in the same list for tests.
   // Silhouettes only, no facades. Per-city profile by x: SP dense towers, London mid-rise + few towers/cranes, Glasgow low with church spires.
-  // ponytail: no night window dots, silhouettes only.
+  // ponytail: night window dots live in skyline.js (sparse, warm); these rows stay silhouettes, no facades.
   const sk = rng(90823), spN = pts[0].x + 190, gl = glasgowSites(stops, pts).museum.x;
   for (const [ri, [z0, hk]] of [[-490, 1], [-570, 1], [-660, 1]].entries()) {
     const SB = `sky${ri}b`, ST = `sky${ri}t`;
@@ -165,4 +165,11 @@ export function buildBackdrop(add, stops, pts, addSky = add) {
       } else if (q > .5) sk(); // setback box dropped (its stair step read as pixel blocks); keep the draw so later boxes stay in place
     }
   }
+  // London hints behind the last row (z -720, its own footprint band): stepped boxes stand in for the Shard, the Gherkin and St Paul's (procedural, no new assets).
+  // ponytail: stepped boxes, not lathe or cone shapes; the Gherkin's curve is only hinted. Add a lathe if it needs to read as a bulge.
+  // Each base gets the same foundation slab the rows use, so the ground test sees it.
+  const stackSky = (cx, tiers) => { let y = 0; tiers.forEach(([w, h], i) => { if (i === 0) add(cx, -0.1, -720, w, 0.08, 18, P.concreteMid); addSky(cx, y, -720, w, h, 18, i === tiers.length - 1 ? 'sky0t' : 'sky0b'); y += h; }); };
+  stackSky(pts[9].x + 46, [[18, 40], [14, 32], [10, 24], [7, 18], [3, 12]]); // the Shard: tapered spire, stood a little taller so it clears the wheel
+  stackSky(pts[9].x - 30, [[10, 8], [15, 9], [17, 10], [15, 9], [10, 8], [6, 6]]); // the Gherkin: bulge
+  stackSky(pts[9].x + 124, [[26, 16], [15, 10], [10, 7], [6, 4], [1.6, 4]]); // St Paul's: drum and stepped dome
 }

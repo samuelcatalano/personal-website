@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { untone } from './sky.js';
 // Three unfogged silhouette batches, alpha-blended over the sky already drawn behind them (dome, clouds, deck), so the far city has aerial depth and no cut-out against the sky or the clouds.
 const DAY = ['#4f6680', '#5c7590', '#6a83a0'].map((c) => new THREE.Color(c)), NIGHT = ['#0a1226', '#0e1832', '#142040'].map((c) => new THREE.Color(c));
-const AIR = [0.68, 0.75, 0.82]; // share of sky per row, near to far; the band in front is darker slate (scene.js), so depth reads by tone even where its fog reaches the 0.72 cap
+const AIR = [0.6, 0.68, 0.76]; // share of sky per row, near to far; the band in front is darker slate (scene.js), so depth reads by tone even where its fog reaches the 0.72 cap
 const SKY_KEYS = ['uZen', 'uMid', 'uHor', 'uGlow', 'uSunDir', 'uClear', 'uCover'];
 export function createSkyline(list) {
   const g = new THREE.Group(), geo = new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0), m = new THREE.Matrix4(), s = new THREE.Vector3(), p = new THREE.Vector3(), q = new THREE.Quaternion();
@@ -38,7 +38,7 @@ float skyHash = fract(sin(dot(skyCell, vec2(127.1, 311.7))) * 43758.5453);
 float skyBld = fract(sin(floor((vSkyWorld.x + vSkyWorld.z) / 13.0) * 12.9898 + 4.1) * 43758.5453); // ponytail: ~13 m column approximates one building, no per-instance id
 float skyFloor = fract(sin(dot(vec2(skyBld * 91.0, skyCell.y), vec2(269.5, 183.3))) * 43758.5453);
 float skyTint = fract(skyHash * 7.13 + skyBld);
-float skyRatio = 0.1 + 0.5 * skyBld;
+float skyRatio = 0.05 + 0.25 * skyBld;
 float skyWin = step(0.3, skyF.x) * step(skyF.x, 0.7) * step(0.3, skyF.y) * step(skyF.y, 0.75) * step(skyHash, skyRatio) * step(0.22, skyFloor);
 float skyFade = 1.0 - smoothstep(700.0, 1100.0, vSkyDist); // at 500 m a 4.2 m bay is ~20 px, so the windows survive well past the first fade range
 vec3 skyLit = mix(vec3(1.0, 0.82, 0.45), vec3(0.8, 0.9, 1.0), step(0.7, skyTint));

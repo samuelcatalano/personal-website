@@ -86,7 +86,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
   sunM.name='weather-sun';
   const halo=sprite(disc(g=>{
     const r=g.createRadialGradient(128,128,0,128,128,128);
-    r.addColorStop(0,'rgba(255,255,255,.25)');r.addColorStop(.14,'rgba(255,255,255,.13)');r.addColorStop(.4,'rgba(255,255,255,.035)');r.addColorStop(1,'rgba(255,255,255,0)');
+    r.addColorStop(0,'rgba(255,255,255,.34)');r.addColorStop(.14,'rgba(255,255,255,.18)');r.addColorStop(.4,'rgba(255,255,255,.035)');r.addColorStop(1,'rgba(255,255,255,0)');
     g.fillStyle=r;g.fillRect(0,0,256,256);
   }),380);halo.material.blending=THREE.AdditiveBlending;halo.renderOrder=-8.6;
   // Always full, with broad maria and gentle limb shading; no astronomical API or repeating crater dots.
@@ -129,11 +129,11 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
         float s=sin(uYaw),c=cos(uYaw); return vec3(c*r.x+s*r.z,r.y,-s*r.x+c*r.z);
       }
       float BASE, TOP;
-      float coverAt(vec3 p){ return clamp(uCoverage+(texture(uNoise,vec3(p.xz/16000.0,.37)+uWind.xzy*.25).r-.5)*.7,0.0,1.0); }
+      float coverAt(vec3 p){ return clamp(uCoverage+(texture(uNoise,vec3(p.xz/9000.0,.37)+uWind.xzy*.25).r-.5)*.7,0.0,1.0); }
       // flat condensation level (sharp 0..6% of the slab), rounded tops (shape threshold rises with height), Worley erosion on the edges
       float shapeAt(vec3 p,float cov,out float h){
         h=(p.y-BASE)/(TOP-BASE); if(h<0.0||h>1.0) return 0.0;
-        float base=texture(uNoise,p/6000.0+uWind).r;
+        float base=texture(uNoise,p/2600.0+uWind).r;
         float prof=smoothstep(0.0,.06,h)*(1.0-smoothstep(mix(.35,.75,uDeck),1.0,h));
         return clamp((base*prof-(1.0-cov))/max(cov,.05),0.0,1.0);
       }
