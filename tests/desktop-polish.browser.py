@@ -52,7 +52,7 @@ try:
       check(panel.clientWidth >= 390, 'Reading surface is still too narrow');
       check(parseFloat(getComputedStyle(panel.querySelector('.hint')).fontSize) >= 12, 'Ride instruction remains too small');
       controls.querySelector('[data-quick]').click();
-      check(controls.querySelector('[data-quick]').getAttribute('aria-pressed') === 'true' && controls.querySelector('[data-auto]').getAttribute('aria-pressed') === 'false', 'Quick tour must identify its own active state');
+      check(controls.querySelector('[data-quick]').getAttribute('aria-pressed') === 'true' && controls.querySelector('[data-auto]').getAttribute('aria-pressed') === 'false', 'Auto Ride must identify its own active state');
       controls.querySelector('[data-quick]').click();
       return {pass:true, disclosure:true, localized:true, quickState:true};
     })()''')

@@ -96,6 +96,12 @@ body { margin: 0; font: 15px/1.6 var(--sans); color: var(--ink); background: lin
 .profile-status { padding: 12px 0; border-block: 1px dashed var(--line); }
 .panel .profile-status p { margin: 0; font-size: 12px; }
 .panel .profile-status .clock { margin: 6px 0 0; }
+/* the quote and ranking fold away under "More" so the first view carries one identity block, facts, the contact band and status */
+.profile-more { margin: 12px 0 0; }
+.profile-more > summary { display: inline-flex; align-items: center; min-height: 36px; cursor: pointer; list-style: none; color: var(--muted); font-size: 12px; font-weight: 600; }
+.profile-more > summary::-webkit-details-marker { display: none; }
+.profile-more > summary::after { content: ''; width: 5px; height: 5px; margin: -3px 0 0 8px; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); }
+.profile-more[open] > summary::after { margin-top: 3px; transform: rotate(-135deg); }
 .panel > h2 + p { color: var(--muted); font-size: 14px; line-height: 1.6; }
 .journey-progress { display: grid; gap: 6px; margin: 18px 0 0; color: var(--muted); font-size: 11px; }
 .journey-progress progress { width: 100%; height: 6px; accent-color: var(--accent); }

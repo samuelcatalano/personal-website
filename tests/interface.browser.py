@@ -53,10 +53,10 @@ try:
     button.click();
   };
   const pressed = button => button.getAttribute('aria-pressed') === 'true';
-  tap(quick); check(pressed(quick), 'Quick Tour did not start');
-  tap(quick); check(!pressed(quick), 'Quick Tour restarted instead of stopping');
-  tap(quick); tap(auto); check(pressed(auto) && !pressed(quick), 'Auto ride did not replace Quick Tour');
-  tap(auto); check(!pressed(auto), 'Auto ride did not stop');
+  tap(quick); check(pressed(quick), 'Auto Ride did not start');
+  tap(quick); check(!pressed(quick), 'Auto Ride restarted instead of stopping');
+  tap(quick); tap(auto); check(pressed(auto) && !pressed(quick), 'Guided Tour did not replace Auto Ride');
+  tap(auto); check(!pressed(auto), 'Guided Tour did not stop');
   return { pass: true, mobileWidth: innerWidth, pageOverflow: document.documentElement.scrollWidth - innerWidth };
 })()"""))
     print(js("""(async () => {
