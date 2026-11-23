@@ -46,7 +46,7 @@ try:
       slider.blur();
       return true;
     })()""")
-    assert js("getComputedStyle(document.querySelector('#intro')).backdropFilter.includes('blur(14px)')")
+    assert js("getComputedStyle(document.querySelector('#intro')).backdropFilter.includes('blur(9px)')")
     assert js("document.querySelector('.intro-stations').children.length === 3"), 'Expected three illustrated stops'
     assert js("document.querySelector('.intro-stations [aria-current]').dataset.previewStop === 'sp'")
     assert js("document.querySelector('.intro-mouse-reference').getBoundingClientRect().height > 0")
@@ -54,7 +54,7 @@ try:
     assert js("!document.querySelector('.intro-scroll-arrows') && getComputedStyle(document.querySelector('.intro-mouse-reference')).animationName === 'none'"), 'The mouse hint uses the supplied artwork without CSS animation or added arrows'
     assert js("getComputedStyle(document.querySelector('.route-vehicle .mini')).display !== 'none'")
     assert js("getComputedStyle(document.querySelector('.route-vehicle .bus')).display === 'none'")
-    assert js("document.querySelectorAll('#intro button').length === 1")
+    assert js("document.querySelectorAll('#intro .actions button').length === 1 && !!document.querySelector('#intro .intro-lang')"), 'The intro has one action button; the language toggle is separate'
     assert js("document.querySelector('[data-intro-skip]').getBoundingClientRect().height >= 44")
     assert js("document.querySelector('[data-intro-skip]').textContent.length > 3")  # progress label while loading, the call to start afterwards
     if not mobile: assert js("document.querySelectorAll('#intro-hint kbd').length === 2"), 'The arrows are drawn as key caps'
@@ -103,11 +103,11 @@ try:
     if not js("document.body.classList.contains('world-settled')"):
         assert js("document.querySelector('[data-intro-skip]').disabled"), 'Skip stays disabled until the whole city has loaded'
     for _ in range(240):
-        if js("document.body.classList.contains('world-settled')"): break
+        if js("!document.querySelector('[data-intro-skip]').disabled"): break # world-settled comes before the stills and the second settle; Skip opens after both
         time.sleep(.25)
     assert js("document.body.classList.contains('world-settled')")
     assert js("!document.querySelector('[data-intro-skip]').disabled"), 'Skip opens once the city has settled'
-    assert js("document.querySelector('[data-intro-skip]').textContent") == ('Embarcar' if mobile else 'Board')
+    assert js("(async () => { const { i18n } = await import('./js/content.js'); return document.querySelector('[data-intro-skip]').textContent === i18n[document.documentElement.lang.startsWith('pt') ? 'pt' : 'en'].ui.intro.start; })()"), 'Skip shows the localized start copy'
     if mobile:
         js("document.querySelector('[data-intro-skip]').click()")
     else:

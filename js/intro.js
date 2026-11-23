@@ -69,12 +69,12 @@ export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {
     const value = ready ? 100 : shown; // 100 is only shown once the whole city has settled
     const photo = { settled: 'sp', sp: 'ldn', london: 'gla' }[phase], finishing = loaded && phase && (photo ? ui.intro.photo.replace('{city}', ui.cities[photo]) : ui.intro.touches); // what the finishing phase is doing now
     root.dataset.ready = String(ready);
-    leds.forEach((l, i) => l.classList.toggle('on', i < Math.round(value * LEDS / 100)));
+    // the dots stay a static ticket perforation: the Start button fill and the bus on the line carry the progress
     skip.style.setProperty('--fill', `${value}%`); // the Start button fills with the same progress
     statusEl.setAttribute('aria-valuenow', String(value));
-    statusText.textContent = ready ? ui.intro.loaded : `${loaded ? ui.intro.finishing : ui.intro.loadingBtn} · ${value}%`;
+    statusText.textContent = ready ? ui.intro.loaded : (loaded ? ui.intro.finishing : ui.intro.loadingBtn); // no number: the fill and the bus already show how far it is
     stageEl.textContent = ready ? '' : finishing || (stage ? ui.intro.stages[stage] || '' : ''); // what is arriving now; outside the live region so a screen reader is not read every change
-    if (!bellTimer) skip.textContent = ui.intro.start;
+    if (!bellTimer) skip.textContent = ready ? ui.intro.start : ui.intro.loadingBtn; // the button says what it is doing until the city is ready
     autoTarget = ready ? 0 : ratio; // the toy bus rides the line as the world loads, then drives back to the first stop, ready to go forward
     if (!interacted && !raf) raf = requestAnimationFrame(glide);
   };

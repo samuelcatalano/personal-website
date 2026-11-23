@@ -44,7 +44,7 @@ try:
                   const ui=__cueModules[1].i18n[document.documentElement.lang].ui;
                   intro.querySelectorAll('[data-i18n]').forEach(el => el.textContent=el.dataset.i18n.split('.').reduce((o,k)=>o[k],ui));
                   document.body.append(intro);
-                  window.__cueIntro=__cueModules[0].createIntro(intro); __cueIntro.start();
+                  window.__cueIntro=__cueModules[0].createIntro(intro); __cueIntro.start(); __cueIntro.ready(); // the scroll cue is judged once the city can be moved through; its hint stays hidden while loading
                   if (!intro.open) { intro.showModal(); document.body.classList.add('intro-on'); }
                   await document.fonts.ready;
                   await document.querySelector('.intro-mouse-reference').decode();
@@ -70,7 +70,7 @@ try:
                     noOverflow: card.scrollWidth<=card.clientWidth+1&&card.getBoundingClientRect().left>=0&&card.getBoundingClientRect().right<=innerWidth+1,
                     noPointer: getComputedStyle(cue).pointerEvents==='none',
                     imageAnimation: getComputedStyle(image).animationName,
-                    animatedSource: image.currentSrc.endsWith('/mouse-scroll.gif'),
+                    animatedSource: image.currentSrc.split('?')[0].endsWith('/mouse-scroll.gif'),
                     errors: window.__cueErrors,
                     lang: document.documentElement.lang,
                     night: document.body.classList.contains('theme-night')
@@ -87,7 +87,7 @@ try:
                 cdp('Emulation.setEmulatedMedia', features=[
                     {'name': 'prefers-reduced-motion', 'value': 'reduce'}])
                 js("new Promise(requestAnimationFrame).then(()=>new Promise(requestAnimationFrame)).then(()=>document.querySelector('.intro-mouse-reference').decode())")
-                assert js("document.querySelector('.intro-mouse-reference').currentSrc.endsWith('/mouse-scroll-spritesheet.png') && document.querySelector('.intro-mouse-reference').getBoundingClientRect().width === document.querySelector('.intro-scroll-cue').getBoundingClientRect().width*4"), label
+                assert js("document.querySelector('.intro-mouse-reference').currentSrc.split('?')[0].endsWith('/mouse-scroll-spritesheet.png') && document.querySelector('.intro-mouse-reference').getBoundingClientRect().width === document.querySelector('.intro-scroll-cue').getBoundingClientRect().width*4"), label
                 print(json.dumps({'pass': True, 'case': label}))
 finally:
     cdp('Emulation.setEmulatedMedia', features=[])

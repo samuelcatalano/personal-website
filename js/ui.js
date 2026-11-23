@@ -76,7 +76,7 @@ function sectionHTML(section, t, active, tool = null, route = { seen: new Set(),
     case 'hero': return `
       <p class="led board" aria-hidden="true"><b>83</b><span class="live"></span></p>
       <div class="profile-head"><img class="avatar" src="assets/avatar.png" alt="" width="96" height="96">
-        <div><h1>${s.title}</h1><p class="role">${s.role}</p><p class="eyebrow">${s.kicker}</p></div></div><p class="meta profile-meta">${s.meta}</p>
+        <div><h1>${s.title}</h1><p class="role">${s.role}</p><p class="eyebrow">${s.kicker}</p></div></div>
       <p class="value">${s.value}</p><dl class="fact-sheet">${s.facts.map(f => `<div><dt>${f.label}</dt><dd>${f.value}</dd></div>`).join('')}</dl><ul class="hero-links contact">
         ${contact(t.sections.contact)}</ul>
       <div class="profile-status"><p class="avail">${s.availability}</p><p class="clock">${t.ui.clock} <time data-london></time></p></div>
@@ -154,7 +154,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {}, onFocusStop = () =>
   document.addEventListener('visibilitychange', () => { document.title = document.hidden ? waitingTitle() : pageTitle; });
   const led = () => {
     const t = i18n[prefs.lang], st = stops[Math.max(active, 0)]; // the header blind and the journey board show the same text
-    let text = baseText(), alert = false;
+    let text = st.section === 'hero' ? '' : baseText(), alert = false;
     if (notes.say) { text = t.ui.led[notes.say]; alert = true; }
     else if (notes.gap) { text = t.ui.led.gap; alert = true; }
     else if (st.section === 'contact') text = t.ui.led.end;

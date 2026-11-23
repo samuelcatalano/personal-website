@@ -112,16 +112,16 @@ try:
   const panel = document.querySelector('#panel');
   document.querySelector('[data-nav-home]').click(); await wait();
   const en = i18n.en.sections.hero;
-  check(panel.dataset.section === 'hero' && document.querySelector('h1').textContent === en.title && document.querySelector('.role').textContent === en.role && document.querySelector('.tagline').textContent === en.tagline && document.querySelector('.meta').textContent === en.meta, 'English hero copy does not match i18n');
+  check(panel.dataset.section === 'hero' && document.querySelector('h1').textContent === en.title && document.querySelector('.role').textContent === en.role && document.querySelector('.tagline').textContent === en.tagline, 'English hero copy does not match i18n');
   document.querySelector('.controls [data-lang]').click(); await wait();
   const pt = i18n.pt.sections.hero;
-  check(document.documentElement.lang === 'pt-BR' && document.querySelector('h1').textContent === pt.title && document.querySelector('.role').textContent === pt.role && document.querySelector('.tagline').textContent === pt.tagline && document.querySelector('.meta').textContent === pt.meta, 'Portuguese hero copy does not match i18n');
+  check(document.documentElement.lang === 'pt-BR' && document.querySelector('h1').textContent === pt.title && document.querySelector('.role').textContent === pt.role && document.querySelector('.tagline').textContent === pt.tagline, 'Portuguese hero copy does not match i18n');
   document.querySelector('[data-nav=journey]').click(); await wait();
   const active = stops[Number(document.querySelector('.on button').dataset.goto)];
   check(document.querySelector('.detail').textContent.includes(i18n.pt.stops[active.id].role), 'Portuguese career role does not match i18n');
   document.querySelector('.controls [data-lang]').click(); await wait();
   check(document.querySelector('.detail').textContent.includes(i18n.en.stops[active.id].role), 'English career role does not match i18n');
-  return { pass: true, checked: ['hero title/role/tagline/meta EN/PT', 'career role EN/PT'] };
+  return { pass: true, checked: ['hero title/role/tagline EN/PT', 'career role EN/PT'] };
 })()"""))
     screenshot('panel-en-day.png')
 finally:

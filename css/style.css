@@ -58,6 +58,7 @@ body { margin: 0; font: 15px/1.6 var(--sans); color: var(--ink); background: lin
 .controls { gap: 2px; padding: 0 6px; }
 .control-label, [data-options] { display: none; }
 .control-options { display: contents; }
+.shortcut-legend { display: none; }
 .controls button { min-width: 36px; min-height: 36px; padding: 0 8px; border: 0; border-radius: 10px; background: none; color: inherit; font: 600 11px var(--sans); cursor: pointer; transition: background .2s, color .2s; }
 @media (hover: hover) { .controls button:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); color: var(--accent); } }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
@@ -90,7 +91,6 @@ body { margin: 0; font: 15px/1.6 var(--sans); color: var(--ink); background: lin
 .panel .eyebrow { margin: 0 0 8px; color: var(--ink); font-size: 11px; line-height: 1.5; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
 .profile-head h1 { margin: 0 0 8px; font-size: clamp(28px, 2.7vw, 36px); line-height: 1.02; letter-spacing: -.025em; }
 .profile-head .role { font-size: 12px; line-height: 1.5; }
-.panel .profile-meta { margin: 18px 0 22px; padding-bottom: 14px; border-bottom: 1px solid var(--line); font-size: 12px; letter-spacing: .015em; }
 .panel[data-section="hero"] .value { margin: 0; font-size: 21px; line-height: 1.4; letter-spacing: -.025em; }
 .panel[data-section="hero"] .tagline { margin: 12px 0 20px; color: var(--muted); font-size: 13px; }
 .profile-status { padding: 12px 0; border-block: 1px dashed var(--line); }
@@ -149,12 +149,13 @@ body.world-loading:not(.world-ready, .no-webgl, .intro-on) #loading { display: f
   transition: opacity .9s ease, backdrop-filter .9s ease, -webkit-backdrop-filter .9s ease;
 }
 #intro[open] { display: flex; }
-#intro::backdrop { background: transparent; }
+#intro::backdrop { background: color-mix(in srgb, var(--ticket) 62%, transparent); transition: background .6s ease; }
+#intro.opening::backdrop { background: transparent; } /* the tint leaves with the card, so the site shows through while the doors open */
 .intro-card {
   position: relative; width: min(620px, 100%); flex: none; display: grid; gap: 14px; margin: auto; padding: 22px 24px;
   background: repeating-linear-gradient(0deg, transparent 0 3px, #917a5705 3px 4px), var(--ticket);
-  border: 1px solid var(--ticket-line); border-top: 4px solid var(--ticket-red);
-  border-radius: 3px; box-shadow: 0 12px 36px #20160f26;
+  border: 1px solid var(--ticket-line);
+  border-radius: 3px; box-shadow: inset 0 4px 0 var(--ticket-red), 0 12px 36px #20160f26; /* the red edge is drawn inside the rounded corners, so it does not clash with them */
 }
 .intro-ticket, .intro-stub { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; color: var(--ticket-muted); font: 600 10px/1.4 var(--sans); letter-spacing: .08em; text-transform: uppercase; }
 .intro-ticket-stamp { border: 1px solid var(--ticket-red); padding: 4px 7px; color: var(--ticket-red); font: 500 10px/1.2 ui-monospace, monospace; letter-spacing: .08em; }
@@ -177,7 +178,7 @@ body.world-loading:not(.world-ready, .no-webgl, .intro-on) #loading { display: f
 @keyframes intro-blink { 50% { filter: drop-shadow(0 0 14px rgba(255, 60, 40, .8)); } }
 .intro-text h2 { margin: 0; font: 400 clamp(23px, 5vw, 33px)/1.12 var(--display); }
 #intro-sub { margin: 5px 0 0; font-size: 14px; line-height: 1.4; color: var(--ticket-muted); }
-#intro-title { font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; font-weight: 600; letter-spacing: -.01em; } /* ticket display face: a serif carries the travel-ticket identity, Inter stays for the rest */
+#intro-title { font-family: var(--display); font-weight: 400; letter-spacing: -.01em; } /* the ticket display face, the same as the panel heading */
 .intro-map {
   padding: 8px 10px 15px; min-width: 0; touch-action: pinch-zoom;
   border-block: 1px solid var(--ticket-line);
@@ -244,6 +245,8 @@ body.world-loading:not(.world-ready, .no-webgl, .intro-on) #loading { display: f
 #intro[data-preview="sp"] .route-vehicle .mini { display: inline; }
 .intro-guide { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 14px; }
 #intro-hint { min-width: 0; margin: 0; font-size: 14px; line-height: 1.5; font-weight: 600; color: var(--ticket-ink); }
+#intro:not([data-ready="true"]) #intro-status-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+#intro:not([data-ready="true"]) .intro-stage::before { content: none; } /* no separator in front of the stage while the status text is only for screen readers */ /* still named for screen readers; the button and the stage carry the visible loading copy */
 #intro-hint .intro-keyboard { display: block; margin-top: 6px; font-size: 12px; font-weight: 400; color: var(--ticket-muted); }
 .intro-scroll-cue { --hand-width: 72px; display: block; width: var(--hand-width); aspect-ratio: 490 / 530.7; overflow: hidden; flex: none; pointer-events: none; user-select: none; }
 .intro-mouse-reference { display: block; width: 400%; max-width: none; height: auto; transform: translateY(-13%); filter: brightness(1.1) saturate(.85); }
@@ -433,13 +436,15 @@ blockquote footer b { color: var(--ink); font-weight: 600; }
 /* Desktop reading surfaces share the ticket's restrained edges; mobile layout stays as authored. */
 @media (min-width: 768px) {
   .controls { position: relative; flex-shrink: 0; }
-  .controls button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; }
+  .controls button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; }
   .control-label { display: inline; }
   .control-options { display: none; position: absolute; top: calc(100% + 8px); right: 0; min-width: 224px; padding: 8px; border: 1px solid var(--line); border-radius: var(--surface-radius); background: var(--card); box-shadow: var(--surface-shadow); }
   [data-options][aria-expanded="true"] + .control-options { display: grid; gap: 4px; }
   [data-options][aria-expanded="true"] { background: color-mix(in srgb, var(--ink) 7%, transparent); }
   .control-options button { justify-content: flex-start; min-height: 40px; padding: 8px 12px; gap: 10px; }
   .control-options [hidden] { display: none; }
+  .control-options .shortcut-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 4px 0 0; padding: 6px 12px 2px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+  .shortcut-legend kbd { font: 600 11px/1.4 var(--sans); min-width: 22px; padding: 1px 6px; border: 1px solid var(--line); border-radius: 6px; text-align: center; color: var(--ink); }
   [data-quick][aria-pressed="true"] { color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
   .brand, .bar nav, .controls, .panel { border-radius: var(--surface-radius); box-shadow: var(--surface-shadow); }
   .bar nav a, .controls button, .panel a.btn, .postcard-btn { border-radius: var(--control-radius); }
@@ -548,7 +553,7 @@ body.theme-night .detail { background: #2a2622; color: var(--ink); } body.theme-
 .controls [data-quick] svg { fill: currentColor; }
 @media (prefers-reduced-motion: reduce) { .detail { transform: none; transition: none; } }
 /* No selection box where focus is only placed by the page: the heading after the intro closes and the Skip button it opens on. Keyboard users still see the Skip fill red on focus. */
-#panel :is(h1, h2)[tabindex="-1"]:focus:not(:focus-visible) { outline: none; } /* a mouse click shows no ring; keyboard focus keeps the default one */
+#panel :is(h1, h2)[tabindex="-1"]:focus { outline: none; } /* a programmatic focus target, not a control: no ring */
 #intro [data-intro-skip]:focus:not(:focus-visible) { outline: none; }
 /* Stop change: the ticket slides in from the heading side; a visited stop keeps a punched hole, the first visit stamps it */
 @keyframes ticket-in { from { opacity: 0; transform: translateX(var(--sx, 22px)) rotate(calc(var(--dir, 1) * 1.6deg)); } }
@@ -595,7 +600,7 @@ body.theme-night .detail { background: #2a2622; color: var(--ink); } body.theme-
 }
 @media (max-width: 480px) { .road .node b { font-size: 8px; } .road .node:nth-child(even) b { display: none; } }
 body.theme-night #intro { --ticket: #211c17; --ticket-ink: #f1e6d3; --ticket-muted: #b9aa94; --ticket-line: #3d352c; --ticket-red: #d8383f; --ticket-green: #58b788; }
-body.theme-night .intro-card { box-shadow: 0 16px 52px rgba(0, 0, 0, .5); }
+body.theme-night .intro-card { box-shadow: inset 0 4px 0 var(--ticket-red), 0 16px 52px rgba(0, 0, 0, .5); }
 body.theme-night .intro-ticket-stamp { color: color-mix(in srgb, var(--ticket-red) 75%, var(--ticket-ink)); }
 body.theme-night [data-intro-skip]:not(:disabled) { color: var(--c-fff); }
 body.theme-night #intro-hint kbd { background: var(--c-2c2620); }
