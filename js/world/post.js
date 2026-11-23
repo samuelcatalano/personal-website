@@ -120,6 +120,8 @@ export function createPost(renderer, scene, camera, { tier = 'high', sun } = {})
       grade.uniforms.uContrast.value = 1.015 + 0.025 * day;
       grade.uniforms.uSat.value = 1 + 0.08 * day; grade.uniforms.uWarm.value.set(1 + 0.015 * day, 1, 1 - 0.02 * day);
       bloom.strength = 0.10 + 0.10 * (1 - day); // night halo on lamps and lit windows; day keeps the restrained 0.10
+      // night: lamps and lit panes reach the threshold and the halo spreads wider; day stays at 0.95 and 0.2
+      bloom.threshold = 0.95 - 0.18 * (1 - day); bloom.radius = 0.2 + 0.15 * (1 - day);
       composer.render(dt);
     },
   };

@@ -7,7 +7,7 @@ import { reflectionMode, detailTexture } from './water-math.js';
 import { PALETTE as P } from './palette.js';
 const DAY_SKY = new THREE.Color(0x8fc0e4), NIGHT_SKY = new THREE.Color(0x18203a);
 // Owner tweakables: how strongly the water mirrors (stylised floor added to Fresnel), sun/moon glint strength, foam band widths (m).
-export const REFLECT_FLOOR = 0.22, GLINT = 1.0, FOAM_WIDTH = 0.6, BOAT_FOAM_WIDTH = 0.35;
+export const REFLECT_FLOOR = 0.34, GLINT = 1.0, FOAM_WIDTH = 0.6, BOAT_FOAM_WIDTH = 0.35;
 const RANGE = 420, REFLECT_LAYER = 5, MAX_PIERS = 12, MAX_BOATS = 7, MAX_TAPS = 4, TAP_LIFE = 2.4;
 const vertexShader = /* glsl */`
 #include <fog_pars_vertex>

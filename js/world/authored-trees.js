@@ -173,7 +173,7 @@ export async function createAuthoredTrees(placements, regionOf = null) {
         const base = p.base ?? 0.1, height = Math.min(6.2, (p.h + 0.65) * 1.2) * (0.8 + rnd(p.x, p.z, 2) * 0.25), width = Math.min(p.crown / (2 * variant.radius), height), yaw = rnd(p.x, p.z, 4) * Math.PI * 2;
         object.position.set(p.x, base + 0.02, p.z); object.rotation.set(0, yaw, 0); object.scale.set(width, height, width); object.updateMatrix();
         lods[0].setMatrixAt(k, object.matrix); lods[1].setMatrixAt(k, object.matrix);
-        const shade=.92+rnd(p.x,p.z,8)*.15,tint=new THREE.Color().setRGB(shade*(.97+rnd(p.x,p.z,19)*.05),shade,shade*(.96+rnd(p.x,p.z,20)*.05));
+        const shade=.88+rnd(p.x,p.z,8)*.16,tint=new THREE.Color().setRGB(shade*(.95+rnd(p.x,p.z,19)*.10),shade,shade*(.94+rnd(p.x,p.z,20)*.10)); // wider per-tree value and hue spread, so a street of one species no longer reads as clones
         lods.forEach(mesh=>mesh.setColorAt(k,tint));
         const radius = Math.min(p.crown / 2, variant.radius * width), top = base + 0.02 + height;
         bounds.expandByPoint(new THREE.Vector3(p.x - radius, base, p.z - radius)); bounds.expandByPoint(new THREE.Vector3(p.x + radius, top, p.z + radius));

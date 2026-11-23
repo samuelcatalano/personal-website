@@ -269,6 +269,7 @@ export function createSky(scene, { hemi, sun, reducedMotion = false }) {
       halo.material.opacity=clear*.55*(1-night*.80);halo.visible=clear>.005;
       const ds = DAY.sun * mood.sun, dh = DAY.hemi * mood.hemi;
       sun.intensity = ds + (NIGHT.sun * (1-cover*.78) - ds) * night;
+      sun.shadow.intensity = 0.9 + (0.8 - 0.9) * night; // day 0.9 grounds the props; night keeps 0.8
       sun.color.lerpColors(day(mood.light, d1), NIGHT.light, night);
       hemi.intensity = dh + (NIGHT.hemi + (mood.rain??0)*.16 - dh) * night + (reducedMotion?0:flash);
       if(!reducedMotion)starTime+=dt;

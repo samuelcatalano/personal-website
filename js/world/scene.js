@@ -122,7 +122,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   const hemi = new THREE.HemisphereLight(0xb9d4ea, 0x8d8574, 1);
   const sun = new THREE.DirectionalLight(0xfff0d0, 2.4);
   sun.castShadow = true;
-  Object.assign(sun.shadow, { bias: -0.0002, normalBias: 0.05, intensity: 0.8 }); // 0.8: cast shadows keep 20% of the key, so long low-sun shadows read lighter without touching the hemi or the sky (PCFSoft ignores shadow.radius in r169)
+  Object.assign(sun.shadow, { bias: -0.0002, normalBias: 0.05, intensity: 0.9 }); // day 0.9, set per frame in sky.js: cast shadows keep 10% of the key, so trees, props and facades ground without going black; night stays 0.8, where long low-sun shadows read lighter (PCFSoft ignores shadow.radius in r169)
   sun.shadow.mapSize.set(2048, 2048); // desktop: 7.8 cm texels over the ±80 m frustum (1024 gave 15.6 cm: soft, detached small shadows)
   Object.assign(sun.shadow.camera, { left: -80, right: 80, top: 80, bottom: -80, far: 300 });
   const SUN = SUN_DIR.clone().multiplyScalar(95), LD = SUN.clone().normalize();

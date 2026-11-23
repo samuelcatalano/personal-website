@@ -56,6 +56,12 @@ float lawnHash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.545
 float lawnNoise(vec2 p){ vec2 i = floor(p), f = fract(p); f *= f * (3.0 - 2.0 * f);
   return mix(mix(lawnHash(i), lawnHash(i + vec2(1.0, 0.0)), f.x), mix(lawnHash(i + vec2(0.0, 1.0)), lawnHash(i + 1.0), f.x), f.y); }
 float lawnFbm(vec2 p){ return lawnNoise(p) * .5 + lawnNoise(p * 2.03 + 11.7) * .3 + lawnNoise(p * 4.11 + 27.3) * .2; }` : '';
+    // Asphalt patches, world space (fragment only): ~23 m worn and resurfaced bays, so the road is not one flat grey.
+    // ponytail: value noise, not a painted map; move to a texture if the patches need to read up close.
+    const roadPatchGlsl = kind === 2 ? `
+float roadHash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float roadNoise(vec2 p){ vec2 i = floor(p), f = fract(p); f *= f * (3.0 - 2.0 * f);
+  return mix(mix(roadHash(i), roadHash(i + vec2(1.0, 0.0)), f.x), mix(roadHash(i + vec2(0.0, 1.0)), roadHash(i + 1.0), f.x), f.y); }` : '';
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', common)
       .replace('#include <begin_vertex>', `#include <begin_vertex>
@@ -74,10 +80,14 @@ vLP = position; vLN = normal; vSc = vec3(length(bm[0].xyz), length(bm[1].xyz), l
     if (kind) sh.fragmentShader = `#define GROUND ${kind}\n` + sh.fragmentShader;
     if (glow || kind === 2) sh.uniforms.uNight = mat.userData.uNight = { value: 0 };
     if (glow || kind === 2) sh.fragmentShader = 'uniform float uNight;\n' + sh.fragmentShader;
+    if (kind === 2) { // uRoadRealism 0 restores the previous asphalt look (A/B switch, also the kill switch)
+      sh.uniforms.uRoadRealism = mat.userData.uRoadRealism = { value: 1 };
+      sh.fragmentShader = sh.fragmentShader.replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n#if defined(GROUND) && GROUND == 2\nroughnessFactor = clamp(roughnessFactor * (1.0 + uRoadRealism * 0.22 * (roadNoise(vWP.xz / 9.0) - 0.5)), 0.5, 1.0);\n#endif');
+    }
     if (glow) sh.fragmentShader = '#define STAGGER\n' + sh.fragmentShader;
     if (!glow) sh.fragmentShader = '#define VOXEL_EDGE\n' + sh.fragmentShader;
     sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', common + '\nuniform vec3 uStreetRegions;' + lawnNoise)
+      .replace('#include <common>', common + '\nuniform vec3 uStreetRegions;' + lawnNoise + roadPatchGlsl + (kind === 2 ? '\nuniform float uRoadRealism;' : ''))
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
 #ifdef STAGGER
 totalEmissiveRadiance *= smoothstep(0.0, 0.1, uNight - (0.1 + 0.8 * vH) + 0.05); // each instance switches on at its own night level
@@ -116,6 +126,7 @@ diffuseColor *= texture2D(map, tuv);
   diffuseColor.rgb *= 1.0 - .20 * (1.0 - smoothstep(.0, .07, turfEdge));
   #elif GROUND == 2
   diffuseColor.rgb *= (1.0 + 0.2 * n) * mix(vec3(2.9, 2.4, 1.95), vec3(1.0), uNight); // lighter warm day asphalt; albedo unchanged at night
+  diffuseColor.rgb *= 1.0 + uRoadRealism * 0.10 * (roadNoise(vWP.xz / 23.0) - 0.5); // worn and resurfaced patches at ~23 m
   #else
   diffuseColor.rgb *= 1.0 + 0.10 * n;
   if (vWN.y > 0.9) { // ponytail: faint 2.4 m slab joints on upward pavement; the street block below keeps its finer pattern
