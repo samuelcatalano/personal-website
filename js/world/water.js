@@ -7,7 +7,7 @@ import { reflectionMode, detailTexture } from './water-math.js';
 import { PALETTE as P } from './palette.js';
 const DAY_SKY = new THREE.Color(0x8fc0e4), NIGHT_SKY = new THREE.Color(0x18203a);
 // Owner tweakables: how strongly the water mirrors (stylised floor added to Fresnel), sun/moon glint strength, foam band widths (m).
-export const REFLECT_FLOOR = 0.16, GLINT = 1.0, FOAM_WIDTH = 0.6, BOAT_FOAM_WIDTH = 0.35;
+export const REFLECT_FLOOR = 0.22, GLINT = 1.0, FOAM_WIDTH = 0.6, BOAT_FOAM_WIDTH = 0.35;
 const RANGE = 420, REFLECT_LAYER = 5, MAX_PIERS = 12, MAX_BOATS = 7, MAX_TAPS = 4, TAP_LIFE = 2.4;
 const vertexShader = /* glsl */`
 #include <fog_pars_vertex>
@@ -99,20 +99,26 @@ vec3 absorb = exp(-path * vec3(0.62, 0.26, 0.32));
 float bedNoise = texture2D(tDetail, (vPos.xz + n.xz * depthM * 1.6) * 0.045).b; // bed seen through the surface, bent by the normal
 vec3 bed = uBed * (0.7 + 0.6 * bedNoise);
 vec3 body = bed * absorb + mix(uShallow, uDeep, 0.35 + 0.65 * smoothstep(0.0, 0.6, shore)) * (1.0 - absorb);
+body *= 0.9 + 0.2 * texture2D(tDetail, vPos.xz * 0.011).b; // slow tonal drift: depth patches and silt, not a flat fill
 body = mix(body, uNightTint, uNight * 0.85);
 // Reflection: sky gradient with the banks reflected dark (fallback), then the planar reflection over it where it has content.
 vec3 r = reflect(-v, n);
 vec3 sky = mix(uSky * 1.08, uZen, smoothstep(0.02, 0.6, r.y));
 float bankRefl = smoothstep(0.55, 1.0, abs(across + g.y * 0.6)) * (1.0 - uNight * 0.4);
 sky = mix(sky, sky * 0.42, bankRefl);
-sky = mix(sky, vec3(dot(sky, vec3(0.3, 0.45, 0.25))), 0.35); // river reflections read greyer than the sky itself
+// Sky in the water: warm sun-side glow and soft cloud streaks stretched along the swell, so the surface is not one grey-green fill.
+float sunSide = pow(max(dot(normalize(r.xz + 1e-4), normalize(uSun.xz + 1e-4)), 0.0), 3.0) * (1.0 - uNight) * smoothstep(0.0, 0.25, r.y + 0.1);
+sky = mix(sky, sky * vec3(1.14, 1.0, 0.82) + vec3(0.05, 0.03, 0.0), sunSide * 0.55);
+float cloudStreak = texture2D(tDetail, r.xz / (r.y + 0.18) * vec2(0.22, 0.5) + g * 3.0).b;
+sky = mix(sky, vec3(0.93, 0.95, 0.97), smoothstep(0.52, 0.8, cloudStreak) * 0.26 * (1.0 - uNight) * smoothstep(0.0, 0.25, r.y + 0.12));
+sky = mix(sky, vec3(dot(sky, vec3(0.3, 0.45, 0.25))), 0.14); // a touch greyer than the sky itself, but no longer flat
 vec3 refl = sky;
 if (uReflect > 0.0) {
   vec2 uv = vRefl.xy / vRefl.w + g * (0.08 + 0.18 * fade) * vec2(0.6, 1.0); // wobble with the waves
   vec2 o = uReflTexel * (1.0 + dist * 0.012); // blur grows with distance
   vec4 p = texture2D(tRefl, uv) * 0.4 + (texture2D(tRefl, uv + vec2(o.x, o.y)) + texture2D(tRefl, uv - vec2(o.x, o.y))
     + texture2D(tRefl, uv + vec2(-o.x, o.y * 2.0)) + texture2D(tRefl, uv + vec2(o.x, -o.y * 2.0))) * 0.15;
-  p.rgb = mix(p.rgb, vec3(dot(p.rgb, vec3(0.3, 0.45, 0.25))), 0.2) * 0.85;
+  p.rgb = mix(p.rgb, vec3(dot(p.rgb, vec3(0.3, 0.45, 0.25))), 0.08) * 0.95; // buildings keep their colour and brightness in the mirror
   refl = mix(sky, p.rgb / max(p.a, 0.001), clamp(p.a, 0.0, 1.0) * uReflect);
 }
 float fres = 0.02 + 0.98 * pow(1.0 - clamp(dot(n, v), 0.0, 1.0), 5.0);

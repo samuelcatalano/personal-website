@@ -124,7 +124,8 @@ test('surveyed infill preserves baseline lots/props except the six approved brid
   assert.equal(patios,2);
   // re-pinned 2026-11-16: the same park move (59 boxes out, 44 in) plus the 24 m carriageway run-out past the last stop (city.js ROAD_RUNOUT)
   // re-pinned again 2026-11-16: square paving tiles (parks.js) are 0.055 high instead of 0.06, so their top (0.075) sits under the urban road surface (0.08) instead of z-fighting with it
-  assert.equal(hash(priorBoxes), '179ba4df8b0a766ecbe1f7e81d6e67effd6737f4b813dc2dd60e0413097152c5');
+  // re-pinned 2026-11-23: owner-authorised background pass; parks.js squares add a small flower planter in slots whose planned item did not fit
+  assert.equal(hash(priorBoxes), '9e07bbf2467c0d72d5a0987a0d1a868fd4018cc733baebf162213cf3e623bd6e');
   const fallback = [];
   const backdrop = [];
   buildUrbanInfill((...b) => fallback.push(b));

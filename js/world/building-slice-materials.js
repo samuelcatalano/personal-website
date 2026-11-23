@@ -253,7 +253,24 @@ ${GLASS_REFLECTION}`);
           float readable=1.0-smoothstep(.04,.12,max(fwidth(vRoom.x),fwidth(vRoom.y)));
           frameContact=1.0-.20*(1.0-smoothstep(.012,.07,edge))*readable;
         }`:''}
-        outgoingLight=mix(outgoingLight,glassReflection(reflected,uGlassNight)*mix(vec3(1.0),paneTint,.85)*frameContact,reflectionWeight);
+        // Day variety without touching shape: each building reflects a slightly different sky (teal, blue, warm grey) and each pane catches a little more or less light.
+        float glassBld=sliceNoise(vFloodP.xz/13.0+57.0);
+        float glassPane=fract(sin(dot(floor(vMapUv/vec2(1.0,2.0)),vec2(41.3,17.9)))*43758.5453);
+        vec3 glassVar=mix(vec3(.80,.97,1.05),vec3(1.10,1.0,.86),glassBld)*(.88+.24*glassPane);
+        outgoingLight=mix(outgoingLight,glassReflection(reflected,uGlassNight)*mix(vec3(1.0),paneTint,.85)*frameContact*glassVar,reflectionWeight);
+        // Grid variety per building (stable hash of its 13 m column, no per-instance id): about half carry opaque spandrel floors, a third carry solid piers, and the mullion width differs, so towers stop sharing one window grid.
+        {
+          vec2 gCell=floor(vMapUv/vec2(1.0,2.0)), gLocal=fract(vMapUv/vec2(1.0,2.0));
+          float gA=fract(glassBld*57.3), gB=fract(glassBld*23.7+.31), gC=fract(glassBld*91.1+.77);
+          float bandN=3.0+floor(gA*4.0), pierN=3.0+floor(gB*3.0);
+          float spandrel=step(.5,gB)*step(bandN-1.0,mod(gCell.y+floor(gC*7.0),bandN));
+          float pier=step(.66,gC)*step(pierN-1.0,mod(gCell.x+floor(gA*9.0),pierN));
+          float mull=.02+.1*gA*gA, frame=1.0-smoothstep(mull,mull+.035,min(min(gLocal.x,1.0-gLocal.x)*1.6,min(gLocal.y,1.0-gLocal.y)));
+          float gSolid=max(spandrel,pier)*(1.0-litWindow*uGlassNight*.85);
+          vec3 panel=outgoingLight*vec3(.62,.6,.58)+vec3(.02,.018,.016);
+          outgoingLight=mix(outgoingLight,panel,gSolid*.8);
+          outgoingLight*=1.0-frame*(.18+.2*gB);
+        }
         ${office?OFFICE_RECESS:''}
         #include <opaque_fragment>`);
     }

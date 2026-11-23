@@ -38,14 +38,11 @@ reply = cdp('Runtime.evaluate', expression=r'''(async () => {
   const cover = createWeatherCover([{ x: 0, z: 0, hx: 500, hz: 500, height: 100 }]);
   let rain;
   try {
-    clouds.children.forEach(c => { c.visible = false; });
-    const clear = readSun(), cloud = clouds.children.find(c => !c.userData.high);
-    cloud.visible = true; cloud.position.copy(sunDisc.position); cloud.quaternion.copy(sunDisc.quaternion); cloud.scale.set(150, 150, 1);
-    for (const key of ['uTop', 'uBase', 'uRim']) cloud.material.uniforms[key].value.set(0);
-    cloud.material.uniforms.uFade.value = cloud.material.uniforms.uOp.value = 1;
-    const blocked = readSun();
-    cloud.position.add(new T.Vector3(250, 0, 0).applyQuaternion(camera.quaternion));
-    const uncovered = readSun();
+    const cu = clouds.material.uniforms; // one raymarched volume: coverage 0 leaves the sun clear, a full dark deck occludes it
+    for (const key of ['uTop', 'uBase', 'uRim', 'uCity']) cu[key].value.set(0);
+    cu.uCoverage.value = 1; cu.uDeck.value = 1; const blocked = readSun();
+    cu.uCoverage.value = 0; cu.uDeck.value = 0; const uncovered = readSun();
+    clouds.visible = false; const clear = readSun(); clouds.visible = true;
     check(clear > 100 && blocked < clear * .35 && uncovered > clear * .9, 'Cloud alpha does not locally occlude the sun');
     const rainScene = new T.Scene(); rainScene.background = new T.Color(0);
     rain = createRain(rainScene, { cover });

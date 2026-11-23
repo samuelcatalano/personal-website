@@ -14,7 +14,7 @@ float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453
 vec3 vpos(vec2 uv){ float z = lz(uv); vec2 n = uv * 2.0 - 1.0; return vec3((n.x + uProj.y) * z / uProj.x, (n.y + uProj.w) * z / uProj.z, -z); }
 void main(){
   float zc = lz(vUv);
-  if (zc > uFar * 0.5) { gl_FragColor = vec4(1.0); return; }
+  if (zc > uFar * 0.42) { gl_FragColor = vec4(1.0); return; } // depth precision is too coarse out there: AO printed vertical streaks on the far silhouettes
   vec3 P = vpos(vUv);
   vec2 sx = vec2(4.0 * uTexelFull.x, 0.0), sy = vec2(0.0, 4.0 * uTexelFull.y); // 4-texel baseline: 1 texel is noisy at grazing angles
   vec3 pr = vpos(vUv + sx) - P, pl = P - vpos(vUv - sx);
@@ -32,7 +32,7 @@ void main(){
     // sine of the elevation above the tangent plane: only samples that rise clearly off the surface occlude (bias ~3 deg)
     occ += smoothstep(0.05, 0.3, dot(n, v) / lv) * (1.0 - smoothstep(uRadius, uRadius * 2.5, lv));
   }
-  gl_FragColor = vec4(vec3(1.0 - occ / 10.0), 1.0);
+  gl_FragColor = vec4(vec3(1.0 - occ / 10.0 * (1.0 - smoothstep(uFar * 0.3, uFar * 0.42, zc))), 1.0); // fades out instead of a hard cut
 }`;
 const COMP_FRAG = `${LIN} uniform sampler2D tDiffuse, tAO; uniform vec2 uTexel, uTexelFull; uniform float uStrength, uFocus, uMaxPx; varying vec2 vUv;
 // depth of field: sharp around the focus distance (the hero vehicle) and across the far background; softens only what is very near the camera; 12 golden-angle taps, only where the blur is visible

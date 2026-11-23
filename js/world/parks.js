@@ -300,6 +300,12 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
           draw(x, 0.05, z, 7, 0.07, 7, GRAVEL); bowl(6, 0.12, 0.4); draw(x, 0.37, z, 1.6, 0.6, 1.6, STONE);
           bowl(3.2, 0.97, 0.3); draw(x, 1.22, z, 0.9, 0.5, 0.9, STONE); bowl(1.8, 1.72, 0.3); draw(x, 1.97, z, 0.25, 1.0, 0.25, WATER);
           draw(x, 0.65, z, 3, 0.6, 3, STONE); draw(x, 1.2, z, 2.6, 0.1, 2.6, WATER); draw(x, 1.3, z, 1.4, 0.55, 1.4, STONE); draw(x, 1.8, z, 1.0, 0.1, 1.0, WATER); draw(x, 1.85, z, 0.25, 1.0, 0.25, WATER);
+        } else if (fit(1.3, 0.65)) { // slot whose planned item did not fit (road band, walkway, lamp): a small flower planter keeps the square furnished; same footprint rules, no rng, no tree callback
+          draw(x, 0.05, z, 2.4, 0.42, 1.2, STONE); draw(x, 0.48, z, 2.2, 0.05, 1.0, SOIL);
+          for (const s of [-1, 1]) {
+            const px = x + s * 0.55, shade = variation(px, z, k + (s > 0)), tint = PLANT_TINTS[Math.floor(shade * PLANT_TINTS.length)];
+            if (draw.plant) draw.plant('flower', px, 0.53, z, 0.86, 0.3, 0.8, tint, (shade - 0.5) * 0.12); else draw(px, 0.53, z, 0.95, 0.3, 0.9, BED[(k + (s > 0)) % 5]);
+          }
         }
       }
     });

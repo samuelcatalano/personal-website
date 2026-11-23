@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { moonIllumination, celestialFrame, celestialVisibility, shelterField } from '../js/world/weather-math.js';
+import { moonIllumination, celestialFrame, celestialVisibility, shelterField, cloudNoise } from '../js/world/weather-math.js';
 
 test('moon is always full with symmetric limb shading and no light outside its disc', () => {
   assert.equal(moonIllumination(1.1, 0), 0);
@@ -36,4 +36,16 @@ test('one shelter field preserves overlapping maximum roofs, oriented decks and 
   assert.equal(at(25, 6), 6);
   assert.equal(at(31, 0), 0);
   assert.equal(at(15, 0), 0);
+});
+
+test('cloud noise volume is normalised and tiles without a seam', () => {
+  const n = 32, d = cloudNoise(n), at = (x, y, z, c) => d[((z * n + y) * n + x) * 2 + c];
+  assert.equal(d.length, n * n * n * 2);
+  for (const c of [0, 1]) {
+    let lo = 255, hi = 0, seam = 0, inner = 0;
+    for (let i = c; i < d.length; i += 2) { lo = Math.min(lo, d[i]); hi = Math.max(hi, d[i]); }
+    for (let z = 0; z < n; z++) for (let y = 0; y < n; y++) { seam += Math.abs(at(0, y, z, c) - at(n - 1, y, z, c)); inner += Math.abs(at(15, y, z, c) - at(16, y, z, c)); }
+    assert.ok(lo === 0 && hi === 255);
+    assert.ok(seam < inner * 1.5, `channel ${c} wraps like any interior neighbour`);
+  }
 });

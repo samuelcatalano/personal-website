@@ -29,7 +29,7 @@ const BRIDGE_FAR = 80; // m: Estaiada cars only appear/vanish beyond this from t
 const SPEED = { london: 10, glasgow: 10, caio: 10, cab: 13, mini: 13, car: 13.5 }; // m/s
 const SP_RANGE = 0.062, MIN_SPAWN = 110; // Sao Paulo cars loop inside [route start, swap + SP_RANGE] (curve t) instead of the whole route: respawn at the east end only when >= MIN_SPAWN m from the player
 const ACC = 3, DEC = 6, GAP = 3.5, ZEBRA_AT = 9, SLOW = 24; // m/s^2 up, m/s^2 down, bumper gap (m), zebra offset past a stop (roadmarks.js), slow-down radius (m)
-const CARS = Array.from({ length: 16 }, (_, i) => [['#151a20', '#b9bec5', '#a31d2a', '#142b4a', '#173b2d'][i % 5], ['mini', 'sedan', 'suv', 'mini', 'sedan', 'van', 'sedan', 'hatch', 'suv', 'sedan', 'hatch', 'suv', 'sedan', 'hatch', 'suv', 'sedan'][i]]); // metallic black, silver, red, dark blue and dark green
+const CARS = Array.from({ length: 16 }, (_, i) => [['#151a20', '#b9bec5', '#a31d2a', '#142b4a', '#173b2d', '#e8e6df', '#5d6b78', '#7b4a2a', '#1f5560', '#b78a2a', '#6d1f3a'][(i * 3) % 11], ['mini', 'sedan', 'suv', 'mini', 'sedan', 'van', 'sedan', 'hatch', 'suv', 'sedan', 'hatch', 'suv', 'sedan', 'hatch', 'suv', 'sedan'][i]]); // metallic black, silver, red, dark blue, dark green, white, slate, bronze, teal, mustard and wine
 const REGION_FADE = 0.25;
 function updateRegionalBus(v, target, dt, isDisposed) {
   if (!v.modelReady) return;
@@ -64,7 +64,7 @@ function updateRegionalBus(v, target, dt, isDisposed) {
 export function createAmbient(scene, { curve, pts, stops, reducedMotion = false, tunnel = null, dip = null }) {
   const knots = fineMarks(stopMarks(pts), curve), len = curve.getLength(), swapFrame = swapTunnelFrame(curve, stops);
   let disposed = false, miniIndex = 0;
-  const MINI_PAINT = [{ body: '#285b8f', roof: '#f4f1ea' }, { body: '#1f4a35', roof: '#f4f1ea' }, { body: '#b3161f', roof: '#f4f1ea' }];
+  const MINI_PAINT = [{ body: '#285b8f', roof: '#f4f1ea' }, { body: '#1f4a35', roof: '#f4f1ea' }, { body: '#b3161f', roof: '#f4f1ea' }, { body: '#d9a520', roof: '#1b1d20' }, { body: '#c9ccd1', roof: '#b3161f' }, { body: '#2f7f86', roof: '#f4f1ea' }];
   const D = (type, offset, extra = {}) => {
     const palette = type === 'mini' ? MINI_PAINT[miniIndex++ % MINI_PAINT.length] : undefined;
     return { mesh: buildVehicle(type, { color: palette?.body }), palette, type, offset, uk: true, scot: false, ...extra };

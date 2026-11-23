@@ -112,7 +112,7 @@ export function buildBackdrop(add, stops, pts, addSky = add) {
       const w = 9 + m() * 5, gap = 2 + m() * 2.5, xc = x + w / 2, z = mz + (m() - 0.5) * 6, depth = 10;
       const skip = xc - w / 2 < museumR && xc + w / 2 > museumL;
       const floors = lo + (m() * (hi - lo + 1) | 0), h = floors * 2.8, wall = pal[m() * pal.length | 0], roof = m() < 0.5 && mz > -145 ? P.roof : wall, // ponytail: mid band (z<=-145) is far, caps match walls
-         kind = m(), plant = m(), crown = Math.abs(Math.round(xc * 13) + floors) % 3;
+         kind = m(), plant = m(), crown = mz < -190 ? 0 : Math.abs(Math.round(xc * 13) + floors) % 3; // the far band stays a plain mass: its stepped crowns read as pixel blocks through the haze
       if (!skip) {
         if (crown === 0) body(xc, 0, z, w, h, depth, wall, (Math.round(xc * 73) ^ Math.round(mz * 19)) | 0, true, .55);
         else if (crown === 1) { body(xc, 0, z, w, h * 0.72, depth, wall, (Math.round(xc * 73) ^ Math.round(mz * 19)) | 0, true, .55); body(xc + w * 0.1, h * 0.72, z, w * 0.72, h * 0.28, depth * 0.8, wall, (Math.round(xc * 79) ^ Math.round(mz * 23)) | 0, false, .55); }
@@ -147,7 +147,7 @@ export function buildBackdrop(add, stops, pts, addSky = add) {
       const city = x < spN ? 0 : x > gl - 160 && x < gl + 140 ? 2 : 1, q = sk(), w = (city === 0 ? 15 : 11) + sk() * 9, gap = 3 + sk() * 7, xc = x + w / 2, z = z0 + (sk() - .5) * 8, d = 44;
       sk(); const wall = ST;
       let h = city === 0 ? (q < .1 ? 55 + sk() * 25 : 16 + sk() * 30) : city === 1 ? (q < .05 ? 28 + sk() * 10 : 8 + sk() * 14) : 7 + sk() * 9;
-      h *= hk;
+      h *= hk * (.8 + .4 * Math.abs(Math.sin(xc * .0613 + ri * 2.1) * Math.cos(xc * .0171 + ri))); // deterministic low-frequency height swell on top of the seeded heights: no flat plateau across a row
       const corridor = xc + w / 2 > museumL && xc - w / 2 < museumR;
       x += w + gap;
       if (corridor && Math.abs(xc - museum.x) > 31) continue;
@@ -156,13 +156,13 @@ export function buildBackdrop(add, stops, pts, addSky = add) {
       addSky(xc, 0, z, w, h * .5, d, SB); addSky(xc, h * .5, z, w, h * .5, d, wall);
       if (corridor) continue;
       if (h > 48 && city === 0) { // tower: stepped crown, tapering cap, mast
-        addSky(xc, h, z, w * .72, h * .12, d * .72, wall); addSky(xc, h * 1.12, z, w * .4, h * .1, d * .4, wall);
-        addSky(xc, h * 1.22, z, .8, h * .15, .8, wall);
+        addSky(xc, h, z, w * .5, h * .16, d * .5, wall); // one crown tier plus a mast: the old three-step stair read as pixel blocks at the horizon
+        addSky(xc, h * 1.16, z, .8, h * .2, .8, wall);
       } else if (city === 2 && q > .6) { // church / tenement spire
         addSky(xc, h, z, w * .5, 6, w * .5, wall); addSky(xc, h + 6, z, w * .26, 8, w * .26, wall); addSky(xc, h + 14, z, .6, 10, .6, wall);
       } else if (city === 1 && q > .85) { // tower crane: mast, jib, counterweight
         addSky(xc, h, z, .8, 14, .8, wall); addSky(xc + 5, h + 14, z, 20, .7, .7, wall); addSky(xc - 7, h + 13, z, 3, 1.6, 1.6, wall);
-      } else if (q > .5) addSky(xc - w * .2, h, z, w * .5, 3 + sk() * 4, d * .5, wall); // setback / plant
+      } else if (q > .5) sk(); // setback box dropped (its stair step read as pixel blocks); keep the draw so later boxes stay in place
     }
   }
 }

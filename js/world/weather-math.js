@@ -13,7 +13,48 @@ export function celestialFrame(width, height, headerBottom = 0) {
   return [.58, 1 - 2 * y / height];
 }
 
-export const celestialVisibility = (cover, rain = 0) => (1 - smooth(.70, .99, cover)) * (1 - clamp(rain) * .25);
+// Tileable 3D cloud noise for the sky raymarch, n^3 voxels x 2 channels (RG8):
+// R = Perlin-Worley shape (value-noise fbm floored by inverted Worley, 4..16 cells), G = Worley fbm detail (8..32 cells) for edge erosion.
+// Both channels wrap at the volume edge (RepeatWrapping in the shader), each normalised to 0..255.
+export function cloudNoise(n = 64) {
+  const hash = (a, b, c, s) => { const v = Math.sin(a * 127.1 + b * 311.7 + c * 74.7 + s * 19.19) * 43758.5453; return v - Math.floor(v); };
+  const worleyPts = f => { const p = new Float32Array(f * f * f * 3); for (let i = 0; i < f * f * f; i++) for (let k = 0; k < 3; k++) p[i * 3 + k] = hash(i, k, f, 1); return p; };
+  const pts = Object.fromEntries([4, 8, 16, 32].map(f => [f, worleyPts(f)]));
+  const worley = (x, y, z, f) => { // inverted F1 distance, period f cells over the unit cube
+    const px = x * f, py = y * f, pz = z * f, cx = Math.floor(px), cy = Math.floor(py), cz = Math.floor(pz), P = pts[f];
+    let best = 9;
+    for (let k = -1; k <= 1; k++) for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) {
+      const wx = (cx + i + f) % f, wy = (cy + j + f) % f, wz = (cz + k + f) % f, o = (wz * f * f + wy * f + wx) * 3;
+      const dx = cx + i + P[o] - px, dy = cy + j + P[o + 1] - py, dz = cz + k + P[o + 2] - pz;
+      best = Math.min(best, dx * dx + dy * dy + dz * dz);
+    }
+    return 1 - Math.min(1, Math.sqrt(best));
+  };
+  const value = (x, y, z, f) => { // periodic trilinear value noise with smoothstep fade
+    const px = x * f, py = y * f, pz = z * f, ix = Math.floor(px), iy = Math.floor(py), iz = Math.floor(pz);
+    const s = t => t * t * (3 - 2 * t), fx = s(px - ix), fy = s(py - iy), fz = s(pz - iz);
+    const h = (a, b, c) => hash((a + f) % f, (b + f) % f, (c + f) % f, f);
+    const l = (a, b, t) => a + (b - a) * t;
+    return l(l(l(h(ix, iy, iz), h(ix + 1, iy, iz), fx), l(h(ix, iy + 1, iz), h(ix + 1, iy + 1, iz), fx), fy),
+      l(l(h(ix, iy, iz + 1), h(ix + 1, iy, iz + 1), fx), l(h(ix, iy + 1, iz + 1), h(ix + 1, iy + 1, iz + 1), fx), fy), fz);
+  };
+  const r = new Float32Array(n * n * n), g = new Float32Array(n * n * n);
+  for (let z = 0; z < n; z++) for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    const u = (x + .5) / n, v = (y + .5) / n, w = (z + .5) / n, i = (z * n + y) * n + x;
+    const perlin = value(u, v, w, 4) * .5 + value(u, v, w, 8) * .3 + value(u, v, w, 16) * .2;
+    const w8 = worley(u, v, w, 8), w16 = worley(u, v, w, 16), wl = worley(u, v, w, 4) * .625 + w8 * .25 + w16 * .125;
+    r[i] = wl + perlin * (1 - wl) * .9 - .45 * (1 - wl); // Perlin-Worley: billows from Worley, fbm breaks the cell pattern
+    g[i] = w8 * .625 + w16 * .25 + worley(u, v, w, 32) * .125;
+  }
+  const out = new Uint8Array(n * n * n * 2);
+  for (const [ch, a] of [[0, r], [1, g]]) {
+    let lo = Infinity, hi = -Infinity; for (const v of a) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
+    for (let i = 0; i < a.length; i++) out[i * 2 + ch] = Math.round((a[i] - lo) / (hi - lo) * 255);
+  }
+  return out;
+}
+
+export const celestialVisibility =(cover, rain = 0) => (1 - smooth(.70, .99, cover)) * (1 - clamp(rain) * .25);
 
 // shortcut: roof heights quantized to 0.5m and pitched roofs approximated by envelopes; refine for visible close-up shelter gaps.
 export function shelterField(footprints) {

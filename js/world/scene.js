@@ -145,6 +145,10 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     }
     return addBackdrop(x, y, z, w, h, d, color, ...rest);
   }, stops, routePoints(n, LEGACY_GAPS), eastAdd(far.add, stretch)); // buildings retain their original footprints
+  // Far band (z < -190): warm/pale distant walls become cool slates, so through the fog the band reads darker and bluer than the skyline behind it.
+  // Done here, after generation, so the generator output the tests pin stays untouched.
+  const SLATE = new Map([[P.londonStock, '#6c727c'], [P.concreteMid, '#717b88'], [P.taupe, '#626670'], [P.cream, '#7a8390']]);
+  for (const b of distant.list) if (b.z < -190 && SLATE.has(b.color)) b.color = SLATE.get(b.color);
   const skyline = createSkyline(far.list);
   scene.add(skyline);
   // Chunked in 160 m cells along x: one merged mesh per colour for the whole route was submitted in every view (2.19 M tris); cells let the frustum reject the far ones.
@@ -679,7 +683,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     sun.target.position.copy(LU).multiplyScalar(a).addScaledVector(LV, b).addScaledVector(LD, bp.dot(LD));
     sun.position.copy(sun.target.position).add(SUN); sun.shadow.camera.up.copy(LV);
     treeSun.value.set(LD.x, LD.y, LD.z, Math.min(1, sun.intensity / 2.4)); // T3: canopy backlight follows the sun
-    skyline.userData.update(night, scene.fog.color);
+    skyline.userData.update(night, sky.uniforms);
     bigBenLod?.update(camera.position);
     seLod?.update(camera.position);
     towerBridgeLod?.update(camera.position);
