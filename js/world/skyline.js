@@ -1,6 +1,8 @@
 import * as THREE from 'three';
-import { untone } from './sky.js';
-// Three unfogged silhouette batches, alpha-blended over the sky already drawn behind them (dome, clouds, deck), so the far city has aerial depth and no cut-out against the sky or the clouds.
+import { untone, SKY_GLSL } from './sky.js';
+import { REALISM } from './textures.js';
+// Three unfogged silhouette batches composited toward the exact dome colour behind them (aerial perspective), opaque low down and dissolving with height by day,
+// so cloud texture never shows through a half-transparent box (the old ghost blocks inside the clouds) and tall tops melt into the sky instead of cutting it.
 const DAY = ['#4f6680', '#5c7590', '#6a83a0'].map((c) => new THREE.Color(c)), NIGHT = ['#0a1226', '#0e1832', '#142040'].map((c) => new THREE.Color(c));
 const AIR = [0.6, 0.68, 0.76]; // share of sky per row, near to far; the band in front is darker slate (scene.js), so depth reads by tone even where its fog reaches the 0.72 cap
 const SKY_KEYS = ['uZen', 'uMid', 'uHor', 'uGlow', 'uSunDir', 'uClear', 'uCover'];
@@ -15,21 +17,27 @@ export function createSkyline(list) {
       Object.assign(shader.uniforms, skyU);
       shader.uniforms.uAir = { value: AIR[r] };
       shader.uniforms.uSkyNight = skyNight; shader.uniforms.uHaze = { value: r * 0.5 }; // 0, .5, 1
-      shader.vertexShader = 'varying vec3 vSkyWorld;\nvarying float vSkyDist;\nvarying vec3 vSkyN;\nvarying float vSkyTone;\n' + shader.vertexShader
+      shader.vertexShader = 'varying vec3 vSkyWorld;\nvarying float vSkyDist;\nvarying vec3 vSkyN;\nvarying float vSkyTone;\nvarying vec4 vSkyClip;\n' + shader.vertexShader
+        .replace('#include <project_vertex>', '#include <project_vertex>\nvSkyClip = gl_Position;')
         .replace('#include <begin_vertex>', '#include <begin_vertex>\nvSkyWorld = (modelMatrix * instanceMatrix * vec4(position, 1.0)).xyz;\nvSkyDist = distance(cameraPosition, vSkyWorld);\nvSkyN = normalize(mat3(modelMatrix * instanceMatrix) * normal);\nvSkyTone = fract(sin(dot(instanceMatrix[3].xz, vec2(12.9898, 78.233))) * 43758.5453);');
-      shader.fragmentShader = 'uniform vec3 uSunDir; uniform float uCover, uClear;\nuniform float uAir; uniform float uHaze; uniform float uSkyNight; varying vec3 vSkyWorld; varying float vSkyDist; varying vec3 vSkyN; varying float vSkyTone;\n' + shader.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+      shader.fragmentShader = SKY_GLSL + '\nvarying vec4 vSkyClip;\nuniform float uAir; uniform float uHaze; uniform float uSkyNight; varying vec3 vSkyWorld; varying float vSkyDist; varying vec3 vSkyN; varying float vSkyTone;\n' + shader.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
 diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb / max(vColor, vec3(0.01)) * 0.95, uHaze * 0.7); // farther rows flatten their base/top instance tones
 diffuseColor.rgb *= 0.9 + 0.2 * vSkyTone; // per-building value spread (one hash per instance position, so no 13 m stripes) so overlapping masses separate
 // Soft sun-side modelling (no flat cut-outs): faces toward the sun's azimuth lift, roofs lift a little; overcast flattens it.
 vec2 skySunXZ = normalize(uSunDir.xz + vec2(1e-4));
 diffuseColor.rgb *= 1.0 + (0.1 * dot(vSkyN.xz, skySunXZ) + 0.06 * vSkyN.y) * (1.0 - uCover);
 diffuseColor.rgb = mix(diffuseColor.rgb, vec3(dot(diffuseColor.rgb, vec3(0.3, 0.55, 0.15))), 0.55 * uCover); // grey under a deck
-// Aerial perspective toward what is really behind this pixel (dome, clouds or deck): the colour pass blends over them with alpha = 1 - air,
-// so cloud edges continue through the silhouettes instead of being cut by a dome-only colour. Bases sink further into the low haze.
+// Aerial perspective toward the dome colour for this pixel (same skyDome() as the sky), opaque, so no cloud texture shows through a half-transparent box.
+// Bases sink further into the low haze; by day the tops fade out with height (skyA) instead of cutting the clouds.
 float skyAir = uAir + (1.0 - uAir) * max(0.55 * (1.0 - smoothstep(0.0, 45.0, vSkyWorld.y)), 0.45 * uCover); // overcast: thicker air keeps the band from reading darker than the deck
 skyAir *= mix(1.0, smoothstep(0.0009, 0.0016, 1.0 - dot(normalize(vSkyWorld - cameraPosition), uSunDir)), uSkyNight * uClear); // opaque in front of a visible moon disc (~0.04 rad): no moon through the buildings; by day the sun glow through the haze is wanted
 skyAir *= 1.0 - 0.4 * uSkyNight; // night: dark masses must hold against the dark sky (and keep stars and moon from showing through)
-diffuseColor.rgb *= 1.0 - skyAir; diffuseColor.a = 1.0 - skyAir; // premultiplied
+${REALISM ? `float skyA = 1.0 - smoothstep(14.0, 72.0, vSkyWorld.y) * (1.0 - uSkyNight); // by day tall tops dissolve into whatever is behind (dome or cloud); night masses stay solid against stars
+float skyNdc = vSkyClip.y / vSkyClip.w;
+vec3 skyHaze = mix(skyDome(-uSunDir, skyNdc), skyDome(normalize(vSkyWorld - cameraPosition), skyNdc), 0.3); // dome gradient with only a third of the sun/moon glow: the clouds that really sit there hide most of it
+vec4 skyOut = vec4(mix(diffuseColor.rgb, skyHaze, skyAir) * skyA, skyA);
+skyOut = mix(skyOut, vec4(diffuseColor.rgb * (1.0 - skyAir), 1.0 - skyAir), uCover); // under a deck there is no cloud texture to ghost: keep blending over the real deck colour
+diffuseColor = skyOut;` : 'diffuseColor.rgb *= 1.0 - skyAir; diffuseColor.a = 1.0 - skyAir;'} // premultiplied (phones keep the earlier alpha blend over the clouds)
 diffuseColor.rgb += (fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715)))) - 0.5) / 255.0; // interleaved-gradient dither against banding
 // Lit windows at night: 4.2 m bays and 3.4 m floors; per-building lit ratio (10-60%), dark floors and two tints from stable hashes of position; faded out past ~800 m.
 float skyU = (vSkyWorld.x + vSkyWorld.z) / 4.2, skyV = vSkyWorld.y / 3.4;
@@ -43,7 +51,7 @@ float skyWin = step(0.3, skyF.x) * step(skyF.x, 0.7) * step(0.3, skyF.y) * step(
 float skyFade = 1.0 - smoothstep(700.0, 1100.0, vSkyDist); // at 500 m a 4.2 m bay is ~20 px, so the windows survive well past the first fade range
 vec3 skyLit = mix(vec3(1.0, 0.82, 0.45), vec3(0.8, 0.9, 1.0), step(0.7, skyTint));
 diffuseColor.rgb += skyLit * skyWin * skyFade * uSkyNight * (0.6 + 0.4 * skyHash) * 0.5;`);    };
-    mat.customProgramCacheKey = () => 'skyline-haze-v8';
+    mat.customProgramCacheKey = () => REALISM ? 'skyline-haze-v10' : 'skyline-haze-v8';
     // Drawn in the transparent list after the raymarched cloud volume (-7), so the dome and clouds are already in the frame behind it.
     // A depth-only prepass of the same instances (-5.5) keeps only the front face of overlapping boxes, so nothing blends twice.
     Object.assign(mat, { transparent: true, depthWrite: false, depthFunc: THREE.LessEqualDepth, blending: THREE.CustomBlending, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor });

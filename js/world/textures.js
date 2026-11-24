@@ -40,13 +40,24 @@ const EDGE_W = 0.035, EDGE_DARK = 0.02, EDGE_HI = 0.015, EDGE_MIN = 0.1, EDGE_FU
 // Triplanar, world space: 1 tile = 1 m
 const GRASS = new Set([P.grass, P.patch, P.hill]); // hill: the second park-lawn green (parks.js)
 export const surfaceNoiseTexture = noiseTexture;
+// Shared GLSL. GROUND_BOUNCE: warm paving albedo (~.46/.40/.32) x 0.2, the cheap indirect term (no probes, no lights): sun colour x this x (.5 - .5 n.y).
+// GROUND_MACRO: 60-110 m value noise in [0,1] (two octaves), the one large-scale variation field for paving, asphalt, lawn and grass blades.
+// Desktop only: the 2026-11-24 realism terms (macro variation, gutters, ground bounce, glass/facade ageing, skyline haze, backdrop chroma, water fallback).
+// Mobile work is paused and its shipped look must not change, so phones (< 768 px at load) compile the previous shaders. Node tests see no matchMedia and take the desktop path.
+export const REALISM = !globalThis.matchMedia || globalThis.matchMedia('(min-width: 768px)').matches;
+export const GROUND_BOUNCE = 'vec3(.092, .080, .064)';
+export const GROUND_MACRO = `
+float groundMacroHash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float groundMacroNoise(vec2 p){ vec2 i = floor(p), f = fract(p); f *= f * (3.0 - 2.0 * f);
+  return mix(mix(groundMacroHash(i), groundMacroHash(i + vec2(1.0, 0.0)), f.x), mix(groundMacroHash(i + vec2(0.0, 1.0)), groundMacroHash(i + 1.0), f.x), f.y); }
+float groundMacro(vec2 xz){ return groundMacroNoise(xz / 90.0 + 3.1) * .65 + groundMacroNoise(xz / 47.0 + 17.7) * .35; }`;
 export function blockMaterial(color, { glow = false, k = 2.2 } = {}) {
   const mat = new THREE.MeshStandardMaterial({ color, map: GRASS.has(color)?turfTexture():noiseTexture(), roughness: 0.9, metalness: 0 });
   const kind = GRASS.has(color) ? 1 : color === P.road ? 2 : [P.pave, P.paverWarm].includes(color) ? 3 : 0; // world-space tint noise
   mat.userData.glow = glow;
   if (kind === 2) { mat.userData.glow = true; mat.userData.glowColor = new THREE.Color('#151412'); mat.userData.glowK = 1; } // ponytail: neutral-warm flat night lift (no blue cast) on asphalt (sky.update drives emissive); no per-lamp light
   mat.userData.glowK = k; // night emissive multiplier, see sky.update
-  mat.customProgramCacheKey = () => 'block-streetscape-1' + glow + kind + (kind===1?'-botanical-turf-2':''); // glow/non-glow differ by define only
+  mat.customProgramCacheKey = () => 'block-streetscape-1' + (REALISM ? '-macro-bounce-1' : '') + glow + kind + (kind===1?'-botanical-turf-2':''); // glow/non-glow differ by define only
   mat.onBeforeCompile = (sh) => {
     sh.uniforms.uStreetRegions = streetEnvironment.regions;
     const common = '#include <common>\nvarying vec3 vWP; varying vec3 vWN; varying vec3 vLP; varying vec3 vLN; varying vec3 vSc; varying float vH;';
@@ -78,6 +89,7 @@ vWN = normalize(mat3(bm) * normal);
 #endif
 vLP = position; vLN = normal; vSc = vec3(length(bm[0].xyz), length(bm[1].xyz), length(bm[2].xyz));`);
     if (kind) sh.fragmentShader = `#define GROUND ${kind}\n` + sh.fragmentShader;
+    if (REALISM) sh.fragmentShader = '#define REALISM\n' + sh.fragmentShader;
     if (glow || kind === 2) sh.uniforms.uNight = mat.userData.uNight = { value: 0 };
     if (glow || kind === 2) sh.fragmentShader = 'uniform float uNight;\n' + sh.fragmentShader;
     if (kind === 2) { // uRoadRealism 0 restores the previous asphalt look (A/B switch, also the kill switch)
@@ -87,7 +99,11 @@ vLP = position; vLN = normal; vSc = vec3(length(bm[0].xyz), length(bm[1].xyz), l
     if (glow) sh.fragmentShader = '#define STAGGER\n' + sh.fragmentShader;
     if (!glow) sh.fragmentShader = '#define VOXEL_EDGE\n' + sh.fragmentShader;
     sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', common + '\nuniform vec3 uStreetRegions;' + lawnNoise + roadPatchGlsl + (kind === 2 ? '\nuniform float uRoadRealism;' : ''))
+      .replace('#include <common>', common + '\nuniform vec3 uStreetRegions;' + (kind && REALISM ? GROUND_MACRO : '') + lawnNoise + roadPatchGlsl + (kind === 2 ? '\nuniform float uRoadRealism;' : ''))
+      .replace('#include <opaque_fragment>', `#if NUM_DIR_LIGHTS > 0 && defined(REALISM)
+outgoingLight += diffuseColor.rgb * directionalLights[0].color * ${GROUND_BOUNCE} * (0.5 - 0.5 * vWN.y); // warm ground bounce on side and under faces
+#endif
+#include <opaque_fragment>`)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
 #ifdef STAGGER
 totalEmissiveRadiance *= smoothstep(0.0, 0.1, uNight - (0.1 + 0.8 * vH) + 0.05); // each instance switches on at its own night level
@@ -106,6 +122,14 @@ diffuseColor *= texture2D(map, tuv);
   vec2 g = vWP.xz / 6.0, i = floor(g), f = fract(g); f *= f * (3.0 - 2.0 * f);
   vec4 h = fract(sin(vec4(dot(i, vec2(12.9898, 78.233)), dot(i + vec2(1.0, 0.0), vec2(12.9898, 78.233)), dot(i + vec2(0.0, 1.0), vec2(12.9898, 78.233)), dot(i + 1.0, vec2(12.9898, 78.233)))) * 43758.5453);
   float n = mix(mix(h.x, h.y, f.x), mix(h.z, h.w, f.x), f.y) - 0.5;
+  #ifdef REALISM
+  float macro = groundMacro(vWP.xz) - 0.5; // shared 50-100 m field: whole stretches read worn/fresh, lush/dry, not one tile
+  #if GROUND == 1
+  diffuseColor.rgb *= (1.0 + 0.2 * macro) * mix(vec3(0.9, 1.0, 0.92), vec3(1.08, 1.03, 0.84), smoothstep(-0.25, 0.25, macro));
+  #else
+  diffuseColor.rgb *= (1.0 + 0.16 * macro) * vec3(1.0 + 0.04 * macro, 1.0, 1.0 - 0.04 * macro);
+  #endif
+  #endif
   #if GROUND == 1
   // Real turf, seen from the follow camera: olive (not lime), clumped hue at ~2 m, sun-dried patches at ~11 m, clover/tuft speckle that fades
   // with the pixel footprint (no shimmer), mowing stripes along the bed, and thinned, worn margins with a kerb shadow line.
@@ -127,6 +151,12 @@ diffuseColor *= texture2D(map, tuv);
   #elif GROUND == 2
   diffuseColor.rgb *= (1.0 + 0.2 * n) * mix(vec3(2.9, 2.4, 1.95), vec3(1.0), uNight); // lighter warm day asphalt; albedo unchanged at night
   diffuseColor.rgb *= 1.0 + uRoadRealism * 0.10 * (roadNoise(vWP.xz / 23.0) - 0.5); // worn and resurfaced patches at ~23 m
+  #ifdef REALISM
+  if (vWN.y > 0.9) { // gutter grime along the kerbs: long sides of carriageway boxes only (lane strips and markings are narrower than 4 m)
+    float gutter = vSc.x >= vSc.z ? (0.5 - abs(vLP.z)) * vSc.z : (0.5 - abs(vLP.x)) * vSc.x;
+    diffuseColor.rgb *= 1.0 - 0.12 * (1.0 - smoothstep(0.0, 0.8, gutter)) * step(4.0, min(vSc.x, vSc.z));
+  }
+  #endif
   #else
   diffuseColor.rgb *= 1.0 + 0.10 * n;
   if (vWN.y > 0.9) { // ponytail: faint 2.4 m slab joints on upward pavement; the street block below keeps its finer pattern

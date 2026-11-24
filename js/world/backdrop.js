@@ -1,6 +1,15 @@
 import { glasgowSites, rng } from './layout.js';
 import { PALETTE as P } from './palette.js';
 
+// Aerial perspective for far boxes: keep value, scale chroma by k (1 = unchanged, 0 = warm stone grey).
+export function hazeTone(hex, k) {
+  const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)), l = 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2];
+  const stone = [l * 1.015, l, l * 0.97]; // London stone, not blue-grey
+  return '#' + c.map((v, i) => Math.round(Math.min(255, Math.max(0, stone[i] + (v - stone[i]) * k))).toString(16).padStart(2, '0')).join('');
+}
+// Extra roof-cap height (0-1.4 m) from position, so far rows do not share one flat roofline.
+export function capRise(x, z) { const s = Math.sin(x * 12.9898 + z * 78.233) * 43758.5453; return (s - Math.floor(s)) * 1.4; }
+
 export function buildBackdrop(add, stops, pts, addSky = add) {
   const r = rng(90817), { museum } = glasgowSites(stops, pts);
   let nearBuildings = 0;

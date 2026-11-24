@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { GROUND_MACRO, REALISM } from './textures.js';
 
 const random = (i, k) => { const n=Math.sin(i*127.1+k*311.7)*43758.5453;return n-Math.floor(n); };
 const UP=new THREE.Vector3(0,1,0);
@@ -97,6 +98,15 @@ export function createPlantMaterial() {
   const material=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.92,metalness:0,side:THREE.DoubleSide});
   material.name='botanical-low-plants';
   material.onBeforeCompile=shader=>{
+    // Same 50-100 m macro field as the lawns underneath, so grass blades follow the lush/dry stretches instead of one flat green.
+    if(REALISM){shader.vertexShader='varying vec2 vPlantXZ;\n'+shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
+#ifdef USE_INSTANCING
+vPlantXZ=(modelMatrix*instanceMatrix*vec4(transformed,1.0)).xz;
+#else
+vPlantXZ=(modelMatrix*vec4(transformed,1.0)).xz;
+#endif`);
+    shader.fragmentShader='varying vec2 vPlantXZ;\n'+GROUND_MACRO+'\n'+shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
+{ float plantMacro=groundMacro(vPlantXZ)-.5; diffuseColor.rgb*=(1.0+.2*plantMacro)*mix(vec3(.9,1.0,.92),vec3(1.08,1.03,.84),smoothstep(-.25,.25,plantMacro)); }`);}
     shader.fragmentShader=shader.fragmentShader.replace('#include <opaque_fragment>',`
 #if NUM_DIR_LIGHTS > 0
 float plantBack=pow(max(0.0,dot(normalize(vViewPosition),-directionalLights[0].direction)),3.0);
@@ -104,5 +114,5 @@ outgoingLight += diffuseColor.rgb * directionalLights[0].color * (plantBack*.055
 #endif
 #include <opaque_fragment>`);
   };
-  material.customProgramCacheKey=()=> 'botanical-low-plants-1';return material;
+  material.customProgramCacheKey=()=> 'botanical-low-plants-1'+(REALISM?'-macro-1':'');return material;
 }

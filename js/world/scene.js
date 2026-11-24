@@ -14,7 +14,8 @@ import { createTrees } from './trees.js';
 import { buildPhoneBoxes, kioskSpots } from './phone.js';
 import { buildLampPosts, lampSpots } from './street-lamp.js';
 import { placeStreetProps, buildStreetProps } from './street-props.js';
-import { buildBackdrop } from './backdrop.js';
+import { buildBackdrop, hazeTone, capRise } from './backdrop.js';
+import { REALISM } from './textures.js';
 import { createSkyline } from './skyline.js';
 import { buildLandmarks } from './landmarks.js';
 import { initGlbLoader } from './glb-loader.js';
@@ -147,8 +148,17 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   }, stops, routePoints(n, LEGACY_GAPS), eastAdd(far.add, stretch)); // buildings retain their original footprints
   // Far band (z < -190): warm/pale distant walls become cool slates, so through the fog the band reads darker and bluer than the skyline behind it.
   // Done here, after generation, so the generator output the tests pin stays untouched.
-  const SLATE = new Map([[P.londonStock, '#6c727c'], [P.concreteMid, '#717b88'], [P.taupe, '#626670'], [P.cream, '#7a8390']]);
-  for (const b of distant.list) if (b.z < -190 && SLATE.has(b.color)) b.color = SLATE.get(b.color);
+  // Chroma ramps down with depth (1:1 colour remaps, so no new per-colour batches): near rows keep ~55% chroma, far slates ~35% and lose their blue cast,
+  // which also keeps the night band from glowing saturated blue under the blue fog. Far roof caps rise 0-1.4 m so the rows do not share one flat roofline.
+  const SLATE = new Map([[P.londonStock, '#6c727c'], [P.concreteMid, '#717b88'], [P.taupe, '#626670'], [P.cream, '#7a8390'], ['#9db7c6', '#9db7c6']].map(([k, v]) => [k, hazeTone(v, 0.35)]));
+  const NEAR = new Set([P.cream, P.stone, P.taupe, P.roof, P.brick, P.redBrown, P.londonStock, P.concreteMid, P.steel, '#86adc6']);
+  const SLATE0 = new Map([[P.londonStock, '#6c727c'], [P.concreteMid, '#717b88'], [P.taupe, '#626670'], [P.cream, '#7a8390']]); // phones keep the previous far band (REALISM off)
+  if (!REALISM) { for (const b of distant.list) if (b.z < -190 && SLATE0.has(b.color)) b.color = SLATE0.get(b.color); }
+  else for (const b of distant.list) {
+    if (b.z < -190 && SLATE.has(b.color)) b.color = SLATE.get(b.color);
+    else if (NEAR.has(b.color)) b.color = hazeTone(b.color, 0.55);
+    if (b.z < -145 && b.y > 0 && Math.abs(b.h - 0.35) < 1e-6) b.h += capRise(b.x, b.z);
+  }
   const skyline = createSkyline(far.list);
   scene.add(skyline);
   // Chunked in 160 m cells along x: one merged mesh per colour for the whole route was submitted in every view (2.19 M tris); cells let the frustum reject the far ones.

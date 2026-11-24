@@ -5,6 +5,7 @@ import { weatherGust } from './weather.js';
 import { SUN_DIR, untone } from './sky.js';
 import { reflectionMode, detailTexture } from './water-math.js';
 import { PALETTE as P } from './palette.js';
+import { REALISM } from './textures.js';
 const DAY_SKY = new THREE.Color(0x8fc0e4), NIGHT_SKY = new THREE.Color(0x18203a);
 // Owner tweakables: how strongly the water mirrors (stylised floor added to Fresnel), sun/moon glint strength, foam band widths (m).
 export const REFLECT_FLOOR = 0.34, GLINT = 1.0, FOAM_WIDTH = 0.6, BOAT_FOAM_WIDTH = 0.35;
@@ -110,8 +111,9 @@ sky = mix(sky, sky * 0.42, bankRefl);
 float sunSide = pow(max(dot(normalize(r.xz + 1e-4), normalize(uSun.xz + 1e-4)), 0.0), 3.0) * (1.0 - uNight) * smoothstep(0.0, 0.25, r.y + 0.1);
 sky = mix(sky, sky * vec3(1.14, 1.0, 0.82) + vec3(0.05, 0.03, 0.0), sunSide * 0.55);
 float cloudStreak = texture2D(tDetail, r.xz / (r.y + 0.18) * vec2(0.22, 0.5) + g * 3.0).b;
-sky = mix(sky, vec3(0.93, 0.95, 0.97), smoothstep(0.52, 0.8, cloudStreak) * 0.26 * (1.0 - uNight) * smoothstep(0.0, 0.25, r.y + 0.12));
+sky = mix(sky, vec3(0.93, 0.95, 0.97), smoothstep(0.52, 0.8, cloudStreak) * ${REALISM ? '0.14' : '0.26'} * (1.0 - uNight) * smoothstep(0.0, 0.25, r.y + 0.12));
 sky = mix(sky, vec3(dot(sky, vec3(0.3, 0.45, 0.25))), 0.14); // a touch greyer than the sky itself, but no longer flat
+${REALISM ? 'sky = mix(sky * 0.68, body, 0.35);' : ''} // the fallback shows wherever the planar mirror has no content: kept near the mirrored-sky tone so it never reads as white sheets beside it
 vec3 refl = sky;
 if (uReflect > 0.0) {
   vec2 uv = vRefl.xy / vRefl.w + g * (0.08 + 0.18 * fade) * vec2(0.6, 1.0); // wobble with the waves
@@ -119,7 +121,7 @@ if (uReflect > 0.0) {
   vec4 p = texture2D(tRefl, uv) * 0.4 + (texture2D(tRefl, uv + vec2(o.x, o.y)) + texture2D(tRefl, uv - vec2(o.x, o.y))
     + texture2D(tRefl, uv + vec2(-o.x, o.y * 2.0)) + texture2D(tRefl, uv + vec2(o.x, -o.y * 2.0))) * 0.15;
   p.rgb = mix(p.rgb, vec3(dot(p.rgb, vec3(0.3, 0.45, 0.25))), 0.08) * 0.95; // buildings keep their colour and brightness in the mirror
-  refl = mix(sky, p.rgb / max(p.a, 0.001), clamp(p.a, 0.0, 1.0) * uReflect);
+  refl = mix(sky, p.rgb / max(p.a, 0.001), ${REALISM ? 'smoothstep(0.0, 0.85, p.a)' : 'clamp(p.a, 0.0, 1.0)'} * uReflect); // soft hand-over at the mirror's content edge
 }
 float fres = 0.02 + 0.98 * pow(1.0 - clamp(dot(n, v), 0.0, 1.0), 5.0);
 float bodyShow = 1.0 - 0.12 * (1.0 - smoothstep(0.5, 1.0, abs(across))); // mid-river only: let the water's own body colour read ~12% more through the reflection (banks unchanged)
@@ -142,7 +144,9 @@ foam = mix(foam, band * 0.3, aa);
 float boatBand = 1.0 - smoothstep(-0.08, uBoatFoamW * (0.6 + 0.8 * fn), boat);
 float boatFoam = smoothstep(0.35, 0.7, boatBand * (0.55 + 0.9 * fn2));
 boatFoam = mix(boatFoam, boatBand * 0.3, smoothstep(0.15, 0.9, fwidth(boat)));
-c = mix(c, vec3(0.86, 0.9, 0.9) * (1.0 - uNight * 0.75), max(foam * 0.3, boatFoam * 0.55)); // bank foam softened (0.55 -> 0.3); boat wake keeps its strength
+${REALISM ? `vec3 foamTint = mix(vec3(0.86, 0.9, 0.9), body * 1.6, 0.35) * (1.0 - uNight * 0.75); // foam carries the water colour, not paper white
+foam *= 0.6 + 0.4 * fn; boatFoam *= 0.7 + 0.3 * fn; // broken up by the slow detail noise
+c = mix(c, foamTint, max(foam * 0.22, boatFoam * 0.45)); // bank foam 0.3 -> 0.22, wake 0.55 -> 0.45` : 'c = mix(c, vec3(0.86, 0.9, 0.9) * (1.0 - uNight * 0.75), max(foam * 0.3, boatFoam * 0.55));'}
 c += vec3(0.7, 0.8, 0.85) * tapFoam * (1.0 - uNight * 0.65);
 gl_FragColor = vec4(c, 1.0);
 #include <tonemapping_fragment>

@@ -119,7 +119,8 @@ test('surveyed infill preserves baseline lots/props except the six approved brid
   // e089dc76... = the prior ffdac023... lots minus 'frontage-stop-recs-765--1-9', the owner-marked Wembley frontage house removed in 002f864 (architecture-migration.test.mjs pins that removal); nothing else differs
   assert.equal(hash(priorLots), 'e089dc762f10fc72326508e6dda3c87b02552a78af9f22293bc6633f8a6768e4');
   // re-pinned 2026-11-16: 4f492cf moved the foreground park 3 m in z to clear the curved avenue (3 trees out, 4 in around x -300..-310, z 12..22)
-  assert.equal(hash(trees), '526ee3e97d34b68ec7dce88405d9aa455b053adb0499d71f22f33ffef8833a6b');
+  // re-pinned 2026-11-24: street-pair broadleaf crowns 1.8-2.3 -> 2.25-2.85 m (owner-approved realism pass); positions and count unchanged
+  assert.equal(hash(trees), '90b8dac206b7f4ed0dfea76e5344e3a34ca7f834ca80ac3ad920f326529acc07');
   let patios=0;const priorBoxes=boxes.map(b=>{if(Math.abs(b[0]-264.8)<1e-9&&b[1]===-.02&&(Math.abs(b[2]+100.7)<1e-6||Math.abs(b[2]+109.3)<1e-6)){patios++;return[291.8672036547214,...b.slice(1)]}return b});
   assert.equal(patios,2);
   // re-pinned 2026-11-16: the same park move (59 boxes out, 44 in) plus the 24 m carriageway run-out past the last stop (city.js ROAD_RUNOUT)

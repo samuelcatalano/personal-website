@@ -3,6 +3,7 @@ import { ROOM_INTERIOR, ROOM_SHAPES } from './building-room.js';
 import { streetEnvironment, STREET_WIND } from './streetscape-state.js';
 import * as THREE from 'three';
 import { GLASS_REFLECTION } from './glass-reflection.js';
+import { GROUND_BOUNCE, REALISM } from './textures.js';
 
 // One metric atlas: each padded tile covers 1 x 2 metres, independent of lot size.
 export { SURFACE } from './building-atlas.js';
@@ -130,6 +131,14 @@ const facadeWeather = (cityWalls, quality) => `
       facadeMoisture = clamp((risingDamp * 0.75 + dampPatch * belowSill * 0.12) * vertical * porous, 0.0, 1.0);
       diffuseColor.rgb *= mix(vec3(1.0), vec3(0.74, 0.79, 0.78), facadeMoisture);
     ` : ''}
+    ${quality && REALISM ? `
+    if (vBuilding.w > .6) { // mid/high-rise only (usage .75/1): townhouses (.25) and shops (.5) keep the approved finish
+      float ageSeed = fract(vBuilding.x * 31.7);
+      vec3 ageStone = vec3(dot(diffuseColor.rgb, vec3(.299, .587, .114))) * mix(vec3(1.04, 1.0, .91), vec3(.97, 1.0, 1.03), ageSeed); // London stock or Portland stone, per lot
+      diffuseColor.rgb = mix(diffuseColor.rgb, ageStone, .18 + .08 * facadeSeed2); // chroma pulled 18-26% toward stone
+      diffuseColor.rgb *= 1.0 - .15 * (1.0 - smoothstep(.0, 2.8 + 2.4 * ageSeed, vFloodP.y)) * dirt / ${FACADE_GRIME.toFixed(2)}; // dark street-level band
+      diffuseColor.rgb *= 1.0 - .10 * smoothstep(.5, .85, runoff) * belowSill * vertical * aa; // rain streaks under every sill
+    }` : ''}
   }`;
 const FACADE_RELIEF = `
   float masonry = 1.0 - step(0.25, min(abs(vSliceSurface - 1.0), abs(vSliceSurface - 4.0)));
@@ -149,7 +158,7 @@ const facadeDetail = quality => `
   }`;
 function metricAtlas(material, cityWalls = false, quality = false) {
   if(quality)material.defaultAttributeValues={...material.defaultAttributeValues,aBuilding:[0,0,0,0]};
-  material.customProgramCacheKey=()=> material.name+(cityWalls||material.name==='slice-glass-city'?'-metric-atlas-v11':'-metric-atlas-v8')+(quality?'-construction-v5-entries':'')+(material.name==='slice-architecture'?'-world-grain-v1':'');
+  material.customProgramCacheKey=()=> material.name+(quality&&REALISM&&material.name.startsWith('slice-glass')?'-pane-var-v3':'')+(cityWalls||material.name==='slice-glass-city'?'-metric-atlas-v11':'-metric-atlas-v8')+(quality?'-construction-v5-entries':'')+(material.name==='slice-architecture'?'-world-grain-v1'+(quality&&REALISM?'-age-v1-bounce-v1':''):'');
   material.onBeforeCompile=shader=>{
     if(quality){
       shader.vertexShader='attribute vec4 aBuilding; varying vec4 vBuilding;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvBuilding = aBuilding;');
@@ -201,7 +210,15 @@ function metricAtlas(material, cityWalls = false, quality = false) {
       if(quality&&material.name.startsWith('slice-glass')&&chunk==='emissivemap_fragment')finish+=`
         if(vBuilding.w>.1){
           vec3 propertyLight=mix(vec3(.72,.50,.27),vec3(.55,.64,.78),step(.9,vBuilding.w));
-          totalEmissiveRadiance=propertyLight*vBuilding.z*.7*smoothstep(.15,.55,uGlassNight);
+          float towerLit=1.0;
+          if(${REALISM}&&vBuilding.w>.9){ // offices/towers: per-window tone and ~30% of occupied cells dark, so lit floors break into Copan-like scattered windows
+            float wh=fract(sin(dot(floor(vMapUv/vec2(1.0,2.0))+vBuilding.x*97.0,vec2(41.3,17.9)))*43758.5453);
+            ${material.name==='slice-glass-city'?'if(vRoom.w>0.0)wh=fract(vRoom.z*91.7+vBuilding.x*13.1);':''} // batched city panes carry local UVs: use their world-anchored pane seed
+            float wk=fract(wh*7.13+.37);
+            propertyLight=wk<.45?vec3(.76,.54,.30):wk<.8?vec3(.58,.63,.72):vec3(.82,.46,.20); // warm task light, cool LED, amber blind
+            towerLit=step(.3,wh)*(.55+.6*fract(wh*13.7));
+          }
+          totalEmissiveRadiance=propertyLight*vBuilding.z*.7*towerLit*smoothstep(.15,.55,uGlassNight);
         }`;
       shader.fragmentShader=shader.fragmentShader.replace(`#include <${chunk}>`,code+finish);
     }
@@ -257,7 +274,15 @@ ${GLASS_REFLECTION}`);
         float glassBld=sliceNoise(vFloodP.xz/13.0+57.0);
         float glassPane=fract(sin(dot(floor(vMapUv/vec2(1.0,2.0)),vec2(41.3,17.9)))*43758.5453);
         vec3 glassVar=mix(vec3(.80,.97,1.05),vec3(1.10,1.0,.86),glassBld)*(.88+.24*glassPane);
-        outgoingLight=mix(outgoingLight,glassReflection(reflected,uGlassNight)*mix(vec3(1.0),paneTint,.85)*frameContact*glassVar,reflectionWeight);
+        outgoingLight=mix(outgoingLight,glassReflection(reflected,uGlassNight)*mix(vec3(1.0),paneTint,.85)*frameContact*glassVar,reflectionWeight);${quality&&REALISM?`
+        if(vBuilding.w>.6){ // mid/high-rise glass only (townhouse panes keep the approved look): per-pane value and hue, a sky gradient up the facade, a few blinds and open sashes
+          float gSeed=${rooms?'vRoom.w>0.0?fract(vRoom.z*57.3+.21):':''}glassPane; // batched city panes have local UVs, so use their world-anchored seed
+          float gp=fract(gSeed*31.7+.13),gq=fract(gSeed*7.7+.41);
+          outgoingLight*=mix(vec3(.9,1.0,1.08),vec3(1.08,1.0,.88),gp)*(.74+.44*gq)*(.88+.2*smoothstep(0.0,60.0,vFloodP.y));
+          float blind=step(.86,gp)*(1.0-uGlassNight)*(1.0-litWindow*uGlassNight);
+          outgoingLight=mix(outgoingLight,vec3(dot(outgoingLight,vec3(.3333)))*vec3(1.18,1.06,.88),blind*.7);
+          outgoingLight*=1.0-.5*step(.975,gq)*(1.0-uGlassNight);
+        }`:''}
         // Grid variety per building (stable hash of its 13 m column, no per-instance id): about half carry opaque spandrel floors, a third carry solid piers, and the mullion width differs, so towers stop sharing one window grid.
         {
           vec2 gCell=floor(vMapUv/vec2(1.0,2.0)), gLocal=fract(vMapUv/vec2(1.0,2.0));
@@ -274,6 +299,12 @@ ${GLASS_REFLECTION}`);
         ${office?OFFICE_RECESS:''}
         #include <opaque_fragment>`);
     }
+    // Warm ground bounce on mid/high-rise walls (townhouses keep their approved shading): sun colour x a paving albedo, strongest on downward faces, ~0.1 on walls; follows the sun's day/night intensity.
+    if(architecture&&quality&&REALISM) shader.fragmentShader=shader.fragmentShader.replace('#include <opaque_fragment>',`
+      #if NUM_DIR_LIGHTS > 0
+      if(vBuilding.w>.6) outgoingLight+=diffuseColor.rgb*directionalLights[0].color*${GROUND_BOUNCE}*(.5-.5*inverseTransformDirection(normal,viewMatrix).y);
+      #endif
+      #include <opaque_fragment>`);
     floodShader(shader, material.name.startsWith('slice-glass'));
   };
   return material;

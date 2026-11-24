@@ -57,7 +57,8 @@ function townhouse(add, x, z, side, br, r, roofStacks) {
   add(x, 0.22, face - side * 0.12, 1.72, 0.18, 0.34, BANK);
   return { kind: 'terrace', x, z, width: w, depth: d, height: h + (stacks ? 2.2 : 1.3) };
 }
-const broadleaf = (r) => ({ h: 2.6 + r() * 0.6, crown: 1.8 + r() * 0.5 });
+const FULL_CROWNS = !globalThis.matchMedia || globalThis.matchMedia('(min-width: 768px)').matches; // desktop only (see REALISM in textures.js); phones keep the shipped crowns
+const broadleaf = (r) => ({ h: 2.6 + r() * 0.6, crown: FULL_CROWNS ? 2.25 + r() * 0.6 : 1.8 + r() * 0.5 }); // ~25% fuller street crowns; radius stays <= 1.45 m, inside the 2.3 m pavement clearance to the plots
 export function tree(add, x, z, { h, crown, base = 0.1 }) {
   add(x, base, z, 0.32, h - base, 0.32, TRUNK); // starts on the paving top: no coplanar sides with it
   add(x, h - 0.4, z, crown, 1.1, crown, LEAF);
