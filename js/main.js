@@ -28,7 +28,7 @@ const follow = (p) => {
   const k = nearestStop(p, n, marks), jumping = lock.pending();
   // stops the bus drives through count as visited, even one a fast scroll skipped; a menu or keyboard jump counts only where it lands
   if (k !== near) { if (!jumping) ui.passed(near < 0 ? k : near, k); near = k; }
-  const a = lock.filter(k); if (a !== null) { ui.passed(a, a); ui.setActive(a); if (a === n - 1) previewPostcard(); }
+  const a = lock.filter(k); if (a !== null) { if (jumping) ui.passed(a, a); ui.setActive(a); if (a === n - 1) previewPostcard(); } // a menu or keyboard jump counts its landing stop once it lands
   const m = (gapTo - gapFrom) * 0.15; // the long São Paulo to London stretch with the tunnel
   ui.note('gap', p > gapFrom + m && p < gapTo - m);
   ui.note('rain', !!world?.raining);
@@ -74,13 +74,15 @@ const goto = (i) => {
 const hash = location.hash.slice(1); // read before the UI rewrites it
 const ui = initUI({ onGoto: goto, onHold: hold, onTheme: (t) => world?.setTheme(t), onFocusStop: (list) => world?.highlight(list.map((i) => stops[i].id)) });
 addEventListener('touchstart', () => { glideId++; holdDir = 0; holdSpeed = 0; lock.clear(); }, { passive: true }); // a touch takes over a glide at once
-// Desktop (1024 px and up): a wheel gesture moves the bus exactly one stop; the page does not scroll natively there. The panel keeps its own wheel,
+// Desktop (1024 px and up): a wheel gesture moves the bus exactly one stop; the page does not scroll natively there. The panel keeps its own wheel while it has room to scroll,
 // and the intro, open dialogs and pinch (ctrl + wheel) are left alone. Narrower screens keep the native scroll they had.
 const desktop = matchMedia('(min-width: 1024px)'), snap = wheelSnap();
 addEventListener('wheel', (e) => {
   holdDir = 0; holdSpeed = 0;
   if (!desktop.matches) { glideId++; lock.clear(); return; }
-  if (e.ctrlKey || e.target.closest?.('#panel') || document.body.classList.contains('intro-on') || document.querySelector('dialog[open]')) return;
+  if (e.ctrlKey || document.body.classList.contains('intro-on') || document.querySelector('dialog[open]')) return;
+  const inPanel = e.target.closest?.('#panel'); // the panel scrolls itself while it has room in this direction; with no room left, the wheel moves the bus
+  if (inPanel && (e.deltaY > 0 ? inPanel.scrollTop + inPanel.clientHeight < inPanel.scrollHeight - 1 : inPanel.scrollTop > 0)) return;
   e.preventDefault();
   const dir = snap.feed(e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY, e.timeStamp, gliding());
   const target = Math.min(n - 1, Math.max(0, ui.current() + dir));
