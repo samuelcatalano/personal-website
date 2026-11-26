@@ -8,6 +8,15 @@
         "value": "inter",
         "createdAt": "2026-11-21T19:47:03.921Z",
         "reason": "Sanctioned by docs/art-direction.md (line 158: panels keep the Hammersmith One/Inter typography); Inter is the UI sans by design, css/style.css:7"
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "css/style.css"
+        ],
+        "createdAt": "2026-11-26T21:49:44.020Z",
+        "reason": "assistant triage: style.css:184 is .intro-barcode::after, a 3px pseudo-element on the barcode (comment: the validator's scan line), animated only once the ticket is validated (#intro.bell). Domain motion, not a card side-tab. Written by the owner in c68f7b3. The value is * because the finding line shows no value pair, so the ignore covers side-tab in css/style.css for all lines."
       }
     ]
   }
