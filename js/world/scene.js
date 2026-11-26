@@ -515,17 +515,18 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
   if (qa) globalThis.__qaLandmarkLight = landmarkLight; // QA probe: twin materials per stop
   let night = 0, nightTarget = 0, mobile = false, themeApplied = false;
   const bar = document.querySelector('.bar'), panel = document.querySelector('#panel');
-  let fitKey = '';
+  let fitKey = '', fitHidden = false;
   // panel size changes per section: ease the view offset to its new value instead of snapping the camera
   const vo = {}, applyView = () => camera.setViewOffset(innerWidth, innerHeight, vo.x, vo.y, innerWidth, innerHeight);
   const fit = () => {
     const width = innerWidth, height = innerHeight, headerBottom = bar?.getBoundingClientRect().bottom ?? 0, panelBox = panel?.getBoundingClientRect();
-    const key = JSON.stringify([width, height, mobile, headerBottom, panelBox]);
+    const hidden = !mobile && document.body.classList.contains('ui-hidden'); // hidden panel and bar leave the city whole, so the bus goes back to the centre
+    const key = JSON.stringify([width, height, mobile, headerBottom, panelBox, hidden]);
     if (key === fitKey) return false;
     fitKey = key;
     sky.setViewport(width, height, headerBottom);
-    vo.tx = mobile ? 0 : panel ? -panelBox.right / 2 : 0;
-    vo.ty = mobile ? height / 2 - (headerBottom + (panelBox?.top ?? height)) / 2 : panel ? -headerBottom / 2 : 0;
+    vo.tx = mobile || hidden ? 0 : panel ? -panelBox.right / 2 : 0;
+    vo.ty = mobile ? height / 2 - (headerBottom + (panelBox?.top ?? height)) / 2 : hidden ? 0 : panel ? -headerBottom / 2 : 0;
     if (vo.x === undefined) { vo.x = vo.tx; vo.y = vo.ty; }
     applyView();
     return true;
@@ -592,6 +593,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     last = now;
     scroll = reducedMotion ? { value: marks[nearestStop(target, n, marks)], velocity: 0 } : spring(scroll, target, dt, SCROLL_SMOOTH);
     if (!reducedMotion) clock += dt;
+    if (document.body.classList.contains('ui-hidden') !== fitHidden) { fitHidden = !fitHidden; fit(); } // the offset follows the panel: back to the centre while the interface is hidden
     const ox = reducedMotion || !dt ? vo.tx : approach(vo.x, vo.tx, dt, 300), oy = reducedMotion || !dt ? vo.ty : approach(vo.y, vo.ty, dt, 300);
     if (ox !== vo.x || oy !== vo.y) { vo.x = ox; vo.y = oy; applyView(); camera.updateProjectionMatrix(); }
     const p = scroll.value, t = routeT(p, n, knots); routeS = t * (n - 1);
