@@ -46,28 +46,7 @@ export const scrollYForStop = (i, n, scrollHeight, viewport, marks) =>
 export function tripState(stops, active, visited) {
   const journey = stops.flatMap((st, i) => (st.section === 'journey' ? [i] : []));
   return { count: journey.filter((i) => visited.has(i)).length, total: journey.length, next: journey.find((i) => i > active) ?? -1 };
-}
-// One wheel gesture moves the bus one stop. Deltas add up and fire a step at the threshold; after a quiet pause the next gesture starts clean,
-// so trackpad inertia (a long tail of small deltas) never fires a second step. A gesture that runs into a glide (busy) is dropped.
-// ponytail: thresholds are guesses for mouse notches and trackpad flicks; tune on a real trackpad if a flick ever moves two stops.
-export function wheelSnap({ threshold = 30, quietMs = 200 } = {}) {
-  let acc = 0, last = -Infinity, armed = true;
-  return {
-    feed(dy, now, busy) { // dy in px, now in ms; returns +1 / -1 for a step, 0 otherwise
-      if (now - last > quietMs) { armed = true; acc = 0; }
-      last = now;
-      if (busy) { acc = 0; armed = false; return 0; } // a gesture that runs into a glide is dropped; it steps only after a pause
-      if (!armed) { acc = 0; return 0; }
-      acc += dy;
-      if (Math.abs(acc) < threshold) return 0;
-      armed = false;
-      const dir = Math.sign(acc);
-      acc = 0;
-      return dir;
-    },
-  };
-}
-// After a menu jump the panel shows the clicked stop at once and ignores the stops the bus passes on the way.
+}// After a menu jump the panel shows the clicked stop at once and ignores the stops the bus passes on the way.
 export function navLock() {
   let target = null;
   return {

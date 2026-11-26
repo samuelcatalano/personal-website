@@ -1,5 +1,5 @@
 import { stops, SECTIONS, sectionStart } from './content.js';
-import { watchScroll, stopMarks, nearestStop, scrollYForStop, progressFromScroll, navLock, wheelSnap } from './scroll.js';
+import { watchScroll, stopMarks, nearestStop, scrollYForStop, progressFromScroll, navLock } from './scroll.js';
 import { routePoints, STOP_SPACING } from './world/layout.js';
 import { initUI } from './ui.js';
 import { createIntro } from './intro.js';
@@ -34,17 +34,15 @@ const follow = (p) => {
   ui.note('rain', !!world?.raining);
 };
 // stop-to-stop jumps glide on an ease curve (same timing as the auto-ride) instead of snapping, so the bus never lurches; a wheel or touch takes over at once
-let glideId = 0, glideRunning = 0; // glideRunning: the glide in flight; a cancelled glide no longer counts as running
-const gliding = () => glideRunning !== 0 && glideRunning === glideId;
+let glideId = 0;
 const glideTo = (y1) => {
   const id = ++glideId, y0 = scrollY, dur = reducedMotion ? 0 : travelMs(Math.abs(y1 - y0)) * 1.15, t0 = performance.now();
   if (!dur) { scrollTo({ top: y1 }); return; }
-  glideRunning = id;
   const tick = (now) => {
     if (id !== glideId) return;
     const k = Math.min(1, (now - t0) / dur);
     scrollTo(0, y0 + (y1 - y0) * (k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2));
-    if (k < 1) requestAnimationFrame(tick); else if (glideRunning === id) glideRunning = 0;
+    if (k < 1) requestAnimationFrame(tick);
   };
   requestAnimationFrame(tick);
 };
@@ -73,21 +71,7 @@ const goto = (i) => {
 };
 const hash = location.hash.slice(1); // read before the UI rewrites it
 const ui = initUI({ onGoto: goto, onHold: hold, onTheme: (t) => world?.setTheme(t), onFocusStop: (list) => world?.highlight(list.map((i) => stops[i].id)) });
-addEventListener('touchstart', () => { glideId++; holdDir = 0; holdSpeed = 0; lock.clear(); }, { passive: true }); // a touch takes over a glide at once
-// Desktop (1024 px and up): a wheel gesture moves the bus exactly one stop; the page does not scroll natively there. The panel keeps its own wheel while it has room to scroll,
-// and the intro, open dialogs and pinch (ctrl + wheel) are left alone. Narrower screens keep the native scroll they had.
-const desktop = matchMedia('(min-width: 1024px)'), snap = wheelSnap();
-addEventListener('wheel', (e) => {
-  holdDir = 0; holdSpeed = 0;
-  if (!desktop.matches) { glideId++; lock.clear(); return; }
-  if (e.ctrlKey || document.body.classList.contains('intro-on') || document.querySelector('dialog[open]')) return;
-  const inPanel = e.target.closest?.('#panel'); // the panel scrolls itself while it has room in this direction; with no room left, the wheel moves the bus
-  if (inPanel && (e.deltaY > 0 ? inPanel.scrollTop + inPanel.clientHeight < inPanel.scrollHeight - 1 : inPanel.scrollTop > 0)) return;
-  e.preventDefault();
-  const dir = snap.feed(e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY, e.timeStamp, gliding());
-  const target = Math.min(n - 1, Math.max(0, ui.current() + dir));
-  if (dir && target !== ui.current()) { lock.clear(); goto(target); }
-}, { passive: false });
+for (const ev of ['wheel', 'touchstart']) addEventListener(ev, () => { glideId++; holdDir = 0; holdSpeed = 0; lock.clear(); }, { passive: true });
 const autoBtn = document.querySelector('[data-auto]'), quickBtn = document.querySelector('[data-quick]'), stopBtn = document.getElementById('stop-request');
 let quick = false;
 const ride = createAutoRide({

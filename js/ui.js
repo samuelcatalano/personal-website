@@ -444,7 +444,6 @@ export function initUI({ onGoto, onTheme, onHold = () => {}, onFocusStop = () =>
   return {
     get theme() { return prefs.theme; },
     setActive(i) { if (i !== active) { active = i; render(); } },
-    current: () => active,
     passed,
     say,
     discover,
