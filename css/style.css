@@ -151,20 +151,58 @@ body.world-loading:not(.world-ready, .no-webgl, .intro-on) #loading { display: f
 #intro[open] { display: flex; }
 #intro::backdrop { background: color-mix(in srgb, var(--ticket) 62%, transparent); transition: background .6s ease; }
 #intro.opening::backdrop { background: transparent; } /* the tint leaves with the card, so the site shows through while the doors open */
+/* The boarding pass: a landscape paper ticket, body on the left and a tear-off stub on the right, split by a perforation with a notch at each end.
+   The paper is the ::before (static grain, drawn once), so the notches are cut with a mask while the card keeps its own shadow and leans toward the cursor. */
 .intro-card {
-  position: relative; width: min(620px, 100%); flex: none; display: grid; gap: 14px; margin: auto; padding: 22px 24px;
-  background: repeating-linear-gradient(0deg, transparent 0 3px, #917a5705 3px 4px), var(--ticket);
-  border: 1px solid var(--ticket-line);
-  border-radius: 3px; box-shadow: inset 0 4px 0 var(--ticket-red), 0 12px 36px #20160f26; /* the red edge is drawn inside the rounded corners, so it does not clash with them */
+  --stub: 292px; --notch: 11px;
+  position: relative; width: min(1040px, 100%); flex: none; display: grid; grid-template-columns: minmax(0, 1fr) var(--stub); margin: auto;
+  transform: perspective(1500px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .4s ease-out;
+  filter: drop-shadow(0 1px 2px #20160f40) drop-shadow(0 24px 38px #20160f45);
 }
+.intro-card::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; border-radius: 3px;
+  background:
+    linear-gradient(var(--ticket-red), var(--ticket-red)) top / 100% 5px no-repeat,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42 0 0 0 0 .33 0 0 0 0 .22 0 0 0 .1 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(0deg, transparent 0 3px, #917a5705 3px 4px), var(--ticket);
+  -webkit-mask: radial-gradient(circle var(--notch) at calc(100% - var(--stub)) 0, #0000 97%, #000), radial-gradient(circle var(--notch) at calc(100% - var(--stub)) 100%, #0000 97%, #000);
+  -webkit-mask-composite: source-in; mask-composite: intersect;
+}
+.intro-main { display: grid; align-content: start; gap: 16px; min-width: 0; padding: 34px 36px 26px; }
+.intro-route { margin: 4px 0 6px; display: grid; gap: 7px; }
+.intro-route div { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 6px; border-bottom: 1px dotted var(--ticket-line); }
+.intro-route dt { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+.intro-route dd { margin: 0; color: var(--ticket-ink); font: 700 14px var(--sans); letter-spacing: 0; text-transform: none; }
+.intro-side .status { margin-top: auto; }
+.intro-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; padding: 34px 28px 24px 26px; border-left: 2px dashed var(--ticket-line); }
 .intro-ticket, .intro-stub { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; color: var(--ticket-muted); font: 600 10px/1.4 var(--sans); letter-spacing: .08em; text-transform: uppercase; }
 .intro-ticket-stamp { border: 1px solid var(--ticket-red); padding: 4px 7px; color: var(--ticket-red); font: 500 10px/1.2 ui-monospace, monospace; letter-spacing: .08em; }
-.intro-stub { padding-top: 12px; border-top: 1px dashed var(--ticket-line); font-family: ui-monospace, monospace; font-weight: 400; }
+.intro-stub { position: relative; display: grid; justify-content: stretch; gap: 8px; font-family: ui-monospace, monospace; font-weight: 400; }
+.intro-stub-label { color: var(--ticket-ink); font-size: 15px; font-weight: 700; letter-spacing: .12em; }
+.intro-barcode { position: relative; display: block; height: 76px; overflow: hidden; }
+.intro-barcode svg { display: block; width: 100%; height: 100%; fill: var(--ticket-ink); transition: fill .3s ease .55s; }
+.intro-barcode::after { content: ''; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--ticket-red); opacity: 0; } /* the validator's scan line */
+#intro.bell .intro-barcode svg { fill: var(--ticket-green); }
+#intro.bell .intro-barcode::after { animation: intro-scan .62s cubic-bezier(.4, 0, .2, 1) forwards; }
+@keyframes intro-scan { 0% { opacity: 1; left: 0; } 90% { opacity: 1; } 100% { opacity: 0; left: calc(100% - 3px); } }
+.intro-eyebrow { margin: 0 0 8px; color: var(--ticket-red); font: 700 11px/1.2 var(--sans); letter-spacing: .18em; text-transform: uppercase; }
+.intro-profile { display: grid; gap: 10px; justify-items: center; }
+.intro-direct { padding: 8px 4px; background: none; border: 0; border-bottom: 1px solid var(--ticket-line); color: var(--ticket-ink); font: 700 13px var(--sans); letter-spacing: .02em; cursor: pointer; transition: border-color .2s, color .2s; }
+.intro-direct::after { content: ' →' / ''; }
+/* the page interface stays out of sight behind the ticket, then arrives once it leaves */
+body.intro-on :is(.bar, .panel, #ui-restore) { opacity: 0; }
+body.intro-arrive :is(.bar, .panel, #ui-restore) { animation: ui-arrive .8s ease-out both; }
+@keyframes ui-arrive { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { body.intro-arrive :is(.bar, .panel, #ui-restore) { animation: none; } }
+.intro-direct:hover, .intro-direct:focus-visible { color: var(--ticket-red); border-color: var(--ticket-red); }
+.intro-links { display: flex; gap: 14px; font: 600 11px/1 ui-monospace, monospace; letter-spacing: .06em; }
+.intro-links a { color: var(--ticket-muted); text-decoration: none; padding: 4px 0; border-bottom: 1px solid transparent; }
+.intro-links a:hover, .intro-links a:focus-visible { color: var(--ticket-ink); border-bottom-color: currentColor; }
 .blind {
   display: flex; align-items: center; gap: 14px; padding: 7px 12px 7px 7px; min-width: 0;
   background: #211a15; color: #ffbd55; border-radius: 4px;
 }
-.blind .route { padding: 0 9px; background: var(--ticket-red); color: var(--c-fff8ec); border-radius: 2px; font: 400 40px/1.12 var(--display); }
+.blind .route { padding: 0 12px; background: var(--ticket-red); color: var(--c-fff8ec); border-radius: 2px; font: 400 52px/1.1 var(--display); }
 .dest { min-width: 0; flex: 1; overflow: hidden; }
 .dest .cur {
   display: block; font: 700 clamp(13px, 3.7vw, 20px)/1.25 ui-monospace, monospace;
@@ -176,8 +214,8 @@ body.world-loading:not(.world-ready, .no-webgl, .intro-on) #loading { display: f
 #intro.bell .dest .cur { color: #ff4a3a; }
 #intro.bell .blind { animation: intro-blink .5s steps(2, jump-none) 2; }
 @keyframes intro-blink { 50% { filter: drop-shadow(0 0 14px rgba(255, 60, 40, .8)); } }
-.intro-text h2 { margin: 0; font: 400 clamp(23px, 5vw, 33px)/1.12 var(--display); }
-#intro-sub { margin: 5px 0 0; font-size: 14px; line-height: 1.4; color: var(--ticket-muted); }
+.intro-text h2 { margin: 0; font: 400 clamp(26px, 4.2vw, 44px)/1.04 var(--display); }
+#intro-sub { margin: 8px 0 0; font-size: 15px; line-height: 1.45; color: var(--ticket-muted); }
 #intro-title { font-family: var(--display); font-weight: 400; letter-spacing: -.01em; } /* the ticket display face, the same as the panel heading */
 .intro-map {
   padding: 8px 10px 15px; min-width: 0; touch-action: pinch-zoom;
@@ -185,7 +223,7 @@ body.world-loading:not(.world-ready, .no-webgl, .intro-on) #loading { display: f
   background: repeating-linear-gradient(90deg, transparent 0 15px, #917a5710 15px 16px);
 }
 .intro-windshield {
-  position: relative; height: clamp(182px, 26vw, 270px); overflow: hidden; border-radius: 4px;
+  position: relative; height: clamp(182px, 25vh, 236px); overflow: hidden; border-radius: 4px;
   border: 1px solid var(--ticket-line); background: #322923;
 }
 /* the landscape slides with the toy bus, follows the visitor's clock, and gives way to the real city once the world has loaded */
@@ -280,9 +318,13 @@ body.world-loading:not(.world-ready, .no-webgl, .intro-on) #loading { display: f
   border: 1px solid color-mix(in srgb, var(--c-fff) 50%, transparent);
   transition: transform .75s cubic-bezier(.65, 0, .25, 1), opacity .1s;
 }
-.intro-card .door.l { left: 0; border-radius: 22px 0 0 22px; }
-.intro-card .door.r { right: 0; border-radius: 0 22px 22px 0; }
-#intro.opening .intro-card { overflow: visible; background: transparent; border-color: transparent; box-shadow: none; }
+.intro-card .door.l { left: 0; border-radius: 3px 0 0 3px; }
+.intro-card .door.r { right: 0; border-radius: 0 3px 3px 0; }
+#intro.opening .intro-card { filter: none; transform: none; }
+#intro.opening .intro-card::before { opacity: 0; transition: opacity .25s; }
+/* the city comes forward once it has settled: less blur, a lighter tint, a soft vignette that keeps the ticket legible */
+#intro[data-ready="true"]:not(.opening) { background: radial-gradient(ellipse at 50% 46%, transparent 38%, #1c130c4d); -webkit-backdrop-filter: blur(2px) saturate(1.15); backdrop-filter: blur(2px) saturate(1.15); }
+#intro[data-ready="true"]:not(.opening)::backdrop { background: color-mix(in srgb, var(--ticket) 18%, transparent); }
 #intro.opening .intro-card > :not(.door):not(.door-gap) { opacity: 0; transition: opacity .25s; }
 #intro.opening .door { opacity: 1; }
 #intro.opening .door.l { transform: translateX(-140%); }
@@ -291,8 +333,13 @@ body.world-loading:not(.world-ready, .no-webgl, .intro-on) #loading { display: f
   .windshield-skyline, .windshield-landmarks, .windshield-verge { transform: none; }
   .windshield-lane { stroke-dashoffset: 0; }
 }
+@media (max-width: 860px) { /* narrow windows: the stub drops under the body, the perforation turns horizontal (mobile is paused: not tested) */
+  .intro-card { grid-template-columns: minmax(0, 1fr); --stub: 0px; }
+  .intro-card::before { -webkit-mask: none; mask: none; }
+  .intro-main { padding: 24px 20px 16px; }
+  .intro-side { padding: 18px 20px 20px; border-left: 0; border-top: 2px dashed var(--ticket-line); }
+}
 @media (max-width: 480px) {
-  .intro-card { gap: 11px; padding: 15px; }
   #intro .actions button { padding-inline: 12px; }
 }
 /* day/night: the new theme opens as a circle from the toggle button (View Transitions API) */
@@ -577,7 +624,7 @@ body.theme-night .detail { background: #2a2622; color: var(--ink); } body.theme-
   .panel .linkish { display: inline-flex; align-items: center; min-height: 44px; }
 }
 /* Boarding action opens only after the real city settles; progress is shown on its own line. */
-[data-intro-skip] { min-width: 232px; background: var(--ticket-red); color: var(--c-fff8ec); font-variant-numeric: tabular-nums; transition: background .4s ease, color .4s ease, border-color .4s ease, --fill .6s ease-out; }
+[data-intro-skip] { width: 100%; background: var(--ticket-red); color: var(--c-fff8ec); font-variant-numeric: tabular-nums; transition: background .4s ease, color .4s ease, border-color .4s ease, --fill .6s ease-out; }
 /* while the city loads the button is the progress bar: a pale red fill grows inside it, and fills solid when it opens */
 [data-intro-skip]:disabled { background: linear-gradient(90deg, color-mix(in srgb, var(--ticket-red) 22%, transparent) var(--fill), transparent var(--fill)); color: var(--ticket-muted); border-style: dashed; cursor: progress; }
 #intro .actions [data-intro-skip]:disabled { border-color: color-mix(in srgb, var(--ticket-red) 40%, var(--ticket-line)); }
@@ -595,15 +642,17 @@ body.theme-night .detail { background: #2a2622; color: var(--ink); } body.theme-
 .road .node.here b { animation: intro-year-arrive .4s ease-out; }
 @keyframes intro-year-arrive { from { transform: translateX(-50%) translateY(3px); opacity: .55; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
 @media (max-height: 820px) {
-  .intro-card { gap: 10px; padding: 16px 20px; }
-  .intro-windshield { height: clamp(160px, 23vh, 184px); }
+  .intro-main { gap: 10px; padding-block: 26px 18px; }
+  .intro-side { padding-block: 26px 18px; }
+  .intro-windshield { height: clamp(176px, 23vh, 184px); }
   .intro-scroll-cue { --hand-width: 44px; }
   .intro-guide { margin-top: 8px; }
-  .intro-text h2 { font-size: clamp(21px, 4vw, 27px); }
+  .intro-text h2 { font-size: clamp(26px, 3.4vw, 36px); }
+  .blind .route { font-size: 42px; }
 }
 @media (max-width: 480px) { .road .node b { font-size: 8px; } .road .node:nth-child(even) b { display: none; } }
 body.theme-night #intro { --ticket: #211c17; --ticket-ink: #f1e6d3; --ticket-muted: #b9aa94; --ticket-line: #3d352c; --ticket-red: #d8383f; --ticket-green: #58b788; }
-body.theme-night .intro-card { box-shadow: inset 0 4px 0 var(--ticket-red), 0 16px 52px rgba(0, 0, 0, .5); }
+body.theme-night .intro-card { filter: drop-shadow(0 1px 2px #0008) drop-shadow(0 24px 40px #000a); }
 body.theme-night .intro-ticket-stamp { color: color-mix(in srgb, var(--ticket-red) 75%, var(--ticket-ink)); }
 body.theme-night [data-intro-skip]:not(:disabled) { color: var(--c-fff); }
 body.theme-night #intro-hint kbd { background: var(--c-2c2620); }
@@ -666,7 +715,7 @@ body.ui-hidden #arrival { opacity: 0; }
 .intro-validated { display: none; transform: rotate(-4deg); padding: 2px 6px; border: 1px solid var(--ticket-green); color: var(--ticket-green); font: 600 10px/1.2 ui-monospace, monospace; letter-spacing: .08em; }
 #intro.bell .intro-validated { display: inline-block; animation: stamp-in .3s ease-out both; }
 @keyframes stamp-in { from { transform: scale(1.6) rotate(-4deg); opacity: 0; } }
-.intro-stub .punch { top: -7px; right: auto; left: 22px; background: var(--ticket); }
+.intro-stub .punch { top: 0; right: 4px; left: auto; background: var(--ticket); }
 .intro-card .door-gap { position: absolute; left: 50%; top: 50%; z-index: 2; translate: -50% -50%; padding: 6px 12px; border-radius: 4px; background: var(--c-0c0a08); color: var(--c-ffb21e); font: 700 13px/1 var(--sans); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; opacity: 0; pointer-events: none; }
 #intro.opening .door-gap { animation: gap-flash .8s .15s both; }
 @keyframes gap-flash { 0%, 100% { opacity: 0; } 25%, 70% { opacity: 1; } }

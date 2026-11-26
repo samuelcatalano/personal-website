@@ -181,6 +181,7 @@
   <a class="skip" href="#panel">Skip to content</a>
   <dialog id="intro" aria-labelledby="intro-title" aria-describedby="intro-sub" tabindex="0">
     <section class="intro-card" aria-labelledby="intro-title">
+      <div class="intro-main">
       <div class="intro-ticket">
         <span data-i18n="intro.owner"></span>
         <span class="intro-ticket-tools"><button type="button" class="intro-lang" data-lang></button><span class="intro-ticket-stamp" data-i18n="intro.ticket"></span></span>
@@ -190,6 +191,7 @@
         <div class="dest"><span class="cur"></span></div>
       </div>
       <div class="intro-text">
+        <p class="intro-eyebrow" data-i18n="intro.eyebrow"></p>
         <h2 id="intro-title" data-i18n="intro.title"></h2>
         <p id="intro-sub" data-i18n="intro.sub"></p>
         
@@ -269,16 +271,29 @@
           </picture>
           <p id="intro-hint"></p>
         </div>
-        <p class="intro-tip" id="intro-tip" aria-hidden="true"></p>
+      </div>
+      </div>
+      <div class="intro-side">
+      <div class="intro-stub">
+        <span class="intro-stub-label" data-i18n="intro.ticketNumber"></span>
+        <dl class="intro-route">
+          <div><dt data-i18n="intro.from"></dt><dd data-i18n="intro.d1"></dd></div>
+          <div><dt data-i18n="intro.via"></dt><dd data-i18n="intro.d2"></dd></div>
+          <div><dt data-i18n="intro.to"></dt><dd data-i18n="intro.d3"></dd></div>
+        </dl>
+        <i class="intro-barcode" aria-hidden="true"></i>
+        <span data-i18n="intro.passenger"></span>
+        <span class="intro-validated" aria-hidden="true"></span>
       </div>
       <div class="status" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-labelledby="intro-status-text"><span class="leds" aria-hidden="true"></span><span class="status-line"><span id="intro-status-text" aria-live="polite"></span><span class="intro-stage" aria-hidden="true"></span></span></div>
       <div class="actions">
         <button type="button" data-intro-skip autofocus></button>
       </div>
-      <div class="intro-stub">
-        <span data-i18n="intro.passenger"></span>
-        <span class="intro-validated" aria-hidden="true"></span>
-        <span data-i18n="intro.ticketNumber"></span>
+      <nav class="intro-profile" aria-label="Professional profile">
+        <button type="button" class="intro-direct" data-intro-direct data-i18n="intro.direct"></button>
+        <span class="intro-links"><a data-link="cv" data-i18n="intro.cv" download></a><a data-link="linkedin" rel="noopener" target="_blank">LinkedIn</a><a data-link="github" rel="noopener" target="_blank">GitHub</a></span>
+      </nav>
+      <p class="intro-tip" id="intro-tip" aria-hidden="true"></p>
       </div>
       <i class="door l" aria-hidden="true"></i><i class="door r" aria-hidden="true"></i>
       <span class="door-gap" aria-hidden="true" data-i18n="led.gap"></span>

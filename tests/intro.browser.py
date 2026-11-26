@@ -96,10 +96,10 @@ try:
         assert js("document.querySelector('.intro-stations [aria-current]').dataset.previewStop === 'sp'"), 'Left should drive backward after the control loses focus'
         assert js("document.querySelector('#intro').dataset.dir === 'up'")
     assert js("""(() => {
-      const card = document.querySelector('.intro-card').getBoundingClientRect();
+      const stub = document.querySelector('.intro-side').getBoundingClientRect(); // the boarding pass keeps the action on its tear-off stub
       const skip = document.querySelector('[data-intro-skip]').getBoundingClientRect();
-      return Math.abs(card.x + card.width / 2 - skip.x - skip.width / 2) < 1;
-    })()"""), 'Skip should be centered in the card'
+      return Math.abs(stub.x + stub.width / 2 - skip.x - skip.width / 2) < 1;
+    })()"""), 'Skip should be centered in the ticket stub'
     if not js("document.body.classList.contains('world-settled')"):
         assert js("document.querySelector('[data-intro-skip]').disabled"), 'Skip stays disabled until the whole city has loaded'
     for _ in range(240):

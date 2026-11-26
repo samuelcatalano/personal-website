@@ -1,5 +1,5 @@
 import { ding, hiss, releaseSounds } from './sound.js';
-import { stops, i18n, yearText, yearStack } from './content.js';
+import { stops, i18n, yearText, yearStack, links } from './content.js';
 import { loadState, onLoadChange } from './world/load-progress.js';
 // Intro shown on every load. A toy bus follows the scroll wheel (or swipe, or arrow keys) along a miniature of the career line while the 3D world loads;
 // The blind names the destination; real loading progress has its own visible line on the ticket.
@@ -16,6 +16,12 @@ export const yearLabels = (journey, ui) => journey.map((st, i) => (i && st.year 
 // so the bar no longer sits on one number while the stills are taken. `phase` is the last finishing step done: 'settled', 'sp', 'london' or 'glasgow' (= photos over).
 export const FINAL = { settled: 76, sp: 82, london: 88, glasgow: 94 };
 export const progressValue = ({ ratio = 0, loaded = false, phase = null }) => Math.min(99, !loaded ? Math.round(ratio * 70) : phase === 'glasgow' ? Math.round(94 + 5 * ratio) : FINAL[phase] ?? 70);
+// Ticket barcode: bars drawn from the ticket number (same bars every visit). Decoration only; the number beside it is the real text.
+export const barcode = (seed) => {
+  let s = [...seed].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 2147483647, 7), x = 0, d = '';
+  while (x < 220) { s = (s * 48271) % 2147483647; const w = 1 + (s >> 4) % 4; d += `M${x} 0h${w}v1h-${w}z`; x += w + 1 + (s >> 9) % 3; }
+  return `<svg viewBox="0 0 ${x} 1" preserveAspectRatio="none" focusable="false"><path d="${d}"/></svg>`;
+};
 const KEY_DY = { ArrowRight: 35, ArrowLeft: -35, PageDown: 240, PageUp: -240, ' ': 240 }; // right drives forward, left goes back
 const LEDS = 48;
 export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {}) {
@@ -44,6 +50,7 @@ export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {
     root.querySelector('#intro-hint').innerHTML = touch ? tt.ui.intro.t_hint : `${tt.ui.intro.hint}<span class="intro-keyboard">${tt.ui.intro.keyboardHint.replace(/\{(.+?)\}/g, '<kbd>$1</kbd>')}</span>`;
     stamp.textContent = returning ? tt.ui.intro.ticketReturn : tt.ui.intro.ticket; stamp.dataset.i18n = returning ? 'intro.ticketReturn' : 'intro.ticket';
     road.setAttribute('aria-label', tt.ui.intro.routeLabel);
+    root.querySelector('.intro-profile').setAttribute('aria-label', tt.ui.intro.direct);
   };
   const paintTip = () => { const tips = t().ui.intro.tips; tipEl.textContent = tips[tipIndex % tips.length]; };
   const nextTip = () => { tipEl.classList.add('swap'); setTimeout(() => { tipIndex++; paintTip(); tipEl.classList.remove('swap'); }, 350); }; // fade out, swap the text, fade in
@@ -113,7 +120,7 @@ export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {
     const close = () => {
       releaseSounds(); // the bell and the hiss end with the intro: the audio context is closed
       root.close();
-      document.body.classList.remove('intro-on');
+      document.body.classList.remove('intro-on'); document.body.classList.add('intro-arrive');
       const heading = document.querySelector('#panel :is(h1, h2)');
       if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
     };
@@ -186,6 +193,7 @@ export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {
     skip.disabled = true; // a second click cannot ring it again
     navigator.vibrate?.(40);
   });
+  root.querySelector('[data-intro-direct]').addEventListener('click', () => { if (active && !bellTimer) dismiss(); }); // recruiters: straight to the HTML profile, no waiting for the city
   root.addEventListener('cancel', e => { e.preventDefault(); if (ready) dismiss(); }); // Esc waits for the city like Skip does
   return {
     start() {
@@ -197,6 +205,15 @@ export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {
       root.dataset.tod = hour >= 6 && hour < 17 ? 'day' : hour >= 17 && hour < 20 ? 'dusk' : 'night'; // the windshield follows the visitor's own clock
       returning = !!navigator.serviceWorker?.controller; // a service worker already in control means the 3D assets are cached: this passenger has been here before, and nothing new is stored
       paintStatic();
+      root.querySelector('.intro-barcode').innerHTML = barcode('0083');
+      root.querySelectorAll('[data-link]').forEach((a) => { a.href = links[a.dataset.link]; });
+      if (!reduced && matchMedia('(pointer: fine)').matches) { // the ticket leans a few degrees toward the cursor, like a card held in the hand
+        const card = root.querySelector('.intro-card'); let tilt = 0;
+        root.addEventListener('pointermove', (e) => {
+          if (tilt || dragX !== null || bellTimer) return;
+          tilt = requestAnimationFrame(() => { tilt = 0; card.style.setProperty('--ry', `${((e.clientX / innerWidth) - .5) * 5}deg`); card.style.setProperty('--rx', `${(.5 - (e.clientY / innerHeight)) * 3}deg`); });
+        });
+      }
       if (!reduced) blindTimer = setInterval(() => { if (active && !ready && !previewed && !interacted && !bellTimer) { blindStep++; paintBlind(); } }, 2600); // reduced motion keeps the first message still
       tipIndex = Math.floor(Math.random() * t().ui.intro.tips.length); paintTip(); // a different tip first on each visit
       if (!reduced) tipTimer = setInterval(() => { if (active && !bellTimer) nextTip(); }, 6500); // reduced motion keeps the first tip still
