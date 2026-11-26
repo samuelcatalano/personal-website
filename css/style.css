@@ -811,6 +811,8 @@ body.ui-hidden #stop-request, body.intro-on #stop-request { display: none; }
 @media (min-width: 1024px) { .bar nav a { transition: none; } }
 /* desktop panel: its own wheel scrolls the panel and stops there; a scroll that reaches the end never carries on into the journey */
 @media (min-width: 1024px) { #panel { overscroll-behavior: contain; } }
+/* the latest role repeated under every stop's board: on desktop it is only the last line of the timeline now. Phones keep it. */
+@media (min-width: 1024px) { .recent-role { display: none; } }
 /* passport toast, desktop: centred in the free area right of the panel and above the Hide pill. It used to sit at the top centre, over the header and the panel. --panel-w is the panel's width */
 @media (min-width: 1024px) {
   :root { --panel-w: 404px; }
