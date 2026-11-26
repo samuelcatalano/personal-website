@@ -807,6 +807,8 @@ body.ui-hidden #stop-request, body.intro-on #stop-request { display: none; }
   .led .live.tight { font-size: 12px; letter-spacing: .02em; }
 }
 @media (min-width: 1601px) { .brand .led .live { width: 300px; } } /* the header blind shows from 1601 px; 172 px cut the longer messages in half */
+/* header nav on desktop: the active section changes on the click itself. The colours used to fade for 0.2 s, so the old and new items both looked active */
+@media (min-width: 1024px) { .bar nav a { transition: none; } }
 @media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
   @keyframes roll-fade { from { opacity: 0; } }
   .led .live.roll { animation-name: roll-fade; }
