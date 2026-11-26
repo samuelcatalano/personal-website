@@ -351,8 +351,9 @@ export function initUI({ onGoto, onTheme, onHold = () => {}, onFocusStop = () =>
     panel.scrollTop = top;
     panel.dataset.section = st.section;
     led(); paintRoute(); // fills the journey board the markup above just replaced
-    const routeList = panel.querySelector('.stops'), currentRow = routeList?.querySelector('.on');
-    if (currentRow && matchMedia('(min-width: 768px)').matches) currentRow.scrollIntoView({ block: 'nearest' }); // the panel is the only scroller: keep the selected stop in view
+    // the panel is the only scroller. Tablets keep the selected row in view; on desktop the current stop card stays at the top (scrollTop is reset above), because scrolling the list pushed the card out of view
+    const currentRow = panel.querySelector('.stops .on');
+    if (currentRow && matchMedia('(min-width: 768px) and (max-width: 1023px)').matches) currentRow.scrollIntoView({ block: 'nearest' });
     clock();
     if (keep && !prev.isConnected) document.querySelector(`[${keep[0]}="${keep[1]}"]`)?.focus({ preventScroll: true }); // only an element the render replaced needs its focus back
     else if (!sectionChanged && panelLinkIndex >= 0) panel.querySelectorAll('a[href]')[panelLinkIndex]?.focus({ preventScroll: true });
