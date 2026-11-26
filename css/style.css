@@ -827,6 +827,8 @@ body.ui-hidden #stop-request, body.intro-on #stop-request { display: none; }
   .panel { width: min(var(--panel-w), calc(100vw - 48px)); background: color-mix(in srgb, var(--card) 95%, transparent); -webkit-backdrop-filter: blur(12px) saturate(1.2); backdrop-filter: blur(12px) saturate(1.2); --muted: #635c52; }
   body.theme-night .panel { --muted: #c2b9ac; --accent: #f7857f; }
 }
+/* the kicker under the hero's name ("Backend & platform engineering") is tertiary: lighter, smaller, still muted and AA. The name and the role carry the hierarchy. */
+@media (min-width: 1024px) { .panel .profile-head .eyebrow { font-weight: 500; font-size: 11px; letter-spacing: .08em; } }
 /* hero e-mail, desktop: a compact secondary button. The solid red fill was the loudest thing on the profile card, so it stays for the primary action */
 @media (min-width: 1024px) {
   .hero-links > li:first-child > a.btn.solid { min-height: 40px; padding: 8px 12px; font-size: 13px; background: transparent; color: var(--ink); border-color: var(--line); }
