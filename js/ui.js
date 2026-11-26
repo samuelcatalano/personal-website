@@ -416,7 +416,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {}, onFocusStop = () =>
     }
   });
   // the nav overflow menu is a real dropdown only between 768 and 1100px; elsewhere its links sit inline, so the details stays open
-  const moreMenu0 = document.querySelector('.nav-more'), dropdownMq = matchMedia('(min-width: 768px) and (max-width: 1100px)');
+  const moreMenu0 = document.querySelector('.nav-more'), dropdownMq = matchMedia('(min-width: 768px) and (max-width: 1023px)');
   const syncMore = () => { if (moreMenu0) moreMenu0.open = !dropdownMq.matches; };
   syncMore(); dropdownMq.addEventListener('change', syncMore);
   document.addEventListener('keydown', (e) => {
