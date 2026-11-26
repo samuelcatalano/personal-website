@@ -39,9 +39,10 @@ const journeyLine = (t, seenSet) => { // the counter the journey panel shows; re
 };
 const ticketMeta = (t, tool) => { const s = toolSpan(tool); return `${t.ui.ticketSince.replace('{year}', s.since)} · ${t.ui.ticketStops.replace('{n}', s.count)}`; };
 const QUICK_MS = 1500; // ponytail: just under the quick tour's 1600 ms stop, so quick stops count on that path only
-const nextButton = (t, seenSet, at) => { // the career stop after the one the bus is at; past the last one, a plain "Final stop" line
-  const i = tripState(stops, at, seenSet).next;
-  return i < 0 ? `<p class="next-final"><span class="next-node" aria-hidden="true"></span><span class="next-text"><small>${t.ui.nextStop}</small><b>${t.ui.finalStop}</b></span></p>` : `<button type="button" class="next-stop" data-next="${i}"><span class="next-node" aria-hidden="true"></span><span class="next-text"><small>${t.ui.nextStop}</small><b>${stops[i].year} ${t.stops[stops[i].id].title}</b></span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"/></svg></button>`;
+const nextButton = (t, seenSet, at) => { // desktop: the career stop after the one the bus is at, or a plain "Final stop" line past the last. Phones and tablets keep the first career stop not yet reached.
+  const desk = matchMedia('(min-width: 1024px)').matches;
+  const i = desk ? tripState(stops, at, seenSet).next : stops.findIndex((st, k) => st.section === 'journey' && !seenSet.has(k));
+  return i < 0 ? (desk ? `<p class="next-final"><span class="next-node" aria-hidden="true"></span><span class="next-text"><small>${t.ui.nextStop}</small><b>${t.ui.finalStop}</b></span></p>` : '') : `<button type="button" class="next-stop" data-next="${i}"><span class="next-node" aria-hidden="true"></span><span class="next-text"><small>${t.ui.nextStop}</small><b>${stops[i].year} ${t.stops[stops[i].id].title}</b></span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"/></svg></button>`;
 };
 const routeStrip = (t, route) => `<ol class="route-strip" aria-label="${t.ui.recap.route}">${stops.map((st, i) => (st.section === 'journey' ? `<li class="${st.country.toLowerCase()}${route.seen.has(i) ? ' seen' : ''}"><span class="sr-only">${t.stops[st.id].title}</span></li>` : '')).join('')}</ol>`;
 const camera = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 7h3l1.5-2h7L17 7h3v12H4z"/><circle cx="12" cy="12.5" r="3.5"/></svg>';
@@ -248,7 +249,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {}, onFocusStop = () =>
   // the bus went through the stops from a to b (a fast scroll can skip some): each career stop on the way counts as visited
   // ponytail: nothing counts while the intro is up, so the loading ride does not fill the counters
   const passed = (a, b) => {
-    if (!introDone || document.body.classList.contains('intro-on')) return;
+    if (!introDone || document.body.classList.contains('intro-on') || !matchMedia('(min-width: 1024px)').matches) return; // desktop only: phones and tablets keep counting stops as before
     let changed = false;
     for (let i = Math.min(a, b); i <= Math.max(a, b); i++) if (stops[i].section === 'journey' && !seen.has(i)) {
       seen.add(i); changed = true;
@@ -331,9 +332,10 @@ export function initUI({ onGoto, onTheme, onHold = () => {}, onFocusStop = () =>
     document.querySelector('.skip').textContent = t.ui.skip;
     const touch = matchMedia('(pointer: coarse)').matches; // phones get "swipe" copy (intro.t_*) instead of "scroll"
     const pick = (path) => path.split('.').reduce((o, k) => o[k], t.ui);
+    const desk = matchMedia('(min-width: 1024px)').matches; // the intro's skip link reads "Skip to CV" on desktop only
     document.querySelectorAll('[data-i18n]').forEach(el => {
-      const key = el.dataset.i18n, tk = key === 'intro.hint' ? 'intro.t_hint' : key;
-      el.textContent = touch && tk !== key ? pick(tk) : pick(key);
+      const key = el.dataset.i18n, tk = key === 'intro.hint' ? (touch ? 'intro.t_hint' : key) : key === 'intro.direct' && desk ? 'intro.skipCv' : key;
+      el.textContent = pick(tk);
     });
     const prev = document.activeElement;
     const key = ['data-tool', 'data-goto', 'data-nav', 'data-nav-home', 'data-lang', 'data-theme'].find(a => prev?.hasAttribute?.(a));
