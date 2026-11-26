@@ -26,7 +26,7 @@ const FOUND = ['hide', 'postcard']; // small finds: hiding the interface, saving
 // ponytail: 2 s of travel per stop; dwell values mirror main.js (3400 ms full auto-ride, 1600 ms quick tour)
 const rideSeconds = (n, dwellMs) => Math.round(n * (dwellMs + 2000) / 1000);
 const quickSeconds = () => (matchMedia('(prefers-reduced-motion: reduce)').matches ? rideSeconds(stops.length, 1600) : QUICK_TOUR_S); // the steady pass, or every stop snapped when motion is reduced
-// ponytail: 3 s on a stop counts as seen. Auto-ride stops (3400 ms) and the steady quick tour (about 13 s per stop) both count; the snapped quick tour under reduced motion (1600 ms) does not.
+// ponytail: 3 s on a stop runs its ceremony (the spoken line, the punch, a new city's stamp). Counting does not wait for it: every stop the bus goes through is visited (passed).
 function visitAfterMs() { return 3000; }
 const cityStops = (c) => stops.flatMap((st, i) => (st.section === 'journey' && cityOf(st) === c ? [i] : [])); // the journey stop indices in one city
 const clockNow = () => new Intl.DateTimeFormat(document.documentElement.lang.startsWith('pt') ? 'pt-BR' : 'en-GB', { hour: '2-digit', minute: '2-digit' }).format(new Date());
@@ -61,7 +61,7 @@ const recap = (t, route) => { // the return ticket: the route as a strip of stop
   ${reached ? `<p class="recap-reset"><button type="button" class="linkish" data-reset>${t.ui.reset}</button></p>` : ''}`;
 };
 // ponytail: innerHTML from static content.js only
-function sectionHTML(section, t, active, tool = null, route = { seen: new Set(), cities: new Set(), found: new Set() }) {
+function sectionHTML(section, t, active, tool = null, route = { seen: new Set(), stamped: new Set(), cities: new Set(), found: new Set() }) {
   const seenSet = route.seen;
   const s = t.sections[section], latest = t.stops[stops.findLast(st => st.section === 'journey').id];
   const ext = (href, text, cls = '') => `<a${cls ? ` class="${cls}"` : ''} href="${href}" target="_blank" rel="noopener">${text}</a>`;
@@ -86,7 +86,7 @@ function sectionHTML(section, t, active, tool = null, route = { seen: new Set(),
       return `
       <p class="led board" aria-hidden="true"><b>83</b><span class="live"></span></p>
       <h2>${s.title}</h2><p>${s.intro}</p>
-      <section id="career-detail" class="detail current-stop${seenSet.has(active) ? ' seen' : ''}" data-stop="${active}" aria-labelledby="career-title">
+      <section id="career-detail" class="detail current-stop${route.stamped.has(active) ? ' seen' : ''}" data-stop="${active}" aria-labelledby="career-title">
         <span class="punch" aria-hidden="true"></span>
         <h3 id="career-title">${c.title}</h3><p class="role">${c.role}</p><small>${c.dates} · ${c.place}</small><p>${c.body}</p>
       </section>
@@ -184,8 +184,8 @@ export function initUI({ onGoto, onTheme, onHold = () => {}, onFocusStop = () =>
     paintHide();
   };
   // the route lives in memory only: a reload starts it again, so nothing is read from or written to storage
-  const route = { seen: new Set(), cities: new Set(), found: new Set(), quick: new Set() };
-  const seen = route.seen, cities = route.cities;
+  const route = { seen: new Set(), stamped: new Set(), cities: new Set(), found: new Set(), quick: new Set() }; // seen: visited (counted as the bus passes); stamped: stayed long enough for the ceremony
+  const seen = route.seen, stamped = route.stamped, cities = route.cities;
   const arrive = (label, name, stamped = false) => { // "Now arriving London": a short banner when the line crosses into another city, or a passport stamp
     const b = document.getElementById('arrival') || document.body.appendChild(Object.assign(document.createElement('p'), { id: 'arrival', role: 'presentation' }));
     b.innerHTML = `<i class="num">${stamped ? '✓' : routeNo()}</i><span class="txt"><small>${label}</small><b>${name}</b></span>`; b.classList.toggle('stamped', stamped); b.classList.add('show');
@@ -211,19 +211,16 @@ export function initUI({ onGoto, onTheme, onHold = () => {}, onFocusStop = () =>
     return t.speak.replace('{title}', c.title) + change;
   };
   const confirmStop = (idx) => {
-    if (document.body.classList.contains('intro-on')) return; // nothing counts while the intro is up, even a timer armed before it opened // the bus has stayed on a stop: count it, punch its ticket, stamp a new city, rebuild the counter in place
+    if (document.body.classList.contains('intro-on')) return; // nothing runs while the intro is up, even a timer armed before it opened // the bus has stayed on a stop: speak it, punch its ticket, stamp a new city
     const city = cityOf(stops[idx]), newCity = !cities.has(city), t = i18n[prefs.lang].ui;
-    seen.add(idx); cities.add(city);
+    stamped.add(idx); seen.add(idx); cities.add(city);
     const spoken = voiceOn && announceLine(idx);
     if (spoken) { if (greeting) whenDone().then(() => talk(spoken)); else talk(spoken); }
     const li = panel.querySelector(`[data-goto="${idx}"]`)?.closest('li');
     if (li) li.classList.add('seen');
     const ticket = panel.querySelector(`.current-stop[data-stop="${idx}"]`);
     if (ticket) { ticket.classList.add('seen'); ticket.querySelector('.punch')?.classList.add('fresh'); }
-    const line = panel.querySelector('.journey-progress');
-    if (line) line.outerHTML = journeyLine(i18n[prefs.lang], seen);
-    const nextBtn = panel.querySelector('.next-stop, .next-final'); if (nextBtn) nextBtn.outerHTML = nextButton(i18n[prefs.lang], seen, active); // same counts as the header and the journey line
-    paintNavCount();
+    refreshCounts();
     if (newCity && !document.body.classList.contains('intro-on')) { // passport: the first stay in each city stamps it
       arrive(`${t.passport} · ${cities.size}/${Object.keys(t.cities).length}`, t.cities[city], true);
       announce.textContent = `${t.passport}: ${t.cities[city]}`;
@@ -240,6 +237,23 @@ export function initUI({ onGoto, onTheme, onHold = () => {}, onFocusStop = () =>
     if (!a) return;
     a.querySelectorAll('.nav-count').forEach((el) => el.remove());
     a.insertAdjacentHTML('beforeend', ` <small class="nav-count" aria-hidden="true">${journeySeenCount(seen)}/${journeyTotal}</small>${route.found.size ? ` <small class="nav-count nav-found" aria-hidden="true">★ ${route.found.size}/${FOUND.length}</small>` : ''}`);
+  };
+  // the header count, the journey line and Next stop read the same counts: refresh them together whenever a stop is reached
+  const refreshCounts = () => {
+    paintNavCount();
+    const line = panel.querySelector('.journey-progress'); if (line) line.outerHTML = journeyLine(i18n[prefs.lang], seen);
+    const nextEl = panel.querySelector('.next-stop, .next-final'); if (nextEl) nextEl.outerHTML = nextButton(i18n[prefs.lang], seen, active);
+  };
+  // the bus went through the stops from a to b (a fast scroll can skip some): each career stop on the way counts as visited
+  // ponytail: nothing counts while the intro is up, so the loading ride does not fill the counters
+  const passed = (a, b) => {
+    if (!introDone || document.body.classList.contains('intro-on')) return;
+    let changed = false;
+    for (let i = Math.min(a, b); i <= Math.max(a, b); i++) if (stops[i].section === 'journey' && !seen.has(i)) {
+      seen.add(i); changed = true;
+      panel.querySelector(`[data-goto="${i}"]`)?.closest('li')?.classList.add('seen'); // the stop list shows the same marks as the counts
+    }
+    if (changed) refreshCounts();
   };
   // Focus or hover on a stop in the panel list lights its landmark; on a Stack tool it lights every stop that uses the tool.
   // onFocusStop gets a list of stop indices (empty clears). Touch taps only focus, so they light nothing.
@@ -260,15 +274,15 @@ export function initUI({ onGoto, onTheme, onHold = () => {}, onFocusStop = () =>
     arrivalDing();
   };
   const resetRoute = () => { // "Start the route again": clears progress on this device, then redraws
-    seen.clear(); cities.clear(); route.found.clear(); route.quick.clear();
+    seen.clear(); stamped.clear(); cities.clear(); route.found.clear(); route.quick.clear();
     render();
     clearTimeout(dwellTimer); clearTimeout(quickTimer); // render() arms the stop under the bus; it counts only after the visitor moves on
   };
   // the visit timers belong to the stop under the bus, and run only once the intro is closed (the loading ride passes stops while the city loads)
   const arm = () => {
     const idx = Math.max(active, 0), st = stops[idx], live = introDone && !document.body.classList.contains('intro-on');
-    clearTimeout(dwellTimer); // a stop counts only once the bus has stayed on it: passing stops and fast scrolls do not
-    if (live && !seen.has(idx)) dwellTimer = setTimeout(() => confirmStop(idx), visitAfterMs());
+    clearTimeout(dwellTimer); // the ceremony (spoken line, punch, city stamp) runs once the bus has stayed on a stop; counting already happened as it passed
+    if (live && !stamped.has(idx)) dwellTimer = setTimeout(() => confirmStop(idx), visitAfterMs());
     clearTimeout(quickTimer); // the quick tour keeps its own, shorter count, separate from the 3 s rule
     if (live && QUICK.includes(st.id) && !route.quick.has(idx)) quickTimer = setTimeout(() => { route.quick.add(idx); }, QUICK_MS);
   };
@@ -426,6 +440,8 @@ export function initUI({ onGoto, onTheme, onHold = () => {}, onFocusStop = () =>
   return {
     get theme() { return prefs.theme; },
     setActive(i) { if (i !== active) { active = i; render(); } },
+    current: () => active,
+    passed,
     say,
     discover,
     stamps: () => [...cities].map((c) => i18n[prefs.lang].ui.cities[c]),

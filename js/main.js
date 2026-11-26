@@ -1,5 +1,5 @@
 import { stops, SECTIONS, sectionStart } from './content.js';
-import { watchScroll, stopMarks, nearestStop, scrollYForStop, progressFromScroll, navLock } from './scroll.js';
+import { watchScroll, stopMarks, nearestStop, scrollYForStop, progressFromScroll, navLock, wheelSnap } from './scroll.js';
 import { routePoints, STOP_SPACING } from './world/layout.js';
 import { initUI } from './ui.js';
 import { createIntro } from './intro.js';
@@ -23,22 +23,28 @@ const previewPostcard = async () => { // the thumbnail on the return ticket: one
   if (previewed || !world?.snapshot) return; previewed = true;
   try { await new Promise((r) => setTimeout(r, 1800)); ui.setPostcardPreview(URL.createObjectURL(await world.snapshot())); } catch { previewed = false; } // a failed frame is tried again on the next arrival
 };
+let near = -1; // the stop the bus was nearest to last time
 const follow = (p) => {
-  const a = lock.filter(nearestStop(p, n, marks)); if (a !== null) { ui.setActive(a); if (a === n - 1) previewPostcard(); }
+  const k = nearestStop(p, n, marks), jumping = lock.pending();
+  // stops the bus drives through count as visited, even one a fast scroll skipped; a menu or keyboard jump counts only where it lands
+  if (k !== near) { if (!jumping) ui.passed(near < 0 ? k : near, k); near = k; }
+  const a = lock.filter(k); if (a !== null) { ui.passed(a, a); ui.setActive(a); if (a === n - 1) previewPostcard(); }
   const m = (gapTo - gapFrom) * 0.15; // the long São Paulo to London stretch with the tunnel
   ui.note('gap', p > gapFrom + m && p < gapTo - m);
   ui.note('rain', !!world?.raining);
 };
 // stop-to-stop jumps glide on an ease curve (same timing as the auto-ride) instead of snapping, so the bus never lurches; a wheel or touch takes over at once
-let glideId = 0;
+let glideId = 0, glideRunning = 0; // glideRunning: the glide in flight; a cancelled glide no longer counts as running
+const gliding = () => glideRunning !== 0 && glideRunning === glideId;
 const glideTo = (y1) => {
   const id = ++glideId, y0 = scrollY, dur = reducedMotion ? 0 : travelMs(Math.abs(y1 - y0)) * 1.15, t0 = performance.now();
   if (!dur) { scrollTo({ top: y1 }); return; }
+  glideRunning = id;
   const tick = (now) => {
     if (id !== glideId) return;
     const k = Math.min(1, (now - t0) / dur);
     scrollTo(0, y0 + (y1 - y0) * (k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2));
-    if (k < 1) requestAnimationFrame(tick);
+    if (k < 1) requestAnimationFrame(tick); else if (glideRunning === id) glideRunning = 0;
   };
   requestAnimationFrame(tick);
 };
@@ -67,7 +73,19 @@ const goto = (i) => {
 };
 const hash = location.hash.slice(1); // read before the UI rewrites it
 const ui = initUI({ onGoto: goto, onHold: hold, onTheme: (t) => world?.setTheme(t), onFocusStop: (list) => world?.highlight(list.map((i) => stops[i].id)) });
-for (const ev of ['wheel', 'touchstart']) addEventListener(ev, () => { glideId++; holdDir = 0; holdSpeed = 0; lock.clear(); }, { passive: true });
+addEventListener('touchstart', () => { glideId++; holdDir = 0; holdSpeed = 0; lock.clear(); }, { passive: true }); // a touch takes over a glide at once
+// Desktop (1024 px and up): a wheel gesture moves the bus exactly one stop; the page does not scroll natively there. The panel keeps its own wheel,
+// and the intro, open dialogs and pinch (ctrl + wheel) are left alone. Narrower screens keep the native scroll they had.
+const desktop = matchMedia('(min-width: 1024px)'), snap = wheelSnap();
+addEventListener('wheel', (e) => {
+  holdDir = 0; holdSpeed = 0;
+  if (!desktop.matches) { glideId++; lock.clear(); return; }
+  if (e.ctrlKey || e.target.closest?.('#panel') || document.body.classList.contains('intro-on') || document.querySelector('dialog[open]')) return;
+  e.preventDefault();
+  const dir = snap.feed(e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY, e.timeStamp, gliding());
+  const target = Math.min(n - 1, Math.max(0, ui.current() + dir));
+  if (dir && target !== ui.current()) { lock.clear(); goto(target); }
+}, { passive: false });
 const autoBtn = document.querySelector('[data-auto]'), quickBtn = document.querySelector('[data-quick]'), stopBtn = document.getElementById('stop-request');
 let quick = false;
 const ride = createAutoRide({
