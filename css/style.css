@@ -802,3 +802,12 @@ body.ui-hidden #stop-request, body.intro-on #stop-request { display: none; }
   #panel.swap-ticket .detail { animation-name: ticket-in-desk; }
   #panel.swap-pane > * { animation-name: pane-in-desk; }
 }
+/* LED blinds, desktop: a line wider than its blind shrinks to fit (ui.js led), and the roll is a fade, not a slide: a sliding line is cut by the blind and shows half a glyph */
+@media (min-width: 1024px) {
+  .led .live.tight { font-size: 12px; letter-spacing: .02em; }
+}
+@media (min-width: 1601px) { .brand .led .live { width: 300px; } } /* the header blind shows from 1601 px; 172 px cut the longer messages in half */
+@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+  @keyframes roll-fade { from { opacity: 0; } }
+  .led .live.roll { animation-name: roll-fade; }
+}

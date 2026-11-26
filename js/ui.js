@@ -154,7 +154,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {}, onFocusStop = () =>
   document.addEventListener('visibilitychange', () => { document.title = document.hidden ? waitingTitle() : pageTitle; });
   const led = () => {
     const t = i18n[prefs.lang], st = stops[Math.max(active, 0)]; // the header blind and the journey board show the same text
-    let text = st.section === 'hero' ? '' : baseText(), alert = false;
+    let text = st.section === 'hero' && !matchMedia('(min-width: 1024px)').matches ? '' : baseText(), alert = false; // desktop: the hero's blind shows its role beside the 83 badge; narrower screens keep it empty as before
     if (notes.say) { text = t.ui.led[notes.say]; alert = true; }
     else if (notes.gap) { text = t.ui.led.gap; alert = true; }
     else if (st.section === 'contact') text = t.ui.led.end;
@@ -165,6 +165,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {}, onFocusStop = () =>
     for (const el of document.querySelectorAll('.led .live')) {
       el.classList.toggle('alert', alert);
       if (el.textContent !== text) { el.textContent = text; el.classList.remove('roll'); void el.offsetWidth; el.classList.add('roll'); }
+      el.classList.remove('tight'); if (el.scrollWidth > el.clientWidth + 1) el.classList.add('tight'); // a line wider than its blind shrinks to fit, so the whole text shows
     }
   };
   const clock = () => { // London time for visitors elsewhere: "is he awake?"
