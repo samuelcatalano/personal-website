@@ -42,6 +42,11 @@ export function fineMarks(marks, curve, k = 16) {
 }
 export const scrollYForStop = (i, n, scrollHeight, viewport, marks) =>
   markOf(i, n, marks) * Math.max(0, scrollHeight - viewport);
+// One answer for the journey counters: stops reached so far, and the career stop after the current one (-1 past the last). Header, panel and LED all read it.
+export function tripState(stops, active, visited) {
+  const journey = stops.flatMap((st, i) => (st.section === 'journey' ? [i] : []));
+  return { count: journey.filter((i) => visited.has(i)).length, total: journey.length, next: journey.find((i) => i > active) ?? -1 };
+}
 // After a menu jump the panel shows the clicked stop at once and ignores the stops the bus passes on the way.
 export function navLock() {
   let target = null;

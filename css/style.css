@@ -697,6 +697,7 @@ body.ui-hidden #arrival { opacity: 0; }
 .next-text b { font: 600 15px/1.3 var(--sans); color: var(--ink); }
 .next-stop svg { flex: none; color: var(--muted); transition: transform .2s ease-in-out, color .2s ease-in-out; }
 .next-stop:hover svg { transform: translateX(2px); color: var(--accent); }
+.next-final { display: flex; align-items: center; gap: 12px; min-height: 56px; margin: 12px 0 0; padding: 10px 14px; border: 1px dashed var(--line); border-radius: 12px; } /* the end of the line: same shape as Next stop, nothing to press */
 .nav-count { margin-left: 6px; padding: 1px 6px; border-radius: 999px; background: var(--accent); color: var(--c-fff); font: 700 10px/1.6 var(--sans); font-variant-numeric: tabular-nums; }
 .stops li.seen .node { background: var(--seg); }
 #ui-restore { opacity: .8; transition: opacity .2s, background .2s; } #ui-restore:hover, #ui-restore:focus-visible, body.ui-hidden #ui-restore { opacity: 1; }

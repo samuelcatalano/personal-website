@@ -12,6 +12,7 @@ const store = () => { try { return localStorage; } catch { return undefined; } }
 import { speak, hush, voiceSupported, hasVoice, whenDone } from './announce.js';
 import { arrivalDing } from './sound.js';
 import { QUICK_TOUR_S } from './autoride.js';
+import { tripState } from './scroll.js';
 // Roundel flags for the language switch (plain SVG: emoji flags do not draw on every system). Each fills a circle, cropped from its middle.
 const FLAGS = {
   en: '<svg viewBox="0 0 60 30" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><rect width="60" height="30" fill="#1b2d6b"/><path d="M0 0 60 30M60 0 0 30" stroke="#fff" stroke-width="6"/><path d="M0 0 60 30M60 0 0 30" stroke="#c8102e" stroke-width="2"/><path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10"/><path d="M30 0v30M0 15h60" stroke="#c8102e" stroke-width="6"/></svg>',
@@ -19,7 +20,7 @@ const FLAGS = {
 };
 const flag = (c) => (c === 'BR' ? '🇧🇷' : '🇬🇧');
 const journeyTotal = stops.filter(st => st.section === 'journey').length;
-const journeySeenCount = (seenSet) => stops.reduce((n, st, i) => n + (st.section === 'journey' && seenSet.has(i) ? 1 : 0), 0);
+const journeySeenCount = (seenSet) => tripState(stops, -1, seenSet).count; // the one count the header, the panel and the LED share
 let postcardUrl = ''; // the thumbnail of the last stop's view, set by main.js once the bus has arrived
 const FOUND = ['hide', 'postcard']; // small finds: hiding the interface, saving a postcard
 // ponytail: 2 s of travel per stop; dwell values mirror main.js (3400 ms full auto-ride, 1600 ms quick tour)
@@ -38,10 +39,9 @@ const journeyLine = (t, seenSet) => { // the counter the journey panel shows; re
 };
 const ticketMeta = (t, tool) => { const s = toolSpan(tool); return `${t.ui.ticketSince.replace('{year}', s.since)} · ${t.ui.ticketStops.replace('{n}', s.count)}`; };
 const QUICK_MS = 1500; // ponytail: just under the quick tour's 1600 ms stop, so quick stops count on that path only
-const nextUnseen = (seenSet) => stops.findIndex((st, i) => st.section === 'journey' && !seenSet.has(i)); // -1 once every journey stop is reached
-const nextButton = (t, seenSet) => { // the pointer a returning visitor needs: the next journey stop they have not reached
-  const i = nextUnseen(seenSet);
-  return i < 0 ? '' : `<button type="button" class="next-stop" data-next="${i}"><span class="next-node" aria-hidden="true"></span><span class="next-text"><small>${t.ui.nextStop}</small><b>${stops[i].year} ${t.stops[stops[i].id].title}</b></span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"/></svg></button>`;
+const nextButton = (t, seenSet, at) => { // the career stop after the one the bus is at; past the last one, a plain "Final stop" line
+  const i = tripState(stops, at, seenSet).next;
+  return i < 0 ? `<p class="next-final"><span class="next-node" aria-hidden="true"></span><span class="next-text"><small>${t.ui.nextStop}</small><b>${t.ui.finalStop}</b></span></p>` : `<button type="button" class="next-stop" data-next="${i}"><span class="next-node" aria-hidden="true"></span><span class="next-text"><small>${t.ui.nextStop}</small><b>${stops[i].year} ${t.stops[stops[i].id].title}</b></span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"/></svg></button>`;
 };
 const routeStrip = (t, route) => `<ol class="route-strip" aria-label="${t.ui.recap.route}">${stops.map((st, i) => (st.section === 'journey' ? `<li class="${st.country.toLowerCase()}${route.seen.has(i) ? ' seen' : ''}"><span class="sr-only">${t.stops[st.id].title}</span></li>` : '')).join('')}</ol>`;
 const camera = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 7h3l1.5-2h7L17 7h3v12H4z"/><circle cx="12" cy="12.5" r="3.5"/></svg>';
@@ -98,7 +98,7 @@ function sectionHTML(section, t, active, tool = null, route = { seen: new Set(),
           <span class="yr">${yearStack(st, t.ui)}</span><span class="node" aria-hidden="true"></span>${st.brand ? `<span class="mono" style="--c:${st.brand.color}" aria-hidden="true">${st.brand.initials}</span>` : ''}<span class="name">${c.title}</span></button>
           </li>`;
       }).join('')}</ol>
-      <p class="zones"><span class="z br">${t.ui.zones.br}</span><span class="z uk">${t.ui.zones.uk}</span></p>${journeyLine(t, seenSet)}${nextButton(t, seenSet)}`;
+      <p class="zones"><span class="z br">${t.ui.zones.br}</span><span class="z uk">${t.ui.zones.uk}</span></p>${journeyLine(t, seenSet)}${nextButton(t, seenSet, active)}`;
     }
     case 'stack': return `<h2>${s.title}</h2><p>${s.intro}</p><p class="svc-all"><i aria-hidden="true"></i><b>${t.ui.svcAll}</b><small>${t.ui.clock} <time data-london></time></small></p><div class="lines">${stackGroups.map(g => `<div class="line" style="--c:${g.color}"><h3>${s.groups[g.id]}</h3><ul>${g.items.map(x => `<li>${toolStops[x].length ? `<button type="button" class="station" data-tool="${x}" aria-pressed="${x === tool}"><span>${x}</span><small class="ticket-meta">${ticketMeta(t, x)}</small></button>` : x}</li>`).join('')}</ul></div>`).join('')}</div>`;
     case 'articles': return list(articles, a => `<li>${ext(a.url, `<b>${a.title}</b><small>${s.src} ↗</small>`, 'row')}</li>`, links.medium);
@@ -222,7 +222,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {}, onFocusStop = () =>
     if (ticket) { ticket.classList.add('seen'); ticket.querySelector('.punch')?.classList.add('fresh'); }
     const line = panel.querySelector('.journey-progress');
     if (line) line.outerHTML = journeyLine(i18n[prefs.lang], seen);
-    const nextBtn = panel.querySelector('.next-stop'); if (nextBtn) nextBtn.outerHTML = nextButton(i18n[prefs.lang], seen); // empty string removes it once nothing is left
+    const nextBtn = panel.querySelector('.next-stop, .next-final'); if (nextBtn) nextBtn.outerHTML = nextButton(i18n[prefs.lang], seen, active); // same counts as the header and the journey line
     paintNavCount();
     if (newCity && !document.body.classList.contains('intro-on')) { // passport: the first stay in each city stamps it
       arrive(`${t.passport} · ${cities.size}/${Object.keys(t.cities).length}`, t.cities[city], true);
