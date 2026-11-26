@@ -62,7 +62,7 @@ body { margin: 0; font: 15px/1.6 var(--sans); color: var(--ink); background: lin
 .controls button { min-width: 36px; min-height: 36px; padding: 0 8px; border: 0; border-radius: 10px; background: none; color: inherit; font: 600 11px var(--sans); cursor: pointer; transition: background .2s, color .2s; }
 @media (hover: hover) { .controls button:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); color: var(--accent); } }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-/* ponytail: thin scrollbar keeps the reading column >= 390 px when the hero fact sheet overflows a 900 px-tall window; trim the hero copy if it ever overflows by much more */
+/* ponytail: thin scrollbar keeps the reading column >= 330 px of text (380 px panel on desktop) when the hero fact sheet overflows a 900 px-tall window; trim the hero copy if it ever overflows by much more */
 .panel { scrollbar-width: thin; position: fixed; top: 92px; bottom: auto; left: 24px; width: min(360px, calc(100vw - 48px)); max-height: calc(100vh - 116px); max-height: calc(100dvh - 116px); overflow: auto;
   background: var(--card); border: 1px solid var(--line); border-top: 4px solid var(--city, var(--accent)); border-radius: 18px; padding: clamp(22px, 3vw, 32px); z-index: 4;
   box-shadow: 0 1px 2px rgba(40, 30, 20, .08), 0 12px 32px rgba(40, 30, 20, .14); }
@@ -822,11 +822,16 @@ body.ui-hidden #stop-request, body.intro-on #stop-request { display: none; }
 @media (min-width: 1024px) { .bar nav a { transition: none; } }
 /* desktop panel: its own wheel scrolls the panel and stops there; a scroll that reaches the end never carries on into the journey */
 @media (min-width: 1024px) { #panel { overscroll-behavior: contain; } }
+/* desktop panel: 380 px, lightly see-through (95% of the card, about 92% opaque), so the city shows behind it. Muted text is darker on the day panel and the night accent lighter, so both stay at AA over a black or a white scene (measured: day muted 5.1:1, night accent 4.9:1). */
+@media (min-width: 1024px) {
+  .panel { width: min(var(--panel-w), calc(100vw - 48px)); background: color-mix(in srgb, var(--card) 95%, transparent); -webkit-backdrop-filter: blur(12px) saturate(1.2); backdrop-filter: blur(12px) saturate(1.2); --muted: #635c52; }
+  body.theme-night .panel { --muted: #c2b9ac; --accent: #f7857f; }
+}
 /* the latest role repeated under every stop's board: on desktop it is only the last line of the timeline now. Phones keep it. */
 @media (min-width: 1024px) { .recent-role { display: none; } }
 /* passport toast, desktop: centred in the free area right of the panel and above the Hide pill. It used to sit at the top centre, over the header and the panel. --panel-w is the panel's width */
 @media (min-width: 1024px) {
-  :root { --panel-w: 404px; }
+  :root { --panel-w: 380px; }
   #arrival { top: auto; bottom: 84px; left: calc((var(--panel-w) + 24px + 100vw) / 2); transform: translate(-50%, 14px) scale(.96); }
 }
 @media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
