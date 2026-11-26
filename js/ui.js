@@ -111,7 +111,7 @@ function sectionHTML(section, t, active, tool = null, route = { seen: new Set(),
       <p class="footer">${t.ui.footer} <button type="button" class="linkish" data-credits>${t.ui.credits.link}</button></p>`;
   }
 }
-export function initUI({ onGoto, onTheme, onHold = () => {}, onFocusStop = () => {} }) {
+export function initUI({ onGoto, onTheme, onHold = () => {}, onNudge = () => {}, onFocusStop = () => {} }) {
   const prefs = loadPrefs(store(), { lang: navigator.language });
   const panel = document.getElementById('panel'), announce = document.getElementById('announce');
   const options = document.querySelector('[data-options]');
@@ -429,16 +429,18 @@ export function initUI({ onGoto, onTheme, onHold = () => {}, onFocusStop = () =>
     if (document.body.classList.contains('intro-on') || document.querySelector('dialog[open]')) return; // the intro and the credits own the keys while open
     if (e.key === 'h' || e.key === 'H') { setHidden(!document.body.classList.contains('ui-hidden')); return; }
     if (e.key === 'Escape' && document.body.classList.contains('ui-hidden')) { setHidden(false); return; }
-    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { // a tap rides to the next stop, a held key keeps the bus rolling (main.js eases it in and out)
+    if (['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'].includes(e.key)) { // the arrows scroll like the mouse wheel: a press moves the page one notch, a held key keeps it rolling (main.js eases it in and out)
+      const dir = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : -1;
+      const room = e.target.closest?.('#panel') && (dir > 0 ? panel.scrollTop + panel.clientHeight < panel.scrollHeight - 1 : panel.scrollTop > 0);
+      if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && room) return; // the panel scrolls itself while it has room in that direction, as the wheel does
       e.preventDefault();
-      const dir = e.key === 'ArrowRight' ? 1 : -1;
-      if (e.repeat) onHold(dir); else onGoto(dir > 0 ? Math.min(active + 1, stops.length - 1) : Math.max(active - 1, 0));
+      if (e.repeat) onHold(dir); else onNudge(dir);
       return;
     }
     if (e.key === 'j') onGoto(Math.min(active + 1, stops.length - 1));
     if (e.key === 'k') onGoto(Math.max(active - 1, 0));
   });
-  document.addEventListener('keyup', (e) => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') onHold(0); });
+  document.addEventListener('keyup', (e) => { if (['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'].includes(e.key)) onHold(0); });
   addEventListener('blur', () => onHold(0));
   applyTheme();
   return {

@@ -46,7 +46,7 @@ const glideTo = (y1) => {
   };
   requestAnimationFrame(tick);
 };
-// holding → or ← keeps the bus rolling: speed eases in and out, the wheel or a touch takes over at once
+// a held arrow keeps the page rolling, as holding the wheel would: speed eases in and out, the wheel or a touch takes over at once
 const HOLD_SPEED = 560; // px/s of scroll, roughly one stop every 1.6 s
 let holdDir = 0, holdSpeed = 0, holdRaf = 0, holdLast = 0;
 const holdTick = (now) => {
@@ -62,6 +62,12 @@ const hold = (dir) => {
   if (dir && !reducedMotion) { glideId++; lock.clear(); }
   if (!holdRaf && (dir && !reducedMotion || holdSpeed)) { holdLast = 0; holdRaf = requestAnimationFrame(holdTick); }
 };
+// an arrow press scrolls like one mouse-wheel notch: NOTCH px, smoothly, and a held arrow rolls on through hold()
+const NOTCH = 100; // ponytail: one wheel notch in Chrome on this machine; another mouse or a trackpad scrolls by its own amount
+const nudge = (dir) => {
+  glideId++; holdDir = 0; holdSpeed = 0; lock.clear(); // as the wheel does: a glide in flight stops and the menu lock lets go
+  scrollBy({ top: dir * NOTCH, behavior: reducedMotion ? 'auto' : 'smooth' });
+};
 const goto = (i) => {
   lock.set(i);
   ui.setActive(i);
@@ -70,7 +76,7 @@ const goto = (i) => {
   unlock = setTimeout(lock.clear, 8000); // ponytail: 8 s covers the slowest observed jump (~6 s); make it distance-based if routes grow
 };
 const hash = location.hash.slice(1); // read before the UI rewrites it
-const ui = initUI({ onGoto: goto, onHold: hold, onTheme: (t) => world?.setTheme(t), onFocusStop: (list) => world?.highlight(list.map((i) => stops[i].id)) });
+const ui = initUI({ onGoto: goto, onHold: hold, onNudge: nudge, onTheme: (t) => world?.setTheme(t), onFocusStop: (list) => world?.highlight(list.map((i) => stops[i].id)) });
 for (const ev of ['wheel', 'touchstart']) addEventListener(ev, () => { glideId++; holdDir = 0; holdSpeed = 0; lock.clear(); }, { passive: true });
 const autoBtn = document.querySelector('[data-auto]'), quickBtn = document.querySelector('[data-quick]'), stopBtn = document.getElementById('stop-request');
 let quick = false;
