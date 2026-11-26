@@ -827,6 +827,12 @@ body.ui-hidden #stop-request, body.intro-on #stop-request { display: none; }
   .panel { width: min(var(--panel-w), calc(100vw - 48px)); background: color-mix(in srgb, var(--card) 95%, transparent); -webkit-backdrop-filter: blur(12px) saturate(1.2); backdrop-filter: blur(12px) saturate(1.2); --muted: #635c52; }
   body.theme-night .panel { --muted: #c2b9ac; --accent: #f7857f; }
 }
+/* hero e-mail, desktop: a compact secondary button. The solid red fill was the loudest thing on the profile card, so it stays for the primary action */
+@media (min-width: 1024px) {
+  .hero-links > li:first-child > a.btn.solid { min-height: 40px; padding: 8px 12px; font-size: 13px; background: transparent; color: var(--ink); border-color: var(--line); }
+  .hero-links > li:first-child > a.btn.solid:hover { background: var(--ink); color: var(--card); border-color: var(--ink); }
+  body.theme-night .hero-links > li:first-child > a.btn.solid { color: var(--ink); }
+}
 /* the latest role repeated under every stop's board: on desktop it is only the last line of the timeline now. Phones keep it. */
 @media (min-width: 1024px) { .recent-role { display: none; } }
 /* passport toast, desktop: centred in the free area right of the panel and above the Hide pill. It used to sit at the top centre, over the header and the panel. --panel-w is the panel's width */
