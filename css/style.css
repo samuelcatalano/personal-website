@@ -795,3 +795,10 @@ body.ui-hidden #stop-request, body.intro-on #stop-request { display: none; }
   .validated-stamp { display: inline-block; justify-self: start; margin: 6px 0 0; padding: 2px 8px; border: 1px solid var(--ticket-green); color: var(--ticket-green); font: 600 12px/1.2 ui-monospace, monospace; letter-spacing: .08em; transform: rotate(-4deg); }
   .panel .why, .panel .avail, .panel .clock, .panel .profile-status p, .profile-head .role, .panel[data-section="hero"] .tagline, .panel .current-stop > p:last-child, .panel a.repo small, .detail, .line li, .route-line { font-size: 14px; }
 }
+/* Desktop stop and section changes: the incoming copy starts at 40% opacity, never at 0, so the panel is not an empty card while it slides in (sampled before: 0 for up to 130 ms, on section changes for longer). Reduced motion keeps the animation off. */
+@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+  @keyframes ticket-in-desk { from { opacity: .4; transform: translateX(var(--sx, 22px)) rotate(calc(var(--dir, 1) * 1.6deg)); } }
+  @keyframes pane-in-desk { from { opacity: .4; transform: translateX(calc(var(--sx, 22px) * .6)); } }
+  #panel.swap-ticket .detail { animation-name: ticket-in-desk; }
+  #panel.swap-pane > * { animation-name: pane-in-desk; }
+}
