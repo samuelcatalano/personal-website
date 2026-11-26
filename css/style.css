@@ -837,6 +837,11 @@ body.ui-hidden #stop-request, body.intro-on #stop-request { display: none; }
   .hero-links > li:first-child > a.btn.solid:hover { background: var(--ink); color: var(--card); border-color: var(--ink); }
   body.theme-night .hero-links > li:first-child > a.btn.solid { color: var(--ink); }
 }
+/* ride buttons, desktop: a short tooltip on hover and on keyboard focus (the native title showed on hover only, and never from the keyboard). Phones keep the native title. */
+@media (min-width: 1024px) {
+  .controls [data-tip] { position: relative; }
+  .controls [data-tip]:hover::after, .controls [data-tip]:focus-visible::after { content: attr(data-tip); position: absolute; top: calc(100% + 10px); left: 50%; translate: -50% 0; z-index: 8; width: max-content; max-width: 240px; padding: 7px 10px; border-radius: 8px; background: var(--ink); color: var(--card); font: 500 12px/1.4 var(--sans); text-align: left; pointer-events: none; box-shadow: var(--surface-shadow); }
+}
 /* the latest role repeated under every stop's board: on desktop it is only the last line of the timeline now. Phones keep it. */
 @media (min-width: 1024px) { .recent-role { display: none; } }
 /* passport toast, desktop: centred in the free area right of the panel and above the Hide pill. It used to sit at the top centre, over the header and the panel. --panel-w is the panel's width */

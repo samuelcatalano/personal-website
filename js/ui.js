@@ -326,7 +326,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {}, onFocusStop = () =>
     const themeButton = document.querySelector('[data-theme]');
     themeButton.setAttribute('aria-label', t.ui.theme);
     themeButton.title = t.ui.theme;
-    for (const [sel, key] of [['[data-auto]', 'auto'], ['[data-quick]', 'quick'], ['[data-photo]', 'photo'], ['[data-hide]', 'hide'], ['[data-sound]', 'sound'], ['[data-voice]', 'voice']]) { const b = document.querySelector(sel); if (b) { b.setAttribute('aria-label', t.ui[key]); b.title = t.ui[key]; } }
+    for (const [sel, key] of [['[data-auto]', 'auto'], ['[data-quick]', 'quick'], ['[data-photo]', 'photo'], ['[data-hide]', 'hide'], ['[data-sound]', 'sound'], ['[data-voice]', 'voice']]) { const b = document.querySelector(sel); if (b) { b.setAttribute('aria-label', t.ui[key]); if (key === 'auto' || key === 'quick') { b.dataset.tip = t.ui[key]; b.title = matchMedia('(min-width: 1024px)').matches ? '' : t.ui[key]; } else b.title = t.ui[key]; } }
     const stopBtn = document.getElementById('stop-request');
     if (stopBtn) { stopBtn.innerHTML = `${t.ui.stopRequest} <kbd>B</kbd>`; stopBtn.setAttribute('aria-label', `${t.ui.stopRequest} (B)`); }
     document.querySelector('.skip').textContent = t.ui.skip;
