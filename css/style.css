@@ -795,6 +795,12 @@ body.ui-hidden #stop-request, body.intro-on #stop-request { display: none; }
   .validated-stamp { display: inline-block; justify-self: start; margin: 6px 0 0; padding: 2px 8px; border: 1px solid var(--ticket-green); color: var(--ticket-green); font: 600 12px/1.2 ui-monospace, monospace; letter-spacing: .08em; transform: rotate(-4deg); }
   .panel .why, .panel .avail, .panel .clock, .panel .profile-status p, .profile-head .role, .panel[data-section="hero"] .tagline, .panel .current-stop > p:last-child, .panel a.repo small, .detail, .line li, .route-line { font-size: 14px; }
 }
+/* Intro Start button, desktop: a clear primary once the city is ready (larger, a visible focus ring). While it loads it is a progress bar with a solid red edge, not a pale outline that reads as disabled. */
+@media (min-width: 1024px) {
+  #intro .actions [data-intro-skip] { min-height: 52px; font-size: 14px; letter-spacing: .01em; padding-inline: 12px; }
+  #intro .actions [data-intro-skip]:disabled { border-style: solid; border-color: var(--ticket-red); color: var(--ticket-ink); background: linear-gradient(90deg, color-mix(in srgb, var(--ticket-red) 34%, var(--ticket)) var(--fill), var(--ticket) var(--fill)); }
+  #intro [data-intro-skip]:not(:disabled):focus-visible { outline: 3px solid var(--ticket-red); outline-offset: 3px; }
+}
 /* Intro, desktop: a photo that arrives already in place (its opacity rule matches on insertion) used to cut in. It now fades in over the flat illustration (0.45 s). */
 @media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
   @keyframes live-in { from { opacity: 0; } }

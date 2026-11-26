@@ -193,7 +193,7 @@ export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {
     skip.disabled = true; // a second click cannot ring it again
     navigator.vibrate?.(40);
   });
-  root.querySelector('[data-intro-direct]').addEventListener('click', () => { if (active && !bellTimer) dismiss(); }); // recruiters: straight to the HTML profile, no waiting for the city
+  root.querySelector('[data-intro-direct]').addEventListener('click', () => { if (active && !bellTimer) { dismiss(); document.querySelector('.profile-more')?.setAttribute('open', ''); } }); // the summary opens already expanded // recruiters: straight to the HTML profile, no waiting for the city
   root.addEventListener('cancel', e => { e.preventDefault(); if (ready) dismiss(); }); // Esc waits for the city like Skip does
   return {
     start() {
