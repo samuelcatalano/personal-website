@@ -13,7 +13,8 @@ export function windowOccupation(character,along,y,face=0) {
   const room=office?0:Math.floor(along/2.8);
   const key=`${Math.round(character.seed*65535)}:${floor}:${room}`;
   const n=hash(office?key:`${key}:${face}`)%100;
-  return n<(office?48:30)?.04:n<65?.22:n<88?.55:.8;
+  const [dark,dim,warm]=office?[48,65,88]:[22,50,80]; // round 3: residential rooms read as mostly dark at night (35% clearly lit); ~50% now, offices unchanged
+  return n<dark?.04:n<dim?.22:n<warm?.55:.8;
 }
 export function exposedFaces(plot,neighbors=[]) {
   const faces={west:true,east:true,back:true,front:true};
