@@ -2,19 +2,19 @@
 @font-face { font-family: 'Hammersmith One'; font-style: normal; font-weight: 400; font-display: swap; src: url(../assets/fonts/hammersmith-one-latin.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
 /* Breakpoints: 480, 768, 1100. Documented exceptions: 900 (icon-only ride buttons), 1600 (.brand .led), max-height 820. */
 :root {
-  --sky: #e8e0d2; --sky2: #c9bdaa; --ink: #302d29; --muted: #756e64;
+  --sky: #e8e0d2; --sky2: #c9bdaa; --ink: #302d29; --muted: #6b645a;
   --card: rgba(248, 246, 241, .97); --line: #d8d0c4; --red: #c9252b; --accent: #b51f27;
   --sans: 'Inter', system-ui, sans-serif; --display: 'Hammersmith One', 'Gill Sans', system-ui, sans-serif;
   --br: #1f8a4c; --uk: var(--accent);
   --surface-radius: 8px; --control-radius: 4px; --surface-shadow: 0 4px 16px #20160f14;
   /* repeated literals, named by value: rename by role when a design-token pass happens */ --c-0c0a08: #0c0a08; --c-2c2620: #2c2620; --c-ffb21e: #ffb21e; --c-000: #000; --c-fff: #fff; --c-fff8ec: #fff8ec;
 }
-body.theme-night { --sky: #252b31; --sky2: #41464a; --ink: #f4f0e9; --muted: #c2b9ac; --card: rgba(35, 39, 42, .97); --line: #5b5d5b; --accent: #ef7772; }
+body.theme-night { --sky: #252b31; --sky2: #41464a; --ink: #f4f0e9; --muted: #c2b9ac; --card: rgba(35, 39, 42, .97); --line: #7b7d79; --accent: #ef7772; }
 * { box-sizing: border-box; }
 html { scroll-behavior: auto; }
 /* browser surfaces carry the palette: selection, scrollbar, balanced headings */
 ::selection { background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--ink); }
-.panel { scrollbar-color: color-mix(in srgb, var(--muted) 45%, transparent) transparent; }
+.panel { scrollbar-color: color-mix(in srgb, var(--accent) 40%, transparent) transparent; }
 h1, h2, h3 { text-wrap: balance; }
 body { margin: 0; font: 15px/1.6 var(--sans); color: var(--ink); background: linear-gradient(var(--sky), var(--sky2)); min-height: 100vh; min-height: 100dvh; }
 #world { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; display: block; }
@@ -80,7 +80,7 @@ body { margin: 0; font: 15px/1.6 var(--sans); color: var(--ink); background: lin
 .panel h2 { font: 400 30px/1.15 var(--display); letter-spacing: -.02em; margin: 0 0 12px; }
 .panel p { margin: 0 0 16px; }
 .panel .role { font-weight: 600; margin: 0; }
-.panel .meta, .panel small { color: var(--muted); }
+.panel .meta, .panel small { color: var(--muted); font-size: 12px; }
 .panel .tagline { margin-top: 18px; }
 .panel .value { margin: 14px 0 0; font-size: 17px; line-height: 1.45; font-weight: 600; letter-spacing: -.01em; }
 .panel .proof { margin: 16px 0 0; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13px; line-height: 1.5; font-style: italic; color: var(--muted); }
@@ -391,9 +391,9 @@ body:is(:not(.world-ready), .no-webgl) :is([data-photo], .postcard-card) { displ
 .stops li:last-child::before { bottom: 50%; border-radius: 0 0 2px 2px; }
 .stops li.hub::before { background: linear-gradient(var(--br) 0 50%, var(--uk) 50%); }
 .stops button { display: flex; align-items: center; width: 100%; min-height: 44px; padding: 0; background: none; border: 0; border-radius: 8px; font: 500 13px/1.4 var(--sans); color: inherit; cursor: pointer; text-align: left; }
-.stops .yr { width: 44px; flex: none; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stops .yr { width: 44px; flex: none; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .stops li.on .yr { color: var(--accent); font-weight: 600; }
-.stops .yr .yr-now { display: block; font: 600 9px/1.2 var(--sans); color: var(--accent); }
+.stops .yr .yr-now { display: block; font: 600 11px/1.2 var(--sans); color: var(--accent); }
 .node { position: relative; z-index: 1; flex: none; width: 14px; height: 14px; margin: 0 7px; border-radius: 50%; background: var(--card); border: 3px solid var(--seg); transition: box-shadow .25s, background .25s; }
 .stops li.hub .node { width: 22px; height: 22px; margin: 0 3px; border-color: var(--ink); }
 .stops li.on .node { background: var(--seg); box-shadow: 0 0 0 5px color-mix(in srgb, var(--seg) 24%, transparent); }
@@ -459,7 +459,7 @@ body:is(:not(.world-ready), .no-webgl) :is([data-photo], .postcard-card) { displ
 /* service status, as on the Tube's board: a green dot and "Good service", per line and overall */
 .svc-all { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin: 14px 0 0; padding: 8px 12px; border-radius: 10px; background: color-mix(in srgb, #0c7a3d 10%, transparent); font-size: 13px; }
 .svc-all i { content: ''; flex: none; width: 8px; height: 8px; border-radius: 50%; background: #0c7a3d; align-self: center; }
-.svc-all small { margin-left: auto; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.svc-all small { margin-left: auto; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 .svc { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; font-size: 11px; color: var(--muted); vertical-align: middle; }
 .svc::before { display: inline-block; align-self: auto; }
 [data-voice] svg { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; stroke-linecap: round; }
@@ -521,7 +521,7 @@ blockquote footer b { color: var(--ink); font-weight: 600; }
   .brand, .bar nav, .controls, .panel { border-radius: var(--surface-radius); box-shadow: var(--surface-shadow); }
   .bar nav a, .controls button, .panel a.btn, .postcard-btn { border-radius: var(--control-radius); }
   .panel { border-top-left-radius: 0; border-top-right-radius: 0; } /* the accent bar is a flat tab: square top corners under it */
-  .panel { width: min(404px, calc(100vw - 48px)); padding: 24px; border-top-color: var(--accent); }
+  .panel { width: min(380px, calc(100vw - 48px)); padding: 24px; border-top-color: var(--accent); }
   .profile-head { grid-template-columns: 56px minmax(0, 1fr); }
   .profile-head .avatar { width: 56px; height: 72px; border-radius: var(--control-radius); }
   .profile-head h1 { font-size: clamp(28px, 2.7vw, 36px); }
@@ -619,6 +619,8 @@ body.theme-night .detail { background: #2a2622; color: var(--ink); } body.theme-
 #arrival.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
 /* The last stop reads as the return ticket */
 #panel[data-section="contact"] h2 { padding-bottom: 10px; border-bottom: 2px dashed var(--line); }
+/* contact actions stay in reach at the foot of the panel while the reasons, recap and footer scroll past */
+#panel[data-section="contact"] ul.contact { position: sticky; bottom: 0; z-index: 2; padding: 10px 0 12px; background: var(--card); box-shadow: 0 -10px 14px -12px #20160f33; }
 #panel[data-section="contact"] h2::after { content: ' · 83'; color: var(--city); }
 @media (max-width: 767px) { #arrival { top: 70px; padding-right: 16px; } #arrival b { font-size: 20px; } #arrival .num { min-width: 38px; height: 38px; font-size: 22px; } }
 @media (prefers-reduced-motion: reduce) { #arrival { transition: none; } }
@@ -659,7 +661,7 @@ body.theme-night .detail { background: #2a2622; color: var(--ink); } body.theme-
 #intro[data-preview="sp"] .live-view[data-city="sp"], #intro[data-preview="london"] .live-view[data-city="london"], #intro[data-preview="glasgow"] .live-view[data-city="glasgow"] { opacity: 1; }
 .road { margin-bottom: 28px; }
 .road .node b { position: absolute; top: 13px; left: 50%; transform: translateX(-50%); font: 600 11px/1 var(--sans); color: var(--ticket-muted); cursor: pointer; white-space: nowrap; }
-.road .node b .yr-now { display: block; font: 600 9px/1.2 var(--sans); color: var(--ticket-red); }
+.road .node b .yr-now { display: block; font: 600 11px/1.2 var(--sans); color: var(--ticket-red); }
 .road .node.here b { color: var(--ticket-red); font-weight: 800; }
 .road .node.here b { animation: intro-year-arrive .4s ease-out; }
 @keyframes intro-year-arrive { from { transform: translateX(-50%) translateY(3px); opacity: .55; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
@@ -720,7 +722,7 @@ body.ui-hidden #arrival { opacity: 0; }
 .next-stop svg { flex: none; color: var(--muted); transition: transform .2s ease-in-out, color .2s ease-in-out; }
 .next-stop:hover svg { transform: translateX(2px); color: var(--accent); }
 .next-final { display: flex; align-items: center; gap: 12px; min-height: 56px; margin: 12px 0 0; padding: 10px 14px; border: 1px dashed var(--line); border-radius: 12px; } /* the end of the line: same shape as Next stop, nothing to press */
-.nav-count { margin-left: 6px; padding: 1px 6px; border-radius: 999px; background: var(--accent); color: var(--c-fff); font: 700 10px/1.6 var(--sans); font-variant-numeric: tabular-nums; }
+.nav-count { margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: var(--ink); color: var(--sky); font: 700 12px/1.6 var(--sans); font-variant-numeric: tabular-nums; }
 .stops li.seen .node { background: var(--seg); }
 #ui-restore { opacity: .8; transition: opacity .2s, background .2s; } #ui-restore:hover, #ui-restore:focus-visible, body.ui-hidden #ui-restore { opacity: 1; }
 
@@ -781,6 +783,7 @@ body.ui-hidden #stop-request, body.intro-on #stop-request { display: none; }
 .ticket.return { margin: 22px 0 0; }
 .ticket-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 2px dashed var(--line); } /* the perforation under the header */
 .ticket-head .ticket-title { margin: 0; }
+.ticket-head .ticket-blind { margin: 0; } /* a generic paragraph margin (16 px below) pushed the badge above the title's centre */
 .ticket-blind { margin: 0; padding: 4px 10px; border-radius: 6px; background: #14100c; color: #ffb21e; font: 700 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .14em; text-transform: uppercase; text-shadow: 0 0 6px rgba(255, 170, 0, .45); white-space: nowrap; }
 .route-strip { display: flex; margin: 4px 0 0; padding: 0; list-style: none; }
 .route-strip li { position: relative; flex: 1; height: 18px; }
@@ -866,7 +869,7 @@ body.ui-hidden #stop-request, body.intro-on #stop-request { display: none; }
 @media (min-width: 1024px) { .recent-role { display: none; } }
 /* passport toast, desktop: back at the top under the header and centred on the screen, as it was. Where that centre would cover the panel (narrow desktops), it moves right just far enough to clear it: a toast is at most about 150 px wide on each side of its centre. --panel-w is the panel's width */
 @media (min-width: 1024px) {
-  :root { --panel-w: 404px; }
+  :root { --panel-w: 380px; }
   #arrival { left: max(50%, calc(var(--panel-w) + 200px)); }
 }
 @media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {

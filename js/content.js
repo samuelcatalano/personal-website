@@ -59,7 +59,7 @@ export const stackGroups = [
   { id: 'core', color: '#d4352e', items: ['Java 17', 'Spring Boot', 'Quarkus', 'JUnit · Mockito'] },
   { id: 'messaging', color: '#1f3fbf', items: ['Kafka', 'Debezium', 'ActiveMQ', 'SNS/SQS'] },
   { id: 'cloud', color: '#0c7a3d', items: ['AWS Lambda', 'Docker', 'Kubernetes', 'Terraform'] },
-  { id: 'data', color: '#7a3b9e', items: ['PostgreSQL', 'MySQL', 'MongoDB', 'Cassandra'] },
+  { id: 'data', color: '#4a4640', items: ['PostgreSQL', 'MySQL', 'MongoDB', 'Cassandra'] }, // the fourth group is neutral: the brand has three hues
 ];
 // Third-party 3D models that ship in the runtime and need attribution; kept in sync with ASSET_SOURCES.md by tests/content.test.mjs.
 const BY = ['CC BY 4.0', 'https://creativecommons.org/licenses/by/4.0/'], NCSA = ['CC BY-NC-SA 4.0', 'https://creativecommons.org/licenses/by-nc-sa/4.0/'];
