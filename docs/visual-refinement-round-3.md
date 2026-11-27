@@ -28,6 +28,9 @@ Not changed: Glasgow/SP streetlight reach and vehicle lights looked adequate; no
 Confirmed gap: saving a postcard gave no visible confirmation (button disabled ~1 s, shutter sound, browser download UI; the screen-reader line and the recap "found" fire only the first time). Fix: a small `#toast` "Postcard saved" / "Cartão-postal salvo" above the bottom-centre controls, shown ~2.2 s on every save (`index.html`, `css/style.css`, `js/main.js`, `js/content.js` `ui.photoSaved` en/pt; reduced-motion respected). Verified live: toast appears at bottom centre beside the panel, hides after ~2.5 s, LED sign and passport star update as before. Tests 364/364, camera hashes unchanged.
 Not reviewed yet: audio (ambience, Request Stop sound, volumes) and passport stamp animation; both need audible/real-time checks the Browser pane cannot judge.
 
+## Batch 5: audio static review (no change)
+Code review only (cannot listen in the Browser pane): all sound is synthesised (no files, no licences); one-shots start only from clicks/taps (autoplay rules respected); the Sound toggle governs the UI bus; the context suspends when the tab is hidden and resumes on return; bus levels sit under a compressor ceiling with per-family voice caps; the mix is a pure function covered by `tests/audio-state.test.mjs`. No defect visible from code. Loudness balance, looping artefacts and transitions need the owner's ears.
+
 ## Remaining priorities (next session)
 1. (done in batch 2, nothing confirmed) Day pass over the stops.
 2. Nighttime pass at the São Paulo and Glasgow stops (streetlight reach, window variation); London and Wembley seen.
