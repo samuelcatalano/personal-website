@@ -113,6 +113,11 @@ function toggleRide(nextQuick) {
 }
 autoBtn.addEventListener('click', () => toggleRide(false));
 quickBtn.addEventListener('click', () => toggleRide(true));
+const toastEl = document.getElementById('toast'); let toastTimer;
+const toast = (text) => { // postcard saved: visible for ~2 s, every time (the recap and live-region find only fire once)
+  toastEl.textContent = text; toastEl.hidden = false; requestAnimationFrame(() => toastEl.classList.add('show'));
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { toastEl.classList.remove('show'); setTimeout(() => { toastEl.hidden = true; }, 300); }, 2200);
+};
 const photoBtn = document.querySelector('[data-photo]');
 photoBtn.addEventListener('click', async () => {
   if (!world || photoBtn.disabled) return;
@@ -121,6 +126,7 @@ photoBtn.addEventListener('click', async () => {
     const caption = ui.caption(), blob = await makePostcard(await world.snapshot(), caption, location.host + location.pathname.replace(/\/$/, ''), ui.stamps());
     download(blob, `samuel-catalano-${caption.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-')}.png`);
     sound?.shutter();
+    toast((document.documentElement.lang.startsWith('pt') ? i18n.pt : i18n.en).ui.photoSaved);
     ui.discover('postcard');
   } catch (err) { console.warn('postcard failed:', err); } finally { photoBtn.disabled = false; }
 });

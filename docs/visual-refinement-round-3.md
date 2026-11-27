@@ -24,6 +24,10 @@ Day captures at the locked camera: São Paulo (Sé, Copan/Estaiada), London (Eye
 Night captures at SP (Sé, Copan, Estaiada) and Glasgow (Riverside, University): landmarks, streetlights and towers read well. Confirmed weakness: foreground townhouses were almost entirely dark at night (30% dark, 35% very dim, only ~35% clearly lit) next to richly lit towers, so the street read as dark houses plus glowing objects. Fix: `js/world/building-character.js` `windowOccupation`, residential thresholds [22,50,80] instead of [30,65,88] (about 50% of rooms clearly lit); offices and towers unchanged. Verified on the same SP night frame: more warm windows on the foreground houses, Copan unchanged. Tests 364/364 (bounds .04-.85 and variety still hold). Camera hashes unchanged. Cost: constants only.
 Not changed: Glasgow/SP streetlight reach and vehicle lights looked adequate; no pixel-identical before/after beyond the house crop.
 
+## Batch 4: postcard save feedback (done, uncommitted)
+Confirmed gap: saving a postcard gave no visible confirmation (button disabled ~1 s, shutter sound, browser download UI; the screen-reader line and the recap "found" fire only the first time). Fix: a small `#toast` "Postcard saved" / "Cartão-postal salvo" above the bottom-centre controls, shown ~2.2 s on every save (`index.html`, `css/style.css`, `js/main.js`, `js/content.js` `ui.photoSaved` en/pt; reduced-motion respected). Verified live: toast appears at bottom centre beside the panel, hides after ~2.5 s, LED sign and passport star update as before. Tests 364/364, camera hashes unchanged.
+Not reviewed yet: audio (ambience, Request Stop sound, volumes) and passport stamp animation; both need audible/real-time checks the Browser pane cannot judge.
+
 ## Remaining priorities (next session)
 1. (done in batch 2, nothing confirmed) Day pass over the stops.
 2. Nighttime pass at the São Paulo and Glasgow stops (streetlight reach, window variation); London and Wembley seen.
@@ -34,4 +38,4 @@ Not changed: Glasgow/SP streetlight reach and vehicle lights looked adequate; no
 Browser pane is 800x600 and slow; no mobile checks; no pixel-identical before/after except the Wembley crop.
 
 ## Exact next task
-Audio and passport/postcard micro-feedback review, then performance in the owner's own Chrome (Big Ben LOD0, Wembley glass, window occupancy).
+Audio review and passport stamp feedback (owner listens in own Chrome), then performance in the owner's own Chrome (Big Ben LOD0, Wembley glass, window occupancy).
