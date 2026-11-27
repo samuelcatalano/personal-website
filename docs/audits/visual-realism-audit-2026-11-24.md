@@ -1,5 +1,7 @@
 # Visual realism audit, 2026-11-24 (desktop only, no code changed)
 
+Historical audit only. Its owner-approval labels and proposed gates describe that review's process; current user requests set active scope, with no standing visual freeze or rollout approval policy.
+
 Evidence: 12 renders at 1440x900 (stops 5 São Paulo, 7, 9.5 London, 11 Glasgow; day and night; a `?npcnear` pavement camera; Glasgow re-shot with `weather=clear` because the first Glasgow "day" came out rainy), plus `tools/perf/route-profile.py` runs. Tags: **[O]** observed in a render, **[H]** technical hypothesis (read in code, not proven), **[X]** experiment to prototype. **Not observed:** walk cycles, foot contact and any motion quality (only stills were taken), Wembley, Tower Bridge close-up, a true dusk state, Lighthouse/a11y. Run on Sonnet 5.5 with no subagents: I chose not to dispatch them because the inspection was one camera path and the weekly-usage cap was not checked, so this is a disclosed substitution for the four requested specialists. Priorities P0 on findings 1 and 3 are reclassified below as OA (owner approval) after checking the approved docs.
 
 Constraints honoured: no quality selector or runtime downgrade ("LOD adaptativo" is read as *static* distance LOD at fixed quality), townhouse language untouched, no new regions/archetypes without owner approval (marked **OA**), whole-city reflection stays off (measured +8.4 ms), no new dependency.

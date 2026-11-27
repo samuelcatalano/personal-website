@@ -1,6 +1,6 @@
 # 3D City North Star — PRD
 
-Status: FINAL VISUAL GO / visual development frozen2026-10-21. The user approved the delivered citywide system and all scoped art/landmark work; this document does not authorize further development or deployment. Technical production readiness is NO pending the coplanar-face gate in the final rendering budget. Current rules: [AGENTS.md](../../AGENTS.md), [architecture](../architecture/3d-city.md), [budgets](../architecture/rendering-budget.md), [art direction](../art-direction.md).
+Status: the visual direction and citywide work recorded here were approved on 2026-10-21. This PRD is historical context; current user requests set active scope, with no standing visual freeze or rollout gate. The recorded technical production-readiness review was pending the coplanar-face gate at that time. Current repository guidance: [AGENTS.md](../../AGENTS.md), [architecture](../architecture/3d-city.md), [budgets](../architecture/rendering-budget.md), [art direction](../art-direction.md).
 
 ## Vision and problem
 
@@ -42,4 +42,4 @@ Delivery gates used during the completed rollout (retained for traceability, not
 - Accessibility and content behavior remain intact; the milestone matrix and validation effort follow AGENTS.md.
 - A phase ends with a visible, reviewable result and GO/NO-GO. Citywide success requires regional evidence and explicit approval, not only attractive close-ups.
 
-Completed route: **midrise → replication → office/tower → public realm/shop → hero zone → regional/citywide → diversity/art/materials/landmarks**. See the frozen [roadmap](../plans/3d-city-fast-track-roadmap.md). Final observed desktop/mobile metrics, test results and the blocking coplanar-face failure live in the [rendering budget](../architecture/rendering-budget.md#final-milestone-validation--2026-10-21). Known limits: physical mobile not validated, segmented London Eye accepted, WebGL/browser metrics runtime-dependent. No further polish, rollout, commit or deploy is implied.
+Completed route: **midrise → replication → office/tower → public realm/shop → hero zone → regional/citywide → diversity/art/materials/landmarks**. The dated [roadmap](../plans/3d-city-fast-track-roadmap.md), final recorded metrics and test results in the [rendering budget](../architecture/rendering-budget.md#final-milestone-validation--2026-10-21) are historical evidence; the coplanar-face note describes the state at that milestone.

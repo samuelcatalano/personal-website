@@ -5,14 +5,14 @@ Portfolio for Samuel Catalano: a voxel London where a red double-decker bus driv
 ## Source of truth
 
 - `docs/PRD.md`: original product brief. Its content, privacy and accessibility requirements still apply.
-- `docs/product/3d-city-north-star-prd.md`: current 3D city direction and release gate.
+- `docs/product/3d-city-north-star-prd.md`: 3D city direction and historical delivery evidence.
 - `docs/TRD.md`: runtime, interfaces and file layout.
-- `docs/architecture/3d-city.md`: validated architecture and rollout boundary.
+- `docs/architecture/3d-city.md`: validated architecture and implementation history.
 - `docs/architecture/rendering-budget.md`: budgets, measured evidence and measurement limits.
 - `docs/art-direction.md`: approved visual language. `docs/art/asset-quality-spec.md`: asset budgets.
 - `ASSET_SOURCES.md`: every shipped asset, with its source, licence and approval.
 - `docs/handoff/` and `docs/handoffs/`: status log and agent handoffs. Read the latest one before changing an area.
-- Plans under `docs/plans/` and older records are history. They do not authorize new work.
+- Plans under `docs/plans/` and older records are historical context. The current user request sets the active scope.
 
 ## Rules
 
@@ -48,9 +48,7 @@ Capture stops: 5 São Paulo, 9.5 London, 11 Glasgow (ids in `js/content.js`).
 
 ## 3D city rules
 
-- The 2026-10-21 visual freeze was reopened for the North Star full-scene upgrade (`docs/plans/north-star-full-scene-upgrade.md`). Work outside that scope needs explicit authorization.
-- The townhouse visual language, batching, LOD0/LOD1, hysteresis and culling are approved. Do not redesign townhouses without an explicit request.
-- Citywide rollout of the approved archetypes is complete (`docs/handoff/status-log.md`). Other archetypes and regions need explicit owner approval. Architectural validation alone is not rollout approval.
+- There is no standing visual freeze or rollout approval gate. Current user requests define permitted changes across city archetypes and regions.
 - Preserve the map, lot footprints and heights, routes, landmark sightlines, pedestrians and existing logic unless explicitly in scope.
 - Lot data stays the source of truth. No new engine or framework without concrete need and authorization.
 - Reuse materials and geometries; batch by spatial chunk into mass / trim / glass.

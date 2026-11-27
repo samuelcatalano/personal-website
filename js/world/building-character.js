@@ -1,5 +1,15 @@
 // Stable property identity; independent of layout RNG, chunk coordinates and kit replacement.
 export const hash=id=>{let n=2166136261;for(const c of id)n=Math.imul(n^c.charCodeAt(0),16777619)>>>0;return n;};
+const regionalStoneTints={
+  paulista:[[1.12,1.04,.91],[1.02,1.03,1.0],[.94,.92,.85]],
+  london:[[1.03,1.0,.94],[.92,.94,.96],[1.08,1.04,.98]],
+  countryside:[[1.0,1.05,.95],[.93,.97,.90],[.88,.91,.88]],
+  glasgow:[[1.10,1.05,.93],[.98,.96,.87],[.91,.93,.90],[1.14,1.09,.97]],
+};
+export function regionalStoneTint(region,seed=0){
+  const palette=regionalStoneTints[region];
+  return palette?palette[Math.abs(Math.floor(seed/11))%palette.length]:[1,1,1];
+}
 export function buildingCharacter(plot,kind,region='london') {
   const id=hash(plot.id),seed=(id%65534+1)/65535;
   const frames={paulista:[.86,.85,.78],london:[.78,.76,.70],glasgow:[.84,.75,.62],countryside:[.72,.77,.73]};

@@ -81,7 +81,8 @@ function sectionHTML(section, t, active, tool = null, route = { seen: new Set(),
       <p class="value">${s.value}</p><dl class="fact-sheet">${s.facts.map(f => `<div><dt>${f.label}</dt><dd>${f.value}</dd></div>`).join('')}</dl><ul class="hero-links contact">
         ${contact(t.sections.contact)}</ul>
       <div class="profile-status"><p class="avail">${s.availability}</p><p class="clock">${t.ui.clock} <time data-london></time></p></div>
-        <details class="profile-more"><summary>${t.ui.more}</summary><p class="proof">“${s.proof}” <span>${t.recs[0].name}, ${t.recs[0].role}</span></p><p class="tagline">${s.tagline}</p></details>`;
+      <p class="proof">“${s.proof}” <span>${t.recs[0].name}, ${t.recs[0].role}</span></p>
+      <details class="profile-more"><summary>${t.ui.more}</summary><p class="tagline">${s.tagline}</p></details>`;
     case 'journey': {
       const selected = stops[active], c = t.stops[selected.id];
       return `
@@ -94,9 +95,11 @@ function sectionHTML(section, t, active, tool = null, route = { seen: new Set(),
       <aside class="recent-role"><p class="recent-company">${latest.title}</p><small>${latest.role} · ${latest.dates}</small></aside>
       ${tool ? `<p class="filter">${t.ui.usedAt} <b>${tool}</b><button type="button" data-tool-clear aria-label="${t.ui.clearFilter}">&times;</button></p>` : ''}<ol class="stops">${stops.map((st, i) => {
         if (st.section !== 'journey') return '';
-        const c = t.stops[st.id], on = i === active, hit = tool && toolStops[tool].includes(st.id);
-        return `<li class="${st.country.toLowerCase()}${st.id === 'move' ? ' hub' : ''}${on ? ' on' : ''}${seenSet.has(i) ? ' seen' : ''}${tool ? (hit ? ' hit' : ' dim') : ''}"><button data-goto="${i}" aria-controls="career-detail" aria-expanded="${on}"${on ? ' aria-current="step"' : ''}>
-          <span class="yr">${yearStack(st, t.ui)}</span><span class="node" aria-hidden="true"></span>${st.brand ? `<span class="mono" style="--c:${st.brand.color}" aria-hidden="true">${st.brand.initials}</span>` : ''}<span class="name">${c.title}</span></button>
+        const c = t.stops[st.id], on = i === active, next = i === active + 1, hit = tool && toolStops[tool].includes(st.id);
+        const previous = stops.slice(0, i).findLast((entry) => entry.section === 'journey');
+        const cityStart = !previous || t.stops[previous.id].place !== c.place;
+        return `<li class="${st.country.toLowerCase()}${st.id === 'move' ? ' hub' : ''}${cityStart ? ' city-start' : ''}${on ? ' on' : ''}${next ? ' next' : ''}${seenSet.has(i) ? ' seen' : ''}${tool ? (hit ? ' hit' : ' dim') : ''}"><button data-goto="${i}" aria-controls="career-detail" aria-expanded="${on}"${on ? ' aria-current="step"' : ''}>
+          <span class="yr">${yearStack(st, t.ui)}</span><span class="node" aria-hidden="true"></span>${st.brand ? `<span class="mono" style="--c:${st.brand.color}" aria-hidden="true">${st.brand.initials}</span>` : ''}<span class="name">${cityStart ? `<small class="city-label">${c.place}</small>` : ''}${c.title}</span></button>
           </li>`;
       }).join('')}</ol>
       <p class="zones"><span class="z br">${t.ui.zones.br}</span><span class="z uk">${t.ui.zones.uk}</span></p>${journeyLine(t, seenSet)}${nextButton(t, seenSet, active)}`;

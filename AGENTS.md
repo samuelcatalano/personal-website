@@ -17,7 +17,7 @@ Portfolio for Samuel Catalano: a voxel London where a red double-decker bus driv
 - Feature branches stay off `main` until the owner releases them. Pushing to `main` deploys.
 - Edit only files in scope. Do not revert or overwrite working-tree changes you did not make. No destructive git commands.
 - Do not commit or push unless asked.
-- 3D city: follow the freeze and rollout limits in `CLAUDE.md`. Townhouses are not redesigned without a request. Every external asset needs an entry in `ASSET_SOURCES.md`.
+- 3D city: scope work from the current user request and preserve the camera, route, landmarks, scene scale, existing interactions, and established visual identity unless the request explicitly includes them. No standing visual freeze or rollout approval gate applies. Every external asset needs an entry in `ASSET_SOURCES.md`.
 
 ## Model ladder (Codex)
 

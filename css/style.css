@@ -39,6 +39,16 @@ body { margin: 0; font: 15px/1.6 var(--sans); color: var(--ink); background: lin
 .bar nav { gap: 4px; padding: 0 6px; }
 .bar nav a, .bar nav button { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border: 0; border-radius: 10px; background: none; font: 500 12px/1.5 var(--sans); color: inherit; cursor: pointer; text-decoration: none; white-space: nowrap; transition: background .2s, color .2s; }
 @media (hover: hover) { .bar nav a:hover, .bar nav button:hover, .bar nav summary:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); } }
+@media (min-width: 1101px) and (max-width: 1365px) {
+  .bar { gap: 8px; }
+  .brand, .bar nav, .controls { background: color-mix(in srgb, var(--card) 97%, transparent); }
+  .brand { padding-inline: 14px; }
+  .bar nav { gap: 2px; padding-inline: 4px; }
+  .bar nav a, .bar nav summary { padding-inline: 8px; }
+  .controls { gap: 0; padding-inline: 4px; }
+  .controls button { padding-inline: 6px; }
+  .panel { width: min(340px, calc(100vw - 48px)); padding: 22px; }
+}
 /* overflow menu: the last two links sit inline on wide screens and phones (ui.js keeps the details open there); between 768 and 1023px they fold under "More"; from 1024 px every link sits inline, Contact included */
 .nav-more { display: contents; }
 .nav-more summary { display: none; list-style: none; }
@@ -95,7 +105,7 @@ body { margin: 0; font: 15px/1.6 var(--sans); color: var(--ink); background: lin
 .profile-status { padding: 12px 0; border-block: 1px dashed var(--line); }
 .panel .profile-status p { margin: 0; font-size: 12px; }
 .panel .profile-status .clock { margin: 6px 0 0; }
-/* the quote and ranking fold away under "More" so the first view carries one identity block, facts, the contact band and status */
+/* Keep the short professional endorsement in the first view; fold the playful ranking into "More". */
 .profile-more { margin: 12px 0 0; }
 .profile-more > summary { display: inline-flex; align-items: center; min-height: 36px; cursor: pointer; list-style: none; color: var(--muted); font-size: 12px; font-weight: 600; }
 .profile-more > summary::-webkit-details-marker { display: none; }
@@ -385,9 +395,13 @@ body:is(:not(.world-ready), .no-webgl) :is([data-photo], .postcard-card) { displ
 .node { position: relative; z-index: 1; flex: none; width: 14px; height: 14px; margin: 0 7px; border-radius: 50%; background: var(--card); border: 3px solid var(--seg); transition: box-shadow .25s, background .25s; }
 .stops li.hub .node { width: 22px; height: 22px; margin: 0 3px; border-color: var(--ink); }
 .stops li.on .node { background: var(--seg); box-shadow: 0 0 0 5px color-mix(in srgb, var(--seg) 24%, transparent); }
+.stops li.next button { background: color-mix(in srgb, var(--seg) 7%, transparent); }
+.stops li.next .yr { color: var(--seg); font-weight: 600; }
 .stops .mono, .stops .name { margin-left: 10px; }
 .stops .mono + .name { margin-left: 8px; }
 .stops .node + .name { margin-left: 44px; font-weight: 600; } /* rows without a monogram (the move) line up with the others */
+.stops .name { display: grid; min-width: 0; gap: 1px; }
+.stops .city-label { color: var(--muted); font: 700 9px/1.2 var(--sans); letter-spacing: .09em; text-transform: uppercase; }
 .stops button:hover .name { color: var(--accent); }
 .stops .yr, .stops .name { transition: color .25s ease; } /* the current stop's year and name fade in as the bus arrives, not snap */
 .detail { padding: 0 0 14px 82px; font-size: 13px; }

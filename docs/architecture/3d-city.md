@@ -1,5 +1,7 @@
 # 3D city architecture
 
+This file records dated implementation decisions and validation. Its historical freeze, rollout, and approval language does not impose current policy. The current user request sets active scope; no standing visual freeze or rollout approval gate applies.
+
 ## Everyday rain refinement — 2026-11-16
 
 Owner-authorized rain refinements reuse existing rain, wet-ground and river shaders. A shared deterministic gust coordinates drops and water; the main route supplies sampled kerbs for bounded nearest-four pooling. Shelter, clear/dry state, disposal and reduced motion remain. No map, camera, content, dependency or pass changes. [Implementation, validation and limits](../plans/2026-11-16-discreet-rain.md).

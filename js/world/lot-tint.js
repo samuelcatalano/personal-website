@@ -3,7 +3,7 @@ import { inRegion, regions as routeRegions, routePoints, ukStart } from './layou
 import { SURFACE as S } from './building-slice-materials.js';
 // Per-lot colour: regional wall, brick, roof and glass families chosen from the lot id. Shared by the rollout buildings and the hero shop frontages.
 export { hash } from './building-character.js';
-import { hash } from './building-character.js';
+import { hash, regionalStoneTint } from './building-character.js';
 export const route=routePoints(stops.length),bands=routeRegions(stops,route),ukX=route[ukStart(stops)].x;
 export const REGION_SALT={paulista:0,london:1,countryside:2,glasgow:3};
 export function regionForPlot(p){
@@ -29,7 +29,7 @@ const roofs={
 const bricks=[[1.05,.70,.50],[.58,.64,.74],[1.12,1.06,.86],[.72,.85,.74],[1.20,.66,.55],[.68,.54,.47],[.92,.48,.40],[1.0,.92,.70]];
 export function tint(g,p,{walls:wallStrength=1}={}) { // walls: 0 = leave wall colours alone, 1 = full regional colour, between = a lighter touch
   const wallK=wallStrength===true?1:wallStrength===false?0:wallStrength,wallsOn=wallK>0;
-  const region=regionForPlot(p),seed=hash(p.id)+REGION_SALT[region],wall=walls[seed%walls.length],roof=[[1,1,1],[.72,.82,.93],[1.08,.76,.62],[.58,.58,.64],[1.2,.62,.45]][Math.floor(seed/5)%5];
+  const region=regionForPlot(p),seed=hash(p.id)+REGION_SALT[region],wall=walls[seed%walls.length],stone=regionalStoneTint(region,seed),roof=[[1,1,1],[.72,.82,.93],[1.08,.76,.62],[.58,.58,.64],[1.2,.62,.45]][Math.floor(seed/5)%5];
   const pickWall=list=>walls[list[seed%list.length]],regionalWall=region==='glasgow'?pickWall([6,8,12,17]):region==='paulista'?pickWall([0,6,12,3,9,10,19,14]):region==='london'?pickWall([6,7,12,7,6,17,12,7,14,15]):region==='countryside'?pickWall([1,5,9,16]):wall;
   const regionalBrick=region==='glasgow'?bricks[[2,5,7][Math.floor(seed/3)%3]]:region==='london'?bricks[[0,5,7][Math.floor(seed/3)%3]]:region==='countryside'?bricks[[2,3,7][Math.floor(seed/3)%3]]:bricks[Math.floor(seed/3)%bricks.length];
   const pitched=p.kind==='terrace'||p.kind==='shop',gt=glassTints[glassPick[region||'none'][Math.floor(seed/7)%6]];
@@ -38,7 +38,7 @@ export function tint(g,p,{walls:wallStrength=1}={}) { // walls: 0 = leave wall c
   const wallValue = 0.86 + (Math.floor(seed / 223) % 15) * 0.02;
   for(const m of g.children){const a=m.geometry.attributes;
     for(let i=0;i<a.position.count;i++){
-      const s=a.aSurface.getX(i),t0=!wallsOn&&(s===S.plaster||s===S.stone||s===S.brick)?[1,1,1]:s===S.plaster?regionalWall:s===S.stone?(region?regionalWall:p.kind==='office'?walls[(seed%3)*2]:[1,1,1]):s===S.brick?regionalBrick:s===S.roof?(pitched||a.normal.getY(i)>.7?roofTop:region==='glasgow'?walls[5]:roof):s===S.glass||s===S.litGlass?gt:s===S.trim?metalTrim:[1,1,1];
+      const s=a.aSurface.getX(i),t0=!wallsOn&&(s===S.plaster||s===S.stone||s===S.brick)?[1,1,1]:s===S.plaster?regionalWall:s===S.stone?stone:s===S.brick?regionalBrick:s===S.roof?(pitched||a.normal.getY(i)>.7?roofTop:region==='glasgow'?walls[5]:roof):s===S.glass||s===S.litGlass?gt:s===S.trim?metalTrim:[1,1,1];
       const isWall = s === S.plaster || s === S.stone || s === S.brick, t = isWall && wallK > 0 && wallK < 1 ? t0.map(v => 1 + (v - 1) * wallK) : t0;
       const value = wallsOn && isWall ? 1 + (wallValue - 1) * wallK : 1;
       a.color.setXYZ(i,a.color.getX(i)*t[0]*value,a.color.getY(i)*t[1]*value,a.color.getZ(i)*t[2]*value);

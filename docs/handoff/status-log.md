@@ -1,5 +1,7 @@
 # Handoff status log
 
+Historical entries record the scope and approval gates in force at their dates. Those gates are superseded: current user requests set active scope, with no standing visual freeze or rollout approval policy.
+
 ## 2026-10-29 — Codex continuation
 
 - **Repository:** `feat/site-gamefication` is clean at `8e23dbc` and matches `origin/feat/site-gamefication`. `8e23dbc` adds the 2026-10-29 handoff document on top of `cdff284`; the handoff's stated HEAD is therefore one commit behind, and its “none pushed” note is stale for the current tracking ref. No history was rewritten.
