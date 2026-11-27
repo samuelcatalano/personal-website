@@ -469,7 +469,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     const ta = curve.getTangentAt(i / roadSamples), tb = curve.getTangentAt((i + 1) / roadSamples);
     for (const side of [-1, 1]) kerbs.push([a.x - ta.z * ROAD.half * side, a.z + ta.x * ROAD.half * side, b.x - tb.z * ROAD.half * side, b.z + tb.x * ROAD.half * side]);
   }
-  const wetSurfaces = createWetSurfaces(scene, { lamps, reducedMotion, cover: weatherCover, kerbs }), vehicleFx = createVehicleFx(scene, { reducedMotion });
+  const wetSurfaces = createWetSurfaces(scene, { lamps, reducedMotion, cover: weatherCover, kerbs, reflectRoots: [mini, londonBus, glasgowBus] }), vehicleFx = createVehicleFx(scene, { reducedMotion });
   wetReflectionHidden.push(...sky.objects);
   if (vehicleFx.points) wetReflectionHidden.push(vehicleFx.points);
   // Foam rings Tower Bridge's piers and moored boats. The river reflects landmarks and bank-side lots.

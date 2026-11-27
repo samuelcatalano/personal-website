@@ -158,7 +158,10 @@ function register(material) {
   return entry;
 }
 
-export function createWetSurfaces(scene, { lamps = [], kerbs = [], reducedMotion = false, cover } = {}) {
+// ponytail: a layer of its own, so puddles never pick up layer 5, which water.js switches on for the river landmarks.
+export const WET_REFLECT_LAYER = 6;
+
+export function createWetSurfaces(scene, { lamps = [], kerbs = [], reducedMotion = false, cover, reflectRoots = [] } = {}) {
   const state = uniforms(), materials = new Set(), entries = [];
   Object.assign(state, coverUniforms(cover));
   const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
@@ -167,6 +170,12 @@ export function createWetSurfaces(scene, { lamps = [], kerbs = [], reducedMotion
   const plane = new THREE.Plane(), clip = new THREE.Vector4(), q = new THREE.Vector4(), clear = new THREE.Color();
   const bias = new THREE.Matrix4().set(.5, 0, 0, .5, 0, .5, 0, .5, 0, 0, .5, .5, 0, 0, 0, 1);
   state.uWetReflection.value = target.texture;
+  let tagFrame = 0;
+  // Puddles mirror only the hero vehicles and the scene's lights: the rest of the city, which the old whole-scene pass drew, is left out.
+  const tag = () => {
+    for (const root of reflectRoots) root?.traverse(o => o.layers.enable(WET_REFLECT_LAYER));
+    for (const light of scene.children) if (light.isLight) light.layers.enable(WET_REFLECT_LAYER);
+  };
   scene.traverse(object => {
     for (const material of (Array.isArray(object.material) ? object.material : [object.material])) {
       if (!material?.isMeshStandardMaterial || material.emissiveMap || material.transparent) continue;
@@ -216,7 +225,8 @@ export function createWetSurfaces(scene, { lamps = [], kerbs = [], reducedMotion
       clip.multiplyScalar(2 / clip.dot(q));
       e[2] = clip.x; e[6] = clip.y; e[10] = clip.z + 1; e[14] = clip.w;
       mirror.projectionMatrixInverse.copy(mirror.projectionMatrix).invert();
-      mirror.layers.mask = camera.layers.mask;
+      if (tagFrame++ % 120 === 0) tag(); // hero models finish loading late: re-tag every ~2 s, as water.js does for the river
+      mirror.layers.set(WET_REFLECT_LAYER);
       const previous = renderer.getRenderTarget(), alpha = renderer.getClearAlpha(), background = scene.background, auto = renderer.shadowMap.autoUpdate;
       renderer.getClearColor(clear);
       const visible = skyObjects.map(o => o.visible);
