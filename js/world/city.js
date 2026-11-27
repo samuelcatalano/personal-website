@@ -8,12 +8,17 @@ import { buildBlocks, buildGapFill } from './blocks.js';
 import { buildUrbanInfill } from './urban-infill.js';
 import { buildParks } from './parks.js';
 import { buildCountry } from './country.js';
+import { hazeTone } from './backdrop.js';
 import { buildGlasgowEdges } from './glasgow.js';
 import { applyArchitectureLayoutOffset } from './layout-data.js';
 const PATCH = P.patch, ROAD = P.road, LINE = P.cream;
 const BANK = P.taupe, PATH = P.stone, CREAM = P.cream;
-const UK_WALLS = [CREAM, '#d8d0c2', P.stone, P.terracotta, P.ochre, P.mint, P.salmon, P.skyBlue, P.offWhite];
-const BR_WALLS = [P.stone, '#d8d0c2', '#bdb3a4', P.concreteDark, P.concreteMid, P.terracotta, P.ochre, P.mint, P.salmon, P.skyBlue, P.offWhite];
+// Round 2: the candy hues (terracotta, ochre, mint, salmon, sky blue) are pulled toward stone for ordinary mid/high-rise lots only; chroma 0.78 in the UK, 0.86 in Brazil (warmer). Same length and order, so the r() sequence and every layout stay put. Townhouses (houses.js) keep their approved palette.
+const mute = (k, ...hexes) => hexes.map((h) => hazeTone(h, k));
+const [UK_TERRA, UK_OCHRE, UK_MINT, UK_SALMON, UK_SKY] = mute(0.78, P.terracotta, P.ochre, P.mint, P.salmon, P.skyBlue);
+const [BR_TERRA, BR_OCHRE, BR_MINT, BR_SALMON, BR_SKY] = mute(0.86, P.terracotta, P.ochre, P.mint, P.salmon, P.skyBlue);
+const UK_WALLS = [CREAM, '#d8d0c2', P.stone, UK_TERRA, UK_OCHRE, UK_MINT, UK_SALMON, UK_SKY, P.offWhite];
+const BR_WALLS = [P.stone, '#d8d0c2', '#bdb3a4', P.concreteDark, P.concreteMid, BR_TERRA, BR_OCHRE, BR_MINT, BR_SALMON, BR_SKY, P.offWhite];
 const ROOF = P.roof, ROOFS = [P.brick, P.roof, P.oak, P.steel], // ponytail: tint by position keeps r() sequence
    GLASS = P.glass, WINDOW_LIT = P.lit;
 export const CLEAR = 4.5;

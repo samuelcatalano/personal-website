@@ -72,7 +72,7 @@ function midriseOverlay(p, recipe, h, kit, hs) {
     if (style === 0) name = f % 2 ? 'window_juliet_rail_01' : 'window_bracketed_sill_06';
     else if (style === 1) name = center ? 'window_balcony_ledge_02' : (f === 1 ? 'window_hood_surround_04' : null);
     else if (style === 2) name = f === 1 && center ? 'window_planter_ledge_03' : ((f + col) % 2 ? 'window_shuttered_05' : null);
-    else name = f === recipe.floors - 1 ? 'window_hood_surround_04' : null;
+    else name = f === recipe.floors - 1 ? 'window_hood_surround_04' : f % 3 === 1 ? 'window_bracketed_sill_06' : null; // style 3 was bare below the top: a sill band every third floor, existing kit piece, no new asset
     if (name) place(acc, kit, name, o.u, o.y - o.h / 2, wall, o.w / 1.58, o.h / 1.8, 1, { mass: S.stone, trim: S.trim, glass: S.glass });
   }
   if (style === 3 && cols.length >= 2 && recipe.floors >= 3) {

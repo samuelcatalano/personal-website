@@ -177,7 +177,8 @@ export function initUI({ onGoto, onTheme, onHold = () => {}, onNudge = () => {},
   let bannerTimer, dwellTimer, quickTimer, party = false, lastIdx = -1;
   const paintHide = () => { // one text button for both states: "Hide the interface (H)" while it is on, "Show the interface (H)" while it is off
     const t = i18n[prefs.lang].ui, on = document.body.classList.contains('ui-hidden'), r = document.getElementById('ui-restore'), b = document.querySelector('[data-hide]');
-    r.hidden = false; r.replaceChildren(on ? t.show : t.hideShort, ' ', Object.assign(document.createElement('kbd'), { textContent: 'H' })); r.setAttribute('aria-pressed', String(on)); b?.setAttribute('aria-pressed', String(on));
+    r.hidden = !on && matchMedia('(min-width: 768px)').matches; // desktop: the pill only appears to restore; Options → View City / H hide (no duplicate control over the city). Mobile unchanged.
+    r.replaceChildren(on ? t.show : t.hideShort, ' ', Object.assign(document.createElement('kbd'), { textContent: 'H' })); r.setAttribute('aria-pressed', String(on)); b?.setAttribute('aria-pressed', String(on));
   };
   const setHidden = (on) => { // hide the panel and bar to see only the city; the pill (or H / Esc) brings them back
     document.body.classList.toggle('ui-hidden', on);
