@@ -17,6 +17,15 @@
         ],
         "createdAt": "2026-11-26T21:49:44.020Z",
         "reason": "assistant triage: style.css:184 is .intro-barcode::after, a 3px pseudo-element on the barcode (comment: the validator's scan line), animated only once the ticket is validated (#intro.bell). Domain motion, not a card side-tab. Written by the owner in c68f7b3. The value is * because the finding line shows no value pair, so the ignore covers side-tab in css/style.css for all lines."
+      },
+      {
+        "rule": "marquee",
+        "value": "*",
+        "files": [
+          "index.html"
+        ],
+        "createdAt": "2026-11-27T19:21:21.474Z",
+        "reason": "Loading bar shimmer (index.html bar-fill, css/style.css:148): animated only while the 3D world loads; a progress indicator, not auto-scrolling content"
       }
     ]
   }
