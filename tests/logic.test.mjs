@@ -69,18 +69,29 @@ test('prefs default and survive throwing storage', () => {
   assert.deepEqual(loadPrefs({ getItem: () => 'garbage' }), { lang: 'en', theme: 'day' });
 });
 
-import { routePoints, LANDMARKS, stopIndex, rng, scotRange, STOP_SPACING, GAPS, LONG_GAP, OUT_GAP, regions, towerX, glasgowSites, riverEnd } from '../js/world/layout.js';
+import { routePoints, LANDMARKS, stopIndex, rng, scotRange, STOP_SPACING, GAPS, LIVE_GAPS, LONG_GAP, OUT_GAP, MILESTONE_AT, LEGACY_N, legacyStops, regions, towerX, glasgowSites, riverEnd } from '../js/world/layout.js';
 import { stops } from '../js/content.js';
 
 test('route has one point per stop, increasing x', () => {
   const pts = routePoints(stops.length);
   assert.equal(pts.length, stops.length);
-  pts.slice(1).forEach((p, i) => assert.equal(p.x - pts[i].x, STOP_SPACING + (GAPS.find((g) => g.after === i)?.size ?? 0)));
-  assert.equal(stops[GAPS[0].after].id, LANDMARKS.masp); // the extra road sits right after MASP
-  assert.equal(GAPS[0].size, 60);
-  assert.equal(stops[GAPS[1].after].id, LANDMARKS.eye); // the long road sits right after the Eye
+  pts.slice(1).forEach((p, i) => assert.equal(p.x - pts[i].x, STOP_SPACING + (LIVE_GAPS.find((g) => g.after === i)?.size ?? 0)));
+  assert.equal(stops[LIVE_GAPS[0].after].id, LANDMARKS.masp); // the extra road sits right after MASP
+  assert.equal(LIVE_GAPS[0].size, 60);
+  assert.equal(stops[LIVE_GAPS[1].after].id, LANDMARKS.eye); // the long road sits right after the Eye
   const [o, g] = ['olm', 'glasgow'].map((id) => pts[stopIndex(stops, id)].x);
   assert.equal(g - o, STOP_SPACING + OUT_GAP); // the Eye -> Glasgow trip is the long out gap
+});
+
+test('milestone stops ride the existing road: legacy stops keep their x and z, milestones are the flagged stops', () => {
+  assert.equal(legacyStops(stops).length, LEGACY_N);
+  assert.deepEqual(stops.flatMap((s, i) => (s.milestone ? [i] : [])), MILESTONE_AT);
+  const old = routePoints(LEGACY_N, GAPS), live = routePoints(stops.length);
+  legacyStops(stops).forEach((s, k) => {
+    const i = stopIndex(stops, s.id);
+    assert.equal(live[i].x, old[k].x, s.id);
+    assert.equal(live[i].z, old[k].z, s.id);
+  });
 });
 
 test('every landmark is anchored to an existing stop', () => {
@@ -99,9 +110,9 @@ test('scotRange starts after the OLM stop and ends where the Scottish edge ends 
   const at = (id) => stopIndex(stops, id) / (stops.length - 1);
   assert.ok(at('olm') < a && a < at(LANDMARKS.glasgow));
   assert.ok(at(LANDMARKS.glasgow) < b && b < at('tribal'));
-  const pts = routePoints(stops.length), g = pts[stopIndex(stops, 'glasgow')].x, t = pts[stopIndex(stops, 'tribal')].x;
+  const pts = routePoints(stops.length), g = pts[stopIndex(stops, 'glasgow')].x, t = pts[stopIndex(stops, 'tribal')].x, next = pts[stopIndex(stops, 'glasgow') + 1].x;
   assert.equal(t - g, STOP_SPACING + LONG_GAP); // Glasgow -> Tribal is the return gap
-  assert.ok(Math.abs(g + (b * (stops.length - 1) - stopIndex(stops, 'glasgow')) * (t - g) - (g + 55)) < 1e-6);
+  assert.ok(Math.abs(g + (b * (stops.length - 1) - stopIndex(stops, 'glasgow')) * (next - g) - (g + 55)) < 1e-6);
 });
 
 test('Tower Bridge sits after the Eye, before the lower terraces; out-leg countryside is >= 80 m; the river runs past Glasgow', () => {

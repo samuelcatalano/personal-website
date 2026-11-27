@@ -2,10 +2,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { PARKS, PLAZAS, SQUARES, RING, KEEP, WALK_INSET, buildParks } from '../js/world/parks.js';
 import { walkPaths } from '../js/world/crowd.js';
-import { routePoints, LEGACY_GAPS, isWembleyLegacy as isWembleyBenchmark } from '../js/world/layout.js';
+import { routePoints, LEGACY_GAPS, legacyStops, isWembleyLegacy as isWembleyBenchmark } from '../js/world/layout.js';
 import { PALETTE } from '../js/world/palette.js';
 import { tree } from '../js/world/city.js';
-import { stops } from '../js/content.js';
+import { stops as liveStops } from '../js/content.js';
+const stops = legacyStops(liveStops); // the city map is the legacy road: milestone stops are not in it
 
 const pts = routePoints(stops.length, LEGACY_GAPS), loops = walkPaths(stops, pts).filter((p) => p.type === 'loop');
 const hit = (a, b, e = 0) => a.x0 < b.x1 + e && b.x0 - e < a.x1 && a.z0 < b.z1 + e && b.z0 - e < a.z1;

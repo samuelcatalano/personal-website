@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { stops } from '../js/content.js';
+import { stops as liveStops } from '../js/content.js';
+const stops = legacyStops(liveStops); // the city map is the legacy road: milestone stops are not in it
 import { buildCity } from '../js/world/city.js';
 import { buildBlocks } from '../js/world/blocks.js';
-import { routePoints, stopIndex, regions, glasgowSites } from '../js/world/layout.js';
+import { routePoints, stopIndex, regions, glasgowSites, legacyStops } from '../js/world/layout.js';
 import { PALETTE as P } from '../js/world/palette.js';
 import { buildSaoPaulo } from '../js/world/saopaulo.js';
 

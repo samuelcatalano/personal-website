@@ -1,9 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { makeLook, walkPaths, crowdPlan, SKIN } from '../js/world/crowd.js';
-import { routePoints, LEGACY_GAPS, rng, stopIndex, LANDMARKS } from '../js/world/layout.js';
+import { routePoints, LEGACY_GAPS, legacyStops, rng, stopIndex, LANDMARKS } from '../js/world/layout.js';
 import { buildParks } from '../js/world/parks.js';
-import { stops } from '../js/content.js';
+import { stops as liveStops } from '../js/content.js';
+const stops = legacyStops(liveStops); // the city map is the legacy road: milestone stops are not in it
 import { PALETTE as P } from '../js/world/palette.js';
 
 const pts = routePoints(stops.length), plan = crowdPlan(stops, pts, 42), looks = plan.map((p) => p.look);

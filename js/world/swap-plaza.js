@@ -60,7 +60,7 @@ function blade(ctx, text, km, bg, fg, rim, right) {
   ctx.fillStyle = fg; ctx.textBaseline = 'middle';
   const left = right ? 26 : a + 10;
   ctx.font = `700 ${Math.round(H * 0.42)}px "Helvetica Neue", Arial, sans-serif`; ctx.fillText(text.toUpperCase(), left, H * 0.4);
-  ctx.font = `500 ${Math.round(H * 0.26)}px "Helvetica Neue", Arial, sans-serif`; ctx.fillText(km, left + 2, H * 0.76);
+  ctx.font = `500 ${Math.round(H * 0.32)}px "Helvetica Neue", Arial, sans-serif`; ctx.fillText(km, left + 2, H * 0.76); // larger: the km line is read from the bus, not up close
 }
 const lang = () => (document.documentElement.lang || 'en').startsWith('pt') ? 'pt' : 'en';
 export function buildSwapPlaza({ half, kerb, y }) {

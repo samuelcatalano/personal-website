@@ -12,9 +12,9 @@ test('the preview advances and reverses without leaving the route', () => {
 
 import { journeyIndex, careerLabel } from '../js/intro.js';
 import { stops, i18n } from '../js/content.js';
-test('the toy bus walks the 12 journey stops and the blind labels them', () => {
+test('the toy bus walks the 14 journey stops and the blind labels them', () => {
   const journey = stops.filter(x => x.section === 'journey');
-  assert.deepEqual([0, 0.5, 1].map(p => journeyIndex(p)), [0, 6, 11]);
+  assert.deepEqual([0, 0.5, 1].map(p => journeyIndex(p)), [0, 7, 13]);
   assert.equal(careerLabel(journey[0], i18n.en), '2003 PUC');
   assert.equal(careerLabel(journey.find(x => x.id === 'move'), i18n.en), '2019 LONDON');
   assert.equal(careerLabel(journey.find(x => x.id === 'move'), i18n.pt), '2019 LONDRES');

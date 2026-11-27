@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { stops } from '../js/content.js';
+import { stops as liveStops } from '../js/content.js';
+const stops = legacyStops(liveStops); // the city map is the legacy road: milestone stops are not in it
 import { buildBlocks, draw } from '../js/world/blocks.js';
-import { routePoints, LEGACY_GAPS, stopIndex, glasgowSites, copan, regions } from '../js/world/layout.js';
+import { routePoints, LEGACY_GAPS, legacyStops, stopIndex, glasgowSites, copan, regions } from '../js/world/layout.js';
 
 const pts = routePoints(stops.length, LEGACY_GAPS); // buildBlocks runs in legacy coordinates (layout.js east())
 const curve = { getPointAt(u) { const f = u * (pts.length - 1), i = Math.min(Math.floor(f), pts.length - 2), t = f - i; return { x: pts[i].x + (pts[i + 1].x - pts[i].x) * t, z: pts[i].z + (pts[i + 1].z - pts[i].z) * t }; } };

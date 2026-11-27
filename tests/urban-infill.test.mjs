@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createHash } from 'node:crypto';
-import { stops } from '../js/content.js';
+import { stops as liveStops } from '../js/content.js';
+import { legacyStops } from '../js/world/layout.js';
+const stops = legacyStops(liveStops); // the city map is the legacy road: milestone stops are not in it
 import { buildCity } from '../js/world/city.js';
 import { buildUrbanInfill, URBAN_INFILL } from '../js/world/urban-infill.js';
 import { routePoints, stopIndex, LANDMARKS, east, eastAdd, stretch, LEGACY_GAPS, copan, glasgowSites } from '../js/world/layout.js';
@@ -120,7 +122,8 @@ test('surveyed infill preserves baseline lots/props except the six approved brid
   assert.equal(hash(priorLots), 'e089dc762f10fc72326508e6dda3c87b02552a78af9f22293bc6633f8a6768e4');
   // re-pinned 2026-11-16: 4f492cf moved the foreground park 3 m in z to clear the curved avenue (3 trees out, 4 in around x -300..-310, z 12..22)
   // re-pinned 2026-11-24: street-pair broadleaf crowns 1.8-2.3 -> 2.25-2.85 m (owner-approved realism pass); positions and count unchanged
-  assert.equal(hash(trees), '90b8dac206b7f4ed0dfea76e5344e3a34ca7f834ca80ac3ad920f326529acc07');
+  // re-pinned 2026-11-27: start-park trees carry a crown `variant` (0-2, parks.js); positions and count unchanged, only the shape key is new
+  assert.equal(hash(trees), 'd5de08f3d06aeee350b05433994b1b7706d05d5509da662db835bf0a292e0387');
   let patios=0;const priorBoxes=boxes.map(b=>{if(Math.abs(b[0]-264.8)<1e-9&&b[1]===-.02&&(Math.abs(b[2]+100.7)<1e-6||Math.abs(b[2]+109.3)<1e-6)){patios++;return[291.8672036547214,...b.slice(1)]}return b});
   assert.equal(patios,2);
   // re-pinned 2026-11-16: the same park move (59 boxes out, 44 in) plus the 24 m carriageway run-out past the last stop (city.js ROAD_RUNOUT)

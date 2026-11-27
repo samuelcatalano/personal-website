@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { stops } from '../js/content.js';
+import { stops as liveStops } from '../js/content.js';
+const stops = legacyStops(liveStops); // the city map is the legacy road: milestone stops are not in it
 import { buildBlocks } from '../js/world/blocks.js';
-import { routePoints, LEGACY_GAPS, isWembleyLegacy as isWembleyBenchmark, WEMBLEY_LEGACY as WEMBLEY_BENCHMARK } from '../js/world/layout.js';
+import { routePoints, LEGACY_GAPS, legacyStops, isWembleyLegacy as isWembleyBenchmark, WEMBLEY_LEGACY as WEMBLEY_BENCHMARK } from '../js/world/layout.js';
 
 test('Wembley benchmark selects only complete existing lots inside its approved envelope', () => {
   assert.deepEqual(WEMBLEY_BENCHMARK, { x0: 660, x1: 880, z0: -113, z1: -25 });

@@ -25,6 +25,13 @@ export const OUT_GAP = 300, LONG_GAP = 180; // olm -> glasgow = STOP_SPACING + O
 export const SWAP_GAP = 40;
 export const LEGACY_GAPS = [{ after: 4, size: 60 }, { after: 10, size: OUT_GAP }, { after: 11, size: LONG_GAP }];
 export const GAPS = SWAP_GAP ? [...LEGACY_GAPS, { after: 6, size: SWAP_GAP }] : LEGACY_GAPS; // appended: GAPS[0..2] keep their roles
+// Live road: the milestone stops sit on the existing road, so every legacy stop keeps its x. Move to Glasgow splits olm -> glasgow (still STOP_SPACING +
+// OUT_GAP in total). Move back to London comes after Tribal (Oct 2024), so the tribal -> stack run gives it half a STOP_SPACING from each side.
+// ponytail: milestones are placed by gap, not by a free x.
+export const LIVE_GAPS = [{ after: 4, size: 60 }, { after: 10, size: OUT_GAP - STOP_SPACING }, { after: 12, size: LONG_GAP }, { after: 13, size: -STOP_SPACING / 2 }, { after: 14, size: -STOP_SPACING / 2 }, ...(SWAP_GAP ? [{ after: 6, size: SWAP_GAP }] : [])];
+export const LEGACY_N = 18; // stops the city map was built on: routePoints(LEGACY_N) is that road, any other count is the live road
+export const MILESTONE_AT = [11, 14]; // live indices of the milestone stops (content.js milestone: true); tests/logic.test.mjs checks they match
+export const legacyStops = (stops) => stops.filter((s) => !s.milestone);
 export const GAP_TOTAL = GAPS.reduce((a, g) => a + g.size, 0);
 export const east = (x) => x > 0 ? x + SWAP_GAP : x; // legacy -> real x
 // Distant backdrop only: spreads the gap over +-SPREAD m instead of opening a 40 m corridor to the horizon (no ids or approvals out there).
@@ -37,10 +44,19 @@ export const eastAdd = (add, move = east) => { // a box sink fed legacy x; voxel
 };
 export const WEMBLEY_BENCHMARK = Object.freeze({ ...WEMBLEY_LEGACY, x0: east(WEMBLEY_LEGACY.x0), x1: east(WEMBLEY_LEGACY.x1) });
 export const isWembleyBenchmark = insideOf(WEMBLEY_BENCHMARK);
-export const routePoints = (n, gaps = GAPS) => Array.from({ length: n }, (_, i) => ({
-  x: (i - (n - 1) / 2) * STOP_SPACING + gaps.reduce((a, g) => a + (i > g.after ? g.size : 0), 0),
-  z: Math.round(12 * Math.sin(i * 0.7)),
-}));
+// Centred on the legacy road, so milestone stops never move the stops before them. A milestone sits on the straight line between its two legacy
+// neighbours, so the road keeps the legacy shape (its z comes from that line, not from the index).
+const zLegacy = (k) => Math.round(12 * Math.sin(k * 0.7));
+export const routePoints = (n, gaps = n === LEGACY_N ? GAPS : LIVE_GAPS) => {
+  const ms = n === LEGACY_N ? [] : MILESTONE_AT;
+  const legacyIndex = (i) => i - ms.filter((m) => m < i).length;
+  const xs = Array.from({ length: n }, (_, i) => (i - (LEGACY_N - 1) / 2) * STOP_SPACING + gaps.reduce((a, g) => a + (i > g.after ? g.size : 0), 0));
+  return xs.map((x, i) => {
+    if (!ms.includes(i)) return { x, z: zLegacy(legacyIndex(i)) };
+    const [a, b] = [i - 1, i + 1].map((j) => ({ x: xs[j], z: zLegacy(legacyIndex(j)) }));
+    return { x, z: a.z + ((b.z - a.z) * (x - a.x)) / (b.x - a.x) };
+  });
+};
 export const LANDMARKS = {
   bigben: 'xdesign',
   eye: 'olm',

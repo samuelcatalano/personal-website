@@ -76,8 +76,8 @@ test('no private data in served files', () => {
   for (const f of files) for (const re of bad) assert.ok(!re.test(readFileSync(f, 'utf8')), `${f} matches ${re}`);
 });
 
-test('journey stops have a brand monogram, except the move stop', () => {
-  for (const s of stops.filter(s => s.section === 'journey' && s.id !== 'move')) {
+test('journey stops have a brand monogram, except the move and milestone stops', () => {
+  for (const s of stops.filter(s => s.section === 'journey' && s.id !== 'move' && !s.milestone)) {
     assert.match(s.brand?.initials ?? '', /^[A-Z]{1,3}$/, s.id);
     assert.match(s.brand?.color ?? '', /^#[0-9a-f]{6}$/, s.id);
   }
@@ -102,8 +102,9 @@ test('OLM is split between London and Glasgow with accurate dates and residence 
   const ids = stops.map(s => s.id);
   const olm = ids.indexOf('olm');
   const glasgow = ids.indexOf('glasgow');
-  assert.equal(ids[olm + 1], 'glasgow');
+  assert.equal(ids[olm + 1], 'toGlasgow');
   assert.equal(ids[glasgow + 1], 'tribal');
+  assert.equal(ids[ids.indexOf('tribal') + 1], 'backLondon'); // moved back in Oct 2024, after Tribal started in Jun 2024
   assert.deepEqual(stops[olm], {
     id: 'olm', section: 'journey', year: '2021', country: 'UK',
     brand: { initials: 'OLM', color: '#0f766e' },
@@ -120,10 +121,8 @@ test('OLM is split between London and Glasgow with accurate dates and residence 
   assert.equal(i18n.pt.stops.glasgow.dates, 'jan 2023 – fev 2024');
   assert.equal(i18n.pt.stops.olm.title, 'OLM Systems — Londres');
   assert.equal(i18n.pt.stops.glasgow.title, 'OLM Systems — Glasgow');
-  assert.match(i18n.en.stops.glasgow.body, /lived in Glasgow through 2024/i);
-  assert.match(i18n.en.stops.glasgow.body, /Tribal from June 2024/i);
-  assert.match(i18n.pt.stops.glasgow.body, /morei em Glasgow até o fim de 2024/i);
-  assert.match(i18n.pt.stops.glasgow.body, /na Tribal a partir de junho de 2024/i);
+  assert.match(i18n.en.stops.glasgow.body, /lived in Glasgow from 2023 until October 2024, when I moved back to London/i);
+  assert.match(i18n.pt.stops.glasgow.body, /morei em Glasgow de 2023 até outubro de 2024, quando voltei para Londres/i);
 });
 
 test('no airport landmark; the UK region starts at the move stop', () => {

@@ -34,7 +34,7 @@ export const journeyLine = (t, seenSet) => { // the counter the journey panel sh
   const count = journeySeenCount(seenSet);
   // one stamp per stop, grouped by city; decorative, the count and the bar already say it
   const passport = Object.keys(t.ui.cities).map((c) => `<div class="jp-city"><b>${t.ui.cities[c]}</b><span class="jp-stamps">${cityStops(c).map((i) => `<i class="${seenSet.has(i) ? 'on' : ''}"></i>`).join('')}</span></div>`).join('');
-  const validated = count === journeyTotal ? `<p class="validated-stamp">${t.ui.intro.validated.replace('{time}', clockNow())}</p>` : ''; // all 12 stops: the same stamp the intro ticket gets
+  const validated = count === journeyTotal ? `<p class="validated-stamp">${t.ui.intro.validated.replace('{time}', clockNow())}</p>` : ''; // all journey stops: the same stamp the intro ticket gets
   return `<div class="journey-progress"><span id="journey-progress-label">${count ? t.ui.progress.replace('{count}', count).replace('{total}', journeyTotal) : t.ui.progressEmpty.replace('{quick}', quickSeconds())}</span><progress aria-labelledby="journey-progress-label" value="${count}" max="${journeyTotal}">${count}/${journeyTotal}</progress><div class="jp-passport" aria-hidden="true">${passport}</div>${validated}</div>`;
 };
 const ticketMeta = (t, tool) => { const s = toolSpan(tool); return `${t.ui.ticketSince.replace('{year}', s.since)} · ${t.ui.ticketStops.replace('{n}', s.count)}`; };
@@ -163,7 +163,10 @@ export function initUI({ onGoto, onTheme, onHold = () => {}, onNudge = () => {},
     else if (notes.gap) { text = t.ui.led.gap; alert = true; }
     else if (st.section === 'contact') text = t.ui.led.end;
     else if (notes.rain && Math.floor(Date.now() / 4000) % 2) { text = t.ui.led.rain; alert = true; }
-    else if (st.section !== 'contact' && st.section !== 'hero' && Math.floor(Date.now() / 4000) % 3 === 1) text = t.ui.led.eta.replace('{place}', t.ui.nav.contact).replace('{min}', Math.max(1, Math.ceil(rideSeconds(stops.length - 1 - Math.max(active, 0), 3400) / 60))); // the stop board's countdown to the terminus at the auto-ride pace
+    else if (st.section !== 'contact' && st.section !== 'hero' && Math.floor(Date.now() / 4000) % 3 === 1) { // the stop board's countdown to the next journey stop (the terminus once the journey is done) at the auto-ride pace
+      const nx = tripState(stops, Math.max(active, 0), seen).next, to = nx < 0 ? stops.length - 1 : nx;
+      text = t.ui.led.eta.replace('{place}', nx < 0 ? t.ui.nav.contact : t.stops[stops[nx].id].place).replace('{min}', Math.max(1, Math.ceil(rideSeconds(to - Math.max(active, 0), 3400) / 60)));
+    }
     else if (st.section !== 'contact' && st.section !== 'hero' && Math.floor(Date.now() / 4000) % 3 === 0) text = t.ui.led.count.replace('{count}', journeySeenCount(seen)).replace('{total}', journeyTotal); // rotating route counter
     if (document.hidden) document.title = waitingTitle(); // keeps the hidden tab's title on the stop the bus is at
     for (const el of document.querySelectorAll('.led .live')) {
@@ -238,7 +241,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {}, onNudge = () => {},
     const foundNow = document.querySelector('.found-line b'); if (foundNow) foundNow.textContent = `${route.found.size}/${FOUND.length}`; // the return ticket, if it is on screen
     say('found', 3000); announce.textContent = i18n[prefs.lang].ui.found[key];
   };
-  const paintNavCount = () => { // "Journey 2/12" in the bar, visible at every width (the LED hides below 1100 px)
+  const paintNavCount = () => { // "Journey 2/14" in the bar, visible at every width (the LED hides below 1100 px)
     const a = document.querySelector('[data-nav="journey"]');
     if (!a) return;
     a.querySelectorAll('.nav-count').forEach((el) => el.remove());

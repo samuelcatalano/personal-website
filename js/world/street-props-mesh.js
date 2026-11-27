@@ -11,6 +11,16 @@ const part = (g, color, x = 0, y = 0, z = 0) => {
 };
 const cyl = (r0, r1, h, y, c, seg = 8) => part(new THREE.CylinderGeometry(r1, r0, h, seg), c, 0, y + h / 2, 0); // r0 bottom, r1 top
 const box = (w, h, d, x, y, z, c) => part(new THREE.BoxGeometry(w, h, d), c, x, y + h / 2, z);
+// The route number on the shelter's advert panel (the 83 on the bus blind): red plate, white number, no copy. Browser only (node has no canvas).
+const routePlate = () => {
+  if (typeof document === 'undefined') return null;
+  const cv = document.createElement('canvas'); cv.width = 230; cv.height = 330;
+  const g = cv.getContext('2d');
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, 230, 330);
+  g.fillStyle = '#c8102e'; g.fillRect(30, 60, 170, 210);
+  g.fillStyle = '#ffffff'; g.font = '700 128px "Helvetica Neue", Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('83', 115, 168);
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; return tex;
+};
 const GEOMS = {
   bollard: () => [mergeGeometries([cyl(0.09, 0.08, 0.85, 0, '#2d3136'), cyl(0.085, 0.085, 0.07, 0.62, '#e9e6dc'), cyl(0.08, 0.04, 0.06, 0.85, '#2d3136')])],
   bin: () => [mergeGeometries([cyl(0.22, 0.24, 0.8, 0, '#2f4a3b', 10), cyl(0.25, 0.25, 0.06, 0.8, '#1c1f22', 10), cyl(0.2, 0.2, 0.02, 0.86, '#101214', 10), box(0.2, 0.07, 0.01, 0, 0.55, 0.235, '#d9d5c6')])],
@@ -58,7 +68,7 @@ export function buildProps(items) {
   const metal = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0.35 });
   const glass = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.25, emissive: '#000000' });
   glass.userData.glow = true; glass.userData.glowK = 2.2; glass.userData.glowColor = new THREE.Color('#ffa21f'); // sky.js: emissive = glowColor * night * glowK
-  const advert = glass.clone(); advert.userData = { glow: true, glowK: .85, glowColor: new THREE.Color('#ffe7c4') };
+  const advert = glass.clone(); advert.userData = { glow: true, glowK: .85, glowColor: new THREE.Color('#ffe7c4') }; advert.map = routePlate();
   const shelterGlass = new THREE.MeshStandardMaterial({ vertexColors: true, transparent: true, opacity: 0.24, roughness: 0.2, metalness: 0.08, depthWrite: false, side: THREE.DoubleSide });
   for (const kind of Object.keys(FOOT)) {
     const list = items.filter((i) => i.kind === kind);
@@ -86,6 +96,6 @@ export function buildProps(items) {
   items.forEach(({ x, y, z, r }, i) => { o.position.set(x, y + 0.012, z); o.rotation.set(0, 0, 0); o.scale.setScalar(Math.min(0.7, Math.max(0.15, r * 0.65))); o.updateMatrix(); contacts.setMatrixAt(i, o.matrix); });
   contacts.computeBoundingSphere(); group.add(contacts);
   group.userData.counts = counts;
-  group.userData.dispose = () => { geoms.forEach((g) => g.dispose()); contacts.dispose(); contactGeometry.dispose(); contactMaterial.dispose(); metal.dispose(); glass.dispose(); advert.dispose(); shelterGlass.dispose(); };
+  group.userData.dispose = () => { geoms.forEach((g) => g.dispose()); contacts.dispose(); contactGeometry.dispose(); contactMaterial.dispose(); metal.dispose(); glass.dispose(); advert.map?.dispose(); advert.dispose(); shelterGlass.dispose(); };
   return group;
 }

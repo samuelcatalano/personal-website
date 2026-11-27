@@ -36,7 +36,7 @@ node tools/preload-list.mjs      # modulepreload tags for index.html; tests/prel
 OUT=<dir> SHOTS="5:day,11:night" GRID=1 browser-harness < tools/capture.py   # scene capture (QUERY=weather=rain optional)
 ```
 
-Capture stops: 5 São Paulo, 9.5 London, 11 Glasgow (ids in `js/content.js`).
+Capture stops: 5 São Paulo, 9.5 London, 12 Glasgow (ids in `js/content.js`; Glasgow moved from 11 when the milestone stops were added).
 
 ## Verification
 

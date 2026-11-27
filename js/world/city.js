@@ -1,4 +1,4 @@
-import { ROAD as RD, furnitureSpots, LEGACY_GAPS as GAPS, GAP_TOTAL, SWAP_GAP, east, eastAdd, routePoints, routeCurve, STOP_SPACING, RIVER_Z, LANDMARKS, LONDON_EYE_X_OFFSET, rng, riverEnd, riverStart, stopIndex, ukStart, regions, towerX, underpassFrames, UNDERPASS, swapTunnelFrame } from './layout.js';
+import { ROAD as RD, furnitureSpots, LEGACY_GAPS as GAPS, GAP_TOTAL, legacyStops, SWAP_GAP, east, eastAdd, routePoints, routeCurve, STOP_SPACING, RIVER_Z, LANDMARKS, LONDON_EYE_X_OFFSET, rng, riverEnd, riverStart, stopIndex, ukStart, regions, towerX, underpassFrames, UNDERPASS, swapTunnelFrame } from './layout.js';
 import { house } from './houses.js';
 import { RIVER_RUN } from './underwater-profile.js';
 import { phoneBox } from './phone.js';
@@ -64,12 +64,15 @@ function townhouse(add, x, z, side, br, r, roofStacks) {
 }
 const FULL_CROWNS = !globalThis.matchMedia || globalThis.matchMedia('(min-width: 768px)').matches; // desktop only (see REALISM in textures.js); phones keep the shipped crowns
 const broadleaf = (r) => ({ h: 2.6 + r() * 0.6, crown: FULL_CROWNS ? 2.25 + r() * 0.6 : 1.8 + r() * 0.5 }); // ~25% fuller street crowns; radius stays <= 1.45 m, inside the 2.3 m pavement clearance to the plots
-export function tree(add, x, z, { h, crown, base = 0.1 }) {
+// Crown shapes by variant: [x, z] scale of the crown. Variant 0 is the street tree everywhere else; the start park's trees pick 0-2 (parks.js).
+const TREE_SHAPES = [[1, 1], [1, 1], [1.12, 0.9]];
+export function tree(add, x, z, { h, crown, base = 0.1, variant = 0 }) {
+  const [sx, sz] = TREE_SHAPES[variant % 3], m = variant % 2 ? -1 : 1, cx = crown * sx, cz = crown * sz; // odd variants mirror the side lobes
   add(x, base, z, 0.32, h - base, 0.32, TRUNK); // starts on the paving top: no coplanar sides with it
-  add(x, h - 0.4, z, crown, 1.1, crown, LEAF);
+  add(x, h - 0.4, z, cx, 1.1, cz, LEAF);
   // side lobes wider, still inside the crown radius (offset + radius <= crown); same box count and heights
-  add(x - crown * 0.22, h + 0.2, z + crown * 0.16, crown * 0.6, 1, crown * 0.6, LEAF_SHADE);
-  add(x + crown * 0.2, h + 0.15, z - crown * 0.2, crown * 0.56, 0.9, crown * 0.56, LEAF);
+  add(x - m * cx * 0.22, h + 0.2, z + m * cz * 0.16, cx * 0.6, 1, cz * 0.6, LEAF_SHADE);
+  add(x + m * cx * 0.2, h + 0.15, z - m * cz * 0.2, cx * 0.56, 0.9, cz * 0.56, LEAF);
 }
 const ROAD_RUNOUT = 24; // metres of carriageway past the last stop
 // Samples along the curve every ~`step` m (curve param is per stop, so count follows each segment's length)
@@ -88,9 +91,9 @@ const legacyCurve = (curve, lp) => curve.points ? routeCurve({ CatmullRomCurve3:
 export function buildCity(add, stops, pts, curve, onTree, onBuildingPlot, onArchitecturePlot, onPublicRealm) {
   const emitArchitecturePlot = onArchitecturePlot && (plot => onArchitecturePlot(applyArchitectureLayoutOffset(plot)));
   const pilotCrossings = buildRoad(add, stops, pts, curve);
-  if (!SWAP_GAP) return { lamps: buildLegacy(add, stops, pts, curve, onTree, onBuildingPlot, emitArchitecturePlot, onPublicRealm), pilotCrossings };
-  const lp = routePoints(pts.length, GAPS), mv = (p) => ({ ...p, x: east(p.x) });
-  const lamps = buildLegacy(eastAdd(add), stops, lp, legacyCurve(curve, lp), onTree && ((x, ...a) => onTree(east(x), ...a)), onBuildingPlot && ((p) => onBuildingPlot(mv(p))),
+  const legacy = legacyStops(stops), lp = routePoints(legacy.length, GAPS), mv = (p) => ({ ...p, x: east(p.x) }); // the city map is the legacy road
+  if (!SWAP_GAP) return { lamps: buildLegacy(add, legacy, lp, legacyCurve(curve, lp), onTree, onBuildingPlot, emitArchitecturePlot, onPublicRealm), pilotCrossings };
+  const lamps = buildLegacy(eastAdd(add), legacy, lp, legacyCurve(curve, lp), onTree && ((x, ...a) => onTree(east(x), ...a)), onBuildingPlot && ((p) => onBuildingPlot(mv(p))),
     emitArchitecturePlot && ((p) => emitArchitecturePlot(mv(p))), onPublicRealm && ((z) => { const d = east((z.x0 + z.x1) / 2) - (z.x0 + z.x1) / 2; onPublicRealm({ ...z, x0: z.x0 + d, x1: z.x1 + d }); }));
   buildGapFill(add, emitArchitecturePlot); // the strip SWAP_GAP opened (real coordinates, own rng)
   buildUrbanInfill(add, emitArchitecturePlot);

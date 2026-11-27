@@ -4,7 +4,7 @@ import { streetEnvironment, setStreetRegions, shopFrontages } from './streetscap
 import * as THREE from 'three';
 import { PALETTE as P } from './palette.js';
 import { routeT, nearestStop, stopMarks, fineMarks } from '../scroll.js';
-import { ROAD, regions, routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, towerX, FRAME_LIFT, swapAt, swapTunnelFrame, heroVehicleAt, ukStart, treeRegion, SWAP_GAP, east, eastAdd, stretch, LEGACY_GAPS, underpassFrames, UNDERPASS, LANDMARKS, stopIndex, furnitureSpots } from './layout.js';
+import { ROAD, regions, routePoints, routeCurve, RIVER_Z, riverEnd, riverStart, towerX, FRAME_LIFT, swapAt, swapTunnelFrame, heroVehicleAt, ukStart, treeRegion, SWAP_GAP, east, eastAdd, stretch, LEGACY_GAPS, LEGACY_N, legacyStops, underpassFrames, UNDERPASS, LANDMARKS, stopIndex, furnitureSpots } from './layout.js';
 import { createBoxes, buildMeshes } from './voxel.js';
 import { buildMotion } from './motion.js';
 import { buildCity, tree } from './city.js';
@@ -146,7 +146,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       return distant.add((left + right) / 2, y, z, right - left, h, d, color, ...rest);
     }
     return addBackdrop(x, y, z, w, h, d, color, ...rest);
-  }, stops, routePoints(n, LEGACY_GAPS), eastAdd(far.add, stretch)); // buildings retain their original footprints
+  }, legacyStops(stops), routePoints(LEGACY_N, LEGACY_GAPS), eastAdd(far.add, stretch)); // buildings retain their original footprints
   // Far band (z < -190): warm/pale distant walls become cool slates, so through the fog the band reads darker and bluer than the skyline behind it.
   // Done here, after generation, so the generator output the tests pin stays untouched.
   // Chroma ramps down with depth (1:1 colour remaps, so no new per-colour batches): near rows keep ~55% chroma, far slates ~35% and lose their blue cast,

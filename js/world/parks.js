@@ -130,8 +130,9 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
       const at = spot(1.9, 30, 1.15), h = 2.6 + r() * 0.6, crown = 1.8 + r() * 0.5; // always draw rng
       if (at) {
         const [x, z] = world(...at);
-        if (onTree) onTree(x, z, { h, crown });
-        else tree(add, x, z, { h, crown });
+        const variant = orig === PARKS[1] ? Math.floor(variation(x, z, 9) * 3) : 0; // start park: three crown shapes, from a stable hash (no rng draw)
+        if (onTree) onTree(x, z, { h, crown, variant });
+        else tree(add, x, z, { h, crown, variant });
       }
     }
     if (park.benchmarkTrees && onTree) for (const [x, scale] of [[688, 0.84], [708, 1], [728, 1.12]]) onTree(x, park.z1 - 1.5, { h: 2.7 * scale, crown: 1.8 * scale });
@@ -241,7 +242,8 @@ export function buildParks(draw, stops, pts, curve, occ, onTree, onPublicRealm) 
       taken.push([u, v, 1.6]);
       // Keep candidate acceptance/RNG unchanged; relocate only the three start-garden trees blocking its benches.
       const moved = u === 4 ? (f < 0 ? [-5.8, -8] : [4.3, 15.2]) : u === -4 && f > 0 ? [4.3, -14.8] : null;
-      onTree(moved ? cx + moved[0] : x, moved ? cz + moved[1] : z, { h: 2.7 + hs * 0.5, crown: 2 + hs * 0.4 });
+      const tx = moved ? cx + moved[0] : x, tz = moved ? cz + moved[1] : z;
+      onTree(tx, tz, { h: 2.7 + hs * 0.5, crown: 2 + hs * 0.4, variant: Math.floor(variation(tx, tz, 9) * 3) });
     }
     if (hero) onPublicRealm(orig);
     made.push(park);

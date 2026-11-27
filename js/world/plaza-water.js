@@ -8,8 +8,8 @@ const BASIN_FIELD = /* glsl */`
 vec3 basinField(vec2 p, float t) {
   vec2 a = vec2(.86,.51), b = vec2(-.43,.90);
   float u = dot(p,a)*3.2-t*1.25, v = dot(p,b)*5.4+t*1.65;
-  float h = .0035*sin(u)+.0025*sin(v);
-  vec2 slope = .0112*cos(u)*a+.0135*cos(v)*b;
+  float h = .0105*sin(u)+.0075*sin(v); // 3x the old 3.5/2.5 mm ripple so the surface reads from the camera; slope scales with it
+  vec2 slope = .0336*cos(u)*a+.0405*cos(v)*b;
   for(int i=0;i<6;i++) {
     float angle=float(i)*1.04719755;
     vec2 d=p-vec2(cos(angle),sin(angle))*.95;
