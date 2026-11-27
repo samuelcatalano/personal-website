@@ -28,27 +28,37 @@ export function createPavementHeight(slabs) {
 }
 
 export function createRectMask(rectangles, cellSize = 16) {
-  const cells = new Map();
-  const keys = r => {
-    const out = [];
+  // Numeric cell keys and one reused Set: a lookup builds no strings, key arrays or empty fallbacks.
+  // ponytail: key = x * 2^26 + z is unique for |z| < 2^25 cells; a wider world needs a pair key.
+  const STRIDE = 67108864, cells = new Map(), found = new Set();
+  for (const r of rectangles) if (r.x1 - r.x0 > 1e-6 && r.z1 - r.z0 > 1e-6)
     for (let x = Math.floor(r.x0 / cellSize); x <= Math.floor(r.x1 / cellSize); x++)
-      for (let z = Math.floor(r.z0 / cellSize); z <= Math.floor(r.z1 / cellSize); z++) out.push(`${x},${z}`);
-    return out;
-  };
-  for (const r of rectangles) if (r.x1 - r.x0 > 1e-6 && r.z1 - r.z0 > 1e-6) for (const key of keys(r)) {
-    if (!cells.has(key)) cells.set(key, []);
-    cells.get(key).push(r);
-  }
+      for (let z = Math.floor(r.z0 / cellSize); z <= Math.floor(r.z1 / cellSize); z++) {
+        const k = x * STRIDE + z, list = cells.get(k);
+        if (list) list.push(r); else cells.set(k, [r]);
+      }
   return { intersects(r) {
     if (r.x1 - r.x0 <= 1e-6 || r.z1 - r.z0 <= 1e-6) return false;
-    for (const key of keys(r)) for (const q of cells.get(key) ?? []) if (overlaps(r, q)) return true;
+    for (let x = Math.floor(r.x0 / cellSize); x <= Math.floor(r.x1 / cellSize); x++)
+      for (let z = Math.floor(r.z0 / cellSize); z <= Math.floor(r.z1 / cellSize); z++) {
+        const list = cells.get(x * STRIDE + z);
+        if (list) for (const q of list) if (overlaps(r, q)) return true;
+      }
     return false;
   }, query(r) {
-    const matches = new Set();
-    for (const key of keys(r)) for (const q of cells.get(key) ?? []) if (overlaps(r,q)) matches.add(q);
-    return [...matches];
+    found.clear();
+    for (let x = Math.floor(r.x0 / cellSize); x <= Math.floor(r.x1 / cellSize); x++)
+      for (let z = Math.floor(r.z0 / cellSize); z <= Math.floor(r.z1 / cellSize); z++) {
+        const list = cells.get(x * STRIDE + z);
+        if (list) for (const q of list) if (overlaps(r, q)) found.add(q);
+      }
+    return [...found];
   }, contains(r) {
-    for (const key of keys(r)) for (const q of cells.get(key) ?? []) if (r.x0 >= q.x0 && r.x1 <= q.x1 && r.z0 >= q.z0 && r.z1 <= q.z1) return true;
+    for (let x = Math.floor(r.x0 / cellSize); x <= Math.floor(r.x1 / cellSize); x++)
+      for (let z = Math.floor(r.z0 / cellSize); z <= Math.floor(r.z1 / cellSize); z++) {
+        const list = cells.get(x * STRIDE + z);
+        if (list) for (const q of list) if (r.x0 >= q.x0 && r.x1 <= q.x1 && r.z0 >= q.z0 && r.z1 <= q.z1) return true;
+      }
     return false;
   } };
 }
