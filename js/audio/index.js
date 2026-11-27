@@ -16,7 +16,7 @@ export function createSound({ stops, marks, progress, night, world }) {
   if (!a) return null;
   hold();
   for (const k of BUSES) a.bus[k].gain.value = BUS[k];
-  const beds = createBeds(a), shots = createShots(a), stadium = createStadium(a), moodAt = createMood(stops), st = {}, door = createDoor(), tollBen = createToll(), tollGla = createToll();
+  const beds = createBeds(a), shots = createShots(a), stadium = createStadium(a), moodAt = createMood(stops, { regionSmoothTime: 0.8 }), st = {}, door = createDoor(), tollBen = createToll(), tollGla = createToll();
   const samuel = createSamuelVoice(a);
   const n = stops.length, uk = ukStart(stops), [g0, g1] = scotRange(stops).map((t) => t * (n - 1));
   const ben = stopIndex(stops, LANDMARKS.bigben), gla = stopIndex(stops, LANDMARKS.glasgow), wembley = stopIndex(stops, LANDMARKS.wembley);

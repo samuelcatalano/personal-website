@@ -20,7 +20,7 @@ const ss = (a, b, x) => { x = Math.min(1, Math.max(0, (x - a) / (b - a))); retur
 const COLS = ['zen', 'hor', 'cloud', 'light'], NUM = ['sun', 'hemi', 'fogK', 'cloudOp', 'rain', 'cover', 'wet', 'storm', 'fall', 'wind', 'drops'];
 const FIELDS = [...NUM, 'rs', 'rl', 'rg'];
 // Factory: ranges are computed once; the returned (t) => mood reuses one output object (no per-frame allocation).
-export function createMood(stops, { weather = visitWeather, reducedMotion = false } = {}) {
+export function createMood(stops, { weather = visitWeather, reducedMotion = false, regionSmoothTime = 3.5 } = {}) {
   const h = 0.3 / (stops.length - 1), sw = swapAt(stops), [g0, g1] = scotRange(stops); // blend = 0.6 stop wide, centred on each boundary
   const prepare = (base, climate, region) => {
     const amount = Math.max(climate.rain > 0 ? climate.cover : 0, Math.max(0, (climate.cover - .5) / .5)), palette = { ...base };
@@ -51,9 +51,10 @@ export function createMood(stops, { weather = visitWeather, reducedMotion = fals
     for(const k of NUM)out[k]+=(weatherMood.entry[k]-out[k])*entry;
     const snap = !initialized || dt <= 0 || reducedMotion;
     const slow = snap ? 1 : 1 - Math.exp(-Math.min(dt, .1) / 3.5), drops = snap ? 1 : 1 - Math.exp(-Math.min(dt, .1) / 1.5), wind = snap ? 1 : 1 - Math.exp(-Math.min(dt, .1) / 2.5);
+    const region = snap || regionSmoothTime <= 0 ? 1 : 1 - Math.exp(-Math.min(dt, .1) / regionSmoothTime);
     for (const k of COLS) for (let i = 0; i < 3; i++) eased[k][i] += (out[k][i] - eased[k][i]) * slow;
     for (const k of FIELDS) {
-      const amount = k === 'rain' || k === 'storm' ? drops : k === 'wind' || k === 'fall' ? wind : slow;
+      const amount = k === 'rs' || k === 'rl' || k === 'rg' ? region : k === 'rain' || k === 'storm' ? drops : k === 'wind' || k === 'fall' ? wind : slow;
       eased[k] += (out[k] - eased[k]) * amount;
     }
     initialized = true;

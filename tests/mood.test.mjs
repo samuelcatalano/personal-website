@@ -41,6 +41,15 @@ test('runtime climate transitions ease colour and rain while reduced motion snap
   assert.deepEqual(instant(.5, 1 / 60), target);
 });
 
+test('audio region transitions settle faster than the visual mood', () => {
+  const visual = createMood(stops, { weather: clearWeather });
+  const audio = createMood(stops, { weather: clearWeather, regionSmoothTime: 0.8 });
+  visual(0, 0); audio(0, 0);
+  const visualStep = visual(sw, 0.1), audioStep = audio(sw, 0.1);
+  assert.ok(audioStep.rl > visualStep.rl, 'London ambience should follow the route sooner');
+  assert.ok(Math.abs(audioStep.rs + audioStep.rl + audioStep.rg - 1) < 1e-9, 'city weights stay energy-neutral');
+});
+
 test('weather data blends continuously with regional mood', () => {
   for (const b of [sw, g0, g1]) for (let d = -1; d <= 1; d += 0.01) {
     const a = snap(b + d * u), c = snap(b + d * u + 1e-4);

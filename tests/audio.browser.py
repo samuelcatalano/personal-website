@@ -3,6 +3,7 @@
 # 2) drives the live Sound button with a real click: unlocks, remembers the choice, the mix carries signal, and turns off again
 import json, time
 assert page_info()['url'].startswith(('http://localhost:', 'http://127.0.0.1:'))
+activate_tab(current_tab())  # the live section requires a foreground browser tab
 prior_sound = js("localStorage.getItem('sound')")  # the live section toggles the button; the saved choice is put back at the end
 offline = js(r'''(async () => {
   const { buildGraph, BUSES } = await import('./js/audio/engine.js');
@@ -48,6 +49,7 @@ assert offline['planeGap'] > -3, f"the plane is too quiet next to the city bed (
 assert offline['loud']['rms'] > 0.02 and offline['quiet']['rms'] > 0.001, f"a scene is silent: {offline}"
 
 # live toggle
+activate_tab(current_tab())  # keep the live AudioContext in a foreground tab; Chromium suspends background contexts
 for _ in range(240):  # Board opens only once the city has settled (and the still tour is over)
     if js("!document.body.classList.contains('intro-on') || document.querySelector('[data-intro-skip]')?.disabled === false"): break
     time.sleep(0.25)
@@ -66,6 +68,7 @@ def click_sound():
     click_at_xy(r['x'], r['y'])
 if before == 'true': click_sound(); time.sleep(0.3)
 click_sound(); time.sleep(2.5)
+activate_tab(current_tab())
 live = json.loads(js(r'''(async () => {
   const { audio, enabled } = await import('./js/audio/engine.js');
   const g = audio(), an = g.c.createAnalyser(); g.mix.connect(an);
@@ -91,6 +94,8 @@ js(r"""window.__ride = (async () => {
     dull ||= snd.state.outsideCut < 2000; bells = Math.max(bells, snd.live.bells); passes = Math.max(passes, snd.live.passes); thunders = Math.max(thunders, snd.live.thunder);
     await new Promise((r) => setTimeout(r, 50));
   }
+  p = 1; await new Promise((r) => setTimeout(r, 250)); // hold the terminus through an audio tick before sampling its landmark bed
+  for (const key of keys) if (snd.state[key] > 0) seen[key] = true;
   p = 0;
   return JSON.stringify({ missing: keys.filter((key) => !seen[key]), dull, bells, passes, thunders, error: snd.state.error || null });
 })(); 0""")
@@ -98,6 +103,7 @@ time.sleep(10)
 ride = json.loads(js("window.__ride"))
 print('ride', ride)
 assert not ride['error'] and not ride['missing'] and ride['dull'] and ride['bells'] >= 1 and ride['thunders'] >= 1, ride
+activate_tab(current_tab())
 click_sound(); time.sleep(1.2)
 off = json.loads(js(r'''(async () => { const { audio, enabled } = await import('./js/audio/engine.js'); const b = document.querySelector('[data-sound]');
   return JSON.stringify({ pressed: b.getAttribute('aria-pressed'), stored: localStorage.getItem('sound'), enabled: enabled() }); })()'''))

@@ -20,9 +20,9 @@ export function audioState(i, o = {}) {
   o.wind = 0.85 * c01((i.wind ?? 0) * (0.01 + 0.02 * rain ** 1.5) + 0.015 * rg); // wind rides with the rain: light rain has little wind
   o.windFreq = 320 + 260 * c01((i.wind ?? 0) / 1.1);
   // city beds: one per region, crossfaded by the mood's region weights; quieter and darker at night
-  o.bedSp = rs * (0.36 - 0.16 * night);
-  o.bedLon = rl * (0.3 - 0.13 * night);
-  o.bedGla = rg * (0.22 - 0.1 * night);
+  o.bedSp = Math.sqrt(rs) * (0.36 - 0.16 * night);
+  o.bedLon = Math.sqrt(rl) * (0.3 - 0.13 * night);
+  o.bedGla = Math.sqrt(rg) * (0.22 - 0.1 * night);
   o.bedCut = 2400 - 1200 * night;
   o.crickets = 0.06 * rs * night * dry;
   o.birds = 0.5 * rs * day * dry;   // chirps per second (São Paulo by day)

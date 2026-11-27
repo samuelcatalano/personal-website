@@ -32,6 +32,8 @@ test('city beds crossfade by region and dim at night', () => {
   const sp = audioState({ ...base }), lon = audioState({ ...base, rs: 0, rl: 1 }), mid = audioState({ ...base, rs: 0.5, rl: 0.5 });
   assert.ok(sp.bedSp > 0 && sp.bedLon === 0 && lon.bedSp === 0 && lon.bedLon > 0);
   assert.ok(mid.bedSp > 0 && mid.bedLon > 0 && mid.bedSp < sp.bedSp);
+  const midPower = Math.hypot(mid.bedSp, mid.bedLon), equalPower = Math.hypot(Math.sqrt(0.5) * sp.bedSp, Math.sqrt(0.5) * lon.bedLon);
+  assert.ok(Math.abs(midPower - equalPower) < 1e-9, 'region crossfade preserves the summed bed power');
   const night = audioState({ ...base, night: 1 });
   assert.ok(night.bedSp < sp.bedSp && night.bedCut < sp.bedCut);
   assert.ok(night.crickets > 0 && sp.crickets === 0 && night.birds === 0 && sp.birds > 0);
