@@ -121,6 +121,9 @@ if (wetMask > 0.001 && (wetPuddle > 0.001 || wetRoad > 0.001)) {
       if (uWetLamps[i].y > 0.0) wetLights += wetStreak(uWetLamps[i], mix(.42, .17, wetPuddle), 3.2);
     }
     outgoingLight += vec3(1.0, 0.64, 0.35) * min(wetLights, 1.5) * (wetPuddle + wetMask * wetRoad * .06) * uWetNight * .30;
+    // ponytail: facade light approximation. No per-window data reaches the shader, so each 18 m cell gets one warm patch on the pools at night. Tune by capture.
+    float facadeCell = fract(sin(dot(floor(vWetWorld.xz / 18.0), vec2(127.1, 311.7))) * 43758.5453);
+    outgoingLight += vec3(1.0, 0.8, 0.5) * facadeCell * wetPuddle * uWetNight * .10;
     if (uWetBus.y > -1000.0) {
       vec2 side = vec2(-uWetHeading.y, uWetHeading.x) * 0.66;
       vec3 front = uWetBus + vec3(uWetHeading.x, 0.0, uWetHeading.y) * 4.0;
