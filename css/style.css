@@ -206,6 +206,8 @@ body.no-webgl #load-experience { display: none; }
 .intro-profile { display: grid; gap: 10px; justify-items: center; }
 .intro-direct { padding: 10px 16px; background: color-mix(in srgb, var(--ticket-red) 5%, transparent); border: 1px solid var(--ticket-line); color: var(--ticket-ink); font: 700 13px var(--sans); letter-spacing: .02em; cursor: pointer; transition: border-color .2s, color .2s, background .2s; }
 .intro-direct::after { content: ' →' / ''; }
+/* desktop only (where the "Skip to CV" label shows): one line, the arrow never wraps; the longer PT label fits the ticket column without the wider tracking */
+@media (min-width: 1024px) { .intro-direct { white-space: nowrap; letter-spacing: 0; padding: 10px 12px; } }
 /* the page interface stays out of sight behind the ticket, then arrives once it leaves */
 body.intro-on :is(.bar, .panel, #ui-restore) { opacity: 0; }
 body.intro-arrive :is(.bar, .panel, #ui-restore) { animation: ui-arrive .8s ease-out both; }
