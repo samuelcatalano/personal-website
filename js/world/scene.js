@@ -36,6 +36,7 @@ import { createRain } from './rain.js';
 import { createWeatherCover } from './weather-cover.js';
 import { lagWetness } from './weather.js';
 import { createWetSurfaces } from './wet-surfaces.js';
+import { createCloudShadows } from './cloud-shadows.js';
 import { createSky, EXPOSURE, SUN_DIR } from './sky.js';
 import { createWater } from './water.js';
 import { towerPierBounds } from './water-math.js';
@@ -688,6 +689,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     wet = lagWetness(wet, mood.wet, dt);
     flash = rain.update(clock, camera, mood, night, post.tier, busPos, bus.rotation.y);
     sky.update(night, dt, camera.position, camera, mood, flash);
+    cloudShadows.update(clock, night, mood.cover, mood.wind);
     // Share the visible astro's azimuth with shadows and water, retaining positive elevation and texel snapping.
     LD.copy(sky.sunDir); SUN.copy(LD).multiplyScalar(95);
     LU.set(0, 1, 0).cross(LD).normalize(); LV.copy(LD).cross(LU);
@@ -741,6 +743,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
     new Promise(resolve => { startupTimeout = setTimeout(() => { startupLandmarksCancelled = true; resolve(); }, LANDMARK_STARTUP_TIMEOUT); }),
   ]);
   clearTimeout(startupTimeout);
+  const cloudShadows = createCloudShadows(scene);
   landmarksReady = true;
   resize();
   await renderer.compileAsync(scene, camera).catch(() => {}); // link the visible materials' programs before world-ready; ponytail: visible objects only, hidden LOD/kit materials still compile on first show
@@ -801,6 +804,7 @@ export async function createWorld(canvas, stops, { reducedMotion = false, onProg
       disposeNpcBodyAtlas(); // pedestrian diffuse and normal arrays
       scene.environment = null; // city sky map: owned by landmarkEnv, which is disposed below
       wetSurfaces.dispose(); vehicleFx.dispose(); water.dispose();
+      cloudShadows.dispose();
       weatherCover.dispose();
       sky.dispose();
       trees?.userData.dispose?.();

@@ -29,8 +29,8 @@ body { margin: 0; font: 15px/1.6 var(--sans); color: var(--ink); background: lin
 .brand { padding: 0 18px; font: 400 15px var(--display); letter-spacing: .01em; white-space: nowrap; }
 /* LED destination blind inside the brand: amber dots (a 3px mask over bold caps) on black */
 .led { display: inline-flex; align-items: center; gap: 10px; height: 30px; margin-left: 14px; padding: 0 12px; background: var(--c-0c0a08); border: 1px solid var(--c-2c2620); border-radius: 8px; filter: drop-shadow(0 0 5px rgba(255, 170, 0, .3)); box-shadow: inset 0 0 12px rgba(0, 0, 0, .8); }
-.led b, .led .live { color: var(--c-ffb21e); font: 700 15px/1 var(--sans); letter-spacing: .05em; text-transform: uppercase; white-space: nowrap;
-  -webkit-mask: radial-gradient(circle, var(--c-000) 0 .95px, transparent 1.35px) 0 0 / 3px 3px; mask: radial-gradient(circle, var(--c-000) 0 .95px, transparent 1.35px) 0 0 / 3px 3px; }
+.led b, .led .live { color: var(--c-ffb21e); font: 700 15px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .035em; text-transform: uppercase; white-space: nowrap;
+  -webkit-mask: radial-gradient(circle, var(--c-000) 0 1px, transparent 1.3px) 0 0 / 2.6px 2.6px; mask: radial-gradient(circle, var(--c-000) 0 1px, transparent 1.3px) 0 0 / 2.6px 2.6px; }
 .led .live { display: inline-block; width: 172px; overflow: hidden; transition: color .2s; }
 .led .live.alert { color: #ff5a3c; }
 .led .live.roll { animation: roll .3s ease-out; }
