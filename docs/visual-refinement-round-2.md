@@ -53,3 +53,6 @@ Shader-level variation already ships in `building-slice-materials.js`: per-pane 
 - Batches B-E (materials, lighting, urban realism, landmarks, polish) not started.
 - No fresh perf baseline yet.
 - Browser Pane is 800x600 / 1024 wide in this session; use a larger window for visual captures.
+
+## Big Ben night brightness jump after Tower Bridge (user report)
+Cause confirmed: the authored Big Ben swaps LOD0 to LOD1 at ~170 m from the camera (x~290, just past Tower Bridge), and LOD1's atlas reads ~12% brighter at the same glowK (tower region mean luminance 84.5 vs 75.3 at the same frame; lights, exposure and fog were smooth). Owner chose to drop the swap: `js/world/bigben-asset.js` now loads and shows LOD0 only (LOD1 GLB stays on disk, unused; `tests/bigben-asset.browser.py` expects one LOD, not run here). Cost: +8,285 tris at distance (11,588 vs 3,303), same draw calls, saves a 540 KB download; frame time not measurable in the Browser pane (~1 fps), owner may measure in own Chrome. Verified live at camera x 210/296/374: only BigBen_LOD0 present and visible. Tests 364/364, camera hashes unchanged.

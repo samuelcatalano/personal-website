@@ -1,5 +1,5 @@
 # browser-harness < tests/bigben-asset.browser.py (local preview; use a fresh cache-disabled tab)
-# Authored Big Ben (tools/landmarks/bigben): loads LOD0/LOD1 GLBs (Meshopt + KTX2), one atlas material, envelope, night glow flag, procedural fallback hidden.
+# Authored Big Ben (tools/landmarks/bigben): loads the LOD0 GLB (LOD1 is no longer loaded) (Meshopt + KTX2), one atlas material, envelope, night glow flag, procedural fallback hidden.
 import time
 t = new_tab('about:blank'); activate_tab(t if isinstance(t, str) else t.get('targetId', t))
 cdp('Network.enable'); cdp('Network.setCacheDisabled', cacheDisabled=True)
@@ -10,7 +10,7 @@ print(js(r'''(async () => {
   const check = (v, m) => { if (!v) throw Error(m); };
   const { initGlbLoader } = await import('/js/world/glb-loader.js');
   const r = new THREE.WebGLRenderer(); initGlbLoader(r); // KTX2 needs a renderer
-  const lods = await loadBigBenAsset(); check(lods && lods.length === 2, 'both LODs load (Meshopt + KTX2)');
+  const lods = await loadBigBenAsset(); check(lods && lods.length === 1, 'LOD0 loads (Meshopt + KTX2)');
   const out = [];
   for (const [i, lod] of lods.entries()) {
     const meshes = []; lod.traverse((o) => { if (o.isMesh) meshes.push(o); });
