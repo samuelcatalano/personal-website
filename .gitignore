@@ -1,6 +1,8 @@
 
 assets/models/source/
 tools/image-to-3d/
+node_modules/
+dist/
 
 # pipeline dev tooling
 tools/pipeline/node_modules/

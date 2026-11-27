@@ -1,4 +1,4 @@
-// Static-import closure of main.js and the 3D scene: the modules index.html preloads so the browser fetches them in parallel instead of one import level at a time.
+// Critical static-import closure of main.js. The scene is intentionally lazy and must not be preloaded before the visitor opts in.
 // Usage: node tools/preload-list.mjs  (prints the <link> tags to paste into index.html; tests/preload.test.mjs fails when they drift)
 import { readFileSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
@@ -16,7 +16,6 @@ export function sceneModules() {
     }
   };
   visit('js/main.js');
-  visit('js/world/scene.js');
   seen.delete('js/main.js'); // the entry script is already requested by its own <script> tag
   return [...seen].sort();
 }

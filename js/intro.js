@@ -1,6 +1,6 @@
 import { ding, hiss, releaseSounds } from './sound.js';
 import { stops, i18n, yearText, yearStack, links } from './content.js';
-import { loadState, onLoadChange } from './world/load-progress.js';
+import { introState, hasVisited } from './intro-state.js';
 // Intro shown on every load. A toy bus follows the scroll wheel (or swipe, or arrow keys) along a miniature of the career line while the 3D world loads;
 // The blind names the destination; real loading progress has its own visible line on the ticket.
 const clamp01 = (v) => Math.min(1, Math.max(0, v));
@@ -12,10 +12,8 @@ export const journeyIndex = (p, n = JOURNEY.length) => Math.round(clamp01(p) * (
 export const careerLabel = (st, t) => `${yearText(st, t.ui)} ${st.id === 'glasgow' || !st.brand ? t.stops[st.id].place : st.brand.initials}`.toUpperCase();
 // the year label of each node, blank when it repeats the previous node's
 export const yearLabels = (journey, ui) => journey.map((st, i) => (i && st.year === journey[i - 1].year ? '' : yearStack(st, ui)));
-// Progress shown on the ticket. Loading the world's files fills 0-70; the finishing phase (settling, the three still photos, the last settle) fills 70-99 in real steps,
-// so the bar no longer sits on one number while the stills are taken. `phase` is the last finishing step done: 'settled', 'sp', 'london' or 'glasgow' (= photos over).
-export const FINAL = { settled: 76, sp: 82, london: 88, glasgow: 94 };
-export const progressValue = ({ ratio = 0, loaded = false, phase = null }) => Math.min(99, !loaded ? Math.round(ratio * 70) : phase === 'glasgow' ? Math.round(94 + 5 * ratio) : FINAL[phase] ?? 70);
+// Loading keeps the final 1% for the renderable first scene becoming ready.
+export const progressValue = ({ ratio = 0 }) => Math.min(99, Math.max(0, Math.round(ratio * 99)));
 // Ticket barcode: bars drawn from the ticket number (same bars every visit). Decoration only; the number beside it is the real text.
 export const barcode = (seed) => {
   let s = [...seed].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 2147483647, 7), x = 0, d = '';
@@ -26,16 +24,17 @@ const KEY_DY = { ArrowRight: 35, ArrowLeft: -35, PageDown: 240, PageUp: -240, ' 
 const LEDS = 48;
 export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {}) {
   let soundsPlayed = false; // the bell and the door hiss belong to the first Skip only, never again
-  let p = 0, auto = 0, autoTarget = 0, raf = 0, previewUrls = [], loaded = false, active = false, interacted = false, ready = false, previewed = false, boarding = false, returning = false, blindStep = 0, phase = null, shown = 0, tipIndex = 0, bellTimer, blindTimer, tipTimer, unsubscribe;
+  let p = 0, auto = 0, autoTarget = 0, raf = 0, previewUrls = [], active = false, interacted = false, previewed = false, boarding = false, returning = false, blindStep = 0, shown = 0, tipIndex = 0, lastAnnouncedStage = '', bellTimer, blindTimer, tipTimer, unsubscribe;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const map = root.querySelector('.intro-map'), cur = root.querySelector('.dest .cur');
   const nodesEl = root.querySelector('.nodes'), ledsEl = root.querySelector('.leds');
-  const statusEl = root.querySelector('.status'), statusText = root.querySelector('#intro-status-text');
+  const statusEl = root.querySelector('.status'), statusText = root.querySelector('#intro-status-text'), announcer = root.querySelector('#intro-status-announcement');
   const skip = root.querySelector('[data-intro-skip]');
   const road = root.querySelector('.road'), stamp = root.querySelector('.intro-ticket-stamp'), stub = root.querySelector('.intro-stub');
   const stageEl = root.querySelector('.intro-stage'), tipEl = root.querySelector('#intro-tip');
   const previewStops = [...root.querySelectorAll('[data-preview-stop]')];
   const t = () => i18n[document.documentElement.lang.startsWith('pt') ? 'pt' : 'en'];
+  const isReady = () => ['ready', 'started'].includes(introState.current.phase);
   const fraction = i => i / (JOURNEY.length - 1);
   const border = JOURNEY.findIndex(st => st.id === 'move');
   const glasgow = JOURNEY.findIndex(st => st.id === 'glasgow');
@@ -54,13 +53,22 @@ export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {
   };
   const paintTip = () => { const tips = t().ui.intro.tips; tipEl.textContent = tips[tipIndex % tips.length]; };
   const nextTip = () => { tipEl.classList.add('swap'); setTimeout(() => { tipIndex++; paintTip(); tipEl.classList.remove('swap'); }, 350); }; // fade out, swap the text, fade in
+  let tipHovered = false, tipFocused = false;
+  const updateTipTimer = () => {
+    clearInterval(tipTimer);
+    if (!reduced && active && !bellTimer && !tipHovered && !tipFocused) tipTimer = setInterval(() => { if (active && !bellTimer) nextTip(); }, 6500);
+  };
+  tipEl.addEventListener('pointerenter', () => { tipHovered = true; updateTipTimer(); });
+  tipEl.addEventListener('pointerleave', () => { tipHovered = false; updateTipTimer(); });
+  tipEl.addEventListener('focus', () => { tipFocused = true; updateTipTimer(); });
+  tipEl.addEventListener('blur', () => { tipFocused = false; updateTipTimer(); });
   const onLang = () => { if (active) { paintStatic(); paintTip(); paintProgress(); render(); } };
   const paintBlind = () => {
     const tt = t(), city = { sp: 'sp', london: 'ldn', glasgow: 'gla' }[root.dataset.preview || 'sp'];
     let label = tt.ui.cities[city];
     if (bellTimer) label = tt.ui.led.stop;
     else if (interacted) label = careerLabel(JOURNEY[journeyIndex(p)], tt);
-    else if (!ready && !previewed) label = [returning ? tt.ui.led.welcomeBack : tt.ui.led.notInService, tt.ui.led.gap, tt.ui.led.warm][blindStep % 3]; // the city is still loading: the vehicle is not in service yet (a returning passenger is welcomed instead), and the blind cycles a few of the bus's own messages while it waits
+    else if (!isReady() && !previewed) label = [returning ? tt.ui.led.welcomeBack : tt.ui.intro.firstVisit, tt.ui.led.gap, tt.ui.led.warm][blindStep % 3]; // departure board flavour is independent of the actual loading status
     else if (boarding) label = tt.ui.led.allAboard;
     const text = label.toUpperCase();
     if (cur.textContent !== text) {
@@ -71,18 +79,27 @@ export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {
     }
   };
   const paintProgress = () => {
-    const { ratio, stage } = loadState(), ui = t().ui;
-    shown = Math.max(shown, progressValue({ ratio, loaded, phase })); // never moves backwards: streaming the stills can add requests and lower the file ratio
-    const value = ready ? 100 : shown; // 100 is only shown once the whole city has settled
-    const photo = { settled: 'sp', sp: 'ldn', london: 'gla' }[phase], finishing = loaded && phase && (photo ? ui.intro.photo.replace('{city}', ui.cities[photo]) : ui.intro.touches); // what the finishing phase is doing now
+    const { progress, stage } = introState.current, ui = t().ui;
+    const ready = isReady();
+    const ratio = progress / 100;
+    shown = Math.max(shown, progressValue({ ratio }));
+    const value = ready ? 100 : shown;
     root.dataset.ready = String(ready);
     // the dots stay a static ticket perforation: the Start button fill and the bus on the line carry the progress
     skip.style.setProperty('--fill', `${value}%`); // the Start button fills with the same progress
     statusEl.setAttribute('aria-valuenow', String(value));
-    statusText.textContent = ready ? ui.intro.loaded : (loaded ? ui.intro.finishing : ui.intro.loadingBtn); // no number: the fill and the bus already show how far it is
-    stageEl.textContent = ready ? '' : finishing || (stage ? ui.intro.stages[stage] || '' : ''); // what is arriving now; outside the live region so a screen reader is not read every change
-    if (!bellTimer) skip.textContent = ready ? ui.intro.start : ui.intro.loadingBtn; // the button says what it is doing until the city is ready
-    autoTarget = ready ? 0 : ratio; // the toy bus rides the line as the world loads, then drives back to the first stop, ready to go forward
+    const stageText = stage ? (ui.intro.stages[stage] || ui.cities.sp) : '';
+    const loadingLabel = ui.intro.loadingProgress.replace('{stage}', ui.cities.sp).replace('{percent}', value);
+    const nextAnnouncement = ready ? 'ready' : stage || 'city';
+    if (lastAnnouncedStage !== nextAnnouncement) {
+      statusText.textContent = ready ? ui.intro.loaded : loadingLabel;
+      announcer.textContent = ready ? ui.intro.loaded : stageText || loadingLabel;
+      lastAnnouncedStage = nextAnnouncement;
+    }
+    stageEl.textContent = ready ? '' : stageText;
+    if (!bellTimer) skip.textContent = ready ? ui.intro.start : loadingLabel;
+    skip.setAttribute('aria-disabled', String(!ready));
+    autoTarget = 0; // the timeline stays neutral until the visitor starts the journey
     if (!interacted && !raf) raf = requestAnimationFrame(glide);
   };
   const glide = () => {
@@ -179,7 +196,10 @@ export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {
     lastY = y; lastX = x;
   }, { passive: true });
   skip.addEventListener('click', () => {
-    if (!active || bellTimer) return;
+    if (!active || bellTimer || !isReady()) return;
+    introState.started();
+    root.dataset.started = 'true';
+    document.body.classList.add('journey-started');
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) { onBoard(); dismiss(); return; }
     bellTimer = setTimeout(() => dismiss({ reveal: true }), 900);
     onDrive(null); // let the camera return while the opaque intro is still visible
@@ -190,20 +210,20 @@ export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {
     onBoard(); // the conductor's "calling at" line
     paintBlind();
     if (!soundsPlayed) { soundsPlayed = 'bell'; ding(); }
-    skip.disabled = true; // a second click cannot ring it again
+    skip.disabled = true; skip.setAttribute('aria-disabled', 'true'); // a second click cannot ring it again
     navigator.vibrate?.(40);
   });
   root.querySelector('[data-intro-direct]').addEventListener('click', () => { if (active && !bellTimer) { dismiss(); if (matchMedia('(min-width: 1024px)').matches) document.querySelector('.profile-more')?.setAttribute('open', ''); } }); // desktop: the summary opens already expanded // recruiters: straight to the HTML profile, no waiting for the city
-  root.addEventListener('cancel', e => { e.preventDefault(); if (ready) dismiss(); }); // Esc waits for the city like Skip does
+  root.addEventListener('cancel', e => { e.preventDefault(); if (isReady()) dismiss(); }); // Esc waits for the first renderable scene
   return {
     start() {
       active = true;
       document.body.classList.add('intro-on');
       root.showModal();
-      skip.disabled = true; // Skip opens only when the whole city has loaded
-      const hour = new Date().getHours(), tt = t();
+      skip.disabled = true; skip.setAttribute('aria-disabled', 'true');
+      const hour = new Date().getHours();
       root.dataset.tod = hour >= 6 && hour < 17 ? 'day' : hour >= 17 && hour < 20 ? 'dusk' : 'night'; // the windshield follows the visitor's own clock
-      returning = !!navigator.serviceWorker?.controller; // a service worker already in control means the 3D assets are cached: this passenger has been here before, and nothing new is stored
+      try { returning = hasVisited(localStorage); } catch { returning = false; }
       paintStatic();
       root.querySelector('.intro-barcode').innerHTML = barcode('0083');
       root.querySelectorAll('[data-link]').forEach((a) => { a.href = links[a.dataset.link]; });
@@ -214,18 +234,17 @@ export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {
           tilt = requestAnimationFrame(() => { tilt = 0; card.style.setProperty('--ry', `${((e.clientX / innerWidth) - .5) * 5}deg`); card.style.setProperty('--rx', `${(.5 - (e.clientY / innerHeight)) * 3}deg`); });
         });
       }
-      if (!reduced) blindTimer = setInterval(() => { if (active && !ready && !previewed && !interacted && !bellTimer) { blindStep++; paintBlind(); } }, 2600); // reduced motion keeps the first message still
+      if (!reduced) blindTimer = setInterval(() => { if (active && !isReady() && !previewed && !interacted && !bellTimer) { blindStep++; paintBlind(); } }, 2600); // departure board flavour is independent of the actual loading status
       tipIndex = Math.floor(Math.random() * t().ui.intro.tips.length); paintTip(); // a different tip first on each visit
-      if (!reduced) tipTimer = setInterval(() => { if (active && !bellTimer) nextTip(); }, 6500); // reduced motion keeps the first tip still
+      updateTipTimer(); // reduced motion keeps the first tip still
       document.addEventListener('keydown', onKey); document.addEventListener('langchange', onLang);
-      unsubscribe = onLoadChange(() => { if (active) { paintProgress(); paintBlind(); } });
+      unsubscribe = introState.subscribe(() => { if (active) { paintProgress(); paintBlind(); } });
       paintProgress();
       render();
     },
-    phase(name) { phase = name; if (active) paintProgress(); }, // a step of the finishing phase is done (main.js)
-    worldLoaded() { loaded = true; if (active) paintProgress(); }, // the world exists, buildings and landmarks may still be arriving
     ready() {
-      ready = true; skip.disabled = false;
+      introState.ready(); skip.disabled = false;
+      skip.setAttribute('aria-disabled', 'false');
       boarding = true; setTimeout(() => { boarding = false; if (active) paintBlind(); }, 2500); // "All aboard" for a moment, then the city name
       if (active && (document.activeElement === root || document.activeElement === document.body)) skip.focus({ preventScroll: true }); // keyboard users land on the button that just opened
       if (active) { paintProgress(); render(); }
@@ -244,6 +263,7 @@ export function createIntro(root, { onDrive = () => {}, onBoard = () => {} } = {
     },
     get interacted() { return interacted; },
     get active() { return active; },
+    get state() { return introState; },
     dismiss,
   };
 }

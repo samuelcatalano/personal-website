@@ -50,7 +50,7 @@ try:
       }
       document.querySelector('[data-nav-home]').click();
       check(panel.clientWidth >= 390, 'Reading surface is still too narrow');
-      check(parseFloat(getComputedStyle(panel.querySelector('.hint')).fontSize) >= 12, 'Ride instruction remains too small');
+      check(!panel.querySelector('.hint'), 'The home panel does not repeat the loading screen scroll instruction');
       controls.querySelector('[data-quick]').click();
       check(controls.querySelector('[data-quick]').getAttribute('aria-pressed') === 'true' && controls.querySelector('[data-auto]').getAttribute('aria-pressed') === 'false', 'Auto Ride must identify its own active state');
       controls.querySelector('[data-quick]').click();

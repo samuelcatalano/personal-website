@@ -1,14 +1,19 @@
-import { stops, SECTIONS, sectionStart } from './content.js';
+import { stops, SECTIONS, sectionStart, i18n } from './content.js';
 import { watchScroll, stopMarks, nearestStop, scrollYForStop, progressFromScroll, navLock } from './scroll.js';
 import { routePoints, STOP_SPACING } from './world/layout.js';
 import { initUI } from './ui.js';
 import { createIntro } from './intro.js';
 import { createAutoRide, travelMs } from './autoride.js';
-import { whenSettled } from './world/load-progress.js';
+import { whenSettled, loadState, onLoadChange } from './world/load-progress.js';
+import { introState } from './intro-state.js';
 import { makePostcard, download } from './postcard.js';
 import { setEnabled } from './audio/engine.js';
 const n = stops.length;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const introDebug = new URLSearchParams(location.search).has('debugIntro');
+const navigationStart = performance.getEntriesByType('navigation')[0]?.startTime ?? 0;
+const logIntroTiming = (event = 'event') => { if (introDebug) console.debug(`[intro-timing] ${event}: ${Math.round(performance.now() - navigationStart)}ms`); };
+logIntroTiming('navigation start');
 const pts = routePoints(n), marks = stopMarks(pts);
 // one scroll budget per metre of road: a normal 30 m stop = 100vh, longer roads scroll proportionally longer
 const length = pts.reduce((a, q, i) => a + (i ? Math.hypot(q.x - pts[i - 1].x, q.z - pts[i - 1].z) : 0), 0);
@@ -157,46 +162,55 @@ watchScroll((p) => {
   if (!world) follow(p);
   world?.setProgress(p);
 });
-// Frozen stills of the three cities for the intro windshield: jump the camera to each, grab a frame, then put it back (skipped if the visitor is already driving)
-const stills = async (w) => {
-  if (!w.snapshot || intro.interacted || !intro.active) return;
-  const wait = (ms) => new Promise((r) => setTimeout(r, ms)), frames = (k) => new Promise((r) => { const f = (i) => (i ? requestAnimationFrame(() => f(i - 1)) : r()); f(k); }), at = (i) => marks[i], out = {};
-  let cover = null, coverUrl = '';
-  try {
-    out.sp = await w.snapshot(); intro.phase('sp');
-    // the camera tours London and Glasgow for their stills: the first still stays on screen over the canvas so nobody sees it travel
-    cover = Object.assign(document.createElement('img'), { src: (coverUrl = URL.createObjectURL(out.sp)), alt: '' });
-    Object.assign(cover.style, { position: 'fixed', inset: '0', width: '100%', height: '100%', objectFit: 'cover', zIndex: '1', pointerEvents: 'none' });
-    document.body.append(cover); await cover.decode?.().catch(() => {});
-    for (const [city, p] of [['london', (at(9) + at(10)) / 2], ['glasgow', at(stops.findIndex((s) => s.id === 'glasgow'))]]) {
-      if (intro.interacted || !intro.active) return;
-      w.jump(p); await wait(450); out[city] = await w.snapshot(); intro.phase(city);
-    }
-    intro.showPreviews(out);
-  } finally { w.jump(progress); await frames(3); cover?.remove(); if (coverUrl) URL.revokeObjectURL(coverUrl); } // hand the camera back to the page scroll, then drop the cover once a frame is drawn
-};
 const DRIVE = 0.03; // share of the route the intro lets the visitor drive (about one stop)
 const intro = createIntro(document.getElementById('intro'), {
   onDrive: (p) => world?.setProgress(p === null ? progress : p * DRIVE),
   onBoard: () => ui.callingAt(),
 });
+const loading = document.getElementById('loading');
+const loadingText = loading?.querySelector('[data-i18n="loading"]');
+const paintLoadState = ({ phase, stage, progress }) => {
+  document.body.dataset.loadState = phase;
+  if (!loading || !loadingText) return;
+  loading.hidden = phase !== 'loading';
+  if (phase === 'loading') {
+    const ui = (document.documentElement.lang.startsWith('pt') ? i18n.pt : i18n.en).ui;
+    const label = stage ? (ui.intro.stages[stage] || ui.cities.sp).replace(/…$/, '') : ui.cities.sp;
+    loadingText.textContent = ui.intro.loadingProgress.replace('{stage}', label).replace('{percent}', progress);
+  }
+};
+intro.state.subscribe(paintLoadState);
+onLoadChange(() => { const { ratio, stage } = loadState(); introState.loading(stage || 'city', ratio * 100); });
+document.addEventListener('langchange', () => paintLoadState(introState.current));
 const hasWebGL = () => { try { const gl = document.createElement('canvas').getContext('webgl2'); gl?.getExtension('WEBGL_lose_context')?.loseContext(); return !!gl; } catch { return false; } };
-if (hasWebGL()) {
+const canRender3d = hasWebGL();
+const deviceMemory = Reflect.get(navigator, 'deviceMemory');
+const weakDevice = (deviceMemory && deviceMemory <= 2) || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2);
+const beginWorld = (showIntro = false) => {
+  if (!canRender3d) { document.body.classList.add('no-webgl'); return; }
+  document.body.classList.remove('summary-mode', 'no-webgl');
   document.body.classList.add('world-loading');
-  intro.start();
+  if (showIntro) intro.start();
   import('./world/scene.js')
     .then((m) => m.createWorld(document.getElementById('world'), stops, {
       reducedMotion, onProgress: follow, onPick: (id) => (id === 'bus' ? ui.say('horn') : goto(stops.findIndex((s) => s.id === id))),
     }))
-    .then((w) => { world = w; w.setProgress(progress); w.setTheme(ui.theme); document.body.classList.add('world-ready'); intro.worldLoaded();
-      whenSettled().then(async () => { document.body.classList.add('world-settled'); intro.phase('settled');
-        await stills(w).catch(() => {}); // the still tour moves the camera and streams more of the city: Board opens only after it has finished and the load has settled again, so nothing changes after the release
-        intro.phase('glasgow'); // the photos are over (taken or skipped): the rest is the last settle
-        await whenSettled(); intro.ready(); ui.readyToDepart(); }); })
-    .catch((err) => { console.warn('3D world unavailable:', err); intro.dismiss(); document.body.classList.add('no-webgl'); });
-} else {
-  document.body.classList.add('no-webgl');
-}
+    .then(async (w) => {
+      world = w; w.setProgress(progress); w.setTheme(ui.theme); document.body.classList.add('world-ready');
+      await new Promise((resolve) => {
+        const frame = () => requestAnimationFrame(() => requestAnimationFrame(resolve));
+        frame(); setTimeout(resolve, 250);
+      });
+      if (showIntro) { logIntroTiming('first scene ready'); intro.ready(); logIntroTiming('CTA enabled'); }
+      else introState.ready();
+      whenSettled().then(() => { document.body.classList.add('world-settled'); introState.ready(); logIntroTiming('all assets loaded'); if (showIntro && intro.active) ui.readyToDepart(); });
+    })
+    .catch((err) => { console.warn('3D world unavailable:', err); if (showIntro) intro.dismiss(); document.body.classList.add('no-webgl', 'summary-mode'); });
+};
+document.getElementById('load-experience')?.addEventListener('click', () => beginWorld(false));
+if (!canRender3d) document.body.classList.add('no-webgl');
+else if (reducedMotion || weakDevice) document.body.classList.add('summary-mode');
+else beginWorld(true);
 
 // A second visit loads the 3D assets from the cache (sw.js); ?nosw skips it for tests and captures
 if ('serviceWorker' in navigator && !/[?&]nosw\b/.test(location.search)) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}), { once: true });

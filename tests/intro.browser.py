@@ -23,7 +23,7 @@ try:
     cdp('Network.enable')
     cdp('Network.setCacheDisabled', cacheDisabled=True)
     cdp('Page.addScriptToEvaluateOnNewDocument', source="""
-      localStorage.setItem('lang', '%s'); localStorage.setItem('theme', '%s');
+      localStorage.setItem('lang', '%s'); localStorage.setItem('theme', '%s'); localStorage.removeItem('samuel-portfolio-visited');
       window.__introErrors = [];
       addEventListener('error', e => { if (e.message) __introErrors.push(e.message); });
       const logError = console.error;
@@ -95,19 +95,21 @@ try:
         arrow('ArrowLeft', 37, 20)
         assert js("document.querySelector('.intro-stations [aria-current]').dataset.previewStop === 'sp'"), 'Left should drive backward after the control loses focus'
         assert js("document.querySelector('#intro').dataset.dir === 'up'")
-    assert js("""(() => {
+    alignment = js("""(() => {
       const stub = document.querySelector('.intro-side').getBoundingClientRect(); // the boarding pass keeps the action on its tear-off stub
       const skip = document.querySelector('[data-intro-skip]').getBoundingClientRect();
-      return Math.abs(stub.x + stub.width / 2 - skip.x - skip.width / 2) < 1;
-    })()"""), 'Skip should be centered in the ticket stub'
+      return { delta: stub.x + stub.width / 2 - skip.x - skip.width / 2, stub: [stub.x, stub.width], skip: [skip.x, skip.width] };
+    })()""")
+    assert abs(alignment['delta']) < 1, f'Skip should be centered in the ticket stub: {alignment}'
     if not js("document.body.classList.contains('world-settled')"):
         assert js("document.querySelector('[data-intro-skip]').disabled"), 'Skip stays disabled until the whole city has loaded'
     for _ in range(240):
-        if js("!document.querySelector('[data-intro-skip]').disabled"): break # world-settled comes before the stills and the second settle; Skip opens after both
+        if js("document.body.classList.contains('world-settled')"): break
         time.sleep(.25)
     assert js("document.body.classList.contains('world-settled')")
     assert js("!document.querySelector('[data-intro-skip]').disabled"), 'Skip opens once the city has settled'
-    assert js("(async () => { const { i18n } = await import('./js/content.js'); return document.querySelector('[data-intro-skip]').textContent === i18n[document.documentElement.lang.startsWith('pt') ? 'pt' : 'en'].ui.intro.start; })()"), 'Skip shows the localized start copy'
+    assert js("(() => { const copy = document.documentElement.lang.startsWith('pt') ? 'Começar a viagem' : 'Start the Journey'; return document.querySelector('[data-intro-skip]').textContent === copy; })()"), 'Skip shows the localized start copy'
+    js("Object.assign(document.querySelector('.intro-card').style, {transition:'none', transform:'none'})")
     if mobile:
         js("document.querySelector('[data-intro-skip]').click()")
     else:
@@ -142,6 +144,7 @@ try:
             assert js("__boardingFrames.some(f=>f.opacity===1&&f.left<0&&f.right>0)"), 'The glass panels should slide apart before the overlay fades'
             assert js("__boardingFrames.some(f=>f.opacity>0&&f.opacity<1)"), 'The intro should fade while the glass panels finish opening'
     assert js("!document.querySelector('#intro').open && !document.body.classList.contains('no-webgl')")
+    assert js("!document.querySelector('#journey-hint')"), 'The scene does not repeat the scroll instructions from the loading intro'
     if not board:
         for _ in range(120):
             if js("document.body.classList.contains('world-ready')"): break

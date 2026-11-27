@@ -1,0 +1,12 @@
+{
+  "name": "personal-website",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build && node tools/copy-build-assets.mjs"
+  },
+  "devDependencies": {
+    "vite": "^8.4.0"
+  }
+}

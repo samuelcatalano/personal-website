@@ -16,7 +16,7 @@ Portfolio for Samuel Catalano: a voxel London where a red double-decker bus driv
 
 ## Rules
 
-- No build step and no npm in the shipped site. Plain HTML/CSS/ES modules; Three.js is pinned in the import map in `index.html`. `tools/pipeline/` is a dev-only npm package and is not shipped.
+- `npm run dev` and `npm run build` are optional dev tools; GitHub Pages continues to serve the plain static site with no npm at runtime. Vite builds a self-contained static `dist/` preview; Three.js stays pinned in the import map in `index.html`. `tools/pipeline/` is a separate dev-only npm package and is not shipped.
 - All user-facing copy lives in `js/content.js`, in `en` and `pt`. No copy hardcoded in other modules.
 - The HTML panel is the source of truth; the 3D world is decoration. WebGL stays on in the shipped site; WebGL off is a test scenario only. The site must work with `prefers-reduced-motion`.
 - Privacy: never publish a home address or phone number. Contact = email, LinkedIn, GitHub. Any shipped CV is redacted.

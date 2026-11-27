@@ -30,12 +30,12 @@ const quickSeconds = () => (matchMedia('(prefers-reduced-motion: reduce)').match
 function visitAfterMs() { return 3000; }
 const cityStops = (c) => stops.flatMap((st, i) => (st.section === 'journey' && cityOf(st) === c ? [i] : [])); // the journey stop indices in one city
 const clockNow = () => new Intl.DateTimeFormat(document.documentElement.lang.startsWith('pt') ? 'pt-BR' : 'en-GB', { hour: '2-digit', minute: '2-digit' }).format(new Date());
-const journeyLine = (t, seenSet) => { // the counter the journey panel shows; rebuilt in place when a stop is confirmed
+export const journeyLine = (t, seenSet) => { // the counter the journey panel shows; rebuilt in place when a stop is confirmed
   const count = journeySeenCount(seenSet);
   // one stamp per stop, grouped by city; decorative, the count and the bar already say it
   const passport = Object.keys(t.ui.cities).map((c) => `<div class="jp-city"><b>${t.ui.cities[c]}</b><span class="jp-stamps">${cityStops(c).map((i) => `<i class="${seenSet.has(i) ? 'on' : ''}"></i>`).join('')}</span></div>`).join('');
   const validated = count === journeyTotal ? `<p class="validated-stamp">${t.ui.intro.validated.replace('{time}', clockNow())}</p>` : ''; // all 12 stops: the same stamp the intro ticket gets
-  return `<div class="journey-progress"><span>${count ? t.ui.progress.replace('{count}', count).replace('{total}', journeyTotal) : t.ui.progressEmpty.replace('{quick}', quickSeconds())}</span><progress value="${count}" max="${journeyTotal}">${count}/${journeyTotal}</progress><div class="jp-passport" aria-hidden="true">${passport}</div>${validated}</div>`;
+  return `<div class="journey-progress"><span id="journey-progress-label">${count ? t.ui.progress.replace('{count}', count).replace('{total}', journeyTotal) : t.ui.progressEmpty.replace('{quick}', quickSeconds())}</span><progress aria-labelledby="journey-progress-label" value="${count}" max="${journeyTotal}">${count}/${journeyTotal}</progress><div class="jp-passport" aria-hidden="true">${passport}</div>${validated}</div>`;
 };
 const ticketMeta = (t, tool) => { const s = toolSpan(tool); return `${t.ui.ticketSince.replace('{year}', s.since)} · ${t.ui.ticketStops.replace('{n}', s.count)}`; };
 const QUICK_MS = 1500; // ponytail: just under the quick tour's 1600 ms stop, so quick stops count on that path only
@@ -44,7 +44,7 @@ const nextButton = (t, seenSet, at) => { // desktop: the career stop after the o
   const i = desk ? tripState(stops, at, seenSet).next : stops.findIndex((st, k) => st.section === 'journey' && !seenSet.has(k));
   return i < 0 ? (desk ? `<p class="next-final"><span class="next-node" aria-hidden="true"></span><span class="next-text"><small>${t.ui.nextStop}</small><b>${t.ui.finalStop}</b></span></p>` : '') : `<button type="button" class="next-stop" data-next="${i}"><span class="next-node" aria-hidden="true"></span><span class="next-text"><small>${t.ui.nextStop}</small><b>${stops[i].year} ${t.stops[stops[i].id].title}</b></span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"/></svg></button>`;
 };
-const routeStrip = (t, route) => `<ol class="route-strip" aria-label="${t.ui.recap.route}">${stops.map((st, i) => (st.section === 'journey' ? `<li class="${st.country.toLowerCase()}${route.seen.has(i) ? ' seen' : ''}"><span class="sr-only">${t.stops[st.id].title}</span></li>` : '')).join('')}</ol>`;
+export const routeStrip = (t, route) => `<ol class="route-strip" aria-label="${t.ui.recap.route}">${stops.map((st, i) => (st.section === 'journey' ? `<li class="${st.country.toLowerCase()}${route.seen.has(i) ? ' seen' : ''}"><span class="sr-only">${t.stops[st.id].title}: ${route.seen.has(i) ? t.ui.recap.visited : t.ui.recap.notVisited}</span></li>` : '')).join('')}</ol>`;
 const camera = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 7h3l1.5-2h7L17 7h3v12H4z"/><circle cx="12" cy="12.5" r="3.5"/></svg>';
 const recap = (t, route) => { // the return ticket: the route as a strip of stops, the passport stamps on the stub, then the postcard of the last view
   const r = t.ui.recap, cityKeys = Object.keys(t.ui.cities), reached = journeySeenCount(route.seen);
@@ -275,7 +275,7 @@ export function initUI({ onGoto, onTheme, onHold = () => {}, onNudge = () => {},
     for (const el of document.querySelectorAll('.led .live')) { el.classList.remove('arrive'); void el.offsetWidth; el.classList.add('arrive'); }
     arrivalDing();
   };
-  const resetRoute = () => { // "Start the route again": clears progress on this device, then redraws
+  const resetRoute = () => { // "Start the route again": clears this visit's progress, then redraws
     seen.clear(); stamped.clear(); cities.clear(); route.found.clear(); route.quick.clear();
     render();
     clearTimeout(dwellTimer); clearTimeout(quickTimer); // render() arms the stop under the bus; it counts only after the visitor moves on
@@ -357,8 +357,11 @@ export function initUI({ onGoto, onTheme, onHold = () => {}, onNudge = () => {},
     const currentRow = panel.querySelector('.stops .on');
     if (currentRow && matchMedia('(min-width: 768px) and (max-width: 1023px)').matches) currentRow.scrollIntoView({ block: 'nearest' });
     clock();
-    if (keep && !prev.isConnected) document.querySelector(`[${keep[0]}="${keep[1]}"]`)?.focus({ preventScroll: true }); // only an element the render replaced needs its focus back
-    else if (!sectionChanged && panelLinkIndex >= 0) panel.querySelectorAll('a[href]')[panelLinkIndex]?.focus({ preventScroll: true });
+    if (keep && !prev.isConnected) {
+      const focused = document.querySelector(`[${keep[0]}="${keep[1]}"]`);
+      focused?.focus({ preventScroll: true }); // only an element the render replaced needs its focus back
+      if (keep[0] === 'data-goto' && matchMedia('(min-width: 1024px)').matches) focused?.scrollIntoView({ block: 'nearest' }); // desktop keeps a keyboard-selected stop visible after the ticket rebuild
+    } else if (!sectionChanged && panelLinkIndex >= 0) panel.querySelectorAll('a[href]')[panelLinkIndex]?.focus({ preventScroll: true });
     else if (!sectionChanged && panelCredits) panel.querySelector('[data-credits]')?.focus({ preventScroll: true });
     onFocusStop(litFor(document.activeElement)); // a re-rendered list loses its hover: only a focused stop or tool stays lit
     const c = t.stops[st.id];

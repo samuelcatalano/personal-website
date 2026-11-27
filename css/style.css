@@ -62,7 +62,7 @@ body { margin: 0; font: 15px/1.6 var(--sans); color: var(--ink); background: lin
 .controls button { min-width: 36px; min-height: 36px; padding: 0 8px; border: 0; border-radius: 10px; background: none; color: inherit; font: 600 11px var(--sans); cursor: pointer; transition: background .2s, color .2s; }
 @media (hover: hover) { .controls button:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); color: var(--accent); } }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-/* ponytail: thin scrollbar keeps the reading column >= 330 px of text (380 px panel on desktop) when the hero fact sheet overflows a 900 px-tall window; trim the hero copy if it ever overflows by much more */
+/* ponytail: thin scrollbar keeps the reading column >= 390 px of text (404 px panel on desktop) when the hero fact sheet overflows a 900 px-tall window; trim the hero copy if it ever overflows by much more */
 .panel { scrollbar-width: thin; position: fixed; top: 92px; bottom: auto; left: 24px; width: min(360px, calc(100vw - 48px)); max-height: calc(100vh - 116px); max-height: calc(100dvh - 116px); overflow: auto;
   background: var(--card); border: 1px solid var(--line); border-top: 4px solid var(--city, var(--accent)); border-radius: 18px; padding: clamp(22px, 3vw, 32px); z-index: 4;
   box-shadow: 0 1px 2px rgba(40, 30, 20, .08), 0 12px 32px rgba(40, 30, 20, .14); }
@@ -137,7 +137,15 @@ body.theme-night .panel a.btn.solid { color: #1b1d1f; }
 .bar-fill { position: relative; width: 56px; height: 3px; overflow: hidden; background: var(--line); }
 .bar-fill::after { content: ''; position: absolute; inset: 0 auto 0 0; width: 40%; background: var(--accent); animation: load 1.1s ease-in-out infinite; }
 @keyframes load { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
-body.world-loading:not(.world-ready, .no-webgl, .intro-on) #loading { display: flex; }
+#loading:not([hidden]) { display: flex; }
+body.intro-on #loading { display: none; }
+#world { opacity: 0; transition: opacity .35s ease; }
+body.world-ready #world { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { #world { transition: none; } }
+#load-experience { display: none; position: fixed; top: 84px; right: 24px; z-index: 5; min-height: 44px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 4px; background: var(--card); color: var(--ink); font: 600 12px var(--sans); cursor: pointer; }
+body.summary-mode #load-experience { display: block; }
+body.no-webgl #load-experience { display: none; }
+#intro-hint { display: none; }
 #intro {
   --ticket: #f7f1e5; --ticket-ink: #2d2822; --ticket-muted: #665a4c; --ticket-line: #d9cbb7;
   --ticket-red: #a82028; --ticket-green: #176b46;
@@ -186,7 +194,7 @@ body.world-loading:not(.world-ready, .no-webgl, .intro-on) #loading { display: f
 @keyframes intro-scan { 0% { opacity: 1; left: 0; } 90% { opacity: 1; } 100% { opacity: 0; left: calc(100% - 3px); } }
 .intro-eyebrow { margin: 0 0 8px; color: var(--ticket-red); font: 700 11px/1.2 var(--sans); letter-spacing: .18em; text-transform: uppercase; }
 .intro-profile { display: grid; gap: 10px; justify-items: center; }
-.intro-direct { padding: 8px 4px; background: none; border: 0; border-bottom: 1px solid var(--ticket-line); color: var(--ticket-ink); font: 700 13px var(--sans); letter-spacing: .02em; cursor: pointer; transition: border-color .2s, color .2s; }
+.intro-direct { padding: 10px 16px; background: color-mix(in srgb, var(--ticket-red) 5%, transparent); border: 1px solid var(--ticket-line); color: var(--ticket-ink); font: 700 13px var(--sans); letter-spacing: .02em; cursor: pointer; transition: border-color .2s, color .2s, background .2s; }
 .intro-direct::after { content: ' →' / ''; }
 /* the page interface stays out of sight behind the ticket, then arrives once it leaves */
 body.intro-on :is(.bar, .panel, #ui-restore) { opacity: 0; }
@@ -818,7 +826,7 @@ body.ui-hidden #stop-request, body.intro-on #stop-request { display: none; }
 @media (min-width: 1601px) { .brand .led .live { width: 300px; } } /* the header blind shows from 1601 px; 172 px cut the longer messages in half */
 /* header nav on desktop: the active section changes on the click itself. The colours used to fade for 0.2 s, so the old and new items both looked active */
 @media (min-width: 1024px) { .bar nav a { transition: none; } }
-/* desktop panel: 380 px, lightly see-through (95% of the card, about 92% opaque), so the city shows behind it. Muted text is darker on the day panel and the night accent lighter, so both stay at AA over a black or a white scene (measured: day muted 5.1:1, night accent 4.9:1). */
+/* desktop panel: 404 px, lightly see-through (95% of the card, about 92% opaque), so the city shows behind it. Muted text is darker on the day panel and the night accent lighter, so both stay at AA over a black or a white scene (measured: day muted 5.1:1, night accent 4.9:1). */
 @media (min-width: 1024px) {
   .panel { width: min(var(--panel-w), calc(100vw - 48px)); background: color-mix(in srgb, var(--card) 95%, transparent); -webkit-backdrop-filter: blur(12px) saturate(1.2); backdrop-filter: blur(12px) saturate(1.2); --muted: #635c52; }
   body.theme-night .panel { --muted: #c2b9ac; --accent: #f7857f; }
@@ -842,7 +850,7 @@ body.ui-hidden #stop-request, body.intro-on #stop-request { display: none; }
 @media (min-width: 1024px) { .recent-role { display: none; } }
 /* passport toast, desktop: back at the top under the header and centred on the screen, as it was. Where that centre would cover the panel (narrow desktops), it moves right just far enough to clear it: a toast is at most about 150 px wide on each side of its centre. --panel-w is the panel's width */
 @media (min-width: 1024px) {
-  :root { --panel-w: 380px; }
+  :root { --panel-w: 404px; }
   #arrival { left: max(50%, calc(var(--panel-w) + 200px)); }
 }
 @media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
