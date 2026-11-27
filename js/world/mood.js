@@ -27,7 +27,8 @@ export function createMood(stops, { weather = visitWeather, reducedMotion = fals
     for (const k of COLS) palette[k] = base[k].map((v, i) => v + (RP[region][k][i] - v) * amount);
     palette.sun = base.sun * (1 - 0.72 * amount);
     palette.hemi = base.hemi + 0.25 * amount;
-    palette.fogK = base.fogK * (1 - 0.48 * amount);
+    // Mild veil under overcast (art direction 2026-11-16): 0.48 cut fogK to ~0.58 at full cover, so far rows merged into one grey band.
+    palette.fogK = base.fogK * (1 - 0.30 * amount);
     palette.cloudOp = base.cloudOp + climate.cover * 0.25;
     for (const k of ['rain', 'cover', 'wet', 'storm', 'fall', 'wind', 'drops']) palette[k] = climate[k];
     return palette;
