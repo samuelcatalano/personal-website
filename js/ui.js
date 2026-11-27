@@ -37,7 +37,7 @@ export const journeyLine = (t, seenSet) => { // the counter the journey panel sh
   const validated = count === journeyTotal ? `<p class="validated-stamp">${t.ui.intro.validated.replace('{time}', clockNow())}</p>` : ''; // all journey stops: the same stamp the intro ticket gets
   return `<div class="journey-progress"><span id="journey-progress-label">${count ? t.ui.progress.replace('{count}', count).replace('{total}', journeyTotal) : t.ui.progressEmpty.replace('{quick}', quickSeconds())}</span><progress aria-labelledby="journey-progress-label" value="${count}" max="${journeyTotal}">${count}/${journeyTotal}</progress><div class="jp-passport" aria-hidden="true">${passport}</div>${validated}</div>`;
 };
-const ticketMeta = (t, tool) => { const s = toolSpan(tool); return `${t.ui.ticketSince.replace('{year}', s.since)} · ${t.ui.ticketStops.replace('{n}', s.count)}`; };
+const ticketMeta = (t, tool) => { const s = toolSpan(tool); return `${t.ui.ticketSince.replace('{year}', s.since)} · ${(s.count === 1 ? t.ui.ticketStopOne : t.ui.ticketStops).replace('{n}', s.count)}`; };
 const QUICK_MS = 1500; // ponytail: just under the quick tour's 1600 ms stop, so quick stops count on that path only
 const nextButton = (t, seenSet, at) => { // desktop: the career stop after the one the bus is at, or a plain "Final stop" line past the last. Phones and tablets keep the first career stop not yet reached.
   const desk = matchMedia('(min-width: 1024px)').matches;
