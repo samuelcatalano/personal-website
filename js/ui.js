@@ -81,7 +81,7 @@ function sectionHTML(section, t, active, tool = null, route = { seen: new Set(),
       <p class="value">${s.value}</p><dl class="fact-sheet">${s.facts.map(f => `<div><dt>${f.label}</dt><dd>${f.value}</dd></div>`).join('')}</dl><ul class="hero-links contact">
         ${contact(t.sections.contact)}</ul>
       <div class="profile-status"><p class="avail">${s.availability}</p><p class="clock">${t.ui.clock} <time data-london></time></p></div>
-        <details class="profile-more"><summary>${t.ui.more}</summary><p class="proof">“${s.proof}” <span>${t.recs[0].name}, ${t.recs[0].role}</span></p><p class="tagline">${s.tagline}</p></details><p class="hint">${matchMedia('(pointer: coarse)').matches ? t.ui.scrollTouch : t.ui.scroll} ↓</p>`;
+        <details class="profile-more"><summary>${t.ui.more}</summary><p class="proof">“${s.proof}” <span>${t.recs[0].name}, ${t.recs[0].role}</span></p><p class="tagline">${s.tagline}</p></details>`;
     case 'journey': {
       const selected = stops[active], c = t.stops[selected.id];
       return `

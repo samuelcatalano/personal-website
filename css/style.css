@@ -84,7 +84,6 @@ body { margin: 0; font: 15px/1.6 var(--sans); color: var(--ink); background: lin
 .panel .clock time { color: var(--ink); font-weight: 600; }
 .panel .avail::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: var(--accent); animation: live 2.4s ease-in-out 3; } /* three pulses, then still: a decorative loop does not run for the whole visit */
 @keyframes live { 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 22%, transparent); } }
-.panel .hint { color: var(--muted); font-size: 11px; letter-spacing: .04em; margin: 18px 0 0; }
 .avatar { display: block; width: 72px; height: 72px; object-fit: cover; border-radius: 50%; border: 1px solid var(--line); background: var(--sky); }
 .profile-head { display: grid; grid-template-columns: 64px minmax(0, 1fr); align-items: center; gap: 16px; }
 .profile-head .avatar { width: 64px; height: 80px; border-radius: 12px; }
@@ -513,7 +512,7 @@ blockquote footer b { color: var(--ink); font-weight: 600; }
   .panel .profile-status .clock { margin-top: 4px; font-size: 12px; }
   .panel[data-section="hero"] .tagline { margin: 16px 0 0; font-size: 12px; line-height: 1.5; }
   .panel .proof { margin-top: 20px; border-left-color: var(--line); font-size: 13px; }
-  .panel .hint, .journey-progress, .current-stop small, .recent-role small, .stops .yr, .ticket-meta, .svc-all small { font-size: 12px; }
+  .journey-progress, .current-stop small, .recent-role small, .stops .yr, .ticket-meta, .svc-all small { font-size: 12px; }
   .ticket-meta { white-space: normal; }
   .panel a.repo code { font-size: 13px; }
   .panel a.repo .tags i { font-size: 12px; }
@@ -540,7 +539,6 @@ blockquote footer b { color: var(--ink); font-weight: 600; }
   .panel .value { margin-top: 10px; font-size: 15px; }
   .panel .proof { display: none; }
   .hero-links { margin-top: 12px; }
-  .panel .hint { margin-top: 12px; }
   .bar nav { scrollbar-width: none; }
   .bar nav::-webkit-scrollbar { display: none; }
   .avatar { width: 56px; height: 56px; }

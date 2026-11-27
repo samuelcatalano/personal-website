@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { practice } from '../js/intro.js';
 
 test('the preview advances and reverses without leaving the route', () => {
@@ -58,4 +59,14 @@ test('every language has the finishing-step texts and the same tips', () => {
   assert.ok(en.photo.includes('{city}') && pt.photo.includes('{city}'));
   assert.ok(en.tips.length >= 3 && en.tips.length === pt.tips.length, 'same number of tips in en and pt');
   assert.ok([...en.tips, ...pt.tips].every((s) => typeof s === 'string' && s.length > 10));
+});
+
+test('the loading intro keeps its scroll cue without repeating it in the home panel', async () => {
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const ui = await readFile(new URL('../js/ui.js', import.meta.url), 'utf8');
+  assert.match(html, /id="intro-hint"/);
+  assert.doesNotMatch(ui, /class="hint"/);
+  assert.doesNotMatch(ui, /t\.ui\.scroll(?:Touch)?/);
+  assert.equal(i18n.en.ui.scroll, undefined);
+  assert.equal(i18n.pt.ui.scroll, undefined);
 });
