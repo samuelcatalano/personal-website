@@ -31,10 +31,30 @@ const SP_RANGE = 0.062, MIN_SPAWN = 110; // Sao Paulo cars loop inside [route st
 const ACC = 3, DEC = 6, GAP = 3.5, ZEBRA_AT = 9, SLOW = 24; // m/s^2 up, m/s^2 down, bumper gap (m), zebra offset past a stop (roadmarks.js), slow-down radius (m)
 const CARS = Array.from({ length: 16 }, (_, i) => [['#151a20', '#b9bec5', '#a31d2a', '#142b4a', '#173b2d', '#e8e6df', '#5d6b78', '#7b4a2a', '#1f5560', '#b78a2a', '#6d1f3a'][(i * 3) % 11], ['mini', 'sedan', 'suv', 'mini', 'sedan', 'van', 'sedan', 'hatch', 'suv', 'sedan', 'hatch', 'suv', 'sedan', 'hatch', 'suv', 'sedan'][i]]); // metallic black, silver, red, dark blue, dark green, white, slate, bronze, teal, mustard and wine
 const REGION_FADE = 0.25;
-function updateRegionalBus(v, target, dt, isDisposed) {
+function updateRegionalBus(v, target, dt, isDisposed, nearPlayer = false) {
   if (!v.modelReady) return;
+  if (v.regionSwap?.phase === 'live') return;
   if (v.regionSwap?.phase === 'out') v.regionSwap.asset = target;
-  if (!v.regionSwap && target !== v.modelAsset && target !== v.failedAsset) v.regionSwap = { asset: target, phase: 'out', time: 0 };
+  if (!v.regionSwap && target !== v.modelAsset && target !== v.failedAsset) {
+    if (nearPlayer) {
+      const swap = { asset: target, phase: 'live', wheelRotation: v.mesh.userData.wheels?.[0]?.rotation.z };
+      v.regionSwap = swap;
+      const variant = target === 'sao-paulo' ? 'sao-paulo' : 'london';
+      const asset = target === 'sao-paulo' ? 'sao-paulo' : 'bus';
+      upgradeBus(v.mesh, variant, { hero: false, isDisposed, asset }).then(() => {
+        if (isDisposed() || v.regionSwap !== swap) return;
+        if (v.mesh.userData.visualAsset !== asset) v.failedAsset = target;
+        else {
+          v.modelAsset = target; v.mesh.userData.regionAsset = target; v.mesh.userData.regionTransitions = (v.mesh.userData.regionTransitions ?? 0) + 1; v.len = v.mesh.userData.length;
+          if (Number.isFinite(swap.wheelRotation)) v.mesh.userData.wheels.forEach((w) => { w.rotation.z = swap.wheelRotation; });
+          v.tail = refitBeams(v.mesh);
+        }
+        v.regionSwap = null;
+      }).catch(() => { if (v.regionSwap === swap) { v.failedAsset = target; v.regionSwap = null; } });
+      return;
+    }
+    v.regionSwap = { asset: target, phase: 'out', time: 0 };
+  }
   const swap = v.regionSwap;
   if (!swap) return;
   swap.time += dt;
@@ -64,7 +84,7 @@ function updateRegionalBus(v, target, dt, isDisposed) {
 export function createAmbient(scene, { curve, pts, stops, reducedMotion = false, tunnel = null, dip = null }) {
   const knots = fineMarks(stopMarks(pts), curve), len = curve.getLength(), swapFrame = swapTunnelFrame(curve, stops);
   let disposed = false, miniIndex = 0;
-  const MINI_PAINT = [{ body: '#285b8f', roof: '#f4f1ea' }, { body: '#1f4a35', roof: '#f4f1ea' }, { body: '#b3161f', roof: '#f4f1ea' }, { body: '#d9a520', roof: '#1b1d20' }, { body: '#c9ccd1', roof: '#b3161f' }, { body: '#2f7f86', roof: '#f4f1ea' }];
+  const MINI_PAINT = [{ body: '#285b8f', roof: '#f4f1ea' }, { body: '#1f4a35', roof: '#f4f1ea' }, { body: '#b3161f', roof: '#f4f1ea' }, { body: '#d9a520', roof: '#1b1d20' }, { body: '#c9ccd1', roof: '#1b1d20' }, { body: '#2f7f86', roof: '#f4f1ea' }];
   const D = (type, offset, extra = {}) => {
     const palette = type === 'mini' ? MINI_PAINT[miniIndex++ % MINI_PAINT.length] : undefined;
     return { mesh: buildVehicle(type, { color: palette?.body }), palette, type, offset, uk: true, scot: false, ...extra };
@@ -230,22 +250,28 @@ export function createAmbient(scene, { curve, pts, stops, reducedMotion = false,
       }
       here.copy(curve.getPointAt(Math.min(1, Math.max(0, route))));
       const first = lastRoute === null, jump = first || Math.abs(route - lastRoute) > 0.02; lastRoute = route; // first frame or a nav jump: settle every vehicle at once
-      if (jump) for (const v of auto) { v.active = false; if (!first) v.fade = 0; if (v.tun != null) Object.assign(v, { tun: null, hold: true }); } // re-place them one by one: each checks the clearance against those already placed
+      if (jump) for (const v of auto) {
+        const t = routeT(v.p, pts.length, knots), nearby = t >= 0 && t <= 1 && curve.getPointAt(t).distanceTo(here) <= HIDE;
+        if (nearby) continue;
+        v.active = false; if (!first) v.fade = 0; if (v.tun != null) Object.assign(v, { tun: null, hold: true });
+      } // re-place distant vehicles one by one; cars already near the player stay visible through a nav jump
       for (const v of traffic) {
         const t = v.relative ? route + v.offset : routeT(v.p, pts.length, knots);
-        const sameRegion = (route < swap) === (t < swap), regionBus = v.regionBus || v.type === 'london' || v.type === 'glasgow', inside = t >= 0 && t <= 1, want = inside && !v.hold && (!regionBus || sameRegion) && (v.range || v.uk === undefined || (t >= swap) === v.uk) && (v.scot === undefined || (t >= scotIn && t < scotOut) === v.scot);
-        // region borders sit in view (SP and London share a frame): a vehicle only switches city once it is far from the player, so it drives off instead of popping
-        // Near the player a car that is already on stays on: the lane check below may only stop a car from appearing, never make a visible car vanish.
+        const sameRegion = (route < swap) === (t < swap), regionBus = v.regionBus || v.type === 'london' || v.type === 'glasgow', inside = t >= 0 && t <= 1;
+        const nearPlayer = inside && curve.getPointAt(t).distanceTo(here) <= HIDE, keepNearby = nearPlayer && (v.active || v.fade > 0);
+        const inRegion = (!regionBus || sameRegion) && (v.range || v.uk === undefined || (t >= swap) === v.uk) && (v.scot === undefined || (t >= scotIn && t < scotOut) === v.scot);
+        const want = inside && !v.hold && (inRegion || keepNearby);
+        // Region borders can share a frame. An active vehicle stays through the swap while near the player, then fades once it has driven out of range.
         if (v.tun == null && (jump || !inside || v.relative || v.hold || regionBus || curve.getPointAt(t).distanceTo(here) > HIDE)) { // tunnel cars stay on: their t is pinned at the route start, so this lane check would see the entrance, not them
-          // never appear on top of a car already in the lane (region borders, nav jumps): stay hidden and keep driving until it is clear
-          v.active = want && (v.relative || !traffic.some((o) => o !== v && (o.active || o.fade > 0) && o.lane === v.lane && Math.hypot(o.x - lanePos(t, lat(t, v)).x, o.z - lanePos(t, lat(t, v)).z) < (v.len + o.len) / 2 + GAP) && !bridge.some((b) => Math.hypot(b.x - lanePos(t, lat(t, v)).x, b.z - lanePos(t, lat(t, v)).z) < (v.len + b.len) / 2 + GAP));
+          // Clearance blocks a new appearance; it does not hide a vehicle already near the player.
+          v.active = want && (v.relative || keepNearby || !traffic.some((o) => o !== v && (o.active || o.fade > 0) && o.lane === v.lane && Math.hypot(o.x - lanePos(t, lat(t, v)).x, o.z - lanePos(t, lat(t, v)).z) < (v.len + o.len) / 2 + GAP) && !bridge.some((b) => Math.hypot(b.x - lanePos(t, lat(t, v)).x, b.z - lanePos(t, lat(t, v)).z) < (v.len + b.len) / 2 + GAP));
         }
         if (v.fade !== +v.active) { // toggle instantly while off screen (its new place if appearing, its last place otherwise); fade only if it is in view
           const lp = !v.fade && v.active ? lanePos(t, lat(t, v)) : { x: v.x, z: v.z };
           v.fade = first || reducedMotion || !dt || !inside || !seen(lp.x, lp.z, v.len) ? +v.active : v.active ? Math.min(1, v.fade + dt / FADE) : Math.max(0, v.fade - dt / FADE);
         }
         v.mesh.visible = v.fade > 0; fadeVehicle(v.mesh, v.fade);
-        if (v.regionBus) updateRegionalBus(v, secondaryBusAssetAt(t, swap), dt, isDisposed);
+        if (v.regionBus) updateRegionalBus(v, secondaryBusAssetAt(t, swap), dt, isDisposed, nearPlayer);
         if (!v.active && !v.fade) continue; // a fading-out car keeps driving (spawn checks still see it); off the route ends (hold) it just vanishes
         if (v.livery) { const livery = v.regionBus && t < swap ? 'sao-paulo' : t >= scotIn && t < scotOut ? 'glasgow' : 'london'; if (livery !== v.livery && v.mesh.userData.wheels) { reskinBus(v.mesh, livery); v.livery = livery; } } // buses wear the livery of the region they are in, also after a respawn or past a region border
         const p = curve.getPointAt(t), tan = curve.getTangentAt(t);

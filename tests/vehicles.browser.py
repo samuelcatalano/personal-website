@@ -6,7 +6,8 @@ print(js(r'''(async () => {
   const { buildBus } = await import('./js/world/bus.js');
   const { createAmbient } = await import('./js/world/ambient.js?regional-bus-transition-test-17');
   const { stops } = await import('./js/content.js');
-  const { routePoints, routeCurve, swapAt, heroVehicleAt, secondaryBusAssetAt } = await import('./js/world/layout.js');
+  const { routePoints, routeCurve, swapAt, swapTunnelFrame, heroVehicleAt, secondaryBusAssetAt } = await import('./js/world/layout.js');
+  const { laneSide } = await import('./js/world/lanes.js');
   const { createHeroGroup, applyHeroPose } = await import('./js/world/scene.js');
   const { routeT, stopMarks, fineMarks } = await import('./js/scroll.js');
     const check = (ok, message) => { if (!ok) throw Error(message); };
@@ -136,7 +137,7 @@ print(js(r'''(async () => {
   check(amb.every(v => v.userData.length > 3 && v.userData.beamY > 0), 'userData contract');
 
   const pts = routePoints(stops.length);
-  const curve = routeCurve(THREE, pts);
+  const curve = routeCurve(THREE, pts), swapFrame = swapTunnelFrame(curve, stops);
   const scene = new THREE.Scene(), start = scene.children.length;
   const ambient = createAmbient(scene, { curve, pts, stops });
   const traffic = scene.children.slice(start, start + 20);
@@ -193,7 +194,12 @@ print(js(r'''(async () => {
     traffic.forEach((v, i) => {
       if (v.visible) {
         check([v.position.x, v.position.y, v.position.z].every(Number.isFinite), 'traffic positions must remain finite');
-        if (k % 30 === 0) { const lateral = Math.min(...routeSamples.map(p => Math.hypot(v.position.x - p.x, v.position.z - p.z))); check(lateral > 1.4 && lateral < 2.1, `traffic must remain in its assigned road lane (${i} ${v.name} ${lateral.toFixed(2)} k=${k})`); }
+        if (k % 30 === 0) {
+          let nearest = 0, lateral = Infinity;
+          routeSamples.forEach((p, j) => { const d = Math.hypot(v.position.x - p.x, v.position.z - p.z); if (d < lateral) { nearest = j; lateral = d; } });
+          const t = routeT(nearest / 4000, pts.length, knots), expected = 1.75 * Math.abs(laneSide((t - swapFrame.t) * swapFrame.speed));
+          check(Math.abs(lateral - expected) < 0.25, `traffic must follow its assigned road lane, including the tunnel crossover (${i} ${v.name} ${lateral.toFixed(2)} m; expected ${expected.toFixed(2)} m at k=${k})`);
+        }
         const delta = v.position.clone().sub(prev[i]), step = delta.length() * 30;
         const forward = delta.x * Math.cos(v.rotation.y) - delta.z * Math.sin(v.rotation.y);
         // Existing following-distance clamp can move a car backward when another car becomes active.

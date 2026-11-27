@@ -30,13 +30,15 @@ print(js(r'''(async () => {
  }
  const {createAmbient}=await import('./js/world/ambient.js'),{stops}=await import('./js/content.js'),{routePoints,routeCurve}=await import('./js/world/layout.js');
  const pts=routePoints(stops.length),curve=routeCurve(THREE,pts),scene=new THREE.Scene();
- const ambient=createAmbient(scene,{pts,curve,stops}), traffic=scene.children.slice(0,20), minis=traffic.filter(x=>x.name==='mini');
+ const ambient=createAmbient(scene,{pts,curve,stops}), traffic=scene.children.slice(0,20), minis=scene.children.filter(x=>x.name==='mini');
  const cream=new Set(['f1ead9','efe7d6']);
  const exclusive=()=>check(minis.every(x=>{let ok=true;x.traverse(o=>{if(o.isMesh&&o.material?.color&&cream.has(o.material.color.getHexString()))ok=false});return ok}), 'ambient cream Mini excluded');
- exclusive(); await ambient.ready;exclusive();
+ const heroRedRoof=()=>{let match=false;for(const x of minis)x.traverse(o=>{if(o.isMesh&&o.userData.role==='CarRoof'&&o.material?.color){const hsl={};o.material.color.getHSL(hsl);if(hsl.s>.6&&(hsl.h<.05||hsl.h>.95))match=true}});return match};
+ const distinct=()=>check(!heroRedRoof(),'ambient Minis must reserve the red roof livery for the hero');
+ exclusive(); distinct(); await ambient.ready;exclusive(); distinct();
  const cars=traffic.filter(x=>x.userData.fleetModel);check(cars.length===9,'nine regional traffic slots');
  check(cars.every(x=>catalog.find(m=>m.id===x.userData.fleetModel).region.includes(traffic.indexOf(x)>=16?'br':'uk')),'regional selection');
- const colors=new Set(['151a20','b9bec5','a31d2a','142b4a','173b2d']);
+ const colors=new Set(['151a20','b9bec5','a31d2a','142b4a','173b2d','e8e6df','5d6b78','7b4a2a','1f5560','b78a2a','6d1f3a']);
  check(cars.every(x=>{const m=catalog.find(y=>y.id===x.userData.fleetModel);let paint=[];x.traverse(o=>{if(o.isMesh&&m.paintMaterials.includes(o.material.name))paint.push(o.material)});return paint.length&&paint.every(p=>colors.has(p.color.getHexString())&&p.metalness<=.15&&p.clearcoat<=.4&&p.clearcoatRoughness>=.14)}),'automotive palette without pink');
  const before=traffic.map(x=>x.position.clone());for(let i=0;i<120;i++)ambient.update({time:i/30,t:.5,dt:1/30});
  check(traffic.some((x,i)=>x.visible&&x.position.distanceTo(before[i])>1),'traffic moves');
@@ -61,9 +63,9 @@ try:
     print(js(r'''(async()=>{
       const THREE=await import('three'),{createAmbient}=await import('./js/world/ambient.js'),{stops}=await import('./js/content.js'),{routePoints,routeCurve}=await import('./js/world/layout.js');
       const scene=new THREE.Scene(),pts=routePoints(stops.length),ambient=createAmbient(scene,{pts,curve:routeCurve(THREE,pts),stops});
-      const traffic=scene.children.slice(0,20),before=traffic.map(v=>v.children.slice());
+      const traffic=scene.children.slice(0,20),bodyChildren=v=>v.children.filter(child=>child.name!=='beam'),before=traffic.map(bodyChildren);
       await ambient.ready;
-      if(!traffic.every((v,i)=>v.children.every((c,j)=>c===before[i][j])))throw Error('failed GLBs must retain procedural children');
+      if(!traffic.every((v,i)=>bodyChildren(v).length===before[i].length&&bodyChildren(v).every((c,j)=>c===before[i][j])))throw Error('failed GLBs must retain procedural vehicle children');
       const minis=traffic.filter(v=>v.name==='mini');
       for(const v of minis)v.traverse(o=>{if(o.isMesh&&o.material?.color&&['f1ead9','efe7d6'].includes(o.material.color.getHexString()))throw Error('cream fallback on failed request')});
       ambient.dispose();return {failureFallback:true,minis:minis.length};
