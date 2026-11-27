@@ -57,10 +57,18 @@ function prepare(root, name, { track, env }) {
         m.userData.glowColor = new THREE.Color('#ffffff');
         m.userData.glowK = 0.28;
         m.onBeforeCompile = (sh) => {
-          sh.fragmentShader = sh.fragmentShader.replace('vec3 totalEmissiveRadiance = emissive;',
-            'vec3 totalEmissiveRadiance = emissive * (vColor.rgb / max(max(vColor.r, vColor.g), max(vColor.b, 1e-3)));');
+          // Round 3: the glazing read as one flat luminous slab at night. Same 3 m polar bays as the drum cladding: a hashed
+          // +-22% glow per bay and a dark mullion line at each bay edge, so the wall gets rhythm without new geometry.
+          sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vBayPos;')
+            .replace('#include <begin_vertex>', '#include <begin_vertex>\n  vBayPos = transformed;');
+          sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vBayPos;')
+            .replace('vec3 totalEmissiveRadiance = emissive;',
+              `float gBayU = atan(vBayPos.x, vBayPos.z) * length(vBayPos.xz) / 3.0;
+  float gBay = 0.78 + 0.44 * fract(sin(floor(gBayU) * 91.7) * 43758.5453);
+  float gMull = smoothstep(0.0, 0.05, fract(gBayU)) * smoothstep(1.0, 0.95, fract(gBayU));
+  vec3 totalEmissiveRadiance = emissive * (vColor.rgb / max(max(vColor.r, vColor.g), max(vColor.b, 1e-3))) * gBay * (0.35 + 0.65 * gMull);`);
         };
-        m.customProgramCacheKey = () => 'wembley-glass-hue-glow';
+        m.customProgramCacheKey = () => 'wembley-glass-hue-glow-bays';
       }
       if (name === 'wembley' && m.name === 'Mass') {
         // Drum cladding: vertical ~3 m bays around the bowl, +-5% hashed tone and a faint joint line.
